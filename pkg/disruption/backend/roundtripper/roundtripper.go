@@ -29,6 +29,9 @@ type Config struct {
 	// HostNameDecoder, if specified, is used to decode the APIServerIdentity
 	// inside the shutdown response header into the actual human readable hostname.
 	HostNameDecoder backend.HostNameDecoder
+
+	// Source contains pod name if incluster monitor is used
+	Source string
 }
 
 // NewClient returns a new Client instance constructed
@@ -42,16 +45,17 @@ func NewClient(c Config) (backend.Client, error) {
 		Transport: c.RT,
 		Timeout:   c.ClientTimeout,
 	}
-	return WrapClient(client, c.ClientTimeout, c.UserAgent, c.EnableShutdownResponseHeader, c.HostNameDecoder), nil
+	return WrapClient(client, c.ClientTimeout, c.UserAgent, c.EnableShutdownResponseHeader, c.HostNameDecoder, c.Source), nil
 }
 
 // WrapClient wraps the base http.Client object
-func WrapClient(client *http.Client, timeout time.Duration, userAgent string, shutdownResponse bool, decoder backend.HostNameDecoder) backend.Client {
+func WrapClient(client *http.Client, timeout time.Duration, userAgent string, shutdownResponse bool, decoder backend.HostNameDecoder, source string) backend.Client {
 	// This is the preferred order:
 	//   - WithTimeout will set a timeout within which the entire chain should finish
 	//   - WithShutdownResponseHeaderExtractor opts in for shutdown response header
 	//   - WithAuditID attaches an audit ID to the request header
 	//   - WithUserAgent sets the user agent
+	//   - WithSource sets the request source
 	//   - WithGotConnTrace sets the connection trace
 	//   - http.Client.Do executes
 	//   - WithRoundTripLatencyTracking measures the latency of http.Client
@@ -60,6 +64,7 @@ func WrapClient(client *http.Client, timeout time.Duration, userAgent string, sh
 	c := WithRoundTripLatencyTracking(client)
 	c = WithResponseBodyReader(c)
 	c = WithGotConnTrace(c)
+	c = WithSource(c, source)
 	c = WithUserAgent(c, userAgent)
 	c = WithAuditID(c)
 	if shutdownResponse {
@@ -198,6 +203,18 @@ func WithTimeout(delegate backend.Client, timeout time.Duration) backend.Client 
 			req = req.WithContext(ctx)
 		}
 
+		return delegate.Do(req)
+	})
+}
+
+// WithSource sets pod name for incluster monitor.
+func WithSource(delegate backend.Client, source string) backend.Client {
+	return backend.ClientFunc(func(req *http.Request) (*http.Response, error) {
+		defer func() {
+			if data := backend.RequestContextAssociatedDataFrom(req.Context()); data != nil {
+				data.Source = source
+			}
+		}()
 		return delegate.Do(req)
 	})
 }

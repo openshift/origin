@@ -36,6 +36,7 @@ type RunAPIDisruptionMonitorFlags struct {
 
 	ArtifactDir       string
 	LoadBalancerType  string
+	Source            string
 	StopConfigMapName string
 
 	genericclioptions.IOStreams
@@ -100,6 +101,7 @@ func NewRunInClusterDisruptionMonitorCommand(ioStreams genericclioptions.IOStrea
 
 func (f *RunAPIDisruptionMonitorFlags) AddFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&f.LoadBalancerType, "lb-type", f.LoadBalancerType, "Set load balancer type, available options: internal-lb, service-network, external-lb (default)")
+	flags.StringVar(&f.Source, "source-name", f.Source, "Set source identifier")
 	flags.StringVar(&f.StopConfigMapName, "stop-configmap", f.StopConfigMapName, "the name of the configmap that indicates that this pod should stop all watchers.")
 
 	f.ConfigFlags.AddFlags(flags)
@@ -164,6 +166,7 @@ type RunAPIDisruptionMonitorOptions struct {
 	KubeClientConfig  *rest.Config
 	OutputFile        string
 	LoadBalancerType  string
+	Source            string
 	StopConfigMapName string
 	Namespace         string
 
@@ -188,7 +191,7 @@ func (o *RunAPIDisruptionMonitorOptions) Run(ctx context.Context) error {
 	lb := backend.ParseStringToLoadBalancerType(o.LoadBalancerType)
 
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out, nil)
-	samplers, err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, recorder, o.KubeClientConfig, o.KubeClient, lb)
+	samplers, err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, recorder, o.KubeClientConfig, o.KubeClient, lb, o.Source)
 	if err != nil {
 		return err
 	}

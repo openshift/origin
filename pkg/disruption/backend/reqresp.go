@@ -24,8 +24,8 @@ type RequestResponse struct {
 }
 
 func (rr RequestResponse) String() string {
-	s := fmt.Sprintf("audit-id=%s conn-reused=%s status-code=%s protocol=%s roundtrip=%s retry-after=%s",
-		rr.GetAuditID(), rr.ConnectionReused(), rr.StatusCode(), rr.Protocol(), rr.RoundTripDuration.Round(time.Millisecond), rr.RetryAfter())
+	s := fmt.Sprintf("audit-id=%s conn-reused=%s status-code=%s protocol=%s roundtrip=%s retry-after=%s source=%s",
+		rr.GetAuditID(), rr.ConnectionReused(), rr.StatusCode(), rr.Protocol(), rr.RoundTripDuration.Round(time.Millisecond), rr.RetryAfter(), rr.Source)
 	if rr.ShutdownResponse != nil {
 		s = fmt.Sprintf("%s %s", s, rr.ShutdownResponse.String())
 	}
@@ -40,6 +40,7 @@ func (rr RequestResponse) Fields() map[string]interface{} {
 	fields["protocol"] = rr.Protocol()
 	fields["roundtrip"] = rr.RoundTripDuration.Round(time.Millisecond)
 	fields["retry-after"] = rr.RetryAfter()
+	fields["source"] = rr.Source
 	if rr.ShutdownResponse != nil {
 		for k, v := range rr.ShutdownResponse.Fields() {
 			fields[k] = v
