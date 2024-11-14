@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	olmv1GroupName = "olm.operatorframework.io"
+	olmv1GroupName                       = "olm.operatorframework.io"
+	typeIncompatibelOperatorsUpgradeable = "InstalledOLMOperatorsUpgradeable"
 )
 
 var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
@@ -99,7 +100,7 @@ var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
+var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -118,9 +119,14 @@ var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
 			exutil.DumpPodLogsStartingWith("", oc)
 		}
 		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
+		os.Remove(newCeFile)
 	})
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
+		const (
+			packageName = "quay-operator"
+			version     = "3.13.0"
+		)
 		// Check for tech preview, if this is not tech preview, bail
 		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
 			g.Skip("Test only runs in tech-preview")
@@ -131,8 +137,7 @@ var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
 		newCeFile = ceFile + "." + ns
 		b, err := os.ReadFile(ceFile)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		s := string(b)
-		s = strings.ReplaceAll(s, "{REPLACE}", ns)
+		s := updateCe(b, ns, packageName, version)
 		err = os.WriteFile(newCeFile, []byte(s), 0666)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -141,25 +146,106 @@ var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the ClusterExtention to be installed")
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
-			var conditions []metav1.Condition
-			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", "install-test-ce", "-o=jsonpath={.status.conditions}").Output()
-			if err != nil {
-				return false, err
-			}
-			// no data yet, so try again
-			if output == "" {
-				return false, nil
-			}
-			err = json.Unmarshal([]byte(output), &conditions)
-			if err != nil {
-				return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
-			}
-			if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
-				return false, nil
-			}
-			return true, nil
-		})
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				return WaitForClusterExtensionReady(oc, "install-test-ce")
+			})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("ensuring the cluster is upgradeable when no olm.maxopenshiftversion is specified")
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				return WaitForCondition(oc, true)
+			})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
+		const (
+			packageName = "elasticsearch-operator"
+			version     = "5.8.13"
+		)
+		// Check for tech preview, if this is not tech preview, bail
+		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
+			g.Skip("Test only runs in tech-preview")
+		}
+
+		ns := oc.Namespace()
+		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
+		newCeFile = ceFile + "." + ns
+		b, err := os.ReadFile(ceFile)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		s := updateCe(b, ns, packageName, version)
+		err = os.WriteFile(newCeFile, []byte(s), 0666)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("applying the necessary resources")
+		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("waiting for the ClusterExtention to be installed")
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				return WaitForClusterExtensionReady(oc, "install-test-ce")
+			})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("ensuring the cluster is upgradeable when no olm.maxopenshiftversion is specified")
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				return WaitForCondition(oc, false)
+			})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
+
+func updateCe(b []byte, args ...string) string {
+	s := string(b)
+	s = strings.ReplaceAll(s, "{REPLACE}", args[0])
+	s = strings.ReplaceAll(s, "{PACKAGENAME}", args[1])
+	s = strings.ReplaceAll(s, "{VERSION}", args[2])
+	return s
+}
+
+func WaitForClusterExtensionReady(oc *exutil.CLI, ceName string) (done bool, err error) {
+	var conditions []metav1.Condition
+	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=jsonpath={.status.conditions}").Output()
+	if err != nil {
+		return false, err
+	}
+	// no data yet, so try again
+	if output == "" {
+		return false, nil
+	}
+	err = json.Unmarshal([]byte(output), &conditions)
+	if err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionFalse) {
+		return false, nil
+	}
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
+		return false, nil
+	}
+	return true, nil
+}
+
+func WaitForCondition(oc *exutil.CLI, status bool) (done bool, err error) {
+	var conditions []metav1.Condition
+	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", "install-test-ce", "-o=jsonpath={.status.conditions}").Output()
+	if err != nil {
+		return false, err
+	}
+	// no data yet, so try again
+	if output == "" {
+		return false, nil
+	}
+	err = json.Unmarshal([]byte(output), &conditions)
+	if err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
+		return false, nil
+	}
+	return true, nil
+}
