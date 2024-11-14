@@ -208,6 +208,8 @@ const (
 	NodeUnreachable                 IntervalReason = "Unreachable"
 	// Kubelet tries to get lease five times and then gives up
 	NodeFailedLeaseBackoff IntervalReason = "FailedToUpdateLeaseInBackoff"
+	NodeDiskPressure       IntervalReason = "NodeDiskPressure"
+	NodeNoDiskPressure     IntervalReason = "NodeNoDiskPressure"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
