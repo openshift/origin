@@ -69,6 +69,9 @@ type TestConfiguration struct {
 	// response header extractor, this should be true only when the
 	// request(s) are being sent to the kube-apiserver.
 	EnableShutdownResponseHeader bool
+
+	// Source contains pod name if incluster monitor is used
+	Source string
 }
 
 // TestDescriptor defines the disruption test type, the user must
@@ -177,6 +180,7 @@ func (b *testFactory) New(c TestConfiguration) (Sampler, error) {
 		UserAgent:                    c.Name(),
 		EnableShutdownResponseHeader: c.EnableShutdownResponseHeader,
 		HostNameDecoder:              b.hostNameDecoder,
+		Source:                       c.Source,
 	})
 	if err != nil {
 		return nil, err
