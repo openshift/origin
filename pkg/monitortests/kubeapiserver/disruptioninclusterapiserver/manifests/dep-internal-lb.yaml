@@ -31,6 +31,7 @@ spec:
             - run-disruption
             - --output-file=/var/log/disruption-data/monitor-events/internal-lb-$(DEPLOYMENT_ID).txt
             - --lb-type=$(LOAD_BALANCER)
+            - --source-name=$(POD_NAME)
             - --stop-configmap=stop-configmap
           env:
             - name: KUBERNETES_SERVICE_HOST
@@ -42,6 +43,10 @@ spec:
             - name: DEPLOYMENT_ID
               #to be overwritten at deployment initialization time
               value: "DEFAULT"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           image: to-be-replaced
           volumeMounts:
             - mountPath: /var/log/disruption-data
