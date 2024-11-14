@@ -75,14 +75,18 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		}
 		r.pclient = oc.NewPrometheusClient(tctx)
 
+		fmt.Println("fetching operator configuration")
 		var operatorConfiguration *v1.ConfigMap
 		o.Eventually(func() error {
 			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 			if err != nil {
+				fmt.Println("error fetching operator configuration")
 				if errors.IsNotFound(err) {
+					fmt.Println("creating operator configuration")
 					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
 				if err != nil {
+					fmt.Println("error creating operator configuration")
 					return err
 				}
 			}
