@@ -95,6 +95,8 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	if o.GinkgoRunSuiteOptions.Invocations < o.GinkgoRunSuiteOptions.Invocation {
 		o.GinkgoRunSuiteOptions.Invocations = o.GinkgoRunSuiteOptions.Invocation
 	}
+	// TEST ONLY
+	o.GinkgoRunSuiteOptions.Invocations = 2
 	exitErrs := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", o.GinkgoRunSuiteOptions.Invocation, o.GinkgoRunSuiteOptions.Invocations, monitorTestInfo, false)
 
 	for i := range exitErrs {

@@ -360,6 +360,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 	var errs = make([]error, invocations)
 	for inv := invocation; inv <= invocations; inv++ {
 
+		jUnitDir := o.JUnitDir
+
+		if inv > 1 {
+			jUnitDir = filepath.Join(jUnitDir, fmt.Sprintf("inv%d", inv))
+		}
+
 		// this ensures the tests are always run in random order to avoid
 		// any intra-tests dependencies
 		suiteConfig, _ := ginkgo.GinkgoConfiguration()
@@ -418,13 +424,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 			return errs
 		}
 
-		if len(o.JUnitDir) > 0 {
-			if _, err := os.Stat(o.JUnitDir); err != nil {
+		if len(jUnitDir) > 0 {
+			if _, err := os.Stat(jUnitDir); err != nil {
 				if !os.IsNotExist(err) {
 					errs[inv-1] = fmt.Errorf("could not access --junit-dir: %v", err)
 					return errs
 				}
-				if err := os.MkdirAll(o.JUnitDir, 0755); err != nil {
+				if err := os.MkdirAll(jUnitDir, 0755); err != nil {
 					errs[inv-1] = fmt.Errorf("could not create --junit-dir: %v", err)
 					return errs
 				}
@@ -466,7 +472,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 		m := monitor.NewMonitor(
 			monitorEventRecorder,
 			restConfig,
-			o.JUnitDir,
+			jUnitDir,
 			monitorTests,
 		)
 		if err := m.Start(ctx); err != nil {
@@ -574,18 +580,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 		tests = append(tests, late...)
 
 		// TODO: will move to the monitor
-		if len(o.JUnitDir) > 0 {
+		if len(jUnitDir) > 0 {
 			pc.ComputePodTransitions()
 			data, err := pc.JsonDump()
 			if err != nil {
 				fmt.Fprintf(o.ErrOut, "Unable to dump pod placement data: %v\n", err)
 			} else {
-				if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
+				if err := ioutil.WriteFile(filepath.Join(jUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
 					fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
 				}
 			}
 			chains := pc.PodDisplacements().Dump(minChainLen)
-			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(jUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
 				fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
 			}
 		}
@@ -724,15 +730,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 			}
 
 			// we only write the buffer if we have an artifact location
-			if len(o.JUnitDir) > 0 {
+			if len(jUnitDir) > 0 {
 				// why don't we use timesuffix
 				filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", timeSuffix /*o.StartTime.UTC().Format("20060102-150405")*/)
-				if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+				if err := ioutil.WriteFile(filepath.Join(jUnitDir, filename), buf.Bytes(), 0644); err != nil {
 					fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
 				}
 
 				filename = fmt.Sprintf("events_used_for_junits_%s.json", timeSuffix /*o.StartTime.UTC().Format("20060102-150405")*/)
-				if err := monitorserialization.EventsToFile(filepath.Join(o.JUnitDir, filename), events); err != nil {
+				if err := monitorserialization.EventsToFile(filepath.Join(jUnitDir, filename), events); err != nil {
 					fmt.Fprintf(o.ErrOut, "error: Failed to junit event info: %v\n", err)
 				}
 			}
@@ -746,14 +752,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 			fmt.Fprintf(o.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
 		}
 
-		if len(o.JUnitDir) > 0 {
+		if len(jUnitDir) > 0 {
 			// review suite generation
 			finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, inv, duration, tests, syntheticTestResults...)
-			if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
+			if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, jUnitDir, o.ErrOut); err != nil {
 				fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 			}
 
-			if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
+			if err := riskanalysis.WriteJobRunTestFailureSummary(jUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
 				fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 			}
 		}
