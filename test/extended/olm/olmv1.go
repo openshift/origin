@@ -23,31 +23,26 @@ const (
 	typeIncompatibelOperatorsUpgradeable = "InstalledOLMOperatorsUpgradeable"
 )
 
-var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkFeatureCapability(ctx, oc)
 
-		// supports multiple versions during transision
 		providedAPIs := []struct {
 			group   string
-			version []string
+			version string
 			plural  string
 		}{
 			{
 				group:   olmv1GroupName,
-				version: []string{"v1alpha1", "v1"},
+				version: "v1",
 				plural:  "clusterextensions",
 			},
 			{
 				group:   olmv1GroupName,
-				version: []string{"v1alpha1", "v1"},
+				version: "v1",
 				plural:  "clustercatalogs",
 			},
 		}
@@ -55,14 +50,7 @@ var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
 		for _, api := range providedAPIs {
 			g.By(fmt.Sprintf("checking %s at version %s [apigroup:%s]", api.plural, api.version, api.group))
 			// Ensure expected version exists in spec.versions and is both served and stored
-			var err error
-			var raw string
-			for _, ver := range api.version {
-				raw, err = oc.AsAdmin().Run("get").Args("crds", fmt.Sprintf("%s.%s", api.plural, api.group), fmt.Sprintf("-o=jsonpath={.spec.versions[?(@.name==%q)]}", ver)).Output()
-				if err == nil {
-					break
-				}
-			}
+			raw, err := oc.AsAdmin().Run("get").Args("crds", fmt.Sprintf("%s.%s", api.plural, api.group), fmt.Sprintf("-o=jsonpath={.spec.versions[?(@.name==%q)]}", api.version)).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(raw).To(o.MatchRegexp(`served.?:true`))
 			o.Expect(raw).To(o.MatchRegexp(`storage.?:true`))
@@ -70,16 +58,12 @@ var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkFeatureCapability(ctx, oc)
 
 		providedCatalogs := []string{
 			"openshift-certified-operators",
@@ -102,7 +86,7 @@ var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -125,15 +109,12 @@ var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
 	})
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
+		checkFeatureCapability(ctx, oc)
+
 		const (
 			packageName = "quay-operator"
 			version     = "3.13.0"
 		)
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
 
 		ns := oc.Namespace()
 		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
@@ -164,15 +145,12 @@ var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
+		checkFeatureCapability(ctx, oc)
+
 		const (
 			packageName = "elasticsearch-operator"
 			version     = "5.8.13"
 		)
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
 
 		ns := oc.Namespace()
 		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
@@ -205,7 +183,7 @@ var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
 
 func updateCe(b []byte, args ...string) string {
 	s := string(b)
-	s = strings.ReplaceAll(s, "{REPLACE}", args[0])
+	s = strings.ReplaceAll(s, "{NAMESPACE}", args[0])
 	s = strings.ReplaceAll(s, "{PACKAGENAME}", args[1])
 	s = strings.ReplaceAll(s, "{VERSION}", args[2])
 	return s
@@ -252,4 +230,15 @@ func WaitForCondition(oc *exutil.CLI, status bool) (done bool, err error) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func checkFeatureCapability(ctx context.Context, oc *exutil.CLI) {
+	// Hardcoded until openshift/api is updated:
+	// import (	configv1 "github.com/openshift/api/config/v1" )
+	// configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1
+	cap, err := exutil.IsCapabilityEnabled(oc, "OperatorLifecycleManagerV1")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if !cap {
+		g.Skip("Test only runs with OperatorLifecycleManagerV1 capability")
+	}
 }
