@@ -558,9 +558,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				DeferCleanup(func() {
 					cleanup()
 					By("delete pods in test namespace to unblock CUDN CR & associate NAD deletion")
-					_, err := e2ekubectl.RunKubectl(c.namespace, "delete", "pod", "--all")
-					Expect(err).NotTo(HaveOccurred())
-					_, err = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name)
+					Expect(cs.CoreV1().Pods(c.namespace).DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{})).To(Succeed())
+					_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name, "--wait", fmt.Sprintf("--timeout=%ds", 120))
 					Expect(err).NotTo(HaveOccurred())
 				})
 				Expect(waitForClusterUserDefinedNetworkReady(c.name, 5*time.Second)).To(Succeed())
@@ -727,10 +726,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			BeforeEach(func() {
 				By("create test CR")
 				cleanup, err := createManifest("", newClusterUDNManifest(testClusterUdnName, testTenantNamespaces...))
-				DeferCleanup(func() error {
+				DeferCleanup(func() {
 					cleanup()
-					_, _ = e2ekubectl.RunKubectl("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName)
-					return nil
+					_, err := e2ekubectl.RunKubectl("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName, "--wait", fmt.Sprintf("--timeout=%ds", 60))
+					Expect(err).NotTo(HaveOccurred())
 				})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(waitForClusterUserDefinedNetworkReady(testClusterUdnName, 5*time.Second)).To(Succeed())
@@ -941,10 +940,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			By("create primary Cluster UDN CR")
 			const cudnName = "primary-net"
 			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
-			DeferCleanup(func() error {
+			DeferCleanup(func() {
 				cleanup()
-				_, _ = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName)
-				return nil
+				_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 60))
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			expectedMessage := fmt.Sprintf("primary network already exist in namespace %q: %q", primaryNetTenantNs, primaryNadName)
