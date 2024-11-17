@@ -558,8 +558,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("delete pods in test namespace to unblock CUDN CR & associate NAD deletion")
 					_, err := e2ekubectl.RunKubectl(c.namespace, "delete", "pod", "--all")
 					Expect(err).NotTo(HaveOccurred())
-					_, err = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name)
-					Expect(err).NotTo(HaveOccurred())
+					_, _ = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name)
+					Eventually(func() bool {
+						_, err := e2ekubectl.RunKubectl("", "get", "clusteruserdefinednetwork", c.name)
+						return strings.Contains(err.Error(), fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", c.name))
+					}, 1*time.Minute, 3*time.Second).Should(BeTrueBecause("ClusterUserDefinedNetwork %q should be gone", c.name))
 				})
 				Expect(waitForClusterUserDefinedNetworkReady(c.name, 5*time.Second)).To(Succeed())
 				return err
@@ -728,6 +731,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				DeferCleanup(func() error {
 					cleanup()
 					_, _ = e2ekubectl.RunKubectl("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName)
+					Eventually(func() bool {
+						_, err := e2ekubectl.RunKubectl("", "get", clusterUserDefinedNetworkResource, testClusterUdnName)
+						return strings.Contains(err.Error(), fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", testClusterUdnName))
+					}, 1*time.Minute, 3*time.Second).Should(BeTrueBecause("ClusterUserDefinedNetwork %q should be gone", testClusterUdnName))
 					return nil
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -942,6 +949,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			DeferCleanup(func() error {
 				cleanup()
 				_, _ = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName)
+				Eventually(func() bool {
+					_, err := e2ekubectl.RunKubectl("", "get", "clusteruserdefinednetwork", cudnName)
+					return strings.Contains(err.Error(), fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", cudnName))
+				}, 1*time.Minute, 3*time.Second).Should(BeTrueBecause("ClusterUserDefinedNetwork %q should be gone", cudnName))
 				return nil
 			})
 
