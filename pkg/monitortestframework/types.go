@@ -34,6 +34,9 @@ type MonitorTestInitializationInfo struct {
 
 	// DisableMonitorTests will remove any monitor tests contained in the provided list
 	DisableMonitorTests []string
+
+	// RemoveMonitor will completely remove and disable all monitor tests in the provided list.
+	RemoveMonitor bool
 }
 
 type MonitorTest interface {

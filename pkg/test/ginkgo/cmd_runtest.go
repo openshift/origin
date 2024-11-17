@@ -3,11 +3,12 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 
@@ -40,6 +41,7 @@ type TestOptions struct {
 
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+	RemoveMonitor       bool
 }
 
 var _ ginkgo.GinkgoTestingT = &TestOptions{}
@@ -89,6 +91,7 @@ func (o *TestOptions) Run(args []string) error {
 		ClusterStabilityDuringTest: monitortestframework.Stable,
 		ExactMonitorTests:          o.ExactMonitorTests,
 		DisableMonitorTests:        o.DisableMonitorTests,
+		RemoveMonitor:              o.RemoveMonitor,
 	}
 	var m monitor.Interface
 	if o.EnableMonitor {

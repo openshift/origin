@@ -32,6 +32,7 @@ type RunMonitorFlags struct {
 	DisplayFromNow      bool
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+	RemoveMonitor       bool
 	FromRepository      string
 
 	genericclioptions.IOStreams
@@ -89,6 +90,7 @@ func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&f.ExactMonitorTests, "monitor", f.ExactMonitorTests,
 		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
 	flags.StringSliceVar(&f.DisableMonitorTests, "disable-monitor", f.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
+	flags.BoolVar(&f.RemoveMonitor, "remove-monitor", f.RemoveMonitor, "remove all monitors. Defaults to false.")
 	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
 }
 
@@ -123,6 +125,7 @@ func (f *RunMonitorFlags) getMonitorTestRegistry() (monitortestframework.Monitor
 		ClusterStabilityDuringTest: monitortestframework.Stable,
 		ExactMonitorTests:          f.ExactMonitorTests,
 		DisableMonitorTests:        f.DisableMonitorTests,
+		RemoveMonitor:              f.RemoveMonitor,
 	}
 	return defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 }
