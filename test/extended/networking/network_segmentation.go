@@ -558,8 +558,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("delete pods in test namespace to unblock CUDN CR & associate NAD deletion")
 					_, err := e2ekubectl.RunKubectl(c.namespace, "delete", "pod", "--all")
 					Expect(err).NotTo(HaveOccurred())
-					_, err = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name)
-					Expect(err).NotTo(HaveOccurred())
+					_, _ = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name)
+					Eventually(func() error {
+						_, err := e2ekubectl.RunKubectl("", "get", "clusteruserdefinednetwork", c.name)
+						return err
+					}, 1*time.Minute, 3*time.Second).Should(MatchError(ContainSubstring(fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", c.name))))
 				})
 				Expect(waitForClusterUserDefinedNetworkReady(c.name, 5*time.Second)).To(Succeed())
 				return err
@@ -728,6 +731,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				DeferCleanup(func() error {
 					cleanup()
 					_, _ = e2ekubectl.RunKubectl("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName)
+					Eventually(func() bool {
+						_, err := e2ekubectl.RunKubectl("", "get", clusterUserDefinedNetworkResource, testClusterUdnName)
+						return strings.Contains(err.Error(), fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", testClusterUdnName))
+					}, 1*time.Minute, 3*time.Second).Should(BeTrueBecause("ClusterUserDefinedNetwork %q should be gone", testClusterUdnName))
 					return nil
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -939,10 +946,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			By("create primary Cluster UDN CR")
 			const cudnName = "primary-net"
 			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
-			DeferCleanup(func() error {
+			DeferCleanup(func() {
 				cleanup()
 				_, _ = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName)
-				return nil
+				Eventually(func() error {
+					_, err := e2ekubectl.RunKubectl("", "get", "clusteruserdefinednetwork", cudnName)
+					return err
+				}, 1*time.Minute, 3*time.Second).Should(MatchError(ContainSubstring(fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", cudnName))))
 			})
 
 			expectedMessage := fmt.Sprintf("primary network already exist in namespace %q: %q", primaryNetTenantNs, primaryNadName)
