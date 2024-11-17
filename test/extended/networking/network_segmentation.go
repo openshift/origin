@@ -948,16 +948,19 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				return nil
 			})
 
-			conditionsJSON, err := e2ekubectl.RunKubectl(f.Namespace.Name, "get", "clusteruserdefinednetwork", cudnName, "-o", "jsonpath={.status.conditions}")
-			Expect(err).NotTo(HaveOccurred())
-			var actualConditions []metav1.Condition
-			Expect(json.Unmarshal([]byte(conditionsJSON), &actualConditions)).To(Succeed())
-
-			Expect(actualConditions[0].Type).To(Equal("NetworkReady"))
-			Expect(actualConditions[0].Status).To(Equal(metav1.ConditionFalse))
-			Expect(actualConditions[0].Reason).To(Equal("NetworkAttachmentDefinitionSyncError"))
 			expectedMessage := fmt.Sprintf("primary network already exist in namespace %q: %q", primaryNetTenantNs, primaryNadName)
-			Expect(actualConditions[0].Message).To(Equal(expectedMessage))
+			Eventually(func(g Gomega) []metav1.Condition {
+				conditionsJSON, err := e2ekubectl.RunKubectl(f.Namespace.Name, "get", "clusteruserdefinednetwork", cudnName, "-o", "jsonpath={.status.conditions}")
+				g.Expect(err).NotTo(HaveOccurred())
+				var actualConditions []metav1.Condition
+				g.Expect(json.Unmarshal([]byte(conditionsJSON), &actualConditions)).To(Succeed())
+				return normalizeConditions(actualConditions)
+			}, 5*time.Second, 1*time.Second).Should(ConsistOf(metav1.Condition{
+				Type:    "NetworkReady",
+				Status:  metav1.ConditionFalse,
+				Reason:  "NetworkAttachmentDefinitionSyncError",
+				Message: expectedMessage,
+			}))
 		})
 
 		Context("UDN Pod", func() {
