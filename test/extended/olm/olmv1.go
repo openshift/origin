@@ -20,21 +20,16 @@ import (
 
 const (
 	olmv1GroupName                       = "olm.operatorframework.io"
-	typeIncompatibelOperatorsUpgradeable = "InstalledOLMOperatorsUpgradeable"
+	typeIncompatibleOperatorsUpgradeable = "InstalledOLMOperatorsUpgradeable"
 )
 
-var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkFeatureCapability(ctx, oc)
 
-		// supports multiple versions during transision
 		providedAPIs := []struct {
 			group   string
 			version []string
@@ -42,12 +37,12 @@ var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
 		}{
 			{
 				group:   olmv1GroupName,
-				version: []string{"v1alpha1", "v1"},
+				version: []string{"v1"},
 				plural:  "clusterextensions",
 			},
 			{
 				group:   olmv1GroupName,
-				version: []string{"v1alpha1", "v1"},
+				version: []string{"v1"},
 				plural:  "clustercatalogs",
 			},
 		}
@@ -70,16 +65,12 @@ var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkFeatureCapability(ctx, oc)
 
 		providedCatalogs := []string{
 			"openshift-certified-operators",
@@ -102,7 +93,46 @@ var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 New Catalog Install", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		baseDir = exutil.FixturePath("testdata", "olmv1")
+		catFile = filepath.Join(baseDir, "install-catalog.yaml")
+		catName = "bad-catalog"
+	)
+
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.BeforeEach(func() {
+		exutil.PreTestDump()
+	})
+
+	g.AfterEach(func() {
+		if g.CurrentSpecReport().Failed() {
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", catFile).Execute()
+		os.Remove(catFile)
+	})
+
+	g.It("should fail to install if it has an invalid reference", func(ctx g.SpecContext) {
+		checkFeatureCapability(ctx, oc)
+
+		g.By("applying the necessary resources")
+		err := oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", catFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("checking that %q is not serving", catName))
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				return waitForCatalogFailure(oc, catName)
+			})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -125,93 +155,95 @@ var _ = g.Describe("[sig-olmv1][Serial] OLMv1 operator installation", func() {
 	})
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
+		checkFeatureCapability(ctx, oc)
+
 		const (
 			packageName = "quay-operator"
 			version     = "3.13.0"
 		)
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
 
-		ns := oc.Namespace()
-		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
-		newCeFile = ceFile + "." + ns
-		b, err := os.ReadFile(ceFile)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		s := updateCe(b, ns, packageName, version)
-		err = os.WriteFile(newCeFile, []byte(s), 0666)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("applying the necessary resources")
-		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		newCeFile = applyClusterExtension(oc, packageName, version, ceFile)
 
 		g.By("waiting for the ClusterExtention to be installed")
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+		err := wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return WaitForClusterExtensionReady(oc, "install-test-ce")
+				return waitForClusterExtensionReady(oc, "install-test-ce")
 			})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("ensuring the cluster is upgradeable when no olm.maxopenshiftversion is specified")
 		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return WaitForCondition(oc, true)
+				return waitForUpgradableCondition(oc, true)
+			})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.It("should fail to install a non-existing cluster extension", func(ctx g.SpecContext) {
+		checkFeatureCapability(ctx, oc)
+
+		const (
+			packageName = "does-not-exist"
+			version     = "99.99.99"
+		)
+
+		newCeFile = applyClusterExtension(oc, packageName, version, ceFile)
+
+		g.By("waiting for the ClusterExtention to report failure")
+		err := wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+			func(ctx context.Context) (bool, error) {
+				return waitForClusterExtensionFailure(oc, "install-test-ce")
 			})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
-		g.Skip("Test is temporarily disabled while we make anticipated, breaking changes.")
+		g.Skip("This test is broken: need to verify OCP max version behavior")
+		checkFeatureCapability(ctx, oc)
+
 		const (
 			packageName = "elasticsearch-operator"
 			version     = "5.8.13"
 		)
-		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
 
-		ns := oc.Namespace()
-		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
-		newCeFile = ceFile + "." + ns
-		b, err := os.ReadFile(ceFile)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		s := updateCe(b, ns, packageName, version)
-		err = os.WriteFile(newCeFile, []byte(s), 0666)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("applying the necessary resources")
-		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		newCeFile = applyClusterExtension(oc, packageName, version, ceFile)
 
 		g.By("waiting for the ClusterExtention to be installed")
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
+		err := wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return WaitForClusterExtensionReady(oc, "install-test-ce")
+				return waitForClusterExtensionReady(oc, "install-test-ce")
 			})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("ensuring the cluster is upgradeable when no olm.maxopenshiftversion is specified")
+		g.By("ensuring the cluster is not upgradeable when olm.maxopenshiftversion is specified")
 		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return WaitForCondition(oc, false)
+				return waitForUpgradableCondition(oc, false)
 			})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
-func updateCe(b []byte, args ...string) string {
+func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) string {
+	ns := oc.Namespace()
+	g.By(fmt.Sprintf("updating the namespace to: %q", ns))
+	newCeFile := ceFile + "." + ns
+	b, err := os.ReadFile(ceFile)
+	o.Expect(err).NotTo(o.HaveOccurred())
 	s := string(b)
-	s = strings.ReplaceAll(s, "{REPLACE}", args[0])
-	s = strings.ReplaceAll(s, "{PACKAGENAME}", args[1])
-	s = strings.ReplaceAll(s, "{VERSION}", args[2])
-	return s
+	s = strings.ReplaceAll(s, "{NAMESPACE}", ns)
+	s = strings.ReplaceAll(s, "{PACKAGENAME}", packageName)
+	s = strings.ReplaceAll(s, "{VERSION}", version)
+	err = os.WriteFile(newCeFile, []byte(s), 0666)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("applying the necessary resources")
+	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return newCeFile
 }
 
-func WaitForClusterExtensionReady(oc *exutil.CLI, ceName string) (done bool, err error) {
+func waitForClusterExtensionReady(oc *exutil.CLI, ceName string) (done bool, err error) {
 	var conditions []metav1.Condition
 	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=jsonpath={.status.conditions}").Output()
 	if err != nil {
@@ -225,7 +257,7 @@ func WaitForClusterExtensionReady(oc *exutil.CLI, ceName string) (done bool, err
 	if err != nil {
 		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionFalse) {
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionTrue) {
 		return false, nil
 	}
 	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
@@ -234,9 +266,9 @@ func WaitForClusterExtensionReady(oc *exutil.CLI, ceName string) (done bool, err
 	return true, nil
 }
 
-func WaitForCondition(oc *exutil.CLI, status bool) (done bool, err error) {
+func waitForClusterExtensionFailure(oc *exutil.CLI, ceName string) (done bool, err error) {
 	var conditions []metav1.Condition
-	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", "install-test-ce", "-o=jsonpath={.status.conditions}").Output()
+	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=jsonpath={.status.conditions}").Output()
 	if err != nil {
 		return false, err
 	}
@@ -248,8 +280,79 @@ func WaitForCondition(oc *exutil.CLI, status bool) (done bool, err error) {
 	if err != nil {
 		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionTrue) {
+		return false, nil
+	}
+	c := meta.FindStatusCondition(conditions, "Progressing")
+	if c == nil {
+		return false, fmt.Errorf("Progressing condtion should not be nil")
+	}
+	if !strings.HasPrefix(c.Message, "no bundles found") {
+		return false, nil
+	}
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionFalse) {
 		return false, nil
 	}
 	return true, nil
+}
+
+func waitForUpgradableCondition(oc *exutil.CLI, status bool) (bool, error) {
+	var conditions []metav1.Condition
+	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("olms.operator.openshift.io", "cluster", "-o=jsonpath={.status.conditions}").Output()
+	if err != nil {
+		return false, err
+	}
+	// no data yet, so try again
+	if output == "" {
+		return false, nil
+	}
+	err = json.Unmarshal([]byte(output), &conditions)
+	if err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	}
+	if status {
+		return meta.IsStatusConditionTrue(conditions, typeIncompatibleOperatorsUpgradeable), nil
+	}
+	return meta.IsStatusConditionFalse(conditions, typeIncompatibleOperatorsUpgradeable), nil
+}
+
+func waitForCatalogFailure(oc *exutil.CLI, name string) (bool, error) {
+	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clustercatalogs.olm.operatorframework.io", name, "-o=jsonpath={.status.conditions}").Output()
+	if err != nil {
+		return false, err
+	}
+	// no data yet, so try again
+	if output == "" {
+		return false, nil
+	}
+	var conditions []metav1.Condition
+	err = json.Unmarshal([]byte(output), &conditions)
+	if err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	}
+	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionTrue) {
+		return false, nil
+	}
+	c := meta.FindStatusCondition(conditions, "Progressing")
+	if c == nil {
+		return false, fmt.Errorf("Progressing condtion should not be nil")
+	}
+	if c.Reason != "Retrying" {
+		return false, nil
+	}
+	if !strings.Contains(c.Message, "error creating image source") {
+		return false, nil
+	}
+	return true, nil
+}
+
+func checkFeatureCapability(ctx context.Context, oc *exutil.CLI) {
+	// Hardcoded until openshift/api is updated:
+	// import (	configv1 "github.com/openshift/api/config/v1" )
+	// configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1
+	cap, err := exutil.IsCapabilityEnabled(oc, "OperatorLifecycleManagerV1")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if !cap {
+		g.Skip("Test only runs with OperatorLifecycleManagerV1 capability")
+	}
 }
