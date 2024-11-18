@@ -1705,13 +1705,13 @@ var Annotations = map[string]string{
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed": " [Suite:openshift/conformance/parallel]",
+	"[sig-olmv1] OLMv1 CRDs should be installed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs should be installed": " [Suite:openshift/conformance/parallel]",
+	"[sig-olmv1] OLMv1 Catalogs should be installed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation should block cluster upgrades if an incompatible operator is installed": " [Suite:openshift/conformance/serial]",
+	"[sig-olmv1][Serial] OLMv1 operator installation should block cluster upgrades if an incompatible operator is installed": " [Suite:openshift/conformance/serial]",
 
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation should install a cluster extension": " [Suite:openshift/conformance/serial]",
+	"[sig-olmv1][Serial] OLMv1 operator installation should install a cluster extension": " [Suite:openshift/conformance/serial]",
 
 	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
