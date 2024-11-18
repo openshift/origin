@@ -244,14 +244,6 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork
         status should report not-ready'
-  - featureGate: NewOLM
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs should be installed'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation
-        should block cluster upgrades if an incompatible operator is installed'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation
-        should install a cluster extension'
   - featureGate: PersistentIPsForVirtualization
     tests:
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
