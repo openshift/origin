@@ -29,7 +29,8 @@ var (
 	}
 	onDiskCABundles = certs.CABundleInfoByOnDiskLocation{
 		{Path: "/etc/kubernetes/ca.crt"}: {OwningJiraComponent: "Machine Config Operator"},
-		{Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}:          {OwningJiraComponent: "kube-apiserver"},
+		{Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}: {OwningJiraComponent: "kube-apiserver"},
+		{Path: "/etc/kubernetes/kubeconfig"}: {OwningJiraComponent: "kube-apiserver"},
 		{Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}: {OwningJiraComponent: "kube-controller-manager"},
 		{Path: "/etc/pki/tls/cert.pem"}:            {OwningJiraComponent: "RHCOS"},
 		{Path: "/etc/pki/tls/certs/ca-bundle.crt"}: {OwningJiraComponent: "RHCOS"},

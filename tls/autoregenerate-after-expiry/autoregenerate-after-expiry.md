@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (258)](#Items-Do-NOT-Meet-the-Requirement-258)
+  - [Items Do NOT Meet the Requirement (259)](#Items-Do-NOT-Meet-the-Requirement-259)
     - [Unknown Owner (4)](#Unknown-Owner-4)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -37,9 +37,9 @@
     - [etcd (31)](#etcd-31)
       - [Certificates (22)](#Certificates-22)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [kube-apiserver (45)](#kube-apiserver-45)
+    - [kube-apiserver (46)](#kube-apiserver-46)
       - [Certificates (25)](#Certificates-25)
-      - [Certificate Authority Bundles (20)](#Certificate-Authority-Bundles-20)
+      - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
     - [kube-controller-manager (12)](#kube-controller-manager-12)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
@@ -69,7 +69,7 @@ This assertion means that you have
       QE has required test every release that ensures the functionality works every release.
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (258)
+## Items Do NOT Meet the Requirement (259)
 ### Unknown Owner (4)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -759,7 +759,7 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### kube-apiserver (45)
+### kube-apiserver (46)
 #### Certificates (25)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
@@ -964,7 +964,7 @@ If you have not done this, you should not merge the annotation.
 
 
 
-#### Certificate Authority Bundles (20)
+#### Certificate Authority Bundles (21)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** 
@@ -1131,7 +1131,20 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-20. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+20. file /etc/kubernetes/kubeconfig
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
+21. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
