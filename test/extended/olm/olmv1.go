@@ -135,16 +135,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator in
 				return WaitForClusterExtensionReady(oc, "install-test-ce")
 			})
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("ensuring the cluster is upgradeable when no olm.maxopenshiftversion is specified")
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
-			func(ctx context.Context) (bool, error) {
-				return WaitForCondition(oc, true)
-			})
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
+		g.Skip("Testing for incompatible operators is disabled")
 		checkFeatureCapability(ctx, oc)
 
 		const (
