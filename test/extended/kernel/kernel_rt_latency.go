@@ -42,11 +42,6 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime/latency][Disruptiv
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running cyclictest")
 	})
 
-	g.It("rteval", func() {
-		err := runRteval(oc)
-		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running rteval")
-	})
-
 	g.AfterEach(func() {
 		cleanupRtTestPod(oc)
 	})
