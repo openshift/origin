@@ -40,8 +40,7 @@ import (
 var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("router-metrics", admissionapi.LevelBaseline)
-
+		oc                              = exutil.NewCLIWithPodSecurityLevel("router-metrics", admissionapi.LevelBaseline)
 		username, password, bearerToken string
 		metricsPort                     int32
 		execPodName, ns, host           string
@@ -159,7 +158,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			p := expfmt.TextParser{}
 
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
-				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
+				results, err = getBearerTokenURLViaPod(oc, ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -239,7 +238,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			time.Sleep(15 * time.Second)
 
 			g.By("checking that some metrics are not reset to 0 after router restart")
-			updatedResults, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
+			updatedResults, err := getBearerTokenURLViaPod(oc, ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() { e2e.Logf("final metrics:\n%s", updatedResults) }()
 
@@ -283,7 +282,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			}()
 
 			o.Expect(wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", url), token)
+				contents, err := getBearerTokenURLViaPod(oc, ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", url), token)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &promTargets{}
@@ -518,13 +517,12 @@ func execCommandInPod(clientset *kubernetes.Clientset, config *rest.Config, name
 	return stdoutOutput, nil
 }
 
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	// Replacing e2eoutput.RunHostCmd function with Exec function below
-	// because the former prints the bearer token in case of test failure which leads to the entire CI log removal.
-	rawOutput, err := Exec(ns, execPodName, cmd)
-	output := parseOutput(rawOutput, bearer, url)
-	return output, err
+func getBearerTokenURLViaPod(oc *exutil.CLI, ns, execPodName, url, bearer string) (string, error) {
+	stdout, stderr, err := oc.Run("exec").Args(execPodName, "-n", ns, "--", "curl", "-s", "-k", "-H", "'Authorization:", "Bearer", bearer+"'", url).Outputs()
+	if err != nil {
+		return "", fmt.Errorf("command failed: %v\nstderr: %s\nstdout:%s", err, stderr, stdout)
+	}
+	return stdout, err
 }
 
 func parseOutput(output, bearer, url string) string {
