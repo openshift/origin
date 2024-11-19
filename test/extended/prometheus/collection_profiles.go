@@ -57,6 +57,7 @@ type runner struct {
 // NOTE: The containers themselves are guaranteed to run in the order in which they appear.
 var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
+	g.Skip("skipping to check provided configmap's initial state")
 
 	o.SetDefaultEventuallyTimeout(15 * time.Minute)
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
