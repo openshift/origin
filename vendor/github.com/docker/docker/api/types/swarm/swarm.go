@@ -122,7 +122,7 @@ type CAConfig struct {
 	SigningCAKey  string `json:",omitempty"`
 
 	// If this value changes, and there is no specified signing cert and key,
-	// then the swarm is forced to generate a new root certificate ane key.
+	// then the swarm is forced to generate a new root certificate and key.
 	ForceRotate uint64 `json:",omitempty"`
 }
 
@@ -211,6 +211,16 @@ type Info struct {
 	Cluster *ClusterInfo `json:",omitempty"`
 
 	Warnings []string `json:",omitempty"`
+}
+
+// Status provides information about the current swarm status and role,
+// obtained from the "Swarm" header in the API response.
+type Status struct {
+	// NodeState represents the state of the node.
+	NodeState LocalNodeState
+
+	// ControlAvailable indicates if the node is a swarm manager.
+	ControlAvailable bool
 }
 
 // Peer represents a peer.

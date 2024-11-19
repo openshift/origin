@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"time"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
+	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	opv1 "github.com/openshift/api/operator/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -291,4 +293,46 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
+}
+
+func getMCPFromFixture(path string) (*mcfgv1.MachineConfigPool, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	mcp := new(mcfgv1.MachineConfigPool)
+	err = yaml.Unmarshal(data, mcp)
+	if err != nil {
+		return nil, err
+	}
+
+	return mcp, err
+}
+
+func getMOSCFromFixture(path string) (*mcfgv1alpha1.MachineOSConfig, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	mosc := new(mcfgv1alpha1.MachineOSConfig)
+	err = yaml.Unmarshal(data, mosc)
+	if err != nil {
+		return nil, err
+	}
+
+	return mosc, err
+}
+
+func getNodesForPool(ctx context.Context, oc *exutil.CLI, pool *mcfgv1.MachineConfigPool) (*corev1.NodeList, error) {
+	selector, err := metav1.LabelSelectorAsSelector(pool.Spec.NodeSelector)
+	if err != nil {
+		return nil, fmt.Errorf("invalid label selector: %w", err)
+	}
+	nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, fmt.Errorf("couldnt get nodes for mcp: %w", err)
+	}
+	return nodes, nil
 }

@@ -1,0 +1,19 @@
+# See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
+
+# This matches the fedora-coreos-tools team members.
+# XXX: figure out a way to just have it use GitHub team membership directly.
+
+approvers:
+  - arithx
+  - ashcrow
+  - bgilbert
+  - cgwalters
+  - darkmuggle
+  - dustymabe
+  - jlebon
+  - LorbusChris
+  - lucab
+  - miabbott
+  - mike-nguyen
+  - yuqi-zhang
+  - zonggen
