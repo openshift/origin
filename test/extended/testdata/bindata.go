@@ -439,6 +439,7 @@
 // test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
+// test/extended/testdata/olmv1/install-catalog.yaml
 // test/extended/testdata/olmv1/install-operator.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
@@ -50052,16 +50053,42 @@ func testExtendedTestdataOlmSubscriptionYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1InstallCatalogYaml = []byte(`apiVersion: olm.operatorframework.io/v1
+kind: ClusterCatalog
+metadata:
+  name: bad-catalog
+spec:
+  source:
+   type: Image
+   image:
+     ref: example.com/does-not-exist:latest
+`)
+
+func testExtendedTestdataOlmv1InstallCatalogYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallCatalogYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallCatalogYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmv1InstallOperatorYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: install-test-sa
-  namespace: {REPLACE}
+  namespace: {NAMESPACE}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: crb-{REPLACE}
+  name: crb-{NAMESPACE}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -50069,17 +50096,16 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: install-test-sa
-  namespace: {REPLACE}
+  namespace: {NAMESPACE}
 ---
-apiVersion: olm.operatorframework.io/v1alpha1
+apiVersion: olm.operatorframework.io/v1
 kind: ClusterExtension
 metadata:
   name: install-test-ce
 spec:
-  install:
-    namespace: {REPLACE}
-    serviceAccount:
-      name: install-test-sa
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa
   source:
     catalog:
       packageName: {PACKAGENAME}
@@ -55674,6 +55700,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                       testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
+	"test/extended/testdata/olmv1/install-catalog.yaml":                                                      testExtendedTestdataOlmv1InstallCatalogYaml,
 	"test/extended/testdata/olmv1/install-operator.yaml":                                                     testExtendedTestdataOlmv1InstallOperatorYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
@@ -56437,6 +56464,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
 				}},
 				"olmv1": {nil, map[string]*bintree{
+					"install-catalog.yaml":  {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
 					"install-operator.yaml": {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
 				}},
 				"poddisruptionbudgets": {nil, map[string]*bintree{
