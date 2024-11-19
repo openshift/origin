@@ -117,10 +117,17 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests-upgrade", monitorTestInfo, true)
-	if exitErr != nil {
-		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
+
+	// can only run upgrade once
+	// we pass Invocation in the case this upgrade is being chained
+	// along after a previous upgrade and we want to note that in the output via invocation
+	exitErrs := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests-upgrade", o.GinkgoRunSuiteOptions.Invocation, o.GinkgoRunSuiteOptions.Invocation, monitorTestInfo, true)
+	for i := range exitErrs {
+		if exitErrs[i] != nil {
+			fmt.Fprintf(os.Stderr, "Suite run (%d) returned error: %s\n", i, exitErrs[i].Error())
+		}
 	}
 
-	return exitErr
+	// overall exit status determined by the first invocation
+	return exitErrs[0]
 }
