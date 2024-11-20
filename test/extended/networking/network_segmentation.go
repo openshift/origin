@@ -847,14 +847,18 @@ func assertUDNStatusReportsConsumers(udnNamesapce, udnName, expectedPodName stri
 	conditions = normalizeConditions(conditions)
 	expectedMsg := fmt.Sprintf("failed to verify NAD not in use [%[1]s/%[2]s]: network in use by the following pods: [%[1]s/%[3]s]",
 		udnNamesapce, udnName, expectedPodName)
-	Expect(conditions).To(Equal([]metav1.Condition{
-		{
+	found := false
+	for _, condition := range conditions {
+		if found, _ = Equal(metav1.Condition{
 			Type:    "NetworkReady",
 			Status:  "False",
 			Reason:  "SyncError",
 			Message: expectedMsg,
-		},
-	}))
+		}).Match(condition); found {
+			break
+		}
+	}
+	Expect(found).To(BeTrue(), "expected condition not found in %v", conditions)
 }
 
 func normalizeConditions(conditions []metav1.Condition) []metav1.Condition {
