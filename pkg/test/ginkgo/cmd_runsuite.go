@@ -3,7 +3,9 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -31,7 +33,7 @@ import (
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
-	"github.com/openshift/origin/pkg/test/externalbinary"
+	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -142,16 +144,30 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := externalbinary.ExtractAllTestBinaries(extractionContext, extractLogger, 10)
+		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, extractLogger, 10)
 		if err != nil {
 			return err
 		}
 		defer cleanUpFn()
 
+		defaultBinaryParallelism := 10
+
+		// Learn about the extension binaries available
+		// TODO(stbenjam): we'll eventually use this information to get suite information -- but not yet in this iteration
+		infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer infoContextCancel()
+		extensionInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Discovered %d extensions, detailed below\n", len(extensionInfo))
+		j, _ := json.MarshalIndent(extensionInfo, "", "  ")
+		fmt.Println(string(j))
+
 		// List tests from all available binaries and convert them to origin's testCase format
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer listContextCancel()
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, 10)
+		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism)
 		if err != nil {
 			return err
 		}
@@ -557,6 +573,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
+		if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, o.ErrOut); err != nil {
+			fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
+		}
+
 		if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
@@ -578,6 +598,48 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
+	// Ensure the directory exists
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to create directory %s: %v\n", dir, err)
+		return err
+	}
+
+	// Collect results into a slice
+	var results extensions.ExtensionTestResults
+	for _, test := range tests {
+		if test.extensionTestResult != nil {
+			results = append(results, test.extensionTestResult)
+		}
+	}
+
+	// Marshal results to JSON
+	data, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		fmt.Fprintf(out, "Failed to marshal test results to JSON: %v\n", err)
+		return err
+	}
+
+	// Write JSON data to file
+	filePath := filepath.Join(dir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
+	file, err := os.Create(filePath)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to create file %s: %v\n", filePath, err)
+		return err
+	}
+	defer file.Close()
+
+	fmt.Fprintf(out, "Writing extension test results JSON to %s\n", filePath)
+	_, err = file.Write(data)
+	if err != nil {
+		fmt.Fprintf(out, "Failed to write to file %s: %v\n", filePath, err)
+		return err
+	}
+
+	return nil
 }
 
 func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, tests []*testCase) ([]*testCase, error) {

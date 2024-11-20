@@ -13,9 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/extensions"
+
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type testSuiteRunner interface {
@@ -71,6 +74,8 @@ func mutateTestCaseWithResults(test *testCase, testRunResult *testRunResultHandl
 	test.duration = duration
 
 	test.testOutputBytes = testRunResult.testOutputBytes
+
+	test.extensionTestResult = testRunResult.extensionTestResult
 
 	switch testRunResult.testState {
 	case TestFlaked:
@@ -134,11 +139,12 @@ type testRunResultHandle struct {
 }
 
 type testRunResult struct {
-	name            string
-	start           time.Time
-	end             time.Time
-	testState       TestState
-	testOutputBytes []byte
+	name                string
+	start               time.Time
+	end                 time.Time
+	testState           TestState
+	testOutputBytes     []byte
+	extensionTestResult *extensions.ExtensionTestResult
 }
 
 func (r testRunResult) duration() time.Duration {
@@ -197,21 +203,14 @@ func (c *commandContext) commandString(test *testCase) string {
 		parts := strings.SplitN(env, "=", 2)
 		fmt.Fprintf(buf, "%s=%q ", parts[0], parts[1])
 	}
-	testBinary, testName := c.extractCommands(test)
-	fmt.Fprintf(buf, "%s %s %q", testBinary, "run-test", testName)
-	return buf.String()
-}
 
-func (c *commandContext) extractCommands(test *testCase) (string, string) {
-	testBinary := test.binaryName
-	if len(testBinary) == 0 {
-		testBinary = os.Args[0]
-	}
 	testName := test.rawName
-	if len(testName) == 0 {
+	if testName == "" {
 		testName = test.name
 	}
-	return testBinary, testName
+
+	fmt.Fprintf(buf, "%s %s %q", os.Args[0], "run-test", testName)
+	return buf.String()
 }
 
 func recordTestResultInLogWithoutOverlap(testRunResult *testRunResultHandle, testOutputLock *sync.Mutex, out io.Writer, includeSuccessfulOutput bool) {
@@ -305,9 +304,35 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	}
 
 	ret.start = time.Now()
-	testBinary, testName := c.extractCommands(test)
-	command := exec.Command(testBinary, "run-test", testName)
-	command.Env = append(os.Environ(), updateEnvVars(c.env)...)
+	testEnv := append(os.Environ(), updateEnvVars(c.env)...)
+
+	if test.binary != nil {
+		results := test.binary.RunTests(ctx, c.timeout, testEnv, test.name)
+		if len(results) != 1 {
+			fmt.Fprintf(os.Stderr, "warning: expected 1 result from external binary; received %d", len(results))
+		}
+		switch results[0].Result {
+		case extensions.ResultFailed:
+			ret.testState = TestFailed
+			ret.testOutputBytes = []byte(fmt.Sprintf("%s\n%s", results[0].Output, results[0].Error))
+		case extensions.ResultPassed:
+			ret.testState = TestSucceeded
+		case extensions.ResultSkipped:
+			ret.testState = TestSkipped
+		}
+		ret.start = extensions.Time(results[0].StartTime)
+		ret.end = extensions.Time(results[0].EndTime)
+		ret.extensionTestResult = results[0]
+		return ret
+	}
+
+	testName := test.rawName
+	if testName == "" {
+		testName = test.name
+	}
+
+	command := exec.Command(os.Args[0], "run-test", testName)
+	command.Env = testEnv
 
 	timeout := c.timeout
 	if test.testTimeout != 0 {

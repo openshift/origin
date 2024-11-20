@@ -1,4 +1,4 @@
-package externalbinary
+package extensions
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
 	"log"
 	"os"
 	"os/exec"
@@ -15,32 +16,48 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-type externalBinaryStruct struct {
+// TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
+type TestBinary struct {
 	// The payload image tag in which an external binary path can be found
 	imageTag string
 	// The binary path to extract from the image
 	binaryPath string
 }
 
-var externalBinaries = []externalBinaryStruct{
+var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "hyperkube",
-		binaryPath: "/usr/bin/k8s-tests",
+		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 }
 
-// TestBinary is an abstraction around extracted test binaries that provides an interface for listing the available
-// tests. In the future, it will implement the entire openshift-tests-extension interface.
-type TestBinary struct {
-	path   string
-	logger *log.Logger
+// Info returns information about this particular extension.
+func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
+	var info ExtensionInfo
+	start := time.Now()
+	binName := filepath.Base(b.binaryPath)
+
+	fmt.Fprintf(os.Stderr, "Fetching info for %q\n", binName)
+	command := exec.Command(b.binaryPath, "info")
+	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("failed running '%s info': %w", b.binaryPath, err)
+	}
+	err = json.Unmarshal(infoJson, &info)
+	if err != nil {
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension info")
+	}
+	info.Source.SourceBinary = binName
+	info.Source.SourceImage = b.imageTag
+	fmt.Fprintf(os.Stderr, "Fetched info for %q in %v\n", binName, time.Since(start))
+	return &info, nil
 }
 
 // ListTests returns which tests this binary advertises.  Eventually, it should take an environment struct
@@ -48,13 +65,13 @@ type TestBinary struct {
 func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) {
 	var tests ExtensionTestSpecs
 	start := time.Now()
-	binName := filepath.Base(b.path)
+	binName := filepath.Base(b.binaryPath)
 
-	b.logger.Printf("Listing tests for %q", binName)
-	command := exec.Command(b.path, "list")
+	fmt.Fprintf(os.Stderr, "Listing tests for %q", binName)
+	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w", b.path, err)
+		return nil, fmt.Errorf("failed running '%s list': %w", b.binaryPath, err)
 	}
 	buf := bytes.NewBuffer(testList)
 	for {
@@ -62,22 +79,86 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 		if err == io.EOF {
 			break
 		}
-		if !strings.HasPrefix(line, "[{") {
+		if !strings.HasPrefix(line, "{") {
 			continue
 		}
 
-		var extensionTestSpecs ExtensionTestSpecs
-		err = json.Unmarshal([]byte(line), &extensionTestSpecs)
+		extensionTestSpec := new(ExtensionTestSpec)
+		err = json.Unmarshal([]byte(line), extensionTestSpec)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "line: %s", line)
 		}
-		for i := range extensionTestSpecs {
-			extensionTestSpecs[i].Binary = b.path
-		}
-		tests = append(tests, extensionTestSpecs...)
+		extensionTestSpec.Binary = b
+		tests = append(tests, extensionTestSpec)
 	}
-	b.logger.Printf("Listed %d tests for %q in %v", len(tests), binName, time.Since(start))
+	fmt.Fprintf(os.Stderr, "Listed %d tests for %q in %v", len(tests), binName, time.Since(start))
 	return tests, nil
+}
+
+// RunTests executes the named tests and returns the results.
+func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []string,
+	names ...string) []*ExtensionTestResult {
+	var results []*ExtensionTestResult
+	unseenTests := sets.New[string](names...)
+	binName := filepath.Base(b.binaryPath)
+
+	// Build command
+	args := []string{"run-test"}
+	for _, name := range names {
+		args = append(args, "-n", name)
+	}
+	args = append(args, "-o", "jsonl")
+	command := exec.Command(b.binaryPath, args...)
+	if len(env) == 0 {
+		env = os.Environ()
+	}
+	command.Env = env
+
+	// Run test
+	testResult, err := runWithTimeout(ctx, command, timeout)
+	buf := bytes.NewBuffer(testResult)
+	for {
+		line, err := buf.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if !strings.HasPrefix(line, "{") {
+			continue
+		}
+		result := new(ExtensionTestResult)
+		err = json.Unmarshal([]byte(line), &result)
+		if err != nil {
+			panic(fmt.Sprintf("test binary %q returned unmarshallable result", binName))
+		}
+		if !unseenTests.Has(result.Name) {
+			result.Result = ResultFailed
+			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
+		}
+		unseenTests.Delete(result.Name)
+		results = append(results, result)
+	}
+	if len(results) == 0 && err != nil {
+		// If errored, generate failures for all tests and return
+		for _, name := range names {
+			results = append(results, &ExtensionTestResult{
+				Name:   name,
+				Result: ResultFailed,
+				Output: string(testResult),
+				Error:  fmt.Sprintf("external binary didn't produce a result for this test: %s", err.Error()),
+			})
+		}
+		return results
+	}
+
+	for _, unseenTest := range unseenTests.UnsortedList() {
+		results = append(results, &ExtensionTestResult{
+			Name:   unseenTest,
+			Result: ResultFailed,
+			Error:  "external binary did not produce a result for this test",
+		})
+	}
+
+	return results
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
@@ -146,7 +227,7 @@ func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism
 					return nil, nil, fmt.Errorf("unable to serialize target cluster pull-secret locally: %w", err)
 				}
 
-				defer os.Remove(registryAuthFilePath)
+				defer os.RemoveAll(tmpDir)
 				logger.Printf("Using target cluster pull-secrets for registry auth")
 			}
 		}
@@ -161,14 +242,14 @@ func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism
 		binaries []*TestBinary
 		mu       sync.Mutex
 		wg       sync.WaitGroup
-		errCh    = make(chan error, len(externalBinaries))
-		jobCh    = make(chan externalBinaryStruct)
+		errCh    = make(chan error, len(extensionBinaries))
+		jobCh    = make(chan TestBinary)
 	)
 
 	// Producer: sends jobs to the jobCh channel
 	go func() {
 		defer close(jobCh)
-		for _, b := range externalBinaries {
+		for _, b := range extensionBinaries {
 			select {
 			case <-ctx.Done():
 				return // Exit if context is cancelled
@@ -222,6 +303,69 @@ func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism
 }
 
 type TestBinaries []*TestBinary
+
+// Info fetches teh info from all TestBinaries using the specified parallelism.
+func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*ExtensionInfo, error) {
+	var (
+		infos []*ExtensionInfo
+		mu    sync.Mutex
+		wg    sync.WaitGroup
+		errCh = make(chan error, len(binaries))
+		jobCh = make(chan *TestBinary)
+	)
+
+	// Producer: sends jobs to the jobCh channel
+	go func() {
+		defer close(jobCh)
+		for _, binary := range binaries {
+			select {
+			case <-ctx.Done():
+				return // Exit when context is cancelled
+			case jobCh <- binary:
+			}
+		}
+	}()
+
+	// Consumer workers: extract tests concurrently
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return // Exit when context is cancelled
+				case binary, ok := <-jobCh:
+					if !ok {
+						return // Channel was closed
+					}
+					info, err := binary.Info(ctx)
+					if err != nil {
+						errCh <- err
+					}
+					mu.Lock()
+					infos = append(infos, info)
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+
+	// Wait for all workers to finish
+	wg.Wait()
+	close(errCh)
+
+	// Check if any errors were reported
+	var errs []string
+	for err := range errCh {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("encountered errors while fetch info: %s", strings.Join(errs, ";"))
+	}
+
+	return infos, nil
+}
 
 // ListTests extracts the tests from all TestBinaries using the specified parallelism.
 func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int) (ExtensionTestSpecs, error) {
