@@ -65,7 +65,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
@@ -93,7 +93,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 New Catalog Install", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New Catalog Install", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -132,7 +132,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 New Catalog Install
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial] OLMv1 operator installation", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial][Skipped:Disconnected] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 
 	var (
