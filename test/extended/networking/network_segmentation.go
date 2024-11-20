@@ -866,7 +866,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					}
 					cfg := podConfig(testPodName, withNetworkAttachment(networkAttachments))
 					cfg.namespace = inUseNetTestTenantNamespace
-					runUDNPod(cs, inUseNetTestTenantNamespace, *cfg, nil)
+					runUDNPod(cs, inUseNetTestTenantNamespace, *cfg, setRuntimeDefaultPSA)
 				})
 
 				It("CR & managed NADs cannot be deleted when being used", func() {
