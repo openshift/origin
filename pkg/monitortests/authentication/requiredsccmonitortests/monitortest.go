@@ -36,6 +36,19 @@ var nonStandardSCCNamespaces = map[string]sets.Set[string]{
 	"machine-api-termination-handler": sets.New("openshift-machine-api"),
 }
 
+var namespacesWithPendingSCCPinning = sets.NewString(
+	"openshift-cluster-csi-drivers",
+	"openshift-cluster-version",
+	"openshift-image-registry",
+	"openshift-ingress",
+	"openshift-ingress-canary",
+	"openshift-ingress-operator",
+	"openshift-insights",
+	"openshift-machine-api",
+	"openshift-marketplace",
+	"openshift-monitoring",
+)
+
 type requiredSCCAnnotationChecker struct {
 	kubeClient kubernetes.Interface
 }
@@ -72,6 +85,11 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 		if !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" && !isPermanentOpenShiftNamespace {
 			continue
 		}
+
+		// check if the namespace should be treated as flaking when failed
+		flakeWhenFailed := ns.Labels["openshift.io/run-level"] == "0" ||
+			ns.Labels["openshift.io/run-level"] == "1" ||
+			namespacesWithPendingSCCPinning.Has(ns.Name)
 
 		pods, err := w.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
@@ -130,18 +148,21 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 		}
 
 		failureMsg := strings.Join(failures, "\n")
+
 		junits = append(junits,
 			&junitapi.JUnitTestCase{
 				Name:          testName,
 				SystemOut:     failureMsg,
 				FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
-			},
+			})
 
-			// add a successful test with the same name to cause a flake
-			&junitapi.JUnitTestCase{
-				Name: testName,
-			},
-		)
+		// add a successful test with the same name to cause a flake
+		if flakeWhenFailed {
+			junits = append(junits,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				})
+		}
 	}
 
 	return nil, junits, nil
