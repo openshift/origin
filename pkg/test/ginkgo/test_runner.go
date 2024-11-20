@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/origin/pkg/test/externalbinary"
 	"io"
 	"os"
 	"os/exec"
@@ -197,21 +198,14 @@ func (c *commandContext) commandString(test *testCase) string {
 		parts := strings.SplitN(env, "=", 2)
 		fmt.Fprintf(buf, "%s=%q ", parts[0], parts[1])
 	}
-	testBinary, testName := c.extractCommands(test)
-	fmt.Fprintf(buf, "%s %s %q", testBinary, "run-test", testName)
-	return buf.String()
-}
 
-func (c *commandContext) extractCommands(test *testCase) (string, string) {
-	testBinary := test.binaryName
-	if len(testBinary) == 0 {
-		testBinary = os.Args[0]
-	}
 	testName := test.rawName
-	if len(testName) == 0 {
+	if testName == "" {
 		testName = test.name
 	}
-	return testBinary, testName
+
+	fmt.Fprintf(buf, "%s %s %q", os.Args[0], "run-test", testName)
+	return buf.String()
 }
 
 func recordTestResultInLogWithoutOverlap(testRunResult *testRunResultHandle, testOutputLock *sync.Mutex, out io.Writer, includeSuccessfulOutput bool) {
@@ -305,9 +299,33 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	}
 
 	ret.start = time.Now()
-	testBinary, testName := c.extractCommands(test)
-	command := exec.Command(testBinary, "run-test", testName)
-	command.Env = append(os.Environ(), updateEnvVars(c.env)...)
+	testEnv := append(os.Environ(), updateEnvVars(c.env)...)
+
+	if test.binary != nil {
+		results := test.binary.RunTests(ctx, testEnv, test.name)
+		if len(results) != 1 {
+			panic("unexpected result")
+		}
+		switch results[0].Result {
+		case externalbinary.ResultFailed:
+			ret.testState = TestFailed
+			ret.testOutputBytes = []byte(results[0].Error) // FIXME
+		case externalbinary.ResultPassed:
+			ret.testState = TestSucceeded
+		case externalbinary.ResultSkipped:
+			ret.testState = TestSkipped
+		}
+		ret.start = externalbinary.Time(results[0].StartTime)
+		ret.end = externalbinary.Time(results[0].EndTime)
+	}
+
+	testName := test.rawName
+	if testName == "" {
+		testName = test.name
+	}
+
+	command := exec.Command(os.Args[0], "run-test", testName)
+	command.Env = testEnv
 
 	timeout := c.timeout
 	if test.testTimeout != 0 {

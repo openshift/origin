@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -27,7 +28,7 @@ type externalBinaryStruct struct {
 var externalBinaries = []externalBinaryStruct{
 	{
 		imageTag:   "hyperkube",
-		binaryPath: "/usr/bin/k8s-tests",
+		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 }
 
@@ -46,7 +47,7 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 	binName := filepath.Base(b.path)
 
 	b.logger.Printf("Listing tests for %q", binName)
-	command := exec.Command(b.path, "list")
+	command := exec.Command(b.path, "list", "-o", "jsonl")
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s list': %w", b.path, err)
@@ -57,22 +58,79 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 		if err == io.EOF {
 			break
 		}
-		if !strings.HasPrefix(line, "[{") {
+		if !strings.HasPrefix(line, "{") {
 			continue
 		}
 
-		var extensionTestSpecs ExtensionTestSpecs
-		err = json.Unmarshal([]byte(line), &extensionTestSpecs)
+		extensionTestSpec := new(ExtensionTestSpec)
+		err = json.Unmarshal([]byte(line), extensionTestSpec)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "line: %s", line)
 		}
-		for i := range extensionTestSpecs {
-			extensionTestSpecs[i].Binary = b.path
-		}
-		tests = append(tests, extensionTestSpecs...)
+		extensionTestSpec.Binary = b
+		tests = append(tests, extensionTestSpec)
 	}
 	b.logger.Printf("Listed %d tests for %q in %v", len(tests), binName, time.Since(start))
 	return tests, nil
+}
+
+func (b *TestBinary) RunTests(ctx context.Context, env []string, names ...string) []*ExtensionTestResult {
+	var results []*ExtensionTestResult
+	//unseenTests := sets.New[string](names...)
+	binName := filepath.Base(b.path)
+
+	// Build command
+	args := []string{"run-test"}
+	for _, name := range names {
+		args = append(args, "-n", name)
+	}
+	args = append(args, "-o", "jsonl")
+	command := exec.Command(b.path, args...)
+	if len(env) == 0 {
+		env = os.Environ()
+	}
+	command.Env = env
+
+	// Run test
+	testResult, err := runWithTimeout(ctx, command, 60*time.Minute) //FIXME: timeout?
+	if err != nil {
+		// If errored, generate failures for all tests and return
+		for _, name := range names {
+			results = append(results, &ExtensionTestResult{
+				Name:   name,
+				Result: ResultFailed,
+				Error:  err.Error(),
+			})
+		}
+		return results
+	}
+	buf := bytes.NewBuffer(testResult)
+	for {
+		line, err := buf.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if !strings.HasPrefix(line, "{") {
+			continue
+		}
+		result := new(ExtensionTestResult)
+		err = json.Unmarshal([]byte(line), &result)
+		if err != nil {
+			panic(fmt.Sprintf("test binary %q returned unmarshallable result", binName))
+		}
+		/*if !unseenTests.Has(result.Name) {
+			panic(fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name))
+		}
+		unseenTests.Delete(result.Name)
+		*/
+		results = append(results, result)
+	}
+
+	/*if unseenTests.Len() > 0 {
+		panic(fmt.Sprintf("test binary %q did not return results for some tests: %s", binName, strings.Join(unseenTests.UnsortedList(), ",")))
+	}*/
+
+	return results
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
