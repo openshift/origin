@@ -85,11 +85,13 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
 					operatorConfiguration = nil
-					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
+
+				return err
 			}
 
-			return err
+			return nil
 		}).Should(o.BeNil())
 		r.originalOperatorConfiguration = operatorConfiguration
 	})
