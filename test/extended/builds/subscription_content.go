@@ -1,13 +1,16 @@
 package builds
 
 import (
+	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -75,14 +78,14 @@ var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds in
 		})
 
 		g.It("should succeed for RHEL 8 base images", func() {
-			err := oc.Run("apply").Args("-f", rhel8BuildConfig).Execute()
+			err := oc.Run("apply").Args("-f", "-").InputString(ReadBuildConfig(rhel8BuildConfig, oc)).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "creating BuildConfig")
 			br, _ := exutil.StartBuildAndWait(oc, "subscription-content-rhel8")
 			br.AssertSuccess()
 		})
 
 		g.It("should succeed for RHEL 9 base images", func() {
-			err := oc.Run("apply").Args("-f", rhel9BuildConfig).Execute()
+			err := oc.Run("apply").Args("-f", "-").InputString(ReadBuildConfig(rhel9BuildConfig, oc)).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "creating BuildConfig")
 			br, _ := exutil.StartBuildAndWait(oc, "subscription-content-rhel9")
 			br.AssertSuccess()
@@ -91,3 +94,22 @@ var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds in
 	})
 
 })
+
+// Read and Convert the BuildConfig to use the architecture of the cluster
+func ReadBuildConfig(path string, oc *exutil.CLI) string {
+	data, _ := ioutil.ReadFile(path)
+	arch := ClusterArchitecture(oc)
+	return strings.Replace(string(data[:]), "x86_64", arch, -1)
+}
+
+// Get the cluster architecture
+func ClusterArchitecture(oc *exutil.CLI) (arch string) {
+	output, err := oc.WithoutNamespace().AsAdmin().Run("get").Args("nodes", "-o=jsonpath={.items[*].metadata.labels.kubernetes\\.io/arch}").Output()
+	if err != nil {
+		e2e.Failf("unable to get the cluster architecture")
+	}
+	if output == "" {
+		e2e.Failf("the retrieved architecture is empty")
+	}
+	return strings.Split(output, " ")[0]
+}
