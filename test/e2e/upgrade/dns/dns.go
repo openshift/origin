@@ -150,6 +150,7 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 			line := scan.Text()
 			if strings.Contains(line, "fail") {
 				failureCount++
+				ginkgo.By(fmt.Sprintf("Failure detected in pod %s on node %s at %s: %s", pod.Name, pod.Spec.NodeName, time.Now().Format(time.RFC3339), line))
 			} else if ip := net.ParseIP(line); ip != nil {
 				successCount++
 			}
