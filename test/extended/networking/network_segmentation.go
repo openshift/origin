@@ -71,12 +71,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		})
 
 		DescribeTableSubtree("created using",
-			func(createNetworkFn func(c networkAttachmentConfigParams) error) {
+			func(createNetworkFn func(c *networkAttachmentConfigParams) error) {
 
 				DescribeTable(
 					"can perform east/west traffic between nodes",
 					func(
-						netConfig networkAttachmentConfigParams,
+						netConfig *networkAttachmentConfigParams,
 						clientPodConfig podConfiguration,
 						serverPodConfig podConfiguration,
 					) {
@@ -127,7 +127,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					},
 					Entry(
 						"for two pods connected over a L2 primary UDN",
-						networkAttachmentConfigParams{
+						&networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
 							role:     "primary",
@@ -141,7 +141,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 					Entry(
 						"two pods connected over a L3 primary UDN",
-						networkAttachmentConfigParams{
+						&networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
 							role:     "primary",
@@ -158,7 +158,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				DescribeTable(
 					"is isolated from the default network",
 					func(
-						netConfigParams networkAttachmentConfigParams,
+						netConfigParams *networkAttachmentConfigParams,
 						udnPodConfig podConfiguration,
 					) {
 						By("Creating second namespace for default network pods")
@@ -342,7 +342,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					},
 					Entry(
 						"with L2 primary UDN",
-						networkAttachmentConfigParams{
+						&networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
 							role:     "primary",
@@ -353,7 +353,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 					Entry(
 						"with L3 primary UDN",
-						networkAttachmentConfigParams{
+						&networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
 							role:     "primary",
@@ -379,7 +379,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						namespaceRed := f.Namespace.Name + "-" + red
 						namespaceBlue := f.Namespace.Name + "-" + blue
 
-						netConfig := networkAttachmentConfigParams{
+						netConfig := &networkAttachmentConfigParams{
 							topology: topology,
 							cidr:     correctCIDRFamily(oc, userDefinedv4Subnet, userDefinedv6Subnet),
 							role:     "primary",
@@ -407,7 +407,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							netConfig.name = network
 
 							Expect(createNetworkFn(netConfig)).To(Succeed())
+							// update the name because createNetworkFn may mutate the netConfig.name
+							// for cluster scope objects (i.g.: CUDN cases) to enable parallel testing.
+							networkNamespaceMap[namespace] = netConfig.name
 						}
+						red = networkNamespaceMap[namespaceRed]
+						blue = networkNamespaceMap[namespaceBlue]
+
 						workerNodes, err := getWorkerNodesOrdered(cs)
 						Expect(err).NotTo(HaveOccurred())
 						pods := []*v1.Pod{}
@@ -540,27 +546,29 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 				)
 			},
-			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
-				netConfig := newNetworkAttachmentConfig(c)
+			Entry("NetworkAttachmentDefinitions", func(c *networkAttachmentConfigParams) error {
+				netConfig := newNetworkAttachmentConfig(*c)
 				nad := generateNAD(netConfig)
 				_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 				return err
 			}),
-			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
-				udnManifest := generateUserDefinedNetworkManifest(&c)
+			Entry("UserDefinedNetwork", func(c *networkAttachmentConfigParams) error {
+				udnManifest := generateUserDefinedNetworkManifest(c)
 				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
 				Expect(waitForUserDefinedNetworkReady(c.namespace, c.name, udnCrReadyTimeout)).To(Succeed())
 				return err
 			}),
-			Entry("ClusterUserDefinedNetwork", func(c networkAttachmentConfigParams) error {
-				cudnManifest := generateClusterUserDefinedNetworkManifest(&c)
+			Entry("ClusterUserDefinedNetwork", func(c *networkAttachmentConfigParams) error {
+				cudnName := randomNetworkMetaName()
+				c.name = cudnName
+				cudnManifest := generateClusterUserDefinedNetworkManifest(c)
 				cleanup, err := createManifest("", cudnManifest)
 				DeferCleanup(func() {
 					cleanup()
 					By("delete pods in test namespace to unblock CUDN CR & associate NAD deletion")
 					Expect(cs.CoreV1().Pods(c.namespace).DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{})).To(Succeed())
-					_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name, "--wait", fmt.Sprintf("--timeout=%ds", 120))
+					_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 120))
 					Expect(err).NotTo(HaveOccurred())
 				})
 				Expect(waitForClusterUserDefinedNetworkReady(c.name, 5*time.Second)).To(Succeed())
@@ -700,13 +708,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		})
 
 		Context("ClusterUserDefinedNetwork CRD Controller", func() {
-			const (
-				testClusterUdnName                = "test-cluster-net"
-				clusterUserDefinedNetworkResource = "clusteruserdefinednetwork"
-			)
-			var (
-				testTenantNamespaces []string
-			)
+			const clusterUserDefinedNetworkResource = "clusteruserdefinednetwork"
+
+			var testTenantNamespaces []string
+
 			BeforeEach(func() {
 				testTenantNamespaces = []string{
 					f.Namespace.Name + "blue",
@@ -724,7 +729,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				}
 			})
 
+			var testClusterUdnName string
+
 			BeforeEach(func() {
+				testClusterUdnName = randomNetworkMetaName()
 				By("create test CR")
 				cleanup, err := createManifest("", newClusterUDNManifest(testClusterUdnName, testTenantNamespaces...))
 				DeferCleanup(func() error {
@@ -943,7 +951,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(err).NotTo(HaveOccurred())
 
 			By("create primary Cluster UDN CR")
-			const cudnName = "primary-net"
+			cudnName := randomNetworkMetaName()
 			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
 			DeferCleanup(func() {
 				cleanup()
@@ -1081,6 +1089,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		})
 	})
 })
+
+// randomNetworkMetaName return pseudo random name for network related objects (NAD,UDN,CUDN).
+// CUDN is cluster-scoped object, in case tests running in parallel, having random names avoids
+// conflicting with other tests.
+func randomNetworkMetaName() string {
+	return fmt.Sprintf("test-net-%s", rand.String(5))
+}
 
 var nadToUdnParams = map[string]string{
 	"primary":   "Primary",
