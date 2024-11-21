@@ -19563,7 +19563,7 @@ spec:
     dockerfile: |
       FROM registry.access.redhat.com/ubi8/ubi:latest
       RUN rm -rf /etc/rhsm-host
-      RUN yum --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms install \
+      RUN yum --enablerepo=codeready-builder-for-rhel-8-$(arch)-rpms install \
           nss_wrapper \
           uid_wrapper -y && \
           yum clean all -y
@@ -19620,7 +19620,7 @@ spec:
     dockerfile: |
       FROM registry.access.redhat.com/ubi9/ubi:latest
       RUN rm -rf /etc/rhsm-host
-      RUN yum --enablerepo=codeready-builder-for-rhel-9-x86_64-rpms install \
+      RUN yum --enablerepo=codeready-builder-for-rhel-9-$(arch)-rpms install \
           nss_wrapper \
           uid_wrapper -y && \
           yum clean all -y
