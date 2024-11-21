@@ -49,7 +49,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			defaultPort                  = 8080
 			userDefinedNetworkIPv4Subnet = "203.203.0.0/16"
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
-			nadName                      = "gryffindor"
 
 			udnCrReadyTimeout = 5 * time.Second
 		)
@@ -125,7 +124,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Entry(
 						"for two pods connected over a L2 primary UDN",
 						networkAttachmentConfigParams{
-							name:     nadName,
+							name:     randomNetworkMetaName(),
 							topology: "layer2",
 							role:     "primary",
 						},
@@ -139,7 +138,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Entry(
 						"two pods connected over a L3 primary UDN",
 						networkAttachmentConfigParams{
-							name:     nadName,
+							name:     randomNetworkMetaName(),
 							topology: "layer3",
 							role:     "primary",
 						},
@@ -340,7 +339,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Entry(
 						"with L2 primary UDN",
 						networkAttachmentConfigParams{
-							name:     nadName,
+							name:     randomNetworkMetaName(),
 							topology: "layer2",
 							role:     "primary",
 						},
@@ -351,7 +350,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Entry(
 						"with L3 primary UDN",
 						networkAttachmentConfigParams{
-							name:     nadName,
+							name:     randomNetworkMetaName(),
 							topology: "layer3",
 							role:     "primary",
 						},
@@ -370,8 +369,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 					) {
 
-						red := "red"
-						blue := "blue"
+						red := "red-" + rand.String(5)
+						blue := "blue-" + rand.String(5)
 
 						namespaceRed := f.Namespace.Name + "-" + red
 						namespaceBlue := f.Namespace.Name + "-" + blue
@@ -701,13 +700,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		})
 
 		Context("ClusterUserDefinedNetwork CRD Controller", func() {
-			const (
-				testClusterUdnName                = "test-cluster-net"
-				clusterUserDefinedNetworkResource = "clusteruserdefinednetwork"
-			)
-			var (
-				testTenantNamespaces []string
-			)
+			const clusterUserDefinedNetworkResource = "clusteruserdefinednetwork"
+
+			var testTenantNamespaces []string
+
 			BeforeEach(func() {
 				testTenantNamespaces = []string{
 					f.Namespace.Name + "blue",
@@ -725,7 +721,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				}
 			})
 
+			var testClusterUdnName string
+
 			BeforeEach(func() {
+				testClusterUdnName = randomNetworkMetaName()
 				By("create test CR")
 				cleanup, err := createManifest("", newClusterUDNManifest(testClusterUdnName, testTenantNamespaces...))
 				DeferCleanup(func() error {
@@ -944,7 +943,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(err).NotTo(HaveOccurred())
 
 			By("create primary Cluster UDN CR")
-			const cudnName = "primary-net"
+			cudnName := randomNetworkMetaName()
 			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
 			DeferCleanup(func() error {
 				cleanup()
@@ -972,6 +971,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		})
 	})
 })
+
+// randomNetworkMetaName return pseudo random name for network related objects (NAD,UDN,CUDN).
+//
+// CUDN is cluster-scoped object, in case tests running in parallel,
+// having random names avoids conflicting with other tests.
+func randomNetworkMetaName() string {
+	return fmt.Sprintf("test-net-%s", rand.String(5))
+}
 
 var nadToUdnParams = map[string]string{
 	"primary":   "Primary",
