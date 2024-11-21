@@ -50082,30 +50082,30 @@ func testExtendedTestdataOlmv1InstallCatalogYaml() (*asset, error) {
 var _testExtendedTestdataOlmv1InstallOperatorYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: install-test-sa
+  name: install-test-sa-{PACKAGENAME}
   namespace: {NAMESPACE}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: crb-{NAMESPACE}
+  name: install-test-crb-{PACKAGENAME}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
 - kind: ServiceAccount
-  name: install-test-sa
+  name: install-test-sa-{PACKAGENAME}
   namespace: {NAMESPACE}
 ---
 apiVersion: olm.operatorframework.io/v1
 kind: ClusterExtension
 metadata:
-  name: install-test-ce
+  name: install-test-ce-{PACKAGENAME}
 spec:
   namespace: {NAMESPACE}
   serviceAccount:
-    name: install-test-sa
+    name: install-test-sa-{PACKAGENAME}
   source:
     catalog:
       packageName: {PACKAGENAME}
