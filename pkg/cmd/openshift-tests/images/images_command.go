@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/cmd"
 	"github.com/openshift/origin/test/extended/util/image"
 	"github.com/spf13/cobra"
 	"k8s.io/kube-openapi/pkg/util/sets"
@@ -43,9 +44,9 @@ func NewImagesCommand() *cobra.Command {
 		%[1]s and are provided as-is for testing purposes only. Images are mirrored by the project
 		to the public repository periodically.
 		`, imagesetup.DefaultTestImageMirrorLocation)),
-
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		PersistentPreRun: cmd.NoPrintVersion,
+		SilenceUsage:     true,
+		SilenceErrors:    true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := imagesetup.VerifyTestImageRepoEnvVarUnset(); err != nil {
 				return err
