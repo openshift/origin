@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/pkg/test/externalbinary"
 	"io"
 	"os"
 	"os/exec"
@@ -14,9 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/externalbinary"
+
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type testSuiteRunner interface {
@@ -72,6 +74,8 @@ func mutateTestCaseWithResults(test *testCase, testRunResult *testRunResultHandl
 	test.duration = duration
 
 	test.testOutputBytes = testRunResult.testOutputBytes
+
+	test.extensionTestResult = testRunResult.extensionTestResult
 
 	switch testRunResult.testState {
 	case TestFlaked:
@@ -135,11 +139,12 @@ type testRunResultHandle struct {
 }
 
 type testRunResult struct {
-	name            string
-	start           time.Time
-	end             time.Time
-	testState       TestState
-	testOutputBytes []byte
+	name                string
+	start               time.Time
+	end                 time.Time
+	testState           TestState
+	testOutputBytes     []byte
+	extensionTestResult *externalbinary.ExtensionTestResult
 }
 
 func (r testRunResult) duration() time.Duration {
@@ -302,14 +307,14 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	testEnv := append(os.Environ(), updateEnvVars(c.env)...)
 
 	if test.binary != nil {
-		results := test.binary.RunTests(ctx, testEnv, test.name)
+		results := test.binary.RunTests(ctx, c.timeout, testEnv, test.name)
 		if len(results) != 1 {
-			panic("unexpected result")
+			panic(fmt.Sprintf("expected 1 result from external binary; received %d", len(results)))
 		}
 		switch results[0].Result {
 		case externalbinary.ResultFailed:
 			ret.testState = TestFailed
-			ret.testOutputBytes = []byte(results[0].Error) // FIXME
+			ret.testOutputBytes = []byte(results[0].Error)
 		case externalbinary.ResultPassed:
 			ret.testState = TestSucceeded
 		case externalbinary.ResultSkipped:
@@ -317,6 +322,8 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 		}
 		ret.start = externalbinary.Time(results[0].StartTime)
 		ret.end = externalbinary.Time(results[0].EndTime)
+		ret.extensionTestResult = results[0]
+		return ret
 	}
 
 	testName := test.rawName

@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/test/extended/util"
-	"github.com/pkg/errors"
 	"io"
 	"log"
 	"os"
@@ -16,6 +14,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/test/extended/util"
 )
 
 type externalBinaryStruct struct {
@@ -74,9 +77,11 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 	return tests, nil
 }
 
-func (b *TestBinary) RunTests(ctx context.Context, env []string, names ...string) []*ExtensionTestResult {
+// RunTests executes the named tests and returns the results.
+func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []string,
+	names ...string) []*ExtensionTestResult {
 	var results []*ExtensionTestResult
-	//unseenTests := sets.New[string](names...)
+	unseenTests := sets.New[string](names...)
 	binName := filepath.Base(b.path)
 
 	// Build command
@@ -92,7 +97,7 @@ func (b *TestBinary) RunTests(ctx context.Context, env []string, names ...string
 	command.Env = env
 
 	// Run test
-	testResult, err := runWithTimeout(ctx, command, 60*time.Minute) //FIXME: timeout?
+	testResult, err := runWithTimeout(ctx, command, timeout)
 	if err != nil {
 		// If errored, generate failures for all tests and return
 		for _, name := range names {
@@ -118,17 +123,20 @@ func (b *TestBinary) RunTests(ctx context.Context, env []string, names ...string
 		if err != nil {
 			panic(fmt.Sprintf("test binary %q returned unmarshallable result", binName))
 		}
-		/*if !unseenTests.Has(result.Name) {
+		if !unseenTests.Has(result.Name) {
 			panic(fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name))
 		}
 		unseenTests.Delete(result.Name)
-		*/
 		results = append(results, result)
 	}
 
-	/*if unseenTests.Len() > 0 {
-		panic(fmt.Sprintf("test binary %q did not return results for some tests: %s", binName, strings.Join(unseenTests.UnsortedList(), ",")))
-	}*/
+	for _, unseenTest := range unseenTests.UnsortedList() {
+		results = append(results, &ExtensionTestResult{
+			Name:   unseenTest,
+			Result: ResultFailed,
+			Error:  "external binary did not produce a result for this test",
+		})
+	}
 
 	return results
 }

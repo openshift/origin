@@ -53,7 +53,7 @@ func externalBinaryTestsToOriginTestCases(specs externalbinary.ExtensionTestSpec
 	var tests []*testCase
 	for _, spec := range specs {
 		tests = append(tests, &testCase{
-			name:    spec.Name, // TODO: remove when going to OTE
+			name:    spec.Name,
 			rawName: spec.Name,
 			binary:  spec.Binary,
 		})
@@ -107,11 +107,12 @@ type testCase struct {
 	duration        time.Duration
 	testOutputBytes []byte
 
-	flake    bool
-	failed   bool
-	skipped  bool
-	success  bool
-	timedOut bool
+	flake               bool
+	failed              bool
+	skipped             bool
+	success             bool
+	timedOut            bool
+	extensionTestResult *externalbinary.ExtensionTestResult
 
 	previous *testCase
 }
