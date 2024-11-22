@@ -21,6 +21,12 @@ import (
 const (
 	olmv1GroupName                       = "olm.operatorframework.io"
 	typeIncompatibleOperatorsUpgradeable = "InstalledOLMOperatorsUpgradeable"
+	reasonIncompatibleOperatorsInstalled = "IncompatibleOperatorsInstalled"
+
+	typeInstalled   = "Installed"
+	typeProgressing = "Progressing"
+
+	reasonRetrying = "Retrying"
 )
 
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
@@ -124,21 +130,27 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("checking that %q is not serving", catName))
+		var lastReason string
 		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return waitForCatalogFailure(oc, catName)
+				b, err, s := waitForCatalogFailure(oc, catName)
+				if lastReason != s {
+					g.GinkgoLogr.Info(fmt.Sprintf("waitForCatalogFailure: %q", s))
+					lastReason = s
+				}
+				return b, err
 			})
+		o.Expect(lastReason).To(o.BeEmpty())
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial][Skipped:Disconnected] OLMv1 operator installation", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		baseDir   = exutil.FixturePath("testdata", "olmv1")
-		ceFile    = filepath.Join(baseDir, "install-operator.yaml")
-		newCeFile string
+		baseDir = exutil.FixturePath("testdata", "olmv1")
+		ceFile  = filepath.Join(baseDir, "install-operator.yaml")
 	)
 	oc := exutil.NewCLI("openshift-operator-controller")
 
@@ -150,8 +162,6 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial][Skipped:Disconnec
 		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodLogsStartingWith("", oc)
 		}
-		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
-		os.Remove(newCeFile)
 	})
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
@@ -162,20 +172,21 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial][Skipped:Disconnec
 			version     = "3.13.0"
 		)
 
-		newCeFile = applyClusterExtension(oc, packageName, version, ceFile)
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
+		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
+		var lastReason string
 		err := wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return waitForClusterExtensionReady(oc, "install-test-ce")
+				b, err, s := waitForClusterExtensionReady(oc, ceName)
+				if lastReason != s {
+					g.GinkgoLogr.Info(fmt.Sprintf("waitForClusterExtensionReady: %q", s))
+					lastReason = s
+				}
+				return b, err
 			})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("ensuring the cluster is upgradeable when no olm.maxopenshiftversion is specified")
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
-			func(ctx context.Context) (bool, error) {
-				return waitForUpgradableCondition(oc, true)
-			})
+		o.Expect(lastReason).To(o.BeEmpty())
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -187,13 +198,21 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial][Skipped:Disconnec
 			version     = "99.99.99"
 		)
 
-		newCeFile = applyClusterExtension(oc, packageName, version, ceFile)
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
+		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to report failure")
+		var lastReason string
 		err := wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return waitForClusterExtensionFailure(oc, "install-test-ce")
+				b, err, s := waitForClusterExtensionFailure(oc, ceName)
+				if lastReason != s {
+					g.GinkgoLogr.Info(fmt.Sprintf("waitForClusterExtensionFailure: %q", s))
+					lastReason = s
+				}
+				return b, err
 			})
+		o.Expect(lastReason).To(o.BeEmpty())
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -206,28 +225,44 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Serial][Skipped:Disconnec
 			version     = "5.8.13"
 		)
 
-		newCeFile = applyClusterExtension(oc, packageName, version, ceFile)
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
+		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
+		var lastReason string
 		err := wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return waitForClusterExtensionReady(oc, "install-test-ce")
+				b, err, s := waitForClusterExtensionReady(oc, ceName)
+				if lastReason != s {
+					g.GinkgoLogr.Info(fmt.Sprintf("waitForClusterExtensionReady: %q", s))
+					lastReason = s
+				}
+				return b, err
 			})
+		o.Expect(lastReason).To(o.BeEmpty())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("ensuring the cluster is not upgradeable when olm.maxopenshiftversion is specified")
+		lastReason = ""
 		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true,
 			func(ctx context.Context) (bool, error) {
-				return waitForUpgradableCondition(oc, false)
+				b, err, s := waitForUpgradableCondition(oc, false, ceName)
+				if lastReason != s {
+					g.GinkgoLogr.Info(fmt.Sprintf("waitForUpgradableCondition: %q", s))
+					lastReason = s
+				}
+				return b, err
 			})
+		o.Expect(lastReason).To(o.BeEmpty())
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
-func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) string {
+func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) (func(), string) {
 	ns := oc.Namespace()
 	g.By(fmt.Sprintf("updating the namespace to: %q", ns))
-	newCeFile := ceFile + "." + ns
+	ceName := "install-test-ce-" + packageName
+	newCeFile := ceFile + "." + packageName
 	b, err := os.ReadFile(ceFile)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	s := string(b)
@@ -240,110 +275,138 @@ func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) 
 	g.By("applying the necessary resources")
 	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	return newCeFile
+	return func() {
+		g.By("cleaning the necessary resources")
+		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
+	}, ceName
 }
 
-func waitForClusterExtensionReady(oc *exutil.CLI, ceName string) (done bool, err error) {
+func waitForClusterExtensionReady(oc *exutil.CLI, ceName string) (bool, error, string) {
 	var conditions []metav1.Condition
 	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=jsonpath={.status.conditions}").Output()
 	if err != nil {
-		return false, err
+		return false, err, ""
 	}
 	// no data yet, so try again
 	if output == "" {
-		return false, nil
+		return false, nil, "no output"
 	}
-	err = json.Unmarshal([]byte(output), &conditions)
-	if err != nil {
-		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	if err := json.Unmarshal([]byte(output), &conditions); err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err), ""
 	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionTrue) {
-		return false, nil
-	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
-		return false, nil
-	}
-	return true, nil
-}
-
-func waitForClusterExtensionFailure(oc *exutil.CLI, ceName string) (done bool, err error) {
-	var conditions []metav1.Condition
-	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=jsonpath={.status.conditions}").Output()
-	if err != nil {
-		return false, err
-	}
-	// no data yet, so try again
-	if output == "" {
-		return false, nil
-	}
-	err = json.Unmarshal([]byte(output), &conditions)
-	if err != nil {
-		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
-	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionTrue) {
-		return false, nil
-	}
-	c := meta.FindStatusCondition(conditions, "Progressing")
+	c := meta.FindStatusCondition(conditions, typeProgressing)
 	if c == nil {
-		return false, fmt.Errorf("Progressing condtion should not be nil")
+		return false, nil, fmt.Sprintf("condition not present: %q", typeProgressing)
+	}
+	if c.Status != metav1.ConditionTrue {
+		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionTrue, c)
+	}
+	c = meta.FindStatusCondition(conditions, typeInstalled)
+	if c == nil {
+		return false, nil, fmt.Sprintf("condition not present: %q", typeInstalled)
+	}
+	if c.Status != metav1.ConditionTrue {
+		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionTrue, c)
+	}
+	return true, nil, ""
+}
+
+func waitForClusterExtensionFailure(oc *exutil.CLI, ceName string) (bool, error, string) {
+	var conditions []metav1.Condition
+	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=jsonpath={.status.conditions}").Output()
+	if err != nil {
+		return false, err, ""
+	}
+	// no data yet, so try again
+	if output == "" {
+		return false, nil, "no output"
+	}
+	if err := json.Unmarshal([]byte(output), &conditions); err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err), ""
+	}
+	c := meta.FindStatusCondition(conditions, typeProgressing)
+	if c == nil {
+		return false, nil, fmt.Sprintf("condition not present: %q", typeProgressing)
+	}
+	if c.Status != metav1.ConditionTrue {
+		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionTrue, c)
 	}
 	if !strings.HasPrefix(c.Message, "no bundles found") {
-		return false, nil
+		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", "no bundles found", c)
 	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionFalse) {
-		return false, nil
+	c = meta.FindStatusCondition(conditions, typeInstalled)
+	if c == nil {
+		return false, nil, fmt.Sprintf("condition not present: %q", typeInstalled)
 	}
-	return true, nil
+	if c.Status != metav1.ConditionFalse {
+		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionFalse, c)
+	}
+	return true, nil, ""
 }
 
-func waitForUpgradableCondition(oc *exutil.CLI, status bool) (bool, error) {
+func waitForUpgradableCondition(oc *exutil.CLI, status bool, ceName string) (bool, error, string) {
 	var conditions []metav1.Condition
 	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("olms.operator.openshift.io", "cluster", "-o=jsonpath={.status.conditions}").Output()
 	if err != nil {
-		return false, err
+		return false, err, ""
 	}
 	// no data yet, so try again
 	if output == "" {
-		return false, nil
+		return false, nil, "no output"
 	}
-	err = json.Unmarshal([]byte(output), &conditions)
-	if err != nil {
-		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	if err := json.Unmarshal([]byte(output), &conditions); err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err), ""
+	}
+	c := meta.FindStatusCondition(conditions, typeIncompatibleOperatorsUpgradeable)
+	if c == nil {
+		return false, nil, fmt.Sprintf("condition not present: %q", typeIncompatibleOperatorsUpgradeable)
 	}
 	if status {
-		return meta.IsStatusConditionTrue(conditions, typeIncompatibleOperatorsUpgradeable), nil
+		if c.Status != metav1.ConditionTrue {
+			return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionTrue, c)
+		}
+		return true, nil, ""
 	}
-	return meta.IsStatusConditionFalse(conditions, typeIncompatibleOperatorsUpgradeable), nil
+	if c.Status != metav1.ConditionFalse {
+		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionFalse, c)
+	}
+	if c.Reason != reasonIncompatibleOperatorsInstalled {
+		return false, nil, fmt.Sprintf("expected reason to be %q: %+v", reasonIncompatibleOperatorsInstalled, c)
+	}
+	// Message should include "bundle %q for ClusterExtension %q"
+	if !strings.Contains(c.Message, ceName) {
+		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", ceName, c)
+	}
+	return true, nil, ""
 }
 
-func waitForCatalogFailure(oc *exutil.CLI, name string) (bool, error) {
+func waitForCatalogFailure(oc *exutil.CLI, name string) (bool, error, string) {
 	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clustercatalogs.olm.operatorframework.io", name, "-o=jsonpath={.status.conditions}").Output()
 	if err != nil {
-		return false, err
+		return false, err, ""
 	}
 	// no data yet, so try again
 	if output == "" {
-		return false, nil
+		return false, nil, "no output"
 	}
 	var conditions []metav1.Condition
-	err = json.Unmarshal([]byte(output), &conditions)
-	if err != nil {
-		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+	if err := json.Unmarshal([]byte(output), &conditions); err != nil {
+		return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err), ""
 	}
-	if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionTrue) {
-		return false, nil
-	}
-	c := meta.FindStatusCondition(conditions, "Progressing")
+	c := meta.FindStatusCondition(conditions, typeProgressing)
 	if c == nil {
-		return false, fmt.Errorf("Progressing condtion should not be nil")
+		return false, nil, fmt.Sprintf("condition not pesent: %q", typeProgressing)
 	}
-	if c.Reason != "Retrying" {
-		return false, nil
+	if c.Status != metav1.ConditionTrue {
+		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionTrue, c)
+	}
+	if c.Reason != reasonRetrying {
+		return false, nil, fmt.Sprintf("expected reason to be %q: %+v", reasonRetrying, c)
 	}
 	if !strings.Contains(c.Message, "error creating image source") {
-		return false, nil
+		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", "error creating image source", c)
 	}
-	return true, nil
+	return true, nil, ""
 }
 
 func checkFeatureCapability(ctx context.Context, oc *exutil.CLI) {
