@@ -30,6 +30,7 @@ type auditLogAnalyzer struct {
 	requestCountTracking          *countTracking
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
+	violationChecker              *auditViolations
 
 	countsForInstall *CountsForRun
 }
@@ -40,6 +41,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		excessiveApplyChecker:         CheckForExcessiveApplies(),
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
+		violationChecker:              CheckForViolations(),
 	}
 }
 
@@ -82,6 +84,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.excessiveApplyChecker,
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
+		w.violationChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -361,6 +364,8 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			},
 		)
 	}
+
+	ret = append(ret, w.violationChecker.CreateJunits()...)
 
 	return ret, nil
 }
