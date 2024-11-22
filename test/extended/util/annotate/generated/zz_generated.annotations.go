@@ -1815,6 +1815,12 @@ var Annotations = map[string]string{
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion]  admission should allow with a bogus minimum kubelet version": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion]  admission should not allow with a new minimum kubelet version": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization": " [Suite:openshift/conformance/serial]",
+
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with hwlatdetect": " [Serial]",

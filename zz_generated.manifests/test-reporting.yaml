@@ -181,6 +181,13 @@ spec:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
         The collection profiles feature-set initially, in a homogeneous default environment,
         should expose default metrics'
+  - featureGate: MinimumKubeletVersion
+    tests:
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion]  admission should
+        allow with a bogus minimum kubelet version'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion]  admission should
+        not allow with a new minimum kubelet version'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization'
   - featureGate: MultiCIDRServiceAllocator
     tests:
     - testName: '[sig-network] [Feature:ServiceCIDRs] [FeatureGate:MultiCIDRServiceAllocator]
