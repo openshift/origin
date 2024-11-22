@@ -44,6 +44,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			"openshift-backplane-sdcicd":               {},
 			"openshift-backplane-srep":                 {},
 			"openshift-backplane-tam":                  {},
+			"openshift-cloud-ingress-operator":         {},
 			"openshift-codeready-workspaces":           {},
 			"openshift-custom-domains-operator":        {},
 			"openshift-customer-monitoring":            {},
@@ -63,6 +64,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			"openshift-splunk-forwarder-operator":      {},
 			"openshift-sre-pruning":                    {},
 			"openshift-validation-webhook":             {},
+			"openshift-velero":                         {},
 		}
 	)
 

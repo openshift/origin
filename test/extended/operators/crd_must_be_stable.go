@@ -37,6 +37,7 @@ var legacyCRDSsWithUnstableVersions = map[string]sets.String{
 	"addoninstances.addons.managed.openshift.io":                    sets.NewString("v1alpha1"),
 	"addonoperators.addons.managed.openshift.io":                    sets.NewString("v1alpha1"),
 	"addons.addons.managed.openshift.io":                            sets.NewString("v1alpha1"),
+	"apischemes.cloudingress.managed.openshift.io":                  sets.NewString("v1alpha1"),
 	"clusterurlmonitors.monitoring.openshift.io":                    sets.NewString("v1alpha1"),
 	"customdomains.managed.openshift.io":                            sets.NewString("v1alpha1"),
 	"managedfleetnotificationrecords.ocmagent.managed.openshift.io": sets.NewString("v1alpha1"),
@@ -44,11 +45,13 @@ var legacyCRDSsWithUnstableVersions = map[string]sets.String{
 	"managednotifications.ocmagent.managed.openshift.io":            sets.NewString("v1alpha1"),
 	"mustgathers.managed.openshift.io":                              sets.NewString("v1alpha1"),
 	"ocmagents.ocmagent.managed.openshift.io":                       sets.NewString("v1alpha1"),
+	"publishingstrategies.cloudingress.managed.openshift.io":        sets.NewString("v1alpha1"),
 	"routemonitors.monitoring.openshift.io":                         sets.NewString("v1alpha1"),
 	"splunkforwarders.splunkforwarder.managed.openshift.io":         sets.NewString("v1alpha1"),
 	"subjectpermissions.managed.openshift.io":                       sets.NewString("v1alpha1"),
 	"uiplugins.observability.openshift.io":                          sets.NewString("v1alpha1"),
 	"upgradeconfigs.upgrade.managed.openshift.io":                   sets.NewString("v1alpha1"),
+	"veleroinstalls.managed.openshift.io":                           sets.NewString("v1alpha2"),
 }
 
 var _ = g.Describe("[sig-arch][Early]", func() {
