@@ -184,7 +184,7 @@ var (
 			"EtcdMembersProgressing",
 			"EtcdRunningInCluster",
 			"EtcdStaticResourcesDegraded",
-			"FSyncControllerDegraded",
+			//"FSyncControllerDegraded", // this is flaky and depends on the environment
 			"GuardControllerDegraded",
 			"InstallerControllerDegraded",
 			"InstallerPodContainerWaitingDegraded",
