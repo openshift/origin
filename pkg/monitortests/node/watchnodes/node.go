@@ -2,6 +2,7 @@ package watchnodes
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -312,4 +313,47 @@ func doesNodeHaveUnreachableTaints(node *corev1.Node) bool {
 		}
 	}
 	return false
+}
+
+func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedReason monitorapi.IntervalReason) []string {
+	// Get all the deleted machine phases
+	machineDeletePhases := intervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Message.Reason != monitorapi.MachinePhase {
+			return false
+		}
+		if eventInterval.Message.Annotations[monitorapi.AnnotationPhase] == "Deleting" {
+			return true
+		}
+		return false
+	})
+
+	// We need to build a map of node to machine name
+	nodeNameToMachineName := map[string]string{}
+	// Given the deleted machine, store the deleted intervals.
+	machineNameToDeletePhases := map[string][]monitorapi.Interval{}
+	for _, machineDeletePhase := range machineDeletePhases {
+		machineName := machineDeletePhase.Locator.Keys[monitorapi.LocatorMachineKey]
+		nodeName := machineDeletePhase.Message.Annotations[monitorapi.AnnotationNode]
+		machineNameToDeletePhases[machineName] = append(machineNameToDeletePhases[machineName], machineDeletePhase)
+		nodeNameToMachineName[nodeName] = machineName
+	}
+	unexpectedNodeUnreadies := intervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == targetedReason
+	})
+
+	// In cases of machine deletion, we are incorrectly detecting unexpected node not ready and unreachable.
+	// We are filtering out deleted machine intervals
+	var failures []string
+	for _, unexpectedNodeUnready := range unexpectedNodeUnreadies {
+		nodeName := unexpectedNodeUnready.Locator.Keys[monitorapi.LocatorNodeKey]
+		machineNameForNode := nodeNameToMachineName[nodeName]
+
+		machineDeletingIntervals := machineNameToDeletePhases[machineNameForNode]
+
+		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
+			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedNodeUnready.Locator.OldLocator(), unexpectedNodeUnready.Message.OldMessage(), unexpectedNodeUnready.From, unexpectedNodeUnready.To))
+		}
+	}
+
+	return failures
 }
