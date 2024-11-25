@@ -24,6 +24,7 @@ type violationRecord struct {
 	resource  string
 	namespace string
 	name      string
+	username  string
 }
 
 func (v *violations) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
@@ -41,6 +42,7 @@ func (v *violations) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, e
 			resource:  auditEvent.ObjectRef.Resource,
 			namespace: auditEvent.ObjectRef.Namespace,
 			name:      auditEvent.ObjectRef.Namespace,
+			username:  auditEvent.User.Username,
 		})
 	}
 }
@@ -53,14 +55,14 @@ func (v *violations) CreateJunits() []*junitapi.JUnitTestCase {
 	case len(v.records) > 0:
 		messages := []string{}
 		for _, v := range v.records {
-			messages = append(messages, fmt.Sprintf("%s: %s %s/%s: %s", v.auditId, v.resource, v.namespace, v.name, v.violation))
+			messages = append(messages, fmt.Sprintf("%s: %s %s/%s: %s - %s", v.auditId, v.resource, v.namespace, v.name, v.violation, v.username))
 		}
 		ret = append(ret,
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("The following audit violations were recorded:\n%s", strings.Join(messages, "\n")),
-					Output:  "more details in audit log",
+					Message: fmt.Sprintf("%s", strings.Join(messages, "\n")),
+					Output:  "details from audit log",
 				},
 			},
 		)
