@@ -88,7 +88,8 @@ func (t *UpgradeTest) getServiceIP(f *framework.Framework) string {
 
 // createDNSTestDaemonSet creates a DaemonSet to test DNS availability
 func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceIP string) *kappsv1.DaemonSet {
-	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
+	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", "8.8.8.8") // Use Google DNS as an alternative resolver
+	ginkgo.By("Using Google DNS resolver (8.8.8.8) for DNS validation test")
 	ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), &kappsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{Name: appName},
 		Spec: kappsv1.DaemonSetSpec{
