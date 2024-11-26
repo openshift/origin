@@ -5,7 +5,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 )
 
-const annotationName string = "certificates.openshift.io/test-name"
+const AnnotationName string = "certificates.openshift.io/test-name"
 
 type TestNameRequirement struct{}
 
@@ -19,8 +19,7 @@ func NewTestNameRequirement() tlsmetadatainterfaces.Requirement {
 	md.Text("To assert that a particular cert/key pair or CA bundle is being tested, add the annotation to the secret or configmap.")
 	md.Text("```yaml")
 	md.Text("  annotations:")
-	md.Textf("    %v: name of e2e test that ensures the PKI artifact functions properly", annotationName)
-	md.Text("To assert that a particular cert/key pair or CA bundle is being tested, add the annotation to the secret or configmap.")
+	md.Textf("    %v: name of e2e test that ensures the PKI artifact functions properly", AnnotationName)
 	md.Text("```")
 	md.Text("")
 	md.Text("This assertion means that you have")
@@ -37,7 +36,7 @@ func NewTestNameRequirement() tlsmetadatainterfaces.Requirement {
 		// requirement name
 		"testcase",
 		// cert or configmap annotation
-		annotationName,
+		AnnotationName,
 		"Test Cases",
 		string(md.ExactBytes()),
 	)
