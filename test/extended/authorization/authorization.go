@@ -39,6 +39,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	util "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
@@ -1251,36 +1252,22 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry acc
 		g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
 			g.It("should succeed [apigroup:image.openshift.io]", func() {
 
-				// Check if the image registry is enabled and available
-				g.By("Validating image registry availability")
-				registryEnabled, err := isImageRegistryAvailable(oc)
-				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to check if image registry is available")
-				if !registryEnabled {
-					g.Skip("Skipping test: Image registry is not available in this environment")
-				}
+				g.By("Create route to expose the registry")
 
-				// Enable and use the default route for the image registry
-				g.By("Enabling and using the default route for the image registry")
-				err = enableDefaultRegistryRoute(oc)
-				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to enable the default registry route")
+				routeName := util.GetRandomString()
+				defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("route", routeName, "-n", "openshift-image-registry").Execute()
+				host := exposeRouteFromSVC(oc, "reencrypt", "openshift-image-registry", routeName, "image-registry")
+				waitRouteReady(host)
 
-				host, err := getDefaultRegistryRoute(oc)
-				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to fetch the default registry route")
-				o.Expect(host).NotTo(o.BeEmpty(), "Default registry route is empty")
+				g.By("Grant public access to the openshift namespace")
+				defer oc.AsAdmin().WithoutNamespace().Run("policy").Args("remove-role-from-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Execute()
+				output, err := oc.AsAdmin().WithoutNamespace().Run("policy").Args("add-role-to-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).To(o.ContainSubstring("clusterrole.rbac.authorization.k8s.io/system:image-puller added: \"system:unauthenticated\""))
 
-				g.By("Fetch the latest image reference dynamically from the OpenShift namespace")
-				// Run the command to get the latest image from the ImageStream
-				output, err := oc.AsAdmin().Run("get").Args("imagestream", "tools", "-n", "openshift", "-o=jsonpath='{.status.tags[?(@.tag==\"latest\")].items[0].dockerImageReference}'").Output()
-				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to fetch the latest image reference from ImageStream")
-				o.Expect(output).NotTo(o.BeEmpty(), "ImageStream output is empty")
-
-				// Use the dynamically fetched image reference
-				dynamicImage := output
-
-				g.By("Try to fetch image metadata using the dynamic image reference")
-				output, err = oc.AsAdmin().Run("image").Args("info", "--insecure", dynamicImage, "--show-multiarch").Output()
-
-				o.Expect(err).NotTo(o.HaveOccurred(), "Failed to fetch image metadata")
+				g.By("Try to fetch image metadata")
+				output, err = oc.AsAdmin().Run("image").Args("info", "--insecure", host+"/openshift/tools:latest", "--show-multiarch").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(output).NotTo(o.ContainSubstring("error: unauthorized: authentication required"))
 				o.Expect(output).NotTo(o.ContainSubstring("Unable to connect to the server: no basic auth credentials"))
 				o.Expect(output).To(o.ContainSubstring(host + "/openshift/tools:latest"))
@@ -1288,37 +1275,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry acc
 		})
 	})
 })
-
-// function to check if the image registry is available
-func isImageRegistryAvailable(oc *exutil.CLI) (bool, error) {
-	status, _, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("configs.imageregistry.operator.openshift.io/cluster", "-o=jsonpath='{.spec.defaultRoute}'").Outputs()
-	if err != nil {
-		return false, fmt.Errorf("failed to check registry status: %v", err)
-	}
-	return status == "true", nil
-}
-
-// function to enable the default route for the image registry
-func enableDefaultRegistryRoute(oc *exutil.CLI) error {
-	err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
-		"configs.imageregistry.operator.openshift.io/cluster",
-		"--patch", `{"spec":{"defaultRoute":true}}`,
-		"--type=merge",
-	).Execute()
-	if err != nil {
-		return fmt.Errorf("failed to enable default registry route: %v", err)
-	}
-	return nil
-}
-
-// function to fetch the default route for the image registry
-func getDefaultRegistryRoute(oc *exutil.CLI) (string, error) {
-	host, _, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("configs.imageregistry.operator.openshift.io/cluster", "-o=jsonpath='{.status.defaultRoute}'").Outputs()
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch default registry route: %v", err)
-	}
-	return host, nil
-}
 
 func exposeRouteFromSVC(oc *exutil.CLI, rType, ns, route, service string) string {
 	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("route", rType, route, "--service="+service, "-n", ns).Execute()
