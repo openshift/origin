@@ -55,7 +55,7 @@ func (v *violations) CreateJunits() []*junitapi.JUnitTestCase {
 	case len(v.records) > 0:
 		messages := []string{}
 		for _, v := range v.records {
-			messages = append(messages, fmt.Sprintf("%s: %s %s/%s: %s - %s", v.auditId, v.resource, v.namespace, v.name, v.violation, v.username))
+			messages = append(messages, fmt.Sprintf("%s: %s %s/%s: %s - %s", v.auditId, v.resource, v.namespace, v.name, v.username, v.violation))
 		}
 		ret = append(ret,
 			&junitapi.JUnitTestCase{
@@ -64,12 +64,6 @@ func (v *violations) CreateJunits() []*junitapi.JUnitTestCase {
 					Message: fmt.Sprintf("%s", strings.Join(messages, "\n")),
 					Output:  "details from audit log",
 				},
-			},
-		)
-		// flake for now
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
 			},
 		)
 	default:
