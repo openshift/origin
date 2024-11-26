@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -36,6 +37,7 @@ var nonStandardSCCNamespaces = map[string]sets.Set[string]{
 	"machine-api-termination-handler": sets.New("openshift-machine-api"),
 }
 
+// namespacesWithPendingSCCPinning includes namespaces with workloads that have pending SCC pinning.
 var namespacesWithPendingSCCPinning = sets.NewString(
 	"openshift-cluster-csi-drivers",
 	"openshift-cluster-version",
@@ -45,8 +47,28 @@ var namespacesWithPendingSCCPinning = sets.NewString(
 	"openshift-ingress-operator",
 	"openshift-insights",
 	"openshift-machine-api",
-	"openshift-marketplace",
 	"openshift-monitoring",
+	// run-level namespaces
+	"openshift-cloud-controller-manager",
+	"openshift-cloud-controller-manager-operator",
+	"openshift-cluster-api",
+	"openshift-cluster-machine-approver",
+	"openshift-dns",
+	"openshift-dns-operator",
+	"openshift-etcd",
+	"openshift-etcd-operator",
+	"openshift-kube-apiserver",
+	"openshift-kube-apiserver-operator",
+	"openshift-kube-controller-manager",
+	"openshift-kube-controller-manager-operator",
+	"openshift-kube-proxy",
+	"openshift-kube-scheduler",
+	"openshift-kube-scheduler-operator",
+	"openshift-multus",
+	"openshift-network-operator",
+	"openshift-ovn-kubernetes",
+	"openshift-sdn",
+	"openshift-storage",
 )
 
 // systemNamespaces includes namespaces that should be treated as flaking.
@@ -90,18 +112,17 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
-		// require that all workloads in openshift, kube-* or default namespaces must have the required-scc annotation
+		// skip managed service namespaces
+		if exutil.ManagedServiceNamespaces.Has(ns.Name) {
+			continue
+		}
+
+		// require that all workloads in openshift, kube-*, or default namespaces must have the required-scc annotation
 		// ignore openshift-must-gather-* namespaces which are generated dynamically
 		isPermanentOpenShiftNamespace := (ns.Name == "openshift" || strings.HasPrefix(ns.Name, "openshift-")) && !strings.HasPrefix(ns.Name, "openshift-must-gather-")
 		if !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" && !isPermanentOpenShiftNamespace {
 			continue
 		}
-
-		// check if the namespace should be treated as flaking when failed
-		flakeWhenFailed := ns.Labels["openshift.io/run-level"] == "0" ||
-			ns.Labels["openshift.io/run-level"] == "1" ||
-			namespacesWithPendingSCCPinning.Has(ns.Name) ||
-			systemNamespaces.Has(ns.Name)
 
 		pods, err := w.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
@@ -168,8 +189,8 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 				FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
 			})
 
-		// add a successful test with the same name to cause a flake
-		if flakeWhenFailed {
+		// add a successful test with the same name to cause a flake if the namespace should be flaking
+		if namespacesWithPendingSCCPinning.Has(ns.Name) || systemNamespaces.Has(ns.Name) {
 			junits = append(junits,
 				&junitapi.JUnitTestCase{
 					Name: testName,
