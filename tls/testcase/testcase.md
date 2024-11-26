@@ -1,8 +1,8 @@
-# Auto Regenerate After Offline Expiry
+# Test Cases
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (240)](#Items-Do-NOT-Meet-the-Requirement-240)
+  - [Items Do NOT Meet the Requirement (272)](#Items-Do-NOT-Meet-the-Requirement-272)
     - [Unknown Owner (10)](#Unknown-Owner-10)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (8)](#Certificate-Authority-Bundles-8)
@@ -39,9 +39,9 @@
     - [etcd (31)](#etcd-31)
       - [Certificates (22)](#Certificates-22)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [kube-apiserver (14)](#kube-apiserver-14)
-      - [Certificates (3)](#Certificates-3)
-      - [Certificate Authority Bundles (11)](#Certificate-Authority-Bundles-11)
+    - [kube-apiserver (46)](#kube-apiserver-46)
+      - [Certificates (25)](#Certificates-25)
+      - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
     - [kube-controller-manager (12)](#kube-controller-manager-12)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
@@ -50,32 +50,27 @@
     - [service-ca (101)](#service-ca-101)
       - [Certificates (98)](#Certificates-98)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
-  - [Items That DO Meet the Requirement (32)](#Items-That-DO-Meet-the-Requirement-32)
-    - [kube-apiserver (32)](#kube-apiserver-32)
-      - [Certificates (22)](#Certificates-22)
-      - [Certificate Authority Bundles (10)](#Certificate-Authority-Bundles-10)
+  - [Items That DO Meet the Requirement (0)](#Items-That-DO-Meet-the-Requirement-0)
 
 
 ## How to meet the requirement
-Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means
-that if the cluster is shut down until the certificate expires, when the machines are restarted
-the cluster will automatically create new cert/key pairs or update CA bundles as required without human
-intervention.
+Every TLS artifact should be associated with a test, which checks that cert key pair.
+or CA bundle is being properly issued, refreshed, regenerated while offline
+and correctly reloaded.
 
-To assert that a particular cert/key pair or CA bundle can do this, add the annotation to the secret or configmap.
+To assert that a particular cert/key pair or CA bundle is being tested, add the annotation to the secret or configmap.
 ```yaml
   annotations:
-    certificates.openshift.io/auto-regenerate-after-offline-expiry: https//github.com/link/to/pr/adding/annotation
+    certificates.openshift.io/test-name: name of e2e test that ensures the PKI artifact functions properly
 ```
 
 This assertion means that you have
 1. Manually tested that this works or seen someone else manually test that this works.  AND
 2. Written an automated e2e test to ensure this PKI artifact is function that is a blocking GA criteria, and/or
-3. QE has required test every release that ensures the functionality works every release.
-      This TLS artifact has associated test name annotation ("certificates.openshift.io/test-name").
+      QE has required test every release that ensures the functionality works every release.
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (240)
+## Items Do NOT Meet the Requirement (272)
 ### Unknown Owner (10)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -840,9 +835,104 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### kube-apiserver (14)
-#### Certificates (3)
-1. ns/openshift-kube-apiserver secret/node-kubeconfigs
+### kube-apiserver (46)
+#### Certificates (25)
+1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
+
+      **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
+2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
+
+      **Description:** Client certificate used by the kube-scheduler to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+3. ns/openshift-kube-apiserver secret/aggregator-client
+
+      **Description:** Client certificate used by the kube-apiserver to communicate to aggregated apiservers.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
+      
+
+4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
+
+      **Description:** Client certificate used by the network connectivity checker of the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
+      
+
+5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
+      
+
+6. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the external load balancer.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
+      
+
+7. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the internal load balancer.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
+      
+
+8. ns/openshift-kube-apiserver secret/kubelet-client
+
+      **Description:** Client certificate used by the kube-apiserver to authenticate to the kubelet for requests like exec and logs.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
+      
+
+9. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the localhost recovery SNI ServerName.
+      
+
+10. ns/openshift-kube-apiserver secret/localhost-serving-cert-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via localhost.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
+      
+
+11. ns/openshift-kube-apiserver secret/node-kubeconfigs
 
       **Description:** 
       
@@ -855,25 +945,119 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-2. file /etc/kubernetes/kubeconfig
+12. ns/openshift-kube-apiserver secret/service-network-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the service network.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
+      
+
+13. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
+
+      **Description:** Signer for the kube-apiserver to create client certificates for aggregated apiservers to recognize as a front-proxy
+      
+
+14. ns/openshift-kube-apiserver-operator secret/kube-apiserver-to-kubelet-signer
+
+      **Description:** Signer for the kube-apiserver-to-kubelet-client so kubelets can recognize the kube-apiserver.
+      
+
+15. ns/openshift-kube-apiserver-operator secret/kube-control-plane-signer
+
+      **Description:** Signer for kube-controller-manager and kube-scheduler client certificates.
+      
+
+16. ns/openshift-kube-apiserver-operator secret/loadbalancer-serving-signer
+
+      **Description:** Signer used by the kube-apiserver operator to create serving certificates for the kube-apiserver via internal and external load balancers.
+      
+
+17. ns/openshift-kube-apiserver-operator secret/localhost-recovery-serving-signer
+
+      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network.
+      
+
+18. ns/openshift-kube-apiserver-operator secret/localhost-serving-signer
+
+      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via localhost.
+      
+
+19. ns/openshift-kube-apiserver-operator secret/node-system-admin-client
+
+      **Description:** Client certificate (system:masters) placed on each master to allow communication to kube-apiserver for debugging.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
+20. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
+
+      **Description:** Signer for the per-master-debugging-client.
+      
+
+21. ns/openshift-kube-apiserver-operator secret/service-network-serving-signer
+
+      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network.
+      
+
+22. ns/openshift-kube-controller-manager secret/kube-controller-manager-client-cert-key
+
+      **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
+23. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
+
+      **Description:** Client certificate used by the kube-scheduler to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+24. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
 
-3. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+25. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
       **Description:** 
       
 
 
 
-#### Certificate Authority Bundles (11)
+#### Certificate Authority Bundles (21)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** CA for kube-apiserver to recognize the system:master created by the installer.
       
 
-2. ns/openshift-config-managed configmap/kube-apiserver-client-ca
+2. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
+
+      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+3. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
@@ -885,7 +1069,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-3. ns/openshift-config-managed configmap/kube-apiserver-server-ca
+4. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -899,24 +1083,12 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-4. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+5. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
 
       **Description:** 
       
 
-5. ns/openshift-controller-manager configmap/client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/kubelet-ca.crt
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
-      
-
-6. ns/openshift-kube-apiserver configmap/client-ca
+6. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -928,7 +1100,30 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-7. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+7. ns/openshift-kube-apiserver configmap/aggregator-client-ca
+
+      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+8. ns/openshift-kube-apiserver configmap/client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
+9. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -942,7 +1137,53 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-8. ns/openshift-kube-controller-manager configmap/client-ca
+10. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+
+      **Description:** CA for the kubelet to recognize the kube-apiserver client certificate.
+      
+
+11. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+
+      **Description:** CA for kube-apiserver to recognize the kube-controller-manager and kube-scheduler client certificates.
+      
+
+12. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via the internal or external load balancers.
+      
+
+13. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via the localhost recovery SNI ServerName.
+      
+
+14. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via localhost.
+      
+
+15. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
+
+      **Description:** CA for kube-apiserver to recognize local system:masters rendered to each master.
+      
+
+16. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc).
+      
+
+17. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
+
+      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+18. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -954,7 +1195,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-9. ns/openshift-route-controller-manager configmap/client-ca
+19. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -966,7 +1207,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-10. file /etc/kubernetes/kubeconfig
+20. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
@@ -979,7 +1220,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-11. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+21. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
@@ -1574,257 +1815,4 @@ If you have not done this, you should not merge the annotation.
 
 
 
-## Items That DO Meet the Requirement (32)
-### kube-apiserver (32)
-#### Certificates (22)
-1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
-
-      **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
-      
-
-2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
-
-      **Description:** Client certificate used by the kube-scheduler to authenticate to the kube-apiserver.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      
-
-3. ns/openshift-kube-apiserver secret/aggregator-client
-
-      **Description:** Client certificate used by the kube-apiserver to communicate to aggregated apiservers.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
-      
-
-4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
-
-      **Description:** Client certificate used by the network connectivity checker of the kube-apiserver.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
-      
-
-5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
-      
-
-6. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
-
-      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the external load balancer.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
-      
-
-7. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
-
-      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the internal load balancer.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
-      
-
-8. ns/openshift-kube-apiserver secret/kubelet-client
-
-      **Description:** Client certificate used by the kube-apiserver to authenticate to the kubelet for requests like exec and logs.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
-      
-
-9. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
-
-      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the localhost recovery SNI ServerName.
-      
-
-10. ns/openshift-kube-apiserver secret/localhost-serving-cert-certkey
-
-      **Description:** Serving certificate used by the kube-apiserver to terminate requests via localhost.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
-      
-
-11. ns/openshift-kube-apiserver secret/service-network-serving-certkey
-
-      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the service network.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
-      
-
-12. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
-
-      **Description:** Signer for the kube-apiserver to create client certificates for aggregated apiservers to recognize as a front-proxy
-      
-
-13. ns/openshift-kube-apiserver-operator secret/kube-apiserver-to-kubelet-signer
-
-      **Description:** Signer for the kube-apiserver-to-kubelet-client so kubelets can recognize the kube-apiserver.
-      
-
-14. ns/openshift-kube-apiserver-operator secret/kube-control-plane-signer
-
-      **Description:** Signer for kube-controller-manager and kube-scheduler client certificates.
-      
-
-15. ns/openshift-kube-apiserver-operator secret/loadbalancer-serving-signer
-
-      **Description:** Signer used by the kube-apiserver operator to create serving certificates for the kube-apiserver via internal and external load balancers.
-      
-
-16. ns/openshift-kube-apiserver-operator secret/localhost-recovery-serving-signer
-
-      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network.
-      
-
-17. ns/openshift-kube-apiserver-operator secret/localhost-serving-signer
-
-      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via localhost.
-      
-
-18. ns/openshift-kube-apiserver-operator secret/node-system-admin-client
-
-      **Description:** Client certificate (system:masters) placed on each master to allow communication to kube-apiserver for debugging.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
-      
-
-19. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
-
-      **Description:** Signer for the per-master-debugging-client.
-      
-
-20. ns/openshift-kube-apiserver-operator secret/service-network-serving-signer
-
-      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network.
-      
-
-21. ns/openshift-kube-controller-manager secret/kube-controller-manager-client-cert-key
-
-      **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
-      
-
-22. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
-
-      **Description:** Client certificate used by the kube-scheduler to authenticate to the kube-apiserver.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      
-
-
-
-#### Certificate Authority Bundles (10)
-1. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
-
-      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-2. ns/openshift-kube-apiserver configmap/aggregator-client-ca
-
-      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-3. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
-
-      **Description:** CA for the kubelet to recognize the kube-apiserver client certificate.
-      
-
-4. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
-
-      **Description:** CA for kube-apiserver to recognize the kube-controller-manager and kube-scheduler client certificates.
-      
-
-5. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
-
-      **Description:** CA for recognizing the kube-apiserver when connecting via the internal or external load balancers.
-      
-
-6. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
-
-      **Description:** CA for recognizing the kube-apiserver when connecting via the localhost recovery SNI ServerName.
-      
-
-7. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
-
-      **Description:** CA for recognizing the kube-apiserver when connecting via localhost.
-      
-
-8. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
-
-      **Description:** CA for kube-apiserver to recognize local system:masters rendered to each master.
-      
-
-9. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
-
-      **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc).
-      
-
-10. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
-
-      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-
-
+## Items That DO Meet the Requirement (0)
