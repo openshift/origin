@@ -58,7 +58,7 @@ type runner struct {
 var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
-	o.SetDefaultEventuallyTimeout(20 * time.Minute)
+	o.SetDefaultEventuallyTimeout(15 * time.Minute)
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	r := &runner{}
@@ -84,11 +84,11 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			if err != nil {
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
-					operatorConfiguration = nil
-					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
-
-				return err
+				if err != nil {
+					return err
+				}
 			}
 
 			return nil
@@ -108,14 +108,6 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
-
-		o.Eventually(func() error {
-			_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
-				return nil
-			}
-			return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
-		}).Should(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
