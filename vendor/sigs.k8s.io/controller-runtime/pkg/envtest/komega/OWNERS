@@ -1,0 +1,13 @@
+approvers:
+  - controller-runtime-admins
+  - controller-runtime-maintainers
+  - controller-runtime-approvers
+  - schrej
+  - JoelSpeed
+reviewers:
+  - controller-runtime-admins
+  - controller-runtime-maintainers
+  - controller-runtime-approvers
+  - controller-runtime-reviewers
+  - schrej
+  - JoelSpeed
