@@ -503,7 +503,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			e2e.Logf("Telemetry is enabled: %s", bearerToken)
+			e2e.Logf("Telemetry is enabled")
 
 			if err != nil {
 				// Making the test flaky until monitoring team fixes the rate limit issue.
@@ -521,7 +521,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-				results, err := getBearerTokenURLViaPod(oc, ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
+				results, err := getBearerTokenURLViaPod(oc, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -927,10 +927,16 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 	return result
 }
 
-func getBearerTokenURLViaPod(oc *exutil.CLI, ns, execPodName, url, bearer string) (string, error) {
-	stdout, stderr, err := oc.Run("exec").Args(execPodName, "-n", ns, "--", "/bin/sh", "-x", "-c", "curl", "-s", "-k", "-H", "'Authorization:", "Bearer", bearer+"'", url).Outputs()
+func getBearerTokenURLViaPod(oc *exutil.CLI, execPodName, url, bearer string) (string, error) {
+	auth := fmt.Sprintf("Authorization: Bearer %s", bearer)
+	stdout, stderr, err := oc.AsAdmin().Run("exec").Args(execPodName, "--", "curl", "-s", "-k", "-H", auth, url).Outputs()
 	if err != nil {
 		return "", fmt.Errorf("command failed: %v\nstderr: %s\nstdout:%s", err, stderr, stdout)
+	}
+	// The TextToMetricFamilies function expects prometheus metrics to end with a newline
+	// else unexpected end of stream is observed
+	if len(stdout) > 0 {
+		stdout = stdout + "\n"
 	}
 	return stdout, err
 }

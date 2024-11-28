@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -931,7 +932,15 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
-	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	// The below log line prints the bearer token in the logs hence redacting
+	// the log if it contains bearer token
+	args := strings.Join(c.finalArgs, " ")
+	if strings.Contains(args, "Bearer") {
+		// replace bearer token with XXXXX string
+		re := regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
+		args = re.ReplaceAllString(args, "XXXXXXXXXXXXXX ")
+	}
+	framework.Logf("Running '%s %s'", c.execPath, args)
 
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
