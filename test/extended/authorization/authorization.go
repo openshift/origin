@@ -39,7 +39,6 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	util "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
@@ -1243,38 +1242,66 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 		})
 	})
 })
-
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry access", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("bootstrap-policy")
+    defer g.GinkgoRecover()
+    oc := exutil.NewCLI("bootstrap-policy")
 
-	g.Context("", func() {
-		g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
-			g.It("should succeed [apigroup:image.openshift.io]", func() {
+    g.Context("", func() {
+        g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
+            g.It("should succeed [apigroup:image.openshift.io]", func() {
 
-				g.By("Create route to expose the registry")
+                g.By("Enable default route for the image registry")
+                err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
+                    "configs.imageregistry.operator.openshift.io/cluster",
+                    "--type=merge",
+                    "-patch", `{"spec": {"defaultRoute": true}}`,
+                ).Execute()
+                o.Expect(err).NotTo(o.HaveOccurred())
 
-				routeName := util.GetRandomString()
-				defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("route", routeName, "-n", "openshift-image-registry").Execute()
-				host := exposeRouteFromSVC(oc, "reencrypt", "openshift-image-registry", routeName, "image-registry")
-				waitRouteReady(host)
+                g.By("Wait for the image registry to become available")
+                available := isImageRegistryAvailable(oc)
+                o.Expect(available).To(o.BeTrue())
 
-				g.By("Grant public access to the openshift namespace")
-				defer oc.AsAdmin().WithoutNamespace().Run("policy").Args("remove-role-from-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Execute()
-				output, err := oc.AsAdmin().WithoutNamespace().Run("policy").Args("add-role-to-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(output).To(o.ContainSubstring("clusterrole.rbac.authorization.k8s.io/system:image-puller added: \"system:unauthenticated\""))
+                g.By("Grant public access to the openshift namespace")
+                defer oc.AsAdmin().WithoutNamespace().Run("policy").Args(
+                    "remove-role-from-group",
+                    "system:image-puller", "system:unauthenticated",
+                    "--namespace", "openshift",
+                ).Execute()
+                output, err := oc.AsAdmin().WithoutNamespace().Run("policy").Args(
+                    "add-role-to-group", "system:image-puller", "system:unauthenticated",
+                    "--namespace", "openshift",
+                ).Output()
+                o.Expect(err).NotTo(o.HaveOccurred())
+                o.Expect(output).To(o.ContainSubstring(
+                    "clusterrole.rbac.authorization.k8s.io/system:image-puller added: \"system:unauthenticated\"",
+                ))
 
-				g.By("Try to fetch image metadata")
-				output, err = oc.AsAdmin().Run("image").Args("info", "--insecure", host+"/openshift/tools:latest", "--show-multiarch").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(output).NotTo(o.ContainSubstring("error: unauthorized: authentication required"))
-				o.Expect(output).NotTo(o.ContainSubstring("Unable to connect to the server: no basic auth credentials"))
-				o.Expect(output).To(o.ContainSubstring(host + "/openshift/tools:latest"))
-			})
-		})
-	})
+                g.By("Fetch image metadata")
+                output, err = oc.AsAdmin().Run("image").Args(
+                    "info", "--insecure",
+                    "registry.openshift-image-registry.svc.cluster.local/openshift/tools:latest",
+                    "--show-multiarch",
+                ).Output()
+                o.Expect(err).NotTo(o.HaveOccurred())
+                o.Expect(output).NotTo(o.ContainSubstring("error: unauthorized: authentication required"))
+                o.Expect(output).NotTo(o.ContainSubstring("Unable to connect to the server: no basic auth credentials"))
+                o.Expect(output).To(o.ContainSubstring(
+                    "registry.openshift-image-registry.svc.cluster.local/openshift/tools:latest",
+                ))
+            })
+        })
+    })
 })
+
+func isImageRegistryAvailable(oc *exutil.CLI) bool {
+    output, err := oc.AsAdmin().Run("get").Args(
+        "co", "image-registry",
+        "-o=jsonpath={.status.conditions[?(@.type=='Available')].status}",
+    ).Output()
+    o.Expect(err).NotTo(o.HaveOccurred())
+    return strings.TrimSpace(output) == "True"
+}
 
 func exposeRouteFromSVC(oc *exutil.CLI, rType, ns, route, service string) string {
 	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("route", rType, route, "--service="+service, "-n", ns).Execute()
