@@ -19,6 +19,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 )
 
 const (
@@ -44,6 +46,8 @@ var (
 		collectionProfileMinimal,
 	}
 )
+
+var k komega.Komega
 
 type runner struct {
 	kclient                       kubernetes.Interface
@@ -78,13 +82,22 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		}
 		r.pclient = oc.NewPrometheusClient(tctx)
 
+		client, err := client.New(oc.AdminConfig(), client.Options{})
+		if err != nil {
+			g.Fail(fmt.Sprintf("failed to create komega client: %v", err))
+		}
+
+		komega.SetClient(client)
+		komega.SetContext(tctx)
+		k = komega.New(client)
+
 		var operatorConfiguration *v1.ConfigMap
 		o.Eventually(func() error {
 			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
-					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					err = r.makeCollectionProfileConfigurationFor(tctx, k, collectionProfileDefault)
 				}
 				if err != nil {
 					return err
@@ -97,24 +110,26 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 
 	g.AfterAll(func() {
-		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
-		o.Expect(err).To(o.BeNil())
+		currentConfiguration := &v1.ConfigMap{}
+		o.Eventually(k.Get(currentConfiguration)).Should(o.Succeed())
 		if r.originalOperatorConfiguration != nil {
 			currentConfiguration.Data = r.originalOperatorConfiguration.Data
 			g.By("restoring the original configuration for the operator")
-			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
+			o.Eventually(k.Update(currentConfiguration, func() {
+				currentConfiguration.Data = r.originalOperatorConfiguration.Data
+			})).Should(o.Succeed())
 		} else {
 			g.By("cleaning up the configuration for the operator as it did not exist pre-job")
-			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
+			err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
+			o.Expect(err).To(o.BeNil())
 		}
-		o.Expect(err).To(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
 		profile := collectionProfileDefault
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, k, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(profile)
@@ -149,7 +164,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	g.Context("in a heterogeneous environment,", func() {
 		g.It("should expose information about the applied collection profile using meta-metrics", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.makeCollectionProfileConfigurationFor(tctx, k, profile)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -168,7 +183,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 		g.It("should have at least one implementation for each collection profile", func() {
 			for _, profile := range collectionProfilesSupportedList {
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+				err := r.makeCollectionProfileConfigurationFor(tctx, k, profile)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
@@ -185,7 +200,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 		})
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
+			err := r.makeCollectionProfileConfigurationFor(tctx, k, collectionProfileNone)
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
@@ -206,7 +221,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		profile := collectionProfileMinimal
 
 		g.BeforeAll(func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			err := r.makeCollectionProfileConfigurationFor(tctx, k, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
 				enabled, err := r.isProfileEnabled(profile)
@@ -327,7 +342,7 @@ func (r runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1.
 	})
 }
 
-func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
+func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, k komega.Komega, collectionProfile string) error {
 	dataConfigYAMLPrometheusK8s := fmt.Sprintf("collectionProfile: %s", collectionProfile)
 	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
 		"collectionProfile": collectionProfile,
@@ -376,11 +391,10 @@ func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, colle
 		if err != nil {
 			return err
 		}
-		currentConfiguration.Data = configuration.Data
-		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(ctx, currentConfiguration, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
+
+		o.Eventually(k.Update(currentConfiguration, func() {
+			currentConfiguration.Data = configuration.Data
+		})).Should(o.Succeed())
 	}
 
 	return nil
