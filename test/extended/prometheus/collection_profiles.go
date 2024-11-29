@@ -52,7 +52,7 @@ type runner struct {
 // NOTE: The nested `Context` containers inside the following `Describe` container are used to group certain tests based on the environments they demand.
 // NOTE: When adding a test-case, ensure that the test-case is placed in the appropriate `Context` container.
 // NOTE: The containers themselves are guaranteed to run in the order in which they appear.
-var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
+var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	o.SetDefaultEventuallyTimeout(20 * time.Minute)
