@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	"strings"
 	"time"
 
@@ -17,6 +18,20 @@ import (
 )
 
 const desiredTestDuration = 1 * time.Hour
+
+var (
+	flakeOnConnection = false
+)
+
+func init() {
+	// we are delaying these failures because https://github.com/kubernetes/kubernetes/pull/126954 needs time to merge,
+	// get backported, then get vendored.
+	whenToStartFailingAgain, err := time.Parse(time.RFC3339, "2024-12-02T15:04:05Z")
+	if err != nil {
+		panic(err)
+	}
+	flakeOnConnection = time.Now().After(whenToStartFailingAgain)
+}
 
 var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][Jira:\"kube-apiserver\"][sig-kube-apiserver] kube-apiserver", func() {
 	f := framework.NewDefaultFramework("rollout-resiliency")
@@ -43,6 +58,7 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 		previousLatestRevision := kasStatus.Status.LatestAvailableRevision - 1
 
 		errs := []error{}
+		flakes := []error{}
 		for i := 1; i < 1000; i++ { // we exit early when our desired duration finishes, but this gives us a nice counter for output.
 			if shouldEndTestCtx.Err() != nil {
 				break
@@ -63,7 +79,12 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 				// fail the run, but don't exit the test here.
 				kasStatus, err := operatorClient.OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 				if err != nil {
-					errs = append(errs, fmt.Errorf("failed reading clusteroperator, run=%d, time=%v, err=%w", i, time.Now(), err))
+					reportedErr := fmt.Errorf("failed reading clusteroperator, run=%d, time=%v, err=%w", i, time.Now(), err)
+					if flakeOnConnection && strings.Contains(err.Error(), "http2: client connection lost") {
+						flakes = append(flakes, reportedErr)
+						continue
+					}
+					errs = append(errs, reportedErr)
 					continue
 				}
 
@@ -112,6 +133,9 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 
 		if len(errs) > 0 {
 			framework.ExpectNoError(errors.Join(errs...))
+		}
+		if len(flakes) > 0 {
+			result.Flakef("errors that will eventually be failures: %v", errors.Join(flakes...))
 		}
 	})
 
