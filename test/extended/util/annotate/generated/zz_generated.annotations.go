@@ -15,6 +15,10 @@ var Annotations = map[string]string{
 
 	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint": " [Suite:openshift/conformance/parallel/minimal]",
 
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"check-endpoints.kubeconfig\" should be present in all kube-apiserver containers": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"control-plane-node.kubeconfig\" should be present in all kube-apiserver containers": " [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
