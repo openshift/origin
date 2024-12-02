@@ -55,9 +55,6 @@ type runner struct {
 var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
-	o.SetDefaultEventuallyTimeout(20 * time.Minute)
-	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
-
 	r := &runner{}
 	oc := exutil.NewCLI(projectName)
 	tctx := context.Background()
