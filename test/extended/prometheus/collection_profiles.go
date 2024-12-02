@@ -82,11 +82,11 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			if err != nil {
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
-					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					operatorConfiguration = nil
+					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
-				if err != nil {
-					return err
-				}
+
+				return err
 			}
 
 			return nil
@@ -106,6 +106,14 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
+
+		o.Eventually(func() error {
+			_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
+		}).Should(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
@@ -280,7 +288,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				wantCount := int(queryResponse.Data.Result[0].Value)
 
 				kubeStateMetricsMainMetricsString := strings.Join(kubeStateMetricsMainMetrics, "")
-				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */])
+				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */ ])
 				queryResponse, err = helper.RunQuery(tctx, r.pclient, kubeStateMetricsMainMetricsCountQuery)
 				if err != nil {
 					return err
