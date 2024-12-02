@@ -17,6 +17,8 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=olms,scope=Cluster
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:annotations=include.release.openshift.io/ibm-cloud-managed=false
+// +kubebuilder:metadata:annotations=include.release.openshift.io/self-managed-high-availability=true
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1504
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=operator-lifecycle-manager,operatorOrdering=01
 // +openshift:enable:FeatureGate=NewOLM

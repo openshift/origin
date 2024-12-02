@@ -822,6 +822,7 @@ var map_Workspace = map[string]string{
 	"folder":       "Folder is the folder in which VMs are created/located.",
 	"datastore":    "Datastore is the datastore in which VMs are created/located.",
 	"resourcePool": "ResourcePool is the resource pool in which VMs are created/located.",
+	"vmGroup":      "vmGroup is the cluster vm group in which virtual machines will be added for vm host group based zonal.",
 }
 
 func (Workspace) SwaggerDoc() map[string]string {
