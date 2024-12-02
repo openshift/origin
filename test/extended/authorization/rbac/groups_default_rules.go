@@ -279,7 +279,7 @@ func testAllGroupRules(ruleResolver validation.AuthorizationRuleResolver, group 
 }
 
 func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, namespace string, expectedRules []rbacv1.PolicyRule) {
-	actualRules, err := ruleResolver.RulesFor(&kuser.DefaultInfo{Groups: []string{group}}, namespace)
+	actualRules, err := ruleResolver.RulesFor(context.TODO(), &kuser.DefaultInfo{Groups: []string{group}}, namespace)
 	o.Expect(err).NotTo(o.HaveOccurred()) // our default RBAC policy should never have rule resolution errors
 
 	if cover, missing := rbacvalidation.Covers(expectedRules, actualRules); !cover {
