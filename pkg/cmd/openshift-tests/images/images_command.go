@@ -83,6 +83,11 @@ func NewImagesCommand() *cobra.Command {
 			for _, line := range lines {
 				fmt.Fprintln(os.Stdout, line)
 			}
+			// TODO: these should be removed when landing k8s 1.31:
+			newImages := injectNewImages(ref, o.Upstream)
+			for _, line := range newImages {
+				fmt.Fprintln(os.Stdout, line)
+			}
 			return nil
 		},
 	}
@@ -92,6 +97,43 @@ func NewImagesCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&o.Verify, "verify", o.Verify, "Verify the contents of the image mappings")
 	cmd.Flags().MarkHidden("verify")
 	return cmd
+}
+
+func injectNewImages(ref reference.DockerImageReference, upstream bool) []string {
+	lines := []string{}
+	for original, mirror := range map[string]string{
+		"registry.k8s.io/e2e-test-images/agnhost:2.53":                    "e2e-1-registry-k8s-io-e2e-test-images-agnhost-2-53-S5hiptYgC5MyFXZH",
+		"registry.k8s.io/e2e-test-images/busybox:1.29-2":                  "e2e-52-registry-k8s-io-e2e-test-images-busybox-1-29-2-ZYWRth-o9U_JR2ZE",
+		"registry.k8s.io/e2e-test-images/httpd:2.4.38-4":                  "e2e-10-registry-k8s-io-e2e-test-images-httpd-2-4-38-4-lYFH2l3oSS5xEICa",
+		"registry.k8s.io/e2e-test-images/httpd:2.4.39-4":                  "e2e-11-registry-k8s-io-e2e-test-images-httpd-2-4-39-4-Hgo23C6O-Y8DPv5N",
+		"registry.k8s.io/e2e-test-images/jessie-dnsutils:1.7":             "e2e-14-registry-k8s-io-e2e-test-images-jessie-dnsutils-1-7-bJ-yvCS2MUBlnXm1",
+		"registry.k8s.io/e2e-test-images/nautilus:1.7":                    "e2e-16-registry-k8s-io-e2e-test-images-nautilus-1-7-7f05f70QXiLXg0hX",
+		"registry.k8s.io/e2e-test-images/nginx:1.14-4":                    "e2e-18-registry-k8s-io-e2e-test-images-nginx-1-14-4-20h7A1tgJp0m0c1_",
+		"registry.k8s.io/e2e-test-images/nonewprivs:1.3":                  "e2e-23-registry-k8s-io-e2e-test-images-nonewprivs-1-3-lsPs1J8LjWvEYqre",
+		"registry.k8s.io/e2e-test-images/nonroot:1.4":                     "e2e-24-registry-k8s-io-e2e-test-images-nonroot-1-4-u_r1WOwfmHWUVyUc",
+		"registry.k8s.io/e2e-test-images/regression-issue-74839:1.2":      "e2e-28-registry-k8s-io-e2e-test-images-regression-issue-74839-1-2-pZ_RxNuqvcwEiCKE",
+		"registry.k8s.io/e2e-test-images/resource-consumer:1.13":          "e2e-29-registry-k8s-io-e2e-test-images-resource-consumer-1-13-LT0C2W4wMzShSeGS",
+		"registry.k8s.io/e2e-test-images/volume/nfs:1.4":                  "e2e-30-registry-k8s-io-e2e-test-images-volume-nfs-1-4-u7V8iW5QIcWM2i6h",
+		"registry.k8s.io/etcd:3.5.16-0":                                   "e2e-9-registry-k8s-io-etcd-3-5-16-0-ExW1ETJqOZa6gx2F",
+		"registry.k8s.io/sig-storage/csi-attacher:v4.7.0":                 "e2e-44-registry-k8s-io-sig-storage-csi-attacher-v4-7-0-aS7GIn0bMzvq3KoO",
+		"registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.12.0":   "e2e-50-registry-k8s-io-sig-storage-csi-node-driver-registrar-v2-12-0-jkkxroBOcREoIm9b",
+		"registry.k8s.io/sig-storage/csi-provisioner:v5.1.0":              "e2e-43-registry-k8s-io-sig-storage-csi-provisioner-v5-1-0-9nVNb-KrN4Qb7WGv",
+		"registry.k8s.io/sig-storage/csi-resizer:v1.12.0":                 "e2e-45-registry-k8s-io-sig-storage-csi-resizer-v1-12-0-bjLLc3vKDh_BJRU2",
+		"registry.k8s.io/sig-storage/csi-snapshotter:v8.1.0":              "e2e-42-registry-k8s-io-sig-storage-csi-snapshotter-v8-1-0-3cVspluN_7tfQqYd",
+		"registry.k8s.io/sig-storage/hello-populator:v1.0.1":              "e2e-32-registry-k8s-io-sig-storage-hello-populator-v1-0-1-Ei7libli17J5IWn-",
+		"registry.k8s.io/sig-storage/hostpathplugin:v1.15.0":              "e2e-49-registry-k8s-io-sig-storage-hostpathplugin-v1-15-0-YS6opQN6AdImbOb6",
+		"registry.k8s.io/sig-storage/livenessprobe:v2.14.0":               "e2e-51-registry-k8s-io-sig-storage-livenessprobe-v2-14-0-969ousmSC9UQiDgO",
+		"registry.k8s.io/sig-storage/nfs-provisioner:v4.0.8":              "e2e-17-registry-k8s-io-sig-storage-nfs-provisioner-v4-0-8-W5pbwDbNliDm1x4k",
+		"registry.k8s.io/sig-storage/volume-data-source-validator:v1.0.0": "e2e-33-registry-k8s-io-sig-storage-volume-data-source-validator-v1-0-0-pJwTeQGTDmAV8753",
+	} {
+		if upstream {
+			lines = append(lines, fmt.Sprintf("%s %s:%s", original, ref.Exact(), mirror))
+		} else {
+			lines = append(lines, fmt.Sprintf("quay.io/openshift/community-e2e-images:%s %s:%s", mirror, ref.Exact(), mirror))
+		}
+	}
+	sort.Strings(lines)
+	return lines
 }
 
 type imagesOptions struct {
