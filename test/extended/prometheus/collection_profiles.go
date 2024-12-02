@@ -289,7 +289,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				wantCount := int(queryResponse.Data.Result[0].Value)
 
 				kubeStateMetricsMainMetricsString := strings.Join(kubeStateMetricsMainMetrics, "")
-				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */])
+				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */ ])
 				queryResponse, err = helper.RunQuery(tctx, r.pclient, kubeStateMetricsMainMetricsCountQuery)
 				if err != nil {
 					return err
