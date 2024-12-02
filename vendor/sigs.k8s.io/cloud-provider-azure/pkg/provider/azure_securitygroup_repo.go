@@ -24,8 +24,9 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
+
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -36,7 +37,7 @@ func (az *Cloud) CreateOrUpdateSecurityGroup(sg network.SecurityGroup) error {
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
-	rerr := az.SecurityGroupsClient.CreateOrUpdate(ctx, az.SecurityGroupResourceGroup, *sg.Name, sg, pointer.StringDeref(sg.Etag, ""))
+	rerr := az.SecurityGroupsClient.CreateOrUpdate(ctx, az.SecurityGroupResourceGroup, *sg.Name, sg, ptr.Deref(sg.Etag, ""))
 	klog.V(10).Infof("SecurityGroupsClient.CreateOrUpdate(%s): end", *sg.Name)
 	if rerr == nil {
 		// Invalidate the cache right after updating
@@ -45,7 +46,7 @@ func (az *Cloud) CreateOrUpdateSecurityGroup(sg network.SecurityGroup) error {
 	}
 
 	nsgJSON, _ := json.Marshal(sg)
-	klog.Warningf("CreateOrUpdateSecurityGroup(%s) failed: %v, NSG request: %s", pointer.StringDeref(sg.Name, ""), rerr.Error(), string(nsgJSON))
+	klog.Warningf("CreateOrUpdateSecurityGroup(%s) failed: %v, NSG request: %s", ptr.Deref(sg.Name, ""), rerr.Error(), string(nsgJSON))
 
 	// Invalidate the cache because ETAG precondition mismatch.
 	if rerr.HTTPStatusCode == http.StatusPreconditionFailed {

@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azclients "sigs.k8s.io/cloud-provider-azure/pkg/azureclients"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armclient"
@@ -370,7 +370,7 @@ func (c *Client) ListByResourceGroup(ctx context.Context, subsID, resourceGroupN
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 
@@ -420,13 +420,13 @@ func (c *Client) listResponder(resp *http.Response) (result compute.DiskList, er
 }
 
 func (c *Client) diskListPreparer(ctx context.Context, lr compute.DiskList) (*http.Request, error) {
-	if lr.NextLink == nil || len(pointer.StringDeref(lr.NextLink, "")) < 1 {
+	if lr.NextLink == nil || len(ptr.Deref(lr.NextLink, "")) < 1 {
 		return nil, nil
 	}
 	return autorest.Prepare((&http.Request{}).WithContext(ctx),
 		autorest.AsJSON(),
 		autorest.AsGet(),
-		autorest.WithBaseURL(pointer.StringDeref(lr.NextLink, "")))
+		autorest.WithBaseURL(ptr.Deref(lr.NextLink, "")))
 }
 
 // DiskListPage contains a page of Disk values.

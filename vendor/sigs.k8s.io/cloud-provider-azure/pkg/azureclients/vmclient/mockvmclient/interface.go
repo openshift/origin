@@ -147,6 +147,21 @@ func (mr *MockInterfaceMockRecorder) ListVmssFlexVMsWithoutInstanceView(ctx, vms
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListVmssFlexVMsWithoutInstanceView", reflect.TypeOf((*MockInterface)(nil).ListVmssFlexVMsWithoutInstanceView), ctx, vmssFlexID)
 }
 
+// ListWithInstanceView mocks base method.
+func (m *MockInterface) ListWithInstanceView(ctx context.Context, resourceGroupName string) ([]compute.VirtualMachine, *retry.Error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListWithInstanceView", ctx, resourceGroupName)
+	ret0, _ := ret[0].([]compute.VirtualMachine)
+	ret1, _ := ret[1].(*retry.Error)
+	return ret0, ret1
+}
+
+// ListWithInstanceView indicates an expected call of ListWithInstanceView.
+func (mr *MockInterfaceMockRecorder) ListWithInstanceView(ctx, resourceGroupName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListWithInstanceView", reflect.TypeOf((*MockInterface)(nil).ListWithInstanceView), ctx, resourceGroupName)
+}
+
 // Update mocks base method.
 func (m *MockInterface) Update(ctx context.Context, resourceGroupName, VMName string, parameters compute.VirtualMachineUpdate, source string) (*compute.VirtualMachine, *retry.Error) {
 	m.ctrl.T.Helper()

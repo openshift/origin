@@ -28,14 +28,14 @@ import (
 
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 )
 
 func (fs *FlexScaleSet) newVmssFlexCache(ctx context.Context) (azcache.Resource, error) {
-	getter := func(key string) (interface{}, error) {
+	getter := func(_ string) (interface{}, error) {
 		localCache := &sync.Map{}
 
 		allResourceGroups, err := fs.GetResourceGroups()
@@ -141,7 +141,7 @@ func (fs *FlexScaleSet) getNodeNameByVMName(vmName string) (string, error) {
 		}
 		vmssFlexes := cached.(*sync.Map)
 
-		vmssFlexes.Range(func(key, value interface{}) bool {
+		vmssFlexes.Range(func(key, _ interface{}) bool {
 			vmssFlexID := key.(string)
 			_, err := fs.vmssFlexVMCache.Get(vmssFlexID, azcache.CacheReadTypeForceRefresh)
 			if err != nil {
@@ -186,11 +186,11 @@ func (fs *FlexScaleSet) getNodeVmssFlexID(nodeName string) (string, error) {
 		vmssFlexes.Range(func(key, value interface{}) bool {
 			vmssFlexID := key.(string)
 			vmssFlex := value.(*compute.VirtualMachineScaleSet)
-			vmssPrefix := pointer.StringDeref(vmssFlex.Name, "")
+			vmssPrefix := ptr.Deref(vmssFlex.Name, "")
 			if vmssFlex.VirtualMachineProfile != nil &&
 				vmssFlex.VirtualMachineProfile.OsProfile != nil &&
 				vmssFlex.VirtualMachineProfile.OsProfile.ComputerNamePrefix != nil {
-				vmssPrefix = pointer.StringDeref(vmssFlex.VirtualMachineProfile.OsProfile.ComputerNamePrefix, "")
+				vmssPrefix = ptr.Deref(vmssFlex.VirtualMachineProfile.OsProfile.ComputerNamePrefix, "")
 			}
 			if strings.EqualFold(vmssPrefix, nodeName[:len(nodeName)-6]) {
 				// we should check this vmss first since nodeName and vmssFlex.Name or
@@ -287,7 +287,7 @@ func (fs *FlexScaleSet) getVmssFlexIDByName(vmssFlexName string) (string, error)
 	}
 	var targetVmssFlexID string
 	vmssFlexes := cached.(*sync.Map)
-	vmssFlexes.Range(func(key, value interface{}) bool {
+	vmssFlexes.Range(func(key, _ interface{}) bool {
 		vmssFlexID := key.(string)
 		name, err := getLastSegment(vmssFlexID, "/")
 		if err != nil {

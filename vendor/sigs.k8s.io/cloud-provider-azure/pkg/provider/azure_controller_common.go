@@ -33,7 +33,7 @@ const (
 	maxLUN                 = 64 // max number of LUNs per VM
 	errStatusCode400       = "statuscode=400"
 	errInvalidParameter    = `code="invalidparameter"`
-	errTargetInstanceIds   = `target="instanceids"`
+	errTargetInstanceIDs   = `target="instanceids"`
 	sourceSnapshot         = "snapshot"
 	sourceVolume           = "volume"
 	attachDiskMapKeySuffix = "attachdiskmap"

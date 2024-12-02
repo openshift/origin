@@ -24,9 +24,10 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -37,27 +38,27 @@ func (az *Cloud) CreateOrUpdatePLS(_ *v1.Service, resourceGroup string, pls netw
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
-	rerr := az.PrivateLinkServiceClient.CreateOrUpdate(ctx, resourceGroup, pointer.StringDeref(pls.Name, ""), pls, pointer.StringDeref(pls.Etag, ""))
+	rerr := az.PrivateLinkServiceClient.CreateOrUpdate(ctx, resourceGroup, ptr.Deref(pls.Name, ""), pls, ptr.Deref(pls.Etag, ""))
 	if rerr == nil {
 		// Invalidate the cache right after updating
-		_ = az.plsCache.Delete(getPLSCacheKey(resourceGroup, pointer.StringDeref((*pls.LoadBalancerFrontendIPConfigurations)[0].ID, "")))
+		_ = az.plsCache.Delete(getPLSCacheKey(resourceGroup, ptr.Deref((*pls.LoadBalancerFrontendIPConfigurations)[0].ID, "")))
 		return nil
 	}
 
 	rtJSON, _ := json.Marshal(pls)
-	klog.Warningf("PrivateLinkServiceClient.CreateOrUpdate(%s) failed: %v, PrivateLinkService request: %s", pointer.StringDeref(pls.Name, ""), rerr.Error(), string(rtJSON))
+	klog.Warningf("PrivateLinkServiceClient.CreateOrUpdate(%s) failed: %v, PrivateLinkService request: %s", ptr.Deref(pls.Name, ""), rerr.Error(), string(rtJSON))
 
 	// Invalidate the cache because etag mismatch.
 	if rerr.HTTPStatusCode == http.StatusPreconditionFailed {
-		klog.V(3).Infof("Private link service cache for %s is cleanup because of http.StatusPreconditionFailed", pointer.StringDeref(pls.Name, ""))
-		_ = az.plsCache.Delete(getPLSCacheKey(resourceGroup, pointer.StringDeref((*pls.LoadBalancerFrontendIPConfigurations)[0].ID, "")))
+		klog.V(3).Infof("Private link service cache for %s is cleanup because of http.StatusPreconditionFailed", ptr.Deref(pls.Name, ""))
+		_ = az.plsCache.Delete(getPLSCacheKey(resourceGroup, ptr.Deref((*pls.LoadBalancerFrontendIPConfigurations)[0].ID, "")))
 	}
 	// Invalidate the cache because another new operation has canceled the current request.
 	if strings.Contains(strings.ToLower(rerr.Error().Error()), consts.OperationCanceledErrorMessage) {
-		klog.V(3).Infof("Private link service for %s is cleanup because CreateOrUpdatePrivateLinkService is canceled by another operation", pointer.StringDeref(pls.Name, ""))
-		_ = az.plsCache.Delete(getPLSCacheKey(resourceGroup, pointer.StringDeref((*pls.LoadBalancerFrontendIPConfigurations)[0].ID, "")))
+		klog.V(3).Infof("Private link service for %s is cleanup because CreateOrUpdatePrivateLinkService is canceled by another operation", ptr.Deref(pls.Name, ""))
+		_ = az.plsCache.Delete(getPLSCacheKey(resourceGroup, ptr.Deref((*pls.LoadBalancerFrontendIPConfigurations)[0].ID, "")))
 	}
-	klog.Errorf("PrivateLinkServiceClient.CreateOrUpdate(%s) failed: %v", pointer.StringDeref(pls.Name, ""), rerr.Error())
+	klog.Errorf("PrivateLinkServiceClient.CreateOrUpdate(%s) failed: %v", ptr.Deref(pls.Name, ""), rerr.Error())
 	return rerr.Error()
 }
 

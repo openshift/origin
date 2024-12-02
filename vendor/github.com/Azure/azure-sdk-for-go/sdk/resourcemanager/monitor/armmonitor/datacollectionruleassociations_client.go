@@ -32,7 +32,7 @@ type DataCollectionRuleAssociationsClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewDataCollectionRuleAssociationsClient(subscriptionID string, credential azcore.TokenCredential, options *arm.ClientOptions) (*DataCollectionRuleAssociationsClient, error) {
-	cl, err := arm.NewClient(moduleName+".DataCollectionRuleAssociationsClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}
@@ -227,22 +227,15 @@ func (client *DataCollectionRuleAssociationsClient) NewListByDataCollectionEndpo
 		},
 		Fetcher: func(ctx context.Context, page *DataCollectionRuleAssociationsClientListByDataCollectionEndpointResponse) (DataCollectionRuleAssociationsClientListByDataCollectionEndpointResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "DataCollectionRuleAssociationsClient.NewListByDataCollectionEndpointPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listByDataCollectionEndpointCreateRequest(ctx, resourceGroupName, dataCollectionEndpointName, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listByDataCollectionEndpointCreateRequest(ctx, resourceGroupName, dataCollectionEndpointName, options)
+			}, nil)
 			if err != nil {
 				return DataCollectionRuleAssociationsClientListByDataCollectionEndpointResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return DataCollectionRuleAssociationsClientListByDataCollectionEndpointResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return DataCollectionRuleAssociationsClientListByDataCollectionEndpointResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listByDataCollectionEndpointHandleResponse(resp)
 		},
@@ -298,22 +291,15 @@ func (client *DataCollectionRuleAssociationsClient) NewListByResourcePager(resou
 		},
 		Fetcher: func(ctx context.Context, page *DataCollectionRuleAssociationsClientListByResourceResponse) (DataCollectionRuleAssociationsClientListByResourceResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "DataCollectionRuleAssociationsClient.NewListByResourcePager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listByResourceCreateRequest(ctx, resourceURI, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listByResourceCreateRequest(ctx, resourceURI, options)
+			}, nil)
 			if err != nil {
 				return DataCollectionRuleAssociationsClientListByResourceResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return DataCollectionRuleAssociationsClientListByResourceResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return DataCollectionRuleAssociationsClientListByResourceResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listByResourceHandleResponse(resp)
 		},
@@ -359,22 +345,15 @@ func (client *DataCollectionRuleAssociationsClient) NewListByRulePager(resourceG
 		},
 		Fetcher: func(ctx context.Context, page *DataCollectionRuleAssociationsClientListByRuleResponse) (DataCollectionRuleAssociationsClientListByRuleResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "DataCollectionRuleAssociationsClient.NewListByRulePager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listByRuleCreateRequest(ctx, resourceGroupName, dataCollectionRuleName, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listByRuleCreateRequest(ctx, resourceGroupName, dataCollectionRuleName, options)
+			}, nil)
 			if err != nil {
 				return DataCollectionRuleAssociationsClientListByRuleResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return DataCollectionRuleAssociationsClientListByRuleResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return DataCollectionRuleAssociationsClientListByRuleResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listByRuleHandleResponse(resp)
 		},

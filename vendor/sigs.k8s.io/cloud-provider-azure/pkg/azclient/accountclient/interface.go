@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/utils"
 )
 
-// +azure:client:verbs=listbyrg,resource=Account,packageName=github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage,packageAlias=armstorage,clientName=AccountsClient,expand=true,crossSubFactory=true
+// +azure:client:verbs=listbyrg,resource=Account,packageName=github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage,packageAlias=armstorage,clientName=AccountsClient,expand=true,crossSubFactory=true,rateLimitKey=storageAccountRateLimit
 type Interface interface {
 	utils.ListFunc[armstorage.Account]
 	Create(ctx context.Context, resourceGroupName string, accountName string, resource *armstorage.AccountCreateParameters) (*armstorage.Account, error)

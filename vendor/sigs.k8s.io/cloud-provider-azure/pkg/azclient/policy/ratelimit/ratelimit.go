@@ -39,6 +39,10 @@ type Config struct {
 	CloudProviderRateLimitBucketWrite int `json:"cloudProviderRateLimitBucketWrite,omitempty" yaml:"cloudProviderRateLimitBucketWrite,omitempty"`
 }
 
+var (
+	ErrRateLimitReached = errors.New("rate limit reached")
+)
+
 func NewRateLimitPolicy(config *Config) policy.Policy {
 	if config != nil && config.CloudProviderRateLimit {
 		readLimiter := flowcontrol.NewTokenBucketRateLimiter(
@@ -64,11 +68,11 @@ type Policy struct {
 func (f Policy) Do(req *policy.Request) (*http.Response, error) {
 	if req.Raw().Method == http.MethodGet || req.Raw().Method == http.MethodHead {
 		if !f.rateLimiterReader.TryAccept() {
-			return nil, errors.New("rate limit reached")
+			return nil, ErrRateLimitReached
 		}
 	} else {
 		if !f.rateLimiterWriter.TryAccept() {
-			return nil, errors.New("rate limit reached")
+			return nil, ErrRateLimitReached
 		}
 	}
 	return req.Next()

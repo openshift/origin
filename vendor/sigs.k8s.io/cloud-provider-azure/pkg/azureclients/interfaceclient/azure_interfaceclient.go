@@ -29,7 +29,7 @@ import (
 
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azclients "sigs.k8s.io/cloud-provider-azure/pkg/azureclients"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armclient"
@@ -261,8 +261,8 @@ func (c *Client) createOrUpdateInterface(ctx context.Context, resourceGroupName 
 		networkInterfaceName,
 	)
 	decorators := []autorest.PrepareDecorator{}
-	if pointer.StringDeref(parameters.Etag, "") != "" {
-		decorators = append(decorators, autorest.WithHeader("If-Match", autorest.String(pointer.StringDeref(parameters.Etag, ""))))
+	if ptr.Deref(parameters.Etag, "") != "" {
+		decorators = append(decorators, autorest.WithHeader("If-Match", autorest.String(ptr.Deref(parameters.Etag, ""))))
 	}
 
 	response, rerr := c.armClient.PutResource(ctx, resourceID, parameters, decorators...)

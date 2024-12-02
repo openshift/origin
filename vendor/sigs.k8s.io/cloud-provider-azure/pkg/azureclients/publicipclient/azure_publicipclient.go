@@ -29,7 +29,7 @@ import (
 
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azclients "sigs.k8s.io/cloud-provider-azure/pkg/azureclients"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armclient"
@@ -278,7 +278,7 @@ func (c *Client) listPublicIPAddress(ctx context.Context, resourceGroupName stri
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 
@@ -415,12 +415,12 @@ func (c *Client) listResponder(resp *http.Response) (result network.PublicIPAddr
 // publicIPAddressListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
 func (c *Client) publicIPAddressListResultPreparer(ctx context.Context, lr network.PublicIPAddressListResult) (*http.Request, error) {
-	if lr.NextLink == nil || len(pointer.StringDeref(lr.NextLink, "")) < 1 {
+	if lr.NextLink == nil || len(ptr.Deref(lr.NextLink, "")) < 1 {
 		return nil, nil
 	}
 
 	decorators := []autorest.PrepareDecorator{
-		autorest.WithBaseURL(pointer.StringDeref(lr.NextLink, "")),
+		autorest.WithBaseURL(ptr.Deref(lr.NextLink, "")),
 	}
 	return c.armClient.PrepareGetRequest(ctx, decorators...)
 }
@@ -543,7 +543,7 @@ func (c *Client) listAllPublicIPAddress(ctx context.Context) ([]network.PublicIP
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 

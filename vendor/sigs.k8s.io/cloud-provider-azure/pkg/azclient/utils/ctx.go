@@ -18,11 +18,13 @@ package utils
 
 import "context"
 
-var (
-	ctxKeyClientName        = struct{}{}
-	ctxKeyMethodRequest     = struct{}{}
-	ctxKeyResourceGroupName = struct{}{}
-	ctxKeySubscriptionID    = struct{}{}
+type key string
+
+const (
+	ctxKeyClientName        key = "ClientName"
+	ctxKeyMethodRequest     key = "MethodRequest"
+	ctxKeyResourceGroupName key = "ResourceGroupName"
+	ctxKeySubscriptionID    key = "SubscriptionID"
 )
 
 func ContextWithClientName(ctx context.Context, clientName string) context.Context {

@@ -133,14 +133,17 @@ func dashPath(paths [][]Point, dashes []float64, offset float64) [][]Point {
 	return result
 }
 
-func rasterPath(paths [][]Point) raster.Path {
-	var result raster.Path
+func rasterPath(paths [][]Point) (result raster.Path) {
+	const (
+		dcut fixed.Int26_6 = 4
+	)
 	for _, path := range paths {
 		var previous fixed.Point26_6
 		for i, point := range path {
 			f := point.Fixed()
 			if i == 0 {
 				result.Start(f)
+				previous = f
 			} else {
 				dx := f.X - previous.X
 				dy := f.Y - previous.Y
@@ -150,13 +153,13 @@ func rasterPath(paths [][]Point) raster.Path {
 				if dy < 0 {
 					dy = -dy
 				}
-				if dx+dy > 4 {
+				if dx+dy > dcut {
 					// TODO: this is a hack for cases where two points are
 					// too close - causes rendering issues with joins / caps
 					result.Add1(f)
+					previous = f
 				}
 			}
-			previous = f
 		}
 	}
 	return result

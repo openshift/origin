@@ -32,7 +32,7 @@ type ActivityLogAlertsClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewActivityLogAlertsClient(subscriptionID string, credential azcore.TokenCredential, options *arm.ClientOptions) (*ActivityLogAlertsClient, error) {
-	cl, err := arm.NewClient(moduleName+".ActivityLogAlertsClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}
@@ -244,22 +244,15 @@ func (client *ActivityLogAlertsClient) NewListByResourceGroupPager(resourceGroup
 		},
 		Fetcher: func(ctx context.Context, page *ActivityLogAlertsClientListByResourceGroupResponse) (ActivityLogAlertsClientListByResourceGroupResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "ActivityLogAlertsClient.NewListByResourceGroupPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listByResourceGroupCreateRequest(ctx, resourceGroupName, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listByResourceGroupCreateRequest(ctx, resourceGroupName, options)
+			}, nil)
 			if err != nil {
 				return ActivityLogAlertsClientListByResourceGroupResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return ActivityLogAlertsClientListByResourceGroupResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return ActivityLogAlertsClientListByResourceGroupResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listByResourceGroupHandleResponse(resp)
 		},
@@ -310,22 +303,15 @@ func (client *ActivityLogAlertsClient) NewListBySubscriptionIDPager(options *Act
 		},
 		Fetcher: func(ctx context.Context, page *ActivityLogAlertsClientListBySubscriptionIDResponse) (ActivityLogAlertsClientListBySubscriptionIDResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "ActivityLogAlertsClient.NewListBySubscriptionIDPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listBySubscriptionIDCreateRequest(ctx, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listBySubscriptionIDCreateRequest(ctx, options)
+			}, nil)
 			if err != nil {
 				return ActivityLogAlertsClientListBySubscriptionIDResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return ActivityLogAlertsClientListBySubscriptionIDResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return ActivityLogAlertsClientListBySubscriptionIDResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listBySubscriptionIDHandleResponse(resp)
 		},

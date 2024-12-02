@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing"
 	armnetwork "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4"
 
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/metrics"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/utils"
 )
 
@@ -55,17 +56,15 @@ func New(subscriptionID string, credential azcore.TokenCredential, options *arm.
 const GetOperationName = "PublicIPPrefixesClient.Get"
 
 // Get gets the PublicIPPrefix
-func (client *Client) Get(ctx context.Context, resourceGroupName string, resourceName string, expand *string) (result *armnetwork.PublicIPPrefix, rerr error) {
+func (client *Client) Get(ctx context.Context, resourceGroupName string, resourceName string, expand *string) (result *armnetwork.PublicIPPrefix, err error) {
 	var ops *armnetwork.PublicIPPrefixesClientGetOptions
 	if expand != nil {
 		ops = &armnetwork.PublicIPPrefixesClientGetOptions{Expand: expand}
 	}
-	ctx = utils.ContextWithClientName(ctx, "PublicIPPrefixesClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Get")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "PublicIPPrefix", "get")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, GetOperationName, client.tracer, nil)
-	defer endSpan(rerr)
+	defer endSpan(err)
 	resp, err := client.PublicIPPrefixesClient.Get(ctx, resourceGroupName, resourceName, ops)
 	if err != nil {
 		return nil, err
@@ -78,10 +77,8 @@ const CreateOrUpdateOperationName = "PublicIPPrefixesClient.Create"
 
 // CreateOrUpdate creates or updates a PublicIPPrefix.
 func (client *Client) CreateOrUpdate(ctx context.Context, resourceGroupName string, resourceName string, resource armnetwork.PublicIPPrefix) (result *armnetwork.PublicIPPrefix, err error) {
-	ctx = utils.ContextWithClientName(ctx, "PublicIPPrefixesClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "CreateOrUpdate")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "PublicIPPrefix", "create_or_update")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, CreateOrUpdateOperationName, client.tracer, nil)
 	defer endSpan(err)
 	resp, err := utils.NewPollerWrapper(client.PublicIPPrefixesClient.BeginCreateOrUpdate(ctx, resourceGroupName, resourceName, resource, nil)).WaitforPollerResp(ctx)
@@ -98,10 +95,8 @@ const DeleteOperationName = "PublicIPPrefixesClient.Delete"
 
 // Delete deletes a PublicIPPrefix by name.
 func (client *Client) Delete(ctx context.Context, resourceGroupName string, resourceName string) (err error) {
-	ctx = utils.ContextWithClientName(ctx, "PublicIPPrefixesClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Delete")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "PublicIPPrefix", "delete")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, DeleteOperationName, client.tracer, nil)
 	defer endSpan(err)
 	_, err = utils.NewPollerWrapper(client.BeginDelete(ctx, resourceGroupName, resourceName, nil)).WaitforPollerResp(ctx)
@@ -111,13 +106,11 @@ func (client *Client) Delete(ctx context.Context, resourceGroupName string, reso
 const ListOperationName = "PublicIPPrefixesClient.List"
 
 // List gets a list of PublicIPPrefix in the resource group.
-func (client *Client) List(ctx context.Context, resourceGroupName string) (result []*armnetwork.PublicIPPrefix, rerr error) {
-	ctx = utils.ContextWithClientName(ctx, "PublicIPPrefixesClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "List")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+func (client *Client) List(ctx context.Context, resourceGroupName string) (result []*armnetwork.PublicIPPrefix, err error) {
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "PublicIPPrefix", "list")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, ListOperationName, client.tracer, nil)
-	defer endSpan(rerr)
+	defer endSpan(err)
 	pager := client.PublicIPPrefixesClient.NewListPager(resourceGroupName, nil)
 	for pager.More() {
 		nextResult, err := pager.NextPage(ctx)

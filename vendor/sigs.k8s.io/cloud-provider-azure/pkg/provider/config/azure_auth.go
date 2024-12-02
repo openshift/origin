@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -27,6 +29,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 
@@ -151,7 +154,7 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 		if err != nil {
 			return nil, fmt.Errorf("reading the client certificate from file %s: %w", config.AADClientCertPath, err)
 		}
-		certificate, privateKey, err := adal.DecodePfxCertificateData(certData, config.AADClientCertPassword)
+		certificate, privateKey, err := parseCertificate(certData, config.AADClientCertPassword)
 		if err != nil {
 			return nil, fmt.Errorf("decoding the client certificate: %w", err)
 		}
@@ -205,7 +208,7 @@ func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Env
 		if err != nil {
 			return nil, fmt.Errorf("reading the client certificate from file %s: %w", config.AADClientCertPath, err)
 		}
-		certificate, privateKey, err := adal.DecodePfxCertificateData(certData, config.AADClientCertPassword)
+		certificate, privateKey, err := parseCertificate(certData, config.AADClientCertPassword)
 		if err != nil {
 			return nil, fmt.Errorf("decoding the client certificate: %w", err)
 		}
@@ -217,12 +220,12 @@ func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Env
 			env.ServiceManagementEndpoint)
 	}
 
-	if authProvider.ManagedIdentityCredential != nil && authProvider.NetworkTokenCredential != nil {
+	if authProvider.ComputeCredential != nil && authProvider.NetworkCredential != nil {
 		logger.V(2).Info("Setup ARM multi-tenant token provider", "method", "msi_with_auxiliary_token")
 		return armauth.NewMultiTenantTokenProvider(
 			klog.Background().WithName("multi-tenant-resource-token-provider"),
-			authProvider.ManagedIdentityCredential,
-			[]azcore.TokenCredential{authProvider.NetworkTokenCredential},
+			authProvider.ComputeCredential,
+			[]azcore.TokenCredential{authProvider.NetworkCredential},
 			authProvider.DefaultTokenScope(),
 		)
 	}
@@ -266,7 +269,7 @@ func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure
 		if err != nil {
 			return nil, fmt.Errorf("reading the client certificate from file %s: %w", config.AADClientCertPath, err)
 		}
-		certificate, privateKey, err := adal.DecodePfxCertificateData(certData, config.AADClientCertPassword)
+		certificate, privateKey, err := parseCertificate(certData, config.AADClientCertPassword)
 		if err != nil {
 			return nil, fmt.Errorf("decoding the client certificate: %w", err)
 		}
@@ -278,12 +281,12 @@ func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure
 			env.ServiceManagementEndpoint)
 	}
 
-	if authProvider.ManagedIdentityCredential != nil && authProvider.NetworkTokenCredential != nil {
+	if authProvider.ComputeCredential != nil && authProvider.NetworkCredential != nil {
 		logger.V(2).Info("Setup ARM network resource token provider", "method", "msi_with_auxiliary_token")
 
 		return armauth.NewTokenProvider(
 			klog.Background().WithName("network-resource-token-provider"),
-			authProvider.NetworkTokenCredential,
+			authProvider.NetworkCredential,
 			authProvider.DefaultTokenScope(),
 		)
 	}
@@ -382,4 +385,33 @@ func (config *AzureAuthConfig) ValidateForMultiTenant() error {
 	}
 
 	return nil
+}
+
+// parseCertificate extracts the x509 certificate and RSA private key from the provided PFX or PEM data.
+// The cert data must contain a private key along with a certificate whose public key matches that of the
+// private key or an error is returned.
+func parseCertificate(certData []byte, password string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	certificates, privateKey, err := azidentity.ParseCertificates(certData, []byte(password))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rsaPrivateKey, ok := privateKey.(*rsa.PrivateKey)
+	if !ok {
+		return nil, nil, fmt.Errorf("failed to parse certificate: private key is not RSA")
+	}
+
+	// find the certificate with the matching public key of private key
+	for _, cert := range certificates {
+		certKey, ok := cert.PublicKey.(*rsa.PublicKey)
+		if !ok {
+			continue
+		}
+		if rsaPrivateKey.E == certKey.E && rsaPrivateKey.N.Cmp(certKey.N) == 0 {
+			// found a match
+			return cert, rsaPrivateKey, nil
+		}
+	}
+
+	return nil, nil, fmt.Errorf("failed to parse certificate: cannot find public key for private key")
 }

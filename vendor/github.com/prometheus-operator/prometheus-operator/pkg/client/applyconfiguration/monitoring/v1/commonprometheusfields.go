@@ -20,21 +20,21 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// CommonPrometheusFieldsApplyConfiguration represents an declarative configuration of the CommonPrometheusFields type for use
+// CommonPrometheusFieldsApplyConfiguration represents a declarative configuration of the CommonPrometheusFields type for use
 // with apply.
 type CommonPrometheusFieldsApplyConfiguration struct {
 	PodMetadata                          *EmbeddedObjectMetadataApplyConfiguration               `json:"podMetadata,omitempty"`
-	ServiceMonitorSelector               *metav1.LabelSelector                                   `json:"serviceMonitorSelector,omitempty"`
-	ServiceMonitorNamespaceSelector      *metav1.LabelSelector                                   `json:"serviceMonitorNamespaceSelector,omitempty"`
-	PodMonitorSelector                   *metav1.LabelSelector                                   `json:"podMonitorSelector,omitempty"`
-	PodMonitorNamespaceSelector          *metav1.LabelSelector                                   `json:"podMonitorNamespaceSelector,omitempty"`
-	ProbeSelector                        *metav1.LabelSelector                                   `json:"probeSelector,omitempty"`
-	ProbeNamespaceSelector               *metav1.LabelSelector                                   `json:"probeNamespaceSelector,omitempty"`
-	ScrapeConfigSelector                 *metav1.LabelSelector                                   `json:"scrapeConfigSelector,omitempty"`
-	ScrapeConfigNamespaceSelector        *metav1.LabelSelector                                   `json:"scrapeConfigNamespaceSelector,omitempty"`
+	ServiceMonitorSelector               *metav1.LabelSelectorApplyConfiguration                 `json:"serviceMonitorSelector,omitempty"`
+	ServiceMonitorNamespaceSelector      *metav1.LabelSelectorApplyConfiguration                 `json:"serviceMonitorNamespaceSelector,omitempty"`
+	PodMonitorSelector                   *metav1.LabelSelectorApplyConfiguration                 `json:"podMonitorSelector,omitempty"`
+	PodMonitorNamespaceSelector          *metav1.LabelSelectorApplyConfiguration                 `json:"podMonitorNamespaceSelector,omitempty"`
+	ProbeSelector                        *metav1.LabelSelectorApplyConfiguration                 `json:"probeSelector,omitempty"`
+	ProbeNamespaceSelector               *metav1.LabelSelectorApplyConfiguration                 `json:"probeNamespaceSelector,omitempty"`
+	ScrapeConfigSelector                 *metav1.LabelSelectorApplyConfiguration                 `json:"scrapeConfigSelector,omitempty"`
+	ScrapeConfigNamespaceSelector        *metav1.LabelSelectorApplyConfiguration                 `json:"scrapeConfigNamespaceSelector,omitempty"`
 	Version                              *string                                                 `json:"version,omitempty"`
 	Paused                               *bool                                                   `json:"paused,omitempty"`
 	Image                                *string                                                 `json:"image,omitempty"`
@@ -51,6 +51,7 @@ type CommonPrometheusFieldsApplyConfiguration struct {
 	ScrapeProtocols                      []monitoringv1.ScrapeProtocol                           `json:"scrapeProtocols,omitempty"`
 	ExternalLabels                       map[string]string                                       `json:"externalLabels,omitempty"`
 	EnableRemoteWriteReceiver            *bool                                                   `json:"enableRemoteWriteReceiver,omitempty"`
+	RemoteWriteReceiverMessageVersions   []monitoringv1.RemoteWriteMessageVersion                `json:"remoteWriteReceiverMessageVersions,omitempty"`
 	EnableFeatures                       []monitoringv1.EnableFeature                            `json:"enableFeatures,omitempty"`
 	ExternalURL                          *string                                                 `json:"externalUrl,omitempty"`
 	RoutePrefix                          *string                                                 `json:"routePrefix,omitempty"`
@@ -69,7 +70,10 @@ type CommonPrometheusFieldsApplyConfiguration struct {
 	Tolerations                          []corev1.Toleration                                     `json:"tolerations,omitempty"`
 	TopologySpreadConstraints            []TopologySpreadConstraintApplyConfiguration            `json:"topologySpreadConstraints,omitempty"`
 	RemoteWrite                          []RemoteWriteSpecApplyConfiguration                     `json:"remoteWrite,omitempty"`
+	OTLP                                 *OTLPConfigApplyConfiguration                           `json:"otlp,omitempty"`
 	SecurityContext                      *corev1.PodSecurityContext                              `json:"securityContext,omitempty"`
+	DNSPolicy                            *monitoringv1.DNSPolicy                                 `json:"dnsPolicy,omitempty"`
+	DNSConfig                            *PodDNSConfigApplyConfiguration                         `json:"dnsConfig,omitempty"`
 	ListenLocal                          *bool                                                   `json:"listenLocal,omitempty"`
 	Containers                           []corev1.Container                                      `json:"containers,omitempty"`
 	InitContainers                       []corev1.Container                                      `json:"initContainers,omitempty"`
@@ -107,9 +111,11 @@ type CommonPrometheusFieldsApplyConfiguration struct {
 	ReloadStrategy                       *monitoringv1.ReloadStrategyType                        `json:"reloadStrategy,omitempty"`
 	MaximumStartupDurationSeconds        *int32                                                  `json:"maximumStartupDurationSeconds,omitempty"`
 	ScrapeClasses                        []ScrapeClassApplyConfiguration                         `json:"scrapeClasses,omitempty"`
+	ServiceDiscoveryRole                 *monitoringv1.ServiceDiscoveryRole                      `json:"serviceDiscoveryRole,omitempty"`
+	TSDB                                 *TSDBSpecApplyConfiguration                             `json:"tsdb,omitempty"`
 }
 
-// CommonPrometheusFieldsApplyConfiguration constructs an declarative configuration of the CommonPrometheusFields type for use with
+// CommonPrometheusFieldsApplyConfiguration constructs a declarative configuration of the CommonPrometheusFields type for use with
 // apply.
 func CommonPrometheusFields() *CommonPrometheusFieldsApplyConfiguration {
 	return &CommonPrometheusFieldsApplyConfiguration{}
@@ -126,64 +132,64 @@ func (b *CommonPrometheusFieldsApplyConfiguration) WithPodMetadata(value *Embedd
 // WithServiceMonitorSelector sets the ServiceMonitorSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ServiceMonitorSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithServiceMonitorSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.ServiceMonitorSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithServiceMonitorSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.ServiceMonitorSelector = value
 	return b
 }
 
 // WithServiceMonitorNamespaceSelector sets the ServiceMonitorNamespaceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ServiceMonitorNamespaceSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithServiceMonitorNamespaceSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.ServiceMonitorNamespaceSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithServiceMonitorNamespaceSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.ServiceMonitorNamespaceSelector = value
 	return b
 }
 
 // WithPodMonitorSelector sets the PodMonitorSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PodMonitorSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithPodMonitorSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.PodMonitorSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithPodMonitorSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.PodMonitorSelector = value
 	return b
 }
 
 // WithPodMonitorNamespaceSelector sets the PodMonitorNamespaceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PodMonitorNamespaceSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithPodMonitorNamespaceSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.PodMonitorNamespaceSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithPodMonitorNamespaceSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.PodMonitorNamespaceSelector = value
 	return b
 }
 
 // WithProbeSelector sets the ProbeSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ProbeSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithProbeSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.ProbeSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithProbeSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.ProbeSelector = value
 	return b
 }
 
 // WithProbeNamespaceSelector sets the ProbeNamespaceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ProbeNamespaceSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithProbeNamespaceSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.ProbeNamespaceSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithProbeNamespaceSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.ProbeNamespaceSelector = value
 	return b
 }
 
 // WithScrapeConfigSelector sets the ScrapeConfigSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ScrapeConfigSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithScrapeConfigSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.ScrapeConfigSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithScrapeConfigSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.ScrapeConfigSelector = value
 	return b
 }
 
 // WithScrapeConfigNamespaceSelector sets the ScrapeConfigNamespaceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ScrapeConfigNamespaceSelector field is set to the value of the last call.
-func (b *CommonPrometheusFieldsApplyConfiguration) WithScrapeConfigNamespaceSelector(value metav1.LabelSelector) *CommonPrometheusFieldsApplyConfiguration {
-	b.ScrapeConfigNamespaceSelector = &value
+func (b *CommonPrometheusFieldsApplyConfiguration) WithScrapeConfigNamespaceSelector(value *metav1.LabelSelectorApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.ScrapeConfigNamespaceSelector = value
 	return b
 }
 
@@ -322,6 +328,16 @@ func (b *CommonPrometheusFieldsApplyConfiguration) WithExternalLabels(entries ma
 // If called multiple times, the EnableRemoteWriteReceiver field is set to the value of the last call.
 func (b *CommonPrometheusFieldsApplyConfiguration) WithEnableRemoteWriteReceiver(value bool) *CommonPrometheusFieldsApplyConfiguration {
 	b.EnableRemoteWriteReceiver = &value
+	return b
+}
+
+// WithRemoteWriteReceiverMessageVersions adds the given value to the RemoteWriteReceiverMessageVersions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the RemoteWriteReceiverMessageVersions field.
+func (b *CommonPrometheusFieldsApplyConfiguration) WithRemoteWriteReceiverMessageVersions(values ...monitoringv1.RemoteWriteMessageVersion) *CommonPrometheusFieldsApplyConfiguration {
+	for i := range values {
+		b.RemoteWriteReceiverMessageVersions = append(b.RemoteWriteReceiverMessageVersions, values[i])
+	}
 	return b
 }
 
@@ -497,11 +513,35 @@ func (b *CommonPrometheusFieldsApplyConfiguration) WithRemoteWrite(values ...*Re
 	return b
 }
 
+// WithOTLP sets the OTLP field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OTLP field is set to the value of the last call.
+func (b *CommonPrometheusFieldsApplyConfiguration) WithOTLP(value *OTLPConfigApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.OTLP = value
+	return b
+}
+
 // WithSecurityContext sets the SecurityContext field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the SecurityContext field is set to the value of the last call.
 func (b *CommonPrometheusFieldsApplyConfiguration) WithSecurityContext(value corev1.PodSecurityContext) *CommonPrometheusFieldsApplyConfiguration {
 	b.SecurityContext = &value
+	return b
+}
+
+// WithDNSPolicy sets the DNSPolicy field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DNSPolicy field is set to the value of the last call.
+func (b *CommonPrometheusFieldsApplyConfiguration) WithDNSPolicy(value monitoringv1.DNSPolicy) *CommonPrometheusFieldsApplyConfiguration {
+	b.DNSPolicy = &value
+	return b
+}
+
+// WithDNSConfig sets the DNSConfig field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DNSConfig field is set to the value of the last call.
+func (b *CommonPrometheusFieldsApplyConfiguration) WithDNSConfig(value *PodDNSConfigApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.DNSConfig = value
 	return b
 }
 
@@ -824,5 +864,21 @@ func (b *CommonPrometheusFieldsApplyConfiguration) WithScrapeClasses(values ...*
 		}
 		b.ScrapeClasses = append(b.ScrapeClasses, *values[i])
 	}
+	return b
+}
+
+// WithServiceDiscoveryRole sets the ServiceDiscoveryRole field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ServiceDiscoveryRole field is set to the value of the last call.
+func (b *CommonPrometheusFieldsApplyConfiguration) WithServiceDiscoveryRole(value monitoringv1.ServiceDiscoveryRole) *CommonPrometheusFieldsApplyConfiguration {
+	b.ServiceDiscoveryRole = &value
+	return b
+}
+
+// WithTSDB sets the TSDB field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the TSDB field is set to the value of the last call.
+func (b *CommonPrometheusFieldsApplyConfiguration) WithTSDB(value *TSDBSpecApplyConfiguration) *CommonPrometheusFieldsApplyConfiguration {
+	b.TSDB = value
 	return b
 }

@@ -30,7 +30,7 @@ import (
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
 	utilnet "k8s.io/utils/net"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -89,7 +89,7 @@ func newDelayedRouteUpdater(az *Cloud, interval time.Duration) batchProcessor {
 // run starts the updater reconciling loop.
 func (d *delayedRouteUpdater) run(ctx context.Context) {
 	klog.Info("delayedRouteUpdater: started")
-	err := wait.PollUntilContextCancel(ctx, d.interval, true, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextCancel(ctx, d.interval, true, func(_ context.Context) (bool, error) {
 		d.updateRoutes()
 		return false, nil
 	})
@@ -166,13 +166,13 @@ func (d *delayedRouteUpdater) updateRoutes() {
 		routeMatch := false
 		onlyUpdateTags = false
 		for i, existingRoute := range routes {
-			if strings.EqualFold(pointer.StringDeref(existingRoute.Name, ""), pointer.StringDeref(rt.route.Name, "")) {
+			if strings.EqualFold(ptr.Deref(existingRoute.Name, ""), ptr.Deref(rt.route.Name, "")) {
 				// delete the name-matched routes here (missing routes would be added later if the operation is add).
 				routes = append(routes[:i], routes[i+1:]...)
 				if existingRoute.RoutePropertiesFormat != nil &&
 					rt.route.RoutePropertiesFormat != nil &&
-					strings.EqualFold(pointer.StringDeref(existingRoute.AddressPrefix, ""), pointer.StringDeref(rt.route.AddressPrefix, "")) &&
-					strings.EqualFold(pointer.StringDeref(existingRoute.NextHopIPAddress, ""), pointer.StringDeref(rt.route.NextHopIPAddress, "")) {
+					strings.EqualFold(ptr.Deref(existingRoute.AddressPrefix, ""), ptr.Deref(rt.route.AddressPrefix, "")) &&
+					strings.EqualFold(ptr.Deref(existingRoute.NextHopIPAddress, ""), ptr.Deref(rt.route.NextHopIPAddress, "")) {
 					routeMatch = true
 				}
 				if rt.operation == routeOperationDelete {
@@ -182,7 +182,7 @@ func (d *delayedRouteUpdater) updateRoutes() {
 			}
 		}
 		if rt.operation == routeOperationDelete && !dirty {
-			klog.Warningf("updateRoutes: route to be deleted %s does not match any of the existing route", pointer.StringDeref(rt.route.Name, ""))
+			klog.Warningf("updateRoutes: route to be deleted %s does not match any of the existing route", ptr.Deref(rt.route.Name, ""))
 		}
 
 		// Add missing routes if the operation is add.
@@ -215,7 +215,7 @@ func (d *delayedRouteUpdater) updateRoutes() {
 // and deletes all dualstack routes when dualstack is not enabled.
 func (d *delayedRouteUpdater) cleanupOutdatedRoutes(existingRoutes []network.Route) (routes []network.Route, changed bool) {
 	for i := len(existingRoutes) - 1; i >= 0; i-- {
-		existingRouteName := pointer.StringDeref(existingRoutes[i].Name, "")
+		existingRouteName := ptr.Deref(existingRoutes[i].Name, "")
 		split := strings.Split(existingRouteName, consts.RouteNameSeparator)
 
 		klog.V(4).Infof("cleanupOutdatedRoutes: checking route %s", existingRouteName)
@@ -306,7 +306,7 @@ func (az *Cloud) ListRoutes(_ context.Context, clusterName string) ([]*cloudprov
 	// ensure the route table is tagged as configured
 	tags, changed := az.ensureRouteTableTagged(&routeTable)
 	if changed {
-		klog.V(2).Infof("ListRoutes: updating tags on route table %s", pointer.StringDeref(routeTable.Name, ""))
+		klog.V(2).Infof("ListRoutes: updating tags on route table %s", ptr.Deref(routeTable.Name, ""))
 		op := az.routeUpdater.addOperation(getUpdateRouteTableTagsOperation(tags))
 
 		// Wait for operation complete.
@@ -351,8 +351,8 @@ func processRoutes(ipv6DualStackEnabled bool, routeTable network.RouteTable, exi
 
 func (az *Cloud) createRouteTable() error {
 	routeTable := network.RouteTable{
-		Name:                       pointer.String(az.RouteTableName),
-		Location:                   pointer.String(az.Location),
+		Name:                       ptr.To(az.RouteTableName),
+		Location:                   ptr.To(az.Location),
 		RouteTablePropertiesFormat: &network.RouteTablePropertiesFormat{},
 	}
 
@@ -420,11 +420,11 @@ func (az *Cloud) CreateRoute(_ context.Context, clusterName string, _ string, ku
 	}
 	routeName := mapNodeNameToRouteName(az.ipv6DualStackEnabled, kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
 	route := network.Route{
-		Name: pointer.String(routeName),
+		Name: ptr.To(routeName),
 		RoutePropertiesFormat: &network.RoutePropertiesFormat{
-			AddressPrefix:    pointer.String(kubeRoute.DestinationCIDR),
+			AddressPrefix:    ptr.To(kubeRoute.DestinationCIDR),
 			NextHopType:      network.RouteNextHopTypeVirtualAppliance,
-			NextHopIPAddress: pointer.String(targetIP),
+			NextHopIPAddress: ptr.To(targetIP),
 		},
 	}
 
@@ -471,7 +471,7 @@ func (az *Cloud) DeleteRoute(_ context.Context, clusterName string, kubeRoute *c
 	routeName := mapNodeNameToRouteName(az.ipv6DualStackEnabled, kubeRoute.TargetNode, kubeRoute.DestinationCIDR)
 	klog.V(2).Infof("DeleteRoute: deleting route. clusterName=%q instance=%q cidr=%q routeName=%q", clusterName, kubeRoute.TargetNode, kubeRoute.DestinationCIDR, routeName)
 	route := network.Route{
-		Name:                  pointer.String(routeName),
+		Name:                  ptr.To(routeName),
 		RoutePropertiesFormat: &network.RoutePropertiesFormat{},
 	}
 	op := az.routeUpdater.addOperation(getDeleteRouteOperation(route))
@@ -488,7 +488,7 @@ func (az *Cloud) DeleteRoute(_ context.Context, clusterName string, kubeRoute *c
 		routeNameWithoutIPV6Suffix := strings.Split(routeName, consts.RouteNameSeparator)[0]
 		klog.V(2).Infof("DeleteRoute: deleting route. clusterName=%q instance=%q cidr=%q routeName=%q", clusterName, kubeRoute.TargetNode, kubeRoute.DestinationCIDR, routeNameWithoutIPV6Suffix)
 		route := network.Route{
-			Name:                  pointer.String(routeNameWithoutIPV6Suffix),
+			Name:                  ptr.To(routeNameWithoutIPV6Suffix),
 			RoutePropertiesFormat: &network.RoutePropertiesFormat{},
 		}
 		op := az.routeUpdater.addOperation(getDeleteRouteOperation(route))
@@ -558,7 +558,7 @@ func (az *Cloud) ensureRouteTableTagged(rt *network.RouteTable) (map[string]*str
 		return nil, false
 	}
 
-	if az.Tags == "" && (az.TagsMap == nil || len(az.TagsMap) == 0) {
+	if az.Tags == "" && (len(az.TagsMap) == 0) {
 		return nil, false
 	}
 	tags := parseTags(az.Tags, az.TagsMap)

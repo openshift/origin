@@ -32,7 +32,7 @@ type PrivateLinkScopeOperationStatusClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewPrivateLinkScopeOperationStatusClient(subscriptionID string, credential azcore.TokenCredential, options *arm.ClientOptions) (*PrivateLinkScopeOperationStatusClient, error) {
-	cl, err := arm.NewClient(moduleName+".PrivateLinkScopeOperationStatusClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}

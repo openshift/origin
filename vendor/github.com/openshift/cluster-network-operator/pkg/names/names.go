@@ -76,6 +76,12 @@ const NetworkIPFamilyModeAnnotation = "networkoperator.openshift.io/ip-family-mo
 // to indicate the current list of clusterNetwork CIDRs available to the cluster.
 const ClusterNetworkCIDRsAnnotation = "networkoperator.openshift.io/cluster-network-cidr"
 
+// MasqueradeCIDRsAnnotation is an annotation on the OVN networks.operator.openshift.io resources
+// to indicate the list of default masquerade CIDRs. The default masquerade network CIDRs can differ
+// from the actual masquerade network CIDRs if it was specified through the
+// OVNKubernetesConfig.GatewayConfig.IPv[4|6].InternalMasqueradeSubnet API field.
+const MasqueradeCIDRsAnnotation = "networkoperator.openshift.io/default-masquerade-network-cidrs"
+
 // NetworkHybridOverlayAnnotatiion is an annotation on the OVN networks.operator.io.daemonsets
 // to indicate the current state of of the Hybrid overlay on the cluster: "enabled" or "disabled"
 const NetworkHybridOverlayAnnotation = "networkoperator.openshift.io/hybrid-overlay-status"

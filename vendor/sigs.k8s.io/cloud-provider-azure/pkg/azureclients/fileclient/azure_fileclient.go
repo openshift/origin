@@ -24,7 +24,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azclients "sigs.k8s.io/cloud-provider-azure/pkg/azureclients"
 	"sigs.k8s.io/cloud-provider-azure/pkg/metrics"
@@ -220,7 +220,7 @@ func (c *Client) ListFileShare(ctx context.Context, resourceGroupName, accountNa
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 

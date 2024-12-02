@@ -30,7 +30,7 @@ type DiagnosticSettingsCategoryClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewDiagnosticSettingsCategoryClient(credential azcore.TokenCredential, options *arm.ClientOptions) (*DiagnosticSettingsCategoryClient, error) {
-	cl, err := arm.NewClient(moduleName+".DiagnosticSettingsCategoryClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}
