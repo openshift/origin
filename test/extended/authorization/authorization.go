@@ -1260,7 +1260,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry acc
 				err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
 					"configs.imageregistry.operator.openshift.io/cluster",
 					"--type=merge",
-					"-patch", `{"spec": {"defaultRoute": true}}`,
+					"--patch", `{"spec": {"defaultRoute": true}}`,
 				).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
