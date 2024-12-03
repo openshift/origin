@@ -9,6 +9,12 @@ import (
 var Annotations = map[string]string{
 	"[Conformance][Suite:openshift/kube-apiserver/rollout][Jira:\"kube-apiserver\"][sig-kube-apiserver] kube-apiserver should roll out new revisions without disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": "",
 
+	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-ext endpoint": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint": " [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"check-endpoints.kubeconfig\" should be present in all kube-apiserver containers": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"control-plane-node.kubeconfig\" should be present in all kube-apiserver containers": " [Suite:openshift/conformance/parallel/minimal]",
