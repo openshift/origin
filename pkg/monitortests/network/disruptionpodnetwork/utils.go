@@ -80,7 +80,41 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 				return "", fmt.Errorf("unable to close file: %v", err)
 			}
 
-			outStr, err = oc.Run("adm", "release", "info", suggestedPayloadImage).Args("--image-for=tests", "--registry-config", imagePullFile.Name()).Output()
+			cmdArgs := []string{"--image-for=tests", "--registry-config", imagePullFile.Name()}
+
+			// Trust also user trusted CA from the cluster under test
+			userCaBundle, err := kubeClient.CoreV1().ConfigMaps("openshift-config").Get(context.Background(), "user-ca-bundle", metav1.GetOptions{})
+			if err != nil {
+				logrus.WithError(err).Errorf("unable to get user-ca-bundle configmap from cluster: %v", err)
+				if !apierrors.IsNotFound(err) {
+					return "", fmt.Errorf("unable to get user-ca-bundle configmap from cluster: %v", err)
+				}
+			}
+
+			if userCaBundle != nil {
+				// cache file to local temp location
+				userCaBundleFile, err := ioutil.TempFile("", "user-ca-bundle")
+				if err != nil {
+					logrus.WithError(err).Errorf("unable to create a temporary file: %v", err)
+					return "", fmt.Errorf("unable to create a temporary file: %v", err)
+				}
+				defer os.Remove(userCaBundleFile.Name())
+
+				// write the content
+				userCaBundleString := userCaBundle.Data["ca-bundle.crt"]
+				if _, err = userCaBundleFile.WriteString(userCaBundleString); err != nil {
+					logrus.WithError(err).Errorf("unable to write user CA bundle to temp file: %v", err)
+					return "", fmt.Errorf("unable to write user CA bundle to temp file: %v", err)
+				}
+				if err = userCaBundleFile.Close(); err != nil {
+					logrus.WithError(err).Errorf("unable to close file: %v", err)
+					return "", fmt.Errorf("unable to close file: %v", err)
+				}
+
+				cmdArgs = append(cmdArgs, "--certificate-authority", userCaBundleFile.Name())
+			}
+
+			outStr, err = oc.Run("adm", "release", "info", suggestedPayloadImage).Args(cmdArgs...).Output()
 			if err != nil {
 				logrus.WithError(err).Errorf("unable to determine openshift-tests image through oc wrapper with cluster ps")
 
