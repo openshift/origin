@@ -12,21 +12,16 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // NewAPIServerIdentityToHostNameDecoder returns a new
 // HostNameDecoder instance that is capable of decoding the
 // APIServerIdentity into the human readable hostname.
-func NewAPIServerIdentityToHostNameDecoder(config *rest.Config) (*apiServerIdentityDecoder, error) {
-	clients, err := clientset.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	client := clients.CoordinationV1().Leases(metav1.NamespaceSystem)
+func NewAPIServerIdentityToHostNameDecoder(kubeClient kubernetes.Interface) (*apiServerIdentityDecoder, error) {
+	client := kubeClient.CoordinationV1().Leases(metav1.NamespaceSystem)
 	return &apiServerIdentityDecoder{client: client}, nil
 }
 
