@@ -47,4 +47,5 @@ var AllowedAlertNames = []string{
 	"CDIDefaultStorageClassDegraded", // Installing openshift virt with RWX storage fire an alarm, that is not relevant for most of the tests.
 	"VirtHandlerRESTErrorsHigh",      // https://issues.redhat.com/browse/CNV-50418
 	"VirtControllerRESTErrorsHigh",   // https://issues.redhat.com/browse/CNV-50418
+	"OperatorConditionsUnhealthy",    // When installing openshift virt, unhealty alert fires until operator is ready.
 }
