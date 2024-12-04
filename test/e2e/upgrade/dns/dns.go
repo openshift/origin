@@ -10,7 +10,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
 	kappsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,22 +56,26 @@ func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 // to cover during and after upgrade phase, and verifies the results.
 func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
 	ginkgo.By("Validating DNS results during upgrade")
+	ginkgo.By(fmt.Sprintf("Starting DNS validation during upgrade at %v", time.Now().UTC()))
 	t.validateDNSResults(f)
 
 	// Block until upgrade is done
 	<-done
 
 	ginkgo.By("Sleeping for a minute to give it time for verifying DNS after upgrade")
+	ginkgo.By(fmt.Sprintf("Upgrade completed at %v, starting post-upgrade wait period", time.Now().UTC()))
 	time.Sleep(1 * time.Minute)
 
 	// TODO: Remove once OCPBUGS-42777 is resolved
-	ex := exutil.NewCLIWithFramework(f)
-	if isSNO, err := exutil.IsSingleNode(ctx, ex.AdminConfigClient()); err == nil && isSNO {
-		// Add one minute for more data to be collected for validation
-		time.Sleep(1 * time.Minute)
-	}
+	/*	ex := exutil.NewCLIWithFramework(f)
+		if isSNO, err := exutil.IsSingleNode(ctx, ex.AdminConfigClient()); err == nil && isSNO {
+			ginkgo.By(fmt.Sprintf("SNO cluster detected, adding extra minute wait time at %v", time.Now().UTC()))
+			// Add one minute for more data to be collected for validation
+			time.Sleep(1 * time.Minute)
+		} */
 
 	ginkgo.By("Validating DNS results after upgrade")
+	ginkgo.By(fmt.Sprintf("Starting post-upgrade DNS validation at %v", time.Now().UTC()))
 	t.validateDNSResults(f)
 }
 
@@ -85,7 +88,8 @@ func (t *UpgradeTest) getServiceIP(f *framework.Framework) string {
 
 // createDNSTestDaemonSet creates a DaemonSet to test DNS availability
 func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceIP string) *kappsv1.DaemonSet {
-	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
+	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", "8.8.8.8") // Use Google DNS as an alternative resolver
+	ginkgo.By("Using Google DNS resolver (8.8.8.8) for DNS validation test")
 	ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), &kappsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{Name: appName},
 		Spec: kappsv1.DaemonSetSpec{
@@ -120,6 +124,8 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 	pods, err := podClient.List(context.Background(), metav1.ListOptions{LabelSelector: selector.String()})
 	framework.ExpectNoError(err)
 
+	ginkgo.By(fmt.Sprintf("Validating DNS results across %d pods", len(pods.Items)))
+
 	waitingPods := sets.String{}
 	ginkgo.By("Retrieving logs from all the Pods belonging to the DaemonSet and asserting no failure")
 	for _, pod := range pods.Items {
@@ -145,6 +151,7 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 			line := scan.Text()
 			if strings.Contains(line, "fail") {
 				failureCount++
+				ginkgo.By(fmt.Sprintf("Failure detected in pod %s on node %s at %s: %s", pod.Name, pod.Spec.NodeName, time.Now().Format(time.RFC3339), line))
 			} else if ip := net.ParseIP(line); ip != nil {
 				successCount++
 			}
