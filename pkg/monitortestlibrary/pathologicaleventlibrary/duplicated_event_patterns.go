@@ -710,7 +710,7 @@ var KubeAPIServerAvoids500s = &SimplePathologicalEventMatcher{
 
 var CertificateRotation = &SimplePathologicalEventMatcher{
 	name:               "CertificateRotation",
-	messageReasonRegex: regexp.MustCompile(`^(CABundleUpdateRequired|SignerUpdateRequired|TargetUpdateRequired|CertificateUpdated|CertificateRemoved|CertificateUpdateFailed)$`),
+	messageReasonRegex: regexp.MustCompile(`^(CABundleUpdateRequired|SignerUpdateRequired|TargetUpdateRequired|CertificateUpdated|CertificateRemoved|CertificateUpdateFailed|CSRCreated|CSRApproved|CertificateRotationStarted|ClientCertificateCreated|NoValidCertificateFound)$`),
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
