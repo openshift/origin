@@ -5,6 +5,20 @@ metadata:
   name: cluster
 spec:
   testsForFeatureGates:
+  - featureGate: AdditionalRoutingCapabilities
+    tests:
+    - testName: '[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities]
+        should deploy frr-k8s crds when enabled'
+    - testName: '[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities]
+        should deploy frr-k8s pods when enabled'
+    - testName: '[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities]
+        should not remove the crds when disabled'
+    - testName: '[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities]
+        should reflect the frr status when an frrconfiguration is applied'
+    - testName: '[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities]
+        should remove the frr pods when disabled'
+    - testName: '[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities]
+        should report invalid configurations'
   - featureGate: CRDValidationRatcheting
     tests:
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
