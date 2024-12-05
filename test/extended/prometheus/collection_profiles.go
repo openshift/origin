@@ -93,6 +93,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 
 	g.AfterAll(func() {
+		shouldDeleteConfiguration := false
 		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 		if r.originalOperatorConfiguration != nil {
@@ -100,17 +101,22 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			g.By("restoring the original configuration for the operator")
 			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
 		} else {
+			shouldDeleteConfiguration = true
 			g.By("cleaning up the configuration for the operator as it did not exist pre-job")
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
 
 		o.Eventually(func() error {
-			_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
-				return nil
+			if shouldDeleteConfiguration {
+				_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+				if errors.IsNotFound(err) {
+					return nil
+				}
+				return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
 			}
-			return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
+
+			return nil
 		}).Should(o.BeNil())
 	})
 
