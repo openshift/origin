@@ -797,13 +797,13 @@ func IsExcludedContainerBackoffRestart(topology string, event monitorapi.Interva
 	exceptions := []exceptionVariants{
 		{
 			// https://issues.redhat.com/browse/OCPBUGS-45071
-			containerName:      "container/manager", //
+			containerName:      "container/manager",
 			topologyToExclude:  "single",
 			namespaceToExclude: "openshift-operator-controller",
 		},
 		{
 			// https://issues.redhat.com/browse/OCPBUGS-45071
-			containerName:      "container/manager", //
+			containerName:      "container/manager",
 			topologyToExclude:  "single",
 			namespaceToExclude: "openshift-catalogd",
 		},
@@ -821,14 +821,17 @@ func IsExcludedContainerBackoffRestart(topology string, event monitorapi.Interva
 
 			// If both are specified, both must match
 			if val.topologyToExclude != "" && val.namespaceToExclude != "" {
-				return topologyExcluded && namespaceExcluded
+				if topologyExcluded && namespaceExcluded {
+					return true
+				} else {
+					continue
+				}
 			}
 
 			return topologyExcluded || namespaceExcluded
 		}
 	}
 	return false
-
 }
 
 func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {

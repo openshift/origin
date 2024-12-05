@@ -61,7 +61,7 @@ func testBackoffStartingFailedContainer(clusterData platformidentification.Clust
 
 	// Filter out any known pathological events
 	events = events.Filter(
-		monitorapi.Or(
+		monitorapi.And(
 			monitorapi.Not(pathologicaleventlibrary.IsDuringAPIServerProgressingOnSNO(clusterData.Topology, events)),
 			monitorapi.Not(func(interval monitorapi.Interval) bool {
 				return pathologicaleventlibrary.IsExcludedContainerBackoffRestart(clusterData.Topology, interval)
