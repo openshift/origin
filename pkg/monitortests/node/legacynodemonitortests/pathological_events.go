@@ -59,8 +59,14 @@ func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junit
 func testBackoffStartingFailedContainer(clusterData platformidentification.ClusterData, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers"
 
+	// Filter out any known pathological events
 	events = events.Filter(
-		monitorapi.Not(pathologicaleventlibrary.IsDuringAPIServerProgressingOnSNO(clusterData.Topology, events)),
+		monitorapi.Or(
+			monitorapi.Not(pathologicaleventlibrary.IsDuringAPIServerProgressingOnSNO(clusterData.Topology, events)),
+			monitorapi.Not(func(interval monitorapi.Interval) bool {
+				return pathologicaleventlibrary.IsExcludedContainerBackoffRestart(clusterData.Topology, interval)
+			}),
+		),
 	)
 
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
