@@ -45,6 +45,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			"openshift-splunk-forwarder-operator",
 			"openshift-sre-pruning",
 			"openshift-validation-webhook",
+			"openshift-velero",
 		)
 		excludePodPrefix := sets.NewString(
 			"revision-pruner-",  // operators have retry logic built in. these are like jobs but cannot rely on jobs

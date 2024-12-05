@@ -142,9 +142,9 @@ func nodeDiskPressure(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTest
 				Output: fmt.Sprintf("found %d intervals where a node began reporting DiskPressure:\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
+	} else {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 
-	// until we know how widespread this is, mark this as a flake
-	tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	return tests
 }

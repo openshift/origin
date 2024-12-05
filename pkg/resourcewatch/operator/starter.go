@@ -104,6 +104,9 @@ func RunResourceWatch() error {
 		operatorResource("servicecas"),
 		operatorResource("storages"),
 
+		// describes the behavior of api changes rollouts
+		resource("apiextensions.k8s.io", "v1", "customresourcedefinitions"),
+
 		// machine resources are required to reason about the happenings of nodes
 		resource("machine.openshift.io", "v1", "controlplanemachinesets"),
 		resource("machine.openshift.io", "v1beta1", "machinehealthchecks"),

@@ -9,6 +9,7 @@ var ManagedServiceNamespaces = sets.New[string](
 	"openshift-addon-operator",
 	"openshift-backplane",
 	"openshift-backplane-srep",
+	"openshift-cloud-ingress-operator",
 	"openshift-custom-domains-operator",
 	"openshift-deployment-validation-operator",
 	"openshift-managed-node-metadata-operator",
@@ -25,4 +26,5 @@ var ManagedServiceNamespaces = sets.New[string](
 	"openshift-splunk-forwarder-operator",
 	"openshift-sre-pruning",
 	"openshift-validation-webhook",
+	"openshift-velero",
 )

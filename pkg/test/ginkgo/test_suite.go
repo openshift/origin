@@ -9,8 +9,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
+
+	"github.com/openshift/origin/pkg/test/externalbinary"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 func testsForSuite() ([]*testCase, error) {
@@ -46,6 +48,18 @@ func testsForSuite() ([]*testCase, error) {
 }
 
 var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
+
+func externalBinaryTestsToOriginTestCases(specs externalbinary.ExtensionTestSpecs) []*testCase {
+	var tests []*testCase
+	for _, spec := range specs {
+		tests = append(tests, &testCase{
+			name:       spec.Name + spec.Labels, // TODO: remove when going to OTE
+			rawName:    spec.Name,
+			binaryName: spec.Binary,
+		})
+	}
+	return tests
+}
 
 func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
 	name := spec.Text()

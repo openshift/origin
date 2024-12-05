@@ -51,6 +51,9 @@ var (
 		"blackbox-exporter":                         {"openshift-route-monitor-operator"},
 		"route-monitor-operator-controller-manager": {"openshift-route-monitor-operator"},
 		"splunk-forwarder-operator":                 {"openshift-splunk-forwarder-operator"},
+		"cloud-ingress-operator":                    {"openshift-cloud-ingress-operator"},
+		"managed-velero-operator":                   {"openshift-velero"},
+		"velero":                                    {"openshift-velero"},
 	}
 
 	excludedBestEffortDaemonSets = map[string][]string{

@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds in
 func ReadBuildConfig(path string, oc *exutil.CLI) string {
 	data, _ := ioutil.ReadFile(path)
 	arch := ClusterArchitecture(oc)
-	return strings.Replace(string(data[:]), "x86_64", arch, -1)
+	return strings.Replace(string(data[:]), "$arch", arch, -1)
 }
 
 // Get the cluster architecture

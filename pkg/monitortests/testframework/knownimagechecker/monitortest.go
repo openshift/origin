@@ -85,6 +85,8 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 
 		// ROSA
 		"default-route-openshift-image-registry.apps.ci-rosa",
+		// OSD GCP
+		"default-route-openshift-image-registry.apps.ci-osd-gcp",
 
 		// installed alongside OLM and managed externally
 		"registry.redhat.io/redhat/community-operator-index",

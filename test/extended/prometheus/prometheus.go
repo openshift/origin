@@ -164,6 +164,8 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"AdditionalTrustBundleCAExpiringNotificationSRE",
 		"AdditionalTrustBundleCAInvalidNotificationSRE",
 		"AlertmanagerSilencesActiveSRE",
+		"APISchemeStatusFailing",
+		"APISchemeStatusUnavailable",
 		"CSRPendingLongDurationSRE",
 		"ClusterMonitoringErrorBudgetBurnSRE",
 		"ClusterProxyNetworkDegradedNotificationSRE",
@@ -640,6 +642,9 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				"blackbox-exporter":                              true,
 				"splunk-forwarder":                               true,
 				"validation-webhook-metrics":                     true,
+				"cloud-ingress-operator":                         true,
+				"managed-velero-operator-metrics":                true,
+				"velero-metrics":                                 true,
 			}
 
 			pattern := regexp.MustCompile("^https://.*")
