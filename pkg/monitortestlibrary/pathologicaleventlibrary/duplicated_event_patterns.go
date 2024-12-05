@@ -479,10 +479,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	topologyAwareMatcher := newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(topologyAwareMatcher)
 
-	singleNodeConnectionRefusedMatcher := newSingleNodeConnectionRefusedEventMatcher(finalIntervals)
-	singleNodeKubeAPIServerProgressingMatcher := newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
-	registry.AddPathologicalEventMatcherOrDie(singleNodeKubeAPIServerProgressingMatcher)
+	addAllowedSingleNodeMatchers(registry, finalIntervals)
 
 	vsphereConfigurationTestsRollOutTooOftenMatcher := newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(vsphereConfigurationTestsRollOutTooOftenMatcher)
@@ -771,6 +768,42 @@ func IsDuringAPIServerProgressingOnSNO(topology string, events monitorapi.Interv
 			}
 		}
 		return false
+	}
+}
+
+func addAllowedSingleNodeMatchers(registry *AllowedPathologicalEventRegistry, finalIntervals monitorapi.Intervals) {
+	snoTopology := v1.SingleReplicaTopologyMode
+
+	// This is a list of known and allowed single node events
+	allowedEvents := []EventMatcher{
+		&SimplePathologicalEventMatcher{
+			name:               "AllowSingleNodeOperatorControllerBackOffRestartingFailedContainer",
+			messageReasonRegex: AllowBackOffRestartingFailedContainer.messageReasonRegex,
+			messageHumanRegex:  AllowBackOffRestartingFailedContainer.messageHumanRegex,
+			topology:           &snoTopology,
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile("openshift-operator-controller"),
+				monitorapi.LocatorPodKey:       regexp.MustCompile("operator-controller-controller-manager"),
+			},
+			jira: "https://issues.redhat.com/browse/OCPBUGS-45071",
+		},
+		&SimplePathologicalEventMatcher{
+			name:               "AllowSingleNodeCatalogdControllerBackOffRestartingFailedContainer",
+			messageReasonRegex: AllowBackOffRestartingFailedContainer.messageReasonRegex,
+			messageHumanRegex:  AllowBackOffRestartingFailedContainer.messageHumanRegex,
+			topology:           &snoTopology,
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile("openshift-catalogd"),
+				monitorapi.LocatorPodKey:       regexp.MustCompile("catalogd-controller-manager"),
+			},
+			jira: "https://issues.redhat.com/browse/OCPBUGS-45071",
+		},
+		newSingleNodeConnectionRefusedEventMatcher(finalIntervals),
+		newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals),
+	}
+
+	for _, event := range allowedEvents {
+		registry.AddPathologicalEventMatcherOrDie(event)
 	}
 }
 
