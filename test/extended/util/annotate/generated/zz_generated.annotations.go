@@ -1577,6 +1577,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UDN Pod should react to k8s.ovn.org/open-default-ports annotations changes": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should create NetworkAttachmentDefinition according to spec": " [Suite:openshift/conformance/parallel]",

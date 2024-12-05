@@ -178,6 +178,9 @@ spec:
         for namespaces with user defined primary networks L3 primary UDN, host-networked
         pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes UDN Pod should react to k8s.ovn.org/open-default-ports
+        annotations changes'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork
         cannot be deleted when being used'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
