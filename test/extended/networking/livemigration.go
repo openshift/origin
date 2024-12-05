@@ -188,7 +188,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					nad := generateNAD(netConfig)
 					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
-					Expect(err).NotTo((HaveOccurred()))
+					Expect(err).NotTo(HaveOccurred())
 				}),
 				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
@@ -256,14 +256,14 @@ func waitForVMIMSuccess(vmClient *kubevirt.Client, namespace, vmName string) {
 		return migrationCompletedStr
 	}).WithPolling(time.Second).WithTimeout(5 * time.Minute).Should(Equal("true"))
 	migrationFailedStr, err := vmClient.GetJSONPath("vmim", vmName, "{@.status.migrationState.failed}")
-	Expect(err).NotTo((HaveOccurred()))
+	Expect(err).NotTo(HaveOccurred())
 	Expect(migrationFailedStr).To(BeEmpty())
 }
 
 func addressFromStatus(cli *kubevirt.Client, vmName string) []string {
 	GinkgoHelper()
 	addressesStr, err := cli.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].ipAddresses}")
-	Expect(err).NotTo((HaveOccurred()))
+	Expect(err).NotTo(HaveOccurred())
 	var addresses []string
 	Expect(json.Unmarshal([]byte(addressesStr), &addresses)).To(Succeed())
 	return addresses
@@ -273,7 +273,7 @@ func addressFromGuest(cli *kubevirt.Client, vmName string) []string {
 	GinkgoHelper()
 	Expect(cli.Login(vmName, vmName)).To(Succeed())
 	output, err := cli.Console(vmName, "ip -j a show dev eth0")
-	Expect(err).NotTo((HaveOccurred()))
+	Expect(err).NotTo(HaveOccurred())
 	// [{"ifindex":2,"ifname":"eth0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1300,"qdisc":"fq_codel","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"02:ba:c3:00:00:0a","broadcast":"ff:ff:ff:ff:ff:ff","altnames":["enp1s0"],"addr_info":[{"family":"inet","local":"100.10.0.1","prefixlen":24,"broadcast":"100.10.0.255","scope":"global","dynamic":true,"noprefixroute":true,"label":"eth0","valid_life_time":86313548,"preferred_life_time":86313548},{"family":"inet6","local":"fe80::ba:c3ff:fe00:a","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]}]
 	type address struct {
 		IP    string `json:"local,omitempty"`
@@ -286,7 +286,7 @@ func addressFromGuest(cli *kubevirt.Client, vmName string) []string {
 	ifaces := []iface{}
 	Expect(json.Unmarshal([]byte(output), &ifaces)).To(Succeed())
 	addresses := []string{}
-	Expect(ifaces).NotTo((BeEmpty()))
+	Expect(ifaces).NotTo(BeEmpty())
 	for _, address := range ifaces[0].Addresses {
 		if address.Scope == "link" {
 			continue
