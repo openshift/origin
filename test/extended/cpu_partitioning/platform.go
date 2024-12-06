@@ -7,6 +7,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	ocpv1 "github.com/openshift/api/config/v1"
 
@@ -23,49 +24,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		ctx                     = context.Background()
 		isClusterCPUPartitioned = false
 
-		ignoreNamespaces = map[string]struct{}{
+		ignoreNamespaces = sets.New(
 			// The below namespaces are not annotated,
 			// no workload is going to be running in them.
-			"openshift-config":         {},
-			"openshift-config-managed": {},
-			"openshift-node":           {},
-
-			// These are from managed services OSD-26068
-			"openshift-addon-operator":                 {},
-			"openshift-aqua":                           {},
-			"openshift-backplane":                      {},
-			"openshift-backplane-cee":                  {},
-			"openshift-backplane-csa":                  {},
-			"openshift-backplane-cse":                  {},
-			"openshift-backplane-csm":                  {},
-			"openshift-backplane-managed-scripts":      {},
-			"openshift-backplane-mcs-tier-two":         {},
-			"openshift-backplane-mobb":                 {},
-			"openshift-backplane-sdcicd":               {},
-			"openshift-backplane-srep":                 {},
-			"openshift-backplane-tam":                  {},
-			"openshift-cloud-ingress-operator":         {},
-			"openshift-codeready-workspaces":           {},
-			"openshift-custom-domains-operator":        {},
-			"openshift-customer-monitoring":            {},
-			"openshift-deployment-validation-operator": {},
-			"openshift-logging":                        {},
-			"openshift-managed-node-metadata-operator": {},
-			"openshift-managed-upgrade-operator":       {},
-			"openshift-must-gather-operator":           {},
-			"openshift-observability-operator":         {},
-			"openshift-ocm-agent-operator":             {},
-			"openshift-operators-redhat":               {},
-			"openshift-osd-metrics":                    {},
-			"openshift-package-operator":               {},
-			"openshift-rbac-permissions":               {},
-			"openshift-route-monitor-operator":         {},
-			"openshift-security":                       {},
-			"openshift-splunk-forwarder-operator":      {},
-			"openshift-sre-pruning":                    {},
-			"openshift-validation-webhook":             {},
-			"openshift-velero":                         {},
-		}
+			"openshift-config",
+			"openshift-config-managed",
+			"openshift-node",
+		).Union(exutil.ManagedServiceNamespaces) // Managed service namespaces OSD-26068
 	)
 
 	g.BeforeEach(func() {
@@ -113,7 +78,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			o.Expect(err).NotTo(o.HaveOccurred())
 			invalidNamespaces := []string{}
 			for _, project := range projects.Items {
-				if _, ok := ignoreNamespaces[project.Name]; ok {
+				if ignoreNamespaces.Has(project.Name) {
 					continue
 				}
 				if strings.HasPrefix(project.Name, "openshift-") && !strings.HasPrefix(project.Name, "openshift-e2e-") {
