@@ -43,6 +43,7 @@ type RegistryList struct {
 	PrivateRegistry          string `yaml:"privateRegistry"`
 	DockerLibraryRegistry    string `yaml:"dockerLibraryRegistry"`
 	CloudProviderGcpRegistry string `yaml:"cloudProviderGcpRegistry"`
+	QuayIORegistry           string `yaml:"quayRegistry"`
 }
 
 // Config holds an images registry, name, and version
@@ -139,6 +140,7 @@ var (
 		PrivateRegistry:          "gcr.io/k8s-authenticated-test",
 		DockerLibraryRegistry:    "docker.io/library",
 		CloudProviderGcpRegistry: "registry.k8s.io/cloud-provider-gcp",
+		QuayIORegistry:           "quay.io/madhupr001",
 	}
 
 	registry, imageConfigs, originalImageConfigs = readRepoList(os.Getenv("KUBE_TEST_REPO_LIST"))
@@ -229,7 +231,7 @@ func initImageConfigs(list RegistryList) (map[ImageID]Config, map[ImageID]Config
 	configs[BusyBox] = Config{list.PromoterE2eRegistry, "busybox", "1.36.1-1"}
 	configs[CudaVectorAdd] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "2.3"}
-	configs[DistrolessIptables] = Config{list.BuildImageRegistry, "distroless-iptables", "v0.5.7"}
+	configs[DistrolessIptables] = Config{list.BuildImageRegistry, "distroless-iptables", "v0.5.9"}
 	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.5.15-0"}
 	configs[Httpd] = Config{list.PromoterE2eRegistry, "httpd", "2.4.38-4"}
 	configs[HttpdNew] = Config{list.PromoterE2eRegistry, "httpd", "2.4.39-4"}
@@ -413,6 +415,9 @@ func replaceRegistryInImageURLWithList(imageURL string, reg RegistryList) (strin
 		registryAndUser = reg.DockerLibraryRegistry
 	case initRegistry.CloudProviderGcpRegistry:
 		registryAndUser = reg.CloudProviderGcpRegistry
+	case initRegistry.QuayIORegistry:
+		registryAndUser = reg.QuayIORegistry
+
 	default:
 		if countParts == 1 {
 			// We assume we found an image from docker hub library
