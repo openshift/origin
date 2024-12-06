@@ -163,10 +163,6 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-38838
-			`\[sig-cli\] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from all pods based on default container`,
-			`\[sig-cli\] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from each pod and each container in Deployment`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -257,7 +253,7 @@ var (
 			`\[sig-storage\] Flexvolumes should be mountable`,
 			`\[sig-storage\] Detaching volumes should not work when mount is in progress`,
 
-			// We are using openshift-sdn to conceal metadata
+			// We are using ovn-kubernetes to conceal metadata
 			`\[sig-auth\] Metadata Concealment should run a check-metadata-concealment job to completion`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
@@ -331,17 +327,6 @@ var (
 			`\[Feature:GKELocalSSD\]`,
 			`\[Feature:GKENodePool\]`,
 		},
-		// Tests that don't pass under openshift-sdn.
-		// These are skipped explicitly by openshift-hack/test-kubernetes-e2e.sh,
-		// but will also be skipped by openshift-tests in jobs that use openshift-sdn.
-		"[Skipped:Network/OpenShiftSDN]": {
-			`NetworkPolicy.*IPBlock`,    // feature is not supported by openshift-sdn
-			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
-			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
-
-			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
-			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
-		},
 
 		// These tests are skipped when openshift-tests needs to use a proxy to reach the
 		// cluster -- either because the test won't work while proxied, or because the test
@@ -391,10 +376,6 @@ var (
 			`\[Feature:StorageProvider\]`,
 		},
 
-		// tests that don't pass under openshift-sdn multitenant mode
-		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
-			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
 			// ovn-kubernetes does not support named ports
