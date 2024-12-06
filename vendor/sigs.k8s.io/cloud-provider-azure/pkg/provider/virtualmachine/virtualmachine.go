@@ -19,7 +19,7 @@ package virtualmachine
 import (
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2022-08-01/compute"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 )
@@ -82,10 +82,10 @@ func FromVirtualMachine(vm *compute.VirtualMachine, opt ...ManageOption) *Virtua
 		vm:      vm,
 		Variant: VariantVirtualMachine,
 
-		ID:        pointer.StringDeref(vm.ID, ""),
-		Name:      pointer.StringDeref(vm.Name, ""),
-		Type:      pointer.StringDeref(vm.Type, ""),
-		Location:  pointer.StringDeref(vm.Location, ""),
+		ID:        ptr.Deref(vm.ID, ""),
+		Name:      ptr.Deref(vm.Name, ""),
+		Type:      ptr.Deref(vm.Type, ""),
+		Location:  ptr.Deref(vm.Location, ""),
 		Tags:      stringMap(vm.Tags),
 		Zones:     stringSlice(vm.Zones),
 		Plan:      vm.Plan,
@@ -107,17 +107,17 @@ func FromVirtualMachineScaleSetVM(vm *compute.VirtualMachineScaleSetVM, opt Mana
 		Variant: VariantVirtualMachineScaleSetVM,
 		vmssVM:  vm,
 
-		ID:        pointer.StringDeref(vm.ID, ""),
-		Name:      pointer.StringDeref(vm.Name, ""),
-		Type:      pointer.StringDeref(vm.Type, ""),
-		Location:  pointer.StringDeref(vm.Location, ""),
+		ID:        ptr.Deref(vm.ID, ""),
+		Name:      ptr.Deref(vm.Name, ""),
+		Type:      ptr.Deref(vm.Type, ""),
+		Location:  ptr.Deref(vm.Location, ""),
 		Tags:      stringMap(vm.Tags),
 		Zones:     stringSlice(vm.Zones),
 		Plan:      vm.Plan,
 		Resources: vm.Resources,
 
 		SKU:                                vm.Sku,
-		InstanceID:                         pointer.StringDeref(vm.InstanceID, ""),
+		InstanceID:                         ptr.Deref(vm.InstanceID, ""),
 		VirtualMachineScaleSetVMProperties: vm.VirtualMachineScaleSetVMProperties,
 	}
 

@@ -29,7 +29,7 @@ import (
 
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azclients "sigs.k8s.io/cloud-provider-azure/pkg/azureclients"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armclient"
@@ -270,7 +270,7 @@ func (c *Client) listPLS(ctx context.Context, resourceGroupName string) ([]netwo
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 
@@ -382,12 +382,12 @@ func (c *Client) listResponder(resp *http.Response) (result network.PrivateLinkS
 // privateLinkServiceListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
 func (c *Client) privateLinkServiceListResultPreparer(ctx context.Context, plslr network.PrivateLinkServiceListResult) (*http.Request, error) {
-	if plslr.NextLink == nil || len(pointer.StringDeref(plslr.NextLink, "")) < 1 {
+	if plslr.NextLink == nil || len(ptr.Deref(plslr.NextLink, "")) < 1 {
 		return nil, nil
 	}
 
 	decorators := []autorest.PrepareDecorator{
-		autorest.WithBaseURL(pointer.StringDeref(plslr.NextLink, "")),
+		autorest.WithBaseURL(ptr.Deref(plslr.NextLink, "")),
 	}
 	return c.armClient.PrepareGetRequest(ctx, decorators...)
 }

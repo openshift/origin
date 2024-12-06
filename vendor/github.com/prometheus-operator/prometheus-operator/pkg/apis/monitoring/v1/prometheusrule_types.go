@@ -30,7 +30,9 @@ const (
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:categories="prometheus-operator",shortName="promrule"
 
-// PrometheusRule defines recording and alerting rules for a Prometheus instance
+// The `PrometheusRule` custom resource definition (CRD) defines [alerting](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/) and [recording](https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/) rules to be evaluated by `Prometheus` or `ThanosRuler` objects.
+//
+// `Prometheus` and `ThanosRuler` objects select `PrometheusRule` objects using label and namespace selectors.
 type PrometheusRule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -64,6 +66,12 @@ type RuleGroup struct {
 	// Interval determines how often rules in the group are evaluated.
 	// +optional
 	Interval *Duration `json:"interval,omitempty"`
+	// Defines the offset the rule evaluation timestamp of this particular group by the specified duration into the past.
+	//
+	// It requires Prometheus >= v2.53.0.
+	// It is not supported for ThanosRuler.
+	// +optional
+	QueryOffset *Duration `json:"query_offset,omitempty"`
 	// List of alerting and recording rules.
 	// +optional
 	Rules []Rule `json:"rules,omitempty"`

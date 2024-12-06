@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing"
 	armcompute "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/metrics"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/utils"
 )
 
@@ -55,14 +56,12 @@ func New(subscriptionID string, credential azcore.TokenCredential, options *arm.
 const GetOperationName = "VirtualMachineScaleSetVMsClient.Get"
 
 // Get gets the VirtualMachineScaleSetVM
-func (client *Client) Get(ctx context.Context, resourceGroupName string, parentResourceName string, resourceName string) (result *armcompute.VirtualMachineScaleSetVM, rerr error) {
+func (client *Client) Get(ctx context.Context, resourceGroupName string, parentResourceName string, resourceName string) (result *armcompute.VirtualMachineScaleSetVM, err error) {
 
-	ctx = utils.ContextWithClientName(ctx, "VirtualMachineScaleSetVMsClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Get")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "VirtualMachineScaleSetVM", "get")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, GetOperationName, client.tracer, nil)
-	defer endSpan(rerr)
+	defer endSpan(err)
 	resp, err := client.VirtualMachineScaleSetVMsClient.Get(ctx, resourceGroupName, parentResourceName, resourceName, nil)
 	if err != nil {
 		return nil, err
@@ -75,10 +74,8 @@ const DeleteOperationName = "VirtualMachineScaleSetVMsClient.Delete"
 
 // Delete deletes a VirtualMachineScaleSetVM by name.
 func (client *Client) Delete(ctx context.Context, resourceGroupName string, parentResourceName string, resourceName string) (err error) {
-	ctx = utils.ContextWithClientName(ctx, "VirtualMachineScaleSetVMsClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Delete")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "VirtualMachineScaleSetVM", "delete")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, DeleteOperationName, client.tracer, nil)
 	defer endSpan(err)
 	_, err = utils.NewPollerWrapper(client.BeginDelete(ctx, resourceGroupName, parentResourceName, resourceName, nil)).WaitforPollerResp(ctx)

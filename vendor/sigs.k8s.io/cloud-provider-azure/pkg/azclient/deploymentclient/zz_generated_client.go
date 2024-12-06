@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing"
 	resources "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/metrics"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/utils"
 )
 
@@ -56,10 +57,8 @@ const DeleteOperationName = "DeploymentsClient.Delete"
 
 // Delete deletes a Deployment by name.
 func (client *Client) Delete(ctx context.Context, resourceGroupName string, resourceName string) (err error) {
-	ctx = utils.ContextWithClientName(ctx, "DeploymentsClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Delete")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "Deployment", "delete")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, DeleteOperationName, client.tracer, nil)
 	defer endSpan(err)
 	_, err = utils.NewPollerWrapper(client.BeginDelete(ctx, resourceGroupName, resourceName, nil)).WaitforPollerResp(ctx)

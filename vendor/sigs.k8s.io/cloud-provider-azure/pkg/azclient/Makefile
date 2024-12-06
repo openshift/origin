@@ -79,7 +79,7 @@ generatecode: build ## Generate client
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource Disk --client-name DisksClient --ratelimitkey diskRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource AvailabilitySet --client-name AvailabilitySetsClient --verbs get,list --ratelimitkey availabilitySetRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource VirtualMachine --client-name VirtualMachinesClient --verbs createorupdate,delete,list --expand --ratelimitkey virtualMachineRateLimit
-	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource VirtualMachineScaleSet --client-name VirtualMachineScaleSetsClient --verbs get,createorupdate,delete,list --ratelimitkey virtualMachineSizesRateLimit --expand
+	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource VirtualMachineScaleSet --client-name VirtualMachineScaleSetsClient --verbs get,createorupdate,delete,list --ratelimitkey virtualMachineScaleSetRateLimit --expand
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource VirtualMachineScaleSet --subresource VirtualMachineScaleSetVM --client-name VirtualMachineScaleSetVMsClient --verbs get,delete,list 
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource Snapshot --client-name SnapshotsClient --verbs get,createorupdate,delete --ratelimitkey snapshotRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5 --package-alias armcompute --resource SSHPublicKeyResource --client-name SSHPublicKeysClient --verbs get,listbyrg
@@ -94,7 +94,7 @@ generatecode: build ## Generate client
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 --package-alias armnetwork --resource SecurityGroup --client-name SecurityGroupsClient --verbs get,createorupdate,delete,list --ratelimitkey securityGroupRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 --package-alias armnetwork --resource PrivateLinkService --client-name PrivateLinkServicesClient --verbs get,createorupdate,delete,list --expand --ratelimitkey privateLinkServiceRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4 --package-alias armnetwork --resource IPGroup --client-name IPGroupsClient --verbs get,createorupdate,delete,listbyrg --expand --ratelimitkey ipGroupRateLimit
-	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage --package-alias armstorage --resource Account --client-name AccountsClient --verbs listbyrg --expand
+	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage --package-alias armstorage --resource Account --client-name AccountsClient --verbs listbyrg --expand --ratelimitkey storageAccountRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/privatedns/armprivatedns --package-alias armprivatedns --resource PrivateZone --client-name PrivateZonesClient  --verbs get,createorupdate --ratelimitkey privateDNSRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/privatedns/armprivatedns --package-alias armprivatedns --resource PrivateZone --subresource VirtualNetworkLink --client-name VirtualNetworkLinksClient --verbs get,createorupdate --ratelimitkey virtualNetworkRateLimit
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage --package-alias armstorage --resource Account --subresource FileShare --client-name FileSharesClient --verbs get,createorupdate,delete,list
@@ -103,6 +103,9 @@ generatecode: build ## Generate client
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault --package-alias armkeyvault --resource Vault --subresource Secret --client-name SecretsClient --verbs get,createorupdate,delete,list
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault --package-alias armkeyvault --resource Vault --client-name VaultsClient --verbs get,createorupdate,delete,list
 	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources --package-alias armresources --resource Provider --client-name ProvidersClient 
+	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/authorization/armauthorization/v2 --package-alias armauthorization --resource RoleAssignment --client-name RoleAssignmentsClient
+	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/authorization/armauthorization/v2 --package-alias armauthorization --resource RoleDefinition --client-name RoleDefinitionsClient
+	$(TYPESCAFFOLD) --package github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/msi/armmsi --package-alias armmsi --resource Identity --client-name UserAssignedIdentitiesClient
 
 
 .PHONY: generateimpl

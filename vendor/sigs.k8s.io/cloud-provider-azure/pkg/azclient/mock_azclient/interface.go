@@ -37,6 +37,7 @@ import (
 	deploymentclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/deploymentclient"
 	diskclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/diskclient"
 	fileshareclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/fileshareclient"
+	identityclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/identityclient"
 	interfaceclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/interfaceclient"
 	ipgroupclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/ipgroupclient"
 	loadbalancerclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/loadbalancerclient"
@@ -49,6 +50,7 @@ import (
 	publicipprefixclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/publicipprefixclient"
 	registryclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/registryclient"
 	resourcegroupclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/resourcegroupclient"
+	roleassignmentclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/roleassignmentclient"
 	routetableclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/routetableclient"
 	secretclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/secretclient"
 	securitygroupclient "sigs.k8s.io/cloud-provider-azure/pkg/azclient/securitygroupclient"
@@ -258,6 +260,20 @@ func (mr *MockClientFactoryMockRecorder) GetIPGroupClient() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIPGroupClient", reflect.TypeOf((*MockClientFactory)(nil).GetIPGroupClient))
 }
 
+// GetIdentityClient mocks base method.
+func (m *MockClientFactory) GetIdentityClient() identityclient.Interface {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIdentityClient")
+	ret0, _ := ret[0].(identityclient.Interface)
+	return ret0
+}
+
+// GetIdentityClient indicates an expected call of GetIdentityClient.
+func (mr *MockClientFactoryMockRecorder) GetIdentityClient() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentityClient", reflect.TypeOf((*MockClientFactory)(nil).GetIdentityClient))
+}
+
 // GetInterfaceClient mocks base method.
 func (m *MockClientFactory) GetInterfaceClient() interfaceclient.Interface {
 	m.ctrl.T.Helper()
@@ -410,6 +426,20 @@ func (m *MockClientFactory) GetResourceGroupClient() resourcegroupclient.Interfa
 func (mr *MockClientFactoryMockRecorder) GetResourceGroupClient() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourceGroupClient", reflect.TypeOf((*MockClientFactory)(nil).GetResourceGroupClient))
+}
+
+// GetRoleAssignmentClient mocks base method.
+func (m *MockClientFactory) GetRoleAssignmentClient() roleassignmentclient.Interface {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoleAssignmentClient")
+	ret0, _ := ret[0].(roleassignmentclient.Interface)
+	return ret0
+}
+
+// GetRoleAssignmentClient indicates an expected call of GetRoleAssignmentClient.
+func (mr *MockClientFactoryMockRecorder) GetRoleAssignmentClient() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoleAssignmentClient", reflect.TypeOf((*MockClientFactory)(nil).GetRoleAssignmentClient))
 }
 
 // GetRouteTableClient mocks base method.

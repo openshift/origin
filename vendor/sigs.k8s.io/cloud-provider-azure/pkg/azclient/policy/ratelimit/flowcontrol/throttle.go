@@ -28,7 +28,7 @@ import (
 
 type PassiveRateLimiter interface {
 	// TryAccept returns true if a token is taken immediately. Otherwise,
-	// it returns false.
+	// It returns false.
 	TryAccept() bool
 	// Stop stops the rate limiter, subsequent calls to CanAccept will return false
 	Stop()
@@ -40,7 +40,7 @@ type RateLimiter interface {
 	PassiveRateLimiter
 	// Accept returns once a token becomes available.
 	Accept()
-	// Wait returns nil if a token is taken before the Context is done.
+	// Wait returns nil if a token is taken before the context is done.
 	Wait(ctx context.Context) error
 }
 
@@ -65,7 +65,7 @@ func NewTokenBucketRateLimiter(qps float32, burst int) RateLimiter {
 	return newTokenBucketRateLimiterWithClock(limiter, clock.RealClock{}, qps)
 }
 
-// NewTokenBucketPassiveRateLimiter is similar to NewTokenBucketRateLimiter except that it returns
+// NewTokenBucketPassiveRateLimiter is similar to NewTokenBucketRateLimiter except thatginkgo.It returns
 // a PassiveRateLimiter which does not have Accept() and Wait() methods.
 func NewTokenBucketPassiveRateLimiter(qps float32, burst int) PassiveRateLimiter {
 	limiter := rate.NewLimiter(rate.Limit(qps), burst)
@@ -88,7 +88,7 @@ func NewTokenBucketRateLimiterWithClock(qps float32, burst int, c Clock) RateLim
 }
 
 // NewTokenBucketPassiveRateLimiterWithClock is similar to NewTokenBucketRateLimiterWithClock
-// except that it returns a PassiveRateLimiter which does not have Accept() and Wait() methods
+// except thatginkgo.It returns a PassiveRateLimiter which does not have Accept() and Wait() methods
 // and uses a PassiveClock.
 func NewTokenBucketPassiveRateLimiterWithClock(qps float32, burst int, c clock.PassiveClock) PassiveRateLimiter {
 	limiter := rate.NewLimiter(rate.Limit(qps), burst)

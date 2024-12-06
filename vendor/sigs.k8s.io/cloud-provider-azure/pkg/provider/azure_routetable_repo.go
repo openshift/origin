@@ -23,8 +23,9 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
+
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -35,7 +36,7 @@ func (az *Cloud) CreateOrUpdateRouteTable(routeTable network.RouteTable) error {
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
-	rerr := az.RouteTablesClient.CreateOrUpdate(ctx, az.RouteTableResourceGroup, az.RouteTableName, routeTable, pointer.StringDeref(routeTable.Etag, ""))
+	rerr := az.RouteTablesClient.CreateOrUpdate(ctx, az.RouteTableResourceGroup, az.RouteTableName, routeTable, ptr.Deref(routeTable.Etag, ""))
 	if rerr == nil {
 		// Invalidate the cache right after updating
 		_ = az.rtCache.Delete(*routeTable.Name)
@@ -43,7 +44,7 @@ func (az *Cloud) CreateOrUpdateRouteTable(routeTable network.RouteTable) error {
 	}
 
 	rtJSON, _ := json.Marshal(routeTable)
-	klog.Warningf("RouteTablesClient.CreateOrUpdate(%s) failed: %v, RouteTable request: %s", pointer.StringDeref(routeTable.Name, ""), rerr.Error(), string(rtJSON))
+	klog.Warningf("RouteTablesClient.CreateOrUpdate(%s) failed: %v, RouteTable request: %s", ptr.Deref(routeTable.Name, ""), rerr.Error(), string(rtJSON))
 
 	// Invalidate the cache because etag mismatch.
 	if rerr.HTTPStatusCode == http.StatusPreconditionFailed {

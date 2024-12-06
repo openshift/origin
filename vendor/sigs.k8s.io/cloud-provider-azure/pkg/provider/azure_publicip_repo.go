@@ -28,7 +28,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -40,8 +40,8 @@ func (az *Cloud) CreateOrUpdatePIP(service *v1.Service, pipResourceGroup string,
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
-	rerr := az.PublicIPAddressesClient.CreateOrUpdate(ctx, pipResourceGroup, pointer.StringDeref(pip.Name, ""), pip)
-	klog.V(10).Infof("PublicIPAddressesClient.CreateOrUpdate(%s, %s): end", pipResourceGroup, pointer.StringDeref(pip.Name, ""))
+	rerr := az.PublicIPAddressesClient.CreateOrUpdate(ctx, pipResourceGroup, ptr.Deref(pip.Name, ""), pip)
+	klog.V(10).Infof("PublicIPAddressesClient.CreateOrUpdate(%s, %s): end", pipResourceGroup, ptr.Deref(pip.Name, ""))
 	if rerr == nil {
 		// Invalidate the cache right after updating
 		_ = az.pipCache.Delete(pipResourceGroup)
@@ -49,19 +49,19 @@ func (az *Cloud) CreateOrUpdatePIP(service *v1.Service, pipResourceGroup string,
 	}
 
 	pipJSON, _ := json.Marshal(pip)
-	klog.Warningf("PublicIPAddressesClient.CreateOrUpdate(%s, %s) failed: %s, PublicIP request: %s", pipResourceGroup, pointer.StringDeref(pip.Name, ""), rerr.Error().Error(), string(pipJSON))
+	klog.Warningf("PublicIPAddressesClient.CreateOrUpdate(%s, %s) failed: %s, PublicIP request: %s", pipResourceGroup, ptr.Deref(pip.Name, ""), rerr.Error().Error(), string(pipJSON))
 	az.Event(service, v1.EventTypeWarning, "CreateOrUpdatePublicIPAddress", rerr.Error().Error())
 
 	// Invalidate the cache because ETAG precondition mismatch.
 	if rerr.HTTPStatusCode == http.StatusPreconditionFailed {
-		klog.V(3).Infof("PublicIP cache for (%s, %s) is cleanup because of http.StatusPreconditionFailed", pipResourceGroup, pointer.StringDeref(pip.Name, ""))
+		klog.V(3).Infof("PublicIP cache for (%s, %s) is cleanup because of http.StatusPreconditionFailed", pipResourceGroup, ptr.Deref(pip.Name, ""))
 		_ = az.pipCache.Delete(pipResourceGroup)
 	}
 
 	retryErrorMessage := rerr.Error().Error()
 	// Invalidate the cache because another new operation has canceled the current request.
 	if strings.Contains(strings.ToLower(retryErrorMessage), consts.OperationCanceledErrorMessage) {
-		klog.V(3).Infof("PublicIP cache for (%s, %s) is cleanup because CreateOrUpdate is canceled by another operation", pipResourceGroup, pointer.StringDeref(pip.Name, ""))
+		klog.V(3).Infof("PublicIP cache for (%s, %s) is cleanup because CreateOrUpdate is canceled by another operation", pipResourceGroup, ptr.Deref(pip.Name, ""))
 		_ = az.pipCache.Delete(pipResourceGroup)
 	}
 
@@ -104,7 +104,7 @@ func (az *Cloud) newPIPCache() (azcache.Resource, error) {
 		pipMap := &sync.Map{}
 		for _, pip := range pipList {
 			pip := pip
-			pipMap.Store(strings.ToLower(pointer.StringDeref(pip.Name, "")), &pip)
+			pipMap.Store(strings.ToLower(ptr.Deref(pip.Name, "")), &pip)
 		}
 		return pipMap, nil
 	}
@@ -147,7 +147,7 @@ func (az *Cloud) listPIP(pipResourceGroup string, crt azcache.AzureCacheReadType
 	}
 	pips := cached.(*sync.Map)
 	var ret []network.PublicIPAddress
-	pips.Range(func(key, value interface{}) bool {
+	pips.Range(func(_, value interface{}) bool {
 		pip := value.(*network.PublicIPAddress)
 		ret = append(ret, *pip)
 		return true
@@ -180,7 +180,7 @@ func (az *Cloud) findMatchedPIP(loadBalancerIP, pipName, pipResourceGroup string
 
 func (az *Cloud) findMatchedPIPByName(pips *[]network.PublicIPAddress, pipName, pipResourceGroup string) (*network.PublicIPAddress, error) {
 	for _, pip := range *pips {
-		if strings.EqualFold(pointer.StringDeref(pip.Name, ""), pipName) {
+		if strings.EqualFold(ptr.Deref(pip.Name, ""), pipName) {
 			return &pip, nil
 		}
 	}
@@ -190,7 +190,7 @@ func (az *Cloud) findMatchedPIPByName(pips *[]network.PublicIPAddress, pipName, 
 		return nil, fmt.Errorf("findMatchedPIPByName: failed to listPIP force refresh: %w", err)
 	}
 	for _, pip := range pipList {
-		if strings.EqualFold(pointer.StringDeref(pip.Name, ""), pipName) {
+		if strings.EqualFold(ptr.Deref(pip.Name, ""), pipName) {
 			return &pip, nil
 		}
 	}

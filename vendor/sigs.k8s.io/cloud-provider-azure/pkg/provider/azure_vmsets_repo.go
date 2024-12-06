@@ -24,11 +24,12 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2022-08-01/compute"
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
+
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -143,7 +144,7 @@ func (az *Cloud) newVMCache() (azcache.Resource, error) {
 		}
 
 		if vm.VirtualMachineProperties != nil &&
-			strings.EqualFold(pointer.StringDeref(vm.VirtualMachineProperties.ProvisioningState, ""), string(consts.ProvisioningStateDeleting)) {
+			strings.EqualFold(ptr.Deref(vm.VirtualMachineProperties.ProvisioningState, ""), string(consts.ProvisioningStateDeleting)) {
 			klog.V(2).Infof("Virtual machine %q is under deleting", key)
 			return nil, nil
 		}

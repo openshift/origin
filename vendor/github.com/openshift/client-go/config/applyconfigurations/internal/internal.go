@@ -139,6 +139,11 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.config.v1.AWSPlatformStatus
   map:
     fields:
+    - name: cloudLoadBalancerConfig
+      type:
+        namedType: com.github.openshift.api.config.v1.CloudLoadBalancerConfig
+      default:
+        dnsType: PlatformDefault
     - name: region
       type:
         scalar: string
@@ -2167,6 +2172,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: cgroupMode
       type:
         scalar: string
+    - name: minimumKubeletVersion
+      type:
+        scalar: string
+      default: ""
     - name: workerLatencyProfile
       type:
         scalar: string

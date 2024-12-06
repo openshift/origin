@@ -213,9 +213,9 @@ func (c *Canvas) Stroke(path vg.Path) {
 		style(elm("fill", "#000000", "none"),
 			elm("stroke", "none", colorString(c.context().color)),
 			elm("stroke-opacity", "1", opacityString(c.context().color)),
-			elm("stroke-width", "1", "%.*g", pr, c.context().lineWidth.Points()),
+			elmf("stroke-width", "1", "%.*g", pr, c.context().lineWidth.Points()),
 			elm("stroke-dasharray", "none", dashArrayString(c)),
-			elm("stroke-dashoffset", "0", "%.*g", pr, c.context().dashOffset.Points())))
+			elmf("stroke-dashoffset", "0", "%.*g", pr, c.context().dashOffset.Points())))
 }
 
 func (c *Canvas) Fill(path vg.Path) {
@@ -351,7 +351,7 @@ func (c *Canvas) FillString(font font.Face, pt vg.Point, str string) {
 	name := svgFontDescr(font)
 	sty := style(
 		name,
-		elm("font-size", "medium", "%.*gpx", pr, font.Font.Size.Points()),
+		elmf("font-size", "medium", "%.*gpx", pr, font.Font.Size.Points()),
 		elm("fill", "#000000", colorString(c.context().color)),
 	)
 	if sty != "" {
@@ -605,7 +605,18 @@ func style(elms ...string) string {
 // elm returns a style element string with the
 // given key and value.  If the value matches
 // default then the empty string is returned.
-func elm(key, def, f string, vls ...interface{}) string {
+func elm(key, def, f string) string {
+	val := f
+	if val == def {
+		return ""
+	}
+	return key + ":" + val
+}
+
+// elmf returns a style element string with the
+// given key and value.  If the value matches
+// default then the empty string is returned.
+func elmf(key, def, f string, vls ...interface{}) string {
 	value := fmt.Sprintf(f, vls...)
 	if value == def {
 		return ""

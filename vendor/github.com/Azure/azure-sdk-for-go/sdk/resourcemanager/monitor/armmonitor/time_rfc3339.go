@@ -18,39 +18,103 @@ import (
 	"time"
 )
 
-const (
-	utcLayoutJSON = `"2006-01-02T15:04:05.999999999"`
-	utcLayout     = "2006-01-02T15:04:05.999999999"
-	rfc3339JSON   = `"` + time.RFC3339Nano + `"`
-)
-
 // Azure reports time in UTC but it doesn't include the 'Z' time zone suffix in some cases.
 var tzOffsetRegex = regexp.MustCompile(`(Z|z|\+|-)(\d+:\d+)*"*$`)
 
-type timeRFC3339 time.Time
+const (
+	utcDateTimeJSON = `"2006-01-02T15:04:05.999999999"`
+	utcDateTime     = "2006-01-02T15:04:05.999999999"
+	dateTimeJSON    = `"` + time.RFC3339Nano + `"`
+)
 
-func (t timeRFC3339) MarshalJSON() (json []byte, err error) {
+type dateTimeRFC3339 time.Time
+
+func (t dateTimeRFC3339) MarshalJSON() ([]byte, error) {
 	tt := time.Time(t)
 	return tt.MarshalJSON()
 }
 
-func (t timeRFC3339) MarshalText() (text []byte, err error) {
+func (t dateTimeRFC3339) MarshalText() ([]byte, error) {
 	tt := time.Time(t)
 	return tt.MarshalText()
 }
 
-func (t *timeRFC3339) UnmarshalJSON(data []byte) error {
-	layout := utcLayoutJSON
+func (t *dateTimeRFC3339) UnmarshalJSON(data []byte) error {
+	layout := utcDateTimeJSON
 	if tzOffsetRegex.Match(data) {
-		layout = rfc3339JSON
+		layout = dateTimeJSON
 	}
 	return t.Parse(layout, string(data))
 }
 
-func (t *timeRFC3339) UnmarshalText(data []byte) (err error) {
-	layout := utcLayout
+func (t *dateTimeRFC3339) UnmarshalText(data []byte) error {
+	layout := utcDateTime
 	if tzOffsetRegex.Match(data) {
 		layout = time.RFC3339Nano
+	}
+	return t.Parse(layout, string(data))
+}
+
+func (t *dateTimeRFC3339) Parse(layout, value string) error {
+	p, err := time.Parse(layout, strings.ToUpper(value))
+	*t = dateTimeRFC3339(p)
+	return err
+}
+
+func populateDateTimeRFC3339(m map[string]any, k string, t *time.Time) {
+	if t == nil {
+		return
+	} else if azcore.IsNullValue(t) {
+		m[k] = nil
+		return
+	} else if reflect.ValueOf(t).IsNil() {
+		return
+	}
+	m[k] = (*dateTimeRFC3339)(t)
+}
+
+func unpopulateDateTimeRFC3339(data json.RawMessage, fn string, t **time.Time) error {
+	if data == nil || strings.EqualFold(string(data), "null") {
+		return nil
+	}
+	var aux dateTimeRFC3339
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return fmt.Errorf("struct field %s: %v", fn, err)
+	}
+	*t = (*time.Time)(&aux)
+	return nil
+}
+
+const (
+	utcTimeJSON = `"15:04:05.999999999"`
+	utcTime     = "15:04:05.999999999"
+	timeFormat  = "15:04:05.999999999Z07:00"
+)
+
+type timeRFC3339 time.Time
+
+func (t timeRFC3339) MarshalJSON() ([]byte, error) {
+	s, _ := t.MarshalText()
+	return []byte(fmt.Sprintf("\"%s\"", s)), nil
+}
+
+func (t timeRFC3339) MarshalText() ([]byte, error) {
+	tt := time.Time(t)
+	return []byte(tt.Format(timeFormat)), nil
+}
+
+func (t *timeRFC3339) UnmarshalJSON(data []byte) error {
+	layout := utcTimeJSON
+	if tzOffsetRegex.Match(data) {
+		layout = timeFormat
+	}
+	return t.Parse(layout, string(data))
+}
+
+func (t *timeRFC3339) UnmarshalText(data []byte) error {
+	layout := utcTime
+	if tzOffsetRegex.Match(data) {
+		layout = timeFormat
 	}
 	return t.Parse(layout, string(data))
 }
@@ -59,6 +123,11 @@ func (t *timeRFC3339) Parse(layout, value string) error {
 	p, err := time.Parse(layout, strings.ToUpper(value))
 	*t = timeRFC3339(p)
 	return err
+}
+
+func (t timeRFC3339) String() string {
+	tt := time.Time(t)
+	return tt.Format(timeFormat)
 }
 
 func populateTimeRFC3339(m map[string]any, k string, t *time.Time) {

@@ -42,6 +42,22 @@ type ControlPlaneMachineSet struct {
 
 // ControlPlaneMachineSet represents the configuration of the ControlPlaneMachineSet.
 type ControlPlaneMachineSetSpec struct {
+	// machineNamePrefix is the prefix used when creating machine names.
+	// Each machine name will consist of this prefix, followed by
+	// a randomly generated string of 5 characters, and the index of the machine.
+	// It must be a lowercase RFC 1123 subdomain, consisting of lowercase
+	// alphanumeric characters, '-', or '.', and must start and end
+	// with an alphanumeric character.
+	// The prefix must be between 1 and 245 characters in length.
+	// For example, if machineNamePrefix is set to 'control-plane',
+	// and three machines are created, their names might be:
+	// control-plane-abcde-0, control-plane-fghij-1, control-plane-klmno-2
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=CPMSMachineNamePrefix,rule="!format.dns1123Subdomain().validate(self).hasValue()",message="a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=245
+	// +openshift:enable:FeatureGate=CPMSMachineNamePrefix
+	// +optional
+	MachineNamePrefix string `json:"machineNamePrefix,omitempty"`
 	// State defines whether the ControlPlaneMachineSet is Active or Inactive.
 	// When Inactive, the ControlPlaneMachineSet will not take any action on the
 	// state of the Machines within the cluster.

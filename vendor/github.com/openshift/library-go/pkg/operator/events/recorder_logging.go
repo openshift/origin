@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/clock"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -10,6 +11,7 @@ import (
 
 type LoggingEventRecorder struct {
 	component string
+	clock     clock.PassiveClock
 	ctx       context.Context
 }
 
@@ -19,8 +21,11 @@ func (r *LoggingEventRecorder) WithContext(ctx context.Context) Recorder {
 }
 
 // NewLoggingEventRecorder provides event recorder that will log all recorded events via klog.
-func NewLoggingEventRecorder(component string) Recorder {
-	return &LoggingEventRecorder{component: component}
+func NewLoggingEventRecorder(component string, clock clock.PassiveClock) Recorder {
+	return &LoggingEventRecorder{
+		component: component,
+		clock:     clock,
+	}
 }
 
 func (r *LoggingEventRecorder) ComponentName() string {
@@ -40,7 +45,7 @@ func (r *LoggingEventRecorder) WithComponentSuffix(suffix string) Recorder {
 }
 
 func (r *LoggingEventRecorder) Event(reason, message string) {
-	event := makeEvent(&inMemoryDummyObjectReference, "", corev1.EventTypeNormal, reason, message)
+	event := makeEvent(r.clock, &inMemoryDummyObjectReference, "", corev1.EventTypeNormal, reason, message)
 	klog.Info(event.String())
 }
 
@@ -49,7 +54,7 @@ func (r *LoggingEventRecorder) Eventf(reason, messageFmt string, args ...interfa
 }
 
 func (r *LoggingEventRecorder) Warning(reason, message string) {
-	event := makeEvent(&inMemoryDummyObjectReference, "", corev1.EventTypeWarning, reason, message)
+	event := makeEvent(r.clock, &inMemoryDummyObjectReference, "", corev1.EventTypeWarning, reason, message)
 	klog.Warning(event.String())
 }
 

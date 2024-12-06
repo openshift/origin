@@ -38,7 +38,7 @@ var _ cloudprovider.Zones = (*Cloud)(nil)
 
 func (az *Cloud) refreshZones(ctx context.Context, refreshFunc func() error) {
 	klog.V(2).Info("refreshZones: refreshing zones every 30 minutes.")
-	err := wait.PollUntilContextCancel(ctx, consts.ZoneFetchingInterval, false, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextCancel(ctx, consts.ZoneFetchingInterval, false, func(_ context.Context) (bool, error) {
 		_ = refreshFunc()
 		return false, nil
 	})
