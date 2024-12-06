@@ -784,6 +784,56 @@ func IsDuringAPIServerProgressingOnSNO(topology string, events monitorapi.Interv
 	}
 }
 
+func IsExcludedContainerBackoffRestart(topology string, event monitorapi.Interval) bool {
+	// This is a list of known container back-off restart failures
+	// Our goal is to conquer these restarts.
+	// So we are sadly putting these as exceptions.
+	// If you discover a container backoff restarting more than 3 times, it is a bug and you should investigate it.
+	type exceptionVariants struct {
+		containerName      string
+		topologyToExclude  string
+		namespaceToExclude string
+	}
+	exceptions := []exceptionVariants{
+		{
+			// https://issues.redhat.com/browse/OCPBUGS-45071
+			containerName:      "container/manager",
+			topologyToExclude:  "single",
+			namespaceToExclude: "openshift-operator-controller",
+		},
+		{
+			// https://issues.redhat.com/browse/OCPBUGS-45071
+			containerName:      "container/manager",
+			topologyToExclude:  "single",
+			namespaceToExclude: "openshift-catalogd",
+		},
+	}
+
+	for _, val := range exceptions {
+		matched, err := regexp.MatchString(val.containerName, event.Locator.OldLocator())
+		if err != nil {
+			return false
+		}
+
+		if matched {
+			topologyExcluded := val.topologyToExclude == topology
+			namespaceExcluded := val.namespaceToExclude == event.Locator.Keys[monitorapi.LocatorNamespaceKey]
+
+			// If both are specified, both must match
+			if val.topologyToExclude != "" && val.namespaceToExclude != "" {
+				if topologyExcluded && namespaceExcluded {
+					return true
+				} else {
+					continue
+				}
+			}
+
+			return topologyExcluded || namespaceExcluded
+		}
+	}
+	return false
+}
+
 func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 	configClient, err := configclient.NewForConfig(kubeClientConfig)
 	if err != nil {
