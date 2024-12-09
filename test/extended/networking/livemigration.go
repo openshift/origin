@@ -115,7 +115,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 
 						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
 
-						By("Check east/west traffic before test operation")
+						By(fmt.Sprintf("Check east/west traffic before test operation using IPs: %v", httpServerPodsIPs))
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 
 						opCmd(virtClient, f.Namespace.Name, vmName)
