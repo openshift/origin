@@ -245,6 +245,11 @@ func (in *AWSPlatformStatus) DeepCopyInto(out *AWSPlatformStatus) {
 		*out = make([]AWSResourceTag, len(*in))
 		copy(*out, *in)
 	}
+	if in.CloudLoadBalancerConfig != nil {
+		in, out := &in.CloudLoadBalancerConfig, &out.CloudLoadBalancerConfig
+		*out = new(CloudLoadBalancerConfig)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 
