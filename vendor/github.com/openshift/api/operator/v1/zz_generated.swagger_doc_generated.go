@@ -52,7 +52,10 @@ func (NodeStatus) SwaggerDoc() map[string]string {
 }
 
 var map_OperatorCondition = map[string]string{
-	"": "OperatorCondition is just the standard condition fields.",
+	"":                   "OperatorCondition is just the standard condition fields.",
+	"type":               "type of condition in CamelCase or in foo.example.com/CamelCase.",
+	"status":             "status of the condition, one of True, False, Unknown.",
+	"lastTransitionTime": "lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.",
 }
 
 func (OperatorCondition) SwaggerDoc() map[string]string {
@@ -1122,8 +1125,8 @@ func (NodePortStrategy) SwaggerDoc() map[string]string {
 }
 
 var map_OpenStackLoadBalancerParameters = map[string]string{
-	"":               "OpenStackLoadBalancerParameters provides configuration settings that are specific to OpenStack load balancers.",
-	"loadBalancerIP": "loadBalancerIP specifies the floating IP address that the load balancer will use. When not specified, an IP address will be assigned randomly by the OpenStack cloud provider. This value must be a valid IPv4 or IPv6 address. ",
+	"":           "OpenStackLoadBalancerParameters provides configuration settings that are specific to OpenStack load balancers.",
+	"floatingIP": "floatingIP specifies the IP address that the load balancer will use. When not specified, an IP address will be assigned randomly by the OpenStack cloud provider. When specified, the floating IP has to be pre-created.  If the specified value is not a floating IP or is already claimed, the OpenStack cloud provider won't be able to provision the load balancer. This field may only be used if the IngressController has External scope. This value must be a valid IPv4 or IPv6 address. ",
 }
 
 func (OpenStackLoadBalancerParameters) SwaggerDoc() map[string]string {
