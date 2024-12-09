@@ -66,7 +66,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			)
 
 			DescribeTableSubtree("created using",
-				func(createNetworkFn func(netConfig networkAttachmentConfigParams)) {
+				func(createNetworkFn func(netConfig networkAttachmentConfigParams) networkAttachmentConfig) {
 
 					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string)) {
 						var err error
@@ -79,11 +79,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 
 						isDualStack := getIPFamilyForCluster(f) == DualStack
 
-						createNetworkFn(netConfig)
+						provisionedNetConfig := createNetworkFn(netConfig)
 
 						for _, node := range workerNodes {
 							Eventually(func() bool {
-								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, netConfig.networkName)
+								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName)
 								return err == nil && isNetProvisioned
 							}).WithPolling(time.Second).WithTimeout(udnCrReadyTimeout).Should(
 								BeTrueBecause("the network must be ready before creating workloads"),
@@ -194,18 +194,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							restartVM,
 						))
 				},
-				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
+				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
 					netConfig := newNetworkAttachmentConfig(c)
 					nad := generateNAD(netConfig)
 					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 					Expect(err).NotTo(HaveOccurred())
+					return netConfig
 				}),
-				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) {
+				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) networkAttachmentConfig {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Expect(waitForUserDefinedNetworkReady(c.namespace, c.name, udnCrReadyTimeout)).To(Succeed())
+					return networkAttachmentConfig{networkAttachmentConfigParams{networkName: c.namespace + "." + c.name}}
 				}))
 		})
 	})
