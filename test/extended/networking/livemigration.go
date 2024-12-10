@@ -207,7 +207,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Expect(waitForUserDefinedNetworkReady(c.namespace, c.name, udnCrReadyTimeout)).To(Succeed())
-					return networkAttachmentConfig{networkAttachmentConfigParams{networkName: c.namespace + "." + c.name}}
+					nad, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(context.TODO(), c.name, metav1.GetOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					return networkAttachmentConfig{networkAttachmentConfigParams{networkName: networkName(nad.Spec.Config)}}
 				}))
 		})
 	})
@@ -541,4 +543,14 @@ func logicalSwitchName(networkName string) string {
 	netName := strings.ReplaceAll(networkName, "-", ".")
 	netName = strings.ReplaceAll(netName, "/", ".")
 	return fmt.Sprintf("%s_ovn_layer2_switch", netName)
+}
+
+func networkName(netSpecConfig string) string {
+	GinkgoHelper()
+	type netConfig struct {
+		Name string `json:"name,omitempty"`
+	}
+	var nc netConfig
+	Expect(json.Unmarshal([]byte(netSpecConfig), &nc)).To(Succeed())
+	return nc.Name
 }
