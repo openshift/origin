@@ -238,7 +238,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 				defer t.Close()
 				t.Within(
 					time.Minute,
-					exurl.Expect("GET", url).Through(routerIP).SkipTLSVerification().HasStatusCode(200),
+					exurl.Expect("GET", url).Through(exutil.IPUrl(routerIP)).SkipTLSVerification().HasStatusCode(200),
 				)
 			})
 		})
@@ -268,6 +268,10 @@ func createScopedRouterPod(routerImage, routerName, pemData, updateStatus string
 									FieldPath: "metadata.namespace",
 								},
 							},
+						},
+						{
+							Name:  "ROUTER_IP_V4_V6_MODE",
+							Value: "v4v6",
 						},
 						{
 							Name:  "DEFAULT_CERTIFICATE",
