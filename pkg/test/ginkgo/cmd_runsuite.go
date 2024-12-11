@@ -96,7 +96,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&o.ExactMonitorTests, "monitor", o.ExactMonitorTests,
 		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
 	flags.StringSliceVar(&o.DisableMonitorTests, "disable-monitor", o.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
-	flags.BoolVar(&o.RemoveMonitor, "remove-monitor", o.RemoveMonitor, "remove all monitors. Defaults to false.")
+	flags.BoolVar(&o.RemoveMonitor, "remove-monitor", true, "remove all monitors. Defaults to false.")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
