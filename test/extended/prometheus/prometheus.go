@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -722,12 +722,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
 			// Copy so we can expand:
-			allowedAlertNames := make([]string, len(allowedalerts2.AllowedAlertNames))
-			copy(allowedAlertNames, allowedalerts2.AllowedAlertNames)
+			allowedAlertNames := make([]string, len(allowedalerts.AllowedAlertNames))
+			copy(allowedAlertNames, allowedalerts.AllowedAlertNames)
 
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			// we exclude alerts that have their own separate tests.
-			for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts2.DefaultAllowances) {
+			for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts.DefaultAllowances) {
 				allowedAlertNames = append(allowedAlertNames, alertTest.AlertName())
 			}
 
@@ -738,11 +738,21 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				allowedAlertNames = append(allowedAlertNames, "TechPreviewNoUpgrade", "ClusterNotUpgradeable")
 			}
 
+			// OSD-26887: managed services taints several nodes as infrastructure.  This taint appears to be applied
+			// after some of the platform DS are scheduled there, causing this alert to fire.  Managed services
+			// rebalances the DS after the taint is added, and the alert clears, but origin fails this test. Allowing
+			// this alert to fire while we investigate why the taint is not added at node birth.
+			isManagedService, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isManagedService {
+				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetMisScheduled")
+			}
+
 			tests := map[string]bool{
 				// openshift-e2e-loki alerts should never fail this test, we've seen this happen on daemon set rollout stuck when CI loki was down.
 				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info",namespace!="openshift-e2e-loki"} >= 1`, strings.Join(allowedAlertNames, "|")): false,
 			}
-			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
