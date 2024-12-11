@@ -986,6 +986,7 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 		fmt.Printf("%s Phase: - %s\n", updatedPod.Name, updatedPod.Status.Phase)
 		fmt.Printf("%s Message: %s\n", updatedPod.Name, updatedPod.Status.Message)
 		fmt.Printf("%s Reason: %s\n", updatedPod.Name, updatedPod.Status.Reason)
+		fmt.Printf("%s PodStatus: %+v\n", updatedPod.Name, updatedPod.Status)
 		fmt.Printf("-------\n")
 
 		return updatedPod.Status.Phase
