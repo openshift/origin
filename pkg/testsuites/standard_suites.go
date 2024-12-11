@@ -54,7 +54,7 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 		},
 		Parallelism:          30,
-		MaximumAllowedFlakes: 15,
+		MaximumAllowedFlakes: 0,
 	},
 	{
 		Name: "openshift/conformance/serial",
@@ -116,7 +116,7 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism: 7,
 		// TODO: Builds are really flaky right now, remove when we land perf updates and fix io on workers
-		MaximumAllowedFlakes: 3,
+		MaximumAllowedFlakes: 0,
 		// Jenkins tests can take a really long time
 		TestTimeout: 60 * time.Minute,
 	},
@@ -339,7 +339,7 @@ var staticSuites = []ginkgo.TestSuite{
 			return !isDisabled(name) && strings.Contains(name, "[Suite:openshift/conformance/parallel")
 		},
 		Parallelism:          20,
-		MaximumAllowedFlakes: 15,
+		MaximumAllowedFlakes: 0,
 	},
 	{
 		Name: "all",
