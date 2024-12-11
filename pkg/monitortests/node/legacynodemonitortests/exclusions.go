@@ -35,6 +35,14 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 			topologyToExclude: "single",
 		},
 		{
+			// prod-bearer-token is part of the opeshift-e2e-loki deployment
+			// (see https://github.com/openshift/release/tree/master/ci-operator/step-registry/ipi/install/hosted-loki)
+			// the error from the pod is the inability to resolve sso.redhat.com due to dns being unavailable
+			// briefly during the upgrade
+			containerName:     "container/prod-bearer-token", // https://issues.redhat.com/browse/OCPBUGS-44970
+			topologyToExclude: "single",
+		},
+		{
 			containerName: "container/kube-multus", // https://issues.redhat.com/browse/OCPBUGS-42267
 		},
 		{
