@@ -16,10 +16,7 @@ package main
 var (
 	testMaps = map[string][]string{
 		// tests that require a local host
-		"[Local]": {
-			// Doesn't work on scaled up clusters
-			`\[Feature:ImagePrune\]`,
-		},
+		"[Local]": {},
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {},
 		// tests for features that are not implemented in openshift
@@ -35,21 +32,12 @@ var (
 			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
 			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
-			`\[Feature:GenericEphemeralVolume\]`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
-			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should work with TCP \(while idling\)`,
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling with Deployments \[apigroup:route.openshift.io\] should work with TCP \(while idling\)`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
 			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:operator.openshift.io\] \[internal-targets\]`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-967
-			`\[sig-network\] IngressClass \[Feature:Ingress\] should prevent Ingress creation if more than 1 IngressClass marked as default`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-3339
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
@@ -63,9 +51,7 @@ var (
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
-		"[Flaky]": {
-			`openshift mongodb replication creating from a template`, // flaking on deployment
-		},
+		"[Flaky]": {},
 		// tests that must be run without competition
 		"[Serial]": {
 			`\[Disruptive\]`,
@@ -83,7 +69,6 @@ var (
 			// See https://bugzilla.redhat.com/show_bug.cgi?id=2019375
 			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
 			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
-			`\[sig-arch\] Only known images used by tests`,
 		},
 		"[Skipped:SingleReplicaTopology]": {
 			`should be scheduled on different nodes`,
@@ -98,15 +83,12 @@ var (
 		// because of pullthrough not supporting ICSP (https://bugzilla.redhat.com/show_bug.cgi?id=1918376)
 		"[Skipped:Disconnected]": {
 			// Internet access required
-			`\[sig-builds\]\[Feature:Builds\] clone repository using git:// protocol should clone using git:// if no proxy is configured`,
 			`\[sig-builds\]\[Feature:Builds\] result image should have proper labels set S2I build from a template should create a image from "test-s2i-build.json" template with proper Docker labels`,
 			`\[sig-builds\]\[Feature:Builds\] s2i build with a quota Building from a template should create an s2i build with a quota and run it`,
 			`\[sig-builds\]\[Feature:Builds\] s2i build with a root user image should create a root build and pass with a privileged SCC`,
 			`\[sig-builds\]\[Feature:Builds\]\[timing\] capture build stages and durations should record build stages and durations for docker`,
 			`\[sig-builds\]\[Feature:Builds\]\[timing\] capture build stages and durations should record build stages and durations for s2i`,
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables`,
-			`\[sig-builds\]\[Feature:Builds\]\[volumes\] should mount given secrets and configmaps into the build pod for source strategy builds`,
-			`\[sig-builds\]\[Feature:Builds\]\[volumes\] should mount given secrets and configmaps into the build pod for docker strategy builds`,
 			`\[sig-builds\]\[Feature:Builds\]\[pullsearch\] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed`,
 			`\[sig-cli\] oc debug ensure it works with image streams`,
 			`\[sig-cli\] oc builds complex build start-build`,
@@ -146,7 +128,6 @@ var (
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs won't deploy RC with unresolved images when patched with empty image`,
 			`\[sig-arch\] Managed cluster should expose cluster services outside the cluster`,
 			`\[sig-arch\]\[Early\] Managed cluster should \[apigroup:config.openshift.io\] start all core operators`,
-			`\[sig-auth\]\[Feature:SecurityContextConstraints\] TestPodDefaultCapabilities`,
 			`\[sig-builds\]\[Feature:Builds\] Multi-stage image builds should succeed`,
 			`\[sig-builds\]\[Feature:Builds\] Optimized image builds should succeed`,
 			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
@@ -172,9 +153,6 @@ var (
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in docker build environment variable references`,
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables should fail resolving unresolvable valueFrom in sti build environment variable references`,
 			`\[sig-builds\]\[Feature:Builds\]\[valueFrom\] process valueFrom in build strategy environment variables should successfully resolve valueFrom in docker build environment variables`,
-			`\[sig-builds\]\[Feature:Builds\]\[pullsearch\] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed`,
-			`\[sig-cli\] CLI can run inside of a busybox container`,
-			`\[sig-cli\] oc debug deployment configs from a build`,
 			`\[sig-cli\] oc debug deployment from a build`,
 			`\[sig-cli\] oc rsh specific flags should work well when access to a remote shell`,
 			`\[sig-cli\] oc builds get buildconfig`,
@@ -200,9 +178,6 @@ var (
 			`\[sig-instrumentation\]\[Late\] OpenShift alerting rules \[apigroup:image.openshift.io\] should have a valid severity label`,
 			`\[sig-instrumentation\]\[Late\] OpenShift alerting rules \[apigroup:image.openshift.io\] should have description and summary annotations`,
 			`\[sig-instrumentation\]\[Late\] OpenShift alerting rules \[apigroup:image.openshift.io\] should have a runbook_url annotation if the alert is critical`,
-			`\[sig-instrumentation\]\[Late\] Alerts should have a Watchdog alert in firing state the entire cluster run`,
-			`\[sig-instrumentation\]\[Late\] Alerts shouldn't exceed the 500 series limit of total series sent via telemetry from each cluster`,
-			`\[sig-instrumentation\]\[Late\] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing`,
 			`\[sig-instrumentation\]\[sig-builds\]\[Feature:Builds\] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics`,
 			`\[sig-network-edge\]\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it`,
 			`\[sig-network\]\[Feature:Router\] The HAProxy router should enable openshift-monitoring to pull metrics`,
@@ -221,17 +196,6 @@ var (
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
-		},
-		"[Skipped:ibmroks]": {
-			// skip Gluster tests (not supported on ROKS worker nodes)
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825009 - e2e: skip Glusterfs-related tests upstream for rhel7 worker nodes
-			`\[Driver: gluster\]`,
-			`GlusterFS`,
-			`GlusterDynamicProvisioner`,
-
-			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
-			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
 		// Tests which can't be run/don't make sense to run against a cluster with all optional capabilities disabled
 		"[Skipped:NoOptionalCapabilities]": {
