@@ -1,0 +1,21 @@
+apiVersion: machineconfiguration.openshift.io/v1alpha1
+kind: MachineOSConfig
+metadata:
+  name: infra
+spec:
+  machineConfigPool:
+    name: infra
+  buildOutputs:
+    currentImagePullSecret:
+      name: long-live-token
+  buildInputs:
+    containerFile: 
+    - containerfileArch: noarch
+      content: RUN cd /etc/yum.repos.d/ && curl -LO https://pkgs.tailscale.com/stable/fedora/tailscale.repo && rpm-ostree install tailscale && rpm-ostree cleanup -m && systemctl enable tailscaled && ostree container commit
+    imageBuilder:
+      imageBuilderType: PodImageBuilder
+    baseImagePullSecret:
+      name:  my-input-pull
+    renderedImagePushSecret:
+      name: long-live-token
+    renderedImagePushspec: "image-registry.openshift-image-registry.svc:5000/openshift-machine-config-operator/ocb-image:latest"
