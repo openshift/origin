@@ -372,32 +372,17 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						red := "red"
 						blue := "blue"
-
-						namespaceRed := f.Namespace.Name + "-" + red
-						namespaceBlue := f.Namespace.Name + "-" + blue
+						namespaceRed, err := f.CreateNamespace(context.Background(), "network-segmentation-"+red, nil)
+						Expect(err).NotTo(HaveOccurred())
+						namespaceBlue, err := f.CreateNamespace(context.Background(), "network-segmentation-"+blue, nil)
+						Expect(err).NotTo(HaveOccurred())
 
 						netConfig := networkAttachmentConfigParams{
 							topology: topology,
 							cidr:     correctCIDRFamily(oc, userDefinedv4Subnet, userDefinedv6Subnet),
 							role:     "primary",
 						}
-						for _, namespace := range []string{namespaceRed, namespaceBlue} {
-							By("Creating namespace " + namespace)
-							_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-								ObjectMeta: metav1.ObjectMeta{
-									Name: namespace,
-								},
-							}, metav1.CreateOptions{})
-							Expect(err).NotTo(HaveOccurred())
-							defer func() {
-								Expect(cs.CoreV1().Namespaces().Delete(
-									context.Background(),
-									namespace,
-									metav1.DeleteOptions{},
-								)).To(Succeed())
-							}()
-						}
-						networkNamespaceMap := map[string]string{namespaceRed: red, namespaceBlue: blue}
+						networkNamespaceMap := map[string]string{namespaceRed.Name: red, namespaceBlue.Name: blue}
 						for namespace, network := range networkNamespaceMap {
 							By("creating the network " + network + " in namespace " + namespace)
 							netConfig.namespace = namespace
@@ -481,7 +466,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						By("Deleting pods in network blue except " + fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1))
 						for i := 0; i < numberOfPods-1; i++ {
-							err := cs.CoreV1().Pods(namespaceBlue).Delete(
+							err := cs.CoreV1().Pods(namespaceBlue.Name).Delete(
 								context.Background(),
 								fmt.Sprintf("%s-pod-%d", blue, i),
 								metav1.DeleteOptions{},
@@ -491,9 +476,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						podIP, err := podIPsForUserDefinedPrimaryNetwork(
 							cs,
-							namespaceBlue,
+							namespaceBlue.Name,
 							fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
-							namespacedName(namespaceBlue, blue),
+							namespacedName(namespaceBlue.Name, blue),
 							0,
 						)
 						Expect(err).NotTo(HaveOccurred())
@@ -505,7 +490,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								continue
 							}
 							_, err := e2ekubectl.RunKubectl(
-								namespaceBlue,
+								namespaceBlue.Name,
 								"exec",
 								fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
 								"--",
