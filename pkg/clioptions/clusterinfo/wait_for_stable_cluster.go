@@ -8,12 +8,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func unstableOperatorReason(operator *configv1.ClusterOperator) string {
@@ -45,13 +47,45 @@ func summerizeUnstableOperators(operators map[string]string) string {
 // It will generate failure junit if any operators are still unstable after timeout.
 func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi.JUnitTestCase, error) {
 	const testName = "Cluster should be stable before test is started"
+
+	// Skip microshift
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("error creating kube client: %v", err),
+				},
+			},
+		}, err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("error determining microshift cluster: %v", err),
+				},
+			},
+		}, err
+	}
+	if isMicroShift {
+		return []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+			},
+		}, nil
+	}
+
 	configClient, err := configclient.NewForConfig(config)
 	if err != nil {
 		return []*junitapi.JUnitTestCase{
 			{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("error creating client: %v", err),
+					Output: fmt.Sprintf("error creating config client: %v", err),
 				},
 			},
 		}, err
