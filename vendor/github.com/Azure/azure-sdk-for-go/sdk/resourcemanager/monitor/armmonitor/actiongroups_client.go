@@ -32,7 +32,7 @@ type ActionGroupsClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewActionGroupsClient(subscriptionID string, credential azcore.TokenCredential, options *arm.ClientOptions) (*ActionGroupsClient, error) {
-	cl, err := arm.NewClient(moduleName+".ActionGroupsClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}
@@ -60,10 +60,13 @@ func (client *ActionGroupsClient) BeginCreateNotificationsAtActionGroupResourceL
 		}
 		poller, err := runtime.NewPoller(resp, client.internal.Pipeline(), &runtime.NewPollerOptions[ActionGroupsClientCreateNotificationsAtActionGroupResourceLevelResponse]{
 			FinalStateVia: runtime.FinalStateViaLocation,
+			Tracer:        client.internal.Tracer(),
 		})
 		return poller, err
 	} else {
-		return runtime.NewPollerFromResumeToken[ActionGroupsClientCreateNotificationsAtActionGroupResourceLevelResponse](options.ResumeToken, client.internal.Pipeline(), nil)
+		return runtime.NewPollerFromResumeToken(options.ResumeToken, client.internal.Pipeline(), &runtime.NewPollerFromResumeTokenOptions[ActionGroupsClientCreateNotificationsAtActionGroupResourceLevelResponse]{
+			Tracer: client.internal.Tracer(),
+		})
 	}
 }
 

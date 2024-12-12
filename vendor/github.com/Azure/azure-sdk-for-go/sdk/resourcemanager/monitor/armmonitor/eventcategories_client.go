@@ -27,7 +27,7 @@ type EventCategoriesClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewEventCategoriesClient(credential azcore.TokenCredential, options *arm.ClientOptions) (*EventCategoriesClient, error) {
-	cl, err := arm.NewClient(moduleName+".EventCategoriesClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}

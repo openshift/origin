@@ -45,17 +45,18 @@ func (az *Cloud) CreateOrUpdateSubnet(service *v1.Service, subnet network.Subnet
 	return nil
 }
 
-func (az *Cloud) getSubnet(virtualNetworkName string, subnetName string) (network.Subnet, bool, error) {
-	var rg string
-	if len(az.VnetResourceGroup) > 0 {
-		rg = az.VnetResourceGroup
-	} else {
-		rg = az.ResourceGroup
+func (az *Cloud) getSubnet(vnetResourceGroup, virtualNetworkName, subnetName string) (network.Subnet, bool, error) {
+	if vnetResourceGroup == "" {
+		if len(az.VnetResourceGroup) > 0 {
+			vnetResourceGroup = az.VnetResourceGroup
+		} else {
+			vnetResourceGroup = az.ResourceGroup
+		}
 	}
 
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
-	subnet, err := az.SubnetsClient.Get(ctx, rg, virtualNetworkName, subnetName, "")
+	subnet, err := az.SubnetsClient.Get(ctx, vnetResourceGroup, virtualNetworkName, subnetName, "")
 	exists, rerr := checkResourceExistsFromError(err)
 	if rerr != nil {
 		return subnet, false, rerr.Error()

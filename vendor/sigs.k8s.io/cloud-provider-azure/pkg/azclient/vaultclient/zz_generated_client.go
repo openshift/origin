@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing"
 	armkeyvault "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault"
 
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/metrics"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/utils"
 )
 
@@ -55,14 +56,12 @@ func New(subscriptionID string, credential azcore.TokenCredential, options *arm.
 const GetOperationName = "VaultsClient.Get"
 
 // Get gets the Vault
-func (client *Client) Get(ctx context.Context, resourceGroupName string, resourceName string) (result *armkeyvault.Vault, rerr error) {
+func (client *Client) Get(ctx context.Context, resourceGroupName string, resourceName string) (result *armkeyvault.Vault, err error) {
 
-	ctx = utils.ContextWithClientName(ctx, "VaultsClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Get")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "Vault", "get")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, GetOperationName, client.tracer, nil)
-	defer endSpan(rerr)
+	defer endSpan(err)
 	resp, err := client.VaultsClient.Get(ctx, resourceGroupName, resourceName, nil)
 	if err != nil {
 		return nil, err
@@ -74,13 +73,11 @@ func (client *Client) Get(ctx context.Context, resourceGroupName string, resourc
 const ListOperationName = "VaultsClient.List"
 
 // List gets a list of Vault in the resource group.
-func (client *Client) List(ctx context.Context, resourceGroupName string) (result []*armkeyvault.Vault, rerr error) {
-	ctx = utils.ContextWithClientName(ctx, "VaultsClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "List")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+func (client *Client) List(ctx context.Context, resourceGroupName string) (result []*armkeyvault.Vault, err error) {
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "Vault", "list")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, ListOperationName, client.tracer, nil)
-	defer endSpan(rerr)
+	defer endSpan(err)
 	pager := client.VaultsClient.NewListByResourceGroupPager(resourceGroupName, nil)
 	for pager.More() {
 		nextResult, err := pager.NextPage(ctx)

@@ -26,7 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2022-08-01/compute"
 
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -65,7 +65,7 @@ const (
 )
 
 func (ss *ScaleSet) newVMSSCache(ctx context.Context) (azcache.Resource, error) {
-	getter := func(key string) (interface{}, error) {
+	getter := func(_ string) (interface{}, error) {
 		localCache := &sync.Map{} // [vmssName]*vmssEntry
 
 		allResourceGroups, err := ss.GetResourceGroups()
@@ -194,13 +194,13 @@ func (ss *ScaleSet) newVMSSVirtualMachinesCache() (azcache.Resource, error) {
 			vmssVMCacheEntry := &VMSSVirtualMachineEntry{
 				ResourceGroup:  resourceGroupName,
 				VMSSName:       vmssName,
-				InstanceID:     pointer.StringDeref(vm.InstanceID, ""),
+				InstanceID:     ptr.Deref(vm.InstanceID, ""),
 				VirtualMachine: &vm,
 				LastUpdate:     time.Now().UTC(),
 			}
 			// set cache entry to nil when the VM is under deleting.
 			if vm.VirtualMachineScaleSetVMProperties != nil &&
-				strings.EqualFold(pointer.StringDeref(vm.VirtualMachineScaleSetVMProperties.ProvisioningState, ""), string(consts.ProvisioningStateDeleting)) {
+				strings.EqualFold(ptr.Deref(vm.VirtualMachineScaleSetVMProperties.ProvisioningState, ""), string(consts.ProvisioningStateDeleting)) {
 				klog.V(4).Infof("VMSS virtualMachine %q is under deleting, setting its cache to nil", computerName)
 				vmssVMCacheEntry.VirtualMachine = nil
 			}
@@ -323,7 +323,7 @@ func (ss *ScaleSet) updateCache(nodeName, resourceGroupName, vmssName, instanceI
 }
 
 func (ss *ScaleSet) newNonVmssUniformNodesCache() (azcache.Resource, error) {
-	getter := func(key string) (interface{}, error) {
+	getter := func(_ string) (interface{}, error) {
 		vmssFlexVMNodeNames := utilsets.NewString()
 		vmssFlexVMProviderIDs := utilsets.NewString()
 		avSetVMNodeNames := utilsets.NewString()
@@ -342,14 +342,14 @@ func (ss *ScaleSet) newNonVmssUniformNodesCache() (azcache.Resource, error) {
 			for _, vm := range vms {
 				if vm.OsProfile != nil && vm.OsProfile.ComputerName != nil {
 					if vm.VirtualMachineScaleSet != nil {
-						vmssFlexVMNodeNames.Insert(strings.ToLower(pointer.StringDeref(vm.OsProfile.ComputerName, "")))
+						vmssFlexVMNodeNames.Insert(strings.ToLower(ptr.Deref(vm.OsProfile.ComputerName, "")))
 						if vm.ID != nil {
-							vmssFlexVMProviderIDs.Insert(ss.ProviderName() + "://" + pointer.StringDeref(vm.ID, ""))
+							vmssFlexVMProviderIDs.Insert(ss.ProviderName() + "://" + ptr.Deref(vm.ID, ""))
 						}
 					} else {
-						avSetVMNodeNames.Insert(strings.ToLower(pointer.StringDeref(vm.OsProfile.ComputerName, "")))
+						avSetVMNodeNames.Insert(strings.ToLower(ptr.Deref(vm.OsProfile.ComputerName, "")))
 						if vm.ID != nil {
-							avSetVMProviderIDs.Insert(ss.ProviderName() + "://" + pointer.StringDeref(vm.ID, ""))
+							avSetVMProviderIDs.Insert(ss.ProviderName() + "://" + ptr.Deref(vm.ID, ""))
 						}
 					}
 				}
@@ -531,9 +531,9 @@ func (az *Cloud) GetVMNameByIPConfigurationName(nicResourceGroup, nicName string
 		return "", fmt.Errorf("failed to get interface of name %s: %w", nicName, rerr.Error())
 	}
 	if nic.InterfacePropertiesFormat == nil || nic.InterfacePropertiesFormat.VirtualMachine == nil || nic.InterfacePropertiesFormat.VirtualMachine.ID == nil {
-		return "", fmt.Errorf("failed to get vm ID of nic %s", pointer.StringDeref(nic.Name, ""))
+		return "", fmt.Errorf("failed to get vm ID of nic %s", ptr.Deref(nic.Name, ""))
 	}
-	vmID := pointer.StringDeref(nic.InterfacePropertiesFormat.VirtualMachine.ID, "")
+	vmID := ptr.Deref(nic.InterfacePropertiesFormat.VirtualMachine.ID, "")
 	matches := vmIDRE.FindStringSubmatch(vmID)
 	if len(matches) != 2 {
 		return "", fmt.Errorf("invalid virtual machine ID %s", vmID)

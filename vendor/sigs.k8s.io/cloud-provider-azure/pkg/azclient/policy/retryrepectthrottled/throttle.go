@@ -28,6 +28,10 @@ import (
 
 const HeaderRetryAfter = "Retry-After"
 
+var (
+	ErrTooManyRequest = errors.New("throttled due to too many requests")
+)
+
 func NewThrottlingPolicy() policy.Policy {
 	return &ThrottlingPolicy{
 		RetryAfterReader: time.Now(),
@@ -61,7 +65,7 @@ func (p *ThrottlingPolicy) Do(req *policy.Request) (*http.Response, error) {
 
 func (p *ThrottlingPolicy) processThrottlePolicy(timer *time.Time, req *policy.Request) (*http.Response, error) {
 	if timer.After(time.Now()) {
-		return nil, errors.New("ThrottlingPolicy: Too many requests")
+		return nil, ErrTooManyRequest
 	}
 	resp, err := req.Next()
 	if err != nil {
@@ -82,7 +86,7 @@ func (p *ThrottlingPolicy) processThrottlePolicy(timer *time.Time, req *policy.R
 			*timer = t
 		}
 
-		return resp, errors.New("ThrottlingPolicy: Too many requests")
+		return resp, ErrTooManyRequest
 	}
 	return resp, nil
 }

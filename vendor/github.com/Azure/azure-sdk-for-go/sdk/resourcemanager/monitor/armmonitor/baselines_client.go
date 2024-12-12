@@ -28,7 +28,7 @@ type BaselinesClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewBaselinesClient(credential azcore.TokenCredential, options *arm.ClientOptions) (*BaselinesClient, error) {
-	cl, err := arm.NewClient(moduleName+".BaselinesClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}

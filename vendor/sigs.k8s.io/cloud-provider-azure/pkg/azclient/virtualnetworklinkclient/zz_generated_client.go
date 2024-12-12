@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/tracing"
 	armprivatedns "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/privatedns/armprivatedns"
 
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/metrics"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/utils"
 )
 
@@ -55,14 +56,12 @@ func New(subscriptionID string, credential azcore.TokenCredential, options *arm.
 const GetOperationName = "VirtualNetworkLinksClient.Get"
 
 // Get gets the VirtualNetworkLink
-func (client *Client) Get(ctx context.Context, resourceGroupName string, parentResourceName string, resourceName string) (result *armprivatedns.VirtualNetworkLink, rerr error) {
+func (client *Client) Get(ctx context.Context, resourceGroupName string, parentResourceName string, resourceName string) (result *armprivatedns.VirtualNetworkLink, err error) {
 
-	ctx = utils.ContextWithClientName(ctx, "VirtualNetworkLinksClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "Get")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "VirtualNetworkLink", "get")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, GetOperationName, client.tracer, nil)
-	defer endSpan(rerr)
+	defer endSpan(err)
 	resp, err := client.VirtualNetworkLinksClient.Get(ctx, resourceGroupName, parentResourceName, resourceName, nil)
 	if err != nil {
 		return nil, err
@@ -75,10 +74,8 @@ const CreateOrUpdateOperationName = "VirtualNetworkLinksClient.Create"
 
 // CreateOrUpdate creates or updates a VirtualNetworkLink.
 func (client *Client) CreateOrUpdate(ctx context.Context, resourceGroupName string, resourceName string, parentResourceName string, resource armprivatedns.VirtualNetworkLink) (result *armprivatedns.VirtualNetworkLink, err error) {
-	ctx = utils.ContextWithClientName(ctx, "VirtualNetworkLinksClient")
-	ctx = utils.ContextWithRequestMethod(ctx, "CreateOrUpdate")
-	ctx = utils.ContextWithResourceGroupName(ctx, resourceGroupName)
-	ctx = utils.ContextWithSubscriptionID(ctx, client.subscriptionID)
+	metricsCtx := metrics.BeginARMRequest(client.subscriptionID, resourceGroupName, "VirtualNetworkLink", "create_or_update")
+	defer func() { metricsCtx.Observe(ctx, err) }()
 	ctx, endSpan := runtime.StartSpan(ctx, CreateOrUpdateOperationName, client.tracer, nil)
 	defer endSpan(err)
 	resp, err := utils.NewPollerWrapper(client.VirtualNetworkLinksClient.BeginCreateOrUpdate(ctx, resourceGroupName, resourceName, parentResourceName, resource, nil)).WaitforPollerResp(ctx)

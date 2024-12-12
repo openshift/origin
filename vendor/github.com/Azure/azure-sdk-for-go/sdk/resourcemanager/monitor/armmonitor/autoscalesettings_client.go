@@ -32,7 +32,7 @@ type AutoscaleSettingsClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewAutoscaleSettingsClient(subscriptionID string, credential azcore.TokenCredential, options *arm.ClientOptions) (*AutoscaleSettingsClient, error) {
-	cl, err := arm.NewClient(moduleName+".AutoscaleSettingsClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}
@@ -244,22 +244,15 @@ func (client *AutoscaleSettingsClient) NewListByResourceGroupPager(resourceGroup
 		},
 		Fetcher: func(ctx context.Context, page *AutoscaleSettingsClientListByResourceGroupResponse) (AutoscaleSettingsClientListByResourceGroupResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "AutoscaleSettingsClient.NewListByResourceGroupPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listByResourceGroupCreateRequest(ctx, resourceGroupName, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listByResourceGroupCreateRequest(ctx, resourceGroupName, options)
+			}, nil)
 			if err != nil {
 				return AutoscaleSettingsClientListByResourceGroupResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return AutoscaleSettingsClientListByResourceGroupResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return AutoscaleSettingsClientListByResourceGroupResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listByResourceGroupHandleResponse(resp)
 		},
@@ -310,22 +303,15 @@ func (client *AutoscaleSettingsClient) NewListBySubscriptionPager(options *Autos
 		},
 		Fetcher: func(ctx context.Context, page *AutoscaleSettingsClientListBySubscriptionResponse) (AutoscaleSettingsClientListBySubscriptionResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "AutoscaleSettingsClient.NewListBySubscriptionPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listBySubscriptionCreateRequest(ctx, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listBySubscriptionCreateRequest(ctx, options)
+			}, nil)
 			if err != nil {
 				return AutoscaleSettingsClientListBySubscriptionResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return AutoscaleSettingsClientListBySubscriptionResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return AutoscaleSettingsClientListBySubscriptionResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listBySubscriptionHandleResponse(resp)
 		},

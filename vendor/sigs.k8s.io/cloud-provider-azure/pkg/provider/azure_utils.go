@@ -31,7 +31,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	utilnet "k8s.io/utils/net"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azcache "sigs.k8s.io/cloud-provider-azure/pkg/cache"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -113,7 +113,7 @@ func parseTags(tags string, tagsMap map[string]string) map[string]*string {
 				klog.Warning("parseTags: empty key, ignoring this key-value pair")
 				continue
 			}
-			formatted[k] = pointer.String(v)
+			formatted[k] = ptr.To(v)
 		}
 	}
 
@@ -129,7 +129,7 @@ func parseTags(tags string, tagsMap map[string]string) map[string]*string {
 				klog.V(4).Infof("parseTags: found identical keys: %s from tags and %s from tagsMap (case-insensitive), %s will replace %s", k, key, key, k)
 				delete(formatted, k)
 			}
-			formatted[key] = pointer.String(value)
+			formatted[key] = ptr.To(value)
 		}
 	}
 
@@ -157,7 +157,7 @@ func (az *Cloud) reconcileTags(currentTagsOnResource, newTags map[string]*string
 		}
 
 		for _, systemTag := range systemTags {
-			systemTagsMap[systemTag] = pointer.String("")
+			systemTagsMap[systemTag] = ptr.To("")
 		}
 	}
 
@@ -168,7 +168,7 @@ func (az *Cloud) reconcileTags(currentTagsOnResource, newTags map[string]*string
 		if !found {
 			currentTagsOnResource[k] = v
 			changed = true
-		} else if !strings.EqualFold(pointer.StringDeref(v, ""), pointer.StringDeref(currentTagsOnResource[key], "")) {
+		} else if !strings.EqualFold(ptr.Deref(v, ""), ptr.Deref(currentTagsOnResource[key], "")) {
 			currentTagsOnResource[key] = v
 			changed = true
 		}
@@ -179,7 +179,7 @@ func (az *Cloud) reconcileTags(currentTagsOnResource, newTags map[string]*string
 		for k := range currentTagsOnResource {
 			if _, ok := newTags[k]; !ok {
 				if found, _ := findKeyInMapCaseInsensitive(systemTagsMap, k); !found {
-					klog.V(2).Infof("reconcileTags: delete tag %s: %s", k, pointer.StringDeref(currentTagsOnResource[k], ""))
+					klog.V(2).Infof("reconcileTags: delete tag %s: %s", k, ptr.Deref(currentTagsOnResource[k], ""))
 					delete(currentTagsOnResource, k)
 					changed = true
 				}
@@ -249,11 +249,11 @@ func sameContentInSlices(s1 []string, s2 []string) bool {
 func removeDuplicatedSecurityRules(rules []network.SecurityRule) []network.SecurityRule {
 	ruleNames := make(map[string]bool)
 	for i := len(rules) - 1; i >= 0; i-- {
-		if _, ok := ruleNames[pointer.StringDeref(rules[i].Name, "")]; ok {
-			klog.Warningf("Found duplicated rule %s, will be removed.", pointer.StringDeref(rules[i].Name, ""))
+		if _, ok := ruleNames[ptr.Deref(rules[i].Name, "")]; ok {
+			klog.Warningf("Found duplicated rule %s, will be removed.", ptr.Deref(rules[i].Name, ""))
 			rules = append(rules[:i], rules[i+1:]...)
 		}
-		ruleNames[pointer.StringDeref(rules[i].Name, "")] = true
+		ruleNames[ptr.Deref(rules[i].Name, "")] = true
 	}
 	return rules
 }
@@ -428,7 +428,7 @@ func (az *Cloud) isFIPIPv6(service *v1.Service, _ string, fip *network.FrontendI
 	if !isDualStack {
 		return service.Spec.IPFamilies[0] == v1.IPv6Protocol, nil
 	}
-	return managedResourceHasIPv6Suffix(pointer.StringDeref(fip.Name, "")), nil
+	return managedResourceHasIPv6Suffix(ptr.Deref(fip.Name, "")), nil
 }
 
 // getResourceIDPrefix returns a substring from the provided one between beginning and the last "/".
@@ -467,7 +467,7 @@ func countIPsOnBackendPool(backendPool network.BackendAddressPool) int {
 	var ipsCount int
 	for _, loadBalancerBackendAddress := range *backendPool.LoadBalancerBackendAddresses {
 		if loadBalancerBackendAddress.LoadBalancerBackendAddressPropertiesFormat != nil &&
-			pointer.StringDeref(loadBalancerBackendAddress.IPAddress, "") != "" {
+			ptr.Deref(loadBalancerBackendAddress.IPAddress, "") != "" {
 			ipsCount++
 		}
 	}

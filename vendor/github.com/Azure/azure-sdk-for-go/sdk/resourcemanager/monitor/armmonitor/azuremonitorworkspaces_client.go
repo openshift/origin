@@ -32,7 +32,7 @@ type AzureMonitorWorkspacesClient struct {
 //   - credential - used to authorize requests. Usually a credential from azidentity.
 //   - options - pass nil to accept the default values.
 func NewAzureMonitorWorkspacesClient(subscriptionID string, credential azcore.TokenCredential, options *arm.ClientOptions) (*AzureMonitorWorkspacesClient, error) {
-	cl, err := arm.NewClient(moduleName+".AzureMonitorWorkspacesClient", moduleVersion, credential, options)
+	cl, err := arm.NewClient(moduleName, moduleVersion, credential, options)
 	if err != nil {
 		return nil, err
 	}
@@ -245,22 +245,15 @@ func (client *AzureMonitorWorkspacesClient) NewListByResourceGroupPager(resource
 		},
 		Fetcher: func(ctx context.Context, page *AzureMonitorWorkspacesClientListByResourceGroupResponse) (AzureMonitorWorkspacesClientListByResourceGroupResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "AzureMonitorWorkspacesClient.NewListByResourceGroupPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listByResourceGroupCreateRequest(ctx, resourceGroupName, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listByResourceGroupCreateRequest(ctx, resourceGroupName, options)
+			}, nil)
 			if err != nil {
 				return AzureMonitorWorkspacesClientListByResourceGroupResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return AzureMonitorWorkspacesClientListByResourceGroupResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return AzureMonitorWorkspacesClientListByResourceGroupResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listByResourceGroupHandleResponse(resp)
 		},
@@ -311,22 +304,15 @@ func (client *AzureMonitorWorkspacesClient) NewListBySubscriptionPager(options *
 		},
 		Fetcher: func(ctx context.Context, page *AzureMonitorWorkspacesClientListBySubscriptionResponse) (AzureMonitorWorkspacesClientListBySubscriptionResponse, error) {
 			ctx = context.WithValue(ctx, runtime.CtxAPINameKey{}, "AzureMonitorWorkspacesClient.NewListBySubscriptionPager")
-			var req *policy.Request
-			var err error
-			if page == nil {
-				req, err = client.listBySubscriptionCreateRequest(ctx, options)
-			} else {
-				req, err = runtime.NewRequest(ctx, http.MethodGet, *page.NextLink)
+			nextLink := ""
+			if page != nil {
+				nextLink = *page.NextLink
 			}
+			resp, err := runtime.FetcherForNextLink(ctx, client.internal.Pipeline(), nextLink, func(ctx context.Context) (*policy.Request, error) {
+				return client.listBySubscriptionCreateRequest(ctx, options)
+			}, nil)
 			if err != nil {
 				return AzureMonitorWorkspacesClientListBySubscriptionResponse{}, err
-			}
-			resp, err := client.internal.Pipeline().Do(req)
-			if err != nil {
-				return AzureMonitorWorkspacesClientListBySubscriptionResponse{}, err
-			}
-			if !runtime.HasStatusCode(resp, http.StatusOK) {
-				return AzureMonitorWorkspacesClientListBySubscriptionResponse{}, runtime.NewResponseError(resp)
 			}
 			return client.listBySubscriptionHandleResponse(resp)
 		},

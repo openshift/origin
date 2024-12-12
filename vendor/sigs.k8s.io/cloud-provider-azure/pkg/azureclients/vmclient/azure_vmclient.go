@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	azclients "sigs.k8s.io/cloud-provider-azure/pkg/azureclients"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armclient"
@@ -149,6 +149,15 @@ func (c *Client) getVM(ctx context.Context, resourceGroupName string, VMName str
 
 // List gets a list of VirtualMachine in the resourceGroupName.
 func (c *Client) List(ctx context.Context, resourceGroupName string) ([]compute.VirtualMachine, *retry.Error) {
+	return c.list(ctx, resourceGroupName, false)
+}
+
+// ListWithInstanceView gets a list of VirtualMachine in the resourceGroupName with InstanceView.
+func (c *Client) ListWithInstanceView(ctx context.Context, resourceGroupName string) ([]compute.VirtualMachine, *retry.Error) {
+	return c.list(ctx, resourceGroupName, true)
+}
+
+func (c *Client) list(ctx context.Context, resourceGroupName string, withInstanceView bool) ([]compute.VirtualMachine, *retry.Error) {
 	mc := metrics.NewMetricContext("vm", "list", resourceGroupName, c.subscriptionID, "")
 
 	// Report errors if the client is rate limited.
@@ -164,7 +173,7 @@ func (c *Client) List(ctx context.Context, resourceGroupName string) ([]compute.
 		return nil, rerr
 	}
 
-	result, rerr := c.listVM(ctx, resourceGroupName)
+	result, rerr := c.listVM(ctx, resourceGroupName, withInstanceView)
 	mc.Observe(rerr)
 	if rerr != nil {
 		if rerr.IsThrottled() {
@@ -179,14 +188,22 @@ func (c *Client) List(ctx context.Context, resourceGroupName string) ([]compute.
 }
 
 // listVM gets a list of VirtualMachines in the resourceGroupName.
-func (c *Client) listVM(ctx context.Context, resourceGroupName string) ([]compute.VirtualMachine, *retry.Error) {
+func (c *Client) listVM(ctx context.Context, resourceGroupName string, withInstanceView bool) ([]compute.VirtualMachine, *retry.Error) {
 	resourceID := armclient.GetResourceListID(c.subscriptionID, resourceGroupName, vmResourceType)
 
 	result := make([]compute.VirtualMachine, 0)
 	page := &VirtualMachineListResultPage{}
 	page.fn = c.listNextResults
 
-	resp, rerr := c.armClient.GetResource(ctx, resourceID)
+	var resp *http.Response
+	var rerr *retry.Error
+	if withInstanceView {
+		queries := make(map[string]interface{})
+		queries["$expand"] = autorest.Encode("query", "instanceView")
+		resp, rerr = c.armClient.GetResourceWithQueries(ctx, resourceID, queries)
+	} else {
+		resp, rerr = c.armClient.GetResource(ctx, resourceID)
+	}
 	defer c.armClient.CloseResponse(ctx, resp)
 	if rerr != nil {
 		klog.V(5).Infof("Received error in %s: resourceID: %s, error: %s", "vm.list.request", resourceID, rerr.Error())
@@ -204,7 +221,7 @@ func (c *Client) listVM(ctx context.Context, resourceGroupName string) ([]comput
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 
@@ -310,7 +327,7 @@ func (c *Client) listVmssFlexVMs(ctx context.Context, vmssFlexID string, statusO
 		result = append(result, page.Values()...)
 
 		// Abort the loop when there's no nextLink in the response.
-		if pointer.StringDeref(page.Response().NextLink, "") == "" {
+		if ptr.Deref(page.Response().NextLink, "") == "" {
 			break
 		}
 
@@ -474,12 +491,12 @@ func (c *Client) listResponder(resp *http.Response) (result compute.VirtualMachi
 // vmListResultPreparer prepares a request to retrieve the next set of results.
 // It returns nil if no more results exist.
 func (c *Client) vmListResultPreparer(ctx context.Context, vmlr compute.VirtualMachineListResult) (*http.Request, error) {
-	if vmlr.NextLink == nil || len(pointer.StringDeref(vmlr.NextLink, "")) < 1 {
+	if vmlr.NextLink == nil || len(ptr.Deref(vmlr.NextLink, "")) < 1 {
 		return nil, nil
 	}
 
 	decorators := []autorest.PrepareDecorator{
-		autorest.WithBaseURL(pointer.StringDeref(vmlr.NextLink, "")),
+		autorest.WithBaseURL(ptr.Deref(vmlr.NextLink, "")),
 	}
 	return c.armClient.PrepareGetRequest(ctx, decorators...)
 }

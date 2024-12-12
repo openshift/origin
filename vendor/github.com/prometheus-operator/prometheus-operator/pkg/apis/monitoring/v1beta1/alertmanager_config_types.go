@@ -15,6 +15,7 @@
 package v1beta1
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,8 +43,9 @@ const (
 // +k8s:openapi-gen=true
 // +kubebuilder:resource:categories="prometheus-operator",shortName="amcfg"
 
-// AlertmanagerConfig configures the Prometheus Alertmanager,
-// specifying how alerts should be grouped, inhibited and notified to external systems.
+// The `AlertmanagerConfig` custom resource definition (CRD) defines how `Alertmanager` objects process Prometheus alerts. It allows to specify alert grouping and routing, notification receivers and inhibition rules.
+//
+// `Alertmanager` objects select `AlertmanagerConfig` objects using label and namespace selectors.
 type AlertmanagerConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -142,7 +144,9 @@ func (r *Route) ChildRoutes() ([]Route, error) {
 	out := make([]Route, len(r.Routes))
 
 	for i, v := range r.Routes {
-		if err := json.Unmarshal(v.Raw, &out[i]); err != nil {
+		dec := json.NewDecoder(bytes.NewBuffer(v.Raw))
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&out[i]); err != nil {
 			return nil, fmt.Errorf("route[%d]: %w", i, err)
 		}
 	}
@@ -239,6 +243,9 @@ type PagerDutyConfig struct {
 	// HTTP client configuration.
 	// +optional
 	HTTPConfig *HTTPConfig `json:"httpConfig,omitempty"`
+	// Unique location of the affected system.
+	// +optional
+	Source *string `yaml:"source,omitempty" json:"source,omitempty"`
 }
 
 // PagerDutyImageConfig attaches images to an incident
@@ -608,9 +615,16 @@ type HTTPConfig struct {
 	// TLS configuration for the client.
 	// +optional
 	TLSConfig *monitoringv1.SafeTLSConfig `json:"tlsConfig,omitempty"`
+
 	// Optional proxy URL.
+	//
+	// If defined, this field takes precedence over `proxyUrl`.
+	//
 	// +optional
-	ProxyURL string `json:"proxyURL,omitempty"`
+	ProxyURLOriginal *string `json:"proxyURL,omitempty"`
+
+	monitoringv1.ProxyConfig `json:",inline"`
+
 	// FollowRedirects specifies whether the client should follow HTTP 3xx redirects.
 	// +optional
 	FollowRedirects *bool `json:"followRedirects,omitempty"`
@@ -801,6 +815,9 @@ type PushoverConfig struct {
 	// A title for supplementary URL, otherwise just the URL is shown
 	// +optional
 	URLTitle string `json:"urlTitle,omitempty"`
+	// The time to live definition for the alert notification
+	// +optional
+	TTL *monitoringv1.Duration `json:"ttl,omitempty"`
 	// The name of a device to send the notification to
 	// +optional
 	Device *string `json:"device,omitempty"`

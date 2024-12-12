@@ -23,9 +23,9 @@
 
 Look how easy!
 
-[embedmd]:# (examples/circle_example_test.go go /func ExampleCircle/ /\n}/)
+[embedmd]:# (examples/circle_example_test.go go /func Example_circle/ /\n}/)
 ```go
-func ExampleCircle() {
+func Example_circle() {
 	dc := gg.NewContext(1000, 1000)
 	dc.DrawCircle(500, 500, 400)
 	dc.SetRGB(0, 0, 0)
@@ -35,8 +35,6 @@ func ExampleCircle() {
 	if err != nil {
 		log.Fatalf("could not save to file: %+v", err)
 	}
-
-	// Output:
 }
 ```
 
@@ -207,9 +205,9 @@ SavePNG(path string, im image.Image) error
 
 See the output of this example below.
 
-[embedmd]:# (examples/ellipse_example_test.go go /func ExampleEllipse/ /\n}/)
+[embedmd]:# (examples/ellipse_example_test.go go /func Example_ellipse/ /\n}/)
 ```go
-func ExampleEllipse() {
+func Example_ellipse() {
 	const S = 1024
 	dc := gg.NewContext(S, S)
 	dc.SetRGBA(0, 0, 0, 0.1)
@@ -231,8 +229,6 @@ func ExampleEllipse() {
 	if err != nil {
 		log.Fatalf("could not save to file: %+v", err)
 	}
-
-	// Output:
 }
 ```
 

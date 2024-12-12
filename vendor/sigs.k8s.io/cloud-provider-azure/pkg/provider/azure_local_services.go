@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	utilnet "k8s.io/utils/net"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 	"sigs.k8s.io/cloud-provider-azure/pkg/retry"
@@ -91,7 +91,7 @@ func newLoadBalancerBackendPoolUpdater(az *Cloud, interval time.Duration) *loadB
 // run starts the loadBalancerBackendPoolUpdater, and stops if the context exits.
 func (updater *loadBalancerBackendPoolUpdater) run(ctx context.Context) {
 	klog.V(2).Info("loadBalancerBackendPoolUpdater.run: started")
-	err := wait.PollUntilContextCancel(ctx, updater.interval, false, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextCancel(ctx, updater.interval, false, func(_ context.Context) (bool, error) {
 		updater.process()
 		return false, nil
 	})
@@ -223,7 +223,7 @@ func (updater *loadBalancerBackendPoolUpdater) process() {
 		// but the backend pool object is not changed after multiple times of removal and re-adding.
 		if changed {
 			klog.V(2).Infof("loadBalancerBackendPoolUpdater.process: updating backend pool %s/%s", lbName, poolName)
-			rerr = updater.az.LoadBalancerClient.CreateOrUpdateBackendPools(context.Background(), updater.az.ResourceGroup, lbName, poolName, bp, pointer.StringDeref(bp.Etag, ""))
+			rerr = updater.az.LoadBalancerClient.CreateOrUpdateBackendPools(context.Background(), updater.az.ResourceGroup, lbName, poolName, bp, ptr.Deref(bp.Etag, ""))
 			if rerr != nil {
 				updater.processError(rerr, operationName, ops...)
 				continue
@@ -320,12 +320,12 @@ func (az *Cloud) setUpEndpointSlicesInformer(informerFactory informers.SharedInf
 				var previousIPs, currentIPs, previousNodeNames, currentNodeNames []string
 				if previousES != nil {
 					for _, ep := range previousES.Endpoints {
-						previousNodeNames = append(previousNodeNames, pointer.StringDeref(ep.NodeName, ""))
+						previousNodeNames = append(previousNodeNames, ptr.Deref(ep.NodeName, ""))
 					}
 				}
 				if newES != nil {
 					for _, ep := range newES.Endpoints {
-						currentNodeNames = append(currentNodeNames, pointer.StringDeref(ep.NodeName, ""))
+						currentNodeNames = append(currentNodeNames, ptr.Deref(ep.NodeName, ""))
 					}
 				}
 				for _, previousNodeName := range previousNodeNames {
@@ -468,7 +468,7 @@ func (az *Cloud) getLocalServiceEndpointsNodeNames(service *v1.Service) (*utilse
 		ep           *discovery_v1.EndpointSlice
 		foundInCache bool
 	)
-	az.endpointSlicesCache.Range(func(key, value interface{}) bool {
+	az.endpointSlicesCache.Range(func(_, value interface{}) bool {
 		endpointSlice := value.(*discovery_v1.EndpointSlice)
 		if strings.EqualFold(getServiceNameOfEndpointSlice(endpointSlice), service.Name) &&
 			strings.EqualFold(endpointSlice.Namespace, service.Namespace) {
@@ -502,8 +502,8 @@ func (az *Cloud) getLocalServiceEndpointsNodeNames(service *v1.Service) (*utilse
 
 	var nodeNames []string
 	for _, endpoint := range ep.Endpoints {
-		klog.V(4).Infof("EndpointSlice %s/%s has endpoint %s on node %s", ep.Namespace, ep.Name, endpoint.Addresses, pointer.StringDeref(endpoint.NodeName, ""))
-		nodeNames = append(nodeNames, pointer.StringDeref(endpoint.NodeName, ""))
+		klog.V(4).Infof("EndpointSlice %s/%s has endpoint %s on node %s", ep.Namespace, ep.Name, endpoint.Addresses, ptr.Deref(endpoint.NodeName, ""))
+		nodeNames = append(nodeNames, ptr.Deref(endpoint.NodeName, ""))
 	}
 
 	return utilsets.NewString(nodeNames...), nil
@@ -520,10 +520,10 @@ func (az *Cloud) cleanupLocalServiceBackendPool(
 	var changed bool
 	if lbs != nil {
 		for _, lb := range *lbs {
-			lbName := pointer.StringDeref(lb.Name, "")
+			lbName := ptr.Deref(lb.Name, "")
 			if lb.BackendAddressPools != nil {
 				for _, bp := range *lb.BackendAddressPools {
-					bpName := pointer.StringDeref(bp.Name, "")
+					bpName := ptr.Deref(bp.Name, "")
 					if localServiceOwnsBackendPool(getServiceName(svc), bpName) {
 						if err := az.DeleteLBBackendPool(lbName, bpName); err != nil {
 							return nil, err
@@ -560,7 +560,7 @@ func (az *Cloud) checkAndApplyLocalServiceBackendPoolUpdates(lb network.LoadBala
 	}
 	currentIPsInBackendPools := make(map[string][]string)
 	for _, bp := range *lb.BackendAddressPools {
-		bpName := pointer.StringDeref(bp.Name, "")
+		bpName := ptr.Deref(bp.Name, "")
 		if localServiceOwnsBackendPool(serviceName, bpName) {
 			var currentIPs []string
 			for _, address := range *bp.LoadBalancerBackendAddresses {
