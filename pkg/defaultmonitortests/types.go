@@ -91,10 +91,14 @@ func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo)
 		panic(fmt.Sprintf("unknown cluster stability level: %q", info.ClusterStabilityDuringTest))
 	}
 
+	if info.RemoveMonitor {
+		// return test registry with no monitors.
+		return startingRegistry.GetRegistryFor()
+	}
+
 	switch {
 	case len(info.ExactMonitorTests) > 0:
 		return startingRegistry.GetRegistryFor(info.ExactMonitorTests...)
-
 	case len(info.DisableMonitorTests) > 0:
 		testsToInclude := startingRegistry.ListMonitorTests()
 		testsToInclude.Delete(info.DisableMonitorTests...)
