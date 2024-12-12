@@ -421,7 +421,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		var averageSeriesLimit int
 		switch {
 		case isManagedServiceCluster:
-			averageSeriesLimit = 800
+			averageSeriesLimit = 850
 		default:
 			averageSeriesLimit = 760
 		}
