@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localhost-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: localhost-monitor
+      apiserver.openshift.io/disruption-actor: poller
+  template:
+    metadata:
+      labels:
+        app: localhost-monitor
+        apiserver.openshift.io/disruption-actor: poller
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - localhost-monitor
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: localhost
+          command:
+            - openshift-tests
+            - run-disruption
+            - --output-file=/var/log/disruption-data/monitor-events/localhost-monitor-$(DEPLOYMENT_ID).txt
+            - --lb-type=$(LOAD_BALANCER)
+            - --stop-configmap=stop-configmap
+          env:
+            - name: KUBECONFIG
+              value: "/kubeconfigs/localhost.kubeconfig"
+            - name: LOAD_BALANCER
+              value: localhost
+            - name: DEPLOYMENT_ID
+              #to be overwritten at deployment initialization time
+              value: "DEFAULT"
+          image: to-be-replaced
+          volumeMounts:
+            - mountPath: /var/log/disruption-data
+              name: artifacts
+            - mountPath: /kubeconfigs
+              name: node-kubeconfigs
+          securityContext:
+            privileged: true
+            runAsUser: 0
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      hostNetwork: true
+      serviceAccountName: disruption-monitor-sa
+      volumes:
+        - hostPath:
+            path: /var/log/disruption-data
+            type: DirectoryOrCreate
+          name: artifacts
+        - hostPath:
+            path: /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs
+            type: Directory
+          name: node-kubeconfigs
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
