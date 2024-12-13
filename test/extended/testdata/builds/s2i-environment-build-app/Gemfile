@@ -1,4 +1,7 @@
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
-gem 'sinatra'
-gem 'puma'
+ruby '3.1.0' # Ensure this matches your UBI image
+
+gem 'sinatra', '~> 3.0' # Updated for compatibility with Ruby 3.1
+gem 'rack', '~> 3.0'    # Rack 3.x supports Ruby 3.1
+gem 'puma', '~> 6.0'    # Latest Puma compatible with Ruby 3.1
