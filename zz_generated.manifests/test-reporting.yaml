@@ -138,6 +138,9 @@ spec:
         set the condition to false if there are no nodes able to host the source pods'
   - featureGate: NetworkSegmentation
     tests:
+    - testName: '[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization]
+        primary UDN smoke test when using openshift ovn-kubernetes assert the primary
+        UDN feature works as expected'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces

@@ -216,6 +216,62 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 	})
 })
 
+var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test", func() {
+	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e", admissionapi.LevelBaseline)
+	f := oc.KubeFramework()
+
+	const (
+		nadName  = "blue"
+		cidrIPv4 = "203.203.0.0/16"
+		cidrIPv6 = "2014:100:200::0/60"
+	)
+
+	InOVNKubernetesContext(func() {
+		var (
+			cs        clientset.Interface
+			nadClient nadclient.K8sCniCncfIoV1Interface
+		)
+
+		BeforeEach(func() {
+			cs = f.ClientSet
+
+			var err error
+			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("assert the primary UDN feature works as expected", func() {
+			netConfig := networkAttachmentConfigParams{
+				name:               nadName,
+				topology:           "layer2",
+				role:               "primary",
+				allowPersistentIPs: true,
+				namespace:          f.Namespace.Name,
+				cidr:               correctCIDRFamily(oc, cidrIPv4, cidrIPv6),
+			}
+
+			nad := generateNAD(newNetworkAttachmentConfig(netConfig))
+			By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
+			_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
+				context.Background(),
+				nad,
+				metav1.CreateOptions{},
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			workerNodes, err := getWorkerNodesOrdered(cs)
+			Expect(err).NotTo(HaveOccurred())
+
+			httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
+			Expect(httpServerPods).NotTo(BeEmpty())
+			Expect(podNetworkStatus(httpServerPods[0])).To(
+				HaveLen(2),
+				"the pod network status must feature both the cluster default network and the primary UDN attachment",
+			)
+		})
+	})
+})
+
 type VirtualMachineInstanceConditionType string
 
 const VirtualMachineInstanceConditionReady VirtualMachineInstanceConditionType = "Ready"
@@ -388,6 +444,9 @@ func podNetworkStatus(pod *v1.Pod, predicates ...func(nadapi.NetworkStatus) bool
 		return nil, err
 	}
 
+	if len(predicates) == 0 {
+		return netStatus, nil
+	}
 	var netStatusMeetingPredicates []nadapi.NetworkStatus
 	for i := range netStatus {
 		for _, predicate := range predicates {
