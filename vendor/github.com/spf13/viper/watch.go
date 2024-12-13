@@ -1,4 +1,4 @@
-// +build !js
+//go:build darwin || dragonfly || freebsd || openbsd || linux || netbsd || solaris || windows
 
 package viper
 
