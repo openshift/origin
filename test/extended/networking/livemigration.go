@@ -1,12 +1,10 @@
 package networking
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net"
-	"regexp"
 	"strings"
 	"time"
 
@@ -482,57 +480,17 @@ func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByN
 }
 
 func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName string) (bool, error) {
-	var podName string
-	var out string
-	var err error
-
-	out, err = runOcWithRetry(oc.AsAdmin(), "get",
-		"pods",
-		"-o", "name",
-		"-n", "openshift-ovn-kubernetes",
-		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
-		"-l", "app=ovnkube-node")
+	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
 	if err != nil {
 		return false, err
 	}
-	outReader := bufio.NewScanner(strings.NewReader(out))
-	re := regexp.MustCompile("^pod/(.*)")
-	for outReader.Scan() {
-		match := re.FindSubmatch([]byte(outReader.Text()))
-		if len(match) != 2 {
-			continue
-		}
-		podName = string(match[1])
-		break
-	}
-	if podName == "" {
-		return false, fmt.Errorf("could not find a valid ovnkube-node pod on node '%s'", nodeName)
-	}
-
-	ovnkubePod, err := oc.AdminKubeClient().CoreV1().Pods("openshift-ovn-kubernetes").Get(context.Background(),
-		podName, metav1.GetOptions{})
-	if err != nil {
-		return false, fmt.Errorf("couldn't get %s pod in openshift-ovn-kubernetes namespace: %v", podName, err)
-	}
-
-	ovnkubeContainerName := ""
-	for _, container := range ovnkubePod.Spec.Containers {
-		if container.Name == "ovnkube-node" {
-			ovnkubeContainerName = container.Name
-		} else if container.Name == "ovnkube-controller" {
-			ovnkubeContainerName = container.Name
-		}
-	}
-	if ovnkubeContainerName == "" {
-		return false, fmt.Errorf("didn't find ovnkube-node or ovnkube-controller container in %s pod", podName)
-	}
 
 	lsName := logicalSwitchName(networkName)
-	out, err = adminExecInPod(
+	out, err := adminExecInPod(
 		oc,
 		"openshift-ovn-kubernetes",
-		podName,
-		ovnkubeContainerName,
+		ovnkubePodInfo.podName,
+		ovnkubePodInfo.containerName,
 		fmt.Sprintf("ovn-nbctl list logical-switch %s", lsName),
 	)
 	if err != nil {
