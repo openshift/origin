@@ -11,19 +11,20 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // "csi.sharedresource.openshift.io" CSI driver and a reference to the SharedSecret in the volume attributes:
 //
 // spec:
-//  volumes:
-//  - name: shared-secret
-//    csi:
-//      driver: csi.sharedresource.openshift.io
-//      volumeAttributes:
-//        sharedSecret: my-share
+//
+//	volumes:
+//	- name: shared-secret
+//	  csi:
+//	    driver: csi.sharedresource.openshift.io
+//	    volumeAttributes:
+//	      sharedSecret: my-share
 //
 // For the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedSecret object
 // within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating
 // such Role and RoleBinding objects.
 //
-//  `oc create role shared-resource-my-share --verb=use --resource=sharedsecrets.sharedresource.openshift.io --resource-name=my-share`
-//  `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`
+//	`oc create role shared-resource-my-share --verb=use --resource=sharedsecrets.sharedresource.openshift.io --resource-name=my-share`
+//	`oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`
 //
 // Shared resource objects, in this case Secrets, have default permissions of list, get, and watch for system authenticated users.
 //
@@ -44,7 +45,7 @@ type SharedSecret struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the specification of the desired shared secret
-	// +kubebuilder:validation:Required
+	// +required
 	Spec SharedSecretSpec `json:"spec,omitempty"`
 
 	// status is the observed status of the shared secret
@@ -71,10 +72,10 @@ type SharedSecretList struct {
 // SharedSecretReference contains information about which Secret to share
 type SharedSecretReference struct {
 	// name represents the name of the Secret that is being referenced.
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 	// namespace represents the namespace where the referenced Secret is located.
-	// +kubebuilder:validation:Required
+	// +required
 	Namespace string `json:"namespace"`
 }
 
@@ -82,7 +83,7 @@ type SharedSecretReference struct {
 // +k8s:openapi-gen=true
 type SharedSecretSpec struct {
 	// secretRef is a reference to the Secret to share
-	// +kubebuilder:validation:Required
+	// +required
 	SecretRef SharedSecretReference `json:"secretRef"`
 	// description is a user readable explanation of what the backing resource provides.
 	Description string `json:"description,omitempty"`

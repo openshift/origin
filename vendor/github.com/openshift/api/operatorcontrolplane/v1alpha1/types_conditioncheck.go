@@ -26,19 +26,17 @@ type PodNetworkConnectivityCheck struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata"`
 
-	// Spec defines the source and target of the connectivity check
-	// +kubebuilder:validation:Required
+	// spec defines the source and target of the connectivity check
 	// +required
 	Spec PodNetworkConnectivityCheckSpec `json:"spec"`
 
-	// Status contains the observed status of the connectivity check
+	// status contains the observed status of the connectivity check
 	// +optional
 	Status PodNetworkConnectivityCheckStatus `json:"status,omitempty"`
 }
 
 type PodNetworkConnectivityCheckSpec struct {
-	// SourcePod names the pod from which the condition will be checked
-	// +kubebuilder:validation:Required
+	// sourcePod names the pod from which the condition will be checked
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
 	// +required
 	SourcePod string `json:"sourcePod"`
@@ -46,7 +44,6 @@ type PodNetworkConnectivityCheckSpec struct {
 	// EndpointAddress to check. A TCP address of the form host:port. Note that
 	// if host is a DNS name, then the check would fail if the DNS name cannot
 	// be resolved. Specify an IP address for host to bypass DNS name lookup.
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern=`^\S+:\d*$`
 	// +required
 	TargetEndpoint string `json:"targetEndpoint"`
@@ -62,19 +59,19 @@ type PodNetworkConnectivityCheckSpec struct {
 
 // +k8s:deepcopy-gen=true
 type PodNetworkConnectivityCheckStatus struct {
-	// Successes contains logs successful check actions
+	// successes contains logs successful check actions
 	// +optional
 	Successes []LogEntry `json:"successes,omitempty"`
 
-	// Failures contains logs of unsuccessful check actions
+	// failures contains logs of unsuccessful check actions
 	// +optional
 	Failures []LogEntry `json:"failures,omitempty"`
 
-	// Outages contains logs of time periods of outages
+	// outages contains logs of time periods of outages
 	// +optional
 	Outages []OutageEntry `json:"outages,omitempty"`
 
-	// Conditions summarize the status of the check
+	// conditions summarize the status of the check
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +optional
@@ -84,25 +81,23 @@ type PodNetworkConnectivityCheckStatus struct {
 // LogEntry records events
 type LogEntry struct {
 	// Start time of check action.
-	// +kubebuilder:validation:Required
 	// +required
 	// +nullable
 	Start metav1.Time `json:"time"`
 
-	// Success indicates if the log entry indicates a success or failure.
-	// +kubebuilder:validation:Required
+	// success indicates if the log entry indicates a success or failure.
 	// +required
 	Success bool `json:"success"`
 
-	// Reason for status in a machine readable format.
+	// reason for status in a machine readable format.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 
-	// Message explaining status in a human readable format.
+	// message explaining status in a human readable format.
 	// +optional
 	Message string `json:"message,omitempty"`
 
-	// Latency records how long the action mentioned in the entry took.
+	// latency records how long the action mentioned in the entry took.
 	// +optional
 	// +nullable
 	Latency metav1.Duration `json:"latency,omitempty"`
@@ -111,28 +106,27 @@ type LogEntry struct {
 // OutageEntry records time period of an outage
 type OutageEntry struct {
 
-	// Start of outage detected
-	// +kubebuilder:validation:Required
+	// start of outage detected
 	// +required
 	// +nullable
 	Start metav1.Time `json:"start"`
 
-	// End of outage detected
+	// end of outage detected
 	// +optional
 	// +nullable
 	End metav1.Time `json:"end,omitempty"`
 
-	// StartLogs contains log entries related to the start of this outage. Should contain
+	// startLogs contains log entries related to the start of this outage. Should contain
 	// the original failure, any entries where the failure mode changed.
 	// +optional
 	StartLogs []LogEntry `json:"startLogs,omitempty"`
 
-	// EndLogs contains log entries related to the end of this outage. Should contain the success
+	// endLogs contains log entries related to the end of this outage. Should contain the success
 	// entry that resolved the outage and possibly a few of the failure log entries that preceded it.
 	// +optional
 	EndLogs []LogEntry `json:"endLogs,omitempty"`
 
-	// Message summarizes outage details in a human readable format.
+	// message summarizes outage details in a human readable format.
 	// +optional
 	Message string `json:"message,omitempty"`
 }
@@ -141,26 +135,23 @@ type OutageEntry struct {
 // +k8s:deepcopy-gen=true
 type PodNetworkConnectivityCheckCondition struct {
 
-	// Type of the condition
-	// +kubebuilder:validation:Required
+	// type of the condition
 	// +required
 	Type PodNetworkConnectivityCheckConditionType `json:"type"`
 
-	// Status of the condition
-	// +kubebuilder:validation:Required
+	// status of the condition
 	// +required
 	Status metav1.ConditionStatus `json:"status"`
 
-	// Reason for the condition's last status transition in a machine readable format.
+	// reason for the condition's last status transition in a machine readable format.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 
-	// Message indicating details about last transition in a human readable format.
+	// message indicating details about last transition in a human readable format.
 	// +optional
 	Message string `json:"message,omitempty"`
 
 	// Last time the condition transitioned from one status to another.
-	// +kubebuilder:validation:Required
 	// +required
 	// +nullable
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
@@ -193,6 +184,6 @@ type PodNetworkConnectivityCheckList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata"`
 
-	// Items contains the items
+	// items contains the items
 	Items []PodNetworkConnectivityCheck `json:"items"`
 }
