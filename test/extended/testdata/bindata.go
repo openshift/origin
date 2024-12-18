@@ -98,6 +98,8 @@
 // test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
 // test/extended/testdata/builds/s2i-environment-build-app/Gemfile
+// test/extended/testdata/builds/s2i-environment-build-app/Gemfile.lock
+// test/extended/testdata/builds/s2i-environment-build-app/app.rb
 // test/extended/testdata/builds/s2i-environment-build-app/config.ru
 // test/extended/testdata/builds/simple-pipeline-bc.yaml
 // test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble
@@ -19009,10 +19011,11 @@ func testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment() (*asset, e
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source 'https://rubygems.org'
 
-gem "rack"
-gem "rackup"
+gem 'sinatra' 
+gem 'rack'  
+gem 'puma'  
 `)
 
 func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileBytes() ([]byte, error) {
@@ -19030,7 +19033,104 @@ func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu = []byte(`run Proc.new {|env| [200, {"Content-Type" => "text/html"}, [ENV['TEST_ENV']]]}
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLock = []byte(`GEM
+  remote: https://rubygems.org/
+  specs:
+    base64 (0.2.0)
+    logger (1.6.3)
+    mustermann (3.0.3)
+      ruby2_keywords (~> 0.0.1)
+    nio4r (2.7.4)
+    puma (6.5.0)
+      nio4r (~> 2.0)
+    rack (3.1.8)
+    rack-protection (4.1.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+    rack-session (2.0.0)
+      rack (>= 3.0.0)
+    ruby2_keywords (0.0.5)
+    sinatra (4.1.1)
+      logger (>= 1.6.0)
+      mustermann (~> 3.0)
+      rack (>= 3.0.0, < 4)
+      rack-protection (= 4.1.1)
+      rack-session (>= 2.0.0, < 3)
+      tilt (~> 2.0)
+    tilt (2.4.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  puma
+  rack
+  sinatra
+
+BUNDLED WITH
+   2.5.22
+`)
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLockBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLock, nil
+}
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLock() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLockBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-environment-build-app/Gemfile.lock", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRb = []byte(`require 'sinatra'
+
+get '/' do
+  'Hello world!'
+end
+`)
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRbBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRb, nil
+}
+
+func testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRb() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRbBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/s2i-environment-build-app/app.rb", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu = []byte(`require './app'
+
+# Set default Puma thread and worker settings for containers
+threads_count = ENV.fetch("PUMA_THREADS") { 5 }.to_i
+workers_count = ENV.fetch("PUMA_WORKERS") { 2 }.to_i
+
+# Configure Puma
+if defined?(Puma)
+  threads threads_count, threads_count
+  workers workers_count if workers_count > 1
+
+  preload_app!
+
+  on_worker_boot do
+    # Re-establish DB connections or any other resource your app uses
+    puts "Puma worker booting..."
+  end
+end
+
+# Default Sinatra app run
+run Sinatra::Application
 `)
 
 func testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRuBytes() ([]byte, error) {
@@ -55359,6 +55459,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml":                                     testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment":                               testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
 	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile":                                        testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile,
+	"test/extended/testdata/builds/s2i-environment-build-app/Gemfile.lock":                                   testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLock,
+	"test/extended/testdata/builds/s2i-environment-build-app/app.rb":                                         testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRb,
 	"test/extended/testdata/builds/s2i-environment-build-app/config.ru":                                      testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/builds/simple-pipeline-bc.yaml":                                                  testExtendedTestdataBuildsSimplePipelineBcYaml,
 	"test/extended/testdata/builds/statusfail-assemble/.s2i/bin/assemble":                                    testExtendedTestdataBuildsStatusfailAssembleS2iBinAssemble,
@@ -55961,8 +56063,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						".s2i": {nil, map[string]*bintree{
 							"environment": {testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment, map[string]*bintree{}},
 						}},
-						"Gemfile":   {testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, map[string]*bintree{}},
-						"config.ru": {testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu, map[string]*bintree{}},
+						"Gemfile":      {testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, map[string]*bintree{}},
+						"Gemfile.lock": {testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileLock, map[string]*bintree{}},
+						"app.rb":       {testExtendedTestdataBuildsS2iEnvironmentBuildAppAppRb, map[string]*bintree{}},
+						"config.ru":    {testExtendedTestdataBuildsS2iEnvironmentBuildAppConfigRu, map[string]*bintree{}},
 					}},
 					"simple-pipeline-bc.yaml": {testExtendedTestdataBuildsSimplePipelineBcYaml, map[string]*bintree{}},
 					"statusfail-assemble": {nil, map[string]*bintree{
