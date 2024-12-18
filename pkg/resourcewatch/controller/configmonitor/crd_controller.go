@@ -4,6 +4,7 @@ import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/klog/v2"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
@@ -32,6 +33,9 @@ func WireResourceInformersToGitRepo(
 		dynamicInformer.AddEventHandler(
 			cache.ResourceEventHandlerFuncs{
 				AddFunc: func(obj interface{}) {
+					if pod, ok := obj.(*kapi.Pod); ok {
+						klog.Errorf("KEYWORD: got add for pod %s/%s", pod.Namespace, pod.Name)
+					}
 					gitStorage.OnAdd(resourceToWatch, obj)
 				},
 				UpdateFunc: func(oldObj, newObj interface{}) {

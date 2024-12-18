@@ -48,7 +48,7 @@ func RunResourceWatch() error {
 		return err
 	}
 
-	repositoryPath := "/repository"
+	repositoryPath := "./repository"
 	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
 		repositoryPath = repositoryPathEnv
 	}

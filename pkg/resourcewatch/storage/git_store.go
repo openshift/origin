@@ -15,6 +15,7 @@ import (
 
 	"gopkg.in/src-d/go-git.v4"
 
+	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -228,6 +229,9 @@ func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj inter
 	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
 	go func() {
 		defer s.currentlyRecording.release(key)
+		if pod, ok := obj.(*kapi.Pod); ok {
+			klog.Errorf("KEYWORD: starting goroutine for %s/%s", pod.Namespace, pod.Name)
+		}
 		s.handle(gvr, oldObjUnstructured, objUnstructured, false)
 	}()
 }
