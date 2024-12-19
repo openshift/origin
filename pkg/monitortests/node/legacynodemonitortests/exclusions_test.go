@@ -22,23 +22,6 @@ func Test_test_exclusions(t *testing.T) {
 			event:       "namespace/openshift-container ... container/dummy restarted 4 times at",
 			expected:    false,
 		},
-
-		{
-			name: "ingress-operator; single; exclude",
-			mockJobData: platformidentification.JobType{
-				Topology: "single",
-			},
-			event:    "namespace/openshift-ingress-operator node/ip-10-0-113-2.us-west-1.compute.internal pod/ingress-operator-59d86c7754-br88c uid/acaf41b6-0c87-42fa-a157-b6d56e2edcb5 container/ingress-operator restarted 4 times at",
-			expected: true,
-		},
-		{
-			name: "ingress-operator; ha; include for failures",
-			mockJobData: platformidentification.JobType{
-				Topology: "HA",
-			},
-			event:    "namespace/openshift-ingress-operator node/ip-10-0-113-2.us-west-1.compute.internal pod/ingress-operator-59d86c7754-br88c uid/acaf41b6-0c87-42fa-a157-b6d56e2edcb5 container/ingress-operator restarted 4 times at",
-			expected: false,
-		},
 		{
 			name:        "multus; exclude for all platforms",
 			mockJobData: platformidentification.JobType{},
