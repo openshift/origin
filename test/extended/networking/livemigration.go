@@ -68,7 +68,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			)
 
 			DescribeTableSubtree("created using",
-				func(createNetworkFn func(netConfig networkAttachmentConfigParams) networkAttachmentConfig) {
+				func(createNetworkFn func(netConfig networkAttachmentConfigParams)) {
 
 					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string), wlConfig ...workloadNetworkConfig) {
 						var err error
@@ -108,7 +108,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							isDualStack = true
 						}
 
-						_ = createNetworkFn(netConfig)
+						createNetworkFn(netConfig)
 
 						httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
 						vmCreationParams := kubevirt.CreationTemplateParams{
@@ -305,25 +305,23 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						),
 					)
 				},
-				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
 					netConfig := newNetworkAttachmentConfig(c)
 					nad := generateNAD(netConfig)
 					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 					Expect(err).NotTo(HaveOccurred())
-					return netConfig
 				}),
-				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 
-					nad, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
+					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
 						context.Background(), c.name, metav1.GetOptions{},
 					)
 					Expect(err).NotTo(HaveOccurred())
-					return networkAttachmentConfig{networkAttachmentConfigParams{networkName: networkName(nad.Spec.Config)}}
 				}))
 		})
 	})
@@ -675,15 +673,6 @@ func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByN
 				Should(Succeed(), func() string { return podName + ": " + output })
 		}
 	}
-}
-func networkName(netSpecConfig string) string {
-	GinkgoHelper()
-	type netConfig struct {
-		Name string `json:"name,omitempty"`
-	}
-	var nc netConfig
-	Expect(json.Unmarshal([]byte(netSpecConfig), &nc)).To(Succeed())
-	return nc.Name
 }
 
 // formatAddressesAnnotation converts slice of IPs to the required JSON format for kubevirt addresses annotation
