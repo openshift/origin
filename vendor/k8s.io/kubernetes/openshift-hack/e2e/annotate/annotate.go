@@ -48,6 +48,19 @@ func Run(testMaps map[string][]string, filter func(name string) bool) {
 		os.Exit(1)
 	}
 
+	unusedPatterns := false
+	for _, label := range generator.allLabels {
+		for _, match := range generator.matches[label] {
+			if !match.matched {
+				unusedPatterns = true
+				fmt.Fprintf(os.Stderr, "Unused pattern: %s => %s\n", label, match.pattern)
+			}
+		}
+	}
+	if unusedPatterns {
+		os.Exit(1)
+	}
+
 	// All tests must be associated with a sig (either upstream), or downstream
 	// If you get this error, you should add the [sig-X] tag to your test (if its
 	// in origin) or if it is upstream add a new rule to rules.go that assigns
@@ -110,25 +123,29 @@ func init() {
 	}
 }
 
+type matchable struct {
+	pattern string
+	literal string
+	re      *regexp.Regexp
+	matched bool
+}
+
 func newGenerator(testMaps map[string][]string) *ginkgoTestRenamer {
 	var allLabels []string
-	matches := make(map[string]*regexp.Regexp)
-	stringMatches := make(map[string][]string)
+	matches := make(map[string][]*matchable)
 
 	for label, items := range testMaps {
 		sort.Strings(items)
 		allLabels = append(allLabels, label)
-		var remain []string
 		for _, item := range items {
+			match := &matchable{pattern: item}
 			re := regexp.MustCompile(item)
 			if p, ok := re.LiteralPrefix(); ok {
-				stringMatches[label] = append(stringMatches[label], p)
+				match.literal = p
 			} else {
-				remain = append(remain, item)
+				match.re = re
 			}
-		}
-		if len(remain) > 0 {
-			matches[label] = regexp.MustCompile(strings.Join(remain, `|`))
+			matches[label] = append(matches[label], match)
 		}
 	}
 	sort.Strings(allLabels)
@@ -137,7 +154,6 @@ func newGenerator(testMaps map[string][]string) *ginkgoTestRenamer {
 
 	return &ginkgoTestRenamer{
 		allLabels:           allLabels,
-		stringMatches:       stringMatches,
 		matches:             matches,
 		excludedTestsFilter: excludedTestsFilter,
 		output:              make(map[string]string),
@@ -154,10 +170,8 @@ func newRenamerFromGenerated(names map[string]string) *ginkgoTestRenamer {
 type ginkgoTestRenamer struct {
 	// keys defined in TestMaps in openshift-hack/e2e/annotate/rules.go
 	allLabels []string
-	// exact substrings to match to apply a particular label
-	stringMatches map[string][]string
-	// regular expressions to match to apply a particular label
-	matches map[string]*regexp.Regexp
+	// matches to apply a particular label
+	matches map[string][]*matchable
 	// regular expression excluding permanently a set of tests
 	// see ExcludedTests in openshift-hack/e2e/annotate/rules.go
 	excludedTestsFilter *regexp.Regexp
@@ -193,15 +207,15 @@ func (r *ginkgoTestRenamer) generateRename(name string, node types.TestSpec) {
 			}
 
 			var hasLabel bool
-			for _, segment := range r.stringMatches[label] {
-				hasLabel = strings.Contains(newName, segment)
-				if hasLabel {
-					break
+			for _, match := range r.matches[label] {
+				if match.re != nil {
+					hasLabel = match.re.MatchString(newName)
+				} else {
+					hasLabel = strings.Contains(newName, match.literal)
 				}
-			}
-			if !hasLabel {
-				if re := r.matches[label]; re != nil {
-					hasLabel = r.matches[label].MatchString(newName)
+				if hasLabel {
+					match.matched = true
+					break
 				}
 			}
 
