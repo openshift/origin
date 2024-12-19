@@ -122,6 +122,22 @@ spec:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
         collection profiles feature-set initially, in a homogeneous default environment,
         should expose default metrics'
+  - featureGate: MinimumKubeletVersion
+    tests:
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization
+        should be able to get node'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization
+        should be able to list pods if new enough'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization
+        should be able to perform subjectaccessreviews'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization
+        should block node from listing pods if too old'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] admission admission
+        should allow an empty minimum kubelet version'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] admission admission
+        should allow an old minimum kubelet version'
+    - testName: '[sig-node][OCPFeatureGate:MinimumKubeletVersion] admission admission
+        should not allow with a new minimum kubelet version'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should

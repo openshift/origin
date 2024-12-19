@@ -20,7 +20,7 @@ import (
 // +kubebuilder:resource:path=clustercsidrivers,scope=Cluster
 // +kubebuilder:subresource:status
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/701
-// +openshift:file-pattern=cvoRunLevel=0000_90,operatorName=csi-driver,operatorOrdering=01
+// +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=csi-driver,operatorOrdering=01
 
 // ClusterCSIDriver object allows management and configuration of a CSI driver operator
 // installed by default in OpenShift. Name of the object must be name of the CSI driver
@@ -71,7 +71,7 @@ const (
 	RemovedStorageClass StorageClassStateName = "Removed"
 )
 
-// If you are adding a new driver name here, ensure that 0000_90_cluster_csi_driver_01_config.crd.yaml-merge-patch file is also updated with new driver name.
+// If you are adding a new driver name here, ensure that 0000_50_cluster_csi_driver_01_config.crd.yaml-merge-patch file is also updated with new driver name.
 const (
 	AWSEBSCSIDriver          CSIDriverName = "ebs.csi.aws.com"
 	AWSEFSCSIDriver          CSIDriverName = "efs.csi.aws.com"

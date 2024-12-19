@@ -1691,6 +1691,20 @@ var Annotations = map[string]string{
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization should be able to get node": " [Suite:openshift/conformance/serial]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization should be able to list pods if new enough": " [Suite:openshift/conformance/serial]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization should be able to perform subjectaccessreviews": " [Suite:openshift/conformance/serial]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] [Serial] authorization should block node from listing pods if too old": " [Suite:openshift/conformance/serial]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] admission admission should allow an empty minimum kubelet version": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] admission admission should allow an old minimum kubelet version": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][OCPFeatureGate:MinimumKubeletVersion] admission admission should not allow with a new minimum kubelet version": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with hwlatdetect": " [Serial]",
