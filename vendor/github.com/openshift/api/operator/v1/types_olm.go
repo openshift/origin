@@ -1,10 +1,6 @@
-package v1alpha1
+package v1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
-)
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // +genclient
 // +genclient:nonNamespaced
@@ -12,8 +8,8 @@ import (
 
 // OLM provides information to configure an operator to manage the OLM controllers
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=olms,scope=Cluster
 // +kubebuilder:subresource:status
@@ -22,6 +18,7 @@ import (
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1504
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=operator-lifecycle-manager,operatorOrdering=01
 // +openshift:enable:FeatureGate=NewOLM
+// +openshift:capability=OperatorLifecycleManagerV1
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="olm is a singleton, .metadata.name must be 'cluster'"
 type OLM struct {
 	metav1.TypeMeta `json:",inline"`
@@ -31,7 +28,7 @@ type OLM struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	//spec holds user settable values for configuration
-	// +kubebuilder:validation:Required
+	//+kubebuilder:validation:Required
 	Spec OLMSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
 	// +optional
@@ -39,19 +36,19 @@ type OLM struct {
 }
 
 type OLMSpec struct {
-	operatorv1.OperatorSpec `json:",inline"`
+	OperatorSpec `json:",inline"`
 }
 
 type OLMStatus struct {
-	operatorv1.OperatorStatus `json:",inline"`
+	OperatorStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OLMList is a collection of items
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type OLMList struct {
 	metav1.TypeMeta `json:",inline"`
 
