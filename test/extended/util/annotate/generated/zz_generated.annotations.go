@@ -1391,6 +1391,10 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network] IPsec resilience when using openshift ovn-kubernetes check pod traffic are working across nodes after ipsec daemonset restart": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network] IPsec resilience when using openshift ovn-kubernetes check pod traffic are working across nodes": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] external gateway address when using openshift ovn-kubernetes should match the address family of the pod": " [Suite:openshift/conformance/parallel]",
