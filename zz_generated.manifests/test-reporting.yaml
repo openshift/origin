@@ -210,6 +210,9 @@ spec:
         Network Policies when using openshift ovn-kubernetes pods within namespace
         should be isolated when deny policy is present in L3 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes UDN Pod should react to k8s.ovn.org/open-default-ports
+        annotations changes'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork
         cannot be deleted when being used'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
