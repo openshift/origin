@@ -9,7 +9,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -43,34 +42,31 @@ func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConf
 }
 
 func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, logHandlers ...podaccess.LogHandler) error {
-	pods, err := kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("couldn't list pods: %w", err)
-	}
-
+	onPremPlatforms := []string{"kni", "openstack", "vsphere"}
 	errs := []error{}
-	for _, pod := range pods.Items {
-		if !strings.HasPrefix(pod.Namespace, "openshift-kni-infra") {
-			continue
-		}
-		if !strings.Contains(pod.Name, "keepalived-master") {
-			continue
-		}
-		// this is just a basic check to see if we can expect logs to be present. Unready, unhealthy, and failed pods all still have logs.
-		if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodUnknown {
-			continue
+	for _, platform := range onPremPlatforms {
+
+		pods, err := kubeClient.CoreV1().Pods(fmt.Sprintf("openshift-%s-infra", platform)).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s-infra-vrrp", platform)})
+		if err != nil {
+			return fmt.Errorf("couldn't list pods: %w", err)
 		}
 
-		for _, container := range pod.Spec.Containers {
-			if container.Name == "keepalived" {
-				streamer := podaccess.NewOneTimePodStreamer(kubeClient, pod.Namespace, pod.Name, container.Name, logHandlers...)
-				if err := streamer.ReadLog(ctx); err != nil && !apierrors.IsNotFound(err) {
-					errs = append(errs, fmt.Errorf("error reading log for pods/%s -n %s -c %s: %w", pod.Name, pod.Namespace, container.Name, err))
+		for _, pod := range pods.Items {
+			// this is just a basic check to see if we can expect logs to be present. Unready, unhealthy, and failed pods all still have logs.
+			if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodUnknown {
+				continue
+			}
+
+			for _, container := range pod.Spec.Containers {
+				if container.Name == "keepalived" {
+					streamer := podaccess.NewOneTimePodStreamer(kubeClient, pod.Namespace, pod.Name, container.Name, logHandlers...)
+					if err := streamer.ReadLog(ctx); err != nil && !apierrors.IsNotFound(err) {
+						errs = append(errs, fmt.Errorf("error reading log for pods/%s -n %s -c %s: %w", pod.Name, pod.Namespace, container.Name, err))
+					}
 				}
 			}
 		}
 	}
-
 	return errors.Join(errs...)
 }
 
