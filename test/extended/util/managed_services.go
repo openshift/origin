@@ -4,7 +4,7 @@ import "k8s.io/apimachinery/pkg/util/sets"
 
 // ManagedServiceNamespaces is the set of namespaces used by managed service platforms
 // like ROSA, ARO, etc. These are typically exempt from the requirements we impose on
-// core platform namespaces.  Consulted https://github.com/openshift/managed-cluster-config/blob/master/deploy/osd-managed-resources/managed-namespaces.ConfigMap.yaml,
+// core platform namespaces. Consulted https://github.com/openshift/managed-cluster-config/blob/master/deploy/osd-managed-resources/managed-namespaces.ConfigMap.yaml,
 // to pull out openshift-* namespaces that aren't owned by OCP.
 var ManagedServiceNamespaces = sets.New[string](
 	"openshift-addon-operator",
@@ -16,11 +16,13 @@ var ManagedServiceNamespaces = sets.New[string](
 	"openshift-backplane-cse",
 	"openshift-backplane-csm",
 	"openshift-backplane-managed-scripts",
+	"openshift-backplane-mcs-tier-two",
 	"openshift-backplane-mobb",
+	"openshift-backplane-sdcicd",
 	"openshift-backplane-srep",
 	"openshift-backplane-tam",
-	"openshift-codeready-workspaces",
 	"openshift-cloud-ingress-operator",
+	"openshift-codeready-workspaces",
 	"openshift-compliance",
 	"openshift-compliance-monkey",
 	"openshift-container-security",
