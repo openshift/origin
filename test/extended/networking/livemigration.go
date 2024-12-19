@@ -108,16 +108,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							isDualStack = true
 						}
 
-						provisionedNetConfig := createNetworkFn(netConfig)
-
-						for _, node := range workerNodes {
-							Eventually(func() bool {
-								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName)
-								return err == nil && isNetProvisioned
-							}).WithPolling(time.Second).WithTimeout(udnNetworkReadyTimeout).Should(
-								BeTrueBecause("the network must be ready before creating workloads"),
-							)
-						}
+						_ = createNetworkFn(netConfig)
 
 						httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
 						vmCreationParams := kubevirt.CreationTemplateParams{
@@ -685,34 +676,6 @@ func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByN
 		}
 	}
 }
-
-func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName string) (bool, error) {
-	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
-	if err != nil {
-		return false, err
-	}
-
-	lsName := logicalSwitchName(networkName)
-	out, err := adminExecInPod(
-		oc,
-		"openshift-ovn-kubernetes",
-		ovnkubePodInfo.podName,
-		ovnkubePodInfo.containerName,
-		fmt.Sprintf("ovn-nbctl list logical-switch %s", lsName),
-	)
-	if err != nil {
-		return false, fmt.Errorf("failed to find a logical switch for network %q: %w", networkName, err)
-	}
-
-	return strings.Contains(out, lsName), nil
-}
-
-func logicalSwitchName(networkName string) string {
-	netName := strings.ReplaceAll(networkName, "-", ".")
-	netName = strings.ReplaceAll(netName, "/", ".")
-	return fmt.Sprintf("%s_ovn_layer2_switch", netName)
-}
-
 func networkName(netSpecConfig string) string {
 	GinkgoHelper()
 	type netConfig struct {
