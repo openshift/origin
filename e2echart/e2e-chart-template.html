@@ -159,6 +159,27 @@
         return false
     }
 
+    function isLegacyEndpointConnectivity(eventInterval) {
+        if (isEndpointConnectivity(eventInterval)) {
+            let name = eventInterval.locator.keys["backend-disruption-name"]
+            if (!name.includes("http")) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    function isHTTPEndpointConnectivity(eventInterval) {
+        if (isEndpointConnectivity(eventInterval)) {
+            let name = eventInterval.locator.keys["backend-disruption-name"]
+            if (name.includes("http")) {
+                return true
+            }
+        }
+        return false
+    }
+
     function isNodeState(eventInterval) {
         return eventInterval.source === "NodeState"
     }
@@ -479,7 +500,10 @@
         })
 
         timelineGroups.push({group: "disruption", data: []})
-        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isLegacyEndpointConnectivity, regex)
+
+        timelineGroups.push({group: "disruption-http", data: []})
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isHTTPEndpointConnectivity, regex)
 
         timelineGroups.push({group: "apiserver-shutdown", data: []})
         createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
