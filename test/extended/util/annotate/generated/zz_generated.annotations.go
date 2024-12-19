@@ -205,6 +205,8 @@ var Annotations = map[string]string{
 
 	"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable or maxSurge update of 10 percent or maxUnavailable of 33 percent": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch] Managed cluster should only include daemon sets with proper tolerations": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]": " [Serial]",
 
 	"[sig-arch] Managed cluster should set requests but not limits": " [Suite:openshift/conformance/parallel]",
