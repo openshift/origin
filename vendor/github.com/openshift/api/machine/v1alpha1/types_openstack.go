@@ -166,9 +166,9 @@ type NetworkParam struct {
 	Filter Filter `json:"filter,omitempty"`
 	// Subnet within a network to use
 	Subnets []SubnetParam `json:"subnets,omitempty"`
-	// NoAllowedAddressPairs disables creation of allowed address pairs for the network ports
+	// noAllowedAddressPairs disables creation of allowed address pairs for the network ports
 	NoAllowedAddressPairs bool `json:"noAllowedAddressPairs,omitempty"`
-	// PortTags allows users to specify a list of tags to add to ports created in a given network
+	// portTags allows users to specify a list of tags to add to ports created in a given network
 	PortTags []string `json:"portTags,omitempty"`
 	// The virtual network interface card (vNIC) type that is bound to the
 	// neutron port.
@@ -177,7 +177,7 @@ type NetworkParam struct {
 	// host to pass and receive virtual network interface (VIF) port-specific
 	// information to the plug-in.
 	Profile map[string]string `json:"profile,omitempty"`
-	// PortSecurity optionally enables or disables security on ports managed by OpenStack
+	// portSecurity optionally enables or disables security on ports managed by OpenStack
 	PortSecurity *bool `json:"portSecurity,omitempty"`
 }
 
@@ -229,10 +229,10 @@ type SubnetParam struct {
 	// Filters for optional network query
 	Filter SubnetFilter `json:"filter,omitempty"`
 
-	// PortTags are tags that are added to ports created on this subnet
+	// portTags are tags that are added to ports created on this subnet
 	PortTags []string `json:"portTags,omitempty"`
 
-	// PortSecurity optionally enables or disables security on ports managed by OpenStack
+	// portSecurity optionally enables or disables security on ports managed by OpenStack
 	PortSecurity *bool `json:"portSecurity,omitempty"`
 }
 
@@ -379,7 +379,7 @@ type RootVolume struct {
 type BlockDeviceStorage struct {
 	// type is the type of block device to create.
 	// This can be either "Volume" or "Local".
-	// +kubebuilder:validation:Required
+	// +required
 	// +unionDiscriminator
 	Type BlockDeviceType `json:"type"`
 
@@ -414,16 +414,16 @@ type AdditionalBlockDevice struct {
 	// Also, this name will be used for tagging the block device.
 	// Information about the block device tag can be obtained from the OpenStack
 	// metadata API or the config drive.
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 
 	// sizeGiB is the size of the block device in gibibytes (GiB).
-	// +kubebuilder:validation:Required
+	// +required
 	SizeGiB int `json:"sizeGiB"`
 
 	// storage specifies the storage type of the block device and
 	// additional storage options.
-	// +kubebuilder:validation:Required
+	// +required
 	Storage BlockDeviceStorage `json:"storage"`
 }
 

@@ -38,25 +38,25 @@ type MachineSet struct {
 
 // MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpec struct {
-	// Replicas is the number of desired replicas.
+	// replicas is the number of desired replicas.
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.
 	// +kubebuilder:default=1
 	Replicas *int32 `json:"replicas,omitempty"`
-	// MinReadySeconds is the minimum number of seconds for which a newly created machine should be ready.
+	// minReadySeconds is the minimum number of seconds for which a newly created machine should be ready.
 	// Defaults to 0 (machine will be considered available as soon as it is ready)
 	// +optional
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
-	// DeletePolicy defines the policy used to identify nodes to delete when downscaling.
+	// deletePolicy defines the policy used to identify nodes to delete when downscaling.
 	// Defaults to "Random".  Valid values are "Random, "Newest", "Oldest"
 	// +kubebuilder:validation:Enum=Random;Newest;Oldest
 	DeletePolicy string `json:"deletePolicy,omitempty"`
-	// Selector is a label query over machines that should match the replica count.
+	// selector is a label query over machines that should match the replica count.
 	// Label keys and values that must match in order to be controlled by this MachineSet.
 	// It must match the machine template's labels.
 	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	Selector metav1.LabelSelector `json:"selector"`
-	// Template is the object that describes the machine that will be created if
+	// template is the object that describes the machine that will be created if
 	// insufficient replicas are detected.
 	// +optional
 	Template MachineTemplateSpec `json:"template,omitempty"`
@@ -113,7 +113,7 @@ type MachineTemplateSpec struct {
 // MachineSetStatus defines the observed state of MachineSet
 // +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="!has(oldSelf.synchronizedGeneration) || (has(self.synchronizedGeneration) && self.synchronizedGeneration >= oldSelf.synchronizedGeneration) || (oldSelf.authoritativeAPI == 'Migrating' && self.authoritativeAPI != 'Migrating')",message="synchronizedGeneration must not decrease unless authoritativeAPI is transitioning from Migrating to another value"
 type MachineSetStatus struct {
-	// Replicas is the most recently observed number of replicas.
+	// replicas is the most recently observed number of replicas.
 	Replicas int32 `json:"replicas"`
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	// +optional
@@ -124,7 +124,7 @@ type MachineSetStatus struct {
 	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
-	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
+	// observedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// In the event that there is a terminal problem reconciling the
@@ -150,7 +150,7 @@ type MachineSetStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Conditions defines the current state of the MachineSet
+	// conditions defines the current state of the MachineSet
 	// +listType=map
 	// +listMapKey=type
 	Conditions []Condition `json:"conditions,omitempty"`

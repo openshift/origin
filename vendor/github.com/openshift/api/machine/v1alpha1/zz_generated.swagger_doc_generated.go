@@ -79,11 +79,11 @@ var map_NetworkParam = map[string]string{
 	"fixedIp":               "A fixed IPv4 address for the NIC.",
 	"filter":                "Filters for optional network query",
 	"subnets":               "Subnet within a network to use",
-	"noAllowedAddressPairs": "NoAllowedAddressPairs disables creation of allowed address pairs for the network ports",
-	"portTags":              "PortTags allows users to specify a list of tags to add to ports created in a given network",
+	"noAllowedAddressPairs": "noAllowedAddressPairs disables creation of allowed address pairs for the network ports",
+	"portTags":              "portTags allows users to specify a list of tags to add to ports created in a given network",
 	"vnicType":              "The virtual network interface card (vNIC) type that is bound to the neutron port.",
 	"profile":               "A dictionary that enables the application running on the specified host to pass and receive virtual network interface (VIF) port-specific information to the plug-in.",
-	"portSecurity":          "PortSecurity optionally enables or disables security on ports managed by OpenStack",
+	"portSecurity":          "portSecurity optionally enables or disables security on ports managed by OpenStack",
 }
 
 func (NetworkParam) SwaggerDoc() map[string]string {
@@ -217,8 +217,8 @@ func (SubnetFilter) SwaggerDoc() map[string]string {
 var map_SubnetParam = map[string]string{
 	"uuid":         "The UUID of the network. Required if you omit the port attribute.",
 	"filter":       "Filters for optional network query",
-	"portTags":     "PortTags are tags that are added to ports created on this subnet",
-	"portSecurity": "PortSecurity optionally enables or disables security on ports managed by OpenStack",
+	"portTags":     "portTags are tags that are added to ports created on this subnet",
+	"portSecurity": "portSecurity optionally enables or disables security on ports managed by OpenStack",
 }
 
 func (SubnetParam) SwaggerDoc() map[string]string {

@@ -13,38 +13,38 @@ type AWSMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// AMI is the reference to the AMI from which to create the machine instance.
+	// ami is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami"`
-	// InstanceType is the type of instance to create. Example: m4.xlarge
+	// instanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType"`
-	// Tags is the set of tags to add to apply to an instance, in addition to the ones
+	// tags is the set of tags to add to apply to an instance, in addition to the ones
 	// added by default by the actuator. These tags are additive. The actuator will ensure
 	// these tags are present, but will not remove any other tags that may exist on the
 	// instance.
 	// +optional
 	Tags []TagSpecification `json:"tags,omitempty"`
-	// IAMInstanceProfile is a reference to an IAM role to assign to the instance
+	// iamInstanceProfile is a reference to an IAM role to assign to the instance
 	// +optional
 	IAMInstanceProfile *AWSResourceReference `json:"iamInstanceProfile,omitempty"`
-	// UserDataSecret contains a local reference to a secret that contains the
+	// userDataSecret contains a local reference to a secret that contains the
 	// UserData to apply to the instance
 	// +optional
 	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
-	// CredentialsSecret is a reference to the secret with AWS credentials. Otherwise, defaults to permissions
+	// credentialsSecret is a reference to the secret with AWS credentials. Otherwise, defaults to permissions
 	// provided by attached IAM role where the actuator is running.
 	// +optional
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
-	// KeyName is the name of the KeyPair to use for SSH
+	// keyName is the name of the KeyPair to use for SSH
 	// +optional
 	KeyName *string `json:"keyName,omitempty"`
-	// DeviceIndex is the index of the device on the instance for the network interface attachment.
+	// deviceIndex is the index of the device on the instance for the network interface attachment.
 	// Defaults to 0.
 	DeviceIndex int64 `json:"deviceIndex"`
-	// PublicIP specifies whether the instance should get a public IP. If not present,
+	// publicIp specifies whether the instance should get a public IP. If not present,
 	// it should use the default of its subnet.
 	// +optional
 	PublicIP *bool `json:"publicIp,omitempty"`
-	// NetworkInterfaceType specifies the type of network interface to be used for the primary
+	// networkInterfaceType specifies the type of network interface to be used for the primary
 	// network interface.
 	// Valid values are "ENA", "EFA", and omitted, which means no opinion and the platform
 	// chooses a good default which may change over time.
@@ -54,32 +54,32 @@ type AWSMachineProviderConfig struct {
 	// +kubebuilder:validation:Enum:="ENA";"EFA"
 	// +optional
 	NetworkInterfaceType AWSNetworkInterfaceType `json:"networkInterfaceType,omitempty"`
-	// SecurityGroups is an array of references to security groups that should be applied to the
+	// securityGroups is an array of references to security groups that should be applied to the
 	// instance.
 	// +optional
 	SecurityGroups []AWSResourceReference `json:"securityGroups,omitempty"`
-	// Subnet is a reference to the subnet to use for this instance
+	// subnet is a reference to the subnet to use for this instance
 	Subnet AWSResourceReference `json:"subnet"`
-	// Placement specifies where to create the instance in AWS
+	// placement specifies where to create the instance in AWS
 	Placement Placement `json:"placement"`
-	// LoadBalancers is the set of load balancers to which the new instance
+	// loadBalancers is the set of load balancers to which the new instance
 	// should be added once it is created.
 	// +optional
 	LoadBalancers []LoadBalancerReference `json:"loadBalancers,omitempty"`
-	// BlockDevices is the set of block device mapping associated to this instance,
+	// blockDevices is the set of block device mapping associated to this instance,
 	// block device without a name will be used as a root device and only one device without a name is allowed
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
 	// +optional
 	BlockDevices []BlockDeviceMappingSpec `json:"blockDevices,omitempty"`
-	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
+	// spotMarketOptions allows users to configure instances to be run using AWS Spot instances.
 	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
-	// MetadataServiceOptions allows users to configure instance metadata service interaction options.
+	// metadataServiceOptions allows users to configure instance metadata service interaction options.
 	// If nothing specified, default AWS IMDS settings will be applied.
 	// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_InstanceMetadataOptionsRequest.html
 	// +optional
 	MetadataServiceOptions MetadataServiceOptions `json:"metadataServiceOptions,omitempty"`
-	// PlacementGroupName specifies the name of the placement group in which to launch the instance.
+	// placementGroupName specifies the name of the placement group in which to launch the instance.
 	// The placement group must already be created and may use any placement strategy.
 	// When omitted, no placement group is used when creating the EC2 instance.
 	// +optional
@@ -194,7 +194,7 @@ const (
 // MetadataServiceOptions defines the options available to a user when configuring
 // Instance Metadata Service (IMDS) Options.
 type MetadataServiceOptions struct {
-	// Authentication determines whether or not the host requires the use of authentication when interacting with the metadata service.
+	// authentication determines whether or not the host requires the use of authentication when interacting with the metadata service.
 	// When using authentication, this enforces v2 interaction method (IMDSv2) with the metadata service.
 	// When omitted, this means the user has no opinion and the value is left to the platform to choose a good
 	// default, which is subject to change over time. The current default is optional.
@@ -209,26 +209,26 @@ type MetadataServiceOptions struct {
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.
 type AWSResourceReference struct {
-	// ID of resource
+	// id of resource
 	// +optional
 	ID *string `json:"id,omitempty"`
-	// ARN of resource
+	// arn of resource
 	// +optional
 	ARN *string `json:"arn,omitempty"`
-	// Filters is a set of filters used to identify a resource
+	// filters is a set of filters used to identify a resource
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
 }
 
 // Placement indicates where to create the instance in AWS
 type Placement struct {
-	// Region is the region to use to create the instance
+	// region is the region to use to create the instance
 	// +optional
 	Region string `json:"region,omitempty"`
-	// AvailabilityZone is the availability zone of the instance
+	// availabilityZone is the availability zone of the instance
 	// +optional
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
-	// Tenancy indicates if instance should run on shared or single-tenant hardware. There are
+	// tenancy indicates if instance should run on shared or single-tenant hardware. There are
 	// supported 3 options: default, dedicated and host.
 	// +optional
 	Tenancy InstanceTenancy `json:"tenancy,omitempty"`
@@ -236,18 +236,18 @@ type Placement struct {
 
 // Filter is a filter used to identify an AWS resource
 type Filter struct {
-	// Name of the filter. Filter names are case-sensitive.
+	// name of the filter. Filter names are case-sensitive.
 	Name string `json:"name"`
-	// Values includes one or more filter values. Filter values are case-sensitive.
+	// values includes one or more filter values. Filter values are case-sensitive.
 	// +optional
 	Values []string `json:"values,omitempty"`
 }
 
 // TagSpecification is the name/value pair for a tag
 type TagSpecification struct {
-	// Name of the tag
+	// name of the tag
 	Name string `json:"name"`
-	// Value of the tag
+	// value of the tag
 	Value string `json:"value"`
 }
 
@@ -309,13 +309,13 @@ const (
 // +openshift:compatibility-gen:level=2
 type AWSMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
-	// InstanceID is the instance ID of the machine created in AWS
+	// instanceId is the instance ID of the machine created in AWS
 	// +optional
 	InstanceID *string `json:"instanceId,omitempty"`
-	// InstanceState is the state of the AWS instance for this machine
+	// instanceState is the state of the AWS instance for this machine
 	// +optional
 	InstanceState *string `json:"instanceState,omitempty"`
-	// Conditions is a set of conditions associated with the Machine to indicate
+	// conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
