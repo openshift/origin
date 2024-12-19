@@ -272,6 +272,12 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 	})
 })
 
+var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines", func() {
+	It("Placeholder test for GA", func() {
+		Expect(1).To(Equal(1)) // we just need a test to run to ensure the platform comes up correctly
+	})
+})
+
 type VirtualMachineInstanceConditionType string
 
 const VirtualMachineInstanceConditionReady VirtualMachineInstanceConditionType = "Ready"
