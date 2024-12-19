@@ -504,7 +504,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								//don't try with your own IP
 								continue
 							}
-							_, err := e2ekubectl.RunKubectl(
+							result, err := e2ekubectl.RunKubectl(
 								namespaceBlue,
 								"exec",
 								fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
@@ -515,7 +515,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								net.JoinHostPort(ip, fmt.Sprintf("%d", port)),
 							)
 							if err == nil {
-								framework.Failf("connection succeeded but expected timeout")
+								framework.Failf("connection succeeded but expected timeout: result=%s", result)
 							}
 						}
 					},
