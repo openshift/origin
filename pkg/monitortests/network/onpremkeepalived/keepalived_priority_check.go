@@ -80,7 +80,38 @@ func (w *operatorLogAnalyzer) CollectData(ctx context.Context, storageDir string
 }
 
 func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+	constructedIntervals := monitorapi.Intervals{}
+	vipMoves := map[string][]monitorapi.Interval{}
+	for _, interval := range startingIntervals {
+		if interval.Message.Reason == monitorapi.OnPremLBTookVIP || interval.Message.Reason == monitorapi.OnPremLBLostVIP {
+			nodeName := fmt.Sprintf("%s_%s", interval.Locator.Keys[monitorapi.LocatorNodeKey], interval.Message.Annotations[monitorapi.AnnotationVIP])
+			vipMoves[nodeName] = append(vipMoves[nodeName], interval)
+		}
+	}
+	for nodeName, nodeMoves := range vipMoves {
+		for _, move := range nodeMoves {
+			if move.Message.Reason == monitorapi.OnPremLBTookVIP {
+				// Create an interval to the end time. If we lose the VIP we'll shorten it later.
+				locator := monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{monitorapi.LocatorOnPremVIPMonitorKey: nodeName}}
+				message := monitorapi.NewMessage().Reason(monitorapi.OnPremLBTookVIP).
+					Constructed(monitorapi.ConstructionOwnerOnPremKeepalived).
+					HumanMessage(fmt.Sprintf("Node %s took the VIP", nodeName))
+				constructedIntervals = append(constructedIntervals,
+					monitorapi.NewInterval(monitorapi.SourceHaproxyMonitor, monitorapi.Info).
+						Locator(locator).
+						Message(message).
+						Display().
+						Build(move.From, end),
+				)
+			} else if move.Message.Reason == monitorapi.OnPremLBLostVIP {
+				// If we enter backup state without previously holding the VIP then we just started and there is no interval to create
+				if constructedIntervals.Len() > 0 {
+					constructedIntervals[constructedIntervals.Len()-1].To = move.From
+				}
+			}
+		}
+	}
+	return constructedIntervals, nil
 }
 
 func (w *operatorLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -111,16 +142,29 @@ func newOperatorLogHandlerAfterTime(recorder monitorapi.RecorderWriter, afterTim
 }
 
 func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
-	re := regexp.MustCompile("effective priority from (?P<PREV_PRIO>[\\d]+) to (?P<CURR_PRIO>[\\d]+)")
+	priorityRe := regexp.MustCompile("effective priority from (?P<PREV_PRIO>[\\d]+) to (?P<CURR_PRIO>[\\d]+)")
+	masterRe := regexp.MustCompile("Entering MASTER STATE")
+	backupRe := regexp.MustCompile("Entering BACKUP STATE")
+	api1Re := regexp.MustCompile("API_1")
+	ingress0Re := regexp.MustCompile("INGRESS_0")
+	ingress1Re := regexp.MustCompile("INGRESS_1")
 	if g.afterTime != nil {
 		if logLine.Instant.Before(*g.afterTime) {
 			return
 		}
 	}
+	vipType := "API_0"
+	if api1Re.MatchString(logLine.Line) {
+		vipType = "API_1"
+	} else if ingress0Re.MatchString(logLine.Line) {
+		vipType = "INGRESS_0"
+	} else if ingress1Re.MatchString(logLine.Line) {
+		vipType = "INGRESS_1"
+	}
 	switch {
-	case re.MatchString(logLine.Line):
-		subMatches := re.FindStringSubmatch(logLine.Line)
-		subNames := re.SubexpNames()
+	case priorityRe.MatchString(logLine.Line):
+		subMatches := priorityRe.FindStringSubmatch(logLine.Line)
+		subNames := priorityRe.SubexpNames()
 		previousPriority := ""
 		newPriority := ""
 		for i, name := range subNames {
@@ -142,12 +186,34 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 				).
 				Build(logLine.Instant, logLine.Instant),
 		)
+	case masterRe.MatchString(logLine.Line):
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
+				Locator(logLine.Locator).
+				Message(monitorapi.NewMessage().
+					Reason(monitorapi.OnPremLBTookVIP).
+					WithAnnotation(monitorapi.AnnotationVIP, vipType).
+					HumanMessage(logLine.Line),
+				).
+				Build(logLine.Instant, logLine.Instant),
+		)
+	case backupRe.MatchString(logLine.Line):
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
+				Locator(logLine.Locator).
+				Message(monitorapi.NewMessage().
+					Reason(monitorapi.OnPremLBLostVIP).
+					WithAnnotation(monitorapi.AnnotationVIP, vipType).
+					HumanMessage(logLine.Line),
+				).
+				Build(logLine.Instant, logLine.Instant),
+		)
 	}
 
 }
 
 func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	leaseIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+	priorityIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		if eventInterval.Message.Reason == monitorapi.OnPremLBPriorityChange {
 			return true
 		}
@@ -157,7 +223,7 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 
 	neededPriority := "65"
 	achievedPriority := false
-	for _, interval := range leaseIntervals {
+	for _, interval := range priorityIntervals {
 		if interval.Message.Annotations[monitorapi.AnnotationPriority] == neededPriority {
 			achievedPriority = true
 		}
