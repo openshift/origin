@@ -39,6 +39,14 @@ type RecorderWriter interface {
 	EndInterval(startedInterval int, t time.Time) *Interval
 }
 
+type SignificantlyOldEventProvider interface {
+	ProvideSignificantlyOldEvents() Intervals
+}
+
+type SignificantlyOldEventConsumer interface {
+	WantSignificantlyOldEvents() bool
+}
+
 const (
 	// ObservedUpdateCountAnnotation is an annotation added locally (in the monitor only), that tracks how many updates
 	// we've seen to this resource.  This is useful during post-processing for determining if we have a hot resource.
@@ -369,6 +377,12 @@ type Interval struct {
 
 	From time.Time
 	To   time.Time
+
+	// indicates that the events is significantly before the time of
+	// interest, but some monitor tests may opt in to examine it.
+	// NOTE: the default is false to maintain backward compatibility.
+	// Today all procured events are of interest, not significantly before.
+	SignificantlyBefore bool
 }
 
 func (r IntervalReason) String() string {

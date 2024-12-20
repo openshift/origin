@@ -85,6 +85,8 @@ func (*monitorTest) WriteContentToStorage(ctx context.Context, storageDir, timeS
 	return nil
 }
 
+func (*monitorTest) WantSignificantlyOldEvents() bool { return true }
+
 func (*monitorTest) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
@@ -98,11 +100,12 @@ type podInfo struct {
 	reasons            []string
 	startedAt, endedAt time.Time
 	concurrent         bool
+	old                bool
 }
 
 func (pi *podInfo) String() string {
-	return fmt.Sprintf("node(%s) name(%s) namespace(%s) reason(%v) started(%s) duration: %s",
-		pi.node, pi.name, pi.namespace, strings.Join(pi.reasons, ","),
+	return fmt.Sprintf("node(%s) name(%s) namespace(%s) reason(%v) old(%t) started(%s) duration: %s",
+		pi.node, pi.name, pi.namespace, strings.Join(pi.reasons, ","), pi.old,
 		pi.startedAt.Format(time.RFC3339), pi.endedAt.Sub(pi.startedAt))
 }
 
@@ -171,6 +174,10 @@ func (m *installerPodMonitor) processOne(interval monitorapi.Interval) {
 		return
 	}
 
+	if interval.SignificantlyBefore {
+		framework.Logf("monitor[%s]: seeing an old event: %+v", MonitorName, interval)
+	}
+
 	thisPodName := interval.Locator.Keys[monitorapi.LocatorKey("pod")]
 	reason := string(interval.Message.Reason)
 	switch reason {
@@ -185,6 +192,7 @@ func (m *installerPodMonitor) processOne(interval monitorapi.Interval) {
 			namespace: interval.Locator.Keys[monitorapi.LocatorNamespaceKey],
 			startedAt: interval.From,
 			reasons:   []string{reason},
+			old:       interval.SignificantlyBefore,
 		}
 		m.pods[thisPodName] = thisPod
 		// TODO: are any other installer pods active on a different node?
