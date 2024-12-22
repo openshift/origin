@@ -35,6 +35,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
+
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
 	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
@@ -681,6 +683,120 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(actualConditions[0].Reason).To(Equal("SyncError"))
 			expectedMessage := fmt.Sprintf("primary network already exist in namespace %q: %q", f.Namespace.Name, primaryNadName)
 			Expect(actualConditions[0].Message).To(Equal(expectedMessage))
+		})
+
+		Context("UDN Pod", func() {
+			const (
+				testUdnName = "test-net"
+				testPodName = "test-pod-udn"
+			)
+
+			var udnPod *v1.Pod
+
+			BeforeEach(func() {
+				By("create tests UserDefinedNetwork")
+				cleanup, err := createManifest(f.Namespace.Name, newPrimaryUserDefinedNetworkManifest(oc, testUdnName))
+				DeferCleanup(cleanup)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, testUdnName, 5*time.Second)).To(Succeed())
+				By("create UDN pod")
+				cfg := podConfig(testPodName, withCommand(func() []string {
+					return httpServerContainerCmd(port)
+				}))
+				cfg.namespace = f.Namespace.Name
+				udnPod = runUDNPod(cs, f.Namespace.Name, *cfg, nil)
+			})
+
+			It("should react to k8s.ovn.org/open-default-ports annotations changes", func() {
+				By("Creating second namespace for default network pod")
+				defaultNetNamespace := f.Namespace.Name + "-default"
+				_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: defaultNetNamespace,
+					},
+				}, metav1.CreateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				defer func() {
+					Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
+				}()
+
+				By("creating default network client pod")
+				defaultClientPod := frameworkpod.CreateExecPodOrFail(
+					context.Background(),
+					f.ClientSet,
+					defaultNetNamespace,
+					"default-net-client-pod",
+					func(pod *v1.Pod) {
+						pod.Spec.Containers[0].Args = []string{"netexec"}
+						setRuntimeDefaultPSA(pod)
+					},
+				)
+
+				udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
+					cs,
+					f.Namespace.Name,
+					udnPod.GetName(),
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				By(fmt.Sprintf("verify default network client pod can't access UDN pod on port %d", port))
+				for _, destIP := range []string{udnIPv4, udnIPv6} {
+					if destIP == "" {
+						continue
+					}
+					By("checking the default network pod can't reach UDN pod on IP " + destIP)
+					Consistently(func() bool {
+						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
+					}, 5*time.Second).Should(BeTrue())
+				}
+
+				By("Open UDN pod port")
+				udnPod.Annotations[openDefaultPortsAnnotation] = fmt.Sprintf(
+					`- protocol: tcp
+  port: %d`, port)
+				udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Update(context.Background(), udnPod, metav1.UpdateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				By(fmt.Sprintf("verify default network client pod can access UDN pod on open port %d", port))
+				for _, destIP := range []string{udnIPv4, udnIPv6} {
+					if destIP == "" {
+						continue
+					}
+					By("checking the default network pod can reach UDN pod on IP " + destIP)
+					Eventually(func() bool {
+						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) == nil
+					}, 5*time.Second).Should(BeTrue())
+				}
+
+				By("Update UDN pod port with the wrong syntax")
+				// this should clean up open ports and throw an event
+				udnPod.Annotations[openDefaultPortsAnnotation] = fmt.Sprintf(
+					`- protocol: ppp
+  port: %d`, port)
+				udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Update(context.Background(), udnPod, metav1.UpdateOptions{})
+				Expect(err).NotTo(HaveOccurred())
+
+				By(fmt.Sprintf("verify default network client pod can't access UDN pod on port %d", port))
+				for _, destIP := range []string{udnIPv4, udnIPv6} {
+					if destIP == "" {
+						continue
+					}
+					By("checking the default network pod can't reach UDN pod on IP " + destIP)
+					Eventually(func() bool {
+						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
+					}, 5*time.Second).Should(BeTrue())
+				}
+				By("Verify syntax error is reported via event")
+				events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.Background(), metav1.ListOptions{})
+				found := false
+				for _, event := range events.Items {
+					if event.Reason == "ErrorUpdatingResource" && strings.Contains(event.Message, "invalid protocol ppp") {
+						found = true
+						break
+					}
+				}
+				Expect(found).To(BeTrue(), "should have found an event for invalid protocol")
+			})
 		})
 	})
 })
