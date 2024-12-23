@@ -235,11 +235,28 @@ func (r *monitorTestRegistry) ConstructComputedIntervals(ctx context.Context, st
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
+	oldEvents := make(monitorapi.Intervals, 0)
+
 	for _, monitorTest := range r.monitorTests {
 		testName := fmt.Sprintf("[Jira:%q] monitor test %v interval construction", monitorTest.jiraComponent, monitorTest.name)
 
+		// this is a hack to see if we can get the monitor test to see
+		// events from the cluster bootstrap time.
+		intervals := startingIntervals
+		if consumer, ok := monitorTest.monitorTest.(monitorapi.SignificantlyOldEventConsumer); ok && consumer.WantSignificantlyOldEvents() {
+			logrus.Infof("[%s] consuming %d old events", monitorTest.name, len(oldEvents))
+			intervals = append(oldEvents, intervals...)
+		}
+
 		start := time.Now()
-		localIntervals, err := constructComputedIntervalsWithPanicProtection(ctx, monitorTest.monitorTest, startingIntervals, recordedResources, beginning, end)
+		localIntervals, err := constructComputedIntervalsWithPanicProtection(ctx, monitorTest.monitorTest, intervals, recordedResources, beginning, end)
+
+		if provider, ok := monitorTest.monitorTest.(monitorapi.SignificantlyOldEventProvider); ok {
+			events := provider.ProvideSignificantlyOldEvents()
+			logrus.Infof("[%s] providing %d old events", monitorTest.name, len(events))
+			oldEvents = append(oldEvents, events...)
+		}
+
 		intervals = append(intervals, localIntervals...)
 		end := time.Now()
 		duration := end.Sub(start)

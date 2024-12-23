@@ -26,8 +26,8 @@ import (
 
 var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
-func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, adminRESTConfig *rest.Config, client kubernetes.Interface) {
-
+func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, adminRESTConfig *rest.Config, client kubernetes.Interface) *recorder {
+	recorder := &recorder{}
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
 	significantlyBeforeNow := time.Now().UTC().Add(-15 * time.Minute)
@@ -64,7 +64,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
+				recorder.recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -75,7 +75,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
+				recorder.recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -83,9 +83,14 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 	}
 	reflector := cache.NewReflector(listWatch, &corev1.Event{}, customStore, 0)
 	go reflector.Run(ctx.Done())
+	return recorder
 }
 
-func recordAddOrUpdateEvent(
+type recorder struct {
+	oldEvents monitorapi.Intervals
+}
+
+func (r *recorder) recordAddOrUpdateEvent(
 	ctx context.Context,
 	recorder monitorapi.RecorderWriter,
 	topology v1.TopologyMode,
@@ -167,12 +172,15 @@ func recordAddOrUpdateEvent(
 	if pathoFrom.IsZero() {
 		pathoFrom = obj.CreationTimestamp.Time
 	}
+	var significantlyBefore bool
 	if pathoFrom.Before(significantlyBeforeNow) {
 		if osEvent {
 			logrus.Infof("OS update event filtered for being too old: %s - %s - %s",
 				obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
 		}
-		return
+
+		// mark it as significantly old
+		significantlyBefore = true
 	}
 
 	message = message.WithAnnotation("firstTimestamp", obj.FirstTimestamp.Format(time.RFC3339))
@@ -229,6 +237,11 @@ func recordAddOrUpdateEvent(
 	interval := intervalBuilder.Locator(locator).
 		Message(message).Build(pathoFrom, to)
 
+	interval.SignificantlyBefore = significantlyBefore
+	if interval.SignificantlyBefore {
+		r.oldEvents = append(r.oldEvents, interval)
+		return
+	}
 	recorder.AddIntervals(interval)
 }
 

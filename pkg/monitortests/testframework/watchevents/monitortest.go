@@ -12,7 +12,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+var _ monitorapi.SignificantlyOldEventProvider = &eventWatcher{}
+
 type eventWatcher struct {
+	recorder *recorder
 }
 
 func NewEventWatcher() monitortestframework.MonitorTest {
@@ -25,8 +28,7 @@ func (w *eventWatcher) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 
-	startEventMonitoring(ctx, recorder, adminRESTConfig, kubeClient)
-
+	w.recorder = startEventMonitoring(ctx, recorder, adminRESTConfig, kubeClient)
 	return nil
 }
 
@@ -52,4 +54,8 @@ func (*eventWatcher) WriteContentToStorage(ctx context.Context, storageDir, time
 func (*eventWatcher) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
+}
+
+func (w *eventWatcher) ProvideSignificantlyOldEvents() monitorapi.Intervals {
+	return w.recorder.oldEvents
 }
