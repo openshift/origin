@@ -1,0 +1,46 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: e2e-disruption-monitor
+rules:
+  - verbs:
+      - list
+    apiGroups:
+      - ''
+      - oauth.openshift.io
+    resources:
+      - oauthclients
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - ''
+    resources:
+      - namespaces
+  - verbs:
+      - create
+      - get
+      - list
+      - update
+      - delete
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
+      - list
+    apiGroups:
+      - image.openshift.io
+    resources:
+      - imagestreams
+  - verbs:
+      - create
+      - get
+      - list
+      - update
+      - delete
+    apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
