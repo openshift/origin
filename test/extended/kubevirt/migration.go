@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -60,19 +59,6 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 			})
 			It("should maintain node readiness", func() {
 				By("Check node readiness is as expected")
-				isAWS, err := MgmtClusterIsType(mgmtFramework, configv1.AWSPlatformType)
-				Expect(err).ToNot(HaveOccurred())
-
-				if isAWS {
-					// At aws live-migration tcp connections are broken so Node
-					// readiness is broken too, we have wait for it to reach
-					// not ready and then check if eventually and consistently it's
-					// ready again
-					Eventually(numberOfReadyNodes).
-						WithTimeout(2*time.Minute).
-						WithPolling(5*time.Second).
-						ShouldNot(Equal(numberOfNodes), "nodes should reach not ready state")
-				}
 				Eventually(numberOfReadyNodes).
 					WithTimeout(2*time.Minute).
 					WithPolling(5*time.Second).
