@@ -53,9 +53,9 @@ func externalBinaryTestsToOriginTestCases(specs externalbinary.ExtensionTestSpec
 	var tests []*testCase
 	for _, spec := range specs {
 		tests = append(tests, &testCase{
-			name:       spec.Name + spec.Labels, // TODO: remove when going to OTE
-			rawName:    spec.Name,
-			binaryName: spec.Binary,
+			name:    spec.Name,
+			rawName: spec.Name,
+			binary:  spec.Binary,
 		})
 	}
 	return tests
@@ -87,10 +87,14 @@ type testCase struct {
 	name string
 	// rawName is the name as reported by external binary
 	rawName string
-	// binaryName is the name of the external binary
+
+	// binaryName is the name of the binary to execute for internal tests
 	binaryName string
-	spec       types.TestSpec
-	locations  []types.CodeLocation
+	// binary is the reference when using an external binary
+	binary *externalbinary.TestBinary
+
+	spec      types.TestSpec
+	locations []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
@@ -103,11 +107,12 @@ type testCase struct {
 	duration        time.Duration
 	testOutputBytes []byte
 
-	flake    bool
-	failed   bool
-	skipped  bool
-	success  bool
-	timedOut bool
+	flake               bool
+	failed              bool
+	skipped             bool
+	success             bool
+	timedOut            bool
+	extensionTestResult *externalbinary.ExtensionTestResult
 
 	previous *testCase
 }
