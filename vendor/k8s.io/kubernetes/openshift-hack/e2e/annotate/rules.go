@@ -243,6 +243,10 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: azure-disk\] \[Testpattern: Dynamic PV \(immediate binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
 			`\[sig-storage\] In-tree Volumes \[Driver: azure-disk\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
 		},
+		"[Skipped:azurestackcloud]": {
+			// AzureStackCloud does not support in tree volumes.
+			`\[sig-storage\] In-tree Volumes`,
+		},
 		"[Skipped:baremetal]": {
 			// LoadBalancer tests in 1.31 require explicit platform-specific skips
 			// https://issues.redhat.com/browse/OCPBUGS-38840
