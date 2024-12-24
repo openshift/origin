@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -9,12 +10,14 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -113,6 +116,71 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		// Users are not allowed to add new violations
 		if len(invalidDaemonSets) > 0 {
 			e2e.Failf("Daemonsets found that do not meet platform requirements for update strategy:\n  %s", strings.Join(invalidDaemonSets, "\n  "))
+		}
+	})
+
+	// Enforce style of "run-everywhere" daemon sets. If the daemon set's only toleration is:
+	//
+	//		tolerations:
+	//		- key: "node-role.kubernetes.io/master"
+	//		  operator: "Exists"
+	//
+	// The intention is that it should run everywhere. This way of doing things is
+	// problematic when coupled with PreferredDuringScheduling.  If a worker node gets tainted,
+	// for example infra nodes used by managed openshift, then PreferredDuringScheduling
+	// means it could still get scheduled there, but KubeDaemonSetMisScheduled alert will
+	// fire.
+	//
+	// That is to say, daemon sets that are both PreferredDuringScheduling AND expecting to
+	// run everywhere should use this toleration syntax instead:
+	//
+	// 		tolerations:
+	//		- operator: Exists
+	//
+	g.It("should only include daemon sets with proper tolerations", func() {
+		daemonSets, err := oc.KubeFramework().ClientSet.AppsV1().DaemonSets("").List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			e2e.Failf("unable to list daemonsets: %v", err)
+		}
+
+		invalidDaemonSets := sets.NewString()
+		for _, daemonSet := range daemonSets.Items {
+			if !platformidentification.IsPlatformNamespace(daemonSet.Namespace) {
+				continue
+			}
+
+			actualTolerations := daemonSet.Spec.Template.Spec.Tolerations
+			tolerationKey := "node-role.kubernetes.io/master"
+
+			if len(actualTolerations) > 1 || actualTolerations[0].Key != tolerationKey ||
+				actualTolerations[0].Operator != v1.TolerationOpExists {
+				continue
+			}
+
+			// See if workload management is PreferredDuringScheduling
+			preferredDuringScheduling := false
+			annotations := daemonSet.Spec.Template.ObjectMeta.Annotations
+			if annotations != nil {
+				if val, exists := annotations["target.workload.openshift.io/management"]; exists {
+					var managementAnnotation struct {
+						Effect string `json:"effect"`
+					}
+					preferredDuringScheduling = val == `{"effect": "PreferredDuringScheduling"}`
+					err := json.Unmarshal([]byte(val), &managementAnnotation)
+					if err == nil {
+						preferredDuringScheduling = managementAnnotation.Effect == "PreferredDuringScheduling"
+					}
+				}
+			}
+
+			if preferredDuringScheduling {
+				invalidDaemonSets.Insert(fmt.Sprintf("%s/%s", daemonSet.Namespace, daemonSet.Name))
+			}
+		}
+
+		if invalidDaemonSets.Len() > 0 {
+			e2e.Failf(`The following daemon sets have invalid tolerations: %s.
+Platform daemon sets that are intended to run everywhere must use a general (no key) toleration with only operator : Exists.`, strings.Join(invalidDaemonSets.UnsortedList(), ", "))
 		}
 	})
 })
