@@ -23,40 +23,40 @@ type NutanixMachineProviderConfig struct {
 	// of the Prism Central), in which the Machine's VM will be created.
 	// The cluster identifier (uuid or name) can be obtained from the Prism Central console
 	// or using the prism_central API.
-	// +kubebuilder:validation:Required
+	// +required
 	Cluster NutanixResourceIdentifier `json:"cluster"`
 
 	// image is to identify the rhcos image uploaded to the Prism Central (PC)
 	// The image identifier (uuid or name) can be obtained from the Prism Central console
 	// or using the prism_central API.
-	// +kubebuilder:validation:Required
+	// +required
 	Image NutanixResourceIdentifier `json:"image"`
 
 	// subnets holds a list of identifiers (one or more) of the cluster's network subnets
 	// for the Machine's VM to connect to. The subnet identifiers (uuid or name) can be
 	// obtained from the Prism Central console or using the prism_central API.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MinItems=1
 	Subnets []NutanixResourceIdentifier `json:"subnets"`
 
 	// vcpusPerSocket is the number of vCPUs per socket of the VM
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Minimum=1
 	VCPUsPerSocket int32 `json:"vcpusPerSocket"`
 
 	// vcpuSockets is the number of vCPU sockets of the VM
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Minimum=1
 	VCPUSockets int32 `json:"vcpuSockets"`
 
 	// memorySize is the memory size (in Quantity format) of the VM
 	// The minimum memorySize is 2Gi bytes
-	// +kubebuilder:validation:Required
+	// +required
 	MemorySize resource.Quantity `json:"memorySize"`
 
 	// systemDiskSize is size (in Quantity format) of the system disk of the VM
 	// The minimum systemDiskSize is 20Gi bytes
-	// +kubebuilder:validation:Required
+	// +required
 	SystemDiskSize resource.Quantity `json:"systemDiskSize"`
 
 	// bootType indicates the boot type (Legacy, UEFI or SecureBoot) the Machine's VM uses to boot.
@@ -96,7 +96,7 @@ type NutanixMachineProviderConfig struct {
 
 	// credentialsSecret is a local reference to a secret that contains the
 	// credentials data to access Nutanix PC client
-	// +kubebuilder:validation:Required
+	// +required
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret"`
 
 	// failureDomain refers to the name of the FailureDomain with which this Machine is associated.
@@ -113,13 +113,13 @@ type NutanixCategory struct {
 	// key is the prism category key name
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
-	// +kubebuilder:validation:Required
+	// +required
 	Key string `json:"key"`
 
 	// value is the prism category value associated with the key
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
-	// +kubebuilder:validation:Required
+	// +required
 	Value string `json:"value"`
 }
 
@@ -151,9 +151,9 @@ const (
 // NutanixResourceIdentifier holds the identity of a Nutanix PC resource (cluster, image, subnet, etc.)
 // +union
 type NutanixResourceIdentifier struct {
-	// Type is the identifier type to use for this resource.
+	// type is the identifier type to use for this resource.
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Enum:=uuid;name
 	Type NutanixIdentifierType `json:"type"`
 
@@ -186,7 +186,7 @@ type NutanixGPU struct {
 	// type is the identifier type of the GPU device.
 	// Valid values are Name and DeviceID.
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
+	// +required
 	Type NutanixGPUIdentifierType `json:"type"`
 
 	// deviceID is the GPU device ID with the integer value.
@@ -219,7 +219,7 @@ type NutanixStorageResourceIdentifier struct {
 	// type is the identifier type to use for this resource.
 	// The valid value is "uuid".
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Enum:=uuid
 	Type NutanixIdentifierType `json:"type"`
 
@@ -279,13 +279,13 @@ type NutanixVMDiskDeviceProperties struct {
 	// deviceType specifies the disk device type.
 	// The valid values are "Disk" and "CDRom", and the default is "Disk".
 	// +kubebuilder:default=Disk
-	// +kubebuilder:validation:Required
+	// +required
 	DeviceType NutanixDiskDeviceType `json:"deviceType"`
 
 	// adapterType is the adapter type of the disk address.
 	// If the deviceType is "Disk", the valid adapterType can be "SCSI", "IDE", "PCI", "SATA" or "SPAPR".
 	// If the deviceType is "CDRom", the valid adapterType can be "IDE" or "SATA".
-	// +kubebuilder:validation:Required
+	// +required
 	AdapterType NutanixDiskAdapterType `json:"adapterType,omitempty"`
 
 	// deviceIndex is the index of the disk address. The valid values are non-negative integers, with the default value 0.
@@ -295,7 +295,7 @@ type NutanixVMDiskDeviceProperties struct {
 	// the deviceIndex should start from 1.
 	// +kubebuilder:default=0
 	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Required
+	// +required
 	DeviceIndex int32 `json:"deviceIndex,omitempty"`
 }
 
@@ -304,7 +304,7 @@ type NutanixVMDisk struct {
 	// diskSize is size (in Quantity format) of the disk attached to the VM.
 	// See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Format for the Quantity format and example documentation.
 	// The minimum diskSize is 1GB.
-	// +kubebuilder:validation:Required
+	// +required
 	DiskSize resource.Quantity `json:"diskSize"`
 
 	// deviceProperties are the properties of the disk device.

@@ -38,7 +38,7 @@ type EgressRouter struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specification of the desired egress router.
-	// +kubebuilder:validation:Required
+	// +required
 	Spec EgressRouterSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// Observed status of EgressRouter.
@@ -51,23 +51,23 @@ type EgressRouter struct {
 // +k8s:openapi-gen=true
 // +kubebuilder:validation:Required
 type EgressRouterSpec struct {
-	// Mode depicts the mode that is used for the egress router. The default mode is "Redirect" and is the only supported mode currently.
-	// +kubebuilder:validation:Required
+	// mode depicts the mode that is used for the egress router. The default mode is "Redirect" and is the only supported mode currently.
+	// +required
 	// +kubebuilder:validation:Enum="Redirect"
 	// +kubebuilder:default:="Redirect"
 	Mode EgressRouterMode `json:"mode" protobuf:"bytes,1,opt,name=mode,casttype=EgressRouterMode"`
 
-	// Redirect represents the configuration parameters specific to redirect mode.
+	// redirect represents the configuration parameters specific to redirect mode.
 	Redirect *RedirectConfig `json:"redirect,omitempty" protobuf:"bytes,2,opt,name=redirect"`
 
 	// Specification of interface to create/use. The default is macvlan.
 	// Currently only macvlan is supported.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:default:={macvlan: {mode: Bridge}}
 	NetworkInterface EgressRouterInterface `json:"networkInterface" protobuf:"bytes,3,opt,name=networkInterface"`
 
 	// List of IP addresses to configure on the pod's secondary interface.
-	// +kubebuilder:validation:Required
+	// +required
 	Addresses []EgressRouterAddress `json:"addresses" protobuf:"bytes,4,rep,name=addresses"`
 }
 
@@ -86,7 +86,7 @@ type RedirectConfig struct {
 	// List of L4RedirectRules that define the DNAT redirection from the pod to the destination in redirect mode.
 	RedirectRules []L4RedirectRule `json:"redirectRules,omitempty" protobuf:"bytes,1,rep,name=redirectRules"`
 
-	// FallbackIP specifies the remote destination's IP address. Can be IPv4 or IPv6.
+	// fallbackIP specifies the remote destination's IP address. Can be IPv4 or IPv6.
 	// If no redirect rules are specified, all traffic from the router are redirected to this IP.
 	// If redirect rules are specified, then any connections on any other port (undefined in the rules) on the router will be redirected to this IP.
 	// If redirect rules are specified and no fallback IP is provided, connections on other ports will simply be rejected.
@@ -96,21 +96,21 @@ type RedirectConfig struct {
 // L4RedirectRule defines a DNAT redirection from a given port to a destination IP and port.
 type L4RedirectRule struct {
 	// IP specifies the remote destination's IP address. Can be IPv4 or IPv6.
-	// +kubebuilder:validation:Required
+	// +required
 	DestinationIP string `json:"destinationIP" protobuf:"bytes,1,opt,name=destinationIP"`
 
-	// Port is the port number to which clients should send traffic to be redirected.
-	// +kubebuilder:validation:Required
+	// port is the port number to which clients should send traffic to be redirected.
+	// +required
 	// +kubebuilder:validation:Maximum:=65535
 	// +kubebuilder:validation:Minimum:=1
 	Port int32 `json:"port" protobuf:"varint,2,opt,name=port"`
 
-	// Protocol can be TCP, SCTP or UDP.
-	// +kubebuilder:validation:Required
+	// protocol can be TCP, SCTP or UDP.
+	// +required
 	// +kubebuilder:validation:Enum="TCP";"UDP";"SCTP"
 	Protocol ProtocolType `json:"protocol" protobuf:"bytes,3,opt,name=protocol,casttype=ProtocolType"`
 
-	// TargetPort allows specifying the port number on the remote destination to which the traffic gets redirected to.
+	// targetPort allows specifying the port number on the remote destination to which the traffic gets redirected to.
 	// If unspecified, the value from "Port" is used.
 	// +kubebuilder:validation:Maximum:=65535
 	// +kubebuilder:validation:Minimum:=1
@@ -165,8 +165,8 @@ const (
 
 // MacvlanConfig consists of arguments specific to the macvlan EgressRouterInterfaceType
 type MacvlanConfig struct {
-	// Mode depicts the mode that is used for the macvlan interface; one of Bridge|Private|VEPA|Passthru. The default mode is "Bridge".
-	// +kubebuilder:validation:Required
+	// mode depicts the mode that is used for the macvlan interface; one of Bridge|Private|VEPA|Passthru. The default mode is "Bridge".
+	// +required
 	// +kubebuilder:validation:Enum="Bridge";"Private";"VEPA";"Passthru"
 	// +kubebuilder:default:="Bridge"
 	Mode MacvlanMode `json:"mode" protobuf:"bytes,1,opt,name=mode,casttype=MacvlanMode"`
@@ -178,8 +178,8 @@ type MacvlanConfig struct {
 // EgressRouterAddress contains a pair of IP CIDR and gateway to be configured on the router's interface
 // +kubebuilder:validation:Required
 type EgressRouterAddress struct {
-	// IP is the address to configure on the router's interface. Can be IPv4 or IPv6.
-	// +kubebuilder:validation:Required
+	// ip is the address to configure on the router's interface. Can be IPv4 or IPv6.
+	// +required
 	IP string `json:"ip" protobuf:"bytes,1,opt,name=ip"`
 	// IP address of the next-hop gateway, if it cannot be automatically determined. Can be IPv4 or IPv6.
 	Gateway string `json:"gateway,omitempty" protobuf:"bytes,2,opt,name=gateway"`
@@ -219,28 +219,25 @@ const (
 // managed and monitored components.
 // +k8s:deepcopy-gen=true
 type EgressRouterStatusCondition struct {
-	// Type specifies the aspect reported by this condition; one of Available, Progressing, Degraded
-	// +kubebuilder:validation:Required
+	// type specifies the aspect reported by this condition; one of Available, Progressing, Degraded
 	// +kubebuilder:validation:Enum="Available";"Progressing";"Degraded"
 	// +required
 	Type EgressRouterStatusConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=EgressRouterStatusConditionType"`
 
-	// Status of the condition, one of True, False, Unknown.
-	// +kubebuilder:validation:Required
+	// status of the condition, one of True, False, Unknown.
 	// +kubebuilder:validation:Enum="True";"False";"Unknown"
 	// +required
 	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
 
-	// LastTransitionTime is the time of the last update to the current status property.
-	// +kubebuilder:validation:Required
+	// lastTransitionTime is the time of the last update to the current status property.
 	// +required
 	// +nullable
 	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 
-	// Reason is the CamelCase reason for the condition's current status.
+	// reason is the CamelCase reason for the condition's current status.
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 
-	// Message provides additional information about the current condition.
+	// message provides additional information about the current condition.
 	// This is only to be consumed by humans.  It may contain Line Feed
 	// characters (U+000A), which should be rendered as new lines.
 	Message string `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
@@ -249,7 +246,7 @@ type EgressRouterStatusCondition struct {
 // EgressRouterStatus contains the observed status of EgressRouter. Read-only.
 type EgressRouterStatus struct {
 	// Observed status of the egress router
-	// +kubebuilder:validation:Required
+	// +required
 	Conditions []EgressRouterStatusCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
 }
 

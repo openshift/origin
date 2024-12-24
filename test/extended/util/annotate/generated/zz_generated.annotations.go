@@ -1153,6 +1153,8 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to \"\" [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-etcd][apigroup:config.openshift.io] Ensure etcd health and quorum in HighlyAvailableArbiterMode Should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
 	"[sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
@@ -1712,6 +1714,16 @@ var Annotations = map[string]string{
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads with limits should have resources modified if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet placement in an Arbiter-node environment Should create a DaemonSet on the Arbiter node as expected": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] Validate cluster infrastructure in HighlyAvailableArbiterMode Should validate infrastructure is HighlyAvailableArbiter": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] deployment scheduling across non-Arbiter and Arbiter nodes Should create deployment on Arbiter and non-Arbiter nodes as expected": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] expected Master and Arbiter node counts Should validate that there are 2 Master nodes and 1 Arbiter node": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] required pods on the Arbiter node Should verify that the correct number of pods are running on the Arbiter node": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed": " [Suite:openshift/conformance/parallel]",
 
