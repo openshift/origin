@@ -137,7 +137,8 @@ consoleplugins.console.openshift.io:
   CRDName: consoleplugins.console.openshift.io
   Capability: Console
   Category: ""
-  FeatureGates: []
+  FeatureGates:
+  - ConsolePluginContentSecurityPolicy
   FilenameOperatorName: ""
   FilenameOperatorOrdering: "90"
   FilenameRunLevel: ""
