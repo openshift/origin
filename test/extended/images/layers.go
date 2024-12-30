@@ -24,6 +24,26 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
+func verifyLayerData(layers *imagev1.ImageStreamLayers, name string) imagev1.ImageBlobReferences {
+	l, ok := layers.Images[name]
+	o.Expect(ok).To(o.BeTrue())
+	if l.ImageMissing {
+		e2e.Logf("Image %s is missing, retry", name)
+		return l
+	}
+	o.Expect(len(l.Layers)).To(o.BeNumerically(">", 0))
+	o.Expect(l.Config).ToNot(o.BeNil())
+	o.Expect(layers.Blobs[*l.Config]).ToNot(o.BeNil())
+	o.Expect(layers.Blobs[*l.Config].MediaType).To(o.Equal("application/vnd.docker.container.image.v1+json"))
+	for _, layerID := range l.Layers {
+		o.Expect(layers.Blobs).To(o.HaveKey(layerID))
+		o.Expect(layers.Blobs[layerID].MediaType).NotTo(o.BeEmpty())
+	}
+	o.Expect(layers.Blobs).To(o.HaveKey(name))
+	o.Expect(layers.Blobs[name].MediaType).To(o.Equal("application/vnd.docker.distribution.manifest.v2+json"))
+	return l
+}
+
 var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subresource", func() {
 	defer g.GinkgoRecover()
 	var oc *exutil.CLI
@@ -107,30 +127,29 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 
 		// TODO: we may race here with the cache, if this is a problem, loop
 		g.By("verifying that layers for imported images are correct")
-		var busyboxLayers []string
+		var busyboxImage imagev1.ImageImportStatus
 	Retry:
 		for i := 0; ; i++ {
 			layers, err := client.ImageStreams(oc.Namespace()).Layers(ctx, "1", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
+			var l imagev1.ImageBlobReferences
 			for i, image := range isi.Status.Images {
-				l, ok := layers.Images[image.Image.Name]
-				o.Expect(ok).To(o.BeTrue())
+				// check if the image is manifestlisted - if so, verify layer data for each manifest.
+				if len(image.Manifests) > 0 {
+					for _, submanifest := range image.Manifests {
+						l = verifyLayerData(layers, submanifest.Name)
+						if l.ImageMissing {
+							break
+						}
+					}
+				} else {
+					l = verifyLayerData(layers, image.Image.Name)
+				}
 				if l.ImageMissing {
-					e2e.Logf("Image %s is missing, retry", image.Image.Name)
 					continue
 				}
-				o.Expect(len(l.Layers)).To(o.BeNumerically(">", 0))
-				o.Expect(l.Config).ToNot(o.BeNil())
-				o.Expect(layers.Blobs[*l.Config]).ToNot(o.BeNil())
-				o.Expect(layers.Blobs[*l.Config].MediaType).To(o.Equal("application/vnd.docker.container.image.v1+json"))
-				for _, layerID := range l.Layers {
-					o.Expect(layers.Blobs).To(o.HaveKey(layerID))
-					o.Expect(layers.Blobs[layerID].MediaType).NotTo(o.BeEmpty())
-				}
-				o.Expect(layers.Blobs).To(o.HaveKey(image.Image.Name))
-				o.Expect(layers.Blobs[image.Image.Name].MediaType).To(o.Equal("application/vnd.docker.distribution.manifest.v2+json"))
 				if i == 0 {
-					busyboxLayers = l.Layers
+					busyboxImage = image
 					break Retry
 				}
 			}
@@ -208,9 +227,35 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 		o.Expect(to).NotTo(o.BeNil())
 		o.Expect(layers.Images).To(o.HaveKey(to.ImageDigest))
 		builtImageLayers := layers.Images[to.ImageDigest]
-		o.Expect(len(builtImageLayers.Layers)).To(o.Equal(len(busyboxLayers)+1), fmt.Sprintf("%#v", layers.Images))
-		for i := range busyboxLayers {
-			o.Expect(busyboxLayers[i]).To(o.Equal(builtImageLayers.Layers[i]))
+		busyboxlayers, err := client.ImageStreams(oc.Namespace()).Layers(ctx, "1", metav1.GetOptions{})
+		var isEqual bool
+		// if the image is a manifestlist compare each individual sub manifest image to the built image to determine
+		// which architecture image layers match
+		if len(busyboxImage.Manifests) > 0 {
+			for _, image := range busyboxImage.Manifests {
+				l, ok := busyboxlayers.Images[image.Name]
+				o.Expect(ok).To(o.BeTrue())
+				busyboxLayers := l.Layers
+				isEqual = true
+				for i := range busyboxLayers {
+					if busyboxLayers[i] == builtImageLayers.Layers[i] {
+						continue
+					}
+					isEqual = false
+				}
+				if isEqual {
+					break
+				}
+			}
+			o.Expect(isEqual).To(o.BeTrue())
+		} else {
+			l, ok := busyboxlayers.Images[busyboxImage.Image.Name]
+			o.Expect(ok).To(o.BeTrue())
+			busyboxLayers := l.Layers
+			o.Expect(len(builtImageLayers.Layers)).To(o.Equal(len(busyboxLayers)+1), fmt.Sprintf("%#v", layers.Images))
+			for i := range busyboxLayers {
+				o.Expect(busyboxLayers[i]).To(o.Equal(builtImageLayers.Layers[i]))
+			}
 		}
 
 		g.By("tagging the built image into another namespace")
