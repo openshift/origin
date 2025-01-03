@@ -89,25 +89,28 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 		}
 	}
 	for nodeName, nodeMoves := range vipMoves {
+		first := true
 		for _, move := range nodeMoves {
 			if move.Message.Reason == monitorapi.OnPremLBTookVIP {
+				first = false
 				// Create an interval to the end time. If we lose the VIP we'll shorten it later.
 				locator := monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{monitorapi.LocatorOnPremVIPMonitorKey: nodeName}}
 				message := monitorapi.NewMessage().Reason(monitorapi.OnPremLBTookVIP).
 					Constructed(monitorapi.ConstructionOwnerOnPremKeepalived).
 					HumanMessage(fmt.Sprintf("Node %s took the VIP", nodeName))
 				constructedIntervals = append(constructedIntervals,
-					monitorapi.NewInterval(monitorapi.SourceHaproxyMonitor, monitorapi.Info).
+					monitorapi.NewInterval(monitorapi.SourceKeepalivedMonitor, monitorapi.Info).
 						Locator(locator).
 						Message(message).
 						Display().
 						Build(move.From, end),
 				)
 			} else if move.Message.Reason == monitorapi.OnPremLBLostVIP {
-				// If we enter backup state without previously holding the VIP then we just started and there is no interval to create
-				if constructedIntervals.Len() > 0 {
+				// Ignore the first message if it's lost since we didn't hold the VIP anyway. This is normal behavior because keepalived starts in the backup state.
+				if !first {
 					constructedIntervals[constructedIntervals.Len()-1].To = move.From
 				}
+				first = false
 			}
 		}
 	}
