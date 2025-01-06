@@ -9,6 +9,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
+	"sort"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -89,16 +90,22 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 		}
 	}
 	for nodeName, nodeMoves := range vipMoves {
-		first := true
+		tookVip := false
+		// Working directly on constructedIntervals can result in some difficult to debug issues. Using a node-specific list avoids any bleedover.
+		localIntervals := monitorapi.Intervals{}
+		// Ensure that events are always sorted so Took comes before Lost with equal timestamps.
+		sort.Slice(nodeMoves, func(i, j int) bool {
+			return nodeMoves[j].From.After(nodeMoves[i].From) || (nodeMoves[i].From.Equal(nodeMoves[j].From) && nodeMoves[i].Message.Reason == monitorapi.OnPremLBTookVIP)
+		})
 		for _, move := range nodeMoves {
 			if move.Message.Reason == monitorapi.OnPremLBTookVIP {
-				first = false
+				tookVip = true
 				// Create an interval to the end time. If we lose the VIP we'll shorten it later.
 				locator := monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{monitorapi.LocatorOnPremVIPMonitorKey: nodeName}}
 				message := monitorapi.NewMessage().Reason(monitorapi.OnPremLBTookVIP).
 					Constructed(monitorapi.ConstructionOwnerOnPremKeepalived).
 					HumanMessage(fmt.Sprintf("Node %s took the VIP", nodeName))
-				constructedIntervals = append(constructedIntervals,
+				localIntervals = append(localIntervals,
 					monitorapi.NewInterval(monitorapi.SourceKeepalivedMonitor, monitorapi.Info).
 						Locator(locator).
 						Message(message).
@@ -106,13 +113,14 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 						Build(move.From, end),
 				)
 			} else if move.Message.Reason == monitorapi.OnPremLBLostVIP {
-				// Ignore the first message if it's lost since we didn't hold the VIP anyway. This is normal behavior because keepalived starts in the backup state.
-				if !first {
-					constructedIntervals[constructedIntervals.Len()-1].To = move.From
+				// Ignore any Lost messages if we didn't previously have a Took message. This is normal behavior at startup since keepalived starts in the backup state.
+				if tookVip {
+					localIntervals[localIntervals.Len()-1].To = move.From
 				}
-				first = false
+				tookVip = false
 			}
 		}
+		constructedIntervals = append(constructedIntervals, localIntervals...)
 	}
 	return constructedIntervals, nil
 }
