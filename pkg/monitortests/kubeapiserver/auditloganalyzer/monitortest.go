@@ -256,6 +256,40 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 
 	}
 
+	testName := `[Jira:"kube-apiserver"] API resources are not updated excessively`
+	flakes := []string{}
+	for resource, applies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
+		if applies.numberOfApplies < 200 {
+			continue
+		}
+		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())
+		flakes = append(flakes, errorMessage)
+	}
+	switch {
+	case len(flakes) > 1:
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(flakes, "\n"),
+					Output:  "details in audit log",
+				},
+			},
+		)
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
+
+	default:
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
+	}
+
 	for verb, namespacesToUserToNumberOf422s := range w.invalidRequestsChecker.verbToNamespacesTouserToNumberOf422s {
 		for _, namespace := range allPlatformNamespaces {
 			testName := fmt.Sprintf("users in ns/%s must not produce too many invalid %q requests", namespace, verb)
@@ -346,7 +380,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		}
 	}
 
-	testName := "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+	testName = "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
 	switch {
 	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
 		ret = append(ret,
