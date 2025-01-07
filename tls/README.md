@@ -184,6 +184,15 @@ Apart from reports the registry is checked for requirement violations.
   that don't have ownership annotation set. This file is meant to be "remove-only", meaning adding 
   new entries is prohibited. This is enforced by using a separate `OWNERS` file for this directory and an e2e test (see below).
 
+## Updating TLS registry
+
+In order to include unregistered TLS artifact or update certificate metadata fresh raw TLS info 
+needs to be placed in origin's `tls/raw-data`. Raw TLS info can be obtained from test artifacts, 
+usually at `openshift-e2e-test/artifacts/rawTLSInfo`. This generated JSON file contains unfiltered 
+certificate data, so in order to validate it and build reports it needs to be processed by `make update` 
+command. The generated files should be committed in `origin` and a new PR updating TLS registry 
+should be created.
+
 ## Adding a new requirement
 
 Reports and violations mechanisms can be extended to add new requirements. To add a new 
