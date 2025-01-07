@@ -188,10 +188,14 @@ Apart from reports the registry is checked for requirement violations.
 
 In order to include unregistered TLS artifact or update certificate metadata fresh raw TLS info 
 needs to be placed in origin's `tls/raw-data`. Raw TLS info can be obtained from test artifacts, 
-usually at `openshift-e2e-test/artifacts/rawTLSInfo`. This generated JSON file contains unfiltered 
-certificate data, so in order to validate it and build reports it needs to be processed by `make update` 
-command. The generated files should be committed in `origin` and a new PR updating TLS registry 
-should be created.
+usually at `openshift-e2e-test/artifacts/rawTLSInfo` directory of test artifacts. This test file 
+should be committed alongside existing file if a new TLS artifact is being added. In order to keep 
+the registry consistent files should be replaced when metadata is being changed (i.e. description 
+is updated).
+
+This generated JSON file contains unfiltered certificate data, so in order to validate it and 
+build reports it needs to be processed by `make update` command. The generated files should be 
+committed in `origin` and a new PR updating TLS registry should be created.
 
 ## Adding a new requirement
 
