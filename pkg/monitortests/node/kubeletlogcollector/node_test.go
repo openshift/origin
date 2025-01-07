@@ -45,8 +45,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
-				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
+				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.857303", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.857303", time.Now().Year()),
 			},
 		},
 		{
@@ -73,8 +73,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
-				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
+				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.853216", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.853216", time.Now().Year()),
 			},
 		},
 		{
@@ -99,8 +99,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
-				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
+				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.853216", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.853216", time.Now().Year()),
 			},
 		},
 		{
@@ -124,8 +124,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-				To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+				From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 			},
 		},
 		{
@@ -149,8 +149,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Jun 29 05:16:54.197389"),
-				To:   utility.SystemdJournalLogTime("Jun 29 05:16:55.197389"),
+				From: utility.SystemdJournalLogTime("Jun 29 05:16:54.197389", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Jun 29 05:16:55.197389", time.Now().Year()),
 			},
 		},
 		{
@@ -174,8 +174,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Jun 29 05:16:54.197389"),
-				To:   utility.SystemdJournalLogTime("Jun 29 05:16:55.197389"),
+				From: utility.SystemdJournalLogTime("Jun 29 05:16:54.197389", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Jun 29 05:16:55.197389", time.Now().Year()),
 			},
 		},
 		{
@@ -203,8 +203,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Jul 05 17:47:52.807876"),
-				To:   utility.SystemdJournalLogTime("Jul 05 17:47:52.807876"),
+				From: utility.SystemdJournalLogTime("Jul 05 17:47:52.807876", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Jul 05 17:47:52.807876", time.Now().Year()),
 			},
 		},
 		{
@@ -232,8 +232,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Jul 05 17:43:12.908344"),
-				To:   utility.SystemdJournalLogTime("Jul 05 17:43:12.908344"),
+				From: utility.SystemdJournalLogTime("Jul 05 17:43:12.908344", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Jul 05 17:43:12.908344", time.Now().Year()),
 			},
 		},
 		{
@@ -263,8 +263,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Feb 01 05:37:45.731611"),
-				To:   utility.SystemdJournalLogTime("Feb 01 05:37:45.731611"),
+				From: utility.SystemdJournalLogTime("Feb 01 05:37:45.731611", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Feb 01 05:37:45.731611", time.Now().Year()),
 			},
 		},
 		{
@@ -287,8 +287,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						Annotations:  map[monitorapi.AnnotationKey]string{},
 					},
 				},
-				From: utility.SystemdJournalLogTime("Apr 12 11:49:49.188086"),
-				To:   utility.SystemdJournalLogTime("Apr 12 11:49:50.188086"),
+				From: utility.SystemdJournalLogTime("Apr 12 11:49:49.188086", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Apr 12 11:49:50.188086", time.Now().Year()),
 			},
 		},
 	}
@@ -515,7 +515,7 @@ func Test_messageTime(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := utility.SystemdJournalLogTime(tt.args.logLine); !reflect.DeepEqual(got, tt.want) {
+			if got := utility.SystemdJournalLogTime(tt.args.logLine, time.Now().Year()); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("utility.SystemdJournalLogTime() = %v, want %v", got, tt.want)
 			}
 		})
@@ -612,8 +612,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
-					To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
+					From: utility.SystemdJournalLogTime("Sep 27 08:59:59.857303", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.857303", time.Now().Year()),
 				},
 			},
 			want: monitorapi.Intervals(nil),
@@ -638,8 +638,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 			},
 			want: monitorapi.Intervals(nil),
@@ -664,8 +664,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -684,8 +684,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -704,8 +704,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983", time.Now().Year()),
 				},
 			},
 			want: monitorapi.Intervals{
@@ -726,8 +726,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 			},
 		},
@@ -751,8 +751,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -771,8 +771,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -791,8 +791,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -811,8 +811,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -831,8 +831,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:17.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:17.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:18.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -851,8 +851,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983", time.Now().Year()),
 				},
 			},
 			want: monitorapi.Intervals{
@@ -873,8 +873,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -893,8 +893,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983", time.Now().Year()),
 				},
 			},
 		},
@@ -918,8 +918,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -938,8 +938,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983", time.Now().Year()),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -958,8 +958,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983", time.Now().Year()),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983", time.Now().Year()),
 				},
 			},
 			want: monitorapi.Intervals(nil),
