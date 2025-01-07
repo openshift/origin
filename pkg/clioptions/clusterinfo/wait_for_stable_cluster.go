@@ -92,7 +92,7 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 	}
 
 	interval := 10 * time.Second
-	timeout := 10 * time.Minute
+	timeout := 15 * time.Minute
 	minimumStablePeriod := 3 * time.Minute
 	recoveredOperators := map[string]string{}
 	unstableOperators := map[string]string{}
