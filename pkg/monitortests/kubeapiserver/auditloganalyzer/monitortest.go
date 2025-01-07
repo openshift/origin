@@ -256,6 +256,28 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 
 	}
 
+	for resource, numberOfApplies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
+		if numberOfApplies < 200 {
+			continue
+		}
+		testName := fmt.Sprintf("resource %s has been updated too often", resource)
+		errorMessage := fmt.Sprintf("resource %s had %d applies, check the audit log and operator log to figure out why", resource, numberOfApplies)
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: errorMessage,
+					Output:  "details in audit log",
+				},
+			},
+		)
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
+	}
+
 	for verb, namespacesToUserToNumberOf422s := range w.invalidRequestsChecker.verbToNamespacesTouserToNumberOf422s {
 		for _, namespace := range allPlatformNamespaces {
 			testName := fmt.Sprintf("users in ns/%s must not produce too many invalid %q requests", namespace, verb)

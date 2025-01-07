@@ -1,21 +1,25 @@
 package auditloganalyzer
 
 import (
+	"fmt"
+	"strings"
+	"sync"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"strings"
-	"sync"
 )
 
 type excessiveApplies struct {
 	lock                              sync.Mutex
 	namespacesToUserToNumberOfApplies map[string]map[string]int
+	resourcesToNumberOfApplies        map[string]int
 }
 
 func CheckForExcessiveApplies() *excessiveApplies {
 	return &excessiveApplies{
 		namespacesToUserToNumberOfApplies: map[string]map[string]int{},
+		resourcesToNumberOfApplies:        map[string]int{},
 	}
 }
 
@@ -43,4 +47,22 @@ func (s *excessiveApplies) HandleAuditLogEvent(auditEvent *auditv1.Event, beginn
 	}
 	users[auditEvent.User.Username] = users[auditEvent.User.Username] + 1
 	s.namespacesToUserToNumberOfApplies[nsName] = users
+
+	obj := auditEvent.ObjectRef
+	if obj == nil {
+		return
+	}
+	resource := fmt.Sprintf("%s/%s", obj.Resource, obj.Name)
+	if obj.Namespace != "" {
+		resource = fmt.Sprintf("%s -n %s", resource, obj.Namespace)
+	}
+	if obj.APIGroup != "" {
+		resource = fmt.Sprintf("%s.%s", obj.APIGroup, resource)
+	}
+	objApplies, ok := s.resourcesToNumberOfApplies[resource]
+	if !ok {
+		objApplies = 0
+	}
+	objApplies++
+	s.resourcesToNumberOfApplies[resource] = objApplies
 }
