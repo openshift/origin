@@ -32,7 +32,6 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 			userDefinedNetworkIPv4Subnet = "203.203.0.0/16"
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			port                         = 9000
-			netPrefixLengthPerNode       = 24
 			randomStringLength           = 5
 			nameSpaceYellowSuffix        = "yellow"
 			namespaceBlueSuffix          = "blue"
@@ -120,8 +119,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 							i,
 						)
 						gomega.Expect(err).NotTo(gomega.HaveOccurred())
-						const netPrefixLengthPerNode = 24
-						ginkgo.By(fmt.Sprintf("asserting the server pod IP %v is from the configured range %v/%v", serverIP, cidr, netPrefixLengthPerNode))
+						ginkgo.By(fmt.Sprintf("asserting the server pod IP %v is from the configured range %v", serverIP, cidr))
 						subnet, err := getNetCIDRSubnet(cidr)
 						gomega.Expect(err).NotTo(gomega.HaveOccurred())
 						gomega.Expect(inRange(subnet, serverIP)).To(gomega.Succeed())
@@ -226,21 +224,23 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 				})
 
 				ginkgo.By("asserting the server pods have an IP from the configured range")
-				allowServerPodIP, err := podIPsForUserDefinedPrimaryNetwork(cs, namespaceYellow, allowServerPodConfig.name,
-					namespacedName(namespaceYellow, netConfName), 0)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				ginkgo.By(fmt.Sprintf("asserting the allow server pod IP %v is from the configured range %v/%v", allowServerPodIP,
-					userDefinedNetworkIPv4Subnet, netPrefixLengthPerNode))
-				subnet, err := getNetCIDRSubnet(userDefinedNetworkIPv4Subnet)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(inRange(subnet, allowServerPodIP)).To(gomega.Succeed())
-				denyServerPodIP, err := podIPsForUserDefinedPrimaryNetwork(cs, namespaceYellow, denyServerPodConfig.name,
-					namespacedName(namespaceYellow, netConfName), 0)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				ginkgo.By(fmt.Sprintf("asserting the deny server pod IP %v is from the configured range %v/%v", denyServerPodIP,
-					userDefinedNetworkIPv4Subnet, netPrefixLengthPerNode))
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(inRange(subnet, denyServerPodIP)).To(gomega.Succeed())
+				var allowServerPodIP, denyServerPodIP string
+				for i, cidr := range strings.Split(nad.cidr, ",") {
+					if cidr != "" {
+						subnet, err := getNetCIDRSubnet(cidr)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred())
+						allowServerPodIP, err = podIPsForUserDefinedPrimaryNetwork(cs, namespaceYellow, allowServerPodConfig.name,
+							namespacedName(namespaceYellow, netConfName), i)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred())
+						ginkgo.By(fmt.Sprintf("asserting the allow server pod IP %v is from the configured range %v", allowServerPodIP, cidr))
+						gomega.Expect(inRange(subnet, allowServerPodIP)).To(gomega.Succeed())
+						denyServerPodIP, err = podIPsForUserDefinedPrimaryNetwork(cs, namespaceYellow, denyServerPodConfig.name,
+							namespacedName(namespaceYellow, netConfName), i)
+						gomega.Expect(err).NotTo(gomega.HaveOccurred())
+						ginkgo.By(fmt.Sprintf("asserting the deny server pod IP %v is from the configured range %v", denyServerPodIP, cidr))
+						gomega.Expect(inRange(subnet, denyServerPodIP)).To(gomega.Succeed())
+					}
+				}
 
 				ginkgo.By("asserting the *client* pod can contact the allow server pod exposed endpoint")
 				namespacePodShouldReach(oc, clientPodConfig.namespace, clientPodConfig.name, formatHostAndPort(net.ParseIP(allowServerPodIP), port))
