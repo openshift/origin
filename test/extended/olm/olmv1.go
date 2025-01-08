@@ -151,6 +151,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	var (
 		baseDir = exutil.FixturePath("testdata", "olmv1")
 		ceFile  = filepath.Join(baseDir, "install-operator.yaml")
+		ceName  string
 	)
 	oc := exutil.NewCLI("openshift-operator-controller")
 
@@ -158,6 +159,13 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 		exutil.PreTestDump()
 	})
 
+	g.JustAfterEach(func() {
+		if g.CurrentSpecReport().Failed() {
+			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", ceName, "-o=yaml").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.GetWriter().Println(output)
+		}
+	})
 	g.AfterEach(func() {
 		if g.CurrentSpecReport().Failed() {
 			exutil.DumpPodLogsStartingWith("", oc)
@@ -169,10 +177,11 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 
 		const (
 			packageName = "quay-operator"
-			version     = "3.13.0"
+			version     = "3.x"
 		)
+		var cleanup func()
 
-		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
+		cleanup, ceName = applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
@@ -197,8 +206,9 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			packageName = "does-not-exist"
 			version     = "99.99.99"
 		)
+		var cleanup func()
 
-		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
+		cleanup, ceName = applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to report failure")
@@ -223,8 +233,9 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			packageName = "elasticsearch-operator"
 			version     = "5.8.13"
 		)
+		var cleanup func()
 
-		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
+		cleanup, ceName = applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
