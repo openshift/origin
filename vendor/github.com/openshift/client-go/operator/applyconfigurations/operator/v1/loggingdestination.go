@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// LoggingDestinationApplyConfiguration represents an declarative configuration of the LoggingDestination type for use
+// LoggingDestinationApplyConfiguration represents a declarative configuration of the LoggingDestination type for use
 // with apply.
 type LoggingDestinationApplyConfiguration struct {
 	Type      *v1.LoggingDestinationType                               `json:"type,omitempty"`
@@ -14,7 +14,7 @@ type LoggingDestinationApplyConfiguration struct {
 	Container *ContainerLoggingDestinationParametersApplyConfiguration `json:"container,omitempty"`
 }
 
-// LoggingDestinationApplyConfiguration constructs an declarative configuration of the LoggingDestination type for use with
+// LoggingDestinationApplyConfiguration constructs a declarative configuration of the LoggingDestination type for use with
 // apply.
 func LoggingDestination() *LoggingDestinationApplyConfiguration {
 	return &LoggingDestinationApplyConfiguration{}

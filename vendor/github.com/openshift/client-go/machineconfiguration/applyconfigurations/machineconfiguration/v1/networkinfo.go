@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 )
 
-// NetworkInfoApplyConfiguration represents an declarative configuration of the NetworkInfo type for use
+// NetworkInfoApplyConfiguration represents a declarative configuration of the NetworkInfo type for use
 // with apply.
 type NetworkInfoApplyConfiguration struct {
 	MTUMigration *v1.MTUMigration `json:"mtuMigration,omitempty"`
 }
 
-// NetworkInfoApplyConfiguration constructs an declarative configuration of the NetworkInfo type for use with
+// NetworkInfoApplyConfiguration constructs a declarative configuration of the NetworkInfo type for use with
 // apply.
 func NetworkInfo() *NetworkInfoApplyConfiguration {
 	return &NetworkInfoApplyConfiguration{}

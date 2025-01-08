@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// RouteAdmissionPolicyApplyConfiguration represents an declarative configuration of the RouteAdmissionPolicy type for use
+// RouteAdmissionPolicyApplyConfiguration represents a declarative configuration of the RouteAdmissionPolicy type for use
 // with apply.
 type RouteAdmissionPolicyApplyConfiguration struct {
 	NamespaceOwnership *v1.NamespaceOwnershipCheck `json:"namespaceOwnership,omitempty"`
 	WildcardPolicy     *v1.WildcardPolicy          `json:"wildcardPolicy,omitempty"`
 }
 
-// RouteAdmissionPolicyApplyConfiguration constructs an declarative configuration of the RouteAdmissionPolicy type for use with
+// RouteAdmissionPolicyApplyConfiguration constructs a declarative configuration of the RouteAdmissionPolicy type for use with
 // apply.
 func RouteAdmissionPolicy() *RouteAdmissionPolicyApplyConfiguration {
 	return &RouteAdmissionPolicyApplyConfiguration{}

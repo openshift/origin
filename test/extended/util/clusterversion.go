@@ -11,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -74,9 +74,10 @@ func DetermineImageFromRelease(ctx context.Context, oc *CLI, imageTagName string
 	if len(releaseImage) == 0 {
 		return "", fmt.Errorf("cannot determine release image from ClusterVersion resource")
 	}
+	podName := "extract-release-imagerefs"
 	podClient := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
 	podClient.CreateSync(ctx, &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "extract-release-imagerefs"},
+		ObjectMeta: metav1.ObjectMeta{Name: podName},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
@@ -87,8 +88,15 @@ func DetermineImageFromRelease(ctx context.Context, oc *CLI, imageTagName string
 			},
 		},
 	})
-	defer podClient.Delete(ctx, "extract-release-imagerefs", metav1.DeleteOptions{})
-	imageRefsString := e2epod.ExecShellInContainer(oc.KubeFramework(), "extract-release-imagerefs", "imagerefs", "cat /release-manifests/image-references")
+	defer func() {
+		podClient.Delete(ctx, podName, metav1.DeleteOptions{})
+		err = e2epod.WaitForPodNotFoundInNamespace(ctx, oc.kubeFramework.ClientSet,
+			podName, oc.Namespace(), e2epod.PodDeleteTimeout)
+		if err != nil {
+			framework.Logf("pod %q is still found in namespace %q", podName, oc.Namespace())
+		}
+	}()
+	imageRefsString := e2epod.ExecShellInContainer(oc.KubeFramework(), podName, "imagerefs", "cat /release-manifests/image-references")
 	imageRefs := struct {
 		Spec struct {
 			Tags []struct {

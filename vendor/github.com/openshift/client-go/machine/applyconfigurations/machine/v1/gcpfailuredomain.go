@@ -2,13 +2,13 @@
 
 package v1
 
-// GCPFailureDomainApplyConfiguration represents an declarative configuration of the GCPFailureDomain type for use
+// GCPFailureDomainApplyConfiguration represents a declarative configuration of the GCPFailureDomain type for use
 // with apply.
 type GCPFailureDomainApplyConfiguration struct {
 	Zone *string `json:"zone,omitempty"`
 }
 
-// GCPFailureDomainApplyConfiguration constructs an declarative configuration of the GCPFailureDomain type for use with
+// GCPFailureDomainApplyConfiguration constructs a declarative configuration of the GCPFailureDomain type for use with
 // apply.
 func GCPFailureDomain() *GCPFailureDomainApplyConfiguration {
 	return &GCPFailureDomainApplyConfiguration{}

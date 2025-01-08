@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// DNSNodePlacementApplyConfiguration represents an declarative configuration of the DNSNodePlacement type for use
+// DNSNodePlacementApplyConfiguration represents a declarative configuration of the DNSNodePlacement type for use
 // with apply.
 type DNSNodePlacementApplyConfiguration struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 	Tolerations  []v1.Toleration   `json:"tolerations,omitempty"`
 }
 
-// DNSNodePlacementApplyConfiguration constructs an declarative configuration of the DNSNodePlacement type for use with
+// DNSNodePlacementApplyConfiguration constructs a declarative configuration of the DNSNodePlacement type for use with
 // apply.
 func DNSNodePlacement() *DNSNodePlacementApplyConfiguration {
 	return &DNSNodePlacementApplyConfiguration{}

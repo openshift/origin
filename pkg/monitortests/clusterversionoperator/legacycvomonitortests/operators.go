@@ -99,14 +99,44 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			return "", nil
 		}
 		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+			if operator == "cloud-controller-manager" && condition.Reason == "SyncingFailed" {
+				return "https://issues.redhat.com/browse/OCPBUGS-42837", nil
+			}
+			if operator == "cloud-credential" {
+				return "https://issues.redhat.com/browse/OCPBUGS-42872", nil
+			}
 			if operator == "dns" && condition.Reason == "DNSDegraded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38750", nil
 			}
-			if operator == "network" && condition.Reason == "ApplyOperatorConfig" {
+			if operator == "etcd" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
+			}
+			if operator == "ingress" && condition.Reason == "IngressDegraded" {
+				return "https://issues.redhat.com/browse/OCPBUGS-45921", nil
+			}
+			if operator == "kube-apiserver" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38661", nil
+			}
+			if operator == "kube-controller-manager" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38662", nil
+			}
+			if operator == "kube-scheduler" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38663", nil
+			}
+			if operator == "network" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38684", nil
 			}
-			if operator == "machine-config" && condition.Reason == "MachineConfigDaemonFailed" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38749", nil
+			if operator == "machine-config" {
+				return "https://issues.redhat.com/browse/MCO-1447", nil
+			}
+			if operator == "authentication" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38675", nil
+			}
+			if operator == "console" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38676", nil
+			}
+			if operator == "cluster-autoscaler" {
+				return "https://issues.redhat.com/browse/OCPBUGS-42875", nil
 			}
 			// flake this to collect more exceptions
 			return "https://issues.redhat.com/browse/TRT-1575", nil
@@ -244,6 +274,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return "", nil
 				}
+			case "monitoring":
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+					return "https://issues.redhat.com/browse/OCPBUGS-39026", nil
+				}
 			case "network":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					logrus.Infof("Operator %s is in Degraded=True state outside of upgrade window, but we will check for exceptions", operator)
@@ -253,7 +287,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			default:
 				// flake this to collect more exceptions
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/TRT-1575", nil
+					return "outside of upgrade window https://issues.redhat.com/browse/TRT-1575", nil
 				} else {
 					return "", nil
 				}
@@ -267,15 +301,32 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 
 		switch operator {
 		case "authentication":
-			if isSingleNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-38675", nil
 			} else if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
 			}
+		case "cluster-autoscaler":
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MissingDependency" {
+				return "https://issues.redhat.com/browse/OCPBUGS-42875", nil
+			}
+		case "cloud-controller-manager":
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
+				return "https://issues.redhat.com/browse/OCPBUGS-42837", nil
+			}
+		case "cloud-credential":
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue &&
+				(condition.Reason == "CredentialsFailing" ||
+					condition.Reason == "StaticResourceReconcileFailed") {
+				return "https://issues.redhat.com/browse/OCPBUGS-42872", nil
+			}
 		case "console":
-			if isSingleNode && condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-38676", nil
-			} else if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "RouteHealth_FailedGet" || condition.Reason == "RouteHealth_RouteNotAdmitted" || condition.Reason == "RouteHealth_StatusError") {
+			} else if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				(condition.Reason == "RouteHealth_FailedGet" ||
+					condition.Reason == "RouteHealth_RouteNotAdmitted" ||
+					condition.Reason == "RouteHealth_StatusError") {
 				return "https://issues.redhat.com/browse/OCPBUGS-24041", nil
 			}
 		case "control-plane-machine-set":
@@ -290,6 +341,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-20062", nil
 			}
+		case "machine-api":
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "SyncingFailed" {
+				return "https://issues.redhat.com/browse/OCPBUGS-44332", nil
+			}
 		case "machine-config":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "MachineConfigControllerFailed" && strings.Contains(condition.Message, "notAfter: Required value") {
 				return "https://issues.redhat.com/browse/OCPBUGS-22364", nil
@@ -297,26 +352,42 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && strings.Contains(condition.Message, "missing HTTP content-type") {
 				return "https://issues.redhat.com/browse/OCPBUGS-24228", nil
 			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MachineConfigDaemonFailed" {
-				return "https://issues.redhat.com/browse/OCPBUGS-39199", nil
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+				return "https://issues.redhat.com/browse/MCO-1447", nil
 			}
 		case "monitoring":
-			if condition.Type == configv1.OperatorAvailable && (condition.Status == configv1.ConditionFalse && (condition.Reason == "PlatformTasksFailed" || condition.Reason == "UpdatingAlertmanagerFailed" || condition.Reason == "UpdatingConsolePluginComponentsFailed" || condition.Reason == "UpdatingPrometheusK8SFailed" || condition.Reason == "UpdatingPrometheusOperatorFailed")) || (condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
+			if condition.Type == configv1.OperatorAvailable &&
+				(condition.Status == configv1.ConditionFalse &&
+					(condition.Reason == "PlatformTasksFailed" ||
+						condition.Reason == "UpdatingAlertmanagerFailed" ||
+						condition.Reason == "UpdatingConsolePluginComponentsFailed" ||
+						condition.Reason == "UpdatingPrometheusK8SFailed" ||
+						condition.Reason == "UpdatingPrometheusOperatorFailed")) ||
+				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
 			}
-			if condition.Type == configv1.OperatorDegraded && (condition.Status == configv1.ConditionTrue && condition.Reason == "UpdatingPrometheusFailed") {
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-39026", nil
 			}
 		case "openshift-apiserver":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_Error") {
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+				(condition.Reason == "APIServerDeployment_NoDeployment" ||
+					condition.Reason == "APIServerDeployment_NoPod" ||
+					condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" ||
+					condition.Reason == "APIServerDeployment_UnavailablePod" ||
+					condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746", nil
+			}
+		case "openshift-controller-manager":
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && (condition.Reason == "OpenshiftControllerManagerStaticResources_SyncError") {
+				return "https://issues.redhat.com/browse/OCPBUGS-42870", nil
 			}
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
 			}
 		case "image-registry":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "ProgressDeadlineExceeded" {
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && (condition.Reason == "NodeCADaemonControllerError" || condition.Reason == "ProgressDeadlineExceeded") {
 				return "https://issues.redhat.com/browse/OCPBUGS-38667", nil
 			}
 			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
@@ -329,38 +400,11 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-38666", nil
 			}
 		case "etcd":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdCertSignerController_Error::EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::NodeController_MasterNodesReady::TargetConfigController_SynchronizationError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdCertSignerController_Error::EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::TargetConfigController_SynchronizationError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdCertSignerController_Error::EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembersController_ErrorUpdatingReportEtcdMembers::EtcdMembers_UnhealthyMembers::TargetConfigController_SynchronizationError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::TargetConfigController_SynchronizationError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdCertSignerController_Error::EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::NodeController_MasterNodesReady::StaticPods_Error::TargetConfigController_SynchronizationError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdCertSignerController_Error::EtcdEndpoints_ErrorUpdatingEtcdEndpoints::TargetConfigController_SynchronizationError" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "Unknown" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "EtcdMembers_UnhealthyMembers" {
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
 			}
 		case "network":
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "ApplyOperatorConfig" {
-				return "https://issues.redhat.com/browse/OCPBUGS-38668", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NoOperConfig" {
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-38668", nil
 			}
 		case "openshift-samples":
@@ -372,12 +416,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				if isSingleNode && condition.Reason == "NodeInstaller_InstallerPodFailed" {
 					return "https://issues.redhat.com/browse/OCPBUGS-38678", nil
 				}
-				if condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" {
-					return "https://issues.redhat.com/browse/OCPBUGS-38661", nil
-				}
-				if condition.Reason == "NodeController_MasterNodesReady" {
-					return "https://issues.redhat.com/browse/OCPBUGS-38661", nil
-				}
+				return "https://issues.redhat.com/browse/OCPBUGS-38661", nil
 			}
 		case "kube-controller-manager":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady" {
@@ -388,6 +427,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			}
 		case "kube-scheduler":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady" {
+				return "https://issues.redhat.com/browse/OCPBUGS-38663", nil
+			}
+			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "NodeController_MasterNodesReady::StaticPods_Error" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38663", nil
 			}
 		}

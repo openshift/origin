@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// MachineManagerSelectorApplyConfiguration represents an declarative configuration of the MachineManagerSelector type for use
+// MachineManagerSelectorApplyConfiguration represents a declarative configuration of the MachineManagerSelector type for use
 // with apply.
 type MachineManagerSelectorApplyConfiguration struct {
 	Mode    *v1.MachineManagerSelectorMode     `json:"mode,omitempty"`
 	Partial *PartialSelectorApplyConfiguration `json:"partial,omitempty"`
 }
 
-// MachineManagerSelectorApplyConfiguration constructs an declarative configuration of the MachineManagerSelector type for use with
+// MachineManagerSelectorApplyConfiguration constructs a declarative configuration of the MachineManagerSelector type for use with
 // apply.
 func MachineManagerSelector() *MachineManagerSelectorApplyConfiguration {
 	return &MachineManagerSelectorApplyConfiguration{}

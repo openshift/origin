@@ -2,14 +2,14 @@
 
 package v1
 
-// DeveloperConsoleCatalogCategoryApplyConfiguration represents an declarative configuration of the DeveloperConsoleCatalogCategory type for use
+// DeveloperConsoleCatalogCategoryApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogCategory type for use
 // with apply.
 type DeveloperConsoleCatalogCategoryApplyConfiguration struct {
 	DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:",inline"`
 	Subcategories                                         []DeveloperConsoleCatalogCategoryMetaApplyConfiguration `json:"subcategories,omitempty"`
 }
 
-// DeveloperConsoleCatalogCategoryApplyConfiguration constructs an declarative configuration of the DeveloperConsoleCatalogCategory type for use with
+// DeveloperConsoleCatalogCategoryApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogCategory type for use with
 // apply.
 func DeveloperConsoleCatalogCategory() *DeveloperConsoleCatalogCategoryApplyConfiguration {
 	return &DeveloperConsoleCatalogCategoryApplyConfiguration{}

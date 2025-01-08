@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigStorageSwiftApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageSwift type for use
+// ImageRegistryConfigStorageSwiftApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageSwift type for use
 // with apply.
 type ImageRegistryConfigStorageSwiftApplyConfiguration struct {
 	AuthURL     *string `json:"authURL,omitempty"`
@@ -15,7 +15,7 @@ type ImageRegistryConfigStorageSwiftApplyConfiguration struct {
 	RegionName  *string `json:"regionName,omitempty"`
 }
 
-// ImageRegistryConfigStorageSwiftApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageSwift type for use with
+// ImageRegistryConfigStorageSwiftApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageSwift type for use with
 // apply.
 func ImageRegistryConfigStorageSwift() *ImageRegistryConfigStorageSwiftApplyConfiguration {
 	return &ImageRegistryConfigStorageSwiftApplyConfiguration{}

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -27,7 +27,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/yaml"
@@ -111,10 +110,12 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"KubeControllerManagerMissingOnNode60Minutes",
 		"KubePersistentVolumeUsageCriticalCustomer",
 		"KubePersistentVolumeUsageCriticalLayeredProduct",
+		"MachineHealthCheckUnterminatedShortCircuitSRE",
 		"MetricsClientSendFailingSRE",
 		"MultipleVersionsOfEFSCSIDriverInstalled",
 		"OCMAgentResponseFailureServiceLogsSRE",
 		"ObservabilityOperatorBacklogNotDrained",
+		"PodDisruptionBudgetLimitSRE",
 		"PrometheusBadConfig",
 		"PrometheusErrorSendingAlertsToAnyAlertmanager",
 		"PrometheusRemoteStorageFailures",
@@ -130,6 +131,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"UpgradeControlPlaneUpgradeTimeoutSRE",
 		"UpgradeNodeDrainFailedSRE",
 		"UpgradeNodeUpgradeTimeoutSRE",
+		"UserWorkloadMonitoringErrorBudgetBurn",
 		"WorkerNodeFileDescriptorLimitSRE",
 		"WorkerNodeFilesystemAlmostOutOfFiles",
 		"WorkerNodeFilesystemSpaceFillingUp",
@@ -157,6 +159,23 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	alertsMissingValidSummaryOrDescription := sets.NewString(
 		// Repository: https://github.com/openshift/managed-cluster-config
 		// Issue: https://issues.redhat.com/browse/OSD-21709
+		"AdditionalTrustBundleCAExpiredNotificationSRE",
+		"AdditionalTrustBundleCAExpiringNotificationSRE",
+		"AdditionalTrustBundleCAInvalidNotificationSRE",
+		"AlertmanagerSilencesActiveSRE",
+		"APISchemeStatusFailing",
+		"APISchemeStatusUnavailable",
+		"CSRPendingLongDurationSRE",
+		"ClusterMonitoringErrorBudgetBurnSRE",
+		"ClusterProxyNetworkDegradedNotificationSRE",
+		"ConfigureAlertmanagerOperatorOfflineSRE",
+		"ControlPlaneLeaderElectionFailingSRE",
+		"ControlPlaneNodeFileDescriptorLimitSRE",
+		"ControlPlaneNodeFilesystemAlmostOutOfFiles",
+		"ControlPlaneNodeFilesystemSpaceFillingUp",
+		"ControlPlaneNodeUnschedulableSRE",
+		"ControlPlaneNodesNeedResizingSRE",
+		"CustomerWorkloadPreventingDrainSRE",
 		"EbsVolumeStuckAttaching10MinSRE",
 		"EbsVolumeStuckAttaching5MinSRE",
 		"EbsVolumeStuckDetaching10MinSRE",
@@ -188,15 +207,23 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"MetricsClientSendFailingSRE",
 		"MultipleDefaultStorageClassesNotificationSRE",
 		"MultipleVersionsOfEFSCSIDriverInstalled",
+		"NodeConditionDiskPressureNotificationSRE",
+		"NodeConditionMemoryPressureNotificationSRE",
+		"NodeConditionNetworkUnavailableNotificationSRE",
+		"NodeConditionPIDPressureNotificationSRE",
 		"NonSystemChangeValidatingWebhookConfigurationsNotificationSRE",
 		"OCMAgentOperatorPullSecretInvalidSRE",
 		"OCMAgentPullSecretInvalidSRE",
 		"OCMAgentResponseFailureServiceLogsSRE",
+		"OCMAgentServiceLogsSentExceedingLimit",
+		"PodDisruptionBudgetLimitSRE",
 		"PruningCronjobErrorSRE",
 		"RouterAvailabilityLT30PctSRE",
 		"RouterAvailabilityLT50PctSRE",
 		"RunawaySDNPreventingContainerCreationSRE",
 		"SLAUptimeSRE",
+		"SplunkForwarderComponentUnhealthy",
+		"UserWorkloadMonitoringErrorBudgetBurn",
 		"VeleroDailyFullBackupMissed",
 		"VeleroHourlyObjectBackupsMissedConsecutively",
 		"VeleroWeeklyFullBackupMissed",
@@ -384,12 +411,22 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// we only consider series sent since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
+		isManagedServiceCluster, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
+		// rule contains the count of the all the series that are sent via telemetry. It is permissible
+		// for some scenarios to generate more series than 760, we just want the basic state to be below
+		// a threshold.
+		var averageSeriesLimit int
+		switch {
+		case isManagedServiceCluster:
+			averageSeriesLimit = 850
+		default:
+			averageSeriesLimit = 760
+		}
+
 		tests := map[string]bool{
-			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
-			// rule contains the count of the all the series that are sent via telemetry. It is permissible
-			// for some scenarios to generate more series than 760, we just want the basic state to be below
-			// a threshold.
-			//
 			// The following query can be executed against the telemetry server
 			// to reevaluate the threshold value (replace the matcher on the version label accordingly):
 			//
@@ -402,10 +439,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			//     )[30m:1m]
 			//   )
 			// )
-			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 760`, testDuration):  false,
-			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
+			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= %d`, testDuration, averageSeriesLimit): false,
+			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration):                   false,
 		}
-		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+		err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
@@ -416,8 +453,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 	defer g.GinkgoRecover()
 	ctx := context.TODO()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
-
+		oc                                                                  = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
 		queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string
 	)
 
@@ -467,7 +503,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			e2e.Logf("Telemetry is enabled: %s", bearerToken)
+			e2e.Logf("Telemetry is enabled")
 
 			if err != nil {
 				// Making the test flaky until monitoring team fixes the rate limit issue.
@@ -485,7 +521,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
+				results, err := helper.GetBearerTokenURLViaPod(oc, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -589,6 +625,24 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				"crio":           true,
 				"ovnkube-master": true,
 				"ovnkube-node":   true,
+
+				// Managed services OSD-26070
+				"managed-node-metadata-operator-metrics-service": true,
+				"managed-upgrade-operator-custom-metrics":        true,
+				"managed-upgrade-operator-metrics":               true,
+				"configure-alertmanager-operator":                true,
+				"must-gather-operator":                           true,
+				"ocm-agent-metrics":                              true,
+				"ocm-agent-operator":                             true,
+				"osd-metrics-exporter":                           true,
+				"package-operator-metrics":                       true,
+				"rbac-permissions-operator":                      true,
+				"blackbox-exporter":                              true,
+				"splunk-forwarder":                               true,
+				"validation-webhook-metrics":                     true,
+				"cloud-ingress-operator":                         true,
+				"managed-velero-operator-metrics":                true,
+				"velero-metrics":                                 true,
 			}
 
 			pattern := regexp.MustCompile("^https://.*")
@@ -668,12 +722,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
 			// Copy so we can expand:
-			allowedAlertNames := make([]string, len(allowedalerts2.AllowedAlertNames))
-			copy(allowedAlertNames, allowedalerts2.AllowedAlertNames)
+			allowedAlertNames := make([]string, len(allowedalerts.AllowedAlertNames))
+			copy(allowedAlertNames, allowedalerts.AllowedAlertNames)
 
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			// we exclude alerts that have their own separate tests.
-			for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts2.DefaultAllowances) {
+			for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts.DefaultAllowances) {
 				allowedAlertNames = append(allowedAlertNames, alertTest.AlertName())
 			}
 
@@ -684,11 +738,21 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				allowedAlertNames = append(allowedAlertNames, "TechPreviewNoUpgrade", "ClusterNotUpgradeable")
 			}
 
+			// OSD-26887: managed services taints several nodes as infrastructure.  This taint appears to be applied
+			// after some of the platform DS are scheduled there, causing this alert to fire.  Managed services
+			// rebalances the DS after the taint is added, and the alert clears, but origin fails this test. Allowing
+			// this alert to fire while we investigate why the taint is not added at node birth.
+			isManagedService, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isManagedService {
+				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetMisScheduled")
+			}
+
 			tests := map[string]bool{
 				// openshift-e2e-loki alerts should never fail this test, we've seen this happen on daemon set rollout stuck when CI loki was down.
 				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info",namespace!="openshift-e2e-loki"} >= 1`, strings.Join(allowedAlertNames, "|")): false,
 			}
-			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -871,15 +935,6 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 		}
 	}
 	return result
-}
-
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	return output, nil
 }
 
 // telemetryIsEnabled returns (nil, nil) if Telemetry is enabled,

@@ -46,6 +46,7 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
+// test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
 // test/extended/testdata/builds/build-postcommit/docker.yaml
 // test/extended/testdata/builds/build-postcommit/imagestreams.yaml
@@ -155,18 +156,11 @@
 // test/extended/testdata/builds/valuefrom/test-is.json
 // test/extended/testdata/builds/valuefrom/test-secret.yaml
 // test/extended/testdata/builds/volumes/configmap.yaml
-// test/extended/testdata/builds/volumes/csi-docker-buildconfig.yaml
-// test/extended/testdata/builds/volumes/csi-s2i-buildconfig.yaml
-// test/extended/testdata/builds/volumes/csi-sharedresourcerole.yaml
-// test/extended/testdata/builds/volumes/csi-sharedresourcerolebinding.yaml
-// test/extended/testdata/builds/volumes/csi-sharedsecret.yaml
-// test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml
-// test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml
 // test/extended/testdata/builds/volumes/docker-buildconfig.yaml
-// test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml
+// test/extended/testdata/builds/volumes/docker-deployment.yaml
 // test/extended/testdata/builds/volumes/docker-imagestream.yaml
 // test/extended/testdata/builds/volumes/s2i-buildconfig.yaml
-// test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml
+// test/extended/testdata/builds/volumes/s2i-deployment.yaml
 // test/extended/testdata/builds/volumes/s2i-imagestream.yaml
 // test/extended/testdata/builds/volumes/secret.yaml
 // test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json
@@ -221,6 +215,7 @@
 // test/extended/testdata/cmd/test/cmd/setbuildhook.sh
 // test/extended/testdata/cmd/test/cmd/setbuildsecret.sh
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json
+// test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild-dc.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-mix.json
 // test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json
@@ -423,6 +418,9 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml
+// test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml
+// test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml
 // test/extended/testdata/marketplace/csc/02-csc.yaml
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
 // test/extended/testdata/mixed-api-versions.yaml
@@ -441,6 +439,8 @@
 // test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
+// test/extended/testdata/olmv1/install-catalog.yaml
+// test/extended/testdata/olmv1/install-operator.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
@@ -469,10 +469,6 @@
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/stable-busybox.yaml
-// test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml
-// test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml
-// test/extended/testdata/storage/inline/csi-sharedsecret.yaml
-// test/extended/testdata/storage/inline/secret.yaml
 // test/extended/testdata/templates/crunchydata-pod.json
 // test/extended/testdata/templates/guestbook.json
 // test/extended/testdata/templates/guestbook_list.json
@@ -6054,75 +6050,24 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       }
     },
     {
-      "kind": "DeploymentConfig",
-      "apiVersion": "apps.openshift.io/v1",
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
-          "template.alpha.openshift.io/wait-for-ready": "true"
+          "template.alpha.openshift.io/wait-for-ready": "true",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"origin-ruby-sample:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
         }
       },
       "spec": {
         "strategy": {
-          "type": "Rolling",
-          "rollingParams": {
-            "updatePeriodSeconds": 1,
-            "intervalSeconds": 1,
-            "timeoutSeconds": 120,
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            }
-          },
-          "resources": {}
+          "type": "RollingUpdate"
         },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "ruby-helloworld"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "origin-ruby-sample:latest"
-              }
-            }
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
         "replicas": 2,
         "selector": {
-          "name": "frontend"
+          "matchLabels": {
+            "name": "frontend"
+          }
         },
         "template": {
           "metadata": {
@@ -6207,8 +6152,8 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       }
     },
     {
-      "kind": "DeploymentConfig",
-      "apiVersion": "apps.openshift.io/v1",
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -6217,67 +6162,13 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       },
       "spec": {
         "strategy": {
-          "type": "Recreate",
-          "recreateParams": {
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "mid": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            }
-          },
-          "resources": {}
+          "type": "Recreate"
         },
-        "triggers": [
-          {
-            "type": "ConfigChange"
-          }
-        ],
         "replicas": 1,
         "selector": {
-          "name": "database"
+          "matchLabels": {
+            "name": "database"
+          }
         },
         "template": {
           "metadata": {
@@ -11819,7 +11710,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:3.0-ubi8",
+							"name": "ruby:3.1-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -12446,7 +12337,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:3.0-ubi8",
+							"name": "ruby:3.1-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -16391,6 +16282,33 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	return a, nil
 }
 
+var _testExtendedTestdataApiserverOperatorKubeApiserverCrYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: KubeAPIServer
+metadata:
+  generateName: test-apiserver-
+spec:
+  managementState: Managed
+status:
+  nodeStatuses:
+    - nodeName: "master-1"
+    - nodeName: "master-2"
+`)
+
+func testExtendedTestdataApiserverOperatorKubeApiserverCrYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverOperatorKubeApiserverCrYaml, nil
+}
+
+func testExtendedTestdataApiserverOperatorKubeApiserverCrYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverOperatorKubeApiserverCrYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsApplicationTemplateCustombuildJson = []byte(`{
   "kind": "Template",
   "apiVersion": "template.openshift.io/v1",
@@ -17865,7 +17783,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         },
         "env": [
           {
@@ -19091,11 +19009,11 @@ func testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment() (*asset, e
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source "https://rubygems.org"
+var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source 'https://rubygems.org'
 
 gem "rack"
 gem "rackup"
-`)
+gem "webrick"`)
 
 func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, nil
@@ -19196,7 +19114,7 @@ spec:
         value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -19296,7 +19214,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -19330,7 +19248,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -19364,7 +19282,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -19396,7 +19314,7 @@ spec:
 
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -19439,7 +19357,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
       forcePull: true
 `)
 
@@ -19645,7 +19563,7 @@ spec:
     dockerfile: |
       FROM registry.access.redhat.com/ubi8/ubi:latest
       RUN rm -rf /etc/rhsm-host
-      RUN yum --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms install \
+      RUN yum --enablerepo=codeready-builder-for-rhel-8-$(arch)-rpms install \
           nss_wrapper \
           uid_wrapper -y && \
           yum clean all -y
@@ -19702,7 +19620,7 @@ spec:
     dockerfile: |
       FROM registry.access.redhat.com/ubi9/ubi:latest
       RUN rm -rf /etc/rhsm-host
-      RUN yum --enablerepo=codeready-builder-for-rhel-9-x86_64-rpms install \
+      RUN yum --enablerepo=codeready-builder-for-rhel-9-$(arch)-rpms install \
           nss_wrapper \
           uid_wrapper -y && \
           yum clean all -y
@@ -20165,7 +20083,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -20354,7 +20272,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20383,7 +20301,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20411,7 +20329,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20440,7 +20358,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20468,7 +20386,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -21260,7 +21178,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         }
       }
     },
@@ -21609,7 +21527,7 @@ items:
             value: "2"
         from:
           kind: ImageStreamTag
-          name: ruby:3.0-ubi8
+          name: ruby:3.1-ubi8
           namespace: openshift
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -22463,327 +22381,6 @@ func testExtendedTestdataBuildsVolumesConfigmapYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mydockertest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mydockerstream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    dockerfile:
-      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
-  strategy:
-    type: Docker
-    dockerStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-docker-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mys2itest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mys2istream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Binary
-    binary: {}
-  strategy:
-    type: Source
-    sourceStrategy:
-      env:
-        - name: "BUILD_LOGLEVEL"
-          value: "2"
-      from:
-        kind: DockerImage
-        name: quay.io/redhat-developer/test-build-simples2i:1.2
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-s2i-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml = []byte(`apiVersion: authorization.openshift.io/v1
-kind: Role
-metadata:
-  name: shared-resource-my-share
-rules:
-- apiGroups:
-    - sharedresource.openshift.io
-  resources:
-    - sharedsecrets
-  resourceNames:
-    - my-share
-  verbs:
-    - use
-  `)
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourceroleYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiSharedresourceroleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-sharedresourcerole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml = []byte(`kind: Template
-apiVersion: template.openshift.io/v1
-metadata:
-  name: "build-volume-csi-roles-template"
-labels:
-  createdBy: "build-volume-csi-roles-template"
-parameters:
-  - description: "The namespace to create roles in."
-    name: NAMESPACE
-    required: true
-objects:
-  - apiVersion: authorization.openshift.io/v1
-    kind: RoleBinding
-    metadata:
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    subjects:
-    - kind: ServiceAccount
-      name: builder
-      namespace: ${NAMESPACE}
-`)
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-sharedresourcerolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiSharedsecretYaml = []byte(`apiVersion: sharedresource.openshift.io/v1alpha1
-kind: SharedSecret
-metadata:
-  name: my-share
-spec:
-  secretRef:
-    name: my-secret
-    namespace: default
-`)
-
-func testExtendedTestdataBuildsVolumesCsiSharedsecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiSharedsecretYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiSharedsecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiSharedsecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-sharedsecret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mydockertest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mydockerstream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    dockerfile:
-      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
-  strategy:
-    type: Docker
-    dockerStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-              refreshResource: "false"
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mys2itest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mys2istream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Binary
-    binary: {}
-  strategy:
-    type: Source
-    sourceStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-      from:
-        kind: DockerImage
-        name: quay.io/redhat-developer/test-build-simples2i:1.2
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-              refreshResource: "false"
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataBuildsVolumesDockerBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
@@ -22844,53 +22441,47 @@ func testExtendedTestdataBuildsVolumesDockerBuildconfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml = []byte(`apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
+var _testExtendedTestdataBuildsVolumesDockerDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: mydockertest
+  annotations:
+    image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"mydockerstream:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
 spec:
   replicas: 1
   selector:
-    app: mydockertest
-    deploymentconfig: mydockertest
+    matchLabels:
+      app: mydockertest
+      deployment: mydockertest
   strategy:
-    type: Rolling
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: mydockertest
-        deploymentconfig: mydockertest
+        deployment: mydockertest
     spec:
       containers:
-      - image:
+      - image: " "
         imagePullPolicy: Always
         name: mydockertest
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext: {}
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - mydockertest
-      from:
-        kind: ImageStreamTag
-        name: mydockerstream:latest
-    type: ImageChange
-  - type: ConfigChange`)
+`)
 
-func testExtendedTestdataBuildsVolumesDockerDeploymentconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, nil
+func testExtendedTestdataBuildsVolumesDockerDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesDockerDeploymentYaml, nil
 }
 
-func testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesDockerDeploymentconfigYamlBytes()
+func testExtendedTestdataBuildsVolumesDockerDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesDockerDeploymentYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -22979,53 +22570,47 @@ func testExtendedTestdataBuildsVolumesS2iBuildconfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml = []byte(`apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
+var _testExtendedTestdataBuildsVolumesS2iDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: mys2itest
+  annotations:
+    image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"mys2istream:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
 spec:
   replicas: 1
   selector:
-    app: mys2itest
-    deploymentconfig: mys2itest
+    matchLabels:
+      app: mys2itest
+      deployment: mys2itest
   strategy:
-    type: Rolling
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: mys2itest
-        deploymentconfig: mys2itest
+        deployment: mys2itest
     spec:
       containers:
-      - image:
+      - image: " "
         imagePullPolicy: Always
         name: mys2itest
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext: {}
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - mys2itest
-      from:
-        kind: ImageStreamTag
-        name: mys2istream:latest
-    type: ImageChange
-  - type: ConfigChange`)
+`)
 
-func testExtendedTestdataBuildsVolumesS2iDeploymentconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, nil
+func testExtendedTestdataBuildsVolumesS2iDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesS2iDeploymentYaml, nil
 }
 
-func testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesS2iDeploymentconfigYamlBytes()
+func testExtendedTestdataBuildsVolumesS2iDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesS2iDeploymentYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -30053,7 +29638,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:3.0-ubi8",
+							"name": "ruby:3.1-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -33294,7 +32879,7 @@ os::cmd::expect_success 'oc delete all --all'
 sleep 1
 os::cmd::expect_success 'oc delete all --all'
 
-os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild-dc.json -l app=dockerbuild | oc create -f -'
 os::cmd::try_until_success 'oc get rc/database-1'
 
 os::test::junit::declare_suite_start "cmd/deployments/get"
@@ -34169,9 +33754,10 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/merge-tags-on-apply"
 os::cmd::expect_success 'oc new-project merge-tags'
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-centos7.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 3.0-ubi7 3.0-ubi8 3.0-ubi9 latest'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 3.0-ubi7 3.0-ubi9 3.1-ubi8 latest'
+
 os::cmd::expect_success 'oc apply -f ${TEST_DATA}/modified-ruby-imagestream.json'
-os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 3.0-ubi7 3.0-ubi8 3.0-ubi9 latest newtag'
+os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[*].name}' '2.7-ubi8 3.0-ubi7 3.0-ubi9 3.1-ubi8 latest newtag'
 os::cmd::expect_success_and_text 'oc get is ruby -o jsonpath={.spec.tags[0].annotations.version}' '2.7 patched'
 os::cmd::expect_success 'oc delete project merge-tags'
 echo "apply new imagestream tags: ok"
@@ -35257,7 +34843,7 @@ func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson() 
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = []byte(`{
+var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJson = []byte(`{
   "kind": "Template",
   "apiVersion": "template.openshift.io/v1",
   "metadata": {
@@ -35602,6 +35188,412 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
         "replicas": 1,
         "selector": {
           "name": "database"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "database"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld-database",
+                "image": "registry.redhat.io/rhel8/mysql-80:latest",
+                "ports": [
+                  {
+                    "containerPort": 3306,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "ruby-helloworld-data",
+                    "mountPath": "/var/lib/mysql/data"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "Always",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "ruby-helloworld-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "MYSQL_USER",
+      "description": "database username",
+      "generate": "expression",
+      "from": "user[A-Z0-9]{3}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "database password",
+      "generate": "expression",
+      "from": "[a-zA-Z0-9]{8}",
+      "required": true
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "database name",
+      "value": "root",
+      "required": true
+    }
+  ],
+  "labels": {
+    "template": "application-template-dockerbuild"
+  }
+}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJson, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJson() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild-dc.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample",
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "dbsecret"
+      },
+      "stringData" : {
+        "mysql-user" : "${MYSQL_USER}",
+        "mysql-password" : "${MYSQL_PASSWORD}"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "frontend"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 5432,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "frontend"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Route",
+      "apiVersion": "route.openshift.io/v1",
+      "metadata": {
+        "name": "route-edge",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+      },
+      "spec": {
+        "host": "www.example.com",
+        "to": {
+          "kind": "Service",
+          "name": "frontend"
+        },
+        "tls": {
+          "termination": "edge"
+        }
+      },
+      "status": {}
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "origin-ruby-sample"
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "ruby-27-centos7"
+      },
+      "spec": {
+        "tags": [
+          {
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/ubi8/ruby-30:latest"
+            },
+            "name": "latest"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "build.openshift.io/v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "labels": {
+          "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "Generic",
+            "generic": {
+              "secret": "secret101",
+              "allowEnv": true
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Docker",
+          "dockerStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-27-centos7:latest"
+            },
+            "env": [
+              {
+                "name": "EXAMPLE",
+                "value": "sample-app"
+              }
+            ]
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "postCommit": {
+          "script": "bundle exec rake test"
+        },
+        "resources": {}
+      },
+      "status": {
+        "lastVersion": 0
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "frontend",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"origin-ruby-sample:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "RollingUpdate"
+        },
+        "replicas": 2,
+        "selector": {
+          "matchLabels": {
+            "name": "frontend"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "frontend"
+            }
+          },
+          "spec": {
+            "containers": [
+              {
+                "name": "ruby-helloworld",
+                "image": "origin-ruby-sample",
+                "ports": [
+                  {
+                    "containerPort": 8080,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "MYSQL_USER",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-user"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "dbsecret",
+                        "key" : "mysql-password"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MYSQL_DATABASE",
+                    "value": "${MYSQL_DATABASE}"
+                  }
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "database"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "db",
+            "protocol": "TCP",
+            "port": 5434,
+            "targetPort": 3306,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "database"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
+      "metadata": {
+        "name": "database",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate",
+          "resources": {}
+        },
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "name": "database"
+          }
         },
         "template": {
           "metadata": {
@@ -36431,7 +36423,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "registry.k8s.io/e2e-test-images/agnhost:2.47",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.52",
         "args": ["netexec"],
         "ports": [
           {
@@ -37526,20 +37518,20 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             }
           },
           {
-            "name": "3.0-ubi8",
+            "name": "3.1-ubi8",
             "annotations": {
-              "description": "Build and run Ruby 3.0 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "description": "Build and run Ruby 3.1 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.1/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 3.0 (UBI 8)",
+              "openshift.io/display-name": "Ruby 3.1 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:3.0,ruby",
+              "supports": "ruby:3.1,ruby",
               "tags": "builder,ruby",
-              "version": "3.0"
+              "version": "3.1"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/ruby-30:latest"
+              "name": "registry.redhat.io/ubi8/ruby-31:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -38297,12 +38289,12 @@ spec:
   tags:
   - from:
       kind: ImageStreamTag
-      name: "3.0"
+      name: "3.1"
     name: "latest"
   - from:
       kind: ImageStreamTag
-      name: ruby:3.0-ubi8
-    name: "3.0"
+      name: ruby:3.1-ubi8
+    name: "3.1"
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYamlBytes() ([]byte, error) {
@@ -40649,7 +40641,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.47
+                image: registry.k8s.io/e2e-test-images/agnhost:2.52
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -44990,7 +44982,7 @@ items:
           deployment: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.47
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.52
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -45093,7 +45085,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.47
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.52
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -45159,7 +45151,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.47
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.52
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -45293,7 +45285,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8",
+  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -45639,7 +45631,7 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "openshift",
-              "name": "perl:5.30-el7"
+              "name": "perl:5.32-ubi8"
             }
           }
         },
@@ -45652,36 +45644,23 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
       }
     },
     {
-      "kind": "DeploymentConfig",
-      "apiVersion": "apps.openshift.io/v1",
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
       "metadata": {
-        "name": "${NAME}"
+        "name": "${NAME}",
+        "annotations": {
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"${NAME}:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
+        }
       },
       "spec": {
         "strategy": {
-          "type": "Rolling"
+          "type": "RollingUpdate"
         },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "perl"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "${NAME}:latest"
-              }
-            }
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
         "replicas": 1,
         "selector": {
-          "name": "${NAME}"
+          "matchLabels": {
+            "name": "${NAME}"
+          }
         },
         "template": {
           "metadata": {
@@ -45845,7 +45824,6 @@ metadata:
     pod-security.kubernetes.io/warn: privileged
   annotations:
     workload.openshift.io/allowed: management
-    openshift.io/node-selector: "node-role.kubernetes.io/worker="
 spec: {}
 
 ---
@@ -48943,7 +48921,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
                         }
                     }
                 }
@@ -48972,7 +48950,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
                         }
                     }
                 }
@@ -48993,6 +48971,97 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/long_names/fixture.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  logLevel: Normal
+  operatorLogLevel: Normal
+  managedBootImages:
+    machineManagers:
+      - resource: machinesets
+        apiGroup: machine.openshift.io
+        selection:
+          mode: All
+`)
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  logLevel: Normal
+  operatorLogLevel: Normal
+`)
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  logLevel: Normal
+  operatorLogLevel: Normal
+  managedBootImages:
+    machineManagers:
+    - resource: machinesets
+      apiGroup: machine.openshift.io
+      selection:
+        mode: Partial
+        partial:
+          machineResourceSelector:
+            matchLabels:
+              test: boot
+`)
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -49984,6 +50053,83 @@ func testExtendedTestdataOlmSubscriptionYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1InstallCatalogYaml = []byte(`apiVersion: olm.operatorframework.io/v1
+kind: ClusterCatalog
+metadata:
+  name: bad-catalog
+spec:
+  source:
+   type: Image
+   image:
+     ref: example.com/does-not-exist:latest
+`)
+
+func testExtendedTestdataOlmv1InstallCatalogYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallCatalogYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallCatalogYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1InstallOperatorYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{PACKAGENAME}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{PACKAGENAME}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{PACKAGENAME}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{PACKAGENAME}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{PACKAGENAME}
+  source:
+    catalog:
+      packageName: {PACKAGENAME}
+      version: {VERSION}
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1InstallOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallOperatorYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml = []byte(`---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -50560,7 +50706,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.47
+      image: registry.k8s.io/e2e-test-images/agnhost:2.52
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50578,7 +50724,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.47
+      image: registry.k8s.io/e2e-test-images/agnhost:2.52
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50817,7 +50963,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.47
+      image: registry.k8s.io/e2e-test-images/agnhost:2.52
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50993,7 +51139,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.47
+      image: registry.k8s.io/e2e-test-images/agnhost:2.52
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51011,7 +51157,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.47
+      image: registry.k8s.io/e2e-test-images/agnhost:2.52
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51069,7 +51215,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         resources: {}
       status:
         lastVersion: 0
@@ -51115,7 +51261,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
     -
       kind: "BuildConfig"
       apiVersion: "build.openshift.io/v1"
@@ -51136,7 +51282,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -51179,7 +51325,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         resources: {}
       status:
         lastVersion: 0
@@ -51644,127 +51790,6 @@ func testExtendedTestdataStableBusyboxYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/stable-busybox.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml = []byte(`apiVersion: authorization.openshift.io/v1
-kind: Role
-metadata:
-  name: shared-resource-my-share
-rules:
-- apiGroups:
-    - sharedresource.openshift.io
-  resources:
-    - sharedsecrets
-  resourceNames:
-    - my-share
-  verbs:
-    - use
-`)
-
-func testExtendedTestdataStorageInlineCsiSharedresourceroleYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, nil
-}
-
-func testExtendedTestdataStorageInlineCsiSharedresourceroleYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineCsiSharedresourceroleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml = []byte(`kind: Template
-apiVersion: template.openshift.io/v1
-metadata:
-  name: "inline-volume-csi-roles-template"
-labels:
-  createdBy: "inline-volume-csi-roles-template"
-parameters:
-  - description: "The namespace to create roles in."
-    name: NAMESPACE
-    required: true
-objects:
-  - apiVersion: authorization.openshift.io/v1
-    kind: RoleBinding
-    metadata:
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    subjects:
-    - kind: ServiceAccount
-      name: default
-      namespace: ${NAMESPACE}
-`)
-
-func testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, nil
-}
-
-func testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineCsiSharedsecretYaml = []byte(`apiVersion: sharedresource.openshift.io/v1alpha1
-kind: SharedSecret
-metadata:
-  name: my-share
-spec:
-  secretRef:
-    name: my-secret
-    namespace: default
-`)
-
-func testExtendedTestdataStorageInlineCsiSharedsecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineCsiSharedsecretYaml, nil
-}
-
-func testExtendedTestdataStorageInlineCsiSharedsecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineCsiSharedsecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedsecret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineSecretYaml = []byte(`apiVersion: v1
-data:
-  key: bXktc2VjcmV0LXZhbHVl # my-secret-value
-kind: Secret
-metadata:
-  name: my-secret
-type: Opaque
-`)
-
-func testExtendedTestdataStorageInlineSecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineSecretYaml, nil
-}
-
-func testExtendedTestdataStorageInlineSecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineSecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -52537,7 +52562,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.47
+                image: registry.k8s.io/e2e-test-images/agnhost:2.52
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -52597,7 +52622,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.47
+                image: registry.k8s.io/e2e-test-images/agnhost:2.52
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -52692,29 +52717,21 @@ objects:
         name: "${NAME}:latest"
     triggers:
     - type: ConfigChange
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: "${NAME}"
     annotations:
       description: Defines how to deploy the application server
       template.alpha.openshift.io/wait-for-ready: 'true'
+      image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"${NAME}:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
   spec:
     strategy:
-      type: Rolling
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - simple-example
-        from:
-          kind: ImageStreamTag
-          name: "${NAME}:latest"
-    - type: ConfigChange
+      type: RollingUpdate
     replicas: 1
     selector:
-      name: "${NAME}"
+      matchLabels:
+        name: "${NAME}"
     template:
       metadata:
         name: "${NAME}"
@@ -53023,91 +53040,83 @@ items:
     triggers:
     - type: ConfigChange
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: local-busybox1
+    annotations:
+      "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"local-busybox:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
   spec:
     replicas: 0
     selector:
-      deploymentconfig: local-busybox1
+      matchLabels:
+        deployment: local-busybox1
     template:
       metadata:
         labels:
-          deploymentconfig: local-busybox1
+          deployment: local-busybox1
       spec:
         containers:
         - name: local-busybox
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - local-busybox
-        from:
-          kind: ImageStreamTag
-          name: local-busybox:latest
+          image: " "
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: local-busybox2
+    annotations:
+      "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"local-busybox:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
   spec:
     replicas: 0
     selector:
-      deploymentconfig: local-busybox2
+      matchLabels:
+        deployment: local-busybox2
     template:
       metadata:
         labels:
-          deploymentconfig: local-busybox2
+          deployment: local-busybox2
       spec:
         containers:
         - name: local-busybox
+          image: " "
           command:
           - foo
           - bar
           args:
           - baz
           - qux
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - local-busybox
-        from:
-          kind: ImageStreamTag
-          name: local-busybox:latest
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: busybox1
   spec:
     replicas: 0
     selector:
-      deploymentconfig: busybox1
+      matchLabels:
+        deployment: busybox1
     template:
       metadata:
         labels:
-          deploymentconfig: busybox1
+          deployment: busybox1
       spec:
         containers:
         - name: busybox
           image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: busybox2
   spec:
     replicas: 0
     selector:
-      deploymentconfig: busybox2
+      matchLabels:
+        deployment: busybox2
     template:
       metadata:
         labels:
-          deploymentconfig: busybox2
+          deployment: busybox2
       spec:
         containers:
         - name: busybox
@@ -55298,6 +55307,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                                             testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                             testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                        testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml":                                       testExtendedTestdataApiserverOperatorKubeApiserverCrYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json":                                    testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                             testExtendedTestdataBuildsBuildPostcommitDockerYaml,
 	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml":                                       testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
@@ -55407,18 +55417,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/valuefrom/test-is.json":                                                   testExtendedTestdataBuildsValuefromTestIsJson,
 	"test/extended/testdata/builds/valuefrom/test-secret.yaml":                                               testExtendedTestdataBuildsValuefromTestSecretYaml,
 	"test/extended/testdata/builds/volumes/configmap.yaml":                                                   testExtendedTestdataBuildsVolumesConfigmapYaml,
-	"test/extended/testdata/builds/volumes/csi-docker-buildconfig.yaml":                                      testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/csi-s2i-buildconfig.yaml":                                         testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/csi-sharedresourcerole.yaml":                                      testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml,
-	"test/extended/testdata/builds/volumes/csi-sharedresourcerolebinding.yaml":                               testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml,
-	"test/extended/testdata/builds/volumes/csi-sharedsecret.yaml":                                            testExtendedTestdataBuildsVolumesCsiSharedsecretYaml,
-	"test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml":                           testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml":                              testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml,
 	"test/extended/testdata/builds/volumes/docker-buildconfig.yaml":                                          testExtendedTestdataBuildsVolumesDockerBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml":                                     testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml,
+	"test/extended/testdata/builds/volumes/docker-deployment.yaml":                                           testExtendedTestdataBuildsVolumesDockerDeploymentYaml,
 	"test/extended/testdata/builds/volumes/docker-imagestream.yaml":                                          testExtendedTestdataBuildsVolumesDockerImagestreamYaml,
 	"test/extended/testdata/builds/volumes/s2i-buildconfig.yaml":                                             testExtendedTestdataBuildsVolumesS2iBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml":                                        testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml,
+	"test/extended/testdata/builds/volumes/s2i-deployment.yaml":                                              testExtendedTestdataBuildsVolumesS2iDeploymentYaml,
 	"test/extended/testdata/builds/volumes/s2i-imagestream.yaml":                                             testExtendedTestdataBuildsVolumesS2iImagestreamYaml,
 	"test/extended/testdata/builds/volumes/secret.yaml":                                                      testExtendedTestdataBuildsVolumesSecretYaml,
 	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json":                     testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
@@ -55473,6 +55476,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/setbuildhook.sh":                                                    testExtendedTestdataCmdTestCmdSetbuildhookSh,
 	"test/extended/testdata/cmd/test/cmd/setbuildsecret.sh":                                                  testExtendedTestdataCmdTestCmdSetbuildsecretSh,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-custombuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild-dc.json":                  testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-dockerbuild.json":                     testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-mix.json":                             testExtendedTestdataCmdTestCmdTestdataApplicationTemplateMixJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/application-template-stibuild.json":                        testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson,
@@ -55675,6 +55679,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml":                                                    testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile":                                                           testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json":                                                         testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml":                 testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml,
+	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml":                testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml,
+	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml":             testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml,
 	"test/extended/testdata/marketplace/csc/02-csc.yaml":                                                     testExtendedTestdataMarketplaceCsc02CscYaml,
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml":                                                 testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
 	"test/extended/testdata/mixed-api-versions.yaml":                                                         testExtendedTestdataMixedApiVersionsYaml,
@@ -55693,6 +55700,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                       testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
+	"test/extended/testdata/olmv1/install-catalog.yaml":                                                      testExtendedTestdataOlmv1InstallCatalogYaml,
+	"test/extended/testdata/olmv1/install-operator.yaml":                                                     testExtendedTestdataOlmv1InstallOperatorYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
@@ -55721,10 +55730,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                    testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml":                                                         testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/stable-busybox.yaml":                                                             testExtendedTestdataStableBusyboxYaml,
-	"test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml":                                      testExtendedTestdataStorageInlineCsiSharedresourceroleYaml,
-	"test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml":                               testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml,
-	"test/extended/testdata/storage/inline/csi-sharedsecret.yaml":                                            testExtendedTestdataStorageInlineCsiSharedsecretYaml,
-	"test/extended/testdata/storage/inline/secret.yaml":                                                      testExtendedTestdataStorageInlineSecretYaml,
 	"test/extended/testdata/templates/crunchydata-pod.json":                                                  testExtendedTestdataTemplatesCrunchydataPodJson,
 	"test/extended/testdata/templates/guestbook.json":                                                        testExtendedTestdataTemplatesGuestbookJson,
 	"test/extended/testdata/templates/guestbook_list.json":                                                   testExtendedTestdataTemplatesGuestbook_listJson,
@@ -55860,6 +55865,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-rc.yaml":            {testExtendedTestdataAggregatorSampleApiserverRcYaml, map[string]*bintree{}},
 					"sample-apiserver-sa.yaml":            {testExtendedTestdataAggregatorSampleApiserverSaYaml, map[string]*bintree{}},
 					"sample-apiserver-service.yaml":       {testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
+				}},
+				"apiserver": {nil, map[string]*bintree{
+					"operator-kube-apiserver-cr.yaml": {testExtendedTestdataApiserverOperatorKubeApiserverCrYaml, map[string]*bintree{}},
 				}},
 				"builds": {nil, map[string]*bintree{
 					"application-template-custombuild.json": {testExtendedTestdataBuildsApplicationTemplateCustombuildJson, map[string]*bintree{}},
@@ -56027,21 +56035,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-secret.yaml":                               {testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
 					}},
 					"volumes": {nil, map[string]*bintree{
-						"configmap.yaml":                         {testExtendedTestdataBuildsVolumesConfigmapYaml, map[string]*bintree{}},
-						"csi-docker-buildconfig.yaml":            {testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml, map[string]*bintree{}},
-						"csi-s2i-buildconfig.yaml":               {testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml, map[string]*bintree{}},
-						"csi-sharedresourcerole.yaml":            {testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml, map[string]*bintree{}},
-						"csi-sharedresourcerolebinding.yaml":     {testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml, map[string]*bintree{}},
-						"csi-sharedsecret.yaml":                  {testExtendedTestdataBuildsVolumesCsiSharedsecretYaml, map[string]*bintree{}},
-						"csi-without-rr-docker-buildconfig.yaml": {testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml, map[string]*bintree{}},
-						"csi-without-rr-s2i-buildconfig.yaml":    {testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml, map[string]*bintree{}},
-						"docker-buildconfig.yaml":                {testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, map[string]*bintree{}},
-						"docker-deploymentconfig.yaml":           {testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, map[string]*bintree{}},
-						"docker-imagestream.yaml":                {testExtendedTestdataBuildsVolumesDockerImagestreamYaml, map[string]*bintree{}},
-						"s2i-buildconfig.yaml":                   {testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, map[string]*bintree{}},
-						"s2i-deploymentconfig.yaml":              {testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, map[string]*bintree{}},
-						"s2i-imagestream.yaml":                   {testExtendedTestdataBuildsVolumesS2iImagestreamYaml, map[string]*bintree{}},
-						"secret.yaml":                            {testExtendedTestdataBuildsVolumesSecretYaml, map[string]*bintree{}},
+						"configmap.yaml":          {testExtendedTestdataBuildsVolumesConfigmapYaml, map[string]*bintree{}},
+						"docker-buildconfig.yaml": {testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, map[string]*bintree{}},
+						"docker-deployment.yaml":  {testExtendedTestdataBuildsVolumesDockerDeploymentYaml, map[string]*bintree{}},
+						"docker-imagestream.yaml": {testExtendedTestdataBuildsVolumesDockerImagestreamYaml, map[string]*bintree{}},
+						"s2i-buildconfig.yaml":    {testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, map[string]*bintree{}},
+						"s2i-deployment.yaml":     {testExtendedTestdataBuildsVolumesS2iDeploymentYaml, map[string]*bintree{}},
+						"s2i-imagestream.yaml":    {testExtendedTestdataBuildsVolumesS2iImagestreamYaml, map[string]*bintree{}},
+						"secret.yaml":             {testExtendedTestdataBuildsVolumesSecretYaml, map[string]*bintree{}},
 					}},
 					"webhook": {nil, map[string]*bintree{
 						"bitbucket": {nil, map[string]*bintree{
@@ -56133,11 +56134,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"setbuildhook.sh":       {testExtendedTestdataCmdTestCmdSetbuildhookSh, map[string]*bintree{}},
 							"setbuildsecret.sh":     {testExtendedTestdataCmdTestCmdSetbuildsecretSh, map[string]*bintree{}},
 							"testdata": {nil, map[string]*bintree{
-								"application-template-custombuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
-								"application-template-dockerbuild.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},
-								"application-template-mix.json":         {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateMixJson, map[string]*bintree{}},
-								"application-template-stibuild.json":    {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, map[string]*bintree{}},
-								"external-service.yaml":                 {testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
+								"application-template-custombuild.json":    {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateCustombuildJson, map[string]*bintree{}},
+								"application-template-dockerbuild-dc.json": {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildDcJson, map[string]*bintree{}},
+								"application-template-dockerbuild.json":    {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson, map[string]*bintree{}},
+								"application-template-mix.json":            {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateMixJson, map[string]*bintree{}},
+								"application-template-stibuild.json":       {testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson, map[string]*bintree{}},
+								"external-service.yaml":                    {testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml, map[string]*bintree{}},
 								"hello-openshift": {nil, map[string]*bintree{
 									"hello-pod.json": {testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, map[string]*bintree{}},
 								}},
@@ -56420,6 +56422,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"Dockerfile":   {testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": {testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
+				"machine_config": {nil, map[string]*bintree{
+					"machineconfigurations": {nil, map[string]*bintree{
+						"managedbootimages-all.yaml":     {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml, map[string]*bintree{}},
+						"managedbootimages-none.yaml":    {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml, map[string]*bintree{}},
+						"managedbootimages-partial.yaml": {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml, map[string]*bintree{}},
+					}},
+				}},
 				"marketplace": {nil, map[string]*bintree{
 					"csc": {nil, map[string]*bintree{
 						"02-csc.yaml": {testExtendedTestdataMarketplaceCsc02CscYaml, map[string]*bintree{}},
@@ -56453,6 +56462,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"olm": {nil, map[string]*bintree{
 					"operatorgroup.yaml": {testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
+				}},
+				"olmv1": {nil, map[string]*bintree{
+					"install-catalog.yaml":  {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
+					"install-operator.yaml": {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
 				}},
 				"poddisruptionbudgets": {nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
@@ -56504,14 +56517,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"stable-busybox.yaml":     {testExtendedTestdataStableBusyboxYaml, map[string]*bintree{}},
-				"storage": {nil, map[string]*bintree{
-					"inline": {nil, map[string]*bintree{
-						"csi-sharedresourcerole.yaml":        {testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, map[string]*bintree{}},
-						"csi-sharedresourcerolebinding.yaml": {testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, map[string]*bintree{}},
-						"csi-sharedsecret.yaml":              {testExtendedTestdataStorageInlineCsiSharedsecretYaml, map[string]*bintree{}},
-						"secret.yaml":                        {testExtendedTestdataStorageInlineSecretYaml, map[string]*bintree{}},
-					}},
-				}},
 				"templates": {nil, map[string]*bintree{
 					"crunchydata-pod.json":              {testExtendedTestdataTemplatesCrunchydataPodJson, map[string]*bintree{}},
 					"guestbook.json":                    {testExtendedTestdataTemplatesGuestbookJson, map[string]*bintree{}},

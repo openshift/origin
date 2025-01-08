@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ControlPlaneMachineSetApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSet type for use
+// ControlPlaneMachineSetApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSet type for use
 // with apply.
 type ControlPlaneMachineSetApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ControlPlaneMachineSetApplyConfiguration struct {
 	Status                           *ControlPlaneMachineSetStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ControlPlaneMachineSet constructs an declarative configuration of the ControlPlaneMachineSet type for use with
+// ControlPlaneMachineSet constructs a declarative configuration of the ControlPlaneMachineSet type for use with
 // apply.
 func ControlPlaneMachineSet(name, namespace string) *ControlPlaneMachineSetApplyConfiguration {
 	b := &ControlPlaneMachineSetApplyConfiguration{}
@@ -239,4 +239,10 @@ func (b *ControlPlaneMachineSetApplyConfiguration) WithSpec(value *ControlPlaneM
 func (b *ControlPlaneMachineSetApplyConfiguration) WithStatus(value *ControlPlaneMachineSetStatusApplyConfiguration) *ControlPlaneMachineSetApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ControlPlaneMachineSetApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

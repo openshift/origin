@@ -8,10 +8,11 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // legacyCRDSsWithUnstableVersions is a list of CRD names that were accessible-by-default when this test was created.
@@ -31,6 +32,26 @@ var legacyCRDSsWithUnstableVersions = map[string]sets.String{
 	"machines.machine.openshift.io":                  sets.NewString("v1beta1"),
 	"machinesets.machine.openshift.io":               sets.NewString("v1beta1"),
 	"projecthelmchartrepositories.helm.openshift.io": sets.NewString("v1beta1"),
+
+	// Managed services - tracked by OSD-26066
+	"addoninstances.addons.managed.openshift.io":                    sets.NewString("v1alpha1"),
+	"addonoperators.addons.managed.openshift.io":                    sets.NewString("v1alpha1"),
+	"addons.addons.managed.openshift.io":                            sets.NewString("v1alpha1"),
+	"apischemes.cloudingress.managed.openshift.io":                  sets.NewString("v1alpha1"),
+	"clusterurlmonitors.monitoring.openshift.io":                    sets.NewString("v1alpha1"),
+	"customdomains.managed.openshift.io":                            sets.NewString("v1alpha1"),
+	"managedfleetnotificationrecords.ocmagent.managed.openshift.io": sets.NewString("v1alpha1"),
+	"managedfleetnotifications.ocmagent.managed.openshift.io":       sets.NewString("v1alpha1"),
+	"managednotifications.ocmagent.managed.openshift.io":            sets.NewString("v1alpha1"),
+	"mustgathers.managed.openshift.io":                              sets.NewString("v1alpha1"),
+	"ocmagents.ocmagent.managed.openshift.io":                       sets.NewString("v1alpha1"),
+	"publishingstrategies.cloudingress.managed.openshift.io":        sets.NewString("v1alpha1"),
+	"routemonitors.monitoring.openshift.io":                         sets.NewString("v1alpha1"),
+	"splunkforwarders.splunkforwarder.managed.openshift.io":         sets.NewString("v1alpha1"),
+	"subjectpermissions.managed.openshift.io":                       sets.NewString("v1alpha1"),
+	"uiplugins.observability.openshift.io":                          sets.NewString("v1alpha1"),
+	"upgradeconfigs.upgrade.managed.openshift.io":                   sets.NewString("v1alpha1"),
+	"veleroinstalls.managed.openshift.io":                           sets.NewString("v1alpha2"),
 }
 
 var _ = g.Describe("[sig-arch][Early]", func() {

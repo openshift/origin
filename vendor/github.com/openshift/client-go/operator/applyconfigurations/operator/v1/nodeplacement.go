@@ -7,14 +7,14 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// NodePlacementApplyConfiguration represents an declarative configuration of the NodePlacement type for use
+// NodePlacementApplyConfiguration represents a declarative configuration of the NodePlacement type for use
 // with apply.
 type NodePlacementApplyConfiguration struct {
 	NodeSelector *v1.LabelSelectorApplyConfiguration `json:"nodeSelector,omitempty"`
 	Tolerations  []corev1.Toleration                 `json:"tolerations,omitempty"`
 }
 
-// NodePlacementApplyConfiguration constructs an declarative configuration of the NodePlacement type for use with
+// NodePlacementApplyConfiguration constructs a declarative configuration of the NodePlacement type for use with
 // apply.
 func NodePlacement() *NodePlacementApplyConfiguration {
 	return &NodePlacementApplyConfiguration{}

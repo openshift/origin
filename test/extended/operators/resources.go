@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster", func() {
@@ -33,9 +34,31 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			e2e.Failf("unable to list pods: %v", err)
 		}
 
+		exemptNamespaces := append([]string{
+			// Must-gather runs are excluded from this rule
+			"openshift-must-gather",
+		},
+			// Managed service namespaces - https://issues.redhat.com/browse/OSD-21708
+			exutil.ManagedServiceNamespaces.UnsortedList()...,
+		)
+
 		// pods that have a bug opened, every entry here must have a bug associated
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
+
+			// Managed service pods that have limits but not requests, that are in platform namespaces
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/request[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]":   "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/request[memory]": "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/request[cpu]":                                            "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/request[memory]":                                         "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[cpu]":                                    "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[memory]":                                 "https://issues.redhat.com/browse/OSD-21708",
+
+			// ovn pods
+			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[cpu]":    "https://issues.redhat.com/browse/TRT-1871",
+			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[memory]": "https://issues.redhat.com/browse/TRT-1871",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
@@ -71,14 +94,17 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		waitingForFix := sets.NewString()
 		notAllowed := sets.NewString()
 		possibleFuture := sets.NewString()
+	podLoop:
 		for _, pod := range pods.Items {
 			// Only pods in the openshift-*, kube-*, and default namespaces are considered
 			if !strings.HasPrefix(pod.Namespace, "openshift-") && !strings.HasPrefix(pod.Namespace, "kube-") && pod.Namespace != "default" {
 				continue
 			}
-			// Must-gather runs are excluded from this rule
-			if strings.HasPrefix(pod.Namespace, "openshift-must-gather") {
-				continue
+
+			for _, ns := range exemptNamespaces {
+				if pod.Namespace == ns {
+					continue podLoop
+				}
 			}
 			// var controlPlaneTarget bool
 			// selector := labels.SelectorFromSet(pod.Spec.NodeSelector)
@@ -104,9 +130,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 						}
 					}
 				case "Job":
-					if pod.Namespace == "openshift-marketplace" {
-						ref.Name = "<batch_job>"
-					}
+					ref.Name = "<batch_job>"
 				case "Node":
 					continue
 				}
@@ -166,6 +190,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 						if len(wpPodAnnotation) > 0 && resource == "cpu" { // don't check for CPU request if the pod has a WP annotation
 							continue
 						}
+
 						v := c.Resources.Requests[v1.ResourceName(resource)]
 						if !v.IsZero() {
 							continue

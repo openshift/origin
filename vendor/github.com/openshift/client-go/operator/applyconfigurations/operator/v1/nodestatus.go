@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NodeStatusApplyConfiguration represents an declarative configuration of the NodeStatus type for use
+// NodeStatusApplyConfiguration represents a declarative configuration of the NodeStatus type for use
 // with apply.
 type NodeStatusApplyConfiguration struct {
 	NodeName                 *string  `json:"nodeName,omitempty"`
@@ -20,7 +20,7 @@ type NodeStatusApplyConfiguration struct {
 	LastFailedRevisionErrors []string `json:"lastFailedRevisionErrors,omitempty"`
 }
 
-// NodeStatusApplyConfiguration constructs an declarative configuration of the NodeStatus type for use with
+// NodeStatusApplyConfiguration constructs a declarative configuration of the NodeStatus type for use with
 // apply.
 func NodeStatus() *NodeStatusApplyConfiguration {
 	return &NodeStatusApplyConfiguration{}

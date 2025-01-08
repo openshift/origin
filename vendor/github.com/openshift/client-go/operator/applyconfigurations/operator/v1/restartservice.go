@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// RestartServiceApplyConfiguration represents an declarative configuration of the RestartService type for use
+// RestartServiceApplyConfiguration represents a declarative configuration of the RestartService type for use
 // with apply.
 type RestartServiceApplyConfiguration struct {
 	ServiceName *v1.NodeDisruptionPolicyServiceName `json:"serviceName,omitempty"`
 }
 
-// RestartServiceApplyConfiguration constructs an declarative configuration of the RestartService type for use with
+// RestartServiceApplyConfiguration constructs a declarative configuration of the RestartService type for use with
 // apply.
 func RestartService() *RestartServiceApplyConfiguration {
 	return &RestartServiceApplyConfiguration{}

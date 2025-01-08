@@ -2,13 +2,13 @@
 
 package v1
 
-// NodeDisruptionPolicyStatusApplyConfiguration represents an declarative configuration of the NodeDisruptionPolicyStatus type for use
+// NodeDisruptionPolicyStatusApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatus type for use
 // with apply.
 type NodeDisruptionPolicyStatusApplyConfiguration struct {
 	ClusterPolicies *NodeDisruptionPolicyClusterStatusApplyConfiguration `json:"clusterPolicies,omitempty"`
 }
 
-// NodeDisruptionPolicyStatusApplyConfiguration constructs an declarative configuration of the NodeDisruptionPolicyStatus type for use with
+// NodeDisruptionPolicyStatusApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicyStatus type for use with
 // apply.
 func NodeDisruptionPolicyStatus() *NodeDisruptionPolicyStatusApplyConfiguration {
 	return &NodeDisruptionPolicyStatusApplyConfiguration{}

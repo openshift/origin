@@ -21,7 +21,7 @@ import (
 	"github.com/ghodss/yaml"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	authorizationapi "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -61,6 +61,7 @@ import (
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	"github.com/openshift/origin/test/extended/testdata"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
@@ -527,7 +528,6 @@ func DumpSampleOperator(oc *CLI) {
 		e2e.Logf("\n  error on getting samples operator CR: %+v\n%#v\n", err, out)
 	}
 	DumpPodLogsStartingWithInNamespace("cluster-samples-operator", "openshift-cluster-samples-operator", oc)
-
 }
 
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
@@ -1058,6 +1058,11 @@ func WaitForBuildResult(c buildv1clienttyped.BuildInterface, result *BuildResult
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
 func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildv1.Build) bool) error {
+	return WaitForABuildWithTimeout(c, name, 2*time.Minute, 10*time.Minute, isOK, isFailed, isCanceled)
+}
+
+// WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
+func WaitForABuildWithTimeout(c buildv1clienttyped.BuildInterface, name string, createTimeout, completeTimeout time.Duration, isOK, isFailed, isCanceled func(*buildv1.Build) bool) error {
 	if isOK == nil {
 		isOK = CheckBuildSuccess
 	}
@@ -1069,8 +1074,9 @@ func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFai
 	}
 
 	// wait 2 minutes for build to exist
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+	err := wait.Poll(1*time.Second, createTimeout, func() (bool, error) {
 		if _, err := c.Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+			e2e.Logf("attempt to get buildconfig %s failed with error: %s", name, err.Error())
 			return false, nil
 		}
 		return true, nil
@@ -1082,7 +1088,7 @@ func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFai
 		return err
 	}
 	// wait longer for the build to run to completion
-	err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+	err = wait.Poll(5*time.Second, completeTimeout, func() (bool, error) {
 		list, err := c.List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
 			e2e.Logf("error listing builds: %v", err)
@@ -1145,8 +1151,24 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 }
 
 // WaitForServiceAccountWithSecret waits until the named service account gets fully
-// provisioned, including dockercfg secrets
-func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, name string) error {
+// provisioned, including dockercfg secrets. We also check if image registry is not enabled,
+// the SA will not contain the docker secret and we simply return nil.
+func WaitForServiceAccountWithSecret(config configclient.ClusterVersionInterface, c corev1client.ServiceAccountInterface, name string) error {
+	cv, err := config.Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	var found bool
+	for _, capability := range cv.Status.Capabilities.EnabledCapabilities {
+		if capability == configv1.ClusterVersionCapabilityImageRegistry {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
 	waitFn := func() (bool, error) {
 		sa, err := c.Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
@@ -1204,7 +1226,8 @@ func WaitForNamespaceSCCAnnotations(c corev1client.CoreV1Interface, name string)
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
 func WaitForAnImageStream(client imagev1typedclient.ImageStreamInterface,
 	name string,
-	isOK, isFailed func(*imagev1.ImageStream) bool) error {
+	isOK, isFailed func(*imagev1.ImageStream) bool,
+) error {
 	for {
 		list, err := client.List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
@@ -1320,7 +1343,6 @@ func WaitForResourceQuotaSync(
 	expectedIsUpperLimit bool,
 	timeout time.Duration,
 ) (corev1.ResourceList, error) {
-
 	startTime := time.Now()
 	endTime := startTime.Add(timeout)
 
@@ -1594,7 +1616,6 @@ func FixturePath(elem ...string) string {
 		if err := restoreFixtureAssets(fixtureDir, relativePath); err != nil {
 			panic(err)
 		}
-
 	} else {
 		// defer extraction of content to a BeforeEach when called before tests start
 		g.BeforeEach(func() {
@@ -1673,7 +1694,7 @@ func FetchURL(oc *CLI, url string, retryTimeout time.Duration) (string, error) {
 	var response string
 	waitFn := func() (bool, error) {
 		e2e.Logf("Waiting up to %v to wget %s", retryTimeout, url)
-		//cmd := fmt.Sprintf("wget -T 30 -O- %s", url)
+		// cmd := fmt.Sprintf("wget -T 30 -O- %s", url)
 		cmd := fmt.Sprintf("curl -vvv %s", url)
 		response, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 		if err != nil {
@@ -1921,7 +1942,8 @@ func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
 }
 
 func newCommandPod(name, image, command string, args []string, volumeMounts []corev1.VolumeMount,
-	volumes []corev1.Volume, env []corev1.EnvVar) *corev1.Pod {
+	volumes []corev1.Volume, env []corev1.EnvVar,
+) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -2161,8 +2183,8 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 }
 
 // IsTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
-func IsTechPreviewNoUpgrade(oc *CLI) bool {
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+func IsTechPreviewNoUpgrade(ctx context.Context, configClient configv1client.Interface) bool {
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		if kapierrs.IsNotFound(err) {
 			return false
@@ -2240,6 +2262,19 @@ func IsSelfManagedHA(ctx context.Context, configClient clientconfigv1.Interface)
 	}
 
 	return infrastructure.Status.ControlPlaneTopology == configv1.HighlyAvailableTopologyMode, nil
+}
+
+func IsManagedServiceCluster(ctx context.Context, adminClient kubernetes.Interface) (bool, error) {
+	_, err := adminClient.CoreV1().Namespaces().Get(ctx, "openshift-backplane", metav1.GetOptions{})
+	if err == nil {
+		return true, nil
+	}
+
+	if !kapierrs.IsNotFound(err) {
+		return false, err
+	}
+
+	return false, nil
 }
 
 func IsSingleNode(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {

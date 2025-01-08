@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// GatewayConfigApplyConfiguration represents an declarative configuration of the GatewayConfig type for use
+// GatewayConfigApplyConfiguration represents a declarative configuration of the GatewayConfig type for use
 // with apply.
 type GatewayConfigApplyConfiguration struct {
 	RoutingViaHost *bool                                `json:"routingViaHost,omitempty"`
@@ -15,7 +15,7 @@ type GatewayConfigApplyConfiguration struct {
 	IPv6           *IPv6GatewayConfigApplyConfiguration `json:"ipv6,omitempty"`
 }
 
-// GatewayConfigApplyConfiguration constructs an declarative configuration of the GatewayConfig type for use with
+// GatewayConfigApplyConfiguration constructs a declarative configuration of the GatewayConfig type for use with
 // apply.
 func GatewayConfig() *GatewayConfigApplyConfiguration {
 	return &GatewayConfigApplyConfiguration{}

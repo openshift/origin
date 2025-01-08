@@ -2,7 +2,7 @@
 
 package v1
 
-// MachineConfigPoolStatusApplyConfiguration represents an declarative configuration of the MachineConfigPoolStatus type for use
+// MachineConfigPoolStatusApplyConfiguration represents a declarative configuration of the MachineConfigPoolStatus type for use
 // with apply.
 type MachineConfigPoolStatusApplyConfiguration struct {
 	ObservedGeneration      *int64                                                  `json:"observedGeneration,omitempty"`
@@ -17,7 +17,7 @@ type MachineConfigPoolStatusApplyConfiguration struct {
 	PoolSynchronizersStatus []PoolSynchronizerStatusApplyConfiguration              `json:"poolSynchronizersStatus,omitempty"`
 }
 
-// MachineConfigPoolStatusApplyConfiguration constructs an declarative configuration of the MachineConfigPoolStatus type for use with
+// MachineConfigPoolStatusApplyConfiguration constructs a declarative configuration of the MachineConfigPoolStatus type for use with
 // apply.
 func MachineConfigPoolStatus() *MachineConfigPoolStatusApplyConfiguration {
 	return &MachineConfigPoolStatusApplyConfiguration{}

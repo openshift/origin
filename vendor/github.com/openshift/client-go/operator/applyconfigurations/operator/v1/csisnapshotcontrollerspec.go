@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// CSISnapshotControllerSpecApplyConfiguration represents an declarative configuration of the CSISnapshotControllerSpec type for use
+// CSISnapshotControllerSpecApplyConfiguration represents a declarative configuration of the CSISnapshotControllerSpec type for use
 // with apply.
 type CSISnapshotControllerSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// CSISnapshotControllerSpecApplyConfiguration constructs an declarative configuration of the CSISnapshotControllerSpec type for use with
+// CSISnapshotControllerSpecApplyConfiguration constructs a declarative configuration of the CSISnapshotControllerSpec type for use with
 // apply.
 func CSISnapshotControllerSpec() *CSISnapshotControllerSpecApplyConfiguration {
 	return &CSISnapshotControllerSpecApplyConfiguration{}

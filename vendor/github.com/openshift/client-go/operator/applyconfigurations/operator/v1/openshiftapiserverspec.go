@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// OpenShiftAPIServerSpecApplyConfiguration represents an declarative configuration of the OpenShiftAPIServerSpec type for use
+// OpenShiftAPIServerSpecApplyConfiguration represents a declarative configuration of the OpenShiftAPIServerSpec type for use
 // with apply.
 type OpenShiftAPIServerSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// OpenShiftAPIServerSpecApplyConfiguration constructs an declarative configuration of the OpenShiftAPIServerSpec type for use with
+// OpenShiftAPIServerSpecApplyConfiguration constructs a declarative configuration of the OpenShiftAPIServerSpec type for use with
 // apply.
 func OpenShiftAPIServerSpec() *OpenShiftAPIServerSpecApplyConfiguration {
 	return &OpenShiftAPIServerSpecApplyConfiguration{}

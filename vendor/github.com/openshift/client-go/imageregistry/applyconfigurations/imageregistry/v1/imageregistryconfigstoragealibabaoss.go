@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/imageregistry/v1"
 )
 
-// ImageRegistryConfigStorageAlibabaOSSApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageAlibabaOSS type for use
+// ImageRegistryConfigStorageAlibabaOSSApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageAlibabaOSS type for use
 // with apply.
 type ImageRegistryConfigStorageAlibabaOSSApplyConfiguration struct {
 	Bucket                *string                              `json:"bucket,omitempty"`
@@ -15,7 +15,7 @@ type ImageRegistryConfigStorageAlibabaOSSApplyConfiguration struct {
 	Encryption            *EncryptionAlibabaApplyConfiguration `json:"encryption,omitempty"`
 }
 
-// ImageRegistryConfigStorageAlibabaOSSApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageAlibabaOSS type for use with
+// ImageRegistryConfigStorageAlibabaOSSApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageAlibabaOSS type for use with
 // apply.
 func ImageRegistryConfigStorageAlibabaOSS() *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration {
 	return &ImageRegistryConfigStorageAlibabaOSSApplyConfiguration{}

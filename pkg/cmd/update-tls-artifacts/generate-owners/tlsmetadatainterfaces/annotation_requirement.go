@@ -48,12 +48,12 @@ func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKILis
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v.json: %w", o.GetName(), err)
 	}
-	markdown, err := o.generateInspectionMarkdown(pkiInfo)
+	markdown, err := o.generateInspectionMarkdown(pkiInfo, rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v.md: %w", o.GetName(), err)
 	}
 	violations := generateViolationJSONForAnnotationRequirement(o.GetAnnotationName(), pkiInfo)
-	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
+	violationJSONBytes, err := MarshalViolationsToJSON(violations)
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}
@@ -65,7 +65,7 @@ func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKILis
 		violationJSONBytes)
 }
 
-func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
+func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegistryInfo, rawData []*certgraphapi.PKIList) ([]byte, error) {
 	compliantCertsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
 	violatingCertsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
 	compliantCABundlesByOwner := map[string][]certgraphapi.PKIRegistryCABundle{}
@@ -117,24 +117,18 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 		violatingOwners := sets.StringKeySet(violatingCertsByOwner)
 		violatingOwners.Insert(sets.StringKeySet(violatingCABundlesByOwner).UnsortedList()...)
 		for _, owner := range violatingOwners.List() {
-			md.Title(3, fmt.Sprintf("%s (%d)", owner, len(violatingCertsByOwner[owner])+len(violatingCABundlesByOwner[owner])))
-			certs := violatingCertsByOwner[owner]
-			if len(certs) > 0 {
-				md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
+			// Show custom label if owner is unset
+			ownerLabel := owner
+			if len(owner) == 0 {
+				ownerLabel = UnknownOwner
+			}
+			md.Title(3, fmt.Sprintf("%s (%d)", ownerLabel, len(violatingCertsByOwner[owner])+len(violatingCABundlesByOwner[owner])))
+			violatingCerts := violatingCertsByOwner[owner]
+			if len(violatingCerts) > 0 {
+				md.Title(4, fmt.Sprintf("Certificates (%d)", len(violatingCerts)))
 				md.OrderedListStart()
-				for _, curr := range certs {
-					if curr.InClusterLocation != nil {
-						md.NewOrderedListItem()
-						md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-						md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-						md.Text("\n")
-					}
-					if curr.OnDiskLocation != nil {
-						md.NewOrderedListItem()
-						md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-						md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
-						md.Text("\n")
-					}
+				for _, curr := range violatingCerts {
+					PrintCertKeyPairDetails(curr, md, rawData)
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -145,18 +139,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 				md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 				md.OrderedListStart()
 				for _, curr := range caBundles {
-					if curr.InClusterLocation != nil {
-						md.NewOrderedListItem()
-						md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-						md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-						md.Text("\n")
-					}
-					if curr.OnDiskLocation != nil {
-						md.NewOrderedListItem()
-						md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-						md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
-						md.Text("\n")
-					}
+					PrintCABundleDetails(curr, md, rawData)
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -172,27 +155,16 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 		numCompliant += len(v)
 	}
 	md.Title(2, fmt.Sprintf("Items That DO Meet the Requirement (%d)", numCompliant))
-	allAutoRegenerateAfterOfflineExpirys := sets.StringKeySet(compliantCertsByOwner)
-	allAutoRegenerateAfterOfflineExpirys.Insert(sets.StringKeySet(compliantCABundlesByOwner).UnsortedList()...)
-	for _, owner := range allAutoRegenerateAfterOfflineExpirys.List() {
+	complaintSet := sets.StringKeySet(compliantCertsByOwner)
+	complaintSet.Insert(sets.StringKeySet(compliantCABundlesByOwner).UnsortedList()...)
+	for _, owner := range complaintSet.List() {
 		md.Title(3, fmt.Sprintf("%s (%d)", owner, len(compliantCertsByOwner[owner])+len(compliantCABundlesByOwner[owner])))
-		certs := compliantCertsByOwner[owner]
-		if len(certs) > 0 {
-			md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
+		complaintCerts := compliantCertsByOwner[owner]
+		if len(complaintCerts) > 0 {
+			md.Title(4, fmt.Sprintf("Certificates (%d)", len(complaintCerts)))
 			md.OrderedListStart()
-			for _, curr := range certs {
-				if curr.InClusterLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-					md.Text("\n")
-				}
-				if curr.OnDiskLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
-					md.Text("\n")
-				}
+			for _, curr := range complaintCerts {
+				PrintCertKeyPairDetails(curr, md, rawData)
 			}
 
 			md.OrderedListEnd()
@@ -204,18 +176,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 			md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
-				if curr.InClusterLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-					md.Text("\n")
-				}
-				if curr.OnDiskLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
-					md.Text("\n")
-				}
+				PrintCABundleDetails(curr, md, rawData)
 			}
 
 			md.OrderedListEnd()

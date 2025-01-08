@@ -19,11 +19,23 @@ var Annotations = map[string]string{
 
 	"[Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/serial/minimal]",
 
-	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-api-machinery] API health endpoints should contain the required checks for the oauth-apiserver APIs": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] API health endpoints should contain the required checks for the openshift-apiserver APIs": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-api-machinery] APIServer CR fields validation additionalCORSAllowedOrigins [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should delete an entry from an array with a test precondition provided": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should delete an entry from an array with multiple field owners": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should delete multiple entries from an array when multiple test precondition provided": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should error when the test precondition provided doesn't match": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer] TestTLSDefaults": " [Suite:openshift/conformance/parallel]",
 
@@ -222,6 +234,8 @@ var Annotations = map[string]string{
 	"[sig-arch][Early] CRDs for openshift.io should have subresource.status": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Early] Managed cluster should [apigroup:config.openshift.io] start all core operators": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch][Early] Operators low level operators should have at least the conditions we had in 4.17": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Feature:ClusterUpgrade] All nodes should be in ready state [Early][Suite:upgrade]": "",
 
@@ -633,17 +647,9 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -669,7 +675,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc --request-timeout works as expected for deployment": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm cluster-role-reapers [Serial][apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
 
@@ -743,9 +749,9 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc basics can show correct whoami result": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds complex build start-build [apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds complex build start-build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc builds complex build webhooks CRUD [apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc builds complex build webhooks CRUD [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc builds get buildconfig [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -761,7 +767,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc completion returns expected help messages": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc debug deployment configs from a build [apigroup:image.openshift.io][apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc debug deployment from a build [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc debug dissect deployment config debug [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -770,6 +776,8 @@ var Annotations = map[string]string{
 	"[sig-cli] oc debug does not require a real resource on the server": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource for deployment": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc debug ensure it works with image streams [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -877,13 +885,13 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc status can show correct status after switching between projects [apigroup:project.openshift.io][apigroup:image.openshift.io][Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-cli] oc status returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:apps.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc status returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] policy scc-subject-review, scc-review [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] templates different namespaces [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:template.openshift.io][apigroup:authorization.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] templates process [apigroup:apps.openshift.io][apigroup:template.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] templates process [apigroup:template.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh [apigroup:image.openshift.io]": "",
 
@@ -1081,7 +1089,7 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image Creating from a template should instantiate the template [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
-	"[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image hot deploy test should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": "",
+	"[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image hot deploy test should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]": "",
 
 	"[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image CakePHP example should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]": "",
 
@@ -1109,9 +1117,9 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:Templates] templateinstance object kinds test should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-devex][Feature:Templates] templateinstance readiness test should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-devex][Feature:Templates] templateinstance readiness test should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-devex][Feature:Templates] templateinstance readiness test should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-devex][Feature:Templates] templateinstance readiness test should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-devex][Feature:Templates] templateinstance security tests [apigroup:authorization.openshift.io][apigroup:template.openshift.io] should pass security tests [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1131,11 +1139,15 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Disruptive] etcd is able to block the rollout of a revision when the quorum is not safe": " [Serial]",
 
+	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:1h] [Feature:EtcdRecovery][Disruptive] Recover with quorum restore": " [Serial]",
+
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:2h] [Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum": " [Serial]",
 
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:30m] [Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node": " [Serial]",
 
-	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
+	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to vertically scale up and down when CPMS is disabled [apigroup:machine.openshift.io]": "",
+
+	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling][Serial] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
 
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
@@ -1295,6 +1307,16 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to an HTTP(S) location if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in a heterogeneous environment, should expose information about the applied collection profile using meta-metrics": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in a heterogeneous environment, should have at least one implementation for each collection profile": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in a heterogeneous environment, should revert to default collection profile when an empty collection profile value is specified": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in a homogeneous minimal environment, should hide default metrics": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set initially, in a homogeneous default environment, should expose default metrics": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-kubevirt] migration when running openshift cluster on KubeVirt virtual machines and live migrate hosted control plane workers [Early] should maintain node readiness": " [Suite:openshift/conformance/parallel]",
@@ -1312,6 +1334,26 @@ var Annotations = map[string]string{
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow direct connections to pods from guest cluster pod in host network across different guest nodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow direct connections to pods from guest cluster pod in pod network across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1437,15 +1479,13 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in disabled mode": "",
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in external mode": "",
 
-	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in external mode": "",
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in full mode": "",
 
-	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in full mode": "",
+	"[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test when using openshift ovn-kubernetes assert the primary UDN feature works as expected": "",
 
-	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for north south IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in external mode": "",
-
-	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for north south IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in full mode": "",
+	"[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines Placeholder test for GA": "",
 
 	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv4": " [Suite:openshift/conformance/serial]",
 
@@ -1537,25 +1577,95 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should set the condition to false if there are no nodes able to host the source pods": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 dualstack primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 dualstack primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 dualstack primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 dualstack primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes can perform east/west traffic between nodes for two pods connected over a L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes can perform east/west traffic between nodes two pods connected over a L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes is isolated from the default network with L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes is isolated from the default network with L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes pods within namespace should be isolated when deny policy is present in L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes pods within namespace should be isolated when deny policy is present in L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UDN Pod should react to k8s.ovn.org/open-default-ports annotations changes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should create NetworkAttachmentDefinition according to spec": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions is isolated from the default network with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions is isolated from the default network with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions isolates overlapping CIDRs with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated from the default network with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated from the default network with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork status should report not-ready": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is restarted": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip when the VMI attached to a secondary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is restarted": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VMI attached to a secondary UDN is migrated between nodes": "",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
@@ -1585,8 +1695,6 @@ var Annotations = map[string]string{
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with oslat": " [Serial]",
 
-	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with rteval": " [Serial]",
-
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow deadline_test to run successfully": " [Serial]",
 
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the fifo algorithm": " [Serial]",
@@ -1606,6 +1714,18 @@ var Annotations = map[string]string{
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads with limits should have resources modified if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs should be installed": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New Catalog Install should fail to install if it has an invalid reference": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator installation should block cluster upgrades if an incompatible operator is installed": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator installation should fail to install a non-existing cluster extension": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator installation should install a cluster extension": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
@@ -1635,27 +1755,27 @@ var Annotations = map[string]string{
 
 	"[sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster it should read the node info": "",
 
-	"[sig-scheduling][Early] The HAProxy router pods [apigroup:route.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The HAProxy router pods [apigroup:route.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-apiserver pods [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-apiserver pods [apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-authentication pods [apigroup:oauth.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-authentication pods [apigroup:oauth.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-console console pods [apigroup:console.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-console console pods [apigroup:console.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-console downloads pods [apigroup:console.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-console downloads pods [apigroup:console.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-etcd pods [apigroup:operator.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-etcd pods [apigroup:operator.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-image-registry pods [apigroup:imageregistry.operator.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-image-registry pods [apigroup:imageregistry.operator.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-monitoring prometheus-adapter pods [apigroup:monitoring.coreos.com] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-monitoring prometheus-adapter pods [apigroup:monitoring.coreos.com] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-monitoring thanos-querier pods [apigroup:monitoring.coreos.com] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-monitoring thanos-querier pods [apigroup:monitoring.coreos.com] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-oauth-apiserver pods [apigroup:oauth.openshift.io][apigroup:user.openshift.io] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-oauth-apiserver pods [apigroup:oauth.openshift.io][apigroup:user.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-operator-lifecycle-manager pods [apigroup:packages.operators.coreos.com] should be scheduled on different nodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-operator-lifecycle-manager pods [apigroup:packages.operators.coreos.com] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
 	"[sig-storage] Managed cluster should have no crashlooping recycler pods over four minutes": " [Suite:openshift/conformance/parallel]",
 
@@ -1674,10 +1794,6 @@ var Annotations = map[string]string{
 	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the baseline label": " [Suite:openshift/conformance/serial]",
 
 	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
-
-	"[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operator][Serial][apigroup:operator.openshift.io] should restart webhook Pods if csi-snapshot-webhook-secret expiry annotation is changed": " [Suite:openshift/conformance/serial]",
-
-	"[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operator][Serial][apigroup:operator.openshift.io] should restart webhook Pods if csi-snapshot-webhook-secret is deleted": " [Suite:openshift/conformance/serial]",
 
 	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should not reconcile the StorageClass when StorageClassState is Unmanaged": " [Suite:openshift/conformance/serial]",
 
@@ -1698,6 +1814,8 @@ var Annotations = map[string]string{
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-windows] Nodes should fail with invalid version annotation": " [Suite:openshift/conformance/parallel]",
 }
 
 func init() {

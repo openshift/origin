@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/machine/v1"
 )
 
-// ControlPlaneMachineSetTemplateApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSetTemplate type for use
+// ControlPlaneMachineSetTemplateApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetTemplate type for use
 // with apply.
 type ControlPlaneMachineSetTemplateApplyConfiguration struct {
 	MachineType                    *v1.ControlPlaneMachineSetMachineType                     `json:"machineType,omitempty"`
 	OpenShiftMachineV1Beta1Machine *OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration `json:"machines_v1beta1_machine_openshift_io,omitempty"`
 }
 
-// ControlPlaneMachineSetTemplateApplyConfiguration constructs an declarative configuration of the ControlPlaneMachineSetTemplate type for use with
+// ControlPlaneMachineSetTemplateApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetTemplate type for use with
 // apply.
 func ControlPlaneMachineSetTemplate() *ControlPlaneMachineSetTemplateApplyConfiguration {
 	return &ControlPlaneMachineSetTemplateApplyConfiguration{}

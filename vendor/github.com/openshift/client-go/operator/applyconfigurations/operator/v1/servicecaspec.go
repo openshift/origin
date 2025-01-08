@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ServiceCASpecApplyConfiguration represents an declarative configuration of the ServiceCASpec type for use
+// ServiceCASpecApplyConfiguration represents a declarative configuration of the ServiceCASpec type for use
 // with apply.
 type ServiceCASpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// ServiceCASpecApplyConfiguration constructs an declarative configuration of the ServiceCASpec type for use with
+// ServiceCASpecApplyConfiguration constructs a declarative configuration of the ServiceCASpec type for use with
 // apply.
 func ServiceCASpec() *ServiceCASpecApplyConfiguration {
 	return &ServiceCASpecApplyConfiguration{}

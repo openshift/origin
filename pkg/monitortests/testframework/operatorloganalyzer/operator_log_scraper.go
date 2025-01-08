@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openshift/origin/pkg/monitor"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -85,7 +86,47 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 }
 
 func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	platformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []*junitapi.JUnitTestCase{}
+
+	applyFailures := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == monitorapi.ReasonBadOperatorApply
+	})
+
+	namespaceToApplyFailures := map[string][]string{}
+	for _, applyFailure := range applyFailures {
+		namespace := applyFailure.Locator.Keys[monitorapi.LocatorNamespaceKey]
+		namespaceToApplyFailures[namespace] = append(namespaceToApplyFailures[namespace], applyFailure.String())
+	}
+
+	for _, nsName := range platformNamespaces {
+		testName := fmt.Sprintf("operators in in ns/%s should not submit invalid apply statements", nsName)
+		nsFailures := namespaceToApplyFailures[nsName]
+		if len(nsFailures) > 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(nsFailures, "\n"),
+					Output:  fmt.Sprintf("found %d invalid applies in the log", len(nsFailures)),
+				},
+			})
+			// flake because Stephen will want it that way this week.
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
+
+	}
+
+	return ret, nil
 }
 
 func (w *operatorLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -122,7 +163,8 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 		}
 	}
 	switch {
-	case strings.Contains(logLine.Line, "attempting to acquire leader lease"):
+	case strings.Contains(logLine.Line, "attempting to acquire leader lease") &&
+		!strings.Contains(logLine.Line, "Degraded"): // need to exclude lines that re-embed the kube-controller-manager log
 		g.recorder.AddIntervals(
 			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
 				Locator(logLine.Locator).
@@ -132,12 +174,35 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 				).
 				Build(logLine.Instant, logLine.Instant),
 		)
-	case strings.Contains(logLine.Line, "successfully acquired lease"):
+	case strings.Contains(logLine.Line, "successfully acquired lease") &&
+		!strings.Contains(logLine.Line, "Degraded"): // need to exclude lines that re-embed the kube-controller-manager log
 		g.recorder.AddIntervals(
 			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
 				Locator(logLine.Locator).
 				Message(monitorapi.NewMessage().
 					Reason(monitorapi.LeaseAcquired).
+					HumanMessage(logLine.Line),
+				).
+				Build(logLine.Instant, logLine.Instant),
+		)
+	case strings.Contains(logLine.Line, "unable to ApplyStatus for operator") &&
+		strings.Contains(logLine.Line, "is invalid"): // apply failures
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Error).
+				Locator(logLine.Locator).
+				Message(monitorapi.NewMessage().
+					Reason(monitorapi.ReasonBadOperatorApply).
+					HumanMessage(logLine.Line),
+				).
+				Build(logLine.Instant, logLine.Instant),
+		)
+	case strings.Contains(logLine.Line, "unable to Apply for operator") &&
+		strings.Contains(logLine.Line, "is invalid"): // apply failures
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Error).
+				Locator(logLine.Locator).
+				Message(monitorapi.NewMessage().
+					Reason(monitorapi.ReasonBadOperatorApply).
 					HumanMessage(logLine.Line),
 				).
 				Build(logLine.Instant, logLine.Instant),

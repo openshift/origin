@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mydockertest
+  annotations:
+    image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"mydockerstream:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mydockertest
+      deployment: mydockertest
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: mydockertest
+        deployment: mydockertest
+    spec:
+      containers:
+      - image: " "
+        imagePullPolicy: Always
+        name: mydockertest
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}

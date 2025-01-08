@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/machineconfiguration/v1"
 )
 
-// PoolSynchronizerStatusApplyConfiguration represents an declarative configuration of the PoolSynchronizerStatus type for use
+// PoolSynchronizerStatusApplyConfiguration represents a declarative configuration of the PoolSynchronizerStatus type for use
 // with apply.
 type PoolSynchronizerStatusApplyConfiguration struct {
 	PoolSynchronizerType    *v1.PoolSynchronizerType `json:"poolSynchronizerType,omitempty"`
@@ -18,7 +18,7 @@ type PoolSynchronizerStatusApplyConfiguration struct {
 	ObservedGeneration      *int64                   `json:"observedGeneration,omitempty"`
 }
 
-// PoolSynchronizerStatusApplyConfiguration constructs an declarative configuration of the PoolSynchronizerStatus type for use with
+// PoolSynchronizerStatusApplyConfiguration constructs a declarative configuration of the PoolSynchronizerStatus type for use with
 // apply.
 func PoolSynchronizerStatus() *PoolSynchronizerStatusApplyConfiguration {
 	return &PoolSynchronizerStatusApplyConfiguration{}

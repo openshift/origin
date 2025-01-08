@@ -32,6 +32,7 @@ controllerconfigs.machineconfiguration.openshift.io:
   - GCPClusterHostedDNS
   - GCPLabelsTags
   - VSphereControlPlaneMachineSet
+  - VSphereMultiNetworks
   - VSphereMultiVCenters
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"

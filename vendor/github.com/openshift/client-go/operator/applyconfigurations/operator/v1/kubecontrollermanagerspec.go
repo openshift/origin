@@ -7,14 +7,14 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// KubeControllerManagerSpecApplyConfiguration represents an declarative configuration of the KubeControllerManagerSpec type for use
+// KubeControllerManagerSpecApplyConfiguration represents a declarative configuration of the KubeControllerManagerSpec type for use
 // with apply.
 type KubeControllerManagerSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
 	UseMoreSecureServiceCA                  *bool `json:"useMoreSecureServiceCA,omitempty"`
 }
 
-// KubeControllerManagerSpecApplyConfiguration constructs an declarative configuration of the KubeControllerManagerSpec type for use with
+// KubeControllerManagerSpecApplyConfiguration constructs a declarative configuration of the KubeControllerManagerSpec type for use with
 // apply.
 func KubeControllerManagerSpec() *KubeControllerManagerSpecApplyConfiguration {
 	return &KubeControllerManagerSpecApplyConfiguration{}

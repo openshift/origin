@@ -6,14 +6,14 @@ import (
 	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 )
 
-// MachineOSContainerfileApplyConfiguration represents an declarative configuration of the MachineOSContainerfile type for use
+// MachineOSContainerfileApplyConfiguration represents a declarative configuration of the MachineOSContainerfile type for use
 // with apply.
 type MachineOSContainerfileApplyConfiguration struct {
 	ContainerfileArch *v1alpha1.ContainerfileArch `json:"containerfileArch,omitempty"`
 	Content           *string                     `json:"content,omitempty"`
 }
 
-// MachineOSContainerfileApplyConfiguration constructs an declarative configuration of the MachineOSContainerfile type for use with
+// MachineOSContainerfileApplyConfiguration constructs a declarative configuration of the MachineOSContainerfile type for use with
 // apply.
 func MachineOSContainerfile() *MachineOSContainerfileApplyConfiguration {
 	return &MachineOSContainerfileApplyConfiguration{}

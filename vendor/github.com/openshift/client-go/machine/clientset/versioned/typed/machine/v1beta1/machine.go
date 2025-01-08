@@ -4,9 +4,6 @@ package v1beta1
 
 import (
 	"context"
-	json "encoding/json"
-	"fmt"
-	"time"
 
 	v1beta1 "github.com/openshift/api/machine/v1beta1"
 	machinev1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
@@ -14,7 +11,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // MachinesGetter has a method to return a MachineInterface.
@@ -27,6 +24,7 @@ type MachinesGetter interface {
 type MachineInterface interface {
 	Create(ctx context.Context, machine *v1beta1.Machine, opts v1.CreateOptions) (*v1beta1.Machine, error)
 	Update(ctx context.Context, machine *v1beta1.Machine, opts v1.UpdateOptions) (*v1beta1.Machine, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 	UpdateStatus(ctx context.Context, machine *v1beta1.Machine, opts v1.UpdateOptions) (*v1beta1.Machine, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
@@ -35,206 +33,25 @@ type MachineInterface interface {
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Machine, err error)
 	Apply(ctx context.Context, machine *machinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Machine, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
 	ApplyStatus(ctx context.Context, machine *machinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Machine, err error)
 	MachineExpansion
 }
 
 // machines implements MachineInterface
 type machines struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithListAndApply[*v1beta1.Machine, *v1beta1.MachineList, *machinev1beta1.MachineApplyConfiguration]
 }
 
 // newMachines returns a Machines
 func newMachines(c *MachineV1beta1Client, namespace string) *machines {
 	return &machines{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithListAndApply[*v1beta1.Machine, *v1beta1.MachineList, *machinev1beta1.MachineApplyConfiguration](
+			"machines",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *v1beta1.Machine { return &v1beta1.Machine{} },
+			func() *v1beta1.MachineList { return &v1beta1.MachineList{} }),
 	}
-}
-
-// Get takes name of the machine, and returns the corresponding machine object, and an error if there is any.
-func (c *machines) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Machine, err error) {
-	result = &v1beta1.Machine{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("machines").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Machines that match those selectors.
-func (c *machines) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.MachineList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1beta1.MachineList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("machines").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested machines.
-func (c *machines) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("machines").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a machine and creates it.  Returns the server's representation of the machine, and an error, if there is any.
-func (c *machines) Create(ctx context.Context, machine *v1beta1.Machine, opts v1.CreateOptions) (result *v1beta1.Machine, err error) {
-	result = &v1beta1.Machine{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("machines").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(machine).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a machine and updates it. Returns the server's representation of the machine, and an error, if there is any.
-func (c *machines) Update(ctx context.Context, machine *v1beta1.Machine, opts v1.UpdateOptions) (result *v1beta1.Machine, err error) {
-	result = &v1beta1.Machine{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("machines").
-		Name(machine.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(machine).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *machines) UpdateStatus(ctx context.Context, machine *v1beta1.Machine, opts v1.UpdateOptions) (result *v1beta1.Machine, err error) {
-	result = &v1beta1.Machine{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("machines").
-		Name(machine.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(machine).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the machine and deletes it. Returns an error if one occurs.
-func (c *machines) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("machines").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *machines) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("machines").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched machine.
-func (c *machines) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Machine, err error) {
-	result = &v1beta1.Machine{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("machines").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Apply takes the given apply declarative configuration, applies it and returns the applied machine.
-func (c *machines) Apply(ctx context.Context, machine *machinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Machine, err error) {
-	if machine == nil {
-		return nil, fmt.Errorf("machine provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(machine)
-	if err != nil {
-		return nil, err
-	}
-	name := machine.Name
-	if name == nil {
-		return nil, fmt.Errorf("machine.Name must be provided to Apply")
-	}
-	result = &v1beta1.Machine{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Namespace(c.ns).
-		Resource("machines").
-		Name(*name).
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// ApplyStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-func (c *machines) ApplyStatus(ctx context.Context, machine *machinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Machine, err error) {
-	if machine == nil {
-		return nil, fmt.Errorf("machine provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(machine)
-	if err != nil {
-		return nil, err
-	}
-
-	name := machine.Name
-	if name == nil {
-		return nil, fmt.Errorf("machine.Name must be provided to Apply")
-	}
-
-	result = &v1beta1.Machine{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Namespace(c.ns).
-		Resource("machines").
-		Name(*name).
-		SubResource("status").
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

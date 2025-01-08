@@ -2,17 +2,18 @@
 
 package v1
 
-// OperatorStatusApplyConfiguration represents an declarative configuration of the OperatorStatus type for use
+// OperatorStatusApplyConfiguration represents a declarative configuration of the OperatorStatus type for use
 // with apply.
 type OperatorStatusApplyConfiguration struct {
-	ObservedGeneration *int64                                `json:"observedGeneration,omitempty"`
-	Conditions         []OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
-	Version            *string                               `json:"version,omitempty"`
-	ReadyReplicas      *int32                                `json:"readyReplicas,omitempty"`
-	Generations        []GenerationStatusApplyConfiguration  `json:"generations,omitempty"`
+	ObservedGeneration      *int64                                `json:"observedGeneration,omitempty"`
+	Conditions              []OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
+	Version                 *string                               `json:"version,omitempty"`
+	ReadyReplicas           *int32                                `json:"readyReplicas,omitempty"`
+	LatestAvailableRevision *int32                                `json:"latestAvailableRevision,omitempty"`
+	Generations             []GenerationStatusApplyConfiguration  `json:"generations,omitempty"`
 }
 
-// OperatorStatusApplyConfiguration constructs an declarative configuration of the OperatorStatus type for use with
+// OperatorStatusApplyConfiguration constructs a declarative configuration of the OperatorStatus type for use with
 // apply.
 func OperatorStatus() *OperatorStatusApplyConfiguration {
 	return &OperatorStatusApplyConfiguration{}
@@ -52,6 +53,14 @@ func (b *OperatorStatusApplyConfiguration) WithVersion(value string) *OperatorSt
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *OperatorStatusApplyConfiguration) WithReadyReplicas(value int32) *OperatorStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *OperatorStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OperatorStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

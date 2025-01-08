@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// KubeStorageVersionMigratorSpecApplyConfiguration represents an declarative configuration of the KubeStorageVersionMigratorSpec type for use
+// KubeStorageVersionMigratorSpecApplyConfiguration represents a declarative configuration of the KubeStorageVersionMigratorSpec type for use
 // with apply.
 type KubeStorageVersionMigratorSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// KubeStorageVersionMigratorSpecApplyConfiguration constructs an declarative configuration of the KubeStorageVersionMigratorSpec type for use with
+// KubeStorageVersionMigratorSpecApplyConfiguration constructs a declarative configuration of the KubeStorageVersionMigratorSpec type for use with
 // apply.
 func KubeStorageVersionMigratorSpec() *KubeStorageVersionMigratorSpecApplyConfiguration {
 	return &KubeStorageVersionMigratorSpecApplyConfiguration{}

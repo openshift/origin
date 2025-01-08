@@ -90,7 +90,11 @@ type AWSMachineProviderConfig struct {
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=7
 	// +optional
-	PlacementGroupPartition int32 `json:"placementGroupPartition,omitempty"`
+	PlacementGroupPartition *int32 `json:"placementGroupPartition,omitempty"`
+	// capacityReservationId specifies the target Capacity Reservation into which the instance should be launched.
+	// The field size should be greater than 0 and the field input must start with cr-***
+	// +optional
+	CapacityReservationID string `json:"capacityReservationId"`
 }
 
 // BlockDeviceMappingSpec describes a block device mapping

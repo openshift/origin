@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KubeletConfigConditionApplyConfiguration represents an declarative configuration of the KubeletConfigCondition type for use
+// KubeletConfigConditionApplyConfiguration represents a declarative configuration of the KubeletConfigCondition type for use
 // with apply.
 type KubeletConfigConditionApplyConfiguration struct {
 	Type               *v1.KubeletConfigStatusConditionType `json:"type,omitempty"`
@@ -18,7 +18,7 @@ type KubeletConfigConditionApplyConfiguration struct {
 	Message            *string                              `json:"message,omitempty"`
 }
 
-// KubeletConfigConditionApplyConfiguration constructs an declarative configuration of the KubeletConfigCondition type for use with
+// KubeletConfigConditionApplyConfiguration constructs a declarative configuration of the KubeletConfigCondition type for use with
 // apply.
 func KubeletConfigCondition() *KubeletConfigConditionApplyConfiguration {
 	return &KubeletConfigConditionApplyConfiguration{}

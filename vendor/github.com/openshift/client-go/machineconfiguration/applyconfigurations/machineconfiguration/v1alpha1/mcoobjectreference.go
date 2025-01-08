@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// MCOObjectReferenceApplyConfiguration represents an declarative configuration of the MCOObjectReference type for use
+// MCOObjectReferenceApplyConfiguration represents a declarative configuration of the MCOObjectReference type for use
 // with apply.
 type MCOObjectReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// MCOObjectReferenceApplyConfiguration constructs an declarative configuration of the MCOObjectReference type for use with
+// MCOObjectReferenceApplyConfiguration constructs a declarative configuration of the MCOObjectReference type for use with
 // apply.
 func MCOObjectReference() *MCOObjectReferenceApplyConfiguration {
 	return &MCOObjectReferenceApplyConfiguration{}

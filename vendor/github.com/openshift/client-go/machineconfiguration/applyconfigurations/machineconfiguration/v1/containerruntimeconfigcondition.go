@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ContainerRuntimeConfigConditionApplyConfiguration represents an declarative configuration of the ContainerRuntimeConfigCondition type for use
+// ContainerRuntimeConfigConditionApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfigCondition type for use
 // with apply.
 type ContainerRuntimeConfigConditionApplyConfiguration struct {
 	Type               *v1.ContainerRuntimeConfigStatusConditionType `json:"type,omitempty"`
@@ -18,7 +18,7 @@ type ContainerRuntimeConfigConditionApplyConfiguration struct {
 	Message            *string                                       `json:"message,omitempty"`
 }
 
-// ContainerRuntimeConfigConditionApplyConfiguration constructs an declarative configuration of the ContainerRuntimeConfigCondition type for use with
+// ContainerRuntimeConfigConditionApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfigCondition type for use with
 // apply.
 func ContainerRuntimeConfigCondition() *ContainerRuntimeConfigConditionApplyConfiguration {
 	return &ContainerRuntimeConfigConditionApplyConfiguration{}

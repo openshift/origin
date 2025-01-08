@@ -10,10 +10,11 @@ import (
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // checkSubresourceStatus returns a list of names of CRDs that have a "status" in the CRD schema
@@ -101,6 +102,7 @@ func checkStatusInSchema(crdItemList []apiextensionsv1.CustomResourceDefinition)
 		"rangeallocations.security.internal.openshift.io",
 		"rolebindingrestrictions.authorization.openshift.io",
 		"securitycontextconstraints.security.openshift.io",
+		"managedfleetnotifications.ocmagent.managed.openshift.io", // OSD-26067
 	)
 
 	failures := []string{}

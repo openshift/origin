@@ -2,13 +2,13 @@
 
 package v1
 
-// NutanixFailureDomainReferenceApplyConfiguration represents an declarative configuration of the NutanixFailureDomainReference type for use
+// NutanixFailureDomainReferenceApplyConfiguration represents a declarative configuration of the NutanixFailureDomainReference type for use
 // with apply.
 type NutanixFailureDomainReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// NutanixFailureDomainReferenceApplyConfiguration constructs an declarative configuration of the NutanixFailureDomainReference type for use with
+// NutanixFailureDomainReferenceApplyConfiguration constructs a declarative configuration of the NutanixFailureDomainReference type for use with
 // apply.
 func NutanixFailureDomainReference() *NutanixFailureDomainReferenceApplyConfiguration {
 	return &NutanixFailureDomainReferenceApplyConfiguration{}

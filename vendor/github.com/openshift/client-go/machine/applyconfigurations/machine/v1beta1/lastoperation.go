@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// LastOperationApplyConfiguration represents an declarative configuration of the LastOperation type for use
+// LastOperationApplyConfiguration represents a declarative configuration of the LastOperation type for use
 // with apply.
 type LastOperationApplyConfiguration struct {
 	Description *string  `json:"description,omitempty"`
@@ -15,7 +15,7 @@ type LastOperationApplyConfiguration struct {
 	Type        *string  `json:"type,omitempty"`
 }
 
-// LastOperationApplyConfiguration constructs an declarative configuration of the LastOperation type for use with
+// LastOperationApplyConfiguration constructs a declarative configuration of the LastOperation type for use with
 // apply.
 func LastOperation() *LastOperationApplyConfiguration {
 	return &LastOperationApplyConfiguration{}

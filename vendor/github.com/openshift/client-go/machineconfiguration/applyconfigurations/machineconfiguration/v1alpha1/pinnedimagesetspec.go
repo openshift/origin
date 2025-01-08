@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// PinnedImageSetSpecApplyConfiguration represents an declarative configuration of the PinnedImageSetSpec type for use
+// PinnedImageSetSpecApplyConfiguration represents a declarative configuration of the PinnedImageSetSpec type for use
 // with apply.
 type PinnedImageSetSpecApplyConfiguration struct {
 	PinnedImages []PinnedImageRefApplyConfiguration `json:"pinnedImages,omitempty"`
 }
 
-// PinnedImageSetSpecApplyConfiguration constructs an declarative configuration of the PinnedImageSetSpec type for use with
+// PinnedImageSetSpecApplyConfiguration constructs a declarative configuration of the PinnedImageSetSpec type for use with
 // apply.
 func PinnedImageSetSpec() *PinnedImageSetSpecApplyConfiguration {
 	return &PinnedImageSetSpecApplyConfiguration{}

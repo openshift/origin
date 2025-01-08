@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -30,6 +31,7 @@ import (
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
+	"github.com/openshift/origin/pkg/test/externalbinary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -122,7 +124,8 @@ func max(a, b int) int {
 	return b
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) error {
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
+	upgrade bool) error {
 	ctx := context.Background()
 
 	tests, err := testsForSuite()
@@ -130,50 +133,48 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
 
-	fmt.Fprintf(o.Out, "found %d tests for suite\n", len(tests))
+	fmt.Fprintf(o.Out, "Found %d tests for in openshift-tests binary for suite %q\n", len(tests), suite.Name)
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
+	var externalTestCases []*testCase
+	extractLogger := log.New(os.Stdout, "", log.LstdFlags|log.Lmicroseconds)
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		buf := &bytes.Buffer{}
-		fmt.Fprintf(buf, "Attempting to pull tests from external binary...\n")
-		externalTests, err := externalTestsForSuite(ctx)
-		if err == nil {
-			filteredTests := []*testCase{}
-			for _, test := range tests {
-				// tests contains all the tests "registered" in openshif-tests binary,
-				// this also includes vendored k8s tests, since this path assumes we're
-				// using external binary to run these tests we need to remove them
-				// from the final lists, which contains:
-				// 1. origin tests, only
-				// 2. k8s tests, coming from external binary
-				if !strings.Contains(test.name, "[Suite:k8s]") {
-					filteredTests = append(filteredTests, test)
-				}
-			}
-			tests = append(filteredTests, externalTests...)
-			fmt.Fprintf(buf, "Got %d tests from external binary\n", len(externalTests))
-		} else {
-			fmt.Fprintf(buf, "Falling back to built-in suite, failed reading external test suites: %v\n", err)
-			// adding this test twice (one failure here, and success below) will
-			// ensure it gets picked as flake further down in synthetic tests processing
-			fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
-				Name:      "[sig-arch] External binary usage",
-				SystemOut: buf.String(),
-				FailureOutput: &junitapi.FailureOutput{
-					Output: buf.String(),
-				},
-			})
+		// Extract all test binaries
+		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer extractionContextCancel()
+		cleanUpFn, externalBinaries, err := externalbinary.ExtractAllTestBinaries(extractionContext, extractLogger, 10)
+		if err != nil {
+			return err
 		}
-		fmt.Fprintf(o.Out, buf.String())
-		fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
-			Name:      "[sig-arch] External binary usage",
-			SystemOut: buf.String(),
-		})
+		defer cleanUpFn()
+
+		// List tests from all available binaries and convert them to origin's testCase format
+		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer listContextCancel()
+		externalTestSpecs, err := externalBinaries.ListTests(listContext, 10)
+		if err != nil {
+			return err
+		}
+		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
+
+		var filteredTests []*testCase
+		for _, test := range tests {
+			// tests contains all the tests "registered" in openshift-tests binary,
+			// this also includes vendored k8s tests, since this path assumes we're
+			// using external binary to run these tests we need to remove them
+			// from the final lists, which contains:
+			// 1. origin tests, only
+			// 2. k8s tests, coming from external binary
+			if !strings.Contains(test.name, "[Suite:k8s]") {
+				filteredTests = append(filteredTests, test)
+			}
+		}
+		fmt.Printf("Discovered %d internal tests, %d external tests - %d total unique tests\n",
+			len(tests), len(externalTestCases), len(filteredTests)+len(externalTestCases))
+		tests = append(filteredTests, externalTestCases...)
 	} else {
 		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
-
-	fmt.Fprintf(o.Out, "found %d tests (incl externals)\n", len(tests))
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies

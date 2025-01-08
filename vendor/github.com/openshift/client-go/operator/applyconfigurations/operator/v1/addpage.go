@@ -2,13 +2,13 @@
 
 package v1
 
-// AddPageApplyConfiguration represents an declarative configuration of the AddPage type for use
+// AddPageApplyConfiguration represents a declarative configuration of the AddPage type for use
 // with apply.
 type AddPageApplyConfiguration struct {
 	DisabledActions []string `json:"disabledActions,omitempty"`
 }
 
-// AddPageApplyConfiguration constructs an declarative configuration of the AddPage type for use with
+// AddPageApplyConfiguration constructs a declarative configuration of the AddPage type for use with
 // apply.
 func AddPage() *AddPageApplyConfiguration {
 	return &AddPageApplyConfiguration{}

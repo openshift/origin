@@ -1,7 +1,11 @@
 package legacykubeapiservermonitortests
 
 import (
+	"context"
 	"fmt"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/client-go/rest"
 	"regexp"
 	"strings"
 	"time"
@@ -11,10 +15,18 @@ import (
 )
 
 // amount of time near E2E test start that we consider "early"
-const preE2ECheckDuration = 3 * time.Minute
-const earlyE2ECheckDuration = 3 * time.Minute
+const preE2ECheckDuration = 2 * time.Minute
+const earlyE2ECheckDuration = 2 * time.Minute
+const kubeTestName = "[Jira:\"kube-apiserver\"] kube API servers should not experience disruption near the start of E2E testing"
+const oauthTestName = "[Jira:\"oauth-apiserver\"] oauth API servers should not experience disruption near the start of E2E testing"
 
-func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals, config *rest.Config) []*junitapi.JUnitTestCase {
+	if client, err := clientconfigv1.NewForConfig(config); err == nil {
+		if isSNO, err := exutil.IsSingleNode(context.Background(), client); err == nil && isSNO {
+			return earlyE2ESkips("single node cluster; upgrade disruption is expected, so no need to report it")
+		}
+	} // in the unlikely event that something went wrong and we couldn't determine SNO, just run the test as usual
+
 	var periodStart, periodEnd time.Time // the time period we're interested in disruption
 	for _, event := range events {
 		if event.Source == monitorapi.SourceE2ETest {
@@ -23,17 +35,8 @@ func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JU
 			break
 		}
 	}
-
-	const kubeTestName = "[Jira:\"kube-apiserver\"] kube API servers should not experience disruption near the start of E2E testing"
-	const oauthTestName = "[Jira:\"oauth-apiserver\"] oauth API servers should not experience disruption near the start of E2E testing"
 	if periodStart.IsZero() {
-		msg := &junitapi.SkipMessage{
-			Message: "no E2E tests ran", // no point in this test
-		}
-		return []*junitapi.JUnitTestCase{
-			{Name: kubeTestName, SkipMessage: msg},
-			{Name: oauthTestName, SkipMessage: msg},
-		}
+		return earlyE2ESkips("no E2E tests ran") // no point in this test
 	}
 
 	kubeMatcher := regexp.MustCompile(`^(cache-)?(openshift|kube)-api-`)
@@ -60,7 +63,7 @@ func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JU
 	}
 
 	junits := []*junitapi.JUnitTestCase{}
-	if count := len(kubeEvents); count > 0 {
+	if count := len(kubeEvents); count > 2 {
 		junits = append(junits, &junitapi.JUnitTestCase{
 			Name: kubeTestName,
 			FailureOutput: &junitapi.FailureOutput{
@@ -81,4 +84,14 @@ func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JU
 		})
 	}
 	return append(junits, &junitapi.JUnitTestCase{Name: oauthTestName}) // success after fail makes a flake, to record when this is happening
+}
+
+func earlyE2ESkips(reason string) []*junitapi.JUnitTestCase {
+	msg := &junitapi.SkipMessage{
+		Message: reason,
+	}
+	return []*junitapi.JUnitTestCase{
+		{Name: kubeTestName, SkipMessage: msg},
+		{Name: oauthTestName, SkipMessage: msg},
+	}
 }

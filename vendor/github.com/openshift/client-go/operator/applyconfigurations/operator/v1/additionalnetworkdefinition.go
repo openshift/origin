@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// AdditionalNetworkDefinitionApplyConfiguration represents an declarative configuration of the AdditionalNetworkDefinition type for use
+// AdditionalNetworkDefinitionApplyConfiguration represents a declarative configuration of the AdditionalNetworkDefinition type for use
 // with apply.
 type AdditionalNetworkDefinitionApplyConfiguration struct {
 	Type                *v1.NetworkType                        `json:"type,omitempty"`
@@ -16,7 +16,7 @@ type AdditionalNetworkDefinitionApplyConfiguration struct {
 	SimpleMacvlanConfig *SimpleMacvlanConfigApplyConfiguration `json:"simpleMacvlanConfig,omitempty"`
 }
 
-// AdditionalNetworkDefinitionApplyConfiguration constructs an declarative configuration of the AdditionalNetworkDefinition type for use with
+// AdditionalNetworkDefinitionApplyConfiguration constructs a declarative configuration of the AdditionalNetworkDefinition type for use with
 // apply.
 func AdditionalNetworkDefinition() *AdditionalNetworkDefinitionApplyConfiguration {
 	return &AdditionalNetworkDefinitionApplyConfiguration{}

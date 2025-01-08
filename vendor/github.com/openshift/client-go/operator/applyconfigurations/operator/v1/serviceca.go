@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ServiceCAApplyConfiguration represents an declarative configuration of the ServiceCA type for use
+// ServiceCAApplyConfiguration represents a declarative configuration of the ServiceCA type for use
 // with apply.
 type ServiceCAApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ServiceCAApplyConfiguration struct {
 	Status                           *ServiceCAStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ServiceCA constructs an declarative configuration of the ServiceCA type for use with
+// ServiceCA constructs a declarative configuration of the ServiceCA type for use with
 // apply.
 func ServiceCA(name string) *ServiceCAApplyConfiguration {
 	b := &ServiceCAApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *ServiceCAApplyConfiguration) WithSpec(value *ServiceCASpecApplyConfigur
 func (b *ServiceCAApplyConfiguration) WithStatus(value *ServiceCAStatusApplyConfiguration) *ServiceCAApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ServiceCAApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

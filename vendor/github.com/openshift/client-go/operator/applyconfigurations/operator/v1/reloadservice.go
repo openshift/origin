@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// ReloadServiceApplyConfiguration represents an declarative configuration of the ReloadService type for use
+// ReloadServiceApplyConfiguration represents a declarative configuration of the ReloadService type for use
 // with apply.
 type ReloadServiceApplyConfiguration struct {
 	ServiceName *v1.NodeDisruptionPolicyServiceName `json:"serviceName,omitempty"`
 }
 
-// ReloadServiceApplyConfiguration constructs an declarative configuration of the ReloadService type for use with
+// ReloadServiceApplyConfiguration constructs a declarative configuration of the ReloadService type for use with
 // apply.
 func ReloadService() *ReloadServiceApplyConfiguration {
 	return &ReloadServiceApplyConfiguration{}

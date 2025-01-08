@@ -14,6 +14,7 @@ import (
 )
 
 type legacyMonitorTests struct {
+	adminRESTConfig *rest.Config
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -21,6 +22,7 @@ func NewLegacyTests() monitortestframework.MonitorTest {
 }
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	w.adminRESTConfig = adminRESTConfig
 	return nil
 }
 
@@ -33,8 +35,15 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+
+	clusterData, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
+
+	containerFailures, err := testContainerFailures(w.adminRESTConfig, finalIntervals)
+	if err != nil {
+		return nil, err
+	}
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, testContainerFailures(finalIntervals)...)
+	junits = append(junits, containerFailures...)
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
 	junits = append(junits, testKubeApiserverProcessOverlap(finalIntervals)...)
 	junits = append(junits, testKubeAPIServerGracefulTermination(finalIntervals)...)
@@ -58,7 +67,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testNodeHasSufficientMemory(finalIntervals)...)
 	junits = append(junits, testNodeHasSufficientPID(finalIntervals)...)
 	junits = append(junits, testBackoffPullingRegistryRedhatImage(finalIntervals)...)
-	junits = append(junits, testBackoffStartingFailedContainer(finalIntervals)...)
+	junits = append(junits, testBackoffStartingFailedContainer(clusterData, finalIntervals)...)
 	junits = append(junits, testConfigOperatorReadinessProbe(finalIntervals)...)
 	junits = append(junits, testConfigOperatorProbeErrorReadinessProbe(finalIntervals)...)
 	junits = append(junits, testConfigOperatorProbeErrorLivenessProbe(finalIntervals)...)

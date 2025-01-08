@@ -7,7 +7,7 @@ import (
 	resource "k8s.io/apimachinery/pkg/api/resource"
 )
 
-// ContainerRuntimeConfigurationApplyConfiguration represents an declarative configuration of the ContainerRuntimeConfiguration type for use
+// ContainerRuntimeConfigurationApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfiguration type for use
 // with apply.
 type ContainerRuntimeConfigurationApplyConfiguration struct {
 	PidsLimit      *int64                             `json:"pidsLimit,omitempty"`
@@ -17,7 +17,7 @@ type ContainerRuntimeConfigurationApplyConfiguration struct {
 	DefaultRuntime *v1.ContainerRuntimeDefaultRuntime `json:"defaultRuntime,omitempty"`
 }
 
-// ContainerRuntimeConfigurationApplyConfiguration constructs an declarative configuration of the ContainerRuntimeConfiguration type for use with
+// ContainerRuntimeConfigurationApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfiguration type for use with
 // apply.
 func ContainerRuntimeConfiguration() *ContainerRuntimeConfigurationApplyConfiguration {
 	return &ContainerRuntimeConfigurationApplyConfiguration{}

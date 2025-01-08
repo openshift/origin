@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CertExpiryApplyConfiguration represents an declarative configuration of the CertExpiry type for use
+// CertExpiryApplyConfiguration represents a declarative configuration of the CertExpiry type for use
 // with apply.
 type CertExpiryApplyConfiguration struct {
 	Bundle  *string  `json:"bundle,omitempty"`
@@ -14,7 +14,7 @@ type CertExpiryApplyConfiguration struct {
 	Expiry  *v1.Time `json:"expiry,omitempty"`
 }
 
-// CertExpiryApplyConfiguration constructs an declarative configuration of the CertExpiry type for use with
+// CertExpiryApplyConfiguration constructs a declarative configuration of the CertExpiry type for use with
 // apply.
 func CertExpiry() *CertExpiryApplyConfiguration {
 	return &CertExpiryApplyConfiguration{}

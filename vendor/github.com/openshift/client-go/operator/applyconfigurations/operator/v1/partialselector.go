@@ -6,13 +6,13 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// PartialSelectorApplyConfiguration represents an declarative configuration of the PartialSelector type for use
+// PartialSelectorApplyConfiguration represents a declarative configuration of the PartialSelector type for use
 // with apply.
 type PartialSelectorApplyConfiguration struct {
 	MachineResourceSelector *v1.LabelSelectorApplyConfiguration `json:"machineResourceSelector,omitempty"`
 }
 
-// PartialSelectorApplyConfiguration constructs an declarative configuration of the PartialSelector type for use with
+// PartialSelectorApplyConfiguration constructs a declarative configuration of the PartialSelector type for use with
 // apply.
 func PartialSelector() *PartialSelectorApplyConfiguration {
 	return &PartialSelectorApplyConfiguration{}

@@ -2,7 +2,7 @@
 
 package v1
 
-// FeaturesMigrationApplyConfiguration represents an declarative configuration of the FeaturesMigration type for use
+// FeaturesMigrationApplyConfiguration represents a declarative configuration of the FeaturesMigration type for use
 // with apply.
 type FeaturesMigrationApplyConfiguration struct {
 	EgressIP       *bool `json:"egressIP,omitempty"`
@@ -10,7 +10,7 @@ type FeaturesMigrationApplyConfiguration struct {
 	Multicast      *bool `json:"multicast,omitempty"`
 }
 
-// FeaturesMigrationApplyConfiguration constructs an declarative configuration of the FeaturesMigration type for use with
+// FeaturesMigrationApplyConfiguration constructs a declarative configuration of the FeaturesMigration type for use with
 // apply.
 func FeaturesMigration() *FeaturesMigrationApplyConfiguration {
 	return &FeaturesMigrationApplyConfiguration{}

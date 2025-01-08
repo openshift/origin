@@ -9,17 +9,17 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	templatev1 "github.com/openshift/api/template/v1"
-	"github.com/openshift/library-go/pkg/apps/appsutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 	waitSettle := func() (bool, error) {
 		var err error
 
-		// must read the templateinstance before the build/dc
+		// must read the templateinstance before the build/deployment
 		templateinstance, err = cli.TemplateClient().TemplateV1().TemplateInstances(cli.Namespace()).Get(context.Background(), templateinstance.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			return false, err
 		}
 
-		dc, err := cli.AppsClient().AppsV1().DeploymentConfigs(cli.Namespace()).Get(context.Background(), "simple-example", metav1.GetOptions{})
+		deploymentObj, err := cli.AdminKubeClient().AppsV1().Deployments(cli.Namespace()).Get(context.Background(), "simple-example", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -67,19 +67,19 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 
 		case buildv1.BuildPhaseComplete:
 			var progressing, available *appsv1.DeploymentCondition
-			for i, condition := range dc.Status.Conditions {
+			for i, condition := range deploymentObj.Status.Conditions {
 				switch condition.Type {
 				case appsv1.DeploymentProgressing:
-					progressing = &dc.Status.Conditions[i]
+					progressing = &deploymentObj.Status.Conditions[i]
 
 				case appsv1.DeploymentAvailable:
-					available = &dc.Status.Conditions[i]
+					available = &deploymentObj.Status.Conditions[i]
 				}
 			}
 
 			if (progressing != nil &&
 				progressing.Status == corev1.ConditionTrue &&
-				progressing.Reason == appsutil.NewRcAvailableReason &&
+				progressing.Reason == deploymentutil.NewRSAvailableReason &&
 				available != nil &&
 				available.Status == corev1.ConditionTrue) ||
 				(progressing != nil &&
@@ -122,7 +122,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			}
 		})
 
-		g.It("should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+		g.It("should report ready soon after all annotated objects are ready [apigroup:template.openshift.io][apigroup:build.openshift.io]", func() {
 			var err error
 
 			templateinstance = &templatev1.TemplateInstance{
@@ -171,7 +171,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+		g.It("should report failed soon after an annotated objects has failed [apigroup:template.openshift.io][apigroup:build.openshift.io]", func() {
 			var err error
 
 			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(context.Background(), &v1.Secret{

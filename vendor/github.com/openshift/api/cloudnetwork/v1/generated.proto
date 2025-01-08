@@ -37,7 +37,7 @@ option go_package = "github.com/openshift/api/cloudnetwork/v1";
 message CloudPrivateIPConfig {
   // metadata is the standard object's metadata.
   // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is the definition of the desired private IP request.
   // +kubebuilder:validation:Required
@@ -58,7 +58,7 @@ message CloudPrivateIPConfig {
 message CloudPrivateIPConfigList {
   // metadata is the standard list's metadata.
   // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // List of CloudPrivateIPConfig.
   repeated CloudPrivateIPConfig items = 2;
@@ -84,6 +84,6 @@ message CloudPrivateIPConfigStatus {
   // condition is the assignment condition of the private IP and its status
   // +kubebuilder:validation:Required
   // +required
-  repeated k8s.io.apimachinery.pkg.apis.meta.v1.Condition conditions = 2;
+  repeated .k8s.io.apimachinery.pkg.apis.meta.v1.Condition conditions = 2;
 }
 

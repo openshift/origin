@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigProxyApplyConfiguration represents an declarative configuration of the ImageRegistryConfigProxy type for use
+// ImageRegistryConfigProxyApplyConfiguration represents a declarative configuration of the ImageRegistryConfigProxy type for use
 // with apply.
 type ImageRegistryConfigProxyApplyConfiguration struct {
 	HTTP    *string `json:"http,omitempty"`
@@ -10,7 +10,7 @@ type ImageRegistryConfigProxyApplyConfiguration struct {
 	NoProxy *string `json:"noProxy,omitempty"`
 }
 
-// ImageRegistryConfigProxyApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigProxy type for use with
+// ImageRegistryConfigProxyApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigProxy type for use with
 // apply.
 func ImageRegistryConfigProxy() *ImageRegistryConfigProxyApplyConfiguration {
 	return &ImageRegistryConfigProxyApplyConfiguration{}

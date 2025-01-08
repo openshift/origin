@@ -2,14 +2,14 @@
 
 package v1
 
-// ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSetTemplateObjectMeta type for use
+// ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetTemplateObjectMeta type for use
 // with apply.
 type ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration struct {
 	Labels      map[string]string `json:"labels,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration constructs an declarative configuration of the ControlPlaneMachineSetTemplateObjectMeta type for use with
+// ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetTemplateObjectMeta type for use with
 // apply.
 func ControlPlaneMachineSetTemplateObjectMeta() *ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration {
 	return &ControlPlaneMachineSetTemplateObjectMetaApplyConfiguration{}

@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// DeveloperConsoleCatalogTypesApplyConfiguration represents an declarative configuration of the DeveloperConsoleCatalogTypes type for use
+// DeveloperConsoleCatalogTypesApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogTypes type for use
 // with apply.
 type DeveloperConsoleCatalogTypesApplyConfiguration struct {
 	State    *v1.CatalogTypesState `json:"state,omitempty"`
@@ -14,7 +14,7 @@ type DeveloperConsoleCatalogTypesApplyConfiguration struct {
 	Disabled *[]string             `json:"disabled,omitempty"`
 }
 
-// DeveloperConsoleCatalogTypesApplyConfiguration constructs an declarative configuration of the DeveloperConsoleCatalogTypes type for use with
+// DeveloperConsoleCatalogTypesApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogTypes type for use with
 // apply.
 func DeveloperConsoleCatalogTypes() *DeveloperConsoleCatalogTypesApplyConfiguration {
 	return &DeveloperConsoleCatalogTypesApplyConfiguration{}

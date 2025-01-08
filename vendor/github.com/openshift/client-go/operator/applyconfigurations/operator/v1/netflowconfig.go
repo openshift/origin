@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// NetFlowConfigApplyConfiguration represents an declarative configuration of the NetFlowConfig type for use
+// NetFlowConfigApplyConfiguration represents a declarative configuration of the NetFlowConfig type for use
 // with apply.
 type NetFlowConfigApplyConfiguration struct {
 	Collectors []v1.IPPort `json:"collectors,omitempty"`
 }
 
-// NetFlowConfigApplyConfiguration constructs an declarative configuration of the NetFlowConfig type for use with
+// NetFlowConfigApplyConfiguration constructs a declarative configuration of the NetFlowConfig type for use with
 // apply.
 func NetFlowConfig() *NetFlowConfigApplyConfiguration {
 	return &NetFlowConfigApplyConfiguration{}

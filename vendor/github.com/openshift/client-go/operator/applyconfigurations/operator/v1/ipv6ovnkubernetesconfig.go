@@ -2,14 +2,14 @@
 
 package v1
 
-// IPv6OVNKubernetesConfigApplyConfiguration represents an declarative configuration of the IPv6OVNKubernetesConfig type for use
+// IPv6OVNKubernetesConfigApplyConfiguration represents a declarative configuration of the IPv6OVNKubernetesConfig type for use
 // with apply.
 type IPv6OVNKubernetesConfigApplyConfiguration struct {
 	InternalTransitSwitchSubnet *string `json:"internalTransitSwitchSubnet,omitempty"`
 	InternalJoinSubnet          *string `json:"internalJoinSubnet,omitempty"`
 }
 
-// IPv6OVNKubernetesConfigApplyConfiguration constructs an declarative configuration of the IPv6OVNKubernetesConfig type for use with
+// IPv6OVNKubernetesConfigApplyConfiguration constructs a declarative configuration of the IPv6OVNKubernetesConfig type for use with
 // apply.
 func IPv6OVNKubernetesConfig() *IPv6OVNKubernetesConfigApplyConfiguration {
 	return &IPv6OVNKubernetesConfigApplyConfiguration{}

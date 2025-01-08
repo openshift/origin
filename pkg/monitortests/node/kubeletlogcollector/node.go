@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -101,6 +103,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
 		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
 		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
+		ret = append(ret, leaseFailBackOff(nodeLocator, currLine)...)
 	}
 
 	return ret
@@ -130,7 +133,7 @@ func unreasonablyLongPollInterval(logLine string, nodeLocator monitorapi.Locator
 		return nil
 	}
 
-	toTime := systemdJournalLogTime(logLine)
+	toTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 
 	// Extract the number of millis and use it for the interval, starting from the point we logged
 	// and looking backwards.
@@ -181,7 +184,7 @@ func tooManyNetlinkEvents(logLine string, nodeLocator monitorapi.Locator) monito
 		return nil
 	}
 
-	logTime := systemdJournalLogTime(logLine)
+	logTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 
 	message := logLine[strings.Index(logLine, "NetworkManager"):]
 	return monitorapi.Intervals{
@@ -216,7 +219,7 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -243,7 +246,7 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 	message, _ = strconv.Unquote(`"` + message + `"`)
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -270,7 +273,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := errImagePullToContainerReference(logLine)
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -316,7 +319,7 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -421,7 +424,7 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 		return nil
 	}
 
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
@@ -437,7 +440,7 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 		return nil
 	}
 
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
@@ -455,6 +458,8 @@ var failedLeaseUpdateErrorRegex = regexp.MustCompile(`failed to update lease, er
 // upper 'F'ailed and 'err'
 var failedLeaseUpdateErrRegex = regexp.MustCompile(`Failed to update lease\" err\=\"Put \\\"(?P<URL>[a-z0-9.-:\/\-\?\=]+)\\\": (?P<MSG>[^\"]+)`)
 
+var failedLeaseFiveTimes = regexp.MustCompile(`failed to update lease using latest lease, fallback to ensure lease`)
+
 func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
 
 	// Two cases, one upper F the other lower so substring match without the leading f
@@ -462,7 +467,7 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 		return nil
 	}
 
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 	url := ""
 	msg := ""
 
@@ -502,6 +507,85 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 	}
 }
 
+func leaseFailBackOff(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
+
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+
+	subMatches := failedLeaseFiveTimes.FindStringSubmatch(logLine)
+
+	if len(subMatches) == 0 {
+		return nil
+	}
+
+	return monitorapi.Intervals{
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(nodeLocator).
+			Message(
+				monitorapi.NewMessage().Reason(monitorapi.NodeFailedLeaseBackoff).HumanMessage("detected multiple lease failures"),
+			).
+			Display().
+			Build(failureTime, failureTime.Add(1*time.Second)),
+	}
+}
+
+// Our tests will flag an error if leases are failing more than 3 times in 33 seconds.
+// So we will find the first lease failure and then see if more than 3 failures around leases happen
+// If that is the case, we will flag that lease failure as important and fail the test.
+// This will take all the intervals and return only the intervals that we want to report as a failure
+func findLeaseIntervalsImportant(intervals monitorapi.Intervals) monitorapi.Intervals {
+	const leaseInterval = 33 * time.Second
+	// Get all intervals that have NodeLease errors
+	nodeLeaseIntervals := intervals.Filter(monitorapi.NodeLeaseBackoff)
+	if len(nodeLeaseIntervals) == 0 {
+		return monitorapi.Intervals(nil)
+	}
+	intervalsByNode := make(map[string]monitorapi.Intervals)
+
+	for _, val := range nodeLeaseIntervals {
+		nodeName := val.Condition.Locator.Keys["node"]
+		if len(intervalsByNode[nodeName]) == 0 {
+			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
+		}
+		// We have a lot of events that have the same To and From.
+		// We will assume that intervals that have the same node and occur at the same time
+		// are duplicated events.
+		previousInterval := intervalsByNode[nodeName][len(intervalsByNode[nodeName])-1]
+		if val.From != previousInterval.From && val.To != previousInterval.To {
+			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
+		}
+	}
+	// Let's sort by node name so this is deterministic.
+	var keys []string
+	for node := range intervalsByNode {
+		keys = append(keys, node)
+	}
+	sort.Strings(keys)
+	importantIntervals := monitorapi.Intervals(nil)
+	for _, node := range keys {
+		nodeInterval := intervalsByNode[node]
+		if len(nodeInterval) < 2 {
+			continue
+		}
+		for i, interval := range nodeInterval {
+			if i >= len(nodeInterval)-1 {
+				continue
+			}
+			if nodeInterval[i+1].To.Before(interval.To.Add(leaseInterval)) {
+				importantIntervals = append(importantIntervals, interval)
+			}
+		}
+	}
+	return importantIntervals
+}
+
+func findLeaseBackOffs(intervals monitorapi.Intervals) monitorapi.Intervals {
+	nodeLeaseIntervals := intervals.Filter(monitorapi.NodeLeaseBackoff)
+	if len(nodeLeaseIntervals) == 0 {
+		return monitorapi.Intervals(nil)
+	}
+	return nodeLeaseIntervals
+}
+
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
 var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
@@ -533,7 +617,7 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 		message = unquotedMessage
 	}
 
-	failureTime := systemdJournalLogTime(logLine)
+	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(locator()).
@@ -543,43 +627,6 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 			Display().
 			Build(failureTime, failureTime),
 	}
-}
-
-var kubeletTimeRegex = regexp.MustCompile(`^(?P<MONTH>\S+)\s(?P<DAY>\S+)\s(?P<TIME>\S+)`)
-
-// systemdJournalLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
-// parsable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
-func systemdJournalLogTime(logLine string) time.Time {
-	kubeletTimeRegex.MatchString(logLine)
-	if !kubeletTimeRegex.MatchString(logLine) {
-		return time.Now()
-	}
-
-	month := ""
-	day := ""
-	year := fmt.Sprintf("%d", time.Now().Year())
-	timeOfDay := ""
-	subMatches := kubeletTimeRegex.FindStringSubmatch(logLine)
-	subNames := kubeletTimeRegex.SubexpNames()
-	for i, name := range subNames {
-		switch name {
-		case "MONTH":
-			month = subMatches[i]
-		case "DAY":
-			day = subMatches[i]
-		case "TIME":
-			timeOfDay = subMatches[i]
-		}
-	}
-
-	timeString := fmt.Sprintf("%s %s %s %s UTC", day, month, year, timeOfDay)
-	ret, err := time.Parse("02 Jan 2006 15:04:05.999999999 MST", timeString)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failure parsing time format: %v for %q\n", err, timeString)
-		return time.Now()
-	}
-
-	return ret
 }
 
 // getNodeLog returns logs for a particular systemd service on a given node.

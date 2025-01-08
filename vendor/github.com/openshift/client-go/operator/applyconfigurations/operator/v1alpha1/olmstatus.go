@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 )
 
-// OLMStatusApplyConfiguration represents an declarative configuration of the OLMStatus type for use
+// OLMStatusApplyConfiguration represents a declarative configuration of the OLMStatus type for use
 // with apply.
 type OLMStatusApplyConfiguration struct {
 	v1.OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// OLMStatusApplyConfiguration constructs an declarative configuration of the OLMStatus type for use with
+// OLMStatusApplyConfiguration constructs a declarative configuration of the OLMStatus type for use with
 // apply.
 func OLMStatus() *OLMStatusApplyConfiguration {
 	return &OLMStatusApplyConfiguration{}
@@ -52,6 +52,14 @@ func (b *OLMStatusApplyConfiguration) WithVersion(value string) *OLMStatusApplyC
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *OLMStatusApplyConfiguration) WithReadyReplicas(value int32) *OLMStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *OLMStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OLMStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// DNSTransportConfigApplyConfiguration represents an declarative configuration of the DNSTransportConfig type for use
+// DNSTransportConfigApplyConfiguration represents a declarative configuration of the DNSTransportConfig type for use
 // with apply.
 type DNSTransportConfigApplyConfiguration struct {
 	Transport *v1.DNSTransport                    `json:"transport,omitempty"`
 	TLS       *DNSOverTLSConfigApplyConfiguration `json:"tls,omitempty"`
 }
 
-// DNSTransportConfigApplyConfiguration constructs an declarative configuration of the DNSTransportConfig type for use with
+// DNSTransportConfigApplyConfiguration constructs a declarative configuration of the DNSTransportConfig type for use with
 // apply.
 func DNSTransportConfig() *DNSTransportConfigApplyConfiguration {
 	return &DNSTransportConfigApplyConfiguration{}

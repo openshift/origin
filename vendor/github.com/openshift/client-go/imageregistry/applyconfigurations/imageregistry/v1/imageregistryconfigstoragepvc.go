@@ -2,13 +2,13 @@
 
 package v1
 
-// ImageRegistryConfigStoragePVCApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStoragePVC type for use
+// ImageRegistryConfigStoragePVCApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStoragePVC type for use
 // with apply.
 type ImageRegistryConfigStoragePVCApplyConfiguration struct {
 	Claim *string `json:"claim,omitempty"`
 }
 
-// ImageRegistryConfigStoragePVCApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStoragePVC type for use with
+// ImageRegistryConfigStoragePVCApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStoragePVC type for use with
 // apply.
 func ImageRegistryConfigStoragePVC() *ImageRegistryConfigStoragePVCApplyConfiguration {
 	return &ImageRegistryConfigStoragePVCApplyConfiguration{}

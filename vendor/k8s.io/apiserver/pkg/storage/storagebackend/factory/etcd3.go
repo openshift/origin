@@ -155,13 +155,13 @@ func newETCD3Check(c storagebackend.Config, timeout time.Duration, stopCh <-chan
 	// retry in a loop in the background until we successfully create the client, storing the client or error encountered
 
 	lock := sync.RWMutex{}
-	var prober *etcd3ProberMonitor
+	var prober *etcd3RetryingProberMonitor
 	clientErr := fmt.Errorf("etcd client connection not yet established")
 
 	go wait.PollImmediateUntil(time.Second, func() (bool, error) {
 		lock.Lock()
 		defer lock.Unlock()
-		newProber, err := newETCD3ProberMonitor(c)
+		newProber, err := newRetryingETCD3ProberMonitor(c)
 		// Ensure that server is already not shutting down.
 		select {
 		case <-stopCh:
@@ -318,6 +318,7 @@ var newETCD3Client = func(c storagebackend.TransportConfig) (*clientv3.Client, e
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerTracing) {
 		tracingOpts := []otelgrpc.Option{
+			otelgrpc.WithMessageEvents(otelgrpc.ReceivedEvents, otelgrpc.SentEvents),
 			otelgrpc.WithPropagators(tracing.Propagators()),
 			otelgrpc.WithTracerProvider(c.TracerProvider),
 		}

@@ -1,0 +1,14 @@
+releases:
+    v1.30.3:
+        envtest-v1.30.3-darwin-amd64.tar.gz:
+            hash: 81ab2ad5841522976d9a5fc58642b745cf308230b0f2e634acfb2d5c8f288ef837f7b82144a5e91db607d86885101e06dd473a68bcac0d71be2297edc4aaa92e
+            selfLink: https://storage.googleapis.com/openshift-kubebuilder-tools/envtest-v1.30.3-darwin-amd64.tar.gz
+        envtest-v1.30.3-darwin-arm64.tar.gz:
+            hash: 8913c1e2e4b6eab0c92d9ddc611cea1b8a5173374e7544a667366ea66bc98a7d3442f21d34e7da65ba2dbe8e5778b2b0497943514b7b3639fc793bd0e98086f5
+            selfLink: https://storage.googleapis.com/openshift-kubebuilder-tools/envtest-v1.30.3-darwin-arm64.tar.gz
+        envtest-v1.30.3-linux-amd64.tar.gz:
+            hash: 6e81caf1d20c608b0149f36ca8dc6d68e97b22e07f69f1f0788d6c0057ae92fcaae402d26b6766819a31dac1911c6d07bf0328f152d6dd52dcebee94009de024
+            selfLink: https://storage.googleapis.com/openshift-kubebuilder-tools/envtest-v1.30.3-linux-amd64.tar.gz
+        envtest-v1.30.3-linux-arm64.tar.gz:
+            hash: deb395d5e9578a58786c42b4e7d878b4aef984ac2dce510031fbecf12092162a4aee1cde774f1527cfae90f6885382dc7b3d79ec379b7f4160c3a35fad7cbc3b
+            selfLink: https://storage.googleapis.com/openshift-kubebuilder-tools/envtest-v1.30.3-linux-arm64.tar.gz

@@ -4,9 +4,6 @@ package v1
 
 import (
 	"context"
-	json "encoding/json"
-	"fmt"
-	"time"
 
 	v1 "github.com/openshift/api/machine/v1"
 	machinev1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1"
@@ -14,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // ControlPlaneMachineSetsGetter has a method to return a ControlPlaneMachineSetInterface.
@@ -27,6 +24,7 @@ type ControlPlaneMachineSetsGetter interface {
 type ControlPlaneMachineSetInterface interface {
 	Create(ctx context.Context, controlPlaneMachineSet *v1.ControlPlaneMachineSet, opts metav1.CreateOptions) (*v1.ControlPlaneMachineSet, error)
 	Update(ctx context.Context, controlPlaneMachineSet *v1.ControlPlaneMachineSet, opts metav1.UpdateOptions) (*v1.ControlPlaneMachineSet, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 	UpdateStatus(ctx context.Context, controlPlaneMachineSet *v1.ControlPlaneMachineSet, opts metav1.UpdateOptions) (*v1.ControlPlaneMachineSet, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
@@ -35,206 +33,25 @@ type ControlPlaneMachineSetInterface interface {
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ControlPlaneMachineSet, err error)
 	Apply(ctx context.Context, controlPlaneMachineSet *machinev1.ControlPlaneMachineSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ControlPlaneMachineSet, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
 	ApplyStatus(ctx context.Context, controlPlaneMachineSet *machinev1.ControlPlaneMachineSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ControlPlaneMachineSet, err error)
 	ControlPlaneMachineSetExpansion
 }
 
 // controlPlaneMachineSets implements ControlPlaneMachineSetInterface
 type controlPlaneMachineSets struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithListAndApply[*v1.ControlPlaneMachineSet, *v1.ControlPlaneMachineSetList, *machinev1.ControlPlaneMachineSetApplyConfiguration]
 }
 
 // newControlPlaneMachineSets returns a ControlPlaneMachineSets
 func newControlPlaneMachineSets(c *MachineV1Client, namespace string) *controlPlaneMachineSets {
 	return &controlPlaneMachineSets{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithListAndApply[*v1.ControlPlaneMachineSet, *v1.ControlPlaneMachineSetList, *machinev1.ControlPlaneMachineSetApplyConfiguration](
+			"controlplanemachinesets",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *v1.ControlPlaneMachineSet { return &v1.ControlPlaneMachineSet{} },
+			func() *v1.ControlPlaneMachineSetList { return &v1.ControlPlaneMachineSetList{} }),
 	}
-}
-
-// Get takes name of the controlPlaneMachineSet, and returns the corresponding controlPlaneMachineSet object, and an error if there is any.
-func (c *controlPlaneMachineSets) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.ControlPlaneMachineSet, err error) {
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ControlPlaneMachineSets that match those selectors.
-func (c *controlPlaneMachineSets) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ControlPlaneMachineSetList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1.ControlPlaneMachineSetList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested controlPlaneMachineSets.
-func (c *controlPlaneMachineSets) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a controlPlaneMachineSet and creates it.  Returns the server's representation of the controlPlaneMachineSet, and an error, if there is any.
-func (c *controlPlaneMachineSets) Create(ctx context.Context, controlPlaneMachineSet *v1.ControlPlaneMachineSet, opts metav1.CreateOptions) (result *v1.ControlPlaneMachineSet, err error) {
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(controlPlaneMachineSet).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a controlPlaneMachineSet and updates it. Returns the server's representation of the controlPlaneMachineSet, and an error, if there is any.
-func (c *controlPlaneMachineSets) Update(ctx context.Context, controlPlaneMachineSet *v1.ControlPlaneMachineSet, opts metav1.UpdateOptions) (result *v1.ControlPlaneMachineSet, err error) {
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(controlPlaneMachineSet.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(controlPlaneMachineSet).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *controlPlaneMachineSets) UpdateStatus(ctx context.Context, controlPlaneMachineSet *v1.ControlPlaneMachineSet, opts metav1.UpdateOptions) (result *v1.ControlPlaneMachineSet, err error) {
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(controlPlaneMachineSet.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(controlPlaneMachineSet).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the controlPlaneMachineSet and deletes it. Returns an error if one occurs.
-func (c *controlPlaneMachineSets) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *controlPlaneMachineSets) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched controlPlaneMachineSet.
-func (c *controlPlaneMachineSets) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ControlPlaneMachineSet, err error) {
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Apply takes the given apply declarative configuration, applies it and returns the applied controlPlaneMachineSet.
-func (c *controlPlaneMachineSets) Apply(ctx context.Context, controlPlaneMachineSet *machinev1.ControlPlaneMachineSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ControlPlaneMachineSet, err error) {
-	if controlPlaneMachineSet == nil {
-		return nil, fmt.Errorf("controlPlaneMachineSet provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(controlPlaneMachineSet)
-	if err != nil {
-		return nil, err
-	}
-	name := controlPlaneMachineSet.Name
-	if name == nil {
-		return nil, fmt.Errorf("controlPlaneMachineSet.Name must be provided to Apply")
-	}
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(*name).
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// ApplyStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-func (c *controlPlaneMachineSets) ApplyStatus(ctx context.Context, controlPlaneMachineSet *machinev1.ControlPlaneMachineSetApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ControlPlaneMachineSet, err error) {
-	if controlPlaneMachineSet == nil {
-		return nil, fmt.Errorf("controlPlaneMachineSet provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(controlPlaneMachineSet)
-	if err != nil {
-		return nil, err
-	}
-
-	name := controlPlaneMachineSet.Name
-	if name == nil {
-		return nil, fmt.Errorf("controlPlaneMachineSet.Name must be provided to Apply")
-	}
-
-	result = &v1.ControlPlaneMachineSet{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Namespace(c.ns).
-		Resource("controlplanemachinesets").
-		Name(*name).
-		SubResource("status").
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

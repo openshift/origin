@@ -23,6 +23,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -42,34 +43,53 @@ type TestingT interface {
 	Logf(format string, args ...interface{})
 }
 
-// CreateNewMasterMachine creates a new master node by cloning an existing Machine resource
-func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
+// AnyRunningMasterMachine finds and returns a running master machine from the cluster.
+func AnyRunningMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (*machinev1beta1.Machine, error) {
 	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("unable to list master machines: %w", err)
 	}
-	var machineToClone *machinev1beta1.Machine
+
 	for _, machine := range machineList.Items {
 		machinePhase := pointer.StringDeref(machine.Status.Phase, "Unknown")
 		if machinePhase == "Running" {
-			machineToClone = &machine
-			break
+			return &machine, nil
 		}
 		t.Logf("%q machine is in unexpected %q state", machine.Name, machinePhase)
 	}
+	return nil, fmt.Errorf("no running master machines found")
+}
 
-	if machineToClone == nil {
-		return "", fmt.Errorf("unable to find a running master machine to clone")
+// CreateNewMasterMachine creates a new master node by cloning an existing Machine resource.
+// If templateMachine is provided, it will be cloned. Otherwise a running machine will be picked for cloning.
+func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, templateMachine *machinev1beta1.Machine) (string, error) {
+	var machineToClone *machinev1beta1.Machine
+	var err error
+
+	//if templateMachine is not provided, get a running master machine to clone
+	if templateMachine == nil {
+		machineToClone, err = AnyRunningMasterMachine(ctx, t, machineClient)
+		if err != nil {
+			return "", err
+		}
+
+		// assigning a new Name and clearing ProviderID is enough
+		// for MAO to pick it up and provision a new master machine/node
+		machineToClone.Name = fmt.Sprintf("%s-clone", machineToClone.Name)
+	} else {
+		//if templateMachine is provided, form the new machine name using the same clusterIdRole and index
+		machineToClone = templateMachine.DeepCopy()
+		machineIndex := machineToClone.Name[strings.LastIndex(machineToClone.Name, "-")+1:]
+		machineClusterIdRole := machineToClone.Name[:strings.LastIndex(machineToClone.Name, "-")]
+		machineToClone.Name = fmt.Sprintf("%s-%s-%s", machineClusterIdRole, rand.String(5), machineIndex)
 	}
-	// assigning a new Name and clearing ProviderID is enough
-	// for MAO to pick it up and provision a new master machine/node
-	machineToClone.Name = fmt.Sprintf("%s-clone", machineToClone.Name)
+
 	machineToClone.Spec.ProviderID = nil
 	machineToClone.ResourceVersion = ""
 	machineToClone.Annotations = map[string]string{}
 	machineToClone.Spec.LifecycleHooks = machinev1beta1.LifecycleHooks{}
 
-	clonedMachine, err := machineClient.Create(context.TODO(), machineToClone, metav1.CreateOptions{})
+	clonedMachine, err := machineClient.Create(ctx, machineToClone, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -185,6 +205,21 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 	})
 }
 
+// DeleteMachine deletes the given machine and returns error if any issues occur during deletion
+func DeleteMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, machineToDelete string) error {
+	t.Logf("attempting to delete machine '%q'", machineToDelete)
+	if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			t.Logf("machine '%q' was listed but not found or already deleted", machineToDelete)
+			return nil
+		}
+		return err
+	}
+	t.Logf("successfully deleted machine '%q'", machineToDelete)
+	return nil
+}
+
+// DeleteSingleMachine deletes the master machine with lowest index. Returns the deleted machine name and error if any issues occur during deletion
 func DeleteSingleMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
 	machineToDelete := ""
 	// list master machines
@@ -201,15 +236,9 @@ func DeleteSingleMachine(ctx context.Context, t TestingT, machineClient machinev
 	sort.Strings(machineNames)
 	machineToDelete = machineNames[0]
 
-	t.Logf("attempting to delete machine '%q'", machineToDelete)
-	if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
-		if apierrors.IsNotFound(err) {
-			t.Logf("machine '%q' was listed but not found or already deleted", machineToDelete)
-			return "", nil
-		}
+	if err = DeleteMachine(ctx, t, machineClient, machineToDelete); err != nil {
 		return "", err
 	}
-	t.Logf("successfully deleted machine '%q'", machineToDelete)
 	return machineToDelete, nil
 }
 
@@ -234,6 +263,60 @@ func IsCPMSActive(ctx context.Context, t TestingT, cpmsClient machinev1client.Co
 	}
 
 	return true, nil
+}
+
+// DisableCPMS disables the CPMS by deleting the custom resource and verifies it.
+// Returns error if there was one while disabling or verifying
+func DisableCPMS(ctx context.Context, t TestingT, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
+	waitPollInterval := 5 * time.Second
+	waitPollTimeout := 1 * time.Minute
+	if err := cpmsClient.Delete(ctx, "cluster", metav1.DeleteOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	t.Logf("Waiting up to %s for the CPMS to be disabled", waitPollTimeout.String())
+	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		isActive, err := IsCPMSActive(ctx, t, cpmsClient)
+		if err != nil {
+			return true, err
+		}
+		if isActive {
+			return false, nil
+		}
+		return true, nil
+	})
+}
+
+// EnableCPMS activates the CPMS setting the .spec.state field to Active and verifies it.
+// Returns error if there was one while activating or verifying
+func EnableCPMS(ctx context.Context, t TestingT, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
+	waitPollInterval := 5 * time.Second
+	waitPollTimeout := 1 * time.Minute
+	cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	cpms.Spec.State = machinev1.ControlPlaneMachineSetStateActive
+	_, err = cpmsClient.Update(ctx, cpms, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	t.Logf("Waiting up to %s for the CPMS to be activated", waitPollTimeout.String())
+	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		isActive, err := IsCPMSActive(ctx, t, cpmsClient)
+		if err != nil {
+			return true, err
+		}
+		if !isActive {
+			return false, nil
+		}
+		return true, nil
+	})
 }
 
 // EnsureReadyReplicasOnCPMS checks if status.readyReplicas on the cluster CPMS is n
@@ -352,6 +435,53 @@ func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory
 		}
 		return true, nil
 	})
+}
+
+// WaitOnExpectedVotingMembersCount waits for 2 minutes and ensures the etcd membership remains at the expected member count. Returns an error if there is a change
+// in the expected voting members count
+func WaitOnExpectedVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory EtcdClientCreator, kubeClient kubernetes.Interface, expectedMembersCount int) error {
+	waitPollInterval := 15 * time.Second
+	waitPollTimeout := 2 * time.Minute
+	var votingMemberNames []string
+
+	err := wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, false, func(ctx context.Context) (done bool, err error) {
+		etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
+		if err != nil {
+			t.Logf("failed to get etcd client, will retry, err: %v", err)
+			return false, nil
+		}
+		defer closeFn()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		memberList, err := etcdClient.MemberList(ctx)
+		if err != nil {
+			t.Logf("failed to get the member list, will retry, err: %v", err)
+			return false, nil
+		}
+
+		votingMemberNames = []string{}
+		for _, member := range memberList.Members {
+			if !member.IsLearner {
+				votingMemberNames = append(votingMemberNames, member.Name)
+			}
+		}
+		if len(votingMemberNames) != expectedMembersCount {
+			t.Logf("unexpected change in number of voting etcd members from %d to: %v, current members are: %v", expectedMembersCount, len(votingMemberNames), votingMemberNames)
+			return true, nil
+		}
+		return false, nil
+	})
+
+	// the poll will timeout and context deadline exceeded error would be returned if there isn't any change in the membership and
+	// the poll will return early with no error if there is an unexpected change from the expected voting member count.
+	if err != nil {
+		if err == context.DeadlineExceeded {
+			return nil
+		}
+		return fmt.Errorf("polling encountered an error: %v", err)
+	}
+	return fmt.Errorf("failed to confirm that voting membership remained constant, expected %d, got %d, current members are: %v", expectedMembersCount, len(votingMemberNames), votingMemberNames)
 }
 
 func EnsureMemberRemoved(t TestingT, etcdClientFactory EtcdClientCreator, memberName string) error {

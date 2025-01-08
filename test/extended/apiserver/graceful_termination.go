@@ -16,11 +16,13 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"k8s.io/klog/v2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
+
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	clihelpers "github.com/openshift/origin/test/extended/cli"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -253,6 +255,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			lateRequestCounter := 0
 			readFile := false
 
+			klog.Infof("Starting to scan logs for API server: %s", apiServerName)
+
 			scanner := bufio.NewScanner(reader)
 			for scanner.Scan() {
 				text := scanner.Text()
@@ -263,9 +267,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 
 				if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
 					lateRequestCounter++
+					klog.Warningf("Detected late request event in %s: %s", apiServerName, text)
 				}
 				readFile = true
 			}
+			if !readFile {
+				klog.Errorf("No valid lines read for API server: %s", apiServerName)
+			}
+			klog.Infof("Finished scanning logs for API server: %s, lateRequestCounter=%d", apiServerName, lateRequestCounter)
 			o.Expect(readFile).To(o.BeTrue())
 
 			if lateRequestCounter > 0 {

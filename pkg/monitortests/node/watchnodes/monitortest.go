@@ -44,29 +44,11 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 }
 
 func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	machineDeletePhases := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		if eventInterval.Message.Reason != monitorapi.MachinePhase {
-			return false
-		}
-		if eventInterval.Message.Annotations[monitorapi.AnnotationPhase] == "Deleting" {
-			return true
-		}
-		return false
-	})
 
-	nodeNameToMachineName := map[string]string{}
-	machineNameToDeletePhases := map[string][]monitorapi.Interval{}
-	for _, machineDeletePhase := range machineDeletePhases {
-		machineName := machineDeletePhase.Locator.Keys[monitorapi.LocatorMachineKey]
-		nodeName := machineDeletePhase.Message.Annotations[monitorapi.AnnotationNode]
-		machineNameToDeletePhases[machineName] = append(machineNameToDeletePhases[machineName], machineDeletePhase)
-		nodeNameToMachineName[nodeName] = machineName
-	}
-
-	// Fail tests when monitor test flags this as an error
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals, nodeNameToMachineName, machineNameToDeletePhases)...)
-	junits = append(junits, unreachableNodeTaint(finalIntervals, nodeNameToMachineName, machineNameToDeletePhases)...)
+	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
+	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
+	junits = append(junits, nodeDiskPressure(finalIntervals)...)
 	return junits, nil
 }
 
@@ -79,27 +61,10 @@ func (*nodeWatcher) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals, nodeNameToMachineName map[string]string, machinesToDeletePhases map[string][]monitorapi.Interval) []*junitapi.JUnitTestCase {
+func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] node-lifecycle detects unexpected not ready node"
 
-	unexpectedNodeUnreadies := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		if eventInterval.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
-			return true
-		}
-		return false
-	})
-
-	var failures []string
-	for _, unexpectedNodeUnready := range unexpectedNodeUnreadies {
-		nodeName := unexpectedNodeUnready.Locator.Keys[monitorapi.LocatorNodeKey]
-		machineNameForNode := nodeNameToMachineName[nodeName]
-		machineDeletingIntervals := machinesToDeletePhases[machineNameForNode]
-
-		if intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
-			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedNodeUnready.Locator.OldLocator(), unexpectedNodeUnready.Message.OldMessage(), unexpectedNodeUnready.From, unexpectedNodeUnready.To))
-		}
-	}
-
+	failures := reportUnexpectedNodeDownFailures(finalIntervals, monitorapi.NodeUnexpectedReadyReason)
 	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase
 	if len(failures) > 0 {
@@ -118,26 +83,9 @@ func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals, nodeNameTo
 	return tests
 }
 
-func unreachableNodeTaint(finalIntervals monitorapi.Intervals, nodeNameToMachineName map[string]string, machinesToDeletePhases map[string][]monitorapi.Interval) []*junitapi.JUnitTestCase {
+func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] node-lifecycle detects unreachable state on node"
-	var failures []string
-
-	unexpectedNodeUnreachables := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		if eventInterval.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason {
-			return true
-		}
-		return false
-	})
-
-	for _, unexpectedNodeUnreachable := range unexpectedNodeUnreachables {
-		nodeName := unexpectedNodeUnreachable.Locator.Keys[monitorapi.LocatorNodeKey]
-		machineNameForNode := nodeNameToMachineName[nodeName]
-		machineDeletingIntervals := machinesToDeletePhases[machineNameForNode]
-
-		if intervalStartDuring(unexpectedNodeUnreachable, machineDeletingIntervals) {
-			failures = append(failures, fmt.Sprintf("%v - %v from %v to %v", unexpectedNodeUnreachable.Locator.OldLocator(), unexpectedNodeUnreachable.Message.OldMessage(), unexpectedNodeUnreachable.From, unexpectedNodeUnreachable.To))
-		}
-	}
+	failures := reportUnexpectedNodeDownFailures(finalIntervals, monitorapi.NodeUnexpectedUnreachableReason)
 
 	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase
@@ -158,6 +106,11 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals, nodeNameToMachine
 }
 
 func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Intervals) bool {
+	if len(haystack) == 0 {
+		// If there are no deleted intervals
+		// we can assume that the unexpected event is significant.
+		return false
+	}
 	for _, curr := range haystack {
 		needleStartEqualOrAfterFrom := needle.From.Equal(curr.From) || needle.From.After(curr.From)
 		needleStartEqualOrBeforeTo := needle.From.Equal(curr.To) || needle.From.Before(curr.To)
@@ -166,4 +119,32 @@ func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Interva
 		}
 	}
 	return false
+}
+
+func nodeDiskPressure(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[Jira:\"Test Framework\"] kubelet should not report DiskPressure"
+
+	diskPressureIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == monitorapi.NodeDiskPressure
+	})
+
+	var failures []string
+	for _, dpi := range diskPressureIntervals {
+		failures = append(failures, dpi.String())
+	}
+
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found %d intervals where a node began reporting DiskPressure:\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	} else {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+	}
+
+	return tests
 }

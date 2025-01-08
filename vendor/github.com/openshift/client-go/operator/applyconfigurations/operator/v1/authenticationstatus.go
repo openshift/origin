@@ -2,14 +2,14 @@
 
 package v1
 
-// AuthenticationStatusApplyConfiguration represents an declarative configuration of the AuthenticationStatus type for use
+// AuthenticationStatusApplyConfiguration represents a declarative configuration of the AuthenticationStatus type for use
 // with apply.
 type AuthenticationStatusApplyConfiguration struct {
 	OAuthAPIServer                   *OAuthAPIServerStatusApplyConfiguration `json:"oauthAPIServer,omitempty"`
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// AuthenticationStatusApplyConfiguration constructs an declarative configuration of the AuthenticationStatus type for use with
+// AuthenticationStatusApplyConfiguration constructs a declarative configuration of the AuthenticationStatus type for use with
 // apply.
 func AuthenticationStatus() *AuthenticationStatusApplyConfiguration {
 	return &AuthenticationStatusApplyConfiguration{}
@@ -57,6 +57,14 @@ func (b *AuthenticationStatusApplyConfiguration) WithVersion(value string) *Auth
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *AuthenticationStatusApplyConfiguration) WithReadyReplicas(value int32) *AuthenticationStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *AuthenticationStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *AuthenticationStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

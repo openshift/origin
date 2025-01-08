@@ -45,6 +45,11 @@ spec:
         Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value'
     - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value'
+  - featureGate: CustomResourceFieldSelectors
+    tests:
+    - testName: '[sig-api-machinery] CustomResourceFieldSelectors [Privileged:ClusterAdmin]
+        [FeatureGate:CustomResourceFieldSelectors] [Beta] CustomResourceFieldSelectors
+        MUST list and watch custom resources matching the field selector'
   - featureGate: DNSNameResolver
     tests:
     - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
@@ -62,6 +67,61 @@ spec:
         set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]'
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
         set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
+  - featureGate: HonorPVReclaimPolicy
+    tests:
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Dynamic provisioning should honor pv delete reclaim policy'
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Dynamic provisioning should honor pv retain reclaim policy'
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Static provisioning should honor pv delete reclaim policy'
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Static provisioning should honor pv retain reclaim policy'
+  - featureGate: ManagedBootImages
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
+        on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should not update
+        boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should stamp
+        coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
+        boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
+        boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+  - featureGate: ManagedBootImagesAWS
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade
+        on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not
+        update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should stamp
+        coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
+        boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
+        boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+  - featureGate: MetricsCollectionProfiles
+    tests:
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set in a heterogeneous environment, should expose
+        information about the applied collection profile using meta-metrics'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set in a heterogeneous environment, should have
+        at least one implementation for each collection profile'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set in a heterogeneous environment, should revert
+        to default collection profile when an empty collection profile value is specified'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set in a homogeneous minimal environment, should
+        hide default metrics'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set initially, in a homogeneous default environment,
+        should expose default metrics'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
@@ -78,42 +138,235 @@ spec:
         set the condition to false if there are no nodes able to host the source pods'
   - featureGate: NetworkSegmentation
     tests:
+    - testName: '[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization]
+        primary UDN smoke test when using openshift ovn-kubernetes assert the primary
+        UDN feature works as expected'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
-        EndpointSlices in namespaces not using user defined primary networks L2 dualstack
-        primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces
+        not using user defined primary networks L2 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
-        EndpointSlices in namespaces not using user defined primary networks L3 dualstack
-        primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces
+        not using user defined primary networks L3 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L2 dualstack primary UDN, cluster-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L2 primary UDN,
+        cluster-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L2 dualstack primary UDN, host-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L2 primary UDN,
+        host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L3 dualstack primary UDN, cluster-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L3 primary UDN,
+        cluster-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L3 dualstack primary UDN, host-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L3 primary UDN,
+        host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes can perform east/west traffic between
-        nodes for two pods connected over a L2 dualstack primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork does not mirror EndpointSlices in namespaces not using
+        user defined primary networks L2 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes can perform east/west traffic between
-        nodes two pods connected over a L3 dualstack primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork does not mirror EndpointSlices in namespaces not using
+        user defined primary networks L3 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes is isolated from the default network with
-        L2 dualstack primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L2 primary UDN, cluster-networked
+        pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes is isolated from the default network with
-        L3 dualstack primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L2 primary UDN, host-networked
+        pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L3 primary UDN, cluster-networked
+        pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L3 primary UDN, host-networked
+        pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        Network Policies when using openshift ovn-kubernetes allow ingress traffic
+        to one pod from a particular namespace in L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        Network Policies when using openshift ovn-kubernetes allow ingress traffic
+        to one pod from a particular namespace in L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        Network Policies when using openshift ovn-kubernetes pods within namespace
+        should be isolated when deny policy is present in L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        Network Policies when using openshift ovn-kubernetes pods within namespace
+        should be isolated when deny policy is present in L3 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes UDN Pod should react to k8s.ovn.org/open-default-ports
+        annotations changes'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork
+        cannot be deleted when being used'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes UserDefinedNetwork should create NetworkAttachmentDefinition
+        according to spec'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes UserDefinedNetwork should delete NetworkAttachmentDefinition
+        when UserDefinedNetwork is deleted'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        can perform east/west traffic between nodes for two pods connected over a
+        L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        can perform east/west traffic between nodes two pods connected over a L3 primary
+        UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        is isolated from the default network with L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        is isolated from the default network with L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        isolates overlapping CIDRs with L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        isolates overlapping CIDRs with L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork can perform
+        east/west traffic between nodes for two pods connected over a L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork can perform
+        east/west traffic between nodes two pods connected over a L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated
+        from the default network with L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated
+        from the default network with L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork isolates
+        overlapping CIDRs with L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork isolates
+        overlapping CIDRs with L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork
+        status should report not-ready'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
+        when the VM attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
+        when the VM attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
+        when the VMI attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to
+        a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to
+        a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached
+        to a primary UDN is migrated between nodes'
+  - featureGate: NewOLM
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
+        should be installed'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
+        Catalog Install should fail to install if it has an invalid reference'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
+        installation should block cluster upgrades if an incompatible operator is
+        installed'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
+        installation should fail to install a non-existing cluster extension'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
+        installation should install a cluster extension'
+  - featureGate: PersistentIPsForVirtualization
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
+        when the VM attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
+        when the VM attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
+        when the VMI attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip when the VM attached
+        to a secondary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip when the VM attached
+        to a secondary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip when the VMI attached
+        to a secondary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to
+        a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to
+        a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached
+        to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip when the VM attached to a secondary UDN is migrated between
+        nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip when the VM attached to a secondary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization]
+        should keep ip when the VMI attached to a secondary UDN is migrated between
+        nodes'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
@@ -217,4 +470,75 @@ spec:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
         vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
         use default when unset'
+  - featureGate: VolumeAttributesClass
+    tests:
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume that already has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume that already has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] VolumeAttributesClass [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should run through the lifecycle
+        of a VolumeAttributesClass'
+    - testName: '[sig-storage] [Serial] Volume metrics PVController should create
+        bound pv/pvc count metrics for pvc controller with volume attributes class
+        dimension after creating both pv and pvc [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta]'
+    - testName: '[sig-storage] [Serial] Volume metrics PVController should create
+        unbound pvc count metrics for pvc controller with volume attributes class
+        dimension after creating pvc only [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta]'
 status: {}

@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// EtcdSpecApplyConfiguration represents an declarative configuration of the EtcdSpec type for use
+// EtcdSpecApplyConfiguration represents a declarative configuration of the EtcdSpec type for use
 // with apply.
 type EtcdSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
@@ -15,7 +15,7 @@ type EtcdSpecApplyConfiguration struct {
 	BackendQuotaGiB                         *int32                                `json:"backendQuotaGiB,omitempty"`
 }
 
-// EtcdSpecApplyConfiguration constructs an declarative configuration of the EtcdSpec type for use with
+// EtcdSpecApplyConfiguration constructs a declarative configuration of the EtcdSpec type for use with
 // apply.
 func EtcdSpec() *EtcdSpecApplyConfiguration {
 	return &EtcdSpecApplyConfiguration{}

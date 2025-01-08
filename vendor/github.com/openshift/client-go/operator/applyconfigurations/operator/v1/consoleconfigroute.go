@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 )
 
-// ConsoleConfigRouteApplyConfiguration represents an declarative configuration of the ConsoleConfigRoute type for use
+// ConsoleConfigRouteApplyConfiguration represents a declarative configuration of the ConsoleConfigRoute type for use
 // with apply.
 type ConsoleConfigRouteApplyConfiguration struct {
 	Hostname *string                 `json:"hostname,omitempty"`
 	Secret   *v1.SecretNameReference `json:"secret,omitempty"`
 }
 
-// ConsoleConfigRouteApplyConfiguration constructs an declarative configuration of the ConsoleConfigRoute type for use with
+// ConsoleConfigRouteApplyConfiguration constructs a declarative configuration of the ConsoleConfigRoute type for use with
 // apply.
 func ConsoleConfigRoute() *ConsoleConfigRouteApplyConfiguration {
 	return &ConsoleConfigRouteApplyConfiguration{}

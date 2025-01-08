@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineSpecApplyConfiguration represents an declarative configuration of the MachineSpec type for use
+// MachineSpecApplyConfiguration represents a declarative configuration of the MachineSpec type for use
 // with apply.
 type MachineSpecApplyConfiguration struct {
 	*ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
@@ -19,7 +19,7 @@ type MachineSpecApplyConfiguration struct {
 	AuthoritativeAPI              *machinev1beta1.MachineAuthority  `json:"authoritativeAPI,omitempty"`
 }
 
-// MachineSpecApplyConfiguration constructs an declarative configuration of the MachineSpec type for use with
+// MachineSpecApplyConfiguration constructs a declarative configuration of the MachineSpec type for use with
 // apply.
 func MachineSpec() *MachineSpecApplyConfiguration {
 	return &MachineSpecApplyConfiguration{}

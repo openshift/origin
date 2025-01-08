@@ -2,13 +2,13 @@
 
 package v1
 
-// ProjectAccessApplyConfiguration represents an declarative configuration of the ProjectAccess type for use
+// ProjectAccessApplyConfiguration represents a declarative configuration of the ProjectAccess type for use
 // with apply.
 type ProjectAccessApplyConfiguration struct {
 	AvailableClusterRoles []string `json:"availableClusterRoles,omitempty"`
 }
 
-// ProjectAccessApplyConfiguration constructs an declarative configuration of the ProjectAccess type for use with
+// ProjectAccessApplyConfiguration constructs a declarative configuration of the ProjectAccess type for use with
 // apply.
 func ProjectAccess() *ProjectAccessApplyConfiguration {
 	return &ProjectAccessApplyConfiguration{}

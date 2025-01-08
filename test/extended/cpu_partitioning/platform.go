@@ -7,8 +7,10 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	ocpv1 "github.com/openshift/api/config/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,13 +24,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		ctx                     = context.Background()
 		isClusterCPUPartitioned = false
 
-		// The below namespaces are not annotated,
-		// no workload is going to be running in them.
-		ignoreNamespaces = map[string]struct{}{
-			"openshift-config":         {},
-			"openshift-config-managed": {},
-			"openshift-node":           {},
-		}
+		ignoreNamespaces = sets.New(
+			// The below namespaces are not annotated,
+			// no workload is going to be running in them.
+			"openshift-config",
+			"openshift-config-managed",
+			"openshift-node",
+		).Union(exutil.ManagedServiceNamespaces) // Managed service namespaces OSD-26068
 	)
 
 	g.BeforeEach(func() {
@@ -76,7 +78,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			o.Expect(err).NotTo(o.HaveOccurred())
 			invalidNamespaces := []string{}
 			for _, project := range projects.Items {
-				if _, ok := ignoreNamespaces[project.Name]; ok {
+				if ignoreNamespaces.Has(project.Name) {
 					continue
 				}
 				if strings.HasPrefix(project.Name, "openshift-") && !strings.HasPrefix(project.Name, "openshift-e2e-") {

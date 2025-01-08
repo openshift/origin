@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -356,6 +357,7 @@ func (c *CLI) setupProject() string {
 		"builder",
 	}
 	defaultRoleBindings := []string{"system:image-pullers", "system:image-builders"}
+
 	dcEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityDeploymentConfig)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if dcEnabled {
@@ -363,9 +365,19 @@ func (c *CLI) setupProject() string {
 		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
 		defaultRoleBindings = append(defaultRoleBindings, "system:deployers")
 	}
+
+	// If image registry is not enabled set default service account and default role bindings to empty slice,
+	// the SA will not contain the docker secret and the role binding is not expected to be present.
+	imageRegistryEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityImageRegistry)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if !imageRegistryEnabled {
+		DefaultServiceAccounts = []string{}
+		defaultRoleBindings = []string{}
+	}
+
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
-		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
+		err = WaitForServiceAccountWithSecret(c.AdminConfigClient().ConfigV1().ClusterVersions(), c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
@@ -920,13 +932,24 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
-	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
+	// Redact any bearer token information from the log.
+	framework.Logf("Running '%s %s'", c.execPath, redactBearerToken(c.finalArgs))
 
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
 	err := cmd.Start()
 
 	return cmd, err
+}
+
+func redactBearerToken(finalArgs []string) string {
+	args := strings.Join(finalArgs, " ")
+	if strings.Contains(args, "Authorization: Bearer") {
+		// redact bearer token
+		re := regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
+		args = re.ReplaceAllString(args, "Authorization: Bearer <redacted> ")
+	}
+	return args
 }
 
 // getStartingIndexForLastN calculates a byte offset in a byte slice such that when using

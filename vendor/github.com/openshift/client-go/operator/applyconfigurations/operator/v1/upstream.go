@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// UpstreamApplyConfiguration represents an declarative configuration of the Upstream type for use
+// UpstreamApplyConfiguration represents a declarative configuration of the Upstream type for use
 // with apply.
 type UpstreamApplyConfiguration struct {
 	Type    *v1.UpstreamType `json:"type,omitempty"`
@@ -14,7 +14,7 @@ type UpstreamApplyConfiguration struct {
 	Port    *uint32          `json:"port,omitempty"`
 }
 
-// UpstreamApplyConfiguration constructs an declarative configuration of the Upstream type for use with
+// UpstreamApplyConfiguration constructs a declarative configuration of the Upstream type for use with
 // apply.
 func Upstream() *UpstreamApplyConfiguration {
 	return &UpstreamApplyConfiguration{}

@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/faultyloadbalancer"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/generationanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/machines/watchmachines"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
@@ -27,6 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
+	"github.com/openshift/origin/pkg/monitortests/network/onpremhaproxy"
 	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
 	"github.com/openshift/origin/pkg/monitortests/node/legacynodemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/nodestateanalyzer"
@@ -52,6 +54,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
 )
@@ -115,6 +118,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 
+	monitorTestRegistry.AddMonitorTestOrDie("on-prem-haproxy", "Networking / On-Prem Host Networking", onpremhaproxy.InitialAndFinalOperatorLogScraper())
+
 	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-endpoints-down", "Test Framework", metricsendpointdown.NewMetricsEndpointDown())
 	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
@@ -172,6 +177,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("generation-analyzer", "kube-apiserver", generationanalyzer.NewGenerationAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
 
@@ -190,6 +196,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-request-counts-collector", "Test Framework", watchrequestcountscollector.NewWatchRequestCountSerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 
 	return monitorTestRegistry
 }

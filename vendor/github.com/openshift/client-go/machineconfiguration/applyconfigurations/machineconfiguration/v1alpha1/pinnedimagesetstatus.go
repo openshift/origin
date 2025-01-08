@@ -6,13 +6,13 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// PinnedImageSetStatusApplyConfiguration represents an declarative configuration of the PinnedImageSetStatus type for use
+// PinnedImageSetStatusApplyConfiguration represents a declarative configuration of the PinnedImageSetStatus type for use
 // with apply.
 type PinnedImageSetStatusApplyConfiguration struct {
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// PinnedImageSetStatusApplyConfiguration constructs an declarative configuration of the PinnedImageSetStatus type for use with
+// PinnedImageSetStatusApplyConfiguration constructs a declarative configuration of the PinnedImageSetStatus type for use with
 // apply.
 func PinnedImageSetStatus() *PinnedImageSetStatusApplyConfiguration {
 	return &PinnedImageSetStatusApplyConfiguration{}

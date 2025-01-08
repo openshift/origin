@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineConfigurationStatusApplyConfiguration represents an declarative configuration of the MachineConfigurationStatus type for use
+// MachineConfigurationStatusApplyConfiguration represents a declarative configuration of the MachineConfigurationStatus type for use
 // with apply.
 type MachineConfigurationStatusApplyConfiguration struct {
 	ObservedGeneration         *int64                                        `json:"observedGeneration,omitempty"`
@@ -14,7 +14,7 @@ type MachineConfigurationStatusApplyConfiguration struct {
 	NodeDisruptionPolicyStatus *NodeDisruptionPolicyStatusApplyConfiguration `json:"nodeDisruptionPolicyStatus,omitempty"`
 }
 
-// MachineConfigurationStatusApplyConfiguration constructs an declarative configuration of the MachineConfigurationStatus type for use with
+// MachineConfigurationStatusApplyConfiguration constructs a declarative configuration of the MachineConfigurationStatus type for use with
 // apply.
 func MachineConfigurationStatus() *MachineConfigurationStatusApplyConfiguration {
 	return &MachineConfigurationStatusApplyConfiguration{}

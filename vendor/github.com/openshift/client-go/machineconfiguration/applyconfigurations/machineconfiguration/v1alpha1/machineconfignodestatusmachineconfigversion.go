@@ -2,14 +2,14 @@
 
 package v1alpha1
 
-// MachineConfigNodeStatusMachineConfigVersionApplyConfiguration represents an declarative configuration of the MachineConfigNodeStatusMachineConfigVersion type for use
+// MachineConfigNodeStatusMachineConfigVersionApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusMachineConfigVersion type for use
 // with apply.
 type MachineConfigNodeStatusMachineConfigVersionApplyConfiguration struct {
 	Current *string `json:"current,omitempty"`
 	Desired *string `json:"desired,omitempty"`
 }
 
-// MachineConfigNodeStatusMachineConfigVersionApplyConfiguration constructs an declarative configuration of the MachineConfigNodeStatusMachineConfigVersion type for use with
+// MachineConfigNodeStatusMachineConfigVersionApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatusMachineConfigVersion type for use with
 // apply.
 func MachineConfigNodeStatusMachineConfigVersion() *MachineConfigNodeStatusMachineConfigVersionApplyConfiguration {
 	return &MachineConfigNodeStatusMachineConfigVersionApplyConfiguration{}

@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-scheduling][Early]", func() {
 		})
 	})
 
-	g.Describe("The openshift-apiserver pods [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io]", func() {
+	g.Describe("The openshift-apiserver pods [apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io]", func() {
 		g.It("should be scheduled on different nodes", func() {
 			requirePodsOnDifferentNodesTest{namespace: "openshift-apiserver", deployment: "apiserver"}.run(oc)
 		})

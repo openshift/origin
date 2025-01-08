@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/machine/v1"
 )
 
-// AWSResourceReferenceApplyConfiguration represents an declarative configuration of the AWSResourceReference type for use
+// AWSResourceReferenceApplyConfiguration represents a declarative configuration of the AWSResourceReference type for use
 // with apply.
 type AWSResourceReferenceApplyConfiguration struct {
 	Type    *v1.AWSResourceReferenceType           `json:"type,omitempty"`
@@ -15,7 +15,7 @@ type AWSResourceReferenceApplyConfiguration struct {
 	Filters *[]AWSResourceFilterApplyConfiguration `json:"filters,omitempty"`
 }
 
-// AWSResourceReferenceApplyConfiguration constructs an declarative configuration of the AWSResourceReference type for use with
+// AWSResourceReferenceApplyConfiguration constructs a declarative configuration of the AWSResourceReference type for use with
 // apply.
 func AWSResourceReference() *AWSResourceReferenceApplyConfiguration {
 	return &AWSResourceReferenceApplyConfiguration{}

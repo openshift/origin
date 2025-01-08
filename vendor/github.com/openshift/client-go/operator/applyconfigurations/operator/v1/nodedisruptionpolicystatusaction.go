@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// NodeDisruptionPolicyStatusActionApplyConfiguration represents an declarative configuration of the NodeDisruptionPolicyStatusAction type for use
+// NodeDisruptionPolicyStatusActionApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatusAction type for use
 // with apply.
 type NodeDisruptionPolicyStatusActionApplyConfiguration struct {
 	Type    *v1.NodeDisruptionPolicyStatusActionType `json:"type,omitempty"`
@@ -14,7 +14,7 @@ type NodeDisruptionPolicyStatusActionApplyConfiguration struct {
 	Restart *RestartServiceApplyConfiguration        `json:"restart,omitempty"`
 }
 
-// NodeDisruptionPolicyStatusActionApplyConfiguration constructs an declarative configuration of the NodeDisruptionPolicyStatusAction type for use with
+// NodeDisruptionPolicyStatusActionApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicyStatusAction type for use with
 // apply.
 func NodeDisruptionPolicyStatusAction() *NodeDisruptionPolicyStatusActionApplyConfiguration {
 	return &NodeDisruptionPolicyStatusActionApplyConfiguration{}

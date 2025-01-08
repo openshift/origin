@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ClusterCSIDriverApplyConfiguration represents an declarative configuration of the ClusterCSIDriver type for use
+// ClusterCSIDriverApplyConfiguration represents a declarative configuration of the ClusterCSIDriver type for use
 // with apply.
 type ClusterCSIDriverApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ClusterCSIDriverApplyConfiguration struct {
 	Status                           *ClusterCSIDriverStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ClusterCSIDriver constructs an declarative configuration of the ClusterCSIDriver type for use with
+// ClusterCSIDriver constructs a declarative configuration of the ClusterCSIDriver type for use with
 // apply.
 func ClusterCSIDriver(name string) *ClusterCSIDriverApplyConfiguration {
 	b := &ClusterCSIDriverApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *ClusterCSIDriverApplyConfiguration) WithSpec(value *ClusterCSIDriverSpe
 func (b *ClusterCSIDriverApplyConfiguration) WithStatus(value *ClusterCSIDriverStatusApplyConfiguration) *ClusterCSIDriverApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ClusterCSIDriverApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

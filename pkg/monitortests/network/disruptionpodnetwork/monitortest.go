@@ -31,6 +31,7 @@ import (
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
@@ -111,6 +112,14 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return pna.notSupportedReason
 	}
 
+	// Skip on ROSA TRT-1869
+	oc := util.NewCLIWithoutNamespace("openshift-tests")
+	isManagedServiceCluster, err := util.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
+	if isManagedServiceCluster {
+		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("pod network tests are unschedulable on ROSA TRT-1869")}
+		return pna.notSupportedReason
+	}
+
 	pna.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
@@ -124,15 +133,6 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 
 	if _, err = pna.kubeClient.RbacV1().RoleBindings(pna.namespaceName).Create(context.Background(), pollerRoleBinding, metav1.CreateOptions{}); err != nil {
 		return err
-	}
-
-	// Wait for pull secrets to have been created for the namespace default service accounts
-	defaultSAAccounts := []string{"default", "builder", "deployer"}
-	for _, sa := range defaultSAAccounts {
-		err = pna.waitForSASecrets(ctx, sa)
-		if err != nil {
-			return err
-		}
 	}
 
 	// our pods tolerate masters, so create one for each of them.
@@ -181,7 +181,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	pna.targetService = service
 
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
-	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LimitedShellImage()
+	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -325,7 +325,7 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
 	}
 	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
+		failures = append(failures, fmt.Sprintf("no pods found for poller %q", typeOfConnection))
 	}
 
 	logJunit := &junitapi.JUnitTestCase{
@@ -384,33 +384,4 @@ func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
 
 	}
 	return nil
-}
-
-func (pna *podNetworkAvalibility) waitForSASecrets(ctx context.Context, name string) error {
-	waitFn := func(ctx context.Context) (bool, error) {
-		sa, err := pna.kubeClient.CoreV1().ServiceAccounts(pna.namespaceName).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			// If we can't access the service accounts, let's wait till the controller
-			// create it.
-			if apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
-				klog.Infof("Waiting for service account %q to be available: %v (will retry) ...", name, err)
-				return false, nil
-			}
-			return false, fmt.Errorf("failed to get service account %q: %v", name, err)
-		}
-		secretNames := []string{}
-		var hasDockercfg bool
-		for _, s := range sa.ImagePullSecrets {
-			if strings.Contains(s.Name, "-dockercfg-") {
-				hasDockercfg = true
-			}
-			secretNames = append(secretNames, s.Name)
-		}
-		if hasDockercfg {
-			return true, nil
-		}
-		klog.Infof("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
-		return false, nil
-	}
-	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 3*time.Minute, true, waitFn)
 }

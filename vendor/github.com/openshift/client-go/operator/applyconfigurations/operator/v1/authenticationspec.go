@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// AuthenticationSpecApplyConfiguration represents an declarative configuration of the AuthenticationSpec type for use
+// AuthenticationSpecApplyConfiguration represents a declarative configuration of the AuthenticationSpec type for use
 // with apply.
 type AuthenticationSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// AuthenticationSpecApplyConfiguration constructs an declarative configuration of the AuthenticationSpec type for use with
+// AuthenticationSpecApplyConfiguration constructs a declarative configuration of the AuthenticationSpec type for use with
 // apply.
 func AuthenticationSpec() *AuthenticationSpecApplyConfiguration {
 	return &AuthenticationSpecApplyConfiguration{}

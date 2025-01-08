@@ -33,12 +33,11 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v.json: %w", o.GetName(), err)
 	}
-	markdown, err := generateOwnershipMarkdown(pkiInfo)
+	markdown, err := generateOwnershipMarkdown(pkiInfo, rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v.md: %w", o.GetName(), err)
 	}
-	violations := generateViolationJSON(pkiInfo)
-	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
+	violationJSONBytes, err := tlsmetadatainterfaces.MarshalViolationsToJSON(generateViolationJSON(pkiInfo))
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}
@@ -79,7 +78,7 @@ func generateViolationJSON(pkiInfo *certs.PKIRegistryInfo) *certs.PKIRegistryInf
 	return ret
 }
 
-func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
+func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo, rawData []*certgraphapi.PKIList) ([]byte, error) {
 	certsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
 	certsWithoutOwners := []certgraphapi.PKIRegistryCertKeyPair{}
 	caBundlesByOwner := map[string][]certgraphapi.PKIRegistryCABundle{}
@@ -120,18 +119,7 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certsWithoutOwners)))
 			md.OrderedListStart()
 			for _, curr := range certsWithoutOwners {
-				if curr.InClusterLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-					md.Text("\n")
-				}
-				if curr.OnDiskLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
-					md.Text("\n")
-				}
+				tlsmetadatainterfaces.PrintCertKeyPairDetails(curr, md, rawData)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -140,18 +128,7 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundlesWithoutOwners)))
 			md.OrderedListStart()
 			for _, curr := range caBundlesWithoutOwners {
-				if curr.InClusterLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-					md.Text("\n")
-				}
-				if curr.OnDiskLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
-					md.Text("\n")
-				}
+				tlsmetadatainterfaces.PrintCABundleDetails(curr, md, rawData)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -162,23 +139,13 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 	allOwners.Insert(sets.StringKeySet(caBundlesByOwner).UnsortedList()...)
 	for _, owner := range allOwners.List() {
 		md.Title(2, fmt.Sprintf("%s (%d)", owner, len(certsByOwner[owner])+len(caBundlesByOwner[owner])))
-		certs := certsByOwner[owner]
-		if len(certs) > 0 {
-			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certs)))
+		certificates := certsByOwner[owner]
+		if len(certificates) > 0 {
+			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certificates)))
 			md.OrderedListStart()
-			for _, curr := range certs {
-				if curr.InClusterLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-					md.Text("\n")
-				}
-				if curr.OnDiskLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
-					md.Text("\n")
-				}
+
+			for _, curr := range certificates {
+				tlsmetadatainterfaces.PrintCertKeyPairDetails(curr, md, rawData)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -188,19 +155,9 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 		if len(caBundles) > 0 {
 			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
+
 			for _, curr := range caBundles {
-				if curr.InClusterLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-					md.Text("\n")
-				}
-				if curr.OnDiskLocation != nil {
-					md.NewOrderedListItem()
-					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
-					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
-					md.Text("\n")
-				}
+				tlsmetadatainterfaces.PrintCABundleDetails(curr, md, rawData)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")

@@ -10,7 +10,16 @@ import (
 // ensure that alerts we want to allow in both are added to both.
 func AllowedAlertsDuringConformance(featureSet configv1.FeatureSet) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending MetricConditions) {
 
-	firingAlertsWithBugs := MetricConditions{}
+	firingAlertsWithBugs := MetricConditions{
+		{
+			AlertName: "VirtHandlerRESTErrorsHigh",
+			Text:      "https://issues.redhat.com/browse/CNV-50418",
+		},
+		{
+			AlertName: "VirtControllerRESTErrorsHigh",
+			Text:      "https://issues.redhat.com/browse/CNV-50418",
+		},
+	}
 	allowedFiringAlerts := MetricConditions{
 		{
 			AlertName:      "TargetDown",
@@ -34,6 +43,10 @@ func AllowedAlertsDuringConformance(featureSet configv1.FeatureSet) (allowedFiri
 		{
 			AlertName: "ExtremelyHighIndividualControlPlaneCPU",
 			Text:      "high CPU utilization during e2e runs is normal",
+		},
+		{
+			AlertName: "CDIDefaultStorageClassDegraded",
+			Text:      "not having rwx storage class should not be a must",
 		},
 	}
 	pendingAlertsWithBugs := MetricConditions{}

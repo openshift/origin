@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IPFIXConfigApplyConfiguration represents an declarative configuration of the IPFIXConfig type for use
+// IPFIXConfigApplyConfiguration represents a declarative configuration of the IPFIXConfig type for use
 // with apply.
 type IPFIXConfigApplyConfiguration struct {
 	Collectors []v1.IPPort `json:"collectors,omitempty"`
 }
 
-// IPFIXConfigApplyConfiguration constructs an declarative configuration of the IPFIXConfig type for use with
+// IPFIXConfigApplyConfiguration constructs a declarative configuration of the IPFIXConfig type for use with
 // apply.
 func IPFIXConfig() *IPFIXConfigApplyConfiguration {
 	return &IPFIXConfigApplyConfiguration{}

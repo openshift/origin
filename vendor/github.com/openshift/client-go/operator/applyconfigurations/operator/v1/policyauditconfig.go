@@ -2,7 +2,7 @@
 
 package v1
 
-// PolicyAuditConfigApplyConfiguration represents an declarative configuration of the PolicyAuditConfig type for use
+// PolicyAuditConfigApplyConfiguration represents a declarative configuration of the PolicyAuditConfig type for use
 // with apply.
 type PolicyAuditConfigApplyConfiguration struct {
 	RateLimit      *uint32 `json:"rateLimit,omitempty"`
@@ -12,7 +12,7 @@ type PolicyAuditConfigApplyConfiguration struct {
 	SyslogFacility *string `json:"syslogFacility,omitempty"`
 }
 
-// PolicyAuditConfigApplyConfiguration constructs an declarative configuration of the PolicyAuditConfig type for use with
+// PolicyAuditConfigApplyConfiguration constructs a declarative configuration of the PolicyAuditConfig type for use with
 // apply.
 func PolicyAuditConfig() *PolicyAuditConfigApplyConfiguration {
 	return &PolicyAuditConfigApplyConfiguration{}

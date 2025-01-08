@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// CloudPrivateIPConfigStatusApplyConfiguration represents an declarative configuration of the CloudPrivateIPConfigStatus type for use
+// CloudPrivateIPConfigStatusApplyConfiguration represents a declarative configuration of the CloudPrivateIPConfigStatus type for use
 // with apply.
 type CloudPrivateIPConfigStatusApplyConfiguration struct {
 	Node       *string                          `json:"node,omitempty"`
 	Conditions []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// CloudPrivateIPConfigStatusApplyConfiguration constructs an declarative configuration of the CloudPrivateIPConfigStatus type for use with
+// CloudPrivateIPConfigStatusApplyConfiguration constructs a declarative configuration of the CloudPrivateIPConfigStatus type for use with
 // apply.
 func CloudPrivateIPConfigStatus() *CloudPrivateIPConfigStatusApplyConfiguration {
 	return &CloudPrivateIPConfigStatusApplyConfiguration{}

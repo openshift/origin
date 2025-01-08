@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// ForwardPluginApplyConfiguration represents an declarative configuration of the ForwardPlugin type for use
+// ForwardPluginApplyConfiguration represents a declarative configuration of the ForwardPlugin type for use
 // with apply.
 type ForwardPluginApplyConfiguration struct {
 	Upstreams        []string                              `json:"upstreams,omitempty"`
@@ -15,7 +15,7 @@ type ForwardPluginApplyConfiguration struct {
 	ProtocolStrategy *v1.ProtocolStrategy                  `json:"protocolStrategy,omitempty"`
 }
 
-// ForwardPluginApplyConfiguration constructs an declarative configuration of the ForwardPlugin type for use with
+// ForwardPluginApplyConfiguration constructs a declarative configuration of the ForwardPlugin type for use with
 // apply.
 func ForwardPlugin() *ForwardPluginApplyConfiguration {
 	return &ForwardPluginApplyConfiguration{}

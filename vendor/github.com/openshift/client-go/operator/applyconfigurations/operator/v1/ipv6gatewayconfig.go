@@ -2,13 +2,13 @@
 
 package v1
 
-// IPv6GatewayConfigApplyConfiguration represents an declarative configuration of the IPv6GatewayConfig type for use
+// IPv6GatewayConfigApplyConfiguration represents a declarative configuration of the IPv6GatewayConfig type for use
 // with apply.
 type IPv6GatewayConfigApplyConfiguration struct {
 	InternalMasqueradeSubnet *string `json:"internalMasqueradeSubnet,omitempty"`
 }
 
-// IPv6GatewayConfigApplyConfiguration constructs an declarative configuration of the IPv6GatewayConfig type for use with
+// IPv6GatewayConfigApplyConfiguration constructs a declarative configuration of the IPv6GatewayConfig type for use with
 // apply.
 func IPv6GatewayConfig() *IPv6GatewayConfigApplyConfiguration {
 	return &IPv6GatewayConfigApplyConfiguration{}

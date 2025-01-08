@@ -1,0 +1,10 @@
+apiVersion: operator.openshift.io/v1
+kind: KubeAPIServer
+metadata:
+  generateName: test-apiserver-
+spec:
+  managementState: Managed
+status:
+  nodeStatuses:
+    - nodeName: "master-1"
+    - nodeName: "master-2"

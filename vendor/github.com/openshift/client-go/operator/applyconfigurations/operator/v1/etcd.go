@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// EtcdApplyConfiguration represents an declarative configuration of the Etcd type for use
+// EtcdApplyConfiguration represents a declarative configuration of the Etcd type for use
 // with apply.
 type EtcdApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type EtcdApplyConfiguration struct {
 	Status                           *EtcdStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// Etcd constructs an declarative configuration of the Etcd type for use with
+// Etcd constructs a declarative configuration of the Etcd type for use with
 // apply.
 func Etcd(name string) *EtcdApplyConfiguration {
 	b := &EtcdApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *EtcdApplyConfiguration) WithSpec(value *EtcdSpecApplyConfiguration) *Et
 func (b *EtcdApplyConfiguration) WithStatus(value *EtcdStatusApplyConfiguration) *EtcdApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *EtcdApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

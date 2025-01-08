@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// MachineConfigurationSpecApplyConfiguration represents an declarative configuration of the MachineConfigurationSpec type for use
+// MachineConfigurationSpecApplyConfiguration represents a declarative configuration of the MachineConfigurationSpec type for use
 // with apply.
 type MachineConfigurationSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
@@ -15,7 +15,7 @@ type MachineConfigurationSpecApplyConfiguration struct {
 	NodeDisruptionPolicy                    *NodeDisruptionPolicyConfigApplyConfiguration `json:"nodeDisruptionPolicy,omitempty"`
 }
 
-// MachineConfigurationSpecApplyConfiguration constructs an declarative configuration of the MachineConfigurationSpec type for use with
+// MachineConfigurationSpecApplyConfiguration constructs a declarative configuration of the MachineConfigurationSpec type for use with
 // apply.
 func MachineConfigurationSpec() *MachineConfigurationSpecApplyConfiguration {
 	return &MachineConfigurationSpecApplyConfiguration{}

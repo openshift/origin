@@ -11,11 +11,12 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 const (
@@ -345,6 +346,17 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		messageHumanRegex:  regexp.MustCompile(`Readiness probe failed`),
 	})
 
+	// Managed services osd-cluster-ready will fail until the OSD operators are ready, this triggers pathological events
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "OSDClusterReadyRestart",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-monitoring`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`.*osd-cluster-ready.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		messageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container.*osd-cluster-ready.*`),
+	})
+
 	/*
 
 			This looks duplicated with AllowBackOffRestartingFailedContainer
@@ -453,6 +465,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	registry.AddPathologicalEventMatcherOrDie(ErrorUpdatingEndpointSlices)
 	registry.AddPathologicalEventMatcherOrDie(MarketplaceStartupProbeFailure)
 	registry.AddPathologicalEventMatcherOrDie(CertificateRotation)
+	registry.AddPathologicalEventMatcherOrDie(KubeAPIServerAvoids500s)
 
 	// Inject the dynamic allowance for etcd readiness probe failures based on the number of
 	// etcd revisions the cluster went through.
@@ -470,6 +483,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	singleNodeKubeAPIServerProgressingMatcher := newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeKubeAPIServerProgressingMatcher)
+
+	vsphereConfigurationTestsRollOutTooOftenMatcher := newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(vsphereConfigurationTestsRollOutTooOftenMatcher)
 
 	return registry
 }
@@ -676,6 +692,12 @@ var MarketplaceStartupProbeFailure = &SimplePathologicalEventMatcher{
 	messageHumanRegex: regexp.MustCompile(`Startup probe failed`),
 }
 
+// Separated out in auditloganalyzer
+var KubeAPIServerAvoids500s = &SimplePathologicalEventMatcher{
+	name:               "KubeAPIServerAvoids500s",
+	messageReasonRegex: regexp.MustCompile(fmt.Sprintf("^%s$", monitorapi.ReasonKubeAPIServer500s)),
+}
+
 var CertificateRotation = &SimplePathologicalEventMatcher{
 	name:               "CertificateRotation",
 	messageReasonRegex: regexp.MustCompile(`^(CABundleUpdateRequired|SignerUpdateRequired|TargetUpdateRequired|CertificateUpdated|CertificateRemoved|CertificateUpdateFailed)$`),
@@ -724,6 +746,32 @@ func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig
 		}
 	}
 	return true, nil
+}
+
+func IsDuringAPIServerProgressingOnSNO(topology string, events monitorapi.Intervals) monitorapi.EventIntervalMatchesFunc {
+	if topology != "single" {
+		return func(eventInterval monitorapi.Interval) bool { return false }
+	}
+	ocpKubeAPIServerProgressingInterval := events.Filter(func(interval monitorapi.Interval) bool {
+		isNodeInstaller := interval.Message.Reason == monitorapi.NodeInstallerReason
+		isOperatorSource := interval.Source == monitorapi.SourceOperatorState
+		isKubeAPI := interval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
+
+		isKubeAPIInstaller := isNodeInstaller && isOperatorSource && isKubeAPI
+		isKubeAPIInstallProgressing := isKubeAPIInstaller && interval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
+
+		return isKubeAPIInstallProgressing
+	})
+
+	return func(i monitorapi.Interval) bool {
+		for _, progressingInterval := range ocpKubeAPIServerProgressingInterval {
+			// Before and After are not inclusive, we buffer 1 second for that.
+			if progressingInterval.From.Before(i.From.Add(time.Second)) && progressingInterval.To.After(i.To.Add(-1*time.Second)) {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
@@ -890,6 +938,32 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 	return matcher
 }
 
+// Repeating events about pod creation are expected for snapshot options tests in vsphere csi driver.
+// The tests change clusterCSIDriver object and have to rollout new pods to load new configuration.
+func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	configurationTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "snapshot options in clusterCSIDriver")
+	})
+	for i := range configurationTestIntervals {
+		configurationTestIntervals[i].To = configurationTestIntervals[i].To.Add(time.Minute * 10)
+		configurationTestIntervals[i].From = configurationTestIntervals[i].From.Add(time.Minute * -10)
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name: "VsphereConfigurationTestsRollOutTooOften",
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
+			},
+			messageReasonRegex: regexp.MustCompile(`(^SuccessfulCreate$|^SuccessfulDelete$)`),
+			messageHumanRegex:  regexp.MustCompile(`(Created pod.*vmware-vsphere-csi-driver.*|Deleted pod.*vmware-vsphere-csi-driver.*)`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
+		},
+		allowIfWithinIntervals: configurationTestIntervals,
+	}
+}
+
 // Ignore connection refused events during OCP APIServer or OAuth APIServer being down
 func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
 	const (
@@ -969,13 +1043,19 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 		return isKubeAPIInstallProgressing
 	})
 
+	// We buffer 1 second since Before and After are not inclusive for time comparisons.
+	for i := range ocpKubeAPIServerProgressingInterval {
+		ocpKubeAPIServerProgressingInterval[i].From = ocpKubeAPIServerProgressingInterval[i].From.Add(time.Second * -1)
+		ocpKubeAPIServerProgressingInterval[i].To = ocpKubeAPIServerProgressingInterval[i].To.Add(time.Second * 1)
+	}
+
 	if len(ocpKubeAPIServerProgressingInterval) > 0 {
 		logrus.Infof("found %d OCP Kube APIServer Progressing intervals", len(ocpKubeAPIServerProgressingInterval))
 	}
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
 		delegate: &SimplePathologicalEventMatcher{
 			name:              "KubeAPIServerProgressingDuringSingleNodeUpgrade",
-			messageHumanRegex: regexp.MustCompile(`^(clusteroperator/kube-apiserver version .* changed from |Back-off restarting failed container)`),
+			messageHumanRegex: regexp.MustCompile(`^(clusteroperator/kube-apiserver version .* changed from |Back-off restarting failed container|.*Client\.Timeout exceeded while awaiting headers)`),
 			topology:          &snoTopology,
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,

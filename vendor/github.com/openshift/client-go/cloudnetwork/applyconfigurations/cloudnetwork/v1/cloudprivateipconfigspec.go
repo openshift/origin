@@ -2,13 +2,13 @@
 
 package v1
 
-// CloudPrivateIPConfigSpecApplyConfiguration represents an declarative configuration of the CloudPrivateIPConfigSpec type for use
+// CloudPrivateIPConfigSpecApplyConfiguration represents a declarative configuration of the CloudPrivateIPConfigSpec type for use
 // with apply.
 type CloudPrivateIPConfigSpecApplyConfiguration struct {
 	Node *string `json:"node,omitempty"`
 }
 
-// CloudPrivateIPConfigSpecApplyConfiguration constructs an declarative configuration of the CloudPrivateIPConfigSpec type for use with
+// CloudPrivateIPConfigSpecApplyConfiguration constructs a declarative configuration of the CloudPrivateIPConfigSpec type for use with
 // apply.
 func CloudPrivateIPConfigSpec() *CloudPrivateIPConfigSpecApplyConfiguration {
 	return &CloudPrivateIPConfigSpecApplyConfiguration{}

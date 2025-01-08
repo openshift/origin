@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 )
 
-// ImagePrunerStatusApplyConfiguration represents an declarative configuration of the ImagePrunerStatus type for use
+// ImagePrunerStatusApplyConfiguration represents a declarative configuration of the ImagePrunerStatus type for use
 // with apply.
 type ImagePrunerStatusApplyConfiguration struct {
 	ObservedGeneration *int64                                   `json:"observedGeneration,omitempty"`
 	Conditions         []v1.OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// ImagePrunerStatusApplyConfiguration constructs an declarative configuration of the ImagePrunerStatus type for use with
+// ImagePrunerStatusApplyConfiguration constructs a declarative configuration of the ImagePrunerStatus type for use with
 // apply.
 func ImagePrunerStatus() *ImagePrunerStatusApplyConfiguration {
 	return &ImagePrunerStatusApplyConfiguration{}

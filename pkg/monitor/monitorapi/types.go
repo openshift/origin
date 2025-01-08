@@ -109,6 +109,9 @@ const (
 	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
 	LocatorTypeKind            LocatorType = "Kind"
 	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
+	LocatorTypeDeployment      LocatorType = "Deployment"
+	LocatorTypeDaemonSet       LocatorType = "DaemonSet"
+	LocatorTypeStatefulSet     LocatorType = "StatefulSet"
 
 	LocatorTypeAPIUnreachableFromClient LocatorType = "APIUnreachableFromClient"
 )
@@ -120,6 +123,8 @@ const (
 	LocatorClusterVersionKey  LocatorKey = "clusterversion"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorDeploymentKey      LocatorKey = "deployment"
+	LocatorDaemonSetKey       LocatorKey = "daemonset"
+	LocatorStatefulSetKey     LocatorKey = "statefulset"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorMachineKey         LocatorKey = "machine"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
@@ -146,7 +151,8 @@ const (
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
 
-	LocatorAPIUnreachableHostKey LocatorKey = "host"
+	LocatorAPIUnreachableHostKey                  LocatorKey = "host"
+	LocatorOnPremKubeapiUnreachableFromHaproxyKey LocatorKey = "onprem-haproxy"
 )
 
 type Locator struct {
@@ -200,6 +206,10 @@ const (
 	NodeUnexpectedReadyReason       IntervalReason = "UnexpectedNotReady"
 	NodeUnexpectedUnreachableReason IntervalReason = "UnexpectedUnreachable"
 	NodeUnreachable                 IntervalReason = "Unreachable"
+	// Kubelet tries to get lease five times and then gives up
+	NodeFailedLeaseBackoff IntervalReason = "FailedToUpdateLeaseInBackoff"
+	NodeDiskPressure       IntervalReason = "NodeDiskPressure"
+	NodeNoDiskPressure     IntervalReason = "NodeNoDiskPressure"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
@@ -208,6 +218,9 @@ const (
 	MachineDeletedInAPI IntervalReason = "MachineDeletedInAPI"
 	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
 	MachinePhase        IntervalReason = "MachinePhase"
+
+	OnPremHaproxyDetectsDown  IntervalReason = "OnPremHaproxyDetectsDown"
+	OnPremHaproxyStatusChange IntervalReason = "OnPremHaproxyStatusChange"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -233,6 +246,12 @@ const (
 	LeaseAcquiring        IntervalReason = "Acquiring"
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
+
+	ReasonBadOperatorApply  IntervalReason = "BadOperatorApply"
+	ReasonKubeAPIServer500s IntervalReason = "KubeAPIServer500s"
+
+	ReasonHighGeneration    IntervalReason = "HighGeneration"
+	ReasonInvalidGeneration IntervalReason = "GenerationViolation"
 )
 
 type AnnotationKey string
@@ -265,6 +284,7 @@ const (
 	AnnotationRoles          AnnotationKey = "roles"
 	AnnotationStatus         AnnotationKey = "status"
 	AnnotationCondition      AnnotationKey = "condition"
+	AnnotationPercentage     AnnotationKey = "percentage"
 )
 
 // ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
@@ -282,6 +302,7 @@ const (
 	ConstructionOwnerEtcdLifecycle    = "etcd-lifecycle-constructor"
 	ConstructionOwnerMachineLifecycle = "machine-lifecycle-constructor"
 	ConstructionOwnerLeaseChecker     = "lease-checker"
+	ConstructionOwnerOnPremHaproxy    = "on-prem-haproxy-constructor"
 )
 
 type Message struct {
@@ -307,6 +328,7 @@ const (
 	SourceKubeEvent                 IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor               IntervalSource = "NodeMonitor"
+	SourceHaproxyMonitor            IntervalSource = "OnPremHaproxyMonitor"
 	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
 	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
@@ -317,6 +339,7 @@ const (
 	SourceMetricsEndpointDown       IntervalSource = "MetricsEndpointDown"
 	APIServerGracefulShutdown       IntervalSource = "APIServerGracefulShutdown"
 	APIServerClusterOperatorWatcher IntervalSource = "APIServerClusterOperatorWatcher"
+	SourceAuditLog                  IntervalSource = "AuditLog"
 
 	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
 	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
@@ -329,6 +352,8 @@ const (
 
 	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
 	SourceMachine                  IntervalSource = "MachineMonitor"
+
+	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
 )
 
 type Interval struct {
@@ -687,6 +712,11 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 func NodeUpdate(eventInterval Interval) bool {
 	reason := eventInterval.Message.Reason
 	return NodeUpdateReason == reason
+}
+
+func NodeLeaseBackoff(eventInterval Interval) bool {
+	reason := eventInterval.Message.Reason
+	return NodeFailedLeaseBackoff == reason
 }
 
 func AlertFiring() EventIntervalMatchesFunc {

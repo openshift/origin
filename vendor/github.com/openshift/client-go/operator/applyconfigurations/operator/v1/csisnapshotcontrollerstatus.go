@@ -2,13 +2,13 @@
 
 package v1
 
-// CSISnapshotControllerStatusApplyConfiguration represents an declarative configuration of the CSISnapshotControllerStatus type for use
+// CSISnapshotControllerStatusApplyConfiguration represents a declarative configuration of the CSISnapshotControllerStatus type for use
 // with apply.
 type CSISnapshotControllerStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// CSISnapshotControllerStatusApplyConfiguration constructs an declarative configuration of the CSISnapshotControllerStatus type for use with
+// CSISnapshotControllerStatusApplyConfiguration constructs a declarative configuration of the CSISnapshotControllerStatus type for use with
 // apply.
 func CSISnapshotControllerStatus() *CSISnapshotControllerStatusApplyConfiguration {
 	return &CSISnapshotControllerStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *CSISnapshotControllerStatusApplyConfiguration) WithVersion(value string
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *CSISnapshotControllerStatusApplyConfiguration) WithReadyReplicas(value int32) *CSISnapshotControllerStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *CSISnapshotControllerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *CSISnapshotControllerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

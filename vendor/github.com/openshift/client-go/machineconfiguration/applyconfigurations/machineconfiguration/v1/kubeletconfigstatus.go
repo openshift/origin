@@ -2,14 +2,14 @@
 
 package v1
 
-// KubeletConfigStatusApplyConfiguration represents an declarative configuration of the KubeletConfigStatus type for use
+// KubeletConfigStatusApplyConfiguration represents a declarative configuration of the KubeletConfigStatus type for use
 // with apply.
 type KubeletConfigStatusApplyConfiguration struct {
 	ObservedGeneration *int64                                     `json:"observedGeneration,omitempty"`
 	Conditions         []KubeletConfigConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// KubeletConfigStatusApplyConfiguration constructs an declarative configuration of the KubeletConfigStatus type for use with
+// KubeletConfigStatusApplyConfiguration constructs a declarative configuration of the KubeletConfigStatus type for use with
 // apply.
 func KubeletConfigStatus() *KubeletConfigStatusApplyConfiguration {
 	return &KubeletConfigStatusApplyConfiguration{}

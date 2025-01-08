@@ -3,14 +3,15 @@ package storage
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/google/uuid"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -19,7 +20,7 @@ import (
 
 const (
 	csiInlineVolProfileLabel = "security.openshift.io/csi-ephemeral-volume-profile"
-	csiSharedResourceDriver  = "csi.sharedresource.openshift.io"
+	csiTestDriver            = "csi.test.openshift.io"
 	podSecurityEnforceError  = "has a pod security enforce level that is lower than"
 )
 
@@ -27,40 +28,19 @@ const (
 var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", func() {
 	defer g.GinkgoRecover()
 	var (
-		ctx                  = context.Background()
-		baseDir              = exutil.FixturePath("testdata", "storage", "inline")
-		secret               = filepath.Join(baseDir, "secret.yaml")
-		csiSharedSecret      = filepath.Join(baseDir, "csi-sharedsecret.yaml")
-		csiSharedRole        = filepath.Join(baseDir, "csi-sharedresourcerole.yaml")
-		csiSharedRoleBinding = filepath.Join(baseDir, "csi-sharedresourcerolebinding.yaml")
+		ctx = context.Background()
 
 		beforeEach = func(oc *exutil.CLI) {
-			// TODO: remove this after the shared resource driver is GA
-			if !exutil.IsTechPreviewNoUpgrade(oc) {
-				g.Skip("this test is only expected to work with TechPreviewNoUpgrade clusters")
-			}
 			exutil.PreTestDump()
 
-			// create the secret to share in a new namespace
-			g.By("creating a secret")
-			err := oc.AsAdmin().Run("--namespace=default", "apply").Args("-f", secret).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// create the csi shared secret object
-			g.By("creating a csi shared secret resource")
-			err = oc.AsAdmin().Run("apply").Args("-f", csiSharedSecret).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// process the role to grant use of the share
-			g.By("creating a csi shared role resource")
-			err = oc.AsAdmin().Run("apply").Args("-f", csiSharedRole).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// process the rolebinding to grant use of the share
-			g.By("creating a csi shared role binding resource")
-			rolebinding, _, err := oc.AsAdmin().Run("process").Args("-f", csiSharedRoleBinding, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace())).Outputs()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.AsAdmin().Run("apply").Args("-f", "-").InputString(rolebinding).Execute()
+			// Since this only tests the admission plugin for inline volumes,
+			// we don't actually need to deploy any CSI driver pods.
+			// We just need a CSIDriver object for this test.
+			g.By("creating CSI driver for inline volumes")
+			_, err := oc.AdminKubeClient().StorageV1().CSIDrivers().Create(ctx,
+				getTestCSIDriver(),
+				metav1.CreateOptions{},
+			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
@@ -69,9 +49,11 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 				exutil.DumpPodStates(oc)
 			}
 
-			// set this back to the default value at the end of each test
-			g.By("setting the csi-ephemeral-volume-profile label back to restricted")
-			err := setCSIEphemeralVolumeProfile(oc, "restricted")
+			g.By("deleting CSI driver for inline volumes")
+			err := oc.AdminKubeClient().StorageV1().CSIDrivers().Delete(ctx,
+				csiTestDriver,
+				metav1.DeleteOptions{},
+			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	)
@@ -91,7 +73,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should allow pods with inline volumes when the driver uses the privileged label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to privileged")
-			err := setCSIEphemeralVolumeProfile(oc, "privileged")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "privileged")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -105,7 +87,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should allow pods with inline volumes when the driver uses the restricted label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to restricted")
-			err := setCSIEphemeralVolumeProfile(oc, "restricted")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -133,7 +115,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should deny pods with inline volumes when the driver uses the privileged label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to privileged")
-			err := setCSIEphemeralVolumeProfile(oc, "privileged")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "privileged")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -148,7 +130,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should allow pods with inline volumes when the driver uses the baseline label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to baseline")
-			err := setCSIEphemeralVolumeProfile(oc, "baseline")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "baseline")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -162,7 +144,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should allow pods with inline volumes when the driver uses the restricted label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to restricted")
-			err := setCSIEphemeralVolumeProfile(oc, "restricted")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -190,7 +172,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should deny pods with inline volumes when the driver uses the privileged label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to privileged")
-			err := setCSIEphemeralVolumeProfile(oc, "privileged")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "privileged")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -205,7 +187,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should deny pods with inline volumes when the driver uses the baseline label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to baseline")
-			err := setCSIEphemeralVolumeProfile(oc, "baseline")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "baseline")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -220,7 +202,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		g.It("should allow pods with inline volumes when the driver uses the restricted label", func() {
 			g.By("setting the csi-ephemeral-volume-profile label to restricted")
-			err := setCSIEphemeralVolumeProfile(oc, "restricted")
+			err := setCSIEphemeralVolumeProfile(ctx, oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test pod with inline volume")
@@ -234,11 +216,27 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 	})
 })
 
-// setCSIEphemeralVolumeProfile sets the security.openshift.io/csi-ephemeral-volume-profile label to the provided
-// value on the csi.sharedresource.openshift.io CSIDriver object.
-func setCSIEphemeralVolumeProfile(oc *exutil.CLI, labelValue string) error {
-	label := fmt.Sprintf("%s=%s", csiInlineVolProfileLabel, labelValue)
-	return oc.AsAdmin().Run("label").Args("--overwrite", "csidriver", csiSharedResourceDriver, label).Execute()
+// setCSIEphemeralVolumeProfile sets the security.openshift.io/csi-ephemeral-volume-profile
+// label to the provided value on the csi.test.openshift.io CSIDriver object.
+func setCSIEphemeralVolumeProfile(ctx context.Context, oc *exutil.CLI, labelValue string) error {
+	patch := []byte(fmt.Sprintf(`{"metadata": {"labels":{"%s": "%s"}}}`, csiInlineVolProfileLabel, labelValue))
+	_, err := oc.AdminKubeClient().StorageV1().CSIDrivers().Patch(ctx, csiTestDriver, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+	return err
+}
+
+func getTestCSIDriver() *storagev1.CSIDriver {
+	driver := &storagev1.CSIDriver{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   csiTestDriver,
+			Labels: map[string]string{csiInlineVolProfileLabel: "restricted"},
+		},
+		Spec: storagev1.CSIDriverSpec{
+			VolumeLifecycleModes: []storagev1.VolumeLifecycleMode{
+				storagev1.VolumeLifecycleEphemeral,
+			},
+		},
+	}
+	return driver
 }
 
 func getTestPod(namespace string) *corev1.Pod {
@@ -277,15 +275,12 @@ func getTestPod(namespace string) *corev1.Pod {
 
 func getTestPodWithInlineVol(namespace string) *corev1.Pod {
 	pod := getTestPod(namespace)
-	ro := true
 	pod.Spec.Volumes = []corev1.Volume{
 		{
 			Name: "test-vol",
 			VolumeSource: corev1.VolumeSource{
 				CSI: &corev1.CSIVolumeSource{
-					Driver:           csiSharedResourceDriver,
-					ReadOnly:         &ro,
-					VolumeAttributes: map[string]string{"sharedSecret": "my-share"},
+					Driver: csiTestDriver,
 				},
 			},
 		},

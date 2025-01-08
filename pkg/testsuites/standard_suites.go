@@ -260,7 +260,7 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/network/ipsec")
 		},
 		Parallelism: 1,
-		TestTimeout: 120 * time.Minute,
+		TestTimeout: 60 * time.Minute,
 	},
 	{
 		Name: "openshift/network/stress",
@@ -311,6 +311,19 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return inCNISuite(name)
 		},
+	},
+	{
+		Name: "openshift/network/virtualization",
+		Description: templates.LongDesc(`
+		The conformance testing suite for virtualization related features.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/network/virtualization")
+		},
+		Parallelism: 3,
 	},
 	{
 		Name: "experimental/reliability/minimal",

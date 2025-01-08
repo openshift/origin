@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// StorageApplyConfiguration represents an declarative configuration of the Storage type for use
+// StorageApplyConfiguration represents a declarative configuration of the Storage type for use
 // with apply.
 type StorageApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type StorageApplyConfiguration struct {
 	Status                           *StorageStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// Storage constructs an declarative configuration of the Storage type for use with
+// Storage constructs a declarative configuration of the Storage type for use with
 // apply.
 func Storage(name string) *StorageApplyConfiguration {
 	b := &StorageApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *StorageApplyConfiguration) WithSpec(value *StorageSpecApplyConfiguratio
 func (b *StorageApplyConfiguration) WithStatus(value *StorageStatusApplyConfiguration) *StorageApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *StorageApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

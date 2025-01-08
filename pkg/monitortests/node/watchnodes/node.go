@@ -2,6 +2,7 @@ package watchnodes
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -209,6 +210,48 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			}
 			return intervals
 		},
+		// Watch for node reporting DiskPressure and create a point in time interval if we see this.
+		// We don't particularly care how long it was reported for, only that it happened.
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+
+			var oldNodeDiskPressure bool
+			if oldNode != nil {
+				for _, c := range oldNode.Status.Conditions {
+					if c.Type == corev1.NodeDiskPressure && c.Status == corev1.ConditionTrue {
+						oldNodeDiskPressure = true
+					}
+				}
+			}
+			var newNodeDiskPressure bool
+			if node != nil {
+				for _, c := range node.Status.Conditions {
+					if c.Type == corev1.NodeDiskPressure && c.Status == corev1.ConditionTrue {
+						newNodeDiskPressure = true
+					}
+				}
+			}
+			now := time.Now()
+			if !oldNodeDiskPressure && newNodeDiskPressure {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeDiskPressure).
+							HumanMessage("kubelet began reporting disk pressure")).
+						Display().
+						Build(now, now))
+			}
+			if oldNodeDiskPressure && !newNodeDiskPressure {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeNoDiskPressure).
+							HumanMessage("kubelet is not reporting disk pressure")).
+						Display().
+						Build(now, now))
+			}
+			return intervals
+		},
 	}
 
 	nodeInformer := informercorev1.NewNodeInformer(client, time.Hour, nil)
@@ -312,4 +355,47 @@ func doesNodeHaveUnreachableTaints(node *corev1.Node) bool {
 		}
 	}
 	return false
+}
+
+func reportUnexpectedNodeDownFailures(intervals monitorapi.Intervals, targetedReason monitorapi.IntervalReason) []string {
+	// Get all the deleted machine phases
+	machineDeletePhases := intervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Message.Reason != monitorapi.MachinePhase {
+			return false
+		}
+		if eventInterval.Message.Annotations[monitorapi.AnnotationPhase] == "Deleting" {
+			return true
+		}
+		return false
+	})
+
+	// We need to build a map of node to machine name
+	nodeNameToMachineName := map[string]string{}
+	// Given the deleted machine, store the deleted intervals.
+	machineNameToDeletePhases := map[string][]monitorapi.Interval{}
+	for _, machineDeletePhase := range machineDeletePhases {
+		machineName := machineDeletePhase.Locator.Keys[monitorapi.LocatorMachineKey]
+		nodeName := machineDeletePhase.Message.Annotations[monitorapi.AnnotationNode]
+		machineNameToDeletePhases[machineName] = append(machineNameToDeletePhases[machineName], machineDeletePhase)
+		nodeNameToMachineName[nodeName] = machineName
+	}
+	unexpectedNodeUnreadies := intervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == targetedReason
+	})
+
+	// In cases of machine deletion, we are incorrectly detecting unexpected node not ready and unreachable.
+	// We are filtering out deleted machine intervals
+	var failures []string
+	for _, unexpectedNodeUnready := range unexpectedNodeUnreadies {
+		nodeName := unexpectedNodeUnready.Locator.Keys[monitorapi.LocatorNodeKey]
+		machineNameForNode := nodeNameToMachineName[nodeName]
+
+		machineDeletingIntervals := machineNameToDeletePhases[machineNameForNode]
+
+		if !intervalStartDuring(unexpectedNodeUnready, machineDeletingIntervals) {
+			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedNodeUnready.Locator.OldLocator(), unexpectedNodeUnready.Message.OldMessage(), unexpectedNodeUnready.From, unexpectedNodeUnready.To))
+		}
+	}
+
+	return failures
 }

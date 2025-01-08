@@ -8,7 +8,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// KubeletConfigSpecApplyConfiguration represents an declarative configuration of the KubeletConfigSpec type for use
+// KubeletConfigSpecApplyConfiguration represents a declarative configuration of the KubeletConfigSpec type for use
 // with apply.
 type KubeletConfigSpecApplyConfiguration struct {
 	AutoSizingReserved        *bool                               `json:"autoSizingReserved,omitempty"`
@@ -18,7 +18,7 @@ type KubeletConfigSpecApplyConfiguration struct {
 	TLSSecurityProfile        *configv1.TLSSecurityProfile        `json:"tlsSecurityProfile,omitempty"`
 }
 
-// KubeletConfigSpecApplyConfiguration constructs an declarative configuration of the KubeletConfigSpec type for use with
+// KubeletConfigSpecApplyConfiguration constructs a declarative configuration of the KubeletConfigSpec type for use with
 // apply.
 func KubeletConfigSpec() *KubeletConfigSpecApplyConfiguration {
 	return &KubeletConfigSpecApplyConfiguration{}

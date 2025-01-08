@@ -2,14 +2,14 @@
 
 package v1alpha1
 
-// BackupJobReferenceApplyConfiguration represents an declarative configuration of the BackupJobReference type for use
+// BackupJobReferenceApplyConfiguration represents a declarative configuration of the BackupJobReference type for use
 // with apply.
 type BackupJobReferenceApplyConfiguration struct {
 	Namespace *string `json:"namespace,omitempty"`
 	Name      *string `json:"name,omitempty"`
 }
 
-// BackupJobReferenceApplyConfiguration constructs an declarative configuration of the BackupJobReference type for use with
+// BackupJobReferenceApplyConfiguration constructs a declarative configuration of the BackupJobReference type for use with
 // apply.
 func BackupJobReference() *BackupJobReferenceApplyConfiguration {
 	return &BackupJobReferenceApplyConfiguration{}

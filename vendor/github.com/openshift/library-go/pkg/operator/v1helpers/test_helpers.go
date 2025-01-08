@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	applyoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,8 +15,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/ptr"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	v1 "github.com/openshift/api/operator/v1"
 )
 
 // NewFakeSharedIndexInformer returns a fake shared index informer, suitable to use in static pod controller unit tests.
@@ -155,6 +158,32 @@ func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorSpec(ctx context.Co
 	return c.fakeStaticPodOperatorSpec, c.resourceVersion, nil
 }
 
+func (c *fakeStaticPodOperatorClient) ApplyOperatorSpec(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorSpecApplyConfiguration) (err error) {
+	return nil
+}
+
+func (c *fakeStaticPodOperatorClient) ApplyOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) (err error) {
+	if c.triggerStatusUpdateError != nil {
+		operatorStatus := &operatorv1.StaticPodOperatorStatus{OperatorStatus: *convertOperatorStatusApplyConfiguration(applyConfiguration)}
+		if err := c.triggerStatusUpdateError("", operatorStatus); err != nil {
+			return err
+		}
+	}
+	c.fakeStaticPodOperatorStatus = &operatorv1.StaticPodOperatorStatus{
+		OperatorStatus: *convertOperatorStatusApplyConfiguration(applyConfiguration),
+	}
+	return nil
+}
+
+func (c *fakeStaticPodOperatorClient) ApplyStaticPodOperatorSpec(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.StaticPodOperatorSpecApplyConfiguration) (err error) {
+	return nil
+}
+
+func (c *fakeStaticPodOperatorClient) ApplyStaticPodOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.StaticPodOperatorStatusApplyConfiguration) (err error) {
+	c.fakeStaticPodOperatorStatus = convertStaticPodOperatorStatusApplyConfiguration(applyConfiguration)
+	return nil
+}
+
 func (c *fakeStaticPodOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
 	return &c.fakeStaticPodOperatorSpec.OperatorSpec, &c.fakeStaticPodOperatorStatus.OperatorStatus, c.resourceVersion, nil
 }
@@ -283,6 +312,15 @@ func (c *fakeOperatorClient) UpdateOperatorSpec(ctx context.Context, resourceVer
 	return c.fakeOperatorSpec, c.resourceVersion, nil
 }
 
+func (c *fakeOperatorClient) ApplyOperatorSpec(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorSpecApplyConfiguration) (err error) {
+	return nil
+}
+
+func (c *fakeOperatorClient) ApplyOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) (err error) {
+	c.fakeOperatorStatus = convertOperatorStatusApplyConfiguration(applyConfiguration)
+	return nil
+}
+
 func (c *fakeOperatorClient) EnsureFinalizer(ctx context.Context, finalizer string) error {
 	if c.fakeObjectMeta == nil {
 		c.fakeObjectMeta = &metav1.ObjectMeta{}
@@ -310,4 +348,66 @@ func (c *fakeOperatorClient) RemoveFinalizer(ctx context.Context, finalizer stri
 
 func (c *fakeOperatorClient) SetObjectMeta(meta *metav1.ObjectMeta) {
 	c.fakeObjectMeta = meta
+}
+
+func convertOperatorStatusApplyConfiguration(applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) *v1.OperatorStatus {
+	status := &v1.OperatorStatus{
+		ObservedGeneration:      ptr.Deref(applyConfiguration.ObservedGeneration, 0),
+		Version:                 ptr.Deref(applyConfiguration.Version, ""),
+		ReadyReplicas:           ptr.Deref(applyConfiguration.ReadyReplicas, 0),
+		LatestAvailableRevision: ptr.Deref(applyConfiguration.LatestAvailableRevision, 0),
+	}
+
+	for _, condition := range applyConfiguration.Conditions {
+		newCondition := operatorv1.OperatorCondition{
+			Type:    ptr.Deref(condition.Type, ""),
+			Status:  ptr.Deref(condition.Status, ""),
+			Reason:  ptr.Deref(condition.Reason, ""),
+			Message: ptr.Deref(condition.Message, ""),
+		}
+		status.Conditions = append(status.Conditions, newCondition)
+	}
+
+	for _, generation := range applyConfiguration.Generations {
+		newGeneration := operatorv1.GenerationStatus{
+			Group:          ptr.Deref(generation.Group, ""),
+			Resource:       ptr.Deref(generation.Resource, ""),
+			Namespace:      ptr.Deref(generation.Namespace, ""),
+			Name:           ptr.Deref(generation.Name, ""),
+			LastGeneration: ptr.Deref(generation.LastGeneration, 0),
+			Hash:           ptr.Deref(generation.Hash, ""),
+		}
+		status.Generations = append(status.Generations, newGeneration)
+	}
+
+	return status
+}
+
+func convertStaticPodOperatorStatusApplyConfiguration(applyConfiguration *applyoperatorv1.StaticPodOperatorStatusApplyConfiguration) *v1.StaticPodOperatorStatus {
+	status := &v1.StaticPodOperatorStatus{
+		OperatorStatus: *convertOperatorStatusApplyConfiguration(&applyConfiguration.OperatorStatusApplyConfiguration),
+	}
+
+	for _, nodeStatus := range applyConfiguration.NodeStatuses {
+		newNodeStatus := operatorv1.NodeStatus{
+			NodeName:                 ptr.Deref(nodeStatus.NodeName, ""),
+			CurrentRevision:          ptr.Deref(nodeStatus.CurrentRevision, 0),
+			TargetRevision:           ptr.Deref(nodeStatus.TargetRevision, 0),
+			LastFailedRevision:       ptr.Deref(nodeStatus.LastFailedRevision, 0),
+			LastFailedTime:           nil,
+			LastFailedReason:         ptr.Deref(nodeStatus.LastFailedReason, ""),
+			LastFailedCount:          ptr.Deref(nodeStatus.LastFailedCount, 0),
+			LastFallbackCount:        ptr.Deref(nodeStatus.LastFallbackCount, 0),
+			LastFailedRevisionErrors: nil,
+		}
+		if nodeStatus.LastFailedTime != nil {
+			newNodeStatus.LastFailedTime = nodeStatus.LastFailedTime
+		}
+		for _, curr := range nodeStatus.LastFailedRevisionErrors {
+			newNodeStatus.LastFailedRevisionErrors = append(newNodeStatus.LastFailedRevisionErrors, curr)
+		}
+		status.NodeStatuses = append(status.NodeStatuses, newNodeStatus)
+	}
+
+	return status
 }

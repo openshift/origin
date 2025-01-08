@@ -2,14 +2,14 @@
 
 package v1
 
-// ImageRegistryBundleApplyConfiguration represents an declarative configuration of the ImageRegistryBundle type for use
+// ImageRegistryBundleApplyConfiguration represents a declarative configuration of the ImageRegistryBundle type for use
 // with apply.
 type ImageRegistryBundleApplyConfiguration struct {
 	File *string `json:"file,omitempty"`
 	Data []byte  `json:"data,omitempty"`
 }
 
-// ImageRegistryBundleApplyConfiguration constructs an declarative configuration of the ImageRegistryBundle type for use with
+// ImageRegistryBundleApplyConfiguration constructs a declarative configuration of the ImageRegistryBundle type for use with
 // apply.
 func ImageRegistryBundle() *ImageRegistryBundleApplyConfiguration {
 	return &ImageRegistryBundleApplyConfiguration{}

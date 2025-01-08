@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigStorageAzureApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageAzure type for use
+// ImageRegistryConfigStorageAzureApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageAzure type for use
 // with apply.
 type ImageRegistryConfigStorageAzureApplyConfiguration struct {
 	AccountName   *string                               `json:"accountName,omitempty"`
@@ -11,7 +11,7 @@ type ImageRegistryConfigStorageAzureApplyConfiguration struct {
 	NetworkAccess *AzureNetworkAccessApplyConfiguration `json:"networkAccess,omitempty"`
 }
 
-// ImageRegistryConfigStorageAzureApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageAzure type for use with
+// ImageRegistryConfigStorageAzureApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageAzure type for use with
 // apply.
 func ImageRegistryConfigStorageAzure() *ImageRegistryConfigStorageAzureApplyConfiguration {
 	return &ImageRegistryConfigStorageAzureApplyConfiguration{}

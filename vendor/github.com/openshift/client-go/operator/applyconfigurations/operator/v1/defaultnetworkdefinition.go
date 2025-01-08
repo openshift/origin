@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// DefaultNetworkDefinitionApplyConfiguration represents an declarative configuration of the DefaultNetworkDefinition type for use
+// DefaultNetworkDefinitionApplyConfiguration represents a declarative configuration of the DefaultNetworkDefinition type for use
 // with apply.
 type DefaultNetworkDefinitionApplyConfiguration struct {
 	Type                *v1.NetworkType                        `json:"type,omitempty"`
@@ -14,7 +14,7 @@ type DefaultNetworkDefinitionApplyConfiguration struct {
 	OVNKubernetesConfig *OVNKubernetesConfigApplyConfiguration `json:"ovnKubernetesConfig,omitempty"`
 }
 
-// DefaultNetworkDefinitionApplyConfiguration constructs an declarative configuration of the DefaultNetworkDefinition type for use with
+// DefaultNetworkDefinitionApplyConfiguration constructs a declarative configuration of the DefaultNetworkDefinition type for use with
 // apply.
 func DefaultNetworkDefinition() *DefaultNetworkDefinitionApplyConfiguration {
 	return &DefaultNetworkDefinitionApplyConfiguration{}

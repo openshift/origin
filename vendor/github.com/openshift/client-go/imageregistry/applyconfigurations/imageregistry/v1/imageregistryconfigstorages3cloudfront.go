@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ImageRegistryConfigStorageS3CloudFrontApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use
+// ImageRegistryConfigStorageS3CloudFrontApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use
 // with apply.
 type ImageRegistryConfigStorageS3CloudFrontApplyConfiguration struct {
 	BaseURL    *string               `json:"baseURL,omitempty"`
@@ -16,7 +16,7 @@ type ImageRegistryConfigStorageS3CloudFrontApplyConfiguration struct {
 	Duration   *metav1.Duration      `json:"duration,omitempty"`
 }
 
-// ImageRegistryConfigStorageS3CloudFrontApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use with
+// ImageRegistryConfigStorageS3CloudFrontApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use with
 // apply.
 func ImageRegistryConfigStorageS3CloudFront() *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration {
 	return &ImageRegistryConfigStorageS3CloudFrontApplyConfiguration{}

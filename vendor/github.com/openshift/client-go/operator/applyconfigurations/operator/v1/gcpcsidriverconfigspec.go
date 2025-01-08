@@ -2,13 +2,13 @@
 
 package v1
 
-// GCPCSIDriverConfigSpecApplyConfiguration represents an declarative configuration of the GCPCSIDriverConfigSpec type for use
+// GCPCSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the GCPCSIDriverConfigSpec type for use
 // with apply.
 type GCPCSIDriverConfigSpecApplyConfiguration struct {
 	KMSKey *GCPKMSKeyReferenceApplyConfiguration `json:"kmsKey,omitempty"`
 }
 
-// GCPCSIDriverConfigSpecApplyConfiguration constructs an declarative configuration of the GCPCSIDriverConfigSpec type for use with
+// GCPCSIDriverConfigSpecApplyConfiguration constructs a declarative configuration of the GCPCSIDriverConfigSpec type for use with
 // apply.
 func GCPCSIDriverConfigSpec() *GCPCSIDriverConfigSpecApplyConfiguration {
 	return &GCPCSIDriverConfigSpecApplyConfiguration{}

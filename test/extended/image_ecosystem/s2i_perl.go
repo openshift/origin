@@ -3,7 +3,7 @@ package image_ecosystem
 import (
 	"context"
 	"fmt"
-	"strings"
+	"os"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -11,7 +11,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -39,15 +38,12 @@ func archHasModPerl(oc *exutil.CLI) bool {
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image", func() {
 	defer g.GinkgoRecover()
 	var (
-		appSource     = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy")
-		perlTemplate  = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy", "perl.json")
-		oc            = exutil.NewCLI("s2i-perl")
-		modifyCommand = []string{"sed", "-ie", `s/initial value/modified value/`, "lib/My/Test.pm"}
-		dcName        = "perl"
-		rcNameOne     = fmt.Sprintf("%s-1", dcName)
-		rcNameTwo     = fmt.Sprintf("%s-2", dcName)
-		dcLabelOne    = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
-		dcLabelTwo    = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
+		appSource      = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy")
+		perlTemplate   = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy", "perl.json")
+		oc             = exutil.NewCLI("s2i-perl")
+		modifyCommand  = []string{"sed", "-ie", `s/initial value/modified value/`, "lib/My/Test.pm"}
+		deploymentName = "perl"
+		buildName      = fmt.Sprintf("%s-1", deploymentName)
 	)
 
 	g.Context("", func() {
@@ -63,15 +59,20 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 		})
 
 		g.Describe("hot deploy test", func() {
-			g.It("should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			g.It("should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]", func() {
 				// This image-ecosystem test fails on ARM because it depends on behaviour specific to mod_perl,
 				// which is only included in the RHSCL (RHEL 7) perl images which are not available on ARM.
 				if !archHasModPerl(oc) {
 					g.Skip("mod_perl based builder image is not available on arm64")
 				}
+				// Make sure the index.pl is executable in the fixture assets as it is in the sources.
+				// (FixturePath resets the perms on the files)
+				err := os.Chmod(exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy", "index.pl"), os.FileMode(0o755))
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q", perlTemplate))
-				err := oc.Run("new-app").Args("-f", perlTemplate, "-e", "HTTPD_START_SERVERS=1", "-e", "HTTPD_MAX_SPARE_SERVERS=1", "-e", "HTTPD_MAX_REQUEST_WORKERS=1").Execute()
+				err = oc.Run("new-app").Args("-f", perlTemplate, "-e", "HTTPD_START_SERVERS=1", "-e", "HTTPD_MAX_SPARE_SERVERS=1", "-e", "HTTPD_MAX_REQUEST_WORKERS=1").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				br, err := exutil.StartBuildAndWait(oc, "perl", fmt.Sprintf("--from-dir=%s", appSource))
@@ -79,70 +80,38 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 				br.AssertSuccess()
 
 				g.By("waiting for build to finish")
-				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), rcNameOne, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				if err != nil {
-					exutil.DumpBuildLogs(dcName, oc)
+					exutil.DumpBuildLogs(deploymentName, oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 1, true, oc)
+				err = exutil.WaitForDeploymentReady(oc, deploymentName, oc.Namespace(), 2)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
-				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				oldEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), dcName, metav1.GetOptions{})
+				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), deploymentName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				checkPage := func(expected string, dcLabel labels.Selector) {
 					_, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
-					result, err := CheckPageContains(oc, dcName, "", expected)
+					result, err := CheckPageContains(oc, deploymentName, "", expected)
 					o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 					o.ExpectWithOffset(1, result).To(o.BeTrue())
 				}
 
-				checkPage("initial value", dcLabelOne)
-
-				g.By("modifying the source code with disabled hot deploy")
-				err = RunInPodContainer(oc, dcLabelOne, modifyCommand)
+				hash, err := exutil.GetDeploymentRSPodTemplateHash(oc, deploymentName, oc.Namespace(), 2)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				checkPage("initial value", dcLabelOne)
+				ReplicaSetRev2Label := exutil.ParseLabelsOrDie(fmt.Sprintf("pod-template-hash=%s", hash))
+				checkPage("initial value", ReplicaSetRev2Label)
 
-				g.By("turning on hot-deploy")
-				err = oc.Run("set", "env").Args("dc", dcName, "PERL_APACHE2_RELOAD=true").Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 2, true, oc)
+				g.By("modifying the source code")
+				err = RunInPodContainer(oc, ReplicaSetRev2Label, modifyCommand)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("waiting for a new endpoint")
-				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// Ran into an issue where we'd try to hit the endpoint before it was updated, resulting in
-				// request timeouts against the previous pod's ip.  So make sure the endpoint is pointing to the
-				// new pod before hitting it.
-				err = wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-					newEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), dcName, metav1.GetOptions{})
-					if err != nil {
-						return false, err
-					}
-					if !strings.Contains(newEndpoint.Subsets[0].Addresses[0].TargetRef.Name, rcNameTwo) {
-						e2e.Logf("waiting on endpoint address ref %s to contain %s", newEndpoint.Subsets[0].Addresses[0].TargetRef.Name, rcNameTwo)
-						return false, nil
-					}
-					e2e.Logf("old endpoint was %#v, new endpoint is %#v", oldEndpoint, newEndpoint)
-					return true, nil
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("modifying the source code with enabled hot deploy")
-				checkPage("initial value", dcLabelTwo)
-				err = RunInPodContainer(oc, dcLabelTwo, modifyCommand)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				checkPage("modified value", dcLabelTwo)
+				checkPage("modified value", ReplicaSetRev2Label)
 			})
 		})
-
 	})
 })

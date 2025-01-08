@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// SFlowConfigApplyConfiguration represents an declarative configuration of the SFlowConfig type for use
+// SFlowConfigApplyConfiguration represents a declarative configuration of the SFlowConfig type for use
 // with apply.
 type SFlowConfigApplyConfiguration struct {
 	Collectors []v1.IPPort `json:"collectors,omitempty"`
 }
 
-// SFlowConfigApplyConfiguration constructs an declarative configuration of the SFlowConfig type for use with
+// SFlowConfigApplyConfiguration constructs a declarative configuration of the SFlowConfig type for use with
 // apply.
 func SFlowConfig() *SFlowConfigApplyConfiguration {
 	return &SFlowConfigApplyConfiguration{}

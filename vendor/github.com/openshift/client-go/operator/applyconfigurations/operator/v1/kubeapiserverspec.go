@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// KubeAPIServerSpecApplyConfiguration represents an declarative configuration of the KubeAPIServerSpec type for use
+// KubeAPIServerSpecApplyConfiguration represents a declarative configuration of the KubeAPIServerSpec type for use
 // with apply.
 type KubeAPIServerSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// KubeAPIServerSpecApplyConfiguration constructs an declarative configuration of the KubeAPIServerSpec type for use with
+// KubeAPIServerSpecApplyConfiguration constructs a declarative configuration of the KubeAPIServerSpec type for use with
 // apply.
 func KubeAPIServerSpec() *KubeAPIServerSpecApplyConfiguration {
 	return &KubeAPIServerSpecApplyConfiguration{}

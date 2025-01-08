@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// EndpointPublishingStrategyApplyConfiguration represents an declarative configuration of the EndpointPublishingStrategy type for use
+// EndpointPublishingStrategyApplyConfiguration represents a declarative configuration of the EndpointPublishingStrategy type for use
 // with apply.
 type EndpointPublishingStrategyApplyConfiguration struct {
 	Type         *v1.EndpointPublishingStrategyType      `json:"type,omitempty"`
@@ -16,7 +16,7 @@ type EndpointPublishingStrategyApplyConfiguration struct {
 	NodePort     *NodePortStrategyApplyConfiguration     `json:"nodePort,omitempty"`
 }
 
-// EndpointPublishingStrategyApplyConfiguration constructs an declarative configuration of the EndpointPublishingStrategy type for use with
+// EndpointPublishingStrategyApplyConfiguration constructs a declarative configuration of the EndpointPublishingStrategy type for use with
 // apply.
 func EndpointPublishingStrategy() *EndpointPublishingStrategyApplyConfiguration {
 	return &EndpointPublishingStrategyApplyConfiguration{}

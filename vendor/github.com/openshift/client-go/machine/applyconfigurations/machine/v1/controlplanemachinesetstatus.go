@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ControlPlaneMachineSetStatusApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSetStatus type for use
+// ControlPlaneMachineSetStatusApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetStatus type for use
 // with apply.
 type ControlPlaneMachineSetStatusApplyConfiguration struct {
 	Conditions          []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
@@ -17,7 +17,7 @@ type ControlPlaneMachineSetStatusApplyConfiguration struct {
 	UnavailableReplicas *int32                           `json:"unavailableReplicas,omitempty"`
 }
 
-// ControlPlaneMachineSetStatusApplyConfiguration constructs an declarative configuration of the ControlPlaneMachineSetStatus type for use with
+// ControlPlaneMachineSetStatusApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetStatus type for use with
 // apply.
 func ControlPlaneMachineSetStatus() *ControlPlaneMachineSetStatusApplyConfiguration {
 	return &ControlPlaneMachineSetStatusApplyConfiguration{}

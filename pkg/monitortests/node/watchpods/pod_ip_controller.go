@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	informercorev1 "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
 	listerscorev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -27,6 +28,7 @@ type Recorder interface {
 type SimultaneousPodIPController struct {
 	recorder Recorder
 
+	kubeClient                 kubernetes.Interface
 	podIPsToCurrentPodLocators map[string]sets.String
 	podLister                  listerscorev1.PodLister
 
@@ -147,7 +149,7 @@ func (c *SimultaneousPodIPController) sync(ctx context.Context, key string) erro
 		return nil
 	}
 
-	otherPods, err := c.podLister.List(labels.Everything())
+	allPods, err := c.podLister.List(labels.Everything())
 	if err != nil {
 		return err
 	}
@@ -159,7 +161,7 @@ func (c *SimultaneousPodIPController) sync(ctx context.Context, key string) erro
 
 		// iterate through every ip of every pod.  I wonder how badly this will scale.
 		// with the filtering for pod updates to only include those that changed podIPs, it will likely be fine.
-		for _, otherPod := range otherPods {
+		for _, otherPod := range allPods {
 			if otherPod.Spec.HostNetwork {
 				continue
 			}

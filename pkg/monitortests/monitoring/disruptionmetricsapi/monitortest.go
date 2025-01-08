@@ -7,8 +7,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
-	appsv1 "k8s.io/api/apps/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,9 +19,8 @@ import (
 )
 
 const (
-	monitoringNamespace            = "openshift-monitoring"
-	prometheusAdapterDeployentName = "prometheus-adapter"
-	metricsServerDeploymentName    = "metrics-server"
+	monitoringNamespace         = "openshift-monitoring"
+	metricsServerDeploymentName = "metrics-server"
 )
 
 type availability struct {
@@ -63,20 +60,13 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return w.notSupportedReason
 	}
 
-	var deployment *appsv1.Deployment
-	deployment, err = kubeClient.AppsV1().Deployments(monitoringNamespace).Get(ctx, metricsServerDeploymentName, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		// TODO: remove this in 4.17
-		deployment, err = kubeClient.AppsV1().Deployments(monitoringNamespace).Get(ctx, prometheusAdapterDeployentName, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
+	deploymentScale, err := kubeClient.AppsV1().Deployments(monitoringNamespace).GetScale(ctx, metricsServerDeploymentName, metav1.GetOptions{})
+	if err != nil {
 		return err
 	}
 	// Skip for single replica Deployments.
-	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 1 {
-		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("%s only has a single replica", deployment.Name)}
+	if deploymentScale.Spec.Replicas == 1 {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("%s only has a single replica", deploymentScale.Name)}
 		return w.notSupportedReason
 	}
 

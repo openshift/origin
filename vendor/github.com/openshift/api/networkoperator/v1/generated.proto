@@ -40,7 +40,7 @@ option go_package = "github.com/openshift/api/networkoperator/v1";
 message EgressRouter {
   // metadata is the standard object's metadata.
   // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Specification of the desired egress router.
   // +kubebuilder:validation:Required
@@ -75,7 +75,7 @@ message EgressRouterInterface {
 message EgressRouterList {
   // metadata is the standard list's metadata.
   // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   repeated EgressRouter items = 2;
 }
@@ -133,7 +133,7 @@ message EgressRouterStatusCondition {
   // +kubebuilder:validation:Required
   // +required
   // +nullable
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
 
   // Reason is the CamelCase reason for the condition's current status.
   optional string reason = 4;

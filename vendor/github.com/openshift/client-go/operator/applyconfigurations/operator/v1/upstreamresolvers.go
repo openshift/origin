@@ -6,7 +6,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// UpstreamResolversApplyConfiguration represents an declarative configuration of the UpstreamResolvers type for use
+// UpstreamResolversApplyConfiguration represents a declarative configuration of the UpstreamResolvers type for use
 // with apply.
 type UpstreamResolversApplyConfiguration struct {
 	Upstreams        []UpstreamApplyConfiguration          `json:"upstreams,omitempty"`
@@ -15,7 +15,7 @@ type UpstreamResolversApplyConfiguration struct {
 	ProtocolStrategy *operatorv1.ProtocolStrategy          `json:"protocolStrategy,omitempty"`
 }
 
-// UpstreamResolversApplyConfiguration constructs an declarative configuration of the UpstreamResolvers type for use with
+// UpstreamResolversApplyConfiguration constructs a declarative configuration of the UpstreamResolvers type for use with
 // apply.
 func UpstreamResolvers() *UpstreamResolversApplyConfiguration {
 	return &UpstreamResolversApplyConfiguration{}

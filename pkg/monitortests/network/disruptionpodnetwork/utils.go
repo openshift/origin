@@ -3,12 +3,15 @@ package disruptionpodnetwork
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
+
+	"github.com/sirupsen/logrus"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -135,4 +138,22 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
 
 	return openshiftTestsImagePullSpec, nil
+}
+
+func GetOpenshiftTestsImagePullSpecWithRetries(ctx context.Context, adminRESTConfig *rest.Config, suggestedPayloadImage string, oc *exutil.CLI, retries int) (string, error) {
+	var errs []error
+
+	for i := 0; i < retries; i++ {
+		result, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, suggestedPayloadImage, oc)
+		if err == nil {
+			return result, nil
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(30 * time.Second):
+		}
+		errs = append(errs, err)
+	}
+	return "", errors.Join(errs...)
 }

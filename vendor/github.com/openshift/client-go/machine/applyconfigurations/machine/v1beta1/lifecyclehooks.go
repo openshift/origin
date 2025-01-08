@@ -2,14 +2,14 @@
 
 package v1beta1
 
-// LifecycleHooksApplyConfiguration represents an declarative configuration of the LifecycleHooks type for use
+// LifecycleHooksApplyConfiguration represents a declarative configuration of the LifecycleHooks type for use
 // with apply.
 type LifecycleHooksApplyConfiguration struct {
 	PreDrain     []LifecycleHookApplyConfiguration `json:"preDrain,omitempty"`
 	PreTerminate []LifecycleHookApplyConfiguration `json:"preTerminate,omitempty"`
 }
 
-// LifecycleHooksApplyConfiguration constructs an declarative configuration of the LifecycleHooks type for use with
+// LifecycleHooksApplyConfiguration constructs a declarative configuration of the LifecycleHooks type for use with
 // apply.
 func LifecycleHooks() *LifecycleHooksApplyConfiguration {
 	return &LifecycleHooksApplyConfiguration{}

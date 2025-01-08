@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// OperatorConditionApplyConfiguration represents an declarative configuration of the OperatorCondition type for use
+// OperatorConditionApplyConfiguration represents a declarative configuration of the OperatorCondition type for use
 // with apply.
 type OperatorConditionApplyConfiguration struct {
 	Type               *string             `json:"type,omitempty"`
@@ -17,7 +17,7 @@ type OperatorConditionApplyConfiguration struct {
 	Message            *string             `json:"message,omitempty"`
 }
 
-// OperatorConditionApplyConfiguration constructs an declarative configuration of the OperatorCondition type for use with
+// OperatorConditionApplyConfiguration constructs a declarative configuration of the OperatorCondition type for use with
 // apply.
 func OperatorCondition() *OperatorConditionApplyConfiguration {
 	return &OperatorConditionApplyConfiguration{}

@@ -4,9 +4,6 @@ package v1
 
 import (
 	"context"
-	json "encoding/json"
-	"fmt"
-	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
 	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
@@ -14,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // KubeControllerManagersGetter has a method to return a KubeControllerManagerInterface.
@@ -27,6 +24,7 @@ type KubeControllerManagersGetter interface {
 type KubeControllerManagerInterface interface {
 	Create(ctx context.Context, kubeControllerManager *v1.KubeControllerManager, opts metav1.CreateOptions) (*v1.KubeControllerManager, error)
 	Update(ctx context.Context, kubeControllerManager *v1.KubeControllerManager, opts metav1.UpdateOptions) (*v1.KubeControllerManager, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 	UpdateStatus(ctx context.Context, kubeControllerManager *v1.KubeControllerManager, opts metav1.UpdateOptions) (*v1.KubeControllerManager, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
@@ -35,193 +33,25 @@ type KubeControllerManagerInterface interface {
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.KubeControllerManager, err error)
 	Apply(ctx context.Context, kubeControllerManager *operatorv1.KubeControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeControllerManager, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
 	ApplyStatus(ctx context.Context, kubeControllerManager *operatorv1.KubeControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeControllerManager, err error)
 	KubeControllerManagerExpansion
 }
 
 // kubeControllerManagers implements KubeControllerManagerInterface
 type kubeControllerManagers struct {
-	client rest.Interface
+	*gentype.ClientWithListAndApply[*v1.KubeControllerManager, *v1.KubeControllerManagerList, *operatorv1.KubeControllerManagerApplyConfiguration]
 }
 
 // newKubeControllerManagers returns a KubeControllerManagers
 func newKubeControllerManagers(c *OperatorV1Client) *kubeControllerManagers {
 	return &kubeControllerManagers{
-		client: c.RESTClient(),
+		gentype.NewClientWithListAndApply[*v1.KubeControllerManager, *v1.KubeControllerManagerList, *operatorv1.KubeControllerManagerApplyConfiguration](
+			"kubecontrollermanagers",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			"",
+			func() *v1.KubeControllerManager { return &v1.KubeControllerManager{} },
+			func() *v1.KubeControllerManagerList { return &v1.KubeControllerManagerList{} }),
 	}
-}
-
-// Get takes name of the kubeControllerManager, and returns the corresponding kubeControllerManager object, and an error if there is any.
-func (c *kubeControllerManagers) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.KubeControllerManager, err error) {
-	result = &v1.KubeControllerManager{}
-	err = c.client.Get().
-		Resource("kubecontrollermanagers").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of KubeControllerManagers that match those selectors.
-func (c *kubeControllerManagers) List(ctx context.Context, opts metav1.ListOptions) (result *v1.KubeControllerManagerList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1.KubeControllerManagerList{}
-	err = c.client.Get().
-		Resource("kubecontrollermanagers").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested kubeControllerManagers.
-func (c *kubeControllerManagers) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Resource("kubecontrollermanagers").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a kubeControllerManager and creates it.  Returns the server's representation of the kubeControllerManager, and an error, if there is any.
-func (c *kubeControllerManagers) Create(ctx context.Context, kubeControllerManager *v1.KubeControllerManager, opts metav1.CreateOptions) (result *v1.KubeControllerManager, err error) {
-	result = &v1.KubeControllerManager{}
-	err = c.client.Post().
-		Resource("kubecontrollermanagers").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(kubeControllerManager).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a kubeControllerManager and updates it. Returns the server's representation of the kubeControllerManager, and an error, if there is any.
-func (c *kubeControllerManagers) Update(ctx context.Context, kubeControllerManager *v1.KubeControllerManager, opts metav1.UpdateOptions) (result *v1.KubeControllerManager, err error) {
-	result = &v1.KubeControllerManager{}
-	err = c.client.Put().
-		Resource("kubecontrollermanagers").
-		Name(kubeControllerManager.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(kubeControllerManager).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *kubeControllerManagers) UpdateStatus(ctx context.Context, kubeControllerManager *v1.KubeControllerManager, opts metav1.UpdateOptions) (result *v1.KubeControllerManager, err error) {
-	result = &v1.KubeControllerManager{}
-	err = c.client.Put().
-		Resource("kubecontrollermanagers").
-		Name(kubeControllerManager.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(kubeControllerManager).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the kubeControllerManager and deletes it. Returns an error if one occurs.
-func (c *kubeControllerManagers) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.client.Delete().
-		Resource("kubecontrollermanagers").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *kubeControllerManagers) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Resource("kubecontrollermanagers").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched kubeControllerManager.
-func (c *kubeControllerManagers) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.KubeControllerManager, err error) {
-	result = &v1.KubeControllerManager{}
-	err = c.client.Patch(pt).
-		Resource("kubecontrollermanagers").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Apply takes the given apply declarative configuration, applies it and returns the applied kubeControllerManager.
-func (c *kubeControllerManagers) Apply(ctx context.Context, kubeControllerManager *operatorv1.KubeControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeControllerManager, err error) {
-	if kubeControllerManager == nil {
-		return nil, fmt.Errorf("kubeControllerManager provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(kubeControllerManager)
-	if err != nil {
-		return nil, err
-	}
-	name := kubeControllerManager.Name
-	if name == nil {
-		return nil, fmt.Errorf("kubeControllerManager.Name must be provided to Apply")
-	}
-	result = &v1.KubeControllerManager{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Resource("kubecontrollermanagers").
-		Name(*name).
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// ApplyStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-func (c *kubeControllerManagers) ApplyStatus(ctx context.Context, kubeControllerManager *operatorv1.KubeControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeControllerManager, err error) {
-	if kubeControllerManager == nil {
-		return nil, fmt.Errorf("kubeControllerManager provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(kubeControllerManager)
-	if err != nil {
-		return nil, err
-	}
-
-	name := kubeControllerManager.Name
-	if name == nil {
-		return nil, fmt.Errorf("kubeControllerManager.Name must be provided to Apply")
-	}
-
-	result = &v1.KubeControllerManager{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Resource("kubecontrollermanagers").
-		Name(*name).
-		SubResource("status").
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

@@ -850,8 +850,8 @@ func (test subjectAccessReviewTest) run(t g.GinkgoTInterface) {
 			var testNS string
 			if test.localReview != nil {
 				switch {
-				case len(test.localReview.Namespace) > 0:
-					testNS = test.localReview.Namespace
+				case len(test.localReview.Action.Namespace) > 0:
+					testNS = test.localReview.Action.Namespace
 				case len(test.response.Namespace) > 0:
 					testNS = test.response.Namespace
 				case len(test.kubeNamespace) > 0:

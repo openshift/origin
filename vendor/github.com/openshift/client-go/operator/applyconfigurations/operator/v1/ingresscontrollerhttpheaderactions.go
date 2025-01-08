@@ -2,14 +2,14 @@
 
 package v1
 
-// IngressControllerHTTPHeaderActionsApplyConfiguration represents an declarative configuration of the IngressControllerHTTPHeaderActions type for use
+// IngressControllerHTTPHeaderActionsApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaderActions type for use
 // with apply.
 type IngressControllerHTTPHeaderActionsApplyConfiguration struct {
 	Response []IngressControllerHTTPHeaderApplyConfiguration `json:"response,omitempty"`
 	Request  []IngressControllerHTTPHeaderApplyConfiguration `json:"request,omitempty"`
 }
 
-// IngressControllerHTTPHeaderActionsApplyConfiguration constructs an declarative configuration of the IngressControllerHTTPHeaderActions type for use with
+// IngressControllerHTTPHeaderActionsApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPHeaderActions type for use with
 // apply.
 func IngressControllerHTTPHeaderActions() *IngressControllerHTTPHeaderActionsApplyConfiguration {
 	return &IngressControllerHTTPHeaderActionsApplyConfiguration{}

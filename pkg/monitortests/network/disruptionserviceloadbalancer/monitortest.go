@@ -63,6 +63,26 @@ type availability struct {
 	suppressJunit     bool
 }
 
+// isNotSupportedForPlatformExternal if platform type is external, this checks to see if the
+// platform name is one that does not support a service load balancer.
+func isNotSupportedForPlatformExternal(infra *configv1.Infrastructure) bool {
+	notSupported := false
+	if infra.Spec.PlatformSpec.External == nil {
+		return notSupported
+	}
+
+	platformName := infra.Spec.PlatformSpec.External.PlatformName
+
+	fmt.Fprintf(os.Stderr, "external platform name: %s\n", platformName)
+
+	switch strings.ToLower(infra.Spec.PlatformSpec.External.PlatformName) {
+	case "vsphere":
+		notSupported = true
+	}
+
+	return notSupported
+}
+
 func NewAvailabilityInvariant() monitortestframework.MonitorTest {
 	return &availability{}
 }
@@ -107,6 +127,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType ||
+		(infra.Status.PlatformStatus.Type == configv1.ExternalPlatformType && isNotSupportedForPlatformExternal(infra)) ||
 		infra.Status.PlatformStatus.Type == configv1.NonePlatformType {
 		w.notSupportedReason = &monitortestframework.NotSupportedError{
 			Reason: fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type),

@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ControllerCertificateApplyConfiguration represents an declarative configuration of the ControllerCertificate type for use
+// ControllerCertificateApplyConfiguration represents a declarative configuration of the ControllerCertificate type for use
 // with apply.
 type ControllerCertificateApplyConfiguration struct {
 	Subject    *string  `json:"subject,omitempty"`
@@ -16,7 +16,7 @@ type ControllerCertificateApplyConfiguration struct {
 	BundleFile *string  `json:"bundleFile,omitempty"`
 }
 
-// ControllerCertificateApplyConfiguration constructs an declarative configuration of the ControllerCertificate type for use with
+// ControllerCertificateApplyConfiguration constructs a declarative configuration of the ControllerCertificate type for use with
 // apply.
 func ControllerCertificate() *ControllerCertificateApplyConfiguration {
 	return &ControllerCertificateApplyConfiguration{}

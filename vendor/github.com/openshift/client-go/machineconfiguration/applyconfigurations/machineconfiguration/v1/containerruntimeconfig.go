@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ContainerRuntimeConfigApplyConfiguration represents an declarative configuration of the ContainerRuntimeConfig type for use
+// ContainerRuntimeConfigApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfig type for use
 // with apply.
 type ContainerRuntimeConfigApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ContainerRuntimeConfigApplyConfiguration struct {
 	Status                           *ContainerRuntimeConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ContainerRuntimeConfig constructs an declarative configuration of the ContainerRuntimeConfig type for use with
+// ContainerRuntimeConfig constructs a declarative configuration of the ContainerRuntimeConfig type for use with
 // apply.
 func ContainerRuntimeConfig(name string) *ContainerRuntimeConfigApplyConfiguration {
 	b := &ContainerRuntimeConfigApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithSpec(value *ContainerRunt
 func (b *ContainerRuntimeConfigApplyConfiguration) WithStatus(value *ContainerRuntimeConfigStatusApplyConfiguration) *ContainerRuntimeConfigApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ContainerRuntimeConfigApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

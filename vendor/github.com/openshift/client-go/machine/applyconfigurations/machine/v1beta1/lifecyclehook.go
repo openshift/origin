@@ -2,14 +2,14 @@
 
 package v1beta1
 
-// LifecycleHookApplyConfiguration represents an declarative configuration of the LifecycleHook type for use
+// LifecycleHookApplyConfiguration represents a declarative configuration of the LifecycleHook type for use
 // with apply.
 type LifecycleHookApplyConfiguration struct {
 	Name  *string `json:"name,omitempty"`
 	Owner *string `json:"owner,omitempty"`
 }
 
-// LifecycleHookApplyConfiguration constructs an declarative configuration of the LifecycleHook type for use with
+// LifecycleHookApplyConfiguration constructs a declarative configuration of the LifecycleHook type for use with
 // apply.
 func LifecycleHook() *LifecycleHookApplyConfiguration {
 	return &LifecycleHookApplyConfiguration{}
