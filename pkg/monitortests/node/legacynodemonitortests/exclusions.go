@@ -23,12 +23,6 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 	}
 	exceptions := []exceptionVariants{
 		{
-			// ingress operator seems to only fail on the single topology.
-			// platform did not matter.
-			containerName:     "container/ingress-operator", // https://issues.redhat.com/browse/OCPBUGS-39315
-			topologyToExclude: "single",
-		},
-		{
 			// snapshot controller operator seems to fail on SNO during kube api upgrades
 			// the error from the pod is the inability to connect to the kas to get volumesnapshots on startup.
 			containerName:     "container/snapshot-controller", // https://issues.redhat.com/browse/OCPBUGS-43113
