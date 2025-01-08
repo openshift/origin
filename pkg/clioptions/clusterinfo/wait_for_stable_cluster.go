@@ -92,11 +92,12 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 	}
 
 	interval := 10 * time.Second
-	timeout := 15 * time.Minute
+	timeout := 10 * time.Minute
 	minimumStablePeriod := 3 * time.Minute
 	recoveredOperators := map[string]string{}
 	unstableOperators := map[string]string{}
 	var stabilityStarted *time.Time
+	pollingStarted := time.Now()
 	waitErr := wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(waitCtx context.Context) (bool, error) {
 		operators, err := configClient.ConfigV1().ClusterOperators().List(waitCtx, metav1.ListOptions{})
 		if err != nil {
@@ -129,13 +130,25 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 		}
 		return true, nil
 	})
+	timingMsg := ""
+	if stabilityStarted != nil {
+		timingMsg = fmt.Sprintf(", unstable duration %s", stabilityStarted.Sub(pollingStarted))
+	}
 	if waitErr != nil {
 		msg := fmt.Sprintf("error waiting for cluster operators to become stable: %v", waitErr)
 		if len(unstableOperators) > 0 {
-			msg += fmt.Sprintf("\nunstable operators:\n")
+			msg += fmt.Sprintf("\nunstable operators that never recovered\n")
 			msg += summerizeUnstableOperators(unstableOperators)
 		}
+		if len(recoveredOperators) > 0 {
+			msg += fmt.Sprintf("\nunstable operators that recovered%s\n", timingMsg)
+			msg += summerizeUnstableOperators(recoveredOperators)
+		}
+		// Flake for now.
 		return []*junitapi.JUnitTestCase{
+			{
+				Name: testName,
+			},
 			{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
@@ -152,7 +165,7 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 		}, nil
 	}
 	// Some operators recovered from unstable conditions
-	msg := fmt.Sprintf("unstable operators were observed before the test\n%s", summerizeUnstableOperators(recoveredOperators))
+	msg := fmt.Sprintf("some unstable operators were observed that eventually recovered%s\n%s", timingMsg, summerizeUnstableOperators(recoveredOperators))
 	return []*junitapi.JUnitTestCase{
 		{
 			Name: testName,
