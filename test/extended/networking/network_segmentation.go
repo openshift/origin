@@ -966,12 +966,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				var actualConditions []metav1.Condition
 				g.Expect(json.Unmarshal([]byte(conditionsJSON), &actualConditions)).To(Succeed())
 				return normalizeConditions(actualConditions)
-			}, 5*time.Second, 1*time.Second).Should(ConsistOf(metav1.Condition{
-				Type:    "NetworkReady",
-				Status:  metav1.ConditionFalse,
-				Reason:  "NetworkAttachmentDefinitionSyncError",
-				Message: expectedMessage,
-			}))
+			}, 5*time.Second, 1*time.Second).Should(SatisfyAny(
+				ConsistOf(metav1.Condition{
+					Type:    "NetworkReady",
+					Status:  metav1.ConditionFalse,
+					Reason:  "NetworkAttachmentDefinitionSyncError",
+					Message: expectedMessage,
+				}),
+				ConsistOf(metav1.Condition{
+					Type:    "NetworkCreated",
+					Status:  metav1.ConditionFalse,
+					Reason:  "NetworkAttachmentDefinitionSyncError",
+					Message: expectedMessage,
+				}),
+			))
 		})
 
 		Context("UDN Pod", func() {
@@ -1214,8 +1222,15 @@ func waitForUserDefinedNetworkReady(namespace, name string, timeout time.Duratio
 }
 
 func waitForClusterUserDefinedNetworkReady(name string, timeout time.Duration) error {
-	_, err := e2ekubectl.RunKubectl("", "wait", "clusteruserdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
-	return err
+	_, errNetReady := e2ekubectl.RunKubectl("", "wait", "clusteruserdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
+	netReady := errNetReady == nil
+	_, errNetCreated := e2ekubectl.RunKubectl("", "wait", "clusteruserdefinednetwork", name, "--for", "condition=NetworkCreated=True", "--timeout", timeout.String())
+	netCreated := errNetCreated == nil
+
+	if netReady || netCreated {
+		return nil
+	}
+	return errors.Join(errNetReady, errNetCreated)
 }
 
 func newPrimaryUserDefinedNetworkManifest(oc *exutil.CLI, name string) string {
@@ -1371,7 +1386,7 @@ func assertClusterUDNStatusReportsActiveNamespaces(cudnName string, expectedActi
 
 	c := conditions[0]
 	// equality matcher cannot be used since condition message namespaces order is inconsistent
-	ExpectWithOffset(1, c.Type).Should(Equal("NetworkReady"))
+	ExpectWithOffset(1, c.Type).Should(SatisfyAny(Equal("NetworkReady"), Equal("NetworkCreated")))
 	ExpectWithOffset(1, c.Status).Should(Equal(metav1.ConditionTrue))
 	ExpectWithOffset(1, c.Reason).Should(Equal("NetworkAttachmentDefinitionReady"))
 
@@ -1390,14 +1405,20 @@ func assertClusterUDNStatusReportConsumers(conditionsJSON, udnName, udnNamespace
 	conditions = normalizeConditions(conditions)
 	expectedMsg := fmt.Sprintf("failed to delete NetworkAttachmentDefinition [%[1]s/%[2]s]: network in use by the following pods: [%[1]s/%[3]s]",
 		udnNamespace, udnName, expectedPodName)
-	ExpectWithOffset(1, conditions).To(Equal([]metav1.Condition{
-		{
+	ExpectWithOffset(1, conditions).To(SatisfyAny(
+		ConsistOf(metav1.Condition{
 			Type:    "NetworkReady",
-			Status:  "False",
+			Status:  metav1.ConditionFalse,
 			Reason:  "NetworkAttachmentDefinitionSyncError",
 			Message: expectedMsg,
-		},
-	}))
+		}),
+		ConsistOf(metav1.Condition{
+			Type:    "NetworkCreated",
+			Status:  metav1.ConditionFalse,
+			Reason:  "NetworkAttachmentDefinitionSyncError",
+			Message: expectedMsg,
+		}),
+	))
 }
 
 func newClusterUDNManifest(name string, targetNamespaces ...string) string {
