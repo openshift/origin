@@ -317,6 +317,22 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							}, 4*time.Second).Should(BeFalse())
 						}
 
+						By("asserting UDN pod can reach the kapi service in the default network")
+						// Use the service name to get test the DNS access
+						Consistently(func() bool {
+							_, err := e2ekubectl.RunKubectl(
+								udnPodConfig.namespace,
+								"exec",
+								udnPodConfig.name,
+								"--",
+								"curl",
+								"--connect-timeout",
+								"2",
+								"--insecure",
+								"https://kubernetes.default/healthz")
+							return err == nil
+						}, 5*time.Second).Should(BeTrue())
+
 						By("asserting UDN pod can't reach default services via default network interface")
 						// route setup is already done, get kapi IPs
 						kapi, err := cs.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
