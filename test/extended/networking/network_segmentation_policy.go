@@ -25,6 +25,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 
 	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-policy-e2e", admissionapi.LevelPrivileged)
 	f := oc.KubeFramework()
+	f.SkipNamespaceCreation = true
 	InOVNKubernetesContext(func() {
 		const (
 			nodeHostnameKey              = "kubernetes.io/hostname"
@@ -46,8 +47,12 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 
 		ginkgo.BeforeEach(func() {
 			cs = f.ClientSet
-
-			var err error
+			namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+				"e2e-framework":           f.BaseName,
+				RequiredUDNNamespaceLabel: "",
+			})
+			f.Namespace = namespace
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -57,7 +62,8 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 				ginkgo.By("Creating namespace " + namespace)
 				ns, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namespace,
+						Name:   namespace,
+						Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
 					},
 				}, metav1.CreateOptions{})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -138,7 +144,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 
 			},
 			ginkgo.Entry(
-				"in L2 dualstack primary UDN",
+				"in L2 primary UDN",
 				"layer2",
 				*podConfig(
 					"client-pod",
@@ -151,7 +157,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 				),
 			),
 			ginkgo.Entry(
-				"in L3 dualstack primary UDN",
+				"in L3 primary UDN",
 				"layer3",
 				*podConfig(
 					"client-pod",
