@@ -101,6 +101,9 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 	waitErr := wait.PollUntilContextTimeout(ctx, interval, timeout, true, func(waitCtx context.Context) (bool, error) {
 		operators, err := configClient.ConfigV1().ClusterOperators().List(waitCtx, metav1.ListOptions{})
 		if err != nil {
+			if waitCtx.Err() == context.DeadlineExceeded {
+				return false, fmt.Errorf("some operators were unstable for too long")
+			}
 			stabilityStarted = nil
 			return false, fmt.Errorf("failed to list clusteroperators: %v", err)
 		}
@@ -164,8 +167,8 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 			},
 		}, nil
 	}
-	// Some operators recovered from unstable conditions
-	msg := fmt.Sprintf("some unstable operators were observed that eventually recovered%s\n%s", timingMsg, summerizeUnstableOperators(recoveredOperators))
+	// Some operators recovered from unstable conditions before timeout
+	msg := fmt.Sprintf("some operators were unstable but recovered%s\n%s", timingMsg, summerizeUnstableOperators(recoveredOperators))
 	return []*junitapi.JUnitTestCase{
 		{
 			Name: testName,
