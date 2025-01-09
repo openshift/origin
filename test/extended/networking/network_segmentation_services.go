@@ -14,6 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	kapi "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -38,16 +39,16 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 	Context("on a user defined primary network", func() {
 		const (
 			nadName                      = "tenant-red"
-			servicePort                  = 80
+			servicePort                  = 88
 			serviceTargetPort            = 80
-			userDefinedNetworkIPv4Subnet = "10.127.0.0/16"
+			userDefinedNetworkIPv4Subnet = "10.128.0.0/16"
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
+			clientContainer              = "frr"
 		)
 
 		var (
-			cs                  clientset.Interface
-			nadClient           nadclient.K8sCniCncfIoV1Interface
-			defaultNetNamespace string
+			cs        clientset.Interface
+			nadClient nadclient.K8sCniCncfIoV1Interface
 		)
 
 		BeforeEach(func() {
@@ -58,21 +59,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		cleanupFn := func() {
-			By("Removing the namespace so all resources get deleted")
-			err := cs.CoreV1().Namespaces().Delete(context.TODO(), f.Namespace.Name, metav1.DeleteOptions{})
-			framework.ExpectNoError(err, "Failed to remove the namespace %s %v", f.Namespace.Name, err)
-			if defaultNetNamespace != "" {
-				err = cs.CoreV1().Namespaces().Delete(context.TODO(), defaultNetNamespace, metav1.DeleteOptions{})
-				framework.ExpectNoError(err, "Failed to remove the namespace %v", defaultNetNamespace, err)
-			}
-
-		}
-
-		AfterEach(func() {
-			cleanupFn()
-		})
-
 		DescribeTable(
 			// The test creates a client and nodeport service in a UDN backed by one pod and similarly
 			// a nodeport service and a client in the default network. We expect ClusterIPs to be
@@ -81,25 +67,21 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			// We verify the following scenarios:
 			// - UDN client --> UDN service, with backend pod and client running on the same node:
 			//   + clusterIP succeeds
-			//   + nodeIP:nodePort works, when we only target the local node (*)
+			//   + nodeIP:nodePort works, when we only target the local node
 			//
 			// - UDN client --> UDN service, with backend pod and client running on different nodes:
 			//   + clusterIP succeeds
-			//   + nodeIP:nodePort succeeds, when we only target the local node (*)
+			//   + nodeIP:nodePort succeeds, when we only target the local node
 			//
 			// - default-network client --> UDN service:
 			//   + clusterIP fails
-			//   + nodeIP:nodePort fails FOR NOW, when we only target the local node (*)
+			//   + nodeIP:nodePort fails FOR NOW, when we only target the local node
 			//
 			// -  UDN service --> default-network:
 			//   + clusterIP fails
-			//   + nodeIP:nodePort fails FOR NOW, when we only target the local node (*)
-			//
-			// (*) TODO connect to node ports on other nodes too once ovnkube-node fully supports UDN,
-			//     that is when https://github.com/ovn-org/ovn-kubernetes/pull/4648 and
-			//     https://github.com/ovn-org/ovn-kubernetes/pull/4554 merge
+			//   + nodeIP:nodePort fails FOR NOW, when we only target the local node
 
-			"should be reachable through their cluster IP and node port",
+			"should be reachable through their cluster IP, node port and load balancer",
 			func(
 				netConfigParams networkAttachmentConfigParams,
 			) {
@@ -125,29 +107,39 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				By(fmt.Sprintf("Creating a UDN NodePort service"))
-				policy := corev1.IPFamilyPolicyPreferDualStack
-				udnService, err := jig.CreateUDPService(context.TODO(), func(s *corev1.Service) {
-					s.Spec.Ports = []corev1.ServicePort{
+				By(fmt.Sprintf("Creating a UDN LoadBalancer service"))
+				policy := v1.IPFamilyPolicyPreferDualStack
+				udnService, err := jig.CreateUDPService(context.TODO(), func(s *v1.Service) {
+					s.Spec.Ports = []v1.ServicePort{
 						{
 							Name:       "udp",
-							Protocol:   corev1.ProtocolUDP,
-							Port:       80,
-							TargetPort: intstr.FromInt(int(serviceTargetPort)),
+							Protocol:   v1.ProtocolUDP,
+							Port:       servicePort,
+							TargetPort: intstr.FromInt(serviceTargetPort),
 						},
 					}
-					s.Spec.Type = corev1.ServiceTypeNodePort
+					s.Spec.Type = v1.ServiceTypeLoadBalancer
 					s.Spec.IPFamilyPolicy = &policy
 				})
+				framework.ExpectNoError(err)
+
+				By("Wait for UDN LoadBalancer Ingress to pop up")
+				udnService, err = jig.WaitForLoadBalancer(context.TODO(), 180*time.Second)
 				framework.ExpectNoError(err)
 
 				By("Creating a UDN backend pod")
 				udnServerPod := e2epod.NewAgnhostPod(
 					namespace, "backend-pod", nil, nil,
-					[]corev1.ContainerPort{
+					[]v1.ContainerPort{
 						{ContainerPort: (serviceTargetPort), Protocol: "UDP"}},
-					"netexec",
-					"--udp-port="+fmt.Sprint(serviceTargetPort))
+					"-c",
+					fmt.Sprintf(`
+set -xe
+iface=ovn-udn1
+ips=$(ip -o addr show dev $iface| grep global |awk '{print $4}' | cut -d/ -f1 | paste -sd, -)
+./agnhost netexec --udp-port=%d --udp-listen-addresses=$ips
+`, serviceTargetPort))
+				udnServerPod.Spec.Containers[0].Command = []string{"/bin/bash"}
 
 				udnServerPod.Labels = jig.Labels
 				udnServerPod.Spec.NodeName = serverPodNodeName
@@ -161,11 +153,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				// UDN -> UDN
 				By("Connect to the UDN service cluster IP from the UDN client pod on the same node")
 				checkConnectionToClusterIPs(f, udnClientPod, udnService, udnServerPod.Name)
+				By("Connect to the UDN service nodePort on all 3 nodes from the UDN client pod")
+				checkConnectionToLoadBalancers(f, udnClientPod, udnService, udnServerPod.Name)
 				checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[0], "endpoint node", udnServerPod.Name)
-				// TODO uncomment below as soon as ovnkube-node supports UDN
-				// checkConnectionToNodePort(f, clientPod2, udnService, &nodes.Items[1], "client node", udnServerPod.Name)
-				// checkConnectionToNodePort(f, clientPod2, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
-
+				checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[1], "other node", udnServerPod.Name)
+				checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
 				By(fmt.Sprintf("Creating a UDN client pod on a different node (%s)", clientNode))
 				udnClientPod2 := e2epod.NewAgnhostPod(namespace, "udn-client2", nil, nil, nil)
 				udnClientPod2.Spec.NodeName = clientNode
@@ -173,24 +165,33 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 				By("Connect to the UDN service from the UDN client pod on a different node")
 				checkConnectionToClusterIPs(f, udnClientPod2, udnService, udnServerPod.Name)
-				// TODO uncomment below as soon as ovnkube-node supports UDN
+				checkConnectionToLoadBalancers(f, udnClientPod2, udnService, udnServerPod.Name)
 				checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[1], "local node", udnServerPod.Name)
-				// checkConnectionToNodePort(f, clientPod2, udnService, &nodes.Items[0], "server node", udnServerPod.Name)
-				// checkConnectionToNodePort(f, clientPod2, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
+				checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[0], "server node", udnServerPod.Name)
+				checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
+
+				// TODO: Deploy an external container (on the bootstrap node?) and uncomment the lines below
+				// By("Connect to the UDN service from the UDN client external container")
+				// // checkConnectionToLoadBalancersFromExternalContainer(f, clientContainer, udnService, udnServerPod.Name)
+				// checkConnectionToNodePortFromExternalContainer(f, clientContainer, udnService, &nodes.Items[0], "server node", udnServerPod.Name)
+				// checkConnectionToNodePortFromExternalContainer(f, clientContainer, udnService, &nodes.Items[1], "other node", udnServerPod.Name)
+				// checkConnectionToNodePortFromExternalContainer(f, clientContainer, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
 
 				// Default network -> UDN
 				// Check that it cannot connect
 				By(fmt.Sprintf("Create a client pod in the default network on node %s", clientNode))
-				defaultNetNamespace = fDefault.Namespace.GetName()
-				defaultClient, err := createPodOnNode(fDefault.ClientSet, "default-net-pod", clientNode, defaultNetNamespace, nil, nil)
+				defaultNetNamespace := fDefault.Namespace // origin specific
+				f.AddNamespacesToDelete(defaultNetNamespace)
+				defaultClient, err := createPodOnNode(fDefault.ClientSet, "default-net-pod", clientNode, defaultNetNamespace.GetName(), nil, nil)
 				Expect(err).NotTo(HaveOccurred())
 
-				By("Verify that the client in the default network cannot connect to the UDN service")
+				By("Verify the connection of the client in the default network to the UDN service")
 				checkNoConnectionToClusterIPs(fDefault, defaultClient, udnService)
+				checkNoConnectionToLoadBalancers(fDefault, defaultClient, udnService)
 				checkNoConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[1], "local node") // TODO change to checkConnectionToNodePort when we have full UDN support in ovnkube-node
-				// TODO uncomment below as soon as ovnkube-node supports UDN
-				// checkConnectionToNodePort(f, defaultClient, udnService, &nodes.Items[0], "server node")
-				// checkConnectionToNodePort(f, defaultClient, udnService, &nodes.Items[2], "other node")
+
+				checkConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[0], "server node", udnServerPod.Name)
+				checkConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
 
 				// UDN -> Default network
 				// Create a backend pod and service in the default network and verify that the client pod in the UDN
@@ -198,8 +199,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				By(fmt.Sprintf("Creating a backend pod in the default network on node %s", serverPodNodeName))
 				defaultLabels := map[string]string{"app": "default-app"}
 
-				_, err = createPodOnNode(fDefault.ClientSet, "backend-pod-default", serverPodNodeName,
-					defaultNetNamespace, []string{"/agnhost"}, defaultLabels,
+				defaultServerPod, err := createPodOnNode(fDefault.ClientSet, "backend-pod-default", serverPodNodeName,
+					defaultNetNamespace.GetName(), []string{"/agnhost"}, defaultLabels,
 					func(pod *corev1.Pod) {
 						pod.Spec.Containers[0].Ports = []corev1.ContainerPort{{ContainerPort: (serviceTargetPort), Protocol: "UDP"}}
 						pod.Spec.Containers[0].Args = []string{"netexec", "--udp-port=" + fmt.Sprint(serviceTargetPort)}
@@ -207,46 +208,60 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				Expect(err).NotTo(HaveOccurred())
 
 				By("create a node port service in the default network")
-				defaultService := &corev1.Service{
+				defaultService := &v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Name: "service-default"},
-					Spec: corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{
 							{
-								Name:     "udp-port",
-								Port:     int32(servicePort),
-								Protocol: corev1.ProtocolUDP,
+								Name:       "udp-port",
+								Port:       int32(servicePort),
+								Protocol:   v1.ProtocolUDP,
+								TargetPort: intstr.FromInt(serviceTargetPort),
 							},
 						},
 						Selector:       defaultLabels,
-						Type:           corev1.ServiceTypeNodePort,
+						Type:           v1.ServiceTypeNodePort,
 						IPFamilyPolicy: &policy,
 					},
 				}
 
-				defaultService, err = fDefault.ClientSet.CoreV1().Services(defaultNetNamespace).Create(context.TODO(), defaultService, metav1.CreateOptions{})
+				defaultService, err = f.ClientSet.CoreV1().Services(defaultNetNamespace.Name).Create(context.TODO(), defaultService, metav1.CreateOptions{})
 				Expect(err).NotTo(HaveOccurred())
 
-				By("verify that the client pod in the UDN cannot connect to the default-network service")
-				checkNoConnectionToClusterIPs(f, udnClientPod2, defaultService)
-				// TODO uncomment below when below OVN_DISABLE_SNAT_MULTIPLE_GWS=true is supported
-				// checkConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[0], "server node", defaultServerPod.Name)
-				// TODO change line below to checkConnectionToNodePort when we have full UDN support in ovnkube-node
+				By("Verify the UDN client connection to the default network service")
+				checkNoConnectionToLoadBalancers(f, udnClientPod2, defaultService)
+				checkConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[0], "server node", defaultServerPod.Name)
 				checkNoConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[1], "local node")
-				// TODO uncomment below when OVN_DISABLE_SNAT_MULTIPLE_GWS=true is supported
-				// checkConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[2], "other node", defaultServerPod.Name)
+				checkConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[2], "other node", defaultServerPod.Name)
+				checkNoConnectionToClusterIPs(f, udnClientPod2, defaultService)
+
+				// Make sure that restarting OVNK after applying a UDN with an affected service won't result
+				// in OVNK in CLBO state https://issues.redhat.com/browse/OCPBUGS-41499
+				if netConfigParams.topology == "layer3" { // no need to run it for layer 2 as well
+					By("Restart ovnkube-node on one node and verify that the new ovnkube-node pod goes to the running state")
+					err = restartOVNKubeNodePod(cs, ovnNamespace, clientNode)
+					Expect(err).NotTo(HaveOccurred())
+				}
 			},
 
 			Entry(
-				"L3 dualstack primary UDN, cluster-networked pods, NodePort service",
+				"L3 primary UDN, cluster-networked pods, NodePort service",
 				networkAttachmentConfigParams{
 					name:     nadName,
 					topology: "layer3",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+					cidr:     correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 					role:     "primary",
 				},
 			),
-
-			// TODO add L2 NADs once L2 UDN support is available for services
+			Entry(
+				"L2 primary UDN, cluster-networked pods, NodePort service",
+				networkAttachmentConfigParams{
+					name:     nadName,
+					topology: "layer2",
+					cidr:     correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+					role:     "primary",
+				},
+			),
 		)
 
 	})
@@ -256,19 +271,33 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 // TODO Once https://github.com/ovn-org/ovn-kubernetes/pull/4567 merges, use the vendored *TestJig.Run(), which tests
 // the reachability of a service through its name and through its cluster IP. For now only test the cluster IP.
 
-const OVNNodeHostCIDRs = "k8s.ovn.org/host-cidrs"
+const OvnNodeIfAddr = "k8s.ovn.org/node-primary-ifaddr"
 
-// ParseNodeHostCIDRsDropNetMask returns the parsed host IP addresses found on a node's host CIDR annotation. Removes the mask.
-func ParseNodeHostCIDRsDropNetMask(node *kapi.Node) (sets.Set[string], error) {
-	addrAnnotation, ok := node.Annotations[OVNNodeHostCIDRs]
+type primaryIfAddrAnnotation struct {
+	IPv4 string `json:"ipv4,omitempty"`
+	IPv6 string `json:"ipv6,omitempty"`
+}
+
+// ParseNodeHostIPDropNetMask returns the parsed host IP addresses found on a node's host CIDR annotation. Removes the mask.
+func ParseNodeHostIPDropNetMask(node *kapi.Node) (sets.Set[string], error) {
+	nodeIfAddrAnnotation, ok := node.Annotations[OvnNodeIfAddr]
 	if !ok {
-		return nil, newAnnotationNotSetError("%s annotation not found for node %q", OVNNodeHostCIDRs, node.Name)
+		return nil, newAnnotationNotSetError("%s annotation not found for node %q", OvnNodeIfAddr, node.Name)
+	}
+	nodeIfAddr := &primaryIfAddrAnnotation{}
+	if err := json.Unmarshal([]byte(nodeIfAddrAnnotation), nodeIfAddr); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal annotation: %s for node %q, err: %v", OvnNodeIfAddr, node.Name, err)
 	}
 
 	var cfg []string
-	if err := json.Unmarshal([]byte(addrAnnotation), &cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal host cidrs annotation %s for node %q: %v",
-			addrAnnotation, node.Name, err)
+	if nodeIfAddr.IPv4 != "" {
+		cfg = append(cfg, nodeIfAddr.IPv4)
+	}
+	if nodeIfAddr.IPv6 != "" {
+		cfg = append(cfg, nodeIfAddr.IPv6)
+	}
+	if len(cfg) == 0 {
+		return nil, fmt.Errorf("node: %q does not have any IP information set", node.Name)
 	}
 
 	for i, cidr := range cfg {
@@ -281,9 +310,9 @@ func ParseNodeHostCIDRsDropNetMask(node *kapi.Node) (sets.Set[string], error) {
 	return sets.New(cfg...), nil
 }
 
-func checkConnectionToAgnhostPod(f *framework.Framework, clientPod *corev1.Pod, expectedOutput, cmd string) error {
-	return wait.PollImmediate(200*time.Millisecond, 5*time.Second, func() (bool, error) {
-		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(context.Background(), f, clientPod.Name, cmd)
+func checkConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, expectedOutput, cmd string) error {
+	return wait.PollUntilContextTimeout(context.TODO(), 200*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(ctx, f, clientPod.Name, cmd)
 		fmt.Printf("stdout=%s\n", stdout)
 		fmt.Printf("stderr=%s\n", stderr)
 		fmt.Printf("err=%v\n", err2)
@@ -299,9 +328,9 @@ func checkConnectionToAgnhostPod(f *framework.Framework, clientPod *corev1.Pod, 
 	})
 }
 
-func checkNoConnectionToAgnhostPod(f *framework.Framework, clientPod *corev1.Pod, cmd string) error {
-	err := wait.PollImmediate(500*time.Millisecond, 2*time.Second, func() (bool, error) {
-		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(context.Background(), f, clientPod.Name, cmd)
+func checkNoConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, cmd string) error {
+	err := wait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
+		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(ctx, f, clientPod.Name, cmd)
 		fmt.Printf("stdout=%s\n", stdout)
 		fmt.Printf("stderr=%s\n", stderr)
 		fmt.Printf("err=%v\n", err2)
@@ -329,28 +358,28 @@ func checkNoConnectionToAgnhostPod(f *framework.Framework, clientPod *corev1.Pod
 	return fmt.Errorf("Error: %s/%s was able to connect (cmd=%s) ", clientPod.Namespace, clientPod.Name, cmd)
 }
 
-func checkConnectionToClusterIPs(f *framework.Framework, clientPod *corev1.Pod, service *corev1.Service, expectedOutput string) {
+func checkConnectionToClusterIPs(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, expectedOutput string) {
 	checkConnectionOrNoConnectionToClusterIPs(f, clientPod, service, expectedOutput, true)
 }
 
-func checkNoConnectionToClusterIPs(f *framework.Framework, clientPod *corev1.Pod, service *corev1.Service) {
+func checkNoConnectionToClusterIPs(f *framework.Framework, clientPod *v1.Pod, service *v1.Service) {
 	checkConnectionOrNoConnectionToClusterIPs(f, clientPod, service, "", false)
 }
 
-func checkConnectionOrNoConnectionToClusterIPs(f *framework.Framework, clientPod *corev1.Pod, service *corev1.Service, expectedOutput string, shouldConnect bool) {
+func checkConnectionOrNoConnectionToClusterIPs(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, expectedOutput string, shouldConnect bool) {
 	var err error
-	targetPort := service.Spec.Ports[0].TargetPort.String()
+	servicePort := service.Spec.Ports[0].Port
 	notStr := ""
 	if !shouldConnect {
 		notStr = "not "
 	}
 
 	for _, clusterIP := range service.Spec.ClusterIPs {
-		msg := fmt.Sprintf("Client %s/%s should %sreach service %s/%s on cluster IP %s port %s",
-			clientPod.Namespace, clientPod.Name, notStr, service.Namespace, service.Name, clusterIP, targetPort)
+		msg := fmt.Sprintf("Client %s/%s should %sreach service %s/%s on cluster IP %s port %d",
+			clientPod.Namespace, clientPod.Name, notStr, service.Namespace, service.Name, clusterIP, servicePort)
 		By(msg)
 
-		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %s '`, clusterIP, targetPort)
+		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, clusterIP, servicePort)
 
 		if shouldConnect {
 			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd)
@@ -361,22 +390,22 @@ func checkConnectionOrNoConnectionToClusterIPs(f *framework.Framework, clientPod
 	}
 }
 
-func checkConnectionToNodePort(f *framework.Framework, clientPod *corev1.Pod, service *corev1.Service, node *corev1.Node, nodeRoleMsg, expectedOutput string) {
+func checkConnectionToNodePort(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, node *v1.Node, nodeRoleMsg, expectedOutput string) {
 	checkConnectionOrNoConnectionToNodePort(f, clientPod, service, node, nodeRoleMsg, expectedOutput, true)
 }
 
-func checkNoConnectionToNodePort(f *framework.Framework, clientPod *corev1.Pod, service *corev1.Service, node *corev1.Node, nodeRoleMsg string) {
+func checkNoConnectionToNodePort(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, node *v1.Node, nodeRoleMsg string) {
 	checkConnectionOrNoConnectionToNodePort(f, clientPod, service, node, nodeRoleMsg, "", false)
 }
 
-func checkConnectionOrNoConnectionToNodePort(f *framework.Framework, clientPod *corev1.Pod, service *corev1.Service, node *corev1.Node, nodeRoleMsg, expectedOutput string, shouldConnect bool) {
+func checkConnectionOrNoConnectionToNodePort(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, node *v1.Node, nodeRoleMsg, expectedOutput string, shouldConnect bool) {
 	var err error
 	nodePort := service.Spec.Ports[0].NodePort
 	notStr := ""
 	if !shouldConnect {
 		notStr = "not "
 	}
-	nodeIPs, err := ParseNodeHostCIDRsDropNetMask(node)
+	nodeIPs, err := ParseNodeHostIPDropNetMask(node)
 	Expect(err).NotTo(HaveOccurred())
 
 	for nodeIP := range nodeIPs {
@@ -393,3 +422,74 @@ func checkConnectionOrNoConnectionToNodePort(f *framework.Framework, clientPod *
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
 }
+
+func checkConnectionToLoadBalancers(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, expectedOutput string) {
+	checkConnectionOrNoConnectionToLoadBalancers(f, clientPod, service, expectedOutput, true)
+}
+
+func checkNoConnectionToLoadBalancers(f *framework.Framework, clientPod *v1.Pod, service *v1.Service) {
+	checkConnectionOrNoConnectionToLoadBalancers(f, clientPod, service, "", false)
+}
+
+func checkConnectionOrNoConnectionToLoadBalancers(f *framework.Framework, clientPod *v1.Pod, service *v1.Service, expectedOutput string, shouldConnect bool) {
+	var err error
+	port := service.Spec.Ports[0].Port
+	notStr := ""
+	if !shouldConnect {
+		notStr = "not "
+	}
+	for _, lbIngress := range service.Status.LoadBalancer.Ingress {
+		msg := fmt.Sprintf("Client %s/%s should %sreach service %s/%s on LoadBalancer IP %s port %d",
+			clientPod.Namespace, clientPod.Name, notStr, service.Namespace, service.Name, lbIngress.IP, port)
+		By(msg)
+
+		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, lbIngress.IP, port)
+
+		if shouldConnect {
+			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd)
+		} else {
+			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd)
+		}
+		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
+	}
+}
+
+// TODO Deploy an external container (on the bootstrap node?) and uncomment the lines below
+// func checkConnectionToNodePortFromExternalContainer(f *framework.Framework, containerName string, service *v1.Service, node *v1.Node, nodeRoleMsg, expectedOutput string) {
+// 	GinkgoHelper()
+// 	var err error
+// 	nodePort := service.Spec.Ports[0].NodePort
+// 	nodeIPs, err := ParseNodeHostIPDropNetMask(node)
+// 	Expect(err).NotTo(HaveOccurred())
+
+// 	for nodeIP := range nodeIPs {
+// 		msg := fmt.Sprintf("Client at external container %s should connect to NodePort service %s/%s on %s:%d (node %s, %s)",
+// 			containerName, service.Namespace, service.Name, nodeIP, nodePort, node.Name, nodeRoleMsg)
+// 		By(msg)
+// 		cmd := []string{containerRuntime, "exec", containerName, "/bin/bash", "-c", fmt.Sprintf("echo hostname | nc -u -w 1 %s %d", nodeIP, nodePort)}
+// 		Eventually(func() (string, error) {
+// 			return runCommand(cmd...)
+// 		}).
+// 			WithTimeout(5*time.Second).
+// 			WithPolling(200*time.Millisecond).
+// 			Should(Equal(expectedOutput), "Failed to verify that %s", msg)
+// 	}
+// }
+
+// func checkConnectionToLoadBalancersFromExternalContainer(f *framework.Framework, containerName string, service *v1.Service, expectedOutput string) {
+// 	GinkgoHelper()
+// 	port := service.Spec.Ports[0].Port
+// 	for _, lbIngress := range service.Status.LoadBalancer.Ingress {
+// 		msg := fmt.Sprintf("Client at external container %s should reach service %s/%s on LoadBalancer IP %s port %d",
+// 			containerName, service.Namespace, service.Name, lbIngress.IP, port)
+// 		By(msg)
+// 		cmd := []string{containerRuntime, "exec", containerName, "/bin/bash", "-c", fmt.Sprintf("echo hostname | nc -u -w 1 %s %d", lbIngress.IP, port)}
+// 		Eventually(func() (string, error) {
+// 			return runCommand(cmd...)
+// 		}).
+// 			// It takes some time for the container to receive the dynamic routing
+// 			WithTimeout(20*time.Second).
+// 			WithPolling(200*time.Millisecond).
+// 			Should(Equal(expectedOutput), "Failed to verify that %s", msg)
+// 	}
+// }
