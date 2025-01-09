@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
@@ -678,7 +679,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			var actualConditions []metav1.Condition
 			Expect(json.Unmarshal([]byte(conditionsJSON), &actualConditions)).To(Succeed())
 
-			Expect(actualConditions[0].Type).To(Equal("NetworkReady"))
+			Expect(actualConditions[0].Type).To(SatisfyAny(Equal("NetworkReady"), Equal("NetworkCreated")))
 			Expect(actualConditions[0].Status).To(Equal(metav1.ConditionFalse))
 			Expect(actualConditions[0].Reason).To(Equal("SyncError"))
 			expectedMessage := fmt.Sprintf("primary network already exist in namespace %q: %q", f.Namespace.Name, primaryNadName)
@@ -884,8 +885,15 @@ func applyManifest(namespace, manifest string) error {
 }
 
 func waitForUserDefinedNetworkReady(namespace, name string, timeout time.Duration) error {
-	_, err := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
-	return err
+	_, errNetReady := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
+	netReady := errNetReady == nil
+	_, errNetCreated := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkCreated=True", "--timeout", timeout.String())
+	netCreated := errNetCreated == nil
+
+	if netReady || netCreated {
+		return nil
+	}
+	return errors.Join(errNetReady, errNetCreated)
 }
 
 func newPrimaryUserDefinedNetworkManifest(oc *exutil.CLI, name string) string {
@@ -975,6 +983,14 @@ func assertUDNStatusReportsConsumers(udnNamesapce, udnName, expectedPodName stri
 	for _, condition := range conditions {
 		if found, _ = Equal(metav1.Condition{
 			Type:    "NetworkReady",
+			Status:  "False",
+			Reason:  "SyncError",
+			Message: expectedMsg,
+		}).Match(condition); found {
+			break
+		}
+		if found, _ = Equal(metav1.Condition{
+			Type:    "NetworkCreated",
 			Status:  "False",
 			Reason:  "SyncError",
 			Message: expectedMsg,
