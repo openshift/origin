@@ -9,6 +9,12 @@ import (
 var Annotations = map[string]string{
 	"[Conformance][Suite:openshift/kube-apiserver/rollout][Jira:\"kube-apiserver\"][sig-kube-apiserver] kube-apiserver should roll out new revisions without disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": "",
 
+	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-ext endpoint": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint": " [Suite:openshift/conformance/parallel/minimal]",
+
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
