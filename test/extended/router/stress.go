@@ -78,6 +78,22 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 				Name: "system:router",
 			},
 		}, metav1.CreateOptions{})
+		// In order to start HAProxy, so that the readiness probe will work, the router needs anyuid.
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "router-anyuid",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind: "ServiceAccount",
+					Name: "default",
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				Kind: "ClusterRole",
+				Name: "system:openshift:scc:anyuid",
+			},
+		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -552,11 +568,47 @@ func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 					Containers: []corev1.Container{
 						{
 							Env: []corev1.EnvVar{
-								{Name: "NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+								{
+									Name: "NAME", ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.name",
+										},
+									},
+								},
+								{
+									Name: "POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
+								{
+									// This is only required because default_pub_keys.pem is the router uses a SHA1
+									// signature algorithm and an RSA 1024 byte key, so we must specify a valid default
+									// certificate. See https://github.com/openshift/router/pull/646
+									Name:  "DEFAULT_CERTIFICATE",
+									Value: defaultPemData,
+								},
 							},
 							Name:  "router",
 							Image: image,
-							Args:  args,
+							Args:  append(args, "--stats-port=1936", "--metrics-type=haproxy"),
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 1936,
+									Name:          "stats",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/healthz/ready",
+										Port: intstr.FromInt32(1936),
+									},
+								},
+							},
 						},
 					},
 				},
