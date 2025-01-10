@@ -138,6 +138,46 @@ spec:
         set the condition to false if there are no nodes able to host the source pods'
   - featureGate: NetworkSegmentation
     tests:
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated
+        [Skipped:azure][apigroup:route.openshift.io]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should keep the assigned EgressIPs when being rescheduled to another
+        node'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2]
+        [internal-targets] EgressIP pods should query hostNetwork pods with the local
+        node''s SNAT'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated
+        [Skipped:azure][apigroup:route.openshift.io]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3]
+        [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should keep the assigned EgressIPs when being rescheduled to another
+        node'
+    - testName: '[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3]
+        [internal-targets] EgressIP pods should query hostNetwork pods with the local
+        node''s SNAT'
     - testName: '[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization]
         primary UDN smoke test when using openshift ovn-kubernetes assert the primary
         UDN feature works as expected'

@@ -81,7 +81,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 
 						for _, node := range workerNodes {
 							Eventually(func() bool {
-								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName)
+								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName, provisionedNetConfig.topology)
 								return err == nil && isNetProvisioned
 							}).WithPolling(time.Second).WithTimeout(udnCrReadyTimeout).Should(
 								BeTrueBecause("the network must be ready before creating workloads"),
@@ -544,13 +544,22 @@ func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByN
 	}
 }
 
-func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName string) (bool, error) {
+func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName, topology string) (bool, error) {
 	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
 	if err != nil {
 		return false, err
 	}
 
-	lsName := logicalSwitchName(networkName)
+	var lsName string
+	switch topology {
+	case "layer3":
+		lsName = layer3LogicalSwitchName(networkName, nodeName)
+	case "layer2":
+		lsName = layer2LogicalSwitchName(networkName)
+	default:
+		return false, fmt.Errorf("unsupported network topology %q", topology)
+	}
+
 	out, err := adminExecInPod(
 		oc,
 		"openshift-ovn-kubernetes",
@@ -565,10 +574,16 @@ func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName string) (
 	return strings.Contains(out, lsName), nil
 }
 
-func logicalSwitchName(networkName string) string {
+func layer2LogicalSwitchName(networkName string) string {
 	netName := strings.ReplaceAll(networkName, "-", ".")
 	netName = strings.ReplaceAll(netName, "/", ".")
 	return fmt.Sprintf("%s_ovn_layer2_switch", netName)
+}
+
+func layer3LogicalSwitchName(networkName, nodeName string) string {
+	netName := strings.ReplaceAll(networkName, "-", ".")
+	netName = strings.ReplaceAll(netName, "/", ".")
+	return fmt.Sprintf("%s_%s", netName, nodeName)
 }
 
 func networkName(netSpecConfig string) string {

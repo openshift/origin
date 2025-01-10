@@ -1461,6 +1461,30 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressFirewall] when using openshift-sdn should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": " [Serial] [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": " [Serial] [Suite:openshift/conformance/serial]",
+
 	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": " [Serial] [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
