@@ -95,8 +95,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 				By("Selecting nodes for pods and service")
 				serverPodNodeName := nodes.Items[0].Name
-				clientNode := nodes.Items[1].Name // when client runs on a different node than the server
-
+				var clientNode string
+				if len(nodes.Items) > 1 {
+					clientNode = nodes.Items[1].Name // when client runs on a different node than the server
+				}
 				By("Creating the attachment configuration")
 				netConfig := newNetworkAttachmentConfig(netConfigParams)
 				netConfig.namespace = f.Namespace.Name
@@ -155,21 +157,26 @@ ips=$(ip -o addr show dev $iface| grep global |awk '{print $4}' | cut -d/ -f1 | 
 				checkConnectionToClusterIPs(f, udnClientPod, udnService, udnServerPod.Name)
 				By("Connect to the UDN service nodePort on all 3 nodes from the UDN client pod")
 				checkConnectionToLoadBalancers(f, udnClientPod, udnService, udnServerPod.Name)
-				checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[0], "endpoint node", udnServerPod.Name)
-				checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[1], "other node", udnServerPod.Name)
-				checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
-				By(fmt.Sprintf("Creating a UDN client pod on a different node (%s)", clientNode))
-				udnClientPod2 := e2epod.NewAgnhostPod(namespace, "udn-client2", nil, nil, nil)
-				udnClientPod2.Spec.NodeName = clientNode
-				udnClientPod2 = e2epod.NewPodClient(f).CreateSync(context.TODO(), udnClientPod2)
+				nodeRoles := []string{"same node", "other node", "other node"}
+				for i := range nodes.Items {
+					checkConnectionToNodePort(f, udnClientPod, udnService, &nodes.Items[i], nodeRoles[i], udnServerPod.Name)
+				}
 
-				By("Connect to the UDN service from the UDN client pod on a different node")
-				checkConnectionToClusterIPs(f, udnClientPod2, udnService, udnServerPod.Name)
-				checkConnectionToLoadBalancers(f, udnClientPod2, udnService, udnServerPod.Name)
-				checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[1], "local node", udnServerPod.Name)
-				checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[0], "server node", udnServerPod.Name)
-				checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
+				var udnClientPod2 *v1.Pod
+				if len(nodes.Items) > 1 {
+					By(fmt.Sprintf("Creating a UDN client pod on a different node (%s)", clientNode))
+					udnClientPod2 = e2epod.NewAgnhostPod(namespace, "udn-client2", nil, nil, nil)
+					udnClientPod2.Spec.NodeName = clientNode
+					udnClientPod2 = e2epod.NewPodClient(f).CreateSync(context.TODO(), udnClientPod2)
 
+					By("Connect to the UDN service from the UDN client pod on a different node")
+					checkConnectionToClusterIPs(f, udnClientPod2, udnService, udnServerPod.Name)
+					checkConnectionToLoadBalancers(f, udnClientPod2, udnService, udnServerPod.Name)
+					nodeRoles = []string{"server node", "local node", "other node"}
+					for i := range nodes.Items {
+						checkConnectionToNodePort(f, udnClientPod2, udnService, &nodes.Items[i], nodeRoles[i], udnServerPod.Name)
+					}
+				}
 				// TODO: Deploy an external container (on the bootstrap node?) and uncomment the lines below
 				// By("Connect to the UDN service from the UDN client external container")
 				// // checkConnectionToLoadBalancersFromExternalContainer(f, clientContainer, udnService, udnServerPod.Name)
@@ -188,11 +195,15 @@ ips=$(ip -o addr show dev $iface| grep global |awk '{print $4}' | cut -d/ -f1 | 
 				By("Verify the connection of the client in the default network to the UDN service")
 				checkNoConnectionToClusterIPs(fDefault, defaultClient, udnService)
 				checkNoConnectionToLoadBalancers(fDefault, defaultClient, udnService)
-				checkNoConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[1], "local node") // TODO change to checkConnectionToNodePort when we have full UDN support in ovnkube-node
-
-				checkConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[0], "server node", udnServerPod.Name)
-				checkConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[2], "other node", udnServerPod.Name)
-
+				nodeRoles = []string{"server node", "local node", "other node"}
+				for i := range nodes.Items {
+					if i == 1 {
+						// TODO change to checkConnectionToNodePort when we have full UDN support in ovnkube-node
+						checkNoConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[i], nodeRoles[i])
+					} else {
+						checkConnectionToNodePort(fDefault, defaultClient, udnService, &nodes.Items[i], nodeRoles[i], udnServerPod.Name)
+					}
+				}
 				// UDN -> Default network
 				// Create a backend pod and service in the default network and verify that the client pod in the UDN
 				// cannot reach it
@@ -229,11 +240,21 @@ ips=$(ip -o addr show dev $iface| grep global |awk '{print $4}' | cut -d/ -f1 | 
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Verify the UDN client connection to the default network service")
-				checkNoConnectionToLoadBalancers(f, udnClientPod2, defaultService)
-				checkConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[0], "server node", defaultServerPod.Name)
-				checkNoConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[1], "local node")
-				checkConnectionToNodePort(f, udnClientPod2, defaultService, &nodes.Items[2], "other node", defaultServerPod.Name)
-				checkNoConnectionToClusterIPs(f, udnClientPod2, defaultService)
+				udnClientPodTmp := udnClientPod
+				nodeRoles = []string{"server node"}
+				if len(nodes.Items) > 1 {
+					udnClientPodTmp = udnClientPod2
+					nodeRoles = []string{"server node", "local node", "other node"}
+				}
+				checkNoConnectionToLoadBalancers(f, udnClientPodTmp, defaultService)
+				for i := range nodes.Items {
+					if i == 1 {
+						checkNoConnectionToNodePort(f, udnClientPodTmp, defaultService, &nodes.Items[i], nodeRoles[i])
+					} else {
+						checkConnectionToNodePort(f, udnClientPodTmp, defaultService, &nodes.Items[i], nodeRoles[i], defaultServerPod.Name)
+					}
+				}
+				checkNoConnectionToClusterIPs(f, udnClientPodTmp, defaultService)
 
 				// Make sure that restarting OVNK after applying a UDN with an affected service won't result
 				// in OVNK in CLBO state https://issues.redhat.com/browse/OCPBUGS-41499
