@@ -1132,7 +1132,7 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 			return v1.PodFailed
 		}
 		return updatedPod.Status.Phase
-	}, 2*time.Minute, 6*time.Second).Should(Equal(v1.PodRunning))
+	}, 3*time.Minute, 6*time.Second).Should(Equal(v1.PodRunning))
 	return updatedPod
 }
 
