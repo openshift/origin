@@ -434,7 +434,7 @@ const (
 	// The resulting lines will be something like:
 	// 10.128.2.15.36749  /f8f721fa-53c9-444f-bc96-69c7388fcb5a
 	tcpCaptureScript = `#!/bin/bash
-tcpdump -nne -i %s -l -s 0  'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '{print $10 " " $(NF-1)}'
+tcpdump -nn -i %s -l -s 0 -A 'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '/IP / {src=$3} /GET \/.* HTTP\/1\.[01]/ {print src, $(NF-1)}'
 `
 
 	// The udpCaptureScript runs tcpdump with option -xx and then decodes the hexadecimal information.
@@ -636,7 +636,7 @@ func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, tar
 		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
 		logs, err := req.Stream(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("Error in opening log stream")
+			return nil, fmt.Errorf("Error in opening log stream: %v", err)
 		}
 		defer logs.Close()
 
@@ -1146,11 +1146,11 @@ func getNodeEgressIPConfiguration(node *corev1.Node) ([]*NodeEgressIPConfigurati
 }
 
 // createProberPod creates a prober pod in the proberPodNamespace.
-func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string) *v1.Pod {
+func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string, teakPod func(*corev1.Pod)) *v1.Pod {
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {})
+	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, teakPod)
 }
 
 // destroyProberPod destroys the given proberPod.
@@ -1729,21 +1729,21 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwo
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
-func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, error) {
+func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, string, error) {
 	eip, err := getEgressIP(oc, egressIPObjectName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return false, nil
+			return false, "", nil
 		}
-		return false, fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
+		return false, "", fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
 	}
 	for _, egressIPStatusItem := range eip.Status.Items {
 		if egressIPStatusItem.EgressIP == ip {
-			return true, nil
+			return true, egressIPStatusItem.Node, nil
 		}
 	}
 
-	return false, nil
+	return false, "", nil
 }
 
 // sdnNamespaceAddEgressIP adds EgressIP <egressip> to netnamespace <namespace>.

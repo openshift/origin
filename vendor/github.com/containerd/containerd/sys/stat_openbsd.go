@@ -1,4 +1,4 @@
-// +build !windows
+// +build openbsd
 
 /*
    Copyright The containerd Authors.
@@ -18,16 +18,28 @@
 
 package sys
 
-import "golang.org/x/sys/unix"
+import (
+	"syscall"
+	"time"
+)
 
-// RunningPrivileged returns true if the effective user ID of the
-// calling process is 0
-func RunningPrivileged() bool {
-	return unix.Geteuid() == 0
+// StatAtime returns the Atim
+func StatAtime(st *syscall.Stat_t) syscall.Timespec {
+	return st.Atim
 }
 
-// RunningUnprivileged returns true if the effective user ID of the
-// calling process is not 0
-func RunningUnprivileged() bool {
-	return !RunningPrivileged()
+// StatCtime returns the Ctim
+func StatCtime(st *syscall.Stat_t) syscall.Timespec {
+	return st.Ctim
+}
+
+// StatMtime returns the Mtim
+func StatMtime(st *syscall.Stat_t) syscall.Timespec {
+	return st.Mtim
+}
+
+// StatATimeAsTime returns st.Atim as a time.Time
+func StatATimeAsTime(st *syscall.Stat_t) time.Time {
+	// The int64 conversions ensure the line compiles for 32-bit systems as well.
+	return time.Unix(int64(st.Atim.Sec), int64(st.Atim.Nsec)) // nolint: unconvert
 }

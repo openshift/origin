@@ -17,6 +17,12 @@ const (
 	HANDLE_MIN_EGRESS  = 0xFFFFFFF3
 )
 
+const (
+	HORIZON_DROP_POLICY_CAP     = 0
+	HORIZON_DROP_POLICY_DROP    = 1
+	HORIZON_DROP_POLICY_DEFAULT = 255
+)
+
 type Qdisc interface {
 	Attrs() *QdiscAttrs
 	Type() string
@@ -26,10 +32,11 @@ type Qdisc interface {
 // has a handle, a parent and a refcnt. The root qdisc of a device should
 // have parent == HANDLE_ROOT.
 type QdiscAttrs struct {
-	LinkIndex int
-	Handle    uint32
-	Parent    uint32
-	Refcnt    uint32 // read only
+	LinkIndex    int
+	Handle       uint32
+	Parent       uint32
+	Refcnt       uint32 // read only
+	IngressBlock *uint32
 }
 
 func (q QdiscAttrs) String() string {
@@ -278,22 +285,25 @@ type Fq struct {
 	FlowDefaultRate uint32
 	FlowMaxRate     uint32
 	// called BucketsLog under the hood
-	Buckets          uint32
-	FlowRefillDelay  uint32
-	LowRateThreshold uint32
+	Buckets           uint32
+	FlowRefillDelay   uint32
+	LowRateThreshold  uint32
+	Horizon           uint32
+	HorizonDropPolicy uint8
 }
 
 func (fq *Fq) String() string {
 	return fmt.Sprintf(
-		"{PacketLimit: %v, FlowPacketLimit: %v, Quantum: %v, InitialQuantum: %v, Pacing: %v, FlowDefaultRate: %v, FlowMaxRate: %v, Buckets: %v, FlowRefillDelay: %v,  LowRateThreshold: %v}",
-		fq.PacketLimit, fq.FlowPacketLimit, fq.Quantum, fq.InitialQuantum, fq.Pacing, fq.FlowDefaultRate, fq.FlowMaxRate, fq.Buckets, fq.FlowRefillDelay, fq.LowRateThreshold,
+		"{PacketLimit: %v, FlowPacketLimit: %v, Quantum: %v, InitialQuantum: %v, Pacing: %v, FlowDefaultRate: %v, FlowMaxRate: %v, Buckets: %v, FlowRefillDelay: %v,  LowRateThreshold: %v, Horizon: %v, HorizonDropPolicy: %v}",
+		fq.PacketLimit, fq.FlowPacketLimit, fq.Quantum, fq.InitialQuantum, fq.Pacing, fq.FlowDefaultRate, fq.FlowMaxRate, fq.Buckets, fq.FlowRefillDelay, fq.LowRateThreshold, fq.Horizon, fq.HorizonDropPolicy,
 	)
 }
 
 func NewFq(attrs QdiscAttrs) *Fq {
 	return &Fq{
-		QdiscAttrs: attrs,
-		Pacing:     1,
+		QdiscAttrs:        attrs,
+		Pacing:            1,
+		HorizonDropPolicy: HORIZON_DROP_POLICY_DEFAULT,
 	}
 }
 
@@ -308,13 +318,15 @@ func (qdisc *Fq) Type() string {
 // FQ_Codel (Fair Queuing Controlled Delay) is queuing discipline that combines Fair Queuing with the CoDel AQM scheme.
 type FqCodel struct {
 	QdiscAttrs
-	Target   uint32
-	Limit    uint32
-	Interval uint32
-	ECN      uint32
-	Flows    uint32
-	Quantum  uint32
-	// There are some more attributes here, but support for them seems not ubiquitous
+	Target        uint32
+	Limit         uint32
+	Interval      uint32
+	ECN           uint32
+	Flows         uint32
+	Quantum       uint32
+	CEThreshold   uint32
+	DropBatchSize uint32
+	MemoryLimit   uint32
 }
 
 func (fqcodel *FqCodel) String() string {
@@ -337,4 +349,28 @@ func (qdisc *FqCodel) Attrs() *QdiscAttrs {
 
 func (qdisc *FqCodel) Type() string {
 	return "fq_codel"
+}
+
+type Sfq struct {
+	QdiscAttrs
+	// TODO: Only the simplified options for SFQ are handled here. Support for the extended one can be added later.
+	Quantum uint8
+	Perturb uint8
+	Limit   uint32
+	Divisor uint8
+}
+
+func (sfq *Sfq) String() string {
+	return fmt.Sprintf(
+		"{%v -- Quantum: %v, Perturb: %v, Limit: %v, Divisor: %v}",
+		sfq.Attrs(), sfq.Quantum, sfq.Perturb, sfq.Limit, sfq.Divisor,
+	)
+}
+
+func (qdisc *Sfq) Attrs() *QdiscAttrs {
+	return &qdisc.QdiscAttrs
+}
+
+func (qdisc *Sfq) Type() string {
+	return "sfq"
 }
