@@ -12,6 +12,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +44,7 @@ const (
 	egressUpdateTimeout = 180
 )
 
-var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io]", func() {
+var _ = g.DescribeTableSubtree("", func(netConfig networkAttachmentConfigParams) {
 	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
 	portAllocator := NewPortAllocator(egressIPTargetHostPortMin, egressIPTargetHostPortMax)
 
@@ -175,6 +176,54 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
+		g.By(fmt.Sprintf("The test pods namespace %s will be connected to network named %q with network topology %q", egressIPNamespace, netConfig.name, netConfig.topology))
+		// Configure the user defined network for the test namespace if required
+		if isClusterDefaultNetwork(netConfig.networkName) {
+			return
+		}
+		// Skip If CNI is OpenShift SDN and "primary network" is a secondary network
+		if networkPluginName() == OpenshiftSDNPluginName && !isClusterDefaultNetwork(netConfig.networkName) {
+			skipper.Skipf("OpenShift SDN does not support EgressIP on secondary networks")
+		}
+		// Skip if cluster doesn't contain the tech preview feature gate
+		if !exutil.IsTechPreviewNoUpgrade(context.Background(), oc.AdminConfigClient()) {
+			skipper.Skipf("User defined networks require feature gate tech preview")
+		}
+		// configure UDN in the egressIPNamespace namespace
+		nadClient, err := nadclient.NewForConfig(f.ClientConfig())
+		o.Expect(err).NotTo(o.HaveOccurred(), "network attachment client must be available")
+		netConfig.cidr = correctCIDRFamily(oc, "30.10.0.0/16", "2014:100:200::0/60")
+		g.By(fmt.Sprintf("User Defined Network CIDR is %q", netConfig.cidr))
+		// egressIPNamespace & externalNamespace will be connected to the same network
+		netConfig := newNetworkAttachmentConfig(netConfig)
+		g.By(fmt.Sprintf("Creating the network %s with network topology %s and connecting the network to Namespace %s",
+			netConfig.name, netConfig.topology, externalNamespace))
+		netConfig.namespace = externalNamespace
+		_, err = nadClient.NetworkAttachmentDefinitions(externalNamespace).Create(
+			context.Background(),
+			generateNAD(netConfig),
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred(), "creation of network must succeed")
+		netConfig.namespace = egressIPNamespace
+		g.By(fmt.Sprintf("Creating the network %s with network topology %s and connecting the network to Namespace %s",
+			netConfig.name, netConfig.topology, egressIPNamespace))
+		_, err = nadClient.NetworkAttachmentDefinitions(egressIPNamespace).Create(
+			context.Background(),
+			generateNAD(netConfig),
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred(), "creation of network must succeed")
+		g.By("Ensure the network is configured on a set of worker Nodes")
+		for _, workerNodeName := range workerNodesOrderedNames {
+			var isNetProvisioned bool
+			o.Eventually(func() bool {
+				isNetProvisioned, err = isNetworkProvisioned(oc, workerNodeName, netConfig.networkName, netConfig.topology)
+				return err == nil && isNetProvisioned
+			}).WithPolling(time.Second).WithTimeout(50 * time.Second).Should(
+				o.BeTrueBecause(fmt.Sprintf("the network must be ready before creating workloads for node %s, last err: %v", workerNodeName, err)),
+			)
+		}
 	})
 
 	// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
@@ -211,6 +260,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		})
 
 		g.It("EgressIP pods should query hostNetwork pods with the local node's SNAT", func() {
+			// Skip UDNs because they do not support host networked pods
+			if !isClusterDefaultNetwork(netConfig.networkName) {
+				skipper.Skipf("User defined networks dont support host network pods")
+			}
 			var targetIP string
 			var targetPort int
 
@@ -267,10 +320,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			targetIP = podIPs[0]
 
 			var routeNames []string
+			var clusterIPs []string
 			for k, v := range deploymentNodeStr {
 				g.By(fmt.Sprintf("Creating EgressIP test source deployment %d with number of pods equals number of EgressIP nodes", k))
-				_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, fmt.Sprint(k), ingressDomain, len(v), v)
+				_, routeName, clusterIP, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, fmt.Sprint(k), ingressDomain, len(v), v)
 				routeNames = append(routeNames, routeName)
+				clusterIPs = append(clusterIPs, clusterIP)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
@@ -307,10 +362,15 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			// an endpoint on the cloud, always, thus we can directly query agnhost's /clientip.
 			// b) The requests in tcpdump did not expose the request string for some reason (probably needed better filters)
 			// c) It's simpler to just query for the /clientip instead of relying on the packet capture for these tests.
-			for _, routeName := range routeNames {
-				g.By(fmt.Sprintf("Launching a new prober pod and probing for EgressIPs at %s", routeName))
+			urls := routeNames
+			// remove when UDNs support ocp routes
+			if !isClusterDefaultNetwork(netConfig.networkName) {
+				urls = clusterIPs
+			}
+			for _, url := range urls {
+				g.By(fmt.Sprintf("Launching a new prober pod and probing for EgressIPs at %s", url))
 				numberOfRequestsToSend := 10
-				clientIPSet, err := probeForClientIPs(oc, externalNamespace, probePodName, routeName, targetIP, targetPort, numberOfRequestsToSend)
+				clientIPSet, err := probeForClientIPs(oc, externalNamespace, probePodName, url, targetIP, targetPort, numberOfRequestsToSend)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// Note: my interpretation is that it's a bug if we see an egressIP here:
@@ -365,7 +425,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
 		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, routeName, clusterIP, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -391,6 +451,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			if targetHost == "self" {
 				targetHost = routeName
 			}
+			url := fetchURLForDeployment(netConfig.networkName, routeName, clusterIP)
 			// Run this twice to make sure that repeated EgressIP creation and deletion works.
 			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 			egressIPObjectName := egressIPNamespace
@@ -407,7 +468,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				}
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 				if networkPlugin == OVNKubernetesPluginName {
 					g.By("Deleting the EgressIP object for OVN Kubernetes")
@@ -429,7 +490,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				waitForCloudPrivateIPConfigsDeletion(oc, cloudNetworkClientset, egressIPSet, egressUpdateTimeout)
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
-				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
+				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
 			}
 
 			if networkPlugin == OVNKubernetesPluginName {
@@ -448,7 +509,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			rightNode := egressIPNodesOrderedNames[1:2]
 
 			g.By(fmt.Sprintf("Creating the EgressIP test source deployment on node %s", rightNode[0]))
-			deploymentName, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(rightNode), rightNode)
+			deploymentName, routeName, clusterIP, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(rightNode), rightNode)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// Getting an EgressIP for a specific node only works on AWS. However, the important
@@ -492,26 +553,27 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			if targetHost == "self" {
 				targetHost = routeName
 			}
+			url := fetchURLForDeployment(netConfig.networkName, routeName, clusterIP)
 			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 			g.By("Updating the source deployment's Affinity and moving it to the other source node")
 			err = updateDeploymentAffinity(oc, egressIPNamespace, deploymentName, leftNode)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 		})
 
 		// OVNKubernetes
 		// Skipped on OpenShiftSDN as the plugin does not support pod selectors.
 		g.It("only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			deployment0Name, route0Name, clusterIP0, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating the second EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, route1Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "1", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, route1Name, clusterIP1, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "1", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -545,21 +607,23 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			if targetHost == "self" {
 				targetHost = route0Name
 			}
+			url0 := fetchURLForDeployment(netConfig.networkName, route0Name, clusterIP0)
 			g.By(fmt.Sprintf("Testing first EgressIP test source deployment and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route0Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url0, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 			if targetHost == "self" {
 				targetHost = route1Name
 			}
+			url1 := fetchURLForDeployment(netConfig.networkName, route1Name, clusterIP1)
 			g.By(fmt.Sprintf("Testing second EgressIP test source deployment and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route1Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
+			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url1, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
 		})
 
 		// OVNKubernetes
 		// Skipped on OpenShiftSDN as this plugin has no EgressIPs object
 		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, routeName, clusterIP, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -594,6 +658,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			if targetHost == "self" {
 				targetHost = routeName
 			}
+			url := fetchURLForDeployment(netConfig.networkName, routeName, clusterIP)
 			for eip, nodeName := range egressIPSetTemp {
 				egressIPSet := map[string]string{eip: nodeName}
 
@@ -606,7 +671,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 			}
 		})
 
@@ -633,7 +698,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				}
 			}
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
+			_, routeName, clusterIP, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// For this test, get a single EgressIP per node.
@@ -662,11 +727,16 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			if targetHost == "self" {
 				targetHost = routeName
 			}
+			url := fetchURLForDeployment(netConfig.networkName, routeName, clusterIP)
 			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, url, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 		})
 	}) // end testing to external targets
-})
+},
+	g.Entry("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io]", networkAttachmentConfigParams{networkName: "default", topology: "layer3"}),
+	g.Entry("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L3][Feature:EgressIP][apigroup:operator.openshift.io]", networkAttachmentConfigParams{name: "l3udn", topology: "layer3", role: "primary"}), // CIDR is populated at test runtime
+	g.Entry("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks][L2][Feature:EgressIP][apigroup:operator.openshift.io]", networkAttachmentConfigParams{name: "l2udn", topology: "layer2", role: "primary"}), // CIDR is populated at test runtime
+)
 
 //
 // Functions to reduce code duplication below - those could also go into egressip_helpers.go, but they feel more appropriate here as they call
@@ -681,7 +751,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 // It launches a new prober pod and sends <iterations> of requests with a unique search string. It then makes sure that <expectedHits> number
 // of hits were seen.
 func spawnProberSendEgressIPTrafficCheckLogs(
-	oc *exutil.CLI, externalNamespace, probePodName, routeName, targetProtocol, targetHost string, targetPort, iterations, expectedHits int, packetSnifferDaemonSet *v1.DaemonSet, egressIPSet map[string]string) {
+	oc *exutil.CLI, externalNamespace, probePodName, url, targetProtocol, targetHost string, targetPort, iterations, expectedHits int, packetSnifferDaemonSet *v1.DaemonSet, egressIPSet map[string]string) {
 
 	framework.Logf("Launching a new prober pod")
 	proberPod := createProberPod(oc, externalNamespace, probePodName)
@@ -690,7 +760,7 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 	// Retry this test every 30 seconds for up to 2 minutes to give the cluster time to converge - eventually, this test should pass.
 	o.Eventually(func() bool {
 		framework.Logf("Verifying that the expected number of EgressIP outbound requests can be seen in the packet sniffer logs")
-		result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
+		result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, url, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
 		return err == nil && result
 	}, 120*time.Second, 30*time.Second).Should(o.BeTrue())
 
@@ -829,4 +899,21 @@ func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, cloudNetworkClientset c
 		framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
 		return true
 	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
+}
+
+func isClusterDefaultNetwork(networkName string) bool {
+	if networkName == "default" {
+		return true
+	}
+	return false
+}
+
+// fetchURLForDeployment selects the routeHost if its a CDN or cluster IP for UDNs.
+// FIXME: Remove this when UDNs get support for OCP routes
+func fetchURLForDeployment(networkName, routeHost, clusterIP string) string {
+	url := routeHost
+	if networkName != "default" {
+		url = clusterIP
+	}
+	return url
 }
