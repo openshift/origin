@@ -82,7 +82,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
-			routerURL := fmt.Sprintf("http://%s", routerIP)
+			routerURL := fmt.Sprintf("http://%s", exutil.IPUrl(routerIP))
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
