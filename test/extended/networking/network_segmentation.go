@@ -14,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
 
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
@@ -748,6 +749,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						setRuntimeDefaultPSA(pod)
 					},
 				)
+				framework.Logf("SURYA default network pod %v/%v", defaultClientPod.Namespace, defaultClientPod.Name)
+				Eventually(func() bool {
+					pod, err := f.ClientSet.CoreV1().Pods(defaultClientPod.Namespace).Get(context.TODO(), defaultClientPod.Name, metav1.GetOptions{})
+					framework.Logf("SURYA default network pod %v---%v", pod, err)
+					return err == nil
+				}, 15*time.Second).Should(BeTrue())
 
 				udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
 					cs,
@@ -800,8 +807,18 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					}
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
+						framework.Logf("SURYA DEBUG BEGINS")
+						framework.Logf("UDN POD %s/%s/%v", udnPod.Namespace, udnPod.Name, udnPod.Annotations)
+						err = executeNBCTLCommands(oc, udnPod.Spec.NodeName)
+						framework.Logf("SURYA prints error %v---%v", err, udnPod.Spec.NodeName)
+						pod, err := f.ClientSet.CoreV1().Pods(defaultClientPod.Namespace).Get(context.TODO(), defaultClientPod.Name, metav1.GetOptions{})
+						o.Expect(err).ToNot(o.HaveOccurred())
+						framework.Logf("SURYA default network pod %v---%v", pod, pod.Spec.NodeName)
+						err = executeNBCTLCommands(oc, pod.Spec.NodeName)
+						framework.Logf("SURYA prints error %v---%v", err, defaultClientPod.Spec.NodeName)
+						framework.Logf("SURYA DEBUG ENDs")
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
+					}, 15*time.Second, 100*time.Millisecond).Should(BeTrue())
 				}
 				By("Verify syntax error is reported via event")
 				events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.Background(), metav1.ListOptions{})
@@ -817,6 +834,30 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		})
 	})
 })
+
+func executeNBCTLCommands(oc *exutil.CLI, nodeName string) error {
+	if nodeName == "" {
+		return fmt.Errorf("passed nodeName was empty")
+	}
+	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
+	if err != nil {
+		return err
+	}
+
+	out, err := adminExecInPod(
+		oc,
+		"openshift-ovn-kubernetes",
+		ovnkubePodInfo.podName,
+		ovnkubePodInfo.containerName,
+		"ovn-nbctl list acl",
+	)
+	framework.Logf("SURYA printing ACLs: %v", out)
+	if err != nil {
+		return fmt.Errorf("failed to list ACLs on node %q: %w", nodeName, err)
+	}
+
+	return nil
+}
 
 func generateUserDefinedNetworkManifest(params *networkAttachmentConfigParams) string {
 	nadToUdnParams := map[string]string{
@@ -1289,7 +1330,7 @@ func inRange(cidr string, ip string) error {
 }
 
 func connectToServer(clientPodConfig podConfiguration, serverIP string, port int) error {
-	_, err := e2ekubectl.RunKubectl(
+	output, err := e2ekubectl.RunKubectl(
 		clientPodConfig.namespace,
 		"exec",
 		clientPodConfig.name,
@@ -1299,6 +1340,7 @@ func connectToServer(clientPodConfig podConfiguration, serverIP string, port int
 		"2",
 		net.JoinHostPort(serverIP, fmt.Sprintf("%d", port)),
 	)
+	framework.Logf("SURYA DEBUGGING %v/%v", output, err)
 	return err
 }
 
