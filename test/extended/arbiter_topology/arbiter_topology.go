@@ -109,7 +109,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve pods without error")
 
 		// Validate the count of running pods
-		expectedPodCount := 14
+		expectedPodCount := 17
 		actualPodCount := len(pods.Items)
 		g.By(fmt.Sprintf("Expected %d pods, found %d pods running on the Arbiter node", expectedPodCount, actualPodCount))
 
@@ -121,6 +121,14 @@ var _ = g.Describe("[sig-node] validate deployment creation on non-Arbiter nodes
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("")
+	managedOC := exutil.NewCLI("foobar").SetManagedNamespace().AsAdmin()
+	g.BeforeEach(func() {
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).To(o.BeNil())
+		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
+			g.Skip("CLuster is not in HighlyAvailableArbiterMode skipping test ")
+		}
+	})
 
 	g.It("Should create deployment on Arbiter and non-Arbiter nodes as expected", func() {
 		namespace := "foobar"
@@ -171,23 +179,48 @@ var _ = g.Describe("[sig-node] validate deployment creation on non-Arbiter nodes
 			_ = oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{})
 		}()
 
-		// Create a master deployment (non-Arbiter node)
-		// Create a master deployment (non-Arbiter node)
 		// Create a Master deployment (non-Arbiter node)
-		err = createMasterDeployment(
-			oc,
-			namespace,
-		)
+		_, err = createMasterDeployment(managedOC)
 		o.Expect(err).To(o.BeNil(), "Expected master busybox deployment creation to succeed")
 
 		// Create an Arbiter deployment (scheduled on Arbiter node)
-		err = createArbiterDeployment(
-			oc,
-			namespace,
-			arbiterNodeName, // Specific nodeName for Arbiter
-		)
+		_, err = createArbiterDeployment(managedOC, arbiterNodeName)
 		o.Expect(err).To(o.BeNil(), "Expected arbiter busybox deployment creation to succeed")
 
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+			LabelSelector: "app=busybox-arbiter",
+		})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter pods")
+		for _, pod := range pods.Items {
+			fmt.Printf("Pod: %s, Status: %s\n", pod.Name, pod.Status.Phase)
+		}
+		events, err := oc.AdminKubeClient().CoreV1().Events(namespace).List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve events without error")
+		for _, event := range events.Items {
+			fmt.Printf("Event: %s - %s\n", event.Reason, event.Message)
+		}
+
+		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		err = wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app=busybox-arbiter",
+			})
+			if err != nil {
+				return false, nil
+			}
+			if len(pods.Items) == 0 {
+				return false, nil
+			}
+			for _, pod := range pods.Items {
+				if pod.Status.Phase != corev1.PodRunning {
+					return false, nil
+				}
+			}
+			return true, nil
+		})
+		o.Expect(err).To(o.BeNil(), "Expected Arbiter pods to be running")
 		// Validate arbiter deployment is on the Arbiter node
 		arbiterPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: "app=busybox-arbiter",
@@ -214,64 +247,80 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet 
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("CLuster is not in HighlyAvailableArbiterMode skipping test ")
+			g.Skip("Cluster is not in HighlyAvailableArbiterMode, skipping test")
 		}
 	})
 
 	g.It("Should create a DaemonSet on the Arbiter node as expected", func() {
 		namespace := "foobar"
 
-		defer func() {
-			_ = oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{})
-		}()
-		// Delete namespace if it exists
+		// Ensure the namespace is deleted if it already exists
 		_ = oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{})
 
-		// Wait until the namespace deletion is complete or timeout occurs
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		// Wait until the namespace deletion is complete
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		err := wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 60*time.Second, true, func(ctx context.Context) (bool, error) {
-			_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
-				return true, nil // Namespace is deleted
+		err := wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			_, err = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+			if err != nil && errors.IsNotFound(err) {
+				return true, nil
 			}
-			return false, nil // Continue waiting
+			return false, nil
 		})
 		o.Expect(err).To(o.BeNil(), "Expected namespace deletion without error")
 
-		// Re-create the namespace
+		// Create the namespace
 		_, err = oc.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: namespace},
 		}, metav1.CreateOptions{})
 		o.Expect(err).To(o.BeNil(), "Expected namespace creation without error")
+		defer func() {
+			_ = oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{})
+		}()
 
-		// Create the DaemonSet using the merged function (asDeployment = false)
-		// err = createBusyboxWorkload(oc, namespace, "busybox-daemon", map[string]string{"app": "busybox-daemon"}, "", false, true)
-		// o.Expect(err).To(o.BeNil(), "Expected DaemonSet creation to succeed")
+		// Create the DaemonSet
+		_, err = createDaemonSet(oc, namespace)
+		o.Expect(err).To(o.BeNil(), "Expected DaemonSet creation to succeed")
 
-		// Retrieve and verify DaemonSet pods
-		daemonSetPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
-			LabelSelector: "app=busybox-daemon",
+		// Wait for DaemonSet pods to reach Running state
+		err = wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app=busybox-daemon",
+			})
+			if err != nil {
+				return false, nil
+			}
+			if len(pods.Items) == 0 {
+				return false, nil
+			}
+			for _, pod := range pods.Items {
+				if pod.Status.Phase != corev1.PodRunning {
+					return false, nil
+				}
+			}
+			return true, nil
 		})
-		o.Expect(err).To(o.BeNil(), "Expected to retrieve DaemonSet pods without error")
+		o.Expect(err).To(o.BeNil(), "Expected DaemonSet pods to be running")
 
-		// Retrieve the Arbiter node name dynamically
+		// Retrieve the Arbiter node name
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/arbiter",
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter node without error")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "Expected at least one Arbiter node")
 
-		// Store the Arbiter node name
 		arbiterNodeName := nodes.Items[0].Name
 
-		// Check if DaemonSet pods are NOT scheduled on the Arbiter node
-		daemonsetNodeNames := ""
-		for _, pod := range daemonSetPods.Items {
-			daemonsetNodeNames += pod.Spec.NodeName + " "
+		// Validate that DaemonSet pods are NOT scheduled on the Arbiter node
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
+			LabelSelector: "app=busybox-daemon",
+		})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve DaemonSet pods without error")
+
+		for _, pod := range pods.Items {
+			o.Expect(pod.Spec.NodeName).NotTo(o.Equal(arbiterNodeName), "DaemonSet pod should NOT be scheduled on the Arbiter node")
 		}
-		o.Expect(daemonsetNodeNames).ToNot(o.ContainSubstring(arbiterNodeName), "DaemonSet pods should NOT be scheduled on the Arbiter node")
 	})
 })
 
@@ -323,11 +372,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health 
 	})
 })
 
-func createMasterDeployment(
-	oc *exutil.CLI,
-	namespace string,
-) error {
-	zero := int64(0)
+func createMasterDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
+	var replicas int32 = 1
 
 	// Define the container spec
 	container := corev1.Container{
@@ -342,21 +388,18 @@ func createMasterDeployment(
 		},
 	}
 
-	// Define the pod spec
-	podSpec := corev1.PodSpec{
-		TerminationGracePeriodSeconds: &zero,
-		Containers:                    []corev1.Container{container},
-	}
-
-	// Define the deployment spec
+	// Define the deployment
 	deployment := &appv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "busybox-deployment-masters",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": "busybox"},
+			Namespace: "foobar",
 		},
 		Spec: appv1.DeploymentSpec{
-			Replicas: &[]int32{1}[0],
+			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": "busybox"},
 			},
@@ -364,23 +407,21 @@ func createMasterDeployment(
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"app": "busybox"},
 				},
-				Spec: podSpec,
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{container},
+				},
 			},
 		},
 	}
 
 	// Create the deployment
-	_, err := oc.KubeClient().AppsV1().
-		Deployments(namespace).
+	return oc.KubeClient().AppsV1().
+		Deployments("foobar").
 		Create(context.Background(), deployment, metav1.CreateOptions{})
-	return err
 }
 
-func createArbiterDeployment(
-	oc *exutil.CLI,
-	namespace, arbiterNodeName string,
-) error {
-	zero := int64(0)
+func createArbiterDeployment(oc *exutil.CLI, arbiterNodeName string) (*appv1.Deployment, error) {
+	var replicas int32 = 1
 
 	// Define the container spec
 	container := corev1.Container{
@@ -395,22 +436,18 @@ func createArbiterDeployment(
 		},
 	}
 
-	// Define the pod spec
-	podSpec := corev1.PodSpec{
-		TerminationGracePeriodSeconds: &zero,
-		NodeName:                      arbiterNodeName,
-		Containers:                    []corev1.Container{container},
-	}
-
-	// Define the deployment spec
+	// Define the deployment
 	deployment := &appv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "busybox-deployment-arbiter",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": "busybox-arbiter"},
+			Namespace: "foobar",
 		},
 		Spec: appv1.DeploymentSpec{
-			Replicas: &[]int32{1}[0],
+			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": "busybox-arbiter"},
 			},
@@ -418,14 +455,61 @@ func createArbiterDeployment(
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"app": "busybox-arbiter"},
 				},
-				Spec: podSpec,
+				Spec: corev1.PodSpec{
+					NodeName:   arbiterNodeName,
+					Containers: []corev1.Container{container},
+				},
 			},
 		},
 	}
 
 	// Create the deployment
-	_, err := oc.KubeClient().AppsV1().
-		Deployments(namespace).
+	return oc.KubeClient().AppsV1().
+		Deployments("foobar").
 		Create(context.Background(), deployment, metav1.CreateOptions{})
-	return err
+}
+
+func createDaemonSet(oc *exutil.CLI, namespace string) (*appv1.DaemonSet, error) {
+	// Define the container spec
+	container := corev1.Container{
+		Name:    "busybox",
+		Image:   "busybox",
+		Command: []string{"sleep", "3600"},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("20m"),
+				corev1.ResourceMemory: resource.MustParse("50Mi"),
+			},
+		},
+	}
+
+	// Define the DaemonSet
+	daemonSet := &appv1.DaemonSet{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "DaemonSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "busybox-daemon",
+			Namespace: namespace,
+		},
+		Spec: appv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "busybox-daemon"},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": "busybox-daemon"},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{container},
+				},
+			},
+		},
+	}
+
+	// Create the DaemonSet
+	return oc.KubeClient().AppsV1().
+		DaemonSets(namespace).
+		Create(context.Background(), daemonSet, metav1.CreateOptions{})
 }
