@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 	"image/color"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 )
 
 type CountForSecond struct {
@@ -26,6 +27,10 @@ type CountForSecond struct {
 	NumberOfConcurrentRequestsBeingHandled int
 
 	NumberOfRequestsReceived int
+
+	NumberOfRequestsReceivedThatAccessedEtcd int
+	NumberOfRequestsReceivedDidNotAccessEtcd int
+	NumberOfRequestsReceivedSawNoLeader      int
 
 	// NumberOfRequestsReceivedThatLaterGot500 is calculated based on when the request was received instead of completed
 	// because different requests have different timeouts, so it's more useful to categorize based on received time
@@ -78,6 +83,15 @@ func (s *countTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning
 	for i := receivedIndex; i <= completionIndex; i++ {
 		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfConcurrentRequestsBeingHandled++
 	}
+
+	if _, accessedEtcd := auditEvent.Annotations["apiserver.latency.k8s.io/etcd"]; accessedEtcd {
+		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceivedThatAccessedEtcd++
+	} else {
+		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceivedDidNotAccessEtcd++
+	}
+	if _, gotNoLeaderError := auditEvent.Annotations["apiserver.internal.openshift.io/no-leader"]; gotNoLeaderError {
+		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceivedSawNoLeader++
+	}
 }
 
 // returns received index, completion index, status code, and false if the index is out of bounds
@@ -115,16 +129,26 @@ func (c *CountsForRun) countIndexesFromAuditTime(in *auditv1.Event) (int, int, i
 func (c *CountsForRun) ToCSV() ([]byte, error) {
 	out := &bytes.Buffer{}
 	csvWriter := csv.NewWriter(out)
-	if err := csvWriter.Write([]string{"seconds after cluster start", "number of requests being handled", "number of requests received", "number of requests received this second getting 500"}); err != nil {
+	if err := csvWriter.Write([]string{
+		"seconds after cluster start", "number of requests being handled", "number of requests received", "number of requests received this second getting 500",
+		"number of requests received accessing etcd", "number of requests received NOT accessing etcd", "number of requests received with no leader", "percentage of requests received with no leader"}); err != nil {
 		return nil, fmt.Errorf("failed writing headers: %w", err)
 	}
 
 	for i, curr := range c.CountsForEachSecond {
+		percentNoLeader := 0
+		if curr.NumberOfRequestsReceivedThatAccessedEtcd > 0 {
+			percentNoLeader = int(float32(curr.NumberOfRequestsReceivedSawNoLeader) / float32(curr.NumberOfRequestsReceivedThatAccessedEtcd) * 100.0)
+		}
 		record := []string{
 			strconv.Itoa(i),
 			strconv.Itoa(curr.NumberOfConcurrentRequestsBeingHandled),
 			strconv.Itoa(curr.NumberOfRequestsReceived),
 			strconv.Itoa(curr.NumberOfRequestsReceivedThatLaterGot500),
+			strconv.Itoa(curr.NumberOfRequestsReceivedThatAccessedEtcd),
+			strconv.Itoa(curr.NumberOfRequestsReceivedDidNotAccessEtcd),
+			strconv.Itoa(curr.NumberOfRequestsReceivedSawNoLeader),
+			strconv.Itoa(percentNoLeader),
 		}
 
 		if err := csvWriter.Write(record); err != nil {
@@ -187,7 +211,7 @@ func (c *CountsForRun) SubsetDataAtTime(endTime metav1.Time) *CountsForRun {
 	return ret
 }
 
-func (c *CountsForRun) ToLineChart() (*plot.Plot, error) {
+func (c *CountsForRun) ToConcurrentRequestsLineChart() (*plot.Plot, error) {
 	p := plot.New()
 	p.Title.Text = "Requests by Second of Cluster Life"
 	p.Y.Label.Text = "Number of Requests in that Second"
@@ -232,6 +256,35 @@ func (c *CountsForRun) ToLineChart() (*plot.Plot, error) {
 	return p, nil
 }
 
+func (c *CountsForRun) ToEtcdNoLeaderLineChart() (*plot.Plot, error) {
+	p := plot.New()
+	p.Title.Text = "Percentage of Requests Each Second with Etcd No Leader"
+	p.Y.Label.Text = "Percentage of No Leader Responses in that Second"
+	p.X.Label.Text = "Seconds of Cluster Life"
+	p.X.Tick.Marker = plot.TimeTicks{}
+	plotter.DefaultLineStyle.Width = vg.Points(1)
+
+	percentageOfNoLeaderResponses := plotter.XYs{}
+	for i, requestCounts := range c.CountsForEachSecond {
+		timeOfSecond := c.EstimatedStartOfCluster.Add(time.Duration(i) * time.Second)
+		percentNoLeader := float64(0.0)
+		if requestCounts.NumberOfRequestsReceivedThatAccessedEtcd > 0 {
+			percentNoLeader = float64(requestCounts.NumberOfRequestsReceivedSawNoLeader) / float64(requestCounts.NumberOfRequestsReceivedThatAccessedEtcd) * 100.0
+		}
+		percentageOfNoLeaderResponses = append(percentageOfNoLeaderResponses, plotter.XY{X: float64(timeOfSecond.Unix()), Y: percentNoLeader})
+	}
+
+	lineOfPercentageOfNoLeaderResponses, err := plotter.NewLine(percentageOfNoLeaderResponses)
+	if err != nil {
+		return nil, err
+	}
+	lineOfPercentageOfNoLeaderResponses.LineStyle.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	p.Add(lineOfPercentageOfNoLeaderResponses)
+	p.Legend.Add("Percentage of No Leader Responses in that Second", lineOfPercentageOfNoLeaderResponses)
+
+	return p, nil
+}
+
 func (c *CountsForRun) WriteContentToStorage(storageDir, name, timeSuffix string) error {
 	csvContent, err := c.ToCSV()
 	if err != nil {
@@ -241,12 +294,22 @@ func (c *CountsForRun) WriteContentToStorage(storageDir, name, timeSuffix string
 	if err := os.WriteFile(requestCountsByTimeFile, csvContent, 0644); err != nil {
 		return err
 	}
-	requestCountsForEntireRunPlot, err := c.ToLineChart()
+	requestCountsForEntireRunPlot, err := c.ToConcurrentRequestsLineChart()
 	if err != nil {
 		return err
 	}
 	requestCountsByTimeGraphFile := path.Join(storageDir, fmt.Sprintf("%s_%s.png", name, timeSuffix))
 	err = requestCountsForEntireRunPlot.Save(vg.Length(c.NumberOfSeconds), 500, requestCountsByTimeGraphFile)
+	if err != nil {
+		return err
+	}
+
+	noEtcdLeaderByTimeEntireRunPlot, err := c.ToEtcdNoLeaderLineChart()
+	if err != nil {
+		return err
+	}
+	noEtcdLeaderByTimeTimeGraphFile := path.Join(storageDir, fmt.Sprintf("%s_%s.png", name, timeSuffix))
+	err = noEtcdLeaderByTimeEntireRunPlot.Save(vg.Length(c.NumberOfSeconds), 500, noEtcdLeaderByTimeTimeGraphFile)
 	if err != nil {
 		return err
 	}

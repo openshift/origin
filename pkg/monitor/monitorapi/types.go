@@ -247,8 +247,9 @@ const (
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
 
-	ReasonBadOperatorApply  IntervalReason = "BadOperatorApply"
-	ReasonKubeAPIServer500s IntervalReason = "KubeAPIServer500s"
+	ReasonBadOperatorApply      IntervalReason = "BadOperatorApply"
+	ReasonKubeAPIServer500s     IntervalReason = "KubeAPIServer500s"
+	ReasonKubeAPIServerNoLeader IntervalReason = "KubeAPIServerNoLeader"
 
 	ReasonHighGeneration    IntervalReason = "HighGeneration"
 	ReasonInvalidGeneration IntervalReason = "GenerationViolation"
