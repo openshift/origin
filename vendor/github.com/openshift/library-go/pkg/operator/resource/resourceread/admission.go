@@ -53,3 +53,21 @@ func ReadValidatingAdmissionPolicyBindingV1beta1OrDie(objBytes []byte) *admissio
 
 	return requiredObj.(*admissionv1beta1.ValidatingAdmissionPolicyBinding)
 }
+
+func ReadValidatingAdmissionPolicyV1OrDie(objBytes []byte) *admissionv1.ValidatingAdmissionPolicy {
+	requiredObj, err := runtime.Decode(admissionCodecs.UniversalDecoder(admissionv1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	return requiredObj.(*admissionv1.ValidatingAdmissionPolicy)
+}
+
+func ReadValidatingAdmissionPolicyBindingV1OrDie(objBytes []byte) *admissionv1.ValidatingAdmissionPolicyBinding {
+	requiredObj, err := runtime.Decode(admissionCodecs.UniversalDecoder(admissionv1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		panic(err)
+	}
+
+	return requiredObj.(*admissionv1.ValidatingAdmissionPolicyBinding)
+}
