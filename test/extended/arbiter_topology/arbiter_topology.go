@@ -31,8 +31,6 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Validate cluster in
 	})
 	g.It("Should validate infrastructure is HighlyAvailableArbiter", func() {
 		g.By("Test RAN CORRECTLY")
-		// oc get infrastructure cluster
-		//
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 		o.Expect(infra.Status.ControlPlaneTopology).To(o.Equal(v1.HighlyAvailableArbiterMode))
@@ -54,15 +52,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and
 	g.It("Should validate that there are 2 Master nodes and 1 Arbiter node", func() {
 		g.By("Counting nodes from MachineConfigPools for Masters and Arbiter")
 
-		// Run the `oc get mcp master -o jsonpath='{.status.machineCount}'` command
-
 		mcp, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Get(context.Background(), "master", metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master MachineConfigPool without error")
-		o.Expect(mcp.Status.MachineCount).To(o.Equal(2))
+		o.Expect(int(mcp.Status.MachineCount)).To(o.Equal(2), "Expected Master MachineConfigPool to have 2 machines")
 
 		arbiterMcp, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Get(context.Background(), "arbiter", metav1.GetOptions{})
-		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbite MachineConfigPool without error")
-		o.Expect(arbiterMcp.Status.MachineCount).To(o.Equal(1))
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter MachineConfigPool without error")
+		o.Expect(int(arbiterMcp.Status.MachineCount)).To(o.Equal(1), "Expected Arbiter MachineConfigPool to have 1 machine")
 	})
 })
 
@@ -81,7 +77,6 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
 		g.By("Retrieving the Arbiter node name")
 
-		// Retrieve the arbiter node name
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/arbiter",
 		})
@@ -102,13 +97,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 		}
 		o.Expect(arbiterNodeName).NotTo(o.BeEmpty(), "Expected to find a Ready Arbiter node")
 
-		// Count the number of running pods on the Arbiter node
 		pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
 			FieldSelector: "spec.nodeName=" + arbiterNodeName + ",status.phase=Running",
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve pods without error")
 
-		// Validate the count of running pods
 		expectedPodCount := 17
 		actualPodCount := len(pods.Items)
 		g.By(fmt.Sprintf("Expected %d pods, found %d pods running on the Arbiter node", expectedPodCount, actualPodCount))
@@ -256,8 +249,6 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet 
 
 		// Ensure the namespace is deleted if it already exists
 		_ = oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{})
-
-		// Wait until the namespace deletion is complete
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -280,7 +271,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet 
 		}()
 
 		// Create the DaemonSet
-		_, err = createDaemonSet(oc, namespace)
+		_, err = createDaemonSetDeployment(oc, namespace)
 		o.Expect(err).To(o.BeNil(), "Expected DaemonSet creation to succeed")
 
 		// Wait for DaemonSet pods to reach Running state
@@ -337,11 +328,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health 
 	})
 
 	g.It("Should have all etcd pods running and quorum met", func() {
-		// Define the namespace and label selector for etcd pods
 		namespace := "openshift-etcd"
 		labelSelector := "app=etcd"
 
-		// Retrieve the list of etcd pods
 		etcdPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelSelector,
 		})
@@ -375,7 +364,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health 
 func createMasterDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 	var replicas int32 = 1
 
-	// Define the container spec
 	container := corev1.Container{
 		Name:    "busybox",
 		Image:   "busybox",
@@ -388,7 +376,6 @@ func createMasterDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 		},
 	}
 
-	// Define the deployment
 	deployment := &appv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -414,7 +401,6 @@ func createMasterDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 		},
 	}
 
-	// Create the deployment
 	return oc.KubeClient().AppsV1().
 		Deployments("foobar").
 		Create(context.Background(), deployment, metav1.CreateOptions{})
@@ -423,7 +409,6 @@ func createMasterDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 func createArbiterDeployment(oc *exutil.CLI, arbiterNodeName string) (*appv1.Deployment, error) {
 	var replicas int32 = 1
 
-	// Define the container spec
 	container := corev1.Container{
 		Name:    "busybox",
 		Image:   "busybox",
@@ -436,7 +421,6 @@ func createArbiterDeployment(oc *exutil.CLI, arbiterNodeName string) (*appv1.Dep
 		},
 	}
 
-	// Define the deployment
 	deployment := &appv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -463,14 +447,12 @@ func createArbiterDeployment(oc *exutil.CLI, arbiterNodeName string) (*appv1.Dep
 		},
 	}
 
-	// Create the deployment
 	return oc.KubeClient().AppsV1().
 		Deployments("foobar").
 		Create(context.Background(), deployment, metav1.CreateOptions{})
 }
 
-func createDaemonSet(oc *exutil.CLI, namespace string) (*appv1.DaemonSet, error) {
-	// Define the container spec
+func createDaemonSetDeployment(oc *exutil.CLI, namespace string) (*appv1.DaemonSet, error) {
 	container := corev1.Container{
 		Name:    "busybox",
 		Image:   "busybox",
@@ -483,7 +465,6 @@ func createDaemonSet(oc *exutil.CLI, namespace string) (*appv1.DaemonSet, error)
 		},
 	}
 
-	// Define the DaemonSet
 	daemonSet := &appv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -508,7 +489,6 @@ func createDaemonSet(oc *exutil.CLI, namespace string) (*appv1.DaemonSet, error)
 		},
 	}
 
-	// Create the DaemonSet
 	return oc.KubeClient().AppsV1().
 		DaemonSets(namespace).
 		Create(context.Background(), daemonSet, metav1.CreateOptions{})

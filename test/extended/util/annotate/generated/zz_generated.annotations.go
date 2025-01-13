@@ -1677,6 +1677,8 @@ var Annotations = map[string]string{
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node] validate deployment creation on non-Arbiter nodes Should create deployment on Arbiter and non-Arbiter nodes as expected": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
@@ -1710,8 +1712,6 @@ var Annotations = map[string]string{
 	"[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet placement in an Arbiter-node environment Should create a DaemonSet on the Arbiter node as expected": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io] Validate cluster infrastructure in HighlyAvailableArbiterMode Should validate infrastructure is HighlyAvailableArbiter": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-node][apigroup:config.openshift.io] deployment scheduling across non-Arbiter and Arbiter nodes Should create deployment on Arbiter and non-Arbiter nodes as expected": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io] expected Master and Arbiter node counts Should validate that there are 2 Master nodes and 1 Arbiter node": " [Suite:openshift/conformance/parallel]",
 
