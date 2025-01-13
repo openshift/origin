@@ -243,6 +243,70 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							}
 						})
 
+						restartCount := udnPod.Status.ContainerStatuses[0].RestartCount
+						if restartCount > 0 {
+							fmt.Printf("SURYA %v", restartCount)
+							// If pod has restarted, check events to understand why
+							stdout, err := e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container", "--previous",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "get", "pods", udnPod.Name, "-oyaml")
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							Eventually(func() error {
+								events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.TODO(),
+									metav1.ListOptions{
+										FieldSelector: fmt.Sprintf("involvedObject.name=%s", udnPod.Name),
+									})
+								if err != nil {
+									return err
+								}
+								if len(events.Items) == 0 {
+									return fmt.Errorf("no events found for pod with %d restarts", restartCount)
+								}
+								// Log all events
+								for _, event := range events.Items {
+									fmt.Printf("Pod event: Type=%s Reason=%s Message=%s LastTimestamp=%v Count=%d\n",
+										event.Type, event.Reason, event.Message, event.LastTimestamp, event.Count)
+								}
+								return nil
+							}, "30s", "1s").Should(Succeed())
+						} else {
+							stdout, err := e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container", "--previous",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "get", "pods", udnPod.Name, "-oyaml")
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							// If no restarts, still print all events for debugging
+							Eventually(func() error {
+								events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.TODO(),
+									metav1.ListOptions{
+										FieldSelector: fmt.Sprintf("involvedObject.name=%s", udnPod.Name),
+									})
+								if err != nil {
+									return err
+								}
+								if len(events.Items) == 0 {
+									fmt.Printf("no events found for pod")
+								}
+								fmt.Printf("Pod events with no restarts:\n")
+								for _, event := range events.Items {
+									fmt.Printf("Pod event: Type=%s Reason=%s Message=%s LastTimestamp=%v Count=%d\n",
+										event.Type, event.Reason, event.Message, event.LastTimestamp, event.Count)
+								}
+								return nil
+							}, "30s", "1s").Should(Succeed())
+						}
+
 						const podGenerateName = "udn-test-pod-"
 						By("creating default network pod")
 						defaultPod := frameworkpod.CreateExecPodOrFail(
@@ -310,11 +374,76 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						// By this time we have spent at least 8 seconds doing the above checks
 						udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
 						Expect(err).NotTo(HaveOccurred())
+
+						// Check pod state and events based on restart count
+						restartCount = udnPod.Status.ContainerStatuses[0].RestartCount
+						if restartCount > 0 {
+							fmt.Printf("SURYA %v", restartCount)
+							// If pod has restarted, check events to understand why
+							stdout, err := e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container", "--previous",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "get", "pods", udnPod.Name, "-oyaml")
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							Eventually(func() error {
+								events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.TODO(),
+									metav1.ListOptions{
+										FieldSelector: fmt.Sprintf("involvedObject.name=%s", udnPod.Name),
+									})
+								if err != nil {
+									return err
+								}
+								if len(events.Items) == 0 {
+									return fmt.Errorf("no events found for pod with %d restarts", restartCount)
+								}
+								// Log all events
+								for _, event := range events.Items {
+									fmt.Printf("Pod event: Type=%s Reason=%s Message=%s LastTimestamp=%v Count=%d\n",
+										event.Type, event.Reason, event.Message, event.LastTimestamp, event.Count)
+								}
+								return nil
+							}, "30s", "1s").Should(Succeed())
+						} else {
+							stdout, err := e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "logs", udnPod.Name, "-c",
+								"agnhost-container", "--previous",
+							)
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							stdout, err = e2ekubectl.RunKubectl(udnPod.Namespace, "get", "pods", udnPod.Name, "-oyaml")
+							fmt.Printf("SURYA %v/ %v", stdout, err)
+							// If no restarts, still print all events for debugging
+							Eventually(func() error {
+								events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.TODO(),
+									metav1.ListOptions{
+										FieldSelector: fmt.Sprintf("involvedObject.name=%s", udnPod.Name),
+									})
+								if err != nil {
+									return err
+								}
+								if len(events.Items) == 0 {
+									fmt.Printf("no events found for pod")
+								}
+								fmt.Printf("Pod events with no restarts:\n")
+								for _, event := range events.Items {
+									fmt.Printf("Pod event: Type=%s Reason=%s Message=%s LastTimestamp=%v Count=%d\n",
+										event.Type, event.Reason, event.Message, event.LastTimestamp, event.Count)
+								}
+								return nil
+							}, "30s", "1s").Should(Succeed())
+						}
 						Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
 
 						By("asserting healthcheck works (kubelet can access the UDN pod)")
 						// The pod should be ready
-						Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
+						Expect(podutils.IsPodReady(udnPod)).To(BeTrue(), fmt.Sprintf("UDN pod is not ready: %v", udnPod))
 
 						// TODO
 						//By("checking non-kubelet default network host process can't reach the UDN pod")
