@@ -339,11 +339,18 @@ func waitForVMIMSuccess(vmClient *kubevirt.Client, namespace, vmName string) {
 }
 
 func addressFromStatus(cli *kubevirt.Client, vmName string) []string {
-	GinkgoHelper()
-	addressesStr, err := cli.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].ipAddresses}")
-	Expect(err).NotTo(HaveOccurred())
 	var addresses []string
-	Expect(json.Unmarshal([]byte(addressesStr), &addresses)).To(Succeed())
+	Eventually(func(g Gomega) []string {
+		GinkgoHelper()
+		addressesStr, err := cli.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].ipAddresses}")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		g.Expect(json.Unmarshal([]byte(addressesStr), &addresses)).To(Succeed())
+		return addresses
+	}).
+		WithPolling(time.Second).
+		WithTimeout(5 * time.Minute).
+		Should(Equal("true"))
 	return addresses
 }
 
