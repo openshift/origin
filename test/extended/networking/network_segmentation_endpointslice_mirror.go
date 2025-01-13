@@ -95,14 +95,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						By("asserting the mirrored EndpointSlice exists and contains PODs primary IPs")
 						Eventually(func() error {
 							return validateMirroredEndpointSlices(cs, f.Namespace.Name, svc.Name, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, replicas, isDualStack, isHostNetwork)
-						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+						}, pollTimeout, pollInterval).Should(Succeed())
 
 						By("removing the mirrored EndpointSlice so it gets recreated")
 						err = cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
 						framework.ExpectNoError(err, "Failed removing the mirrored EndpointSlice %v", err)
 						Eventually(func() error {
 							return validateMirroredEndpointSlices(cs, f.Namespace.Name, svc.Name, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, replicas, isDualStack, isHostNetwork)
-						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+						}, pollTimeout, pollInterval).Should(Succeed())
 
 						By("removing the service so both EndpointSlices get removed")
 						err = cs.CoreV1().Services(f.Namespace.Name).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
@@ -117,7 +117,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								return fmt.Errorf("expected no mirrored EndpointSlice, got: %d", len(esList.Items))
 							}
 							return nil
-						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+						}, pollTimeout, pollInterval).Should(Succeed())
 
 					},
 					Entry(
@@ -222,7 +222,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								return fmt.Errorf("expected no mirrored EndpointSlice, got: %d", len(esList.Items))
 							}
 							return nil
-						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+						}, pollTimeout, pollInterval).Should(Succeed())
 					},
 					Entry(
 						"L2 dualstack primary UDN",
