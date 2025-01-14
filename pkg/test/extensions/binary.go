@@ -99,7 +99,7 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []string,
 	names ...string) []*ExtensionTestResult {
 	var results []*ExtensionTestResult
-	unseenTests := sets.New[string](names...)
+	expectedTests := sets.New[string](names...)
 	binName := filepath.Base(b.binaryPath)
 
 	// Build command
@@ -130,21 +130,26 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		if err != nil {
 			panic(fmt.Sprintf("test binary %q returned unmarshallable result", binName))
 		}
-		// unseenTests starts with the list of test names we expect, and as we see them, we remove them from the set. If
-		// we encounter a test result that's not in unseenTests, then it means either:
-		//  - we already saw a result for this test, which breaks the invariant that run-test returns one result for each test
-		//  - we got a test result we didn't expect at all (maybe the external binary improperly mutated the name, or otherwise did something weird)
-		if !unseenTests.Has(result.Name) {
+		// expectedTests starts with the list of test names we expect, and as we see them, we
+		// remove them from the set. If we encounter a test result that's not in expectedTests,
+		// then it means either:
+		//  - we already saw a result for this test, which breaks the invariant that run-test
+		//    returns one result for each test
+		//  - we got a test result we didn't expect at all (maybe the external binary improperly
+		//    mutated the name, or otherwise did something weird)
+		if !expectedTests.Has(result.Name) {
 			result.Result = ResultFailed
 			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
 		}
-		unseenTests.Delete(result.Name)
+		expectedTests.Delete(result.Name)
 		results = append(results, result)
 	}
 
-	for _, unseenTest := range unseenTests.UnsortedList() {
+	// If we end up with anything left in expected tests, generate failures for them because
+	// we didn't get results for them.
+	for _, expectedTest := range expectedTests.UnsortedList() {
 		results = append(results, &ExtensionTestResult{
-			Name:   unseenTest,
+			Name:   expectedTest,
 			Result: ResultFailed,
 			Output: string(testResult),
 			Error:  "external binary did not produce a result for this test",
