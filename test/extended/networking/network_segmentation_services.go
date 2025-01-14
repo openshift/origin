@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
@@ -87,6 +88,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			) {
 				namespace := f.Namespace.Name
 				jig := e2eservice.NewTestJig(cs, namespace, "udn-service")
+
+				netConfigParams.cidr = sanitizeCIDRString(oc, netConfigParams.cidr)
 
 				By("Selecting 3 schedulable nodes")
 				nodes, err := e2enode.GetBoundedReadySchedulableNodes(context.TODO(), f.ClientSet, 3)
@@ -270,7 +273,7 @@ ips=$(ip -o addr show dev $iface| grep global |awk '{print $4}' | cut -d/ -f1 | 
 				networkAttachmentConfigParams{
 					name:     nadName,
 					topology: "layer3",
-					cidr:     correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+					cidr:     strings.Join([]string{userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet}, ","),
 					role:     "primary",
 				},
 			),
@@ -279,7 +282,7 @@ ips=$(ip -o addr show dev $iface| grep global |awk '{print $4}' | cut -d/ -f1 | 
 				networkAttachmentConfigParams{
 					name:     nadName,
 					topology: "layer2",
-					cidr:     correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+					cidr:     strings.Join([]string{userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet}, ","),
 					role:     "primary",
 				},
 			),
