@@ -3,9 +3,13 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/sirupsen/logrus"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -32,7 +36,12 @@ type auditLogAnalyzer struct {
 	requestsDuringShutdownChecker *lateRequestTracking
 	violationChecker              *auditViolations
 
-	countsForInstall *CountsForRun
+	countsForInstall      *CountsForRun
+	installCompletionTime time.Time
+	updateBegin           time.Time
+	updateEnd             time.Time
+	runBegin              time.Time
+	runEnd                time.Time
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
@@ -106,10 +115,28 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		if err != nil {
 			return nil, nil, err
 		}
+		w.runBegin = beginning
+		w.runEnd = end
 		if len(clusterVersion.Status.History) > 0 {
 			installedLevel := clusterVersion.Status.History[len(clusterVersion.Status.History)-1]
 			if installedLevel.CompletionTime != nil {
+				w.installCompletionTime = installedLevel.CompletionTime.Time
 				w.countsForInstall = w.requestCountTracking.CountsForRun.SubsetDataAtTime(*installedLevel.CompletionTime)
+			}
+		}
+		if len(clusterVersion.Status.History) >= 2 {
+			firstUpdateLevel := clusterVersion.Status.History[1]
+
+			// be sure the update happened during the run so we don't double count stuff by accident
+			if firstUpdateLevel.StartedTime.Time.After(beginning) && firstUpdateLevel.StartedTime.Time.Before(end) {
+				w.updateBegin = firstUpdateLevel.StartedTime.Time
+
+				if firstUpdateLevel.CompletionTime != nil {
+					w.updateEnd = firstUpdateLevel.CompletionTime.Time
+				} else {
+					// if the update didn't end, use the end of the run to include as much data as possible
+					w.updateEnd = end
+				}
 			}
 		}
 
@@ -480,6 +507,8 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 		if err != nil {
 			return err
 		}
+
+		writeNoLeaderSeconds(storageDir, timeSuffix, w.requestCountTracking, w.installCompletionTime, w.updateBegin, w.updateEnd, w.runBegin, w.runEnd)
 	}
 	if w.countsForInstall != nil {
 		err := w.countsForInstall.WriteContentToStorage(storageDir, "request-counts-for-install", timeSuffix)
@@ -494,4 +523,81 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 func (*auditLogAnalyzer) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
+}
+
+type noLeaderRow struct {
+	timeRangeName                          string
+	requestsReceivedCount                  int
+	requestsReceivedWithEtcdCount          int
+	requestsReceivedWithoutEtcdCount       int
+	requestsReceivedWithNoLeaderErrorCount int
+}
+
+func (r *noLeaderRow) add(counts CountForSecond) {
+	r.requestsReceivedCount += counts.NumberOfRequestsReceived
+	r.requestsReceivedWithEtcdCount += counts.NumberOfRequestsReceivedThatAccessedEtcd
+	r.requestsReceivedWithoutEtcdCount += counts.NumberOfRequestsReceivedDidNotAccessEtcd
+	r.requestsReceivedWithNoLeaderErrorCount += counts.NumberOfRequestsReceivedSawNoLeader
+}
+func (r *noLeaderRow) toData() map[string]string {
+	return map[string]string{
+		"TimeRangeName":                          r.timeRangeName,
+		"RequestsReceivedCount":                  strconv.Itoa(r.requestsReceivedCount),
+		"RequestsReceivedWithEtcdCount":          strconv.Itoa(r.requestsReceivedWithEtcdCount),
+		"RequestsReceivedWithoutEtcdCount":       strconv.Itoa(r.requestsReceivedWithoutEtcdCount),
+		"RequestsReceivedWithNoLeaderErrorCount": strconv.Itoa(r.requestsReceivedWithNoLeaderErrorCount),
+	}
+}
+
+func writeNoLeaderSeconds(artifactDir, timeSuffix string, countTracking *countTracking, installCompletion, updateBegin, updateEnd, beginning, end time.Time) {
+	countTracking.lock.Lock()
+	defer countTracking.lock.Unlock()
+
+	hasUpdate := !updateBegin.IsZero()
+
+	installCompletionSecond := int(installCompletion.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	updateBeginSecond := int(updateBegin.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	updateEndSecond := int(updateEnd.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	beginningOfRunSecond := int(beginning.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	endOfRunSecond := int(end.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+
+	installCounts := &noLeaderRow{timeRangeName: "Install"}
+	updateCounts := &noLeaderRow{timeRangeName: "Update"}
+	allKnownCounts := &noLeaderRow{timeRangeName: "AllKnown"}
+	duringTests := &noLeaderRow{timeRangeName: "DuringTests"}
+	for secondOfRun, counts := range countTracking.CountsForRun.CountsForEachSecond {
+		allKnownCounts.add(counts)
+
+		if secondOfRun <= installCompletionSecond {
+			installCounts.add(counts)
+		}
+		if hasUpdate && secondOfRun >= updateBeginSecond && secondOfRun <= updateEndSecond {
+			updateCounts.add(counts)
+		}
+		if secondOfRun >= beginningOfRunSecond && secondOfRun <= endOfRunSecond {
+			duringTests.add(counts)
+		}
+	}
+
+	dataFile := dataloader.DataFile{
+		TableName: "audit_no_leader_seconds",
+		Schema: map[string]dataloader.DataType{
+			"TimeRangeName":                          dataloader.DataTypeString,
+			"RequestsReceivedCount":                  dataloader.DataTypeInteger,
+			"RequestsReceivedWithEtcdCount":          dataloader.DataTypeInteger,
+			"RequestsReceivedWithoutEtcdCount":       dataloader.DataTypeInteger,
+			"RequestsReceivedWithNoLeaderErrorCount": dataloader.DataTypeInteger,
+		},
+		Rows: []map[string]string{
+			installCounts.toData(),
+			updateCounts.toData(),
+			allKnownCounts.toData(),
+			duringTests.toData(),
+		},
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("audit-no-leader-seconds%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
 }
