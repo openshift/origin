@@ -1605,8 +1605,6 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services on a user defined primary network should be reachable through their cluster IP and node port L3 dualstack primary UDN, cluster-networked pods, NodePort service": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L2 primary UDN": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L3 primary UDN": " [Suite:openshift/conformance/parallel]",
@@ -1614,6 +1612,10 @@ var Annotations = map[string]string{
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes pods within namespace should be isolated when deny policy is present in L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes pods within namespace should be isolated when deny policy is present in L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services on a user defined primary network should be reachable through their cluster IP, node port and load balancer L2 primary UDN, cluster-networked pods, NodePort service": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services on a user defined primary network should be reachable through their cluster IP, node port and load balancer L3 primary UDN, cluster-networked pods, NodePort service": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller pod connected to ClusterUserDefinedNetwork CR & managed NADs cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
 
