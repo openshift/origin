@@ -87,6 +87,12 @@ func NewImagesCommand() *cobra.Command {
 			for _, line := range lines {
 				fmt.Fprintln(os.Stdout, line)
 			}
+			// TODO: these should be removed after https://github.com/openshift/origin/pull/29350 lands.
+			// It helps jobs that do their own image mirroring to know about the newly introduced images in that PR.
+			newImages := injectNewImages(ref, o.Upstream)
+			for _, line := range newImages {
+				fmt.Fprintln(os.Stdout, line)
+			}
 			return nil
 		},
 	}
@@ -249,4 +255,29 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	sort.Strings(lines)
 	return lines, nil
+}
+
+func injectNewImages(ref reference.DockerImageReference, upstream bool) []string {
+	lines := []string{}
+	for original, mirror := range map[string]string{
+		"registry.k8s.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.2.2": "e2e-47-registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-2-2-fk3Ddr8np00iPF9c",
+		"registry.k8s.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.4.0": "e2e-45-registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-4-0-mUHHjVVuv0UQiTyf",
+		"registry.k8s.io/e2e-test-images/busybox:1.29-2":                                   "e2e-50-registry-k8s-io-e2e-test-images-busybox-1-29-2-ZYWRth-o9U_JR2ZE",
+		"registry.k8s.io/sig-storage/csi-attacher:v4.8.0":                                  "e2e-43-registry-k8s-io-sig-storage-csi-attacher-v4-8-0-S1cGDJYg9N-xpVnU",
+		"registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0":                    "e2e-48-registry-k8s-io-sig-storage-csi-node-driver-registrar-v2-13-0-Yz3cC3wjWoQESAfV",
+		"registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.5.1":                     "e2e-46-registry-k8s-io-sig-storage-csi-node-driver-registrar-v2-5-1-PNOgzdxTQbWunm33",
+		"registry.k8s.io/sig-storage/csi-provisioner:v5.1.0":                               "e2e-42-registry-k8s-io-sig-storage-csi-provisioner-v5-1-0-9nVNb-KrN4Qb7WGv",
+		"registry.k8s.io/sig-storage/csi-resizer:v1.13.1":                                  "e2e-44-registry-k8s-io-sig-storage-csi-resizer-v1-13-1-YKcEWbi0FydNavn_",
+		"registry.k8s.io/sig-storage/csi-snapshotter:v8.2.0":                               "e2e-41-registry-k8s-io-sig-storage-csi-snapshotter-v8-2-0-d_U3bM1nPZDqelWL",
+		"registry.k8s.io/sig-storage/hostpathplugin:v1.15.0":                               "e2e-34-registry-k8s-io-sig-storage-hostpathplugin-v1-15-0-YS6opQN6AdImbOb6",
+		"registry.k8s.io/sig-storage/livenessprobe:v2.15.0":                                "e2e-49-registry-k8s-io-sig-storage-livenessprobe-v2-15-0-4bLc1k1ifxb_KkX9",
+	} {
+		if upstream {
+			lines = append(lines, fmt.Sprintf("%s %s:%s", original, ref.Exact(), mirror))
+		} else {
+			lines = append(lines, fmt.Sprintf("quay.io/openshift/community-e2e-images:%s %s:%s", mirror, ref.Exact(), mirror))
+		}
+	}
+	sort.Strings(lines)
+	return lines
 }

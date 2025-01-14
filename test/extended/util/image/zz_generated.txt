@@ -53,3 +53,14 @@ registry.k8s.io/sig-storage/livenessprobe:v2.12.0 quay.io/openshift/community-e2
 registry.k8s.io/sig-storage/livenessprobe:v2.14.0 quay.io/openshift/community-e2e-images:e2e-51-registry-k8s-io-sig-storage-livenessprobe-v2-14-0-969ousmSC9UQiDgO
 registry.k8s.io/sig-storage/nfs-provisioner:v4.0.8 quay.io/openshift/community-e2e-images:e2e-17-registry-k8s-io-sig-storage-nfs-provisioner-v4-0-8-W5pbwDbNliDm1x4k
 registry.k8s.io/sig-storage/volume-data-source-validator:v1.0.0 quay.io/openshift/community-e2e-images:e2e-33-registry-k8s-io-sig-storage-volume-data-source-validator-v1-0-0-pJwTeQGTDmAV8753
+registry.k8s.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.2.2 quay.io/openshift/community-e2e-images:e2e-47-registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-2-2-fk3Ddr8np00iPF9c
+registry.k8s.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.4.0 quay.io/openshift/community-e2e-images:e2e-45-registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-4-0-mUHHjVVuv0UQiTyf
+registry.k8s.io/e2e-test-images/busybox:1.29-2 quay.io/openshift/community-e2e-images:e2e-50-registry-k8s-io-e2e-test-images-busybox-1-29-2-ZYWRth-o9U_JR2ZE
+registry.k8s.io/sig-storage/csi-attacher:v4.8.0 quay.io/openshift/community-e2e-images:e2e-43-registry-k8s-io-sig-storage-csi-attacher-v4-8-0-S1cGDJYg9N-xpVnU
+registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0 quay.io/openshift/community-e2e-images:e2e-48-registry-k8s-io-sig-storage-csi-node-driver-registrar-v2-13-0-Yz3cC3wjWoQESAfV
+registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.5.1 quay.io/openshift/community-e2e-images:e2e-46-registry-k8s-io-sig-storage-csi-node-driver-registrar-v2-5-1-PNOgzdxTQbWunm33
+registry.k8s.io/sig-storage/csi-provisioner:v5.1.0 quay.io/openshift/community-e2e-images:e2e-42-registry-k8s-io-sig-storage-csi-provisioner-v5-1-0-9nVNb-KrN4Qb7WGv
+registry.k8s.io/sig-storage/csi-resizer:v1.13.1 quay.io/openshift/community-e2e-images:e2e-44-registry-k8s-io-sig-storage-csi-resizer-v1-13-1-YKcEWbi0FydNavn_
+registry.k8s.io/sig-storage/csi-snapshotter:v8.2.0 quay.io/openshift/community-e2e-images:e2e-41-registry-k8s-io-sig-storage-csi-snapshotter-v8-2-0-d_U3bM1nPZDqelWL
+registry.k8s.io/sig-storage/hostpathplugin:v1.15.0 quay.io/openshift/community-e2e-images:e2e-34-registry-k8s-io-sig-storage-hostpathplugin-v1-15-0-YS6opQN6AdImbOb6
+registry.k8s.io/sig-storage/livenessprobe:v2.15.0 quay.io/openshift/community-e2e-images:e2e-49-registry-k8s-io-sig-storage-livenessprobe-v2-15-0-4bLc1k1ifxb_KkX9
