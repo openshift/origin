@@ -56,7 +56,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 		Context("with user defined networks and persistent ips configured", func() {
 			const (
 				nadName           = "blue"
-				bindingName       = "passt"
+				bindingName       = "l2bridge"
 				udnCrReadyTimeout = 60 * time.Second
 				// TODO(trozet): lower this timeout once https://issues.redhat.com/browse/OCPBUGS-49727 is fixed
 				udnNetworkReadyTimeout = 5 * time.Minute
