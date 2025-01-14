@@ -749,6 +749,10 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			if isManagedService {
 				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetMisScheduled")
 			}
+			// https://issues.redhat.com/browse/OCPBUGS-48340
+			if SkipOperatorHubMetricsCheck(oc) {
+				allowedAlertNames = append(allowedAlertNames, "OperatorHubSourceError")
+			}
 
 			tests := map[string]bool{
 				// openshift-e2e-loki alerts should never fail this test, we've seen this happen on daemon set rollout stuck when CI loki was down.
@@ -1024,4 +1028,12 @@ func hasTelemeterClient(client clientset.Interface) bool {
 		e2e.Failf("could not list pods: %v", err)
 	}
 	return true
+}
+
+func SkipOperatorHubMetricsCheck(oc *exutil.CLI) bool {
+	stdout, stderr, err := oc.AsAdmin().Run("get").Args("operatorhub", "cluster", "-o=jsonpath={.spec.disableAllDefaultSources}").Outputs()
+	if err != nil {
+		fmt.Printf("command failed: %v\nstderr: %s\nstdout:%s", err, stderr, stdout)
+	}
+	return stdout == "true"
 }
