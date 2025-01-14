@@ -115,7 +115,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	command.Env = env
 
 	// Run test
-	testResult, err := runWithTimeout(ctx, command, timeout)
+	testResult, _ := runWithTimeout(ctx, command, timeout) // error is ignored because external binaries return non-zero when a test fails, we only need to process the output
 	buf := bytes.NewBuffer(testResult)
 	for {
 		line, err := buf.ReadString('\n')
@@ -130,6 +130,10 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		if err != nil {
 			panic(fmt.Sprintf("test binary %q returned unmarshallable result", binName))
 		}
+		// unseenTests starts with the list of test names we expect, and as we see them, we remove them from the set. If
+		// we encounter a test result that's not in unseenTests, then it means either:
+		//  - we already saw a result for this test, which breaks the invariant that run-test returns one result for each test
+		//  - we got a test result we didn't expect at all (maybe the external binary improperly mutated the name, or otherwise did something weird)
 		if !unseenTests.Has(result.Name) {
 			result.Result = ResultFailed
 			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
@@ -137,23 +141,12 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		unseenTests.Delete(result.Name)
 		results = append(results, result)
 	}
-	if len(results) == 0 && err != nil {
-		// If errored, generate failures for all tests and return
-		for _, name := range names {
-			results = append(results, &ExtensionTestResult{
-				Name:   name,
-				Result: ResultFailed,
-				Output: string(testResult),
-				Error:  fmt.Sprintf("external binary didn't produce a result for this test: %s", err.Error()),
-			})
-		}
-		return results
-	}
 
 	for _, unseenTest := range unseenTests.UnsortedList() {
 		results = append(results, &ExtensionTestResult{
 			Name:   unseenTest,
 			Result: ResultFailed,
+			Output: string(testResult),
 			Error:  "external binary did not produce a result for this test",
 		})
 	}
