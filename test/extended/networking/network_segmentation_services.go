@@ -42,7 +42,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			nadName                      = "tenant-red"
 			servicePort                  = 88
 			serviceTargetPort            = 80
-			userDefinedNetworkIPv4Subnet = "10.128.0.0/16"
+			userDefinedNetworkIPv4Subnet = "10.111.0.0/16" // 10.128.0.0/16 is the cluster subnet
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			clientContainer              = "frr"
 		)
