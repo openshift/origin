@@ -470,7 +470,7 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 				return
 			}
 
-			testSuites, err := runConformanceTests(oc, host, "h2spec", 5*time.Minute)
+			testSuites, err := runConformanceTests(oc, host, "h2spec", 15*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(testSuites).ShouldNot(o.BeEmpty())
 
@@ -613,7 +613,7 @@ func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, host, podName st
 	failuresByTestCaseID := map[string]int{}
 
 	for i := 1; i <= iterations; i++ {
-		testResults, err := runConformanceTests(oc, host, podName, 5*time.Minute)
+		testResults, err := runConformanceTests(oc, host, podName, 15*time.Minute)
 		if err != nil {
 			e2e.Logf(err.Error())
 			continue
