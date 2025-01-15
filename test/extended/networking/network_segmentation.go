@@ -38,6 +38,15 @@ import (
 
 const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
 
+// NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
+// the tests have hardcoded values with 5sec being common for polltimeout and 10ms for pollinterval
+// This is being changed to be 10seconds poll timeout to account for infrastructure complexity between
+// OpenShift and KIND clusters. Also changing the polling interval to be 1 second so that in both
+// Eventually and Consistently blocks we get at least 10 retries (10/1) in good conditions and 5 retries (10/2) in
+// bad conditions since connectToServer util has a 2 second timeout.
+const serverConnectPollTimeout = 10 * time.Second
+const serverConnectPollInterval = 1 * time.Second
+
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
 	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
@@ -263,7 +272,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							By("checking the default network pod can't reach UDN pod on IP " + destIP)
 							Consistently(func() bool {
 								return connectToServer(podConfiguration{namespace: defaultPod.Namespace, name: defaultPod.Name}, destIP, port) != nil
-							}, 5*time.Second).Should(BeTrue())
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 						}
 
 						defaultIPv4, defaultIPv6, err := podIPsForDefaultNetwork(
@@ -280,11 +289,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							By("checking the default network client pod can reach default pod on IP " + destIP)
 							Eventually(func() bool {
 								return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
-							}).Should(BeTrue())
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 							By("checking the UDN pod can't reach the default network pod on IP " + destIP)
 							Consistently(func() bool {
 								return connectToServer(udnPodConfig, destIP, defaultPort) != nil
-							}, 5*time.Second).Should(BeTrue())
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 						}
 
 						// connectivity check is run every second + 1sec initialDelay
@@ -1060,7 +1069,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Consistently(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 
 				By("Open UDN pod port")
@@ -1078,7 +1087,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) == nil
-					}, 5*time.Second).Should(BeTrue())
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 
 				By("Update UDN pod port with the wrong syntax")
@@ -1097,10 +1106,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 				By("Verify syntax error is reported via event")
 				events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.Background(), metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
 				found := false
 				for _, event := range events.Items {
 					if event.Reason == "ErrorUpdatingResource" && strings.Contains(event.Message, "invalid protocol ppp") {
