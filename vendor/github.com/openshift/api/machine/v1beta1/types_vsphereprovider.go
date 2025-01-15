@@ -14,22 +14,22 @@ type VSphereMachineProviderSpec struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// UserDataSecret contains a local reference to a secret that contains the
+	// userDataSecret contains a local reference to a secret that contains the
 	// UserData to apply to the instance
 	// +optional
 	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
-	// CredentialsSecret is a reference to the secret with vSphere credentials.
+	// credentialsSecret is a reference to the secret with vSphere credentials.
 	// +optional
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
-	// Template is the name, inventory path, or instance UUID of the template
+	// template is the name, inventory path, or instance UUID of the template
 	// used to clone new machines.
 	Template string `json:"template"`
-	// Workspace describes the workspace to use for the machine.
+	// workspace describes the workspace to use for the machine.
 	// +optional
 	Workspace *Workspace `json:"workspace,omitempty"`
-	// Network is the network configuration for this machine's VM.
+	// network is the network configuration for this machine's VM.
 	Network NetworkSpec `json:"network"`
-	// NumCPUs is the number of virtual processors in a virtual machine.
+	// numCPUs is the number of virtual processors in a virtual machine.
 	// Defaults to the analogue property value in the template from which this
 	// machine is cloned.
 	// +optional
@@ -40,12 +40,12 @@ type VSphereMachineProviderSpec struct {
 	// machine is cloned.
 	// +optional
 	NumCoresPerSocket int32 `json:"numCoresPerSocket,omitempty"`
-	// MemoryMiB is the size of a virtual machine's memory, in MiB.
+	// memoryMiB is the size of a virtual machine's memory, in MiB.
 	// Defaults to the analogue property value in the template from which this
 	// machine is cloned.
 	// +optional
 	MemoryMiB int64 `json:"memoryMiB,omitempty"`
-	// DiskGiB is the size of a virtual machine's disk, in GiB.
+	// diskGiB is the size of a virtual machine's disk, in GiB.
 	// Defaults to the analogue property value in the template from which this
 	// machine is cloned.
 	// This parameter will be ignored if 'LinkedClone' CloneMode is set.
@@ -57,10 +57,10 @@ type VSphereMachineProviderSpec struct {
 	// +kubebuilder:example="urn:vmomi:InventoryServiceTag:5736bf56-49f5-4667-b38c-b97e09dc9578:GLOBAL"
 	// +optional
 	TagIDs []string `json:"tagIDs,omitempty"`
-	// Snapshot is the name of the snapshot from which the VM was cloned
+	// snapshot is the name of the snapshot from which the VM was cloned
 	// +optional
 	Snapshot string `json:"snapshot"`
-	// CloneMode specifies the type of clone operation.
+	// cloneMode specifies the type of clone operation.
 	// The LinkedClone mode is only support for templates that have at least
 	// one snapshot. If the template has no snapshots, then CloneMode defaults
 	// to FullClone.
@@ -89,7 +89,7 @@ const (
 
 // NetworkSpec defines the virtual machine's network configuration.
 type NetworkSpec struct {
-	// Devices defines the virtual machine's network interfaces.
+	// devices defines the virtual machine's network interfaces.
 	Devices []NetworkDeviceSpec `json:"devices"`
 }
 
@@ -100,19 +100,19 @@ type AddressesFromPool struct {
 	// This should be a fully qualified domain name, for example, externalipam.controller.io.
 	// +kubebuilder:example=externalipam.controller.io
 	// +kubebuilder:validation:Pattern="^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
-	// +kubebuilder:validation:Required
+	// +required
 	Group string `json:"group"`
 	// resource of the IP address pool type known to an external IPAM controller.
 	// It is normally the plural form of the resource kind in lowercase, for example,
 	// ippools.
 	// +kubebuilder:example=ippools
 	// +kubebuilder:validation:Pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-	// +kubebuilder:validation:Required
+	// +required
 	Resource string `json:"resource"`
 	// name of an IP address pool, for example, pool-config-1.
 	// +kubebuilder:example=pool-config-1
 	// +kubebuilder:validation:Pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 }
 
@@ -175,21 +175,25 @@ type NetworkDeviceSpec struct {
 // WorkspaceConfig defines a workspace configuration for the vSphere cloud
 // provider.
 type Workspace struct {
-	// Server is the IP address or FQDN of the vSphere endpoint.
+	// server is the IP address or FQDN of the vSphere endpoint.
 	// +optional
 	Server string `gcfg:"server,omitempty" json:"server,omitempty"`
-	// Datacenter is the datacenter in which VMs are created/located.
+	// datacenter is the datacenter in which VMs are created/located.
 	// +optional
 	Datacenter string `gcfg:"datacenter,omitempty" json:"datacenter,omitempty"`
-	// Folder is the folder in which VMs are created/located.
+	// folder is the folder in which VMs are created/located.
 	// +optional
 	Folder string `gcfg:"folder,omitempty" json:"folder,omitempty"`
-	// Datastore is the datastore in which VMs are created/located.
+	// datastore is the datastore in which VMs are created/located.
 	// +optional
 	Datastore string `gcfg:"default-datastore,omitempty" json:"datastore,omitempty"`
-	// ResourcePool is the resource pool in which VMs are created/located.
+	// resourcePool is the resource pool in which VMs are created/located.
 	// +optional
 	ResourcePool string `gcfg:"resourcepool-path,omitempty" json:"resourcePool,omitempty"`
+	// vmGroup is the cluster vm group in which virtual machines will be added for vm host group based zonal.
+	// +openshift:validation:featureGate=VSphereHostVMGroupZonal
+	// +optional
+	VMGroup string `gcfg:"vmGroup,omitempty" json:"vmGroup,omitempty"`
 }
 
 // VSphereMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
@@ -199,16 +203,16 @@ type Workspace struct {
 type VSphereMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// InstanceID is the ID of the instance in VSphere
+	// instanceId is the ID of the instance in VSphere
 	// +optional
 	InstanceID *string `json:"instanceId,omitempty"`
-	// InstanceState is the provisioning state of the VSphere Instance.
+	// instanceState is the provisioning state of the VSphere Instance.
 	// +optional
 	InstanceState *string `json:"instanceState,omitempty"`
-	// Conditions is a set of conditions associated with the Machine to indicate
+	// conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	// TaskRef is a managed object reference to a Task related to the machine.
+	// taskRef is a managed object reference to a Task related to the machine.
 	// This value is set automatically at runtime and should not be set or
 	// modified by users.
 	// +optional

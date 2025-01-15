@@ -148,7 +148,7 @@ func (MachineOSBuildStatus) SwaggerDoc() map[string]string {
 
 var map_MachineOSBuilderReference = map[string]string{
 	"":                 "MachineOSBuilderReference describes which ImageBuilder backend to use for this build/",
-	"imageBuilderType": "ImageBuilderType describes the image builder set in the MachineOSConfig",
+	"imageBuilderType": "imageBuilderType describes the image builder set in the MachineOSConfig",
 	"buildPod":         "relatedObjects is a list of objects that are related to the build process.",
 }
 

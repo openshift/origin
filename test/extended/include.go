@@ -9,6 +9,7 @@ import (
 	_ "github.com/openshift/origin/test/e2e/upgrade"
 	_ "github.com/openshift/origin/test/extended/adminack"
 	_ "github.com/openshift/origin/test/extended/apiserver"
+	_ "github.com/openshift/origin/test/extended/arbiter_topology"
 	_ "github.com/openshift/origin/test/extended/authentication"
 	_ "github.com/openshift/origin/test/extended/authorization"
 	_ "github.com/openshift/origin/test/extended/authorization/rbac"
