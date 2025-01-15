@@ -153,39 +153,139 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 	return retIntervals, nil, err
 }
 
-func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	ret := monitorapi.Intervals{}
+	if w.requestCountTracking != nil {
+		requestCountIntervals := func() monitorapi.Intervals {
+			w.requestCountTracking.lock.Lock()
+			defer w.requestCountTracking.lock.Unlock()
+
+			retIntervals := monitorapi.Intervals{}
+
+			lastSecondSawNoLeader := false
+			currTotalRequestsToEtcd := 0
+			currTotalRequestsWithNoLeader := 0
+			startOfNoLeaderInterval := time.Time{}
+			for second, counts := range w.requestCountTracking.CountsForRun.CountsForEachSecond {
+				switch {
+				case !lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader > 0:
+					lastSecondSawNoLeader = true
+					currTotalRequestsToEtcd += counts.NumberOfRequestsReceivedThatAccessedEtcd
+					currTotalRequestsWithNoLeader += counts.NumberOfRequestsReceivedSawNoLeader
+					startOfNoLeaderInterval = w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Second * time.Duration(second))
+
+				case lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader > 0:
+					// continuing to have no leader problems
+					currTotalRequestsToEtcd += counts.NumberOfRequestsReceivedThatAccessedEtcd
+					currTotalRequestsWithNoLeader += counts.NumberOfRequestsReceivedSawNoLeader
+
+				case !lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader == 0:
+					// continuing to be no leader problem-free, do nothing
+
+				case lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader == 0:
+					endOfNoLeaderInterval := w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Second * time.Duration(second))
+					failurePercentage := int((float32(currTotalRequestsWithNoLeader) / float32(currTotalRequestsToEtcd)) * 100)
+					retIntervals = append(retIntervals,
+						monitorapi.NewInterval(monitorapi.SourceAuditLog, monitorapi.Error).
+							Locator(monitorapi.NewLocator().KubeAPIServerWithLB("any")).
+							Message(monitorapi.NewMessage().
+								Reason(monitorapi.ReasonKubeAPIServerNoLeader).
+								WithAnnotation(monitorapi.AnnotationCount, strconv.Itoa(currTotalRequestsWithNoLeader)).
+								WithAnnotation(monitorapi.AnnotationPercentage, strconv.Itoa(failurePercentage)).
+								HumanMessagef("%d requests made during this time failed with 'no leader' out of %d total", currTotalRequestsWithNoLeader, currTotalRequestsToEtcd),
+							).
+							Display().
+							Build(startOfNoLeaderInterval, endOfNoLeaderInterval))
+
+					lastSecondSawNoLeader = false
+					currTotalRequestsToEtcd = 0
+					currTotalRequestsWithNoLeader = 0
+					startOfNoLeaderInterval = time.Time{}
+				}
+			}
+
+			return retIntervals
+		}()
+		ret = append(ret, requestCountIntervals...)
+	}
+
+	return ret, nil
 }
 
 func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
-	fiveHundredsTestName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
-	apiserver500s := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
-	})
-	totalDurationOf500s := 0
-	fiveHundredsFailures := []string{}
-	for _, interval := range apiserver500s {
-		totalDurationOf500s += int(interval.To.Sub(interval.From).Seconds()) + 1
-		fiveHundredsFailures = append(fiveHundredsFailures, interval.String())
+	{
+		testName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
+		offendingIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
+		})
+		totalDurationOfOffense := 0
+		offenses := []string{}
+		for _, interval := range offendingIntervals {
+			totalDurationOfOffense += int(interval.To.Sub(interval.From).Seconds()) + 1
+			offenses = append(offenses, interval.String())
+		}
+		if totalDurationOfOffense > 60 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(offenses, "\n"),
+					Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOfOffense),
+				},
+			})
+			// flake for now
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
 	}
-	if totalDurationOf500s > 60 {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-			FailureOutput: &junitapi.FailureOutput{
-				Message: strings.Join(fiveHundredsFailures, "\n"),
-				Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOf500s),
-			},
+
+	{
+		testName := "[Jira:etcd] kube-apiserver should not have etcd no leader problems"
+		offendingIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServerNoLeader
 		})
-		// flake for now
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-		})
-	} else {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-		})
+		totalDurationOfOffense := 0
+		offenses := []string{}
+		for _, interval := range offendingIntervals {
+			totalDurationOfOffense += int(interval.To.Sub(interval.From).Seconds()) + 1
+			offenses = append(offenses, interval.String())
+		}
+		if totalDurationOfOffense > 100 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(offenses, "\n"),
+					Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOfOffense),
+				},
+			})
+			// surely we don't have more than 100 seconds of no leader, start of failure?
+			//ret = append(ret, &junitapi.JUnitTestCase{
+			//	Name: testName,
+			//})
+		} else if totalDurationOfOffense > 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(offenses, "\n"),
+					Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOfOffense),
+				},
+			})
+			// flake for now
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
 	}
 
 	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
