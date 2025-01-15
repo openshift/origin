@@ -268,6 +268,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
+	logrus.Infof("Waiting for all cluster operators to become stable")
+	stableClusterTestResults, err := clusterinfo.WaitForStableCluster(ctx, restConfig)
+	if err != nil {
+		logrus.Errorf("Error waiting for stable cluster: %v", err)
+	}
+
 	monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 	if err != nil {
 		logrus.Errorf("Error getting monitor tests: %v", err)
@@ -480,6 +486,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
+	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
