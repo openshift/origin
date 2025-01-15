@@ -417,25 +417,37 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							}()
 						}
 						networkNamespaceMap := map[string]string{namespaceRed: red, namespaceBlue: blue}
-						for namespace, network := range networkNamespaceMap {
-							By("creating the network " + network + " in namespace " + namespace)
-							netConfig.namespace = namespace
-							netConfig.name = network
-
-							Expect(createNetworkFn(netConfig)).To(Succeed())
-							// update the name because createNetworkFn may mutate the netConfig.name
-							// for cluster scope objects (i.g.: CUDN cases) to enable parallel testing.
-							networkNamespaceMap[namespace] = netConfig.name
-						}
-						red = networkNamespaceMap[namespaceRed]
-						blue = networkNamespaceMap[namespaceBlue]
-
 						workerNodes, err := getWorkerNodesOrdered(cs)
 						Expect(err).NotTo(HaveOccurred())
 						pods := []*v1.Pod{}
 						redIPs := []string{}
 						blueIPs := []string{}
+						podIPs := []string{}
 						for namespace, network := range networkNamespaceMap {
+							By("creating the network " + network + " in namespace " + namespace)
+							netConfig.namespace = namespace
+							netConfig.name = network
+							// We should exclude the already created pods to be sure
+							// ovn-kubernetes do not assign those to this
+							// network
+							netConfig.excludeCIDRs = []string{}
+							for _, podIP := range podIPs {
+								podIPCIDR := podIP
+								if utilnet.IsIPv6String(podIPCIDR) {
+									podIPCIDR += "/128"
+								} else {
+									podIPCIDR += "/32"
+								}
+								netConfig.excludeCIDRs = append(netConfig.excludeCIDRs, podIPCIDR)
+							}
+
+							Expect(createNetworkFn(netConfig)).To(Succeed())
+							// update the name because createNetworkFn may mutate the netConfig.name
+							// for cluster scope objects (i.g.: CUDN cases) to enable parallel testing.
+							networkNamespaceMap[namespace] = netConfig.name
+							network = netConfig.name
+							red = networkNamespaceMap[namespaceRed]
+							blue = networkNamespaceMap[namespaceBlue]
 							for i := 0; i < numberOfPods; i++ {
 								podConfig := *podConfig(
 									fmt.Sprintf("%s-pod-%d", network, i),
@@ -469,6 +481,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									0,
 								)
 								Expect(err).NotTo(HaveOccurred())
+								podIPs = append(podIPs, podIP)
 								if network == red {
 									redIPs = append(redIPs, podIP)
 								} else {
@@ -548,9 +561,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Entry(
 						"with L2 primary UDN",
 						"layer2",
-						4,
-						"203.203.0.0/29",
-						"2014:100:200::0/125",
+						10,
+						userDefinedNetworkIPv4Subnet,
+						userDefinedNetworkIPv6Subnet,
 					),
 					// limit the number of pods to 10
 					Entry(
