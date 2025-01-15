@@ -684,7 +684,7 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 	oc *exutil.CLI, externalNamespace, probePodName, routeName, targetProtocol, targetHost string, targetPort, iterations, expectedHits int, packetSnifferDaemonSet *v1.DaemonSet, egressIPSet map[string]string) {
 
 	framework.Logf("Launching a new prober pod")
-	proberPod := createProberPod(oc, externalNamespace, probePodName)
+	proberPod := createProberPod(oc, externalNamespace, probePodName, func(p *corev1.Pod) {})
 
 	// Unfortunately, even after we created the EgressIP object and the CloudPrivateIPConfig, it can take some time before everything is applied correctly.
 	// Retry this test every 30 seconds for up to 2 minutes to give the cluster time to converge - eventually, this test should pass.

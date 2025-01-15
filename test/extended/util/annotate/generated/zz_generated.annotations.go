@@ -1451,6 +1451,10 @@ var Annotations = map[string]string{
 
 	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:BGP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] External host should be able to quay route advertised pods by the pod IP": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:BGP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] Route advertised pods should query external host with its pod IP": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:CNIMigration] All nodes should be in ready state [Early][Suite:openshift/network/live-migration]": "",
 
 	"[sig-network][Feature:CNIMigration] Cluster operators should be stable [Late][Suite:openshift/network/live-migration]": "",

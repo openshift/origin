@@ -636,7 +636,7 @@ func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, tar
 		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
 		logs, err := req.Stream(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("Error in opening log stream")
+			return nil, fmt.Errorf("Error in opening log stream: %v", err)
 		}
 		defer logs.Close()
 
@@ -1146,11 +1146,11 @@ func getNodeEgressIPConfiguration(node *corev1.Node) ([]*NodeEgressIPConfigurati
 }
 
 // createProberPod creates a prober pod in the proberPodNamespace.
-func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string) *v1.Pod {
+func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string, teakPod func(*corev1.Pod)) *v1.Pod {
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {})
+	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, teakPod)
 }
 
 // destroyProberPod destroys the given proberPod.
