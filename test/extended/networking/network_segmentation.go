@@ -37,6 +37,9 @@ import (
 )
 
 const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
+const pollTimeout = 2 * time.Minute
+const pollInterval = 6 * time.Second
+const podReadyTimeout = 4 * time.Minute // we can revisit this when https://issues.redhat.com/browse/OCPBUGS-48362 lands
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
@@ -280,7 +283,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							By("checking the default network client pod can reach default pod on IP " + destIP)
 							Eventually(func() bool {
 								return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
-							}).Should(BeTrue())
+							}, pollTimeout, pollInterval).Should(BeTrue())
 							By("checking the UDN pod can't reach the default network pod on IP " + destIP)
 							Consistently(func() bool {
 								return connectToServer(udnPodConfig, destIP, defaultPort) != nil
@@ -757,7 +760,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Eventually(func() error {
 						_, err := e2ekubectl.RunKubectl("", "get", clusterUserDefinedNetworkResource, testClusterUdnName)
 						return err
-					}, 1*time.Minute, 3*time.Second).Should(MatchError(ContainSubstring(fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", testClusterUdnName))))
+					}, pollTimeout, pollInterval).Should(MatchError(ContainSubstring(fmt.Sprintf("clusteruserdefinednetworks.k8s.ovn.org %q not found", testClusterUdnName))))
 					return nil
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -1078,7 +1081,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) == nil
-					}, 5*time.Second).Should(BeTrue())
+					}, pollTimeout, pollInterval).Should(BeTrue())
 				}
 
 				By("Update UDN pod port with the wrong syntax")
@@ -1097,10 +1100,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
+					}, pollTimeout, pollInterval).Should(BeTrue())
 				}
 				By("Verify syntax error is reported via event")
 				events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.Background(), metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
 				found := false
 				for _, event := range events.Items {
 					if event.Reason == "ErrorUpdatingResource" && strings.Contains(event.Message, "invalid protocol ppp") {
@@ -1586,7 +1590,7 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 			return v1.PodFailed
 		}
 		return updatedPod.Status.Phase
-	}, 2*time.Minute, 6*time.Second).Should(Equal(v1.PodRunning))
+	}, podReadyTimeout, pollInterval).Should(Equal(v1.PodRunning))
 	return updatedPod
 }
 
