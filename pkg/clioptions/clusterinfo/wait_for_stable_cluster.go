@@ -46,7 +46,9 @@ func summerizeUnstableOperators(operators map[string]string) string {
 // It will generate flake junits if some operators recovered from unstable conditions while it waits.
 // It will generate failure junit if any operators are still unstable after timeout.
 func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi.JUnitTestCase, error) {
-	const testName = "Cluster should be stable before test is started"
+	const testName = "Cluster should be stable after installation is complete"
+	// Create two different junit test name for easy analysis
+	const testNameUnrecovered = "Cluster should be stable before test is started"
 
 	// Skip microshift
 	kubeClient, err := kubernetes.NewForConfig(config)
@@ -54,6 +56,12 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 		return []*junitapi.JUnitTestCase{
 			{
 				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("error creating kube client: %v", err),
+				},
+			},
+			{
+				Name: testNameUnrecovered,
 				FailureOutput: &junitapi.FailureOutput{
 					Output: fmt.Sprintf("error creating kube client: %v", err),
 				},
@@ -69,12 +77,21 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 					Output: fmt.Sprintf("error determining microshift cluster: %v", err),
 				},
 			},
+			{
+				Name: testNameUnrecovered,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("error determining microshift cluster: %v", err),
+				},
+			},
 		}, err
 	}
 	if isMicroShift {
 		return []*junitapi.JUnitTestCase{
 			{
 				Name: testName,
+			},
+			{
+				Name: testNameUnrecovered,
 			},
 		}, nil
 	}
@@ -84,6 +101,12 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 		return []*junitapi.JUnitTestCase{
 			{
 				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("error creating config client: %v", err),
+				},
+			},
+			{
+				Name: testNameUnrecovered,
 				FailureOutput: &junitapi.FailureOutput{
 					Output: fmt.Sprintf("error creating config client: %v", err),
 				},
@@ -140,11 +163,11 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 	if waitErr != nil {
 		msg := fmt.Sprintf("error waiting for cluster operators to become stable: %v", waitErr)
 		if len(unstableOperators) > 0 {
-			msg += fmt.Sprintf("\nunstable operators that never recovered\n")
+			msg += fmt.Sprintf("\nunstable operators that never recovered:\n")
 			msg += summerizeUnstableOperators(unstableOperators)
 		}
 		if len(recoveredOperators) > 0 {
-			msg += fmt.Sprintf("\nunstable operators that recovered%s\n", timingMsg)
+			msg += fmt.Sprintf("\nunstable operators that recovered%s:\n", timingMsg)
 			msg += summerizeUnstableOperators(recoveredOperators)
 		}
 		// Flake for now.
@@ -158,12 +181,24 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 					Output: msg,
 				},
 			},
+			{
+				Name: testNameUnrecovered,
+			},
+			{
+				Name: testNameUnrecovered,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: msg,
+				},
+			},
 		}, waitErr
 	}
 	if len(recoveredOperators) == 0 {
 		return []*junitapi.JUnitTestCase{
 			{
 				Name: testName,
+			},
+			{
+				Name: testNameUnrecovered,
 			},
 		}, nil
 	}
@@ -178,6 +213,9 @@ func WaitForStableCluster(ctx context.Context, config *rest.Config) ([]*junitapi
 			FailureOutput: &junitapi.FailureOutput{
 				Output: msg,
 			},
+		},
+		{
+			Name: testNameUnrecovered,
 		},
 	}, nil
 }
