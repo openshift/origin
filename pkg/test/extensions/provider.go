@@ -1,4 +1,4 @@
-package externalbinary
+package extensions
 
 import (
 	"fmt"
@@ -122,8 +122,8 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 	if _, err := os.Stat(binPath); err == nil {
 		provider.logger.Printf("Using existing binary %q for tag %q", binPath, tag)
 		return &TestBinary{
-			logger: provider.logger,
-			path:   binPath,
+			imageTag:   tag,
+			binaryPath: binPath,
 		}, nil
 	}
 
@@ -162,8 +162,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		binary, tag, image, fileInfo.Size(), extractDuration)
 
 	return &TestBinary{
-		logger: provider.logger,
-		path:   extractedBinary,
+		binaryPath: extractedBinary,
 	}, nil
 }
 
