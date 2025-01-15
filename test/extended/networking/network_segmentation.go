@@ -54,7 +54,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			nadName                      = "gryffindor"
 
-			udnCrReadyTimeout = 5 * time.Second
+			udnCrReadyTimeout = 60 * time.Second
 		)
 
 		var (
@@ -603,7 +603,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				cleanup, err := createManifest(f.Namespace.Name, newUserDefinedNetworkManifest(testUdnName))
 				DeferCleanup(cleanup)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, testUdnName, 5*time.Second)).To(Succeed())
+				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, testUdnName, udnCrReadyTimeout)).To(Succeed())
 			})
 
 			It("should create NetworkAttachmentDefinition according to spec", func() {
@@ -1011,7 +1011,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				cleanup, err := createManifest(f.Namespace.Name, newPrimaryUserDefinedNetworkManifest(oc, testUdnName))
 				DeferCleanup(cleanup)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, testUdnName, 5*time.Second)).To(Succeed())
+				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, testUdnName, udnCrReadyTimeout)).To(Succeed())
 				By("create UDN pod")
 				cfg := podConfig(testPodName, withCommand(func() []string {
 					return httpServerContainerCmd(port)
@@ -1226,15 +1226,20 @@ func applyManifest(namespace, manifest string) error {
 }
 
 func waitForUserDefinedNetworkReady(namespace, name string, timeout time.Duration) error {
-	_, errNetReady := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
-	netReady := errNetReady == nil
-	_, errNetCreated := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkCreated=True", "--timeout", timeout.String())
+	// kubectl wait for condition assumes the resource exists
+	// in CI sometimes it could take a while for the reasource to appear in etcd so better to first
+	// wait for the resource to be created before attempting to check the status
+	_, errNetCreated := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for=create", "--timeout", timeout.String())
 	netCreated := errNetCreated == nil
+	_, errNetCondReady := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
+	netCondReady := errNetCondReady == nil
+	_, errNetCondCreated := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkCreated=True", "--timeout", timeout.String())
+	netCondCreated := errNetCondCreated == nil
 
-	if netReady || netCreated {
+	if netCreated && (netCondReady || netCondCreated) {
 		return nil
 	}
-	return errors.Join(errNetReady, errNetCreated)
+	return errors.Join(errNetCreated, errNetCondReady, errNetCreated)
 }
 
 func waitForClusterUserDefinedNetworkReady(name string, timeout time.Duration) error {
