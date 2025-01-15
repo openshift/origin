@@ -234,7 +234,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: strings.Join(failures, "\n"),
+						Message: strings.Join(flakes, "\n"),
 						Output:  "details in audit log",
 					},
 				},
