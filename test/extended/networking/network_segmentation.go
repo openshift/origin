@@ -38,6 +38,16 @@ import (
 
 const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
 
+// NOTE: We are observing pod creation requests taking more than two minutes t
+// reach the CNI for the CNI to do the necessary plumbing. This is causing tests
+// to timeout since pod doesn't go into ready state.
+// See https://issues.redhat.com/browse/OCPBUGS-48362 for details. We can revisit
+// these values when that bug is fixed but given the Kubernetes test default for a
+// pod to startup is 5mins: https://github.com/kubernetes/kubernetes/blob/60c4c2b2521fb454ce69dee737e3eb91a25e0535/test/e2e/framework/timeouts.go#L22-L23
+// we are not too far from the mark or against test policy
+const podReadyPollTimeout = 4 * time.Minute
+const podReadyPollInterval = 6 * time.Second
+
 // NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
 // the tests have hardcoded values with 5sec being common for polltimeout and 10ms for pollinterval
 // This is being changed to be 10seconds poll timeout to account for infrastructure complexity between
@@ -1596,7 +1606,7 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 			return v1.PodFailed
 		}
 		return updatedPod.Status.Phase
-	}, 2*time.Minute, 6*time.Second).Should(Equal(v1.PodRunning))
+	}, podReadyPollTimeout, podReadyPollInterval).Should(Equal(v1.PodRunning))
 	return updatedPod
 }
 
