@@ -200,7 +200,8 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		failures := []string{}
 		flakes := []string{}
 		for username, numberOfApplies := range usersToApplies {
-			if numberOfApplies > 200 {
+			if numberOfApplies > 50 {
+				errorMessage := fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies)
 				switch username {
 				case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
 					"system:serviceaccount:openshift-network-operator:cluster-network-operator",
@@ -210,9 +211,9 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 
 					// These usernames are already creating more than 200 applies, so flake instead of fail.
 					// We really want to find a way to track namespaces created by the payload versus everything else.
-					flakes = append(flakes, fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies))
+					flakes = append(flakes, errorMessage)
 				default:
-					failures = append(failures, fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies))
+					failures = append(failures, errorMessage)
 				}
 			}
 		}
@@ -234,7 +235,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: strings.Join(failures, "\n"),
+						Message: strings.Join(flakes, "\n"),
 						Output:  "details in audit log",
 					},
 				},
@@ -253,6 +254,28 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			)
 		}
 
+	}
+
+	for resource, numberOfApplies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
+		if numberOfApplies < 200 {
+			continue
+		}
+		testName := fmt.Sprintf("resource %s has been updated too often", resource)
+		errorMessage := fmt.Sprintf("resource %s had %d applies, check the audit log and operator log to figure out why", resource, numberOfApplies)
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: errorMessage,
+					Output:  "details in audit log",
+				},
+			},
+		)
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
 	}
 
 	for verb, namespacesToUserToNumberOf422s := range w.invalidRequestsChecker.verbToNamespacesTouserToNumberOf422s {
