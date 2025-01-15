@@ -476,11 +476,18 @@ func checkConnectionOrNoConnectionToLoadBalancers(f *framework.Framework, client
 		notStr = "not "
 	}
 	for _, lbIngress := range service.Status.LoadBalancer.Ingress {
-		msg := fmt.Sprintf("Client %s/%s should %sreach service %s/%s on LoadBalancer IP %s port %d",
-			clientPod.Namespace, clientPod.Name, notStr, service.Namespace, service.Name, lbIngress.IP, port)
+		lbTarget := lbIngress.IP
+		if lbIngress.IP == "" {
+			lbTarget = lbIngress.Hostname
+			// The propagation of the new DNS record might not be fast on all cloud platforms.
+			waitForURLToResolve(lbTarget)
+		}
+
+		msg := fmt.Sprintf("Client %s/%s should %sreach service %s/%s on LoadBalancer %s (loadbalancer=%+v) port %d",
+			clientPod.Namespace, clientPod.Name, notStr, service.Namespace, service.Name, lbTarget, lbIngress, port)
 		By(msg)
 
-		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, lbIngress.IP, port)
+		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, lbTarget, port)
 
 		if shouldConnect {
 			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd)
@@ -489,6 +496,24 @@ func checkConnectionOrNoConnectionToLoadBalancers(f *framework.Framework, client
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
+}
+
+func waitForURLToResolve(url string) {
+	fmt.Printf("Waiting for url %s to resolve to an IP\n", url)
+	Eventually(func() (string, error) {
+		ips, err := net.LookupIP(url)
+		if err != nil {
+			return "", err
+		}
+		if len(ips) == 0 {
+			return "", fmt.Errorf("no IPs found for hostname %s", url)
+		}
+		fmt.Printf("Resolved hostname %s to IP %s\n", url, ips[0].String())
+		return ips[0].String(), nil
+
+	}).WithTimeout(3 * time.Minute).
+		WithPolling(200 * time.Millisecond).
+		ShouldNot(BeEmpty())
 }
 
 // TODO Deploy an external container (on the bootstrap node?) and uncomment the lines below
