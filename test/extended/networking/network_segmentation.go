@@ -333,7 +333,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									ping, "-I", "eth0", "-c", "1", "-W", "1", hostIP.IP,
 								)
 								return err == nil
-							}, 4*time.Second).Should(BeFalse())
+							}, 4*time.Second, 1*time.Second).Should(BeFalse())
 						}
 
 						By("asserting UDN pod can reach the kapi service in the default network")
@@ -350,7 +350,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								"--insecure",
 								"https://kubernetes.default/healthz")
 							return err == nil
-						}, 5*time.Second).Should(BeTrue())
+						}, 5*time.Second, 1*time.Second).Should(BeTrue())
 
 						By("asserting UDN pod can't reach default services via default network interface")
 						// route setup is already done, get kapi IPs
@@ -372,7 +372,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									"--insecure",
 									fmt.Sprintf("https://%s/healthz", kapiIP))
 								return err != nil
-							}, 5*time.Second).Should(BeTrue())
+							}, 5*time.Second, 1*time.Second).Should(BeTrue())
 						}
 					},
 					Entry(
@@ -681,7 +681,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						_ = nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Delete(ctx, testUdnName, metav1.DeleteOptions{})
 						_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Get(ctx, testUdnName, metav1.GetOptions{})
 						return err
-					}).ShouldNot(HaveOccurred(),
+					}, udnInUseDeleteTimeout, deleteNetworkInterval).ShouldNot(HaveOccurred(),
 						"should fail to delete UserDefinedNetwork associated NetworkAttachmentDefinition when used")
 
 					By("verify UserDefinedNetwork status reports consuming pod")
@@ -926,7 +926,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						_ = nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Delete(ctx, testClusterUdnName, metav1.DeleteOptions{})
 						_, err := nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Get(ctx, testClusterUdnName, metav1.GetOptions{})
 						return err
-					}).ShouldNot(HaveOccurred(),
+					}, udnInUseDeleteTimeout, deleteNetworkInterval).ShouldNot(HaveOccurred(),
 						"should fail to delete UserDefinedNetwork associated NetworkAttachmentDefinition when used")
 
 					By("verify CR status reports consuming pod")
@@ -988,6 +988,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			By("create primary Cluster UDN CR")
 			cudnName := randomNetworkMetaName()
 			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
+			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
 				cleanup()
 				_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 60))
