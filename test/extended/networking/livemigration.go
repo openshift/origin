@@ -117,7 +117,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 					},
 						Entry(
-							"when the VM attached to a primary UDN is migrated between nodes",
+							"[OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes",
 							networkAttachmentConfigParams{
 								name:               nadName,
 								topology:           "layer2",
@@ -128,7 +128,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							migrateVM,
 						),
 						Entry(
-							"when the VMI attached to a primary UDN is migrated between nodes",
+							"[OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes",
 							networkAttachmentConfigParams{
 								name:               nadName,
 								topology:           "layer2",
@@ -139,7 +139,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							migrateVM,
 						),
 						Entry(
-							"when the VM attached to a primary UDN is restarted",
+							"[OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted",
 							networkAttachmentConfigParams{
 								name:               nadName,
 								topology:           "layer2",
