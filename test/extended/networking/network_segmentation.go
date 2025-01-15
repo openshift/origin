@@ -39,6 +39,7 @@ import (
 const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
 const pollTimeout = 2 * time.Minute
 const pollInterval = 6 * time.Second
+const podReadyTimeout = 4 * time.Minute // we can revisit this when https://issues.redhat.com/browse/OCPBUGS-48362 lands
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
@@ -1589,7 +1590,7 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 			return v1.PodFailed
 		}
 		return updatedPod.Status.Phase
-	}, pollTimeout, pollInterval).Should(Equal(v1.PodRunning))
+	}, podReadyTimeout, pollInterval).Should(Equal(v1.PodRunning))
 	return updatedPod
 }
 
