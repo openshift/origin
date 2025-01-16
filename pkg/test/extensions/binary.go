@@ -52,7 +52,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	err = json.Unmarshal(infoJson, &info)
 	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't unmarshal extension info")
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
 	}
 	info.Source.SourceBinary = binName
 	info.Source.SourceImage = b.imageTag
