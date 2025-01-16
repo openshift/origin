@@ -76,7 +76,7 @@ func NewExternalBinaryProvider(releaseImage, registryAuthfilePath string) (*Exte
 func (provider *ExternalBinaryProvider) Cleanup() {
 	if provider.tmpDir != "" {
 		if err := os.RemoveAll(provider.tmpDir); err != nil {
-			logrus.Warningf("Failed to remove tmpDir %s: %v", provider.tmpDir, err)
+			logrus.Errorf("Failed to remove tmpDir %s: %v", provider.tmpDir, err)
 		} else {
 			logrus.Infof("Successfully removed tmpDir %s", provider.tmpDir)
 		}
@@ -180,7 +180,7 @@ func cleanOldCacheFiles(dir string) {
 
 		tgtPath := filepath.Join(dir, entry.Name())
 		if err := os.RemoveAll(tgtPath); err != nil {
-			logrus.Warningf("Failed to remove cache file '%s': %v", tgtPath, err)
+			logrus.Errorf("Failed to remove cache file '%s': %v", tgtPath, err)
 		} else {
 			logrus.Infof("Removed old cache file '%s'", tgtPath)
 		}

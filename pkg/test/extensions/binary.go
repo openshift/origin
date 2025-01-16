@@ -56,7 +56,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	info.Source.SourceBinary = binName
 	info.Source.SourceImage = b.imageTag
-	logrus.Infof("Fetched info for %s %v", binName, time.Since(start))
+	logrus.Infof("Fetched info for %s in %v", binName, time.Since(start))
 	return &info, nil
 }
 
@@ -302,7 +302,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 type TestBinaries []*TestBinary
 
-// Info fetches teh info from all TestBinaries using the specified parallelism.
+// Info fetches the info from all TestBinaries using the specified parallelism.
 func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*ExtensionInfo, error) {
 	var (
 		infos []*ExtensionInfo
