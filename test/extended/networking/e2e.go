@@ -27,7 +27,7 @@ func runCommand(cmd ...string) (string, error) {
 // restartOVNKubeNodePod restarts the ovnkube-node pod from namespace, running on nodeName
 func restartOVNKubeNodePod(clientset kubernetes.Interface, namespace string, nodeName string) error {
 	ovnKubeNodePods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: "name=ovnkube-node",
+		LabelSelector: "app=ovnkube-node",
 		FieldSelector: "spec.nodeName=" + nodeName,
 	})
 	if err != nil {
@@ -46,7 +46,7 @@ func restartOVNKubeNodePod(clientset kubernetes.Interface, namespace string, nod
 	framework.Logf("waiting for node %s to have running ovnkube-node pod", nodeName)
 	err = wait.PollUntilContextTimeout(context.TODO(), 2*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
 		ovnKubeNodePods, err := clientset.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
-			LabelSelector: "name=ovnkube-node",
+			LabelSelector: "app=ovnkube-node",
 			FieldSelector: "spec.nodeName=" + nodeName,
 		})
 		if err != nil {
