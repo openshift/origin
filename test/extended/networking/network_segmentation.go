@@ -701,7 +701,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				topology:    "layer3",
 				name:        primaryNadName,
 				networkName: primaryNadName,
-				cidr:        "10.10.100.0/24",
+				cidr:        correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 			}))
 			_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(context.Background(), primaryNetNad, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
@@ -961,7 +961,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				topology:    "layer3",
 				name:        primaryNadName,
 				networkName: primaryNadName,
-				cidr:        "10.10.100.0/24",
+				cidr:        correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 			}))
 			_, err := nadClient.NetworkAttachmentDefinitions(primaryNetTenantNs).Create(context.Background(), primaryNetNad, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
