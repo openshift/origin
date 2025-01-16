@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,11 +14,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/test/extended/util"
 )
 
 // TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
@@ -44,7 +44,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
 
-	fmt.Fprintf(os.Stderr, "Fetching info for %q\n", binName)
+	logrus.Infof("Fetching info for %s", binName)
 	command := exec.Command(b.binaryPath, "info")
 	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
@@ -56,7 +56,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	info.Source.SourceBinary = binName
 	info.Source.SourceImage = b.imageTag
-	fmt.Fprintf(os.Stderr, "Fetched info for %q in %v\n", binName, time.Since(start))
+	logrus.Infof("Fetched info for %s %v", binName, time.Since(start))
 	return &info, nil
 }
 
@@ -67,7 +67,7 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
 
-	fmt.Fprintf(os.Stderr, "Listing tests for %q", binName)
+	logrus.Infof("Listing tests for %s", binName)
 	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
@@ -91,7 +91,7 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 		extensionTestSpec.Binary = b
 		tests = append(tests, extensionTestSpec)
 	}
-	fmt.Fprintf(os.Stderr, "Listed %d tests for %q in %v", len(tests), binName, time.Since(start))
+	logrus.Infof("Listed %d tests for %s in %v", len(tests), binName, time.Since(start))
 	return tests, nil
 }
 
@@ -161,12 +161,12 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it, and returns a slice of them.
-func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism int) (func(), TestBinaries, error) {
+func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
 	if parallelism < 1 {
 		return nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
-	releaseImage, err := determineReleasePayloadImage(logger)
+	releaseImage, err := determineReleasePayloadImage()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "couldn't determine release image")
 	}
@@ -198,21 +198,21 @@ func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism
 	// if the environment variable is not set, extract the target cluster's
 	// platform pull secret.
 	if len(registryAuthFilePath) != 0 {
-		logger.Printf("Using REGISTRY_AUTH_FILE environment variable: %v", registryAuthFilePath)
+		logrus.Infof("Using REGISTRY_AUTH_FILE environment variable: %v", registryAuthFilePath)
 	} else {
 
 		// See if the cluster-profile has stored a pull-secret at the conventional location.
 		ciProfilePullSecretPath := "/run/secrets/ci.openshift.io/cluster-profile/pull-secret"
 		_, err := os.Stat(ciProfilePullSecretPath)
 		if !os.IsNotExist(err) {
-			logger.Printf("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
+			logrus.Infof("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
 			registryAuthFilePath = ciProfilePullSecretPath
 		} else {
 			// Inspect the cluster-under-test and read its cluster pull-secret dockerconfigjson value.
 			clusterPullSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 			if err != nil {
 				if kapierrs.IsNotFound(err) {
-					logger.Printf("Cluster has no openshift-config secret/pull-secret; falling back to unauthenticated image access")
+					logrus.Warningf("Cluster has no openshift-config secret/pull-secret; falling back to unauthenticated image access")
 				} else {
 					return nil, nil, fmt.Errorf("unable to read ephemeral cluster pull secret: %w", err)
 				}
@@ -226,12 +226,12 @@ func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism
 				}
 
 				defer os.RemoveAll(tmpDir)
-				logger.Printf("Using target cluster pull-secrets for registry auth")
+				logrus.Infof("Using target cluster pull-secrets for registry auth")
 			}
 		}
 	}
 
-	externalBinaryProvider, err := NewExternalBinaryProvider(logger, releaseImage, registryAuthFilePath)
+	externalBinaryProvider, err := NewExternalBinaryProvider(releaseImage, registryAuthFilePath)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "could not create external binary provider")
 	}

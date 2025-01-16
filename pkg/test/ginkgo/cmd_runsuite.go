@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -18,9 +17,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/onsi/ginkgo/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -135,16 +133,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
 
-	fmt.Fprintf(o.Out, "Found %d tests for in openshift-tests binary for suite %q\n", len(tests), suite.Name)
+	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary", len(tests))
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	var externalTestCases []*testCase
-	extractLogger := log.New(os.Stdout, "", log.LstdFlags|log.Lmicroseconds)
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, extractLogger, 10)
+		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
 		if err != nil {
 			return err
 		}
@@ -160,9 +157,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Discovered %d extensions, detailed below\n", len(extensionInfo))
+		logrus.Infof("Discovered %d extensions, detailed below", len(extensionInfo))
 		j, _ := json.MarshalIndent(extensionInfo, "", "  ")
-		fmt.Println(string(j))
+		fmt.Fprintf(o.Out, string(j)+"\n")
 
 		// List tests from all available binaries and convert them to origin's testCase format
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -185,11 +182,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 				filteredTests = append(filteredTests, test)
 			}
 		}
-		fmt.Printf("Discovered %d internal tests, %d external tests - %d total unique tests\n",
+		logrus.Infof("Discovered %d internal tests, %d external tests - %d total unique tests",
 			len(tests), len(externalTestCases), len(filteredTests)+len(externalTestCases))
 		tests = append(filteredTests, externalTestCases...)
 	} else {
-		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
+		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 	}
 
 	// this ensures the tests are always run in random order to avoid
@@ -203,7 +200,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
-	fmt.Fprintf(o.Out, "found %d filtered tests\n", len(tests))
+	logrus.Infof("Found %d filtered tests", len(tests))
 
 	count := o.Count
 	if count == 0 {
@@ -271,10 +268,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		fmt.Fprintf(o.ErrOut, "Interrupted, terminating tests\n")
+		logrus.Error("Interrupted, terminating tests")
 		cancelFn()
 		sig := <-abortCh
-		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
+		logrus.Errorf("Interrupted twice, exiting (%s)", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -403,15 +400,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		pc.ComputePodTransitions()
 		data, err := pc.JsonDump()
 		if err != nil {
-			fmt.Fprintf(o.ErrOut, "Unable to dump pod placement data: %v\n", err)
+			logrus.Errorf("Unable to dump pod placement data: %v", err)
 		} else {
 			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
-				fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
+				logrus.Errorf("Unable to write pod placement data: %v", err)
 			}
 		}
 		chains := pc.PodDisplacements().Dump(minChainLen)
 		if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
-			fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
+			logrus.Errorf("Unable to write pod placement data: %v", err)
 		}
 	}
 
@@ -440,7 +437,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			}
 		}
 
-		fmt.Fprintf(o.Out, "Retry count: %d\n", len(retries))
+		logrus.Warningf("Retry count: %d", len(retries))
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
