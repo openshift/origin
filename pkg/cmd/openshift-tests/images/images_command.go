@@ -1,16 +1,20 @@
 package images
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/cmd"
+	"github.com/openshift/origin/pkg/test/externalbinary"
 	"github.com/openshift/origin/test/extended/util/image"
 	"github.com/spf13/cobra"
 	"k8s.io/kube-openapi/pkg/util/sets"
@@ -151,7 +155,36 @@ type imagesOptions struct {
 func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
 	source := ref.Exact()
 
+	// This is coming from the vendored directory
 	initialDefaults := k8simage.GetOriginalImageConfigs()
+
+	// If ENV is set, this should come from external binary
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
+		// Extract all test binaries
+		extractLogger := log.New(os.Stdout, "", log.LstdFlags|log.Lmicroseconds)
+		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer extractionContextCancel()
+		cleanUpFn, externalBinaries, err := externalbinary.ExtractAllTestBinaries(extractionContext, extractLogger, 10)
+		if err != nil {
+			return nil, err
+		}
+		defer cleanUpFn()
+
+		// List test images from all available binaries and convert them to origin's testCase format
+		listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
+		defer listContextCancel()
+
+		imagesFromExternalBinaries, err := externalBinaries.ListImages(listContext, 10)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(imagesFromExternalBinaries) > 0 {
+			// FIXME: only 1 for now
+			initialDefaults = imagesFromExternalBinaries[0]
+		}
+	}
+
 	exceptions := image.Exceptions.List()
 	defaults := map[k8simage.ImageID]k8simage.Config{}
 

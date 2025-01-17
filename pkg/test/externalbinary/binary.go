@@ -18,6 +18,7 @@ import (
 	"github.com/pkg/errors"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/openshift/origin/test/extended/util"
 )
@@ -78,6 +79,27 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 	}
 	b.logger.Printf("Listed %d tests for %q in %v", len(tests), binName, time.Since(start))
 	return tests, nil
+}
+
+func (b *TestBinary) ListImages(ctx context.Context) (map[k8simage.ImageID]k8simage.Config, error) {
+	start := time.Now()
+	binName := filepath.Base(b.path)
+
+	b.logger.Printf("Listing images for %q", binName)
+	command := exec.Command(b.path, "images")
+	output, err := runWithTimeout(ctx, command, 10*time.Minute)
+	if err != nil {
+		return nil, fmt.Errorf("failed running '%s list': %w", b.path, err)
+	}
+
+	images := make(map[k8simage.ImageID]k8simage.Config)
+	err = json.Unmarshal(output, &images)
+	if err != nil {
+		return nil, err
+	}
+
+	b.logger.Printf("Listed %d test images for %q in %v", len(images), binName, time.Since(start))
+	return images, nil
 }
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
@@ -222,6 +244,68 @@ func ExtractAllTestBinaries(ctx context.Context, logger *log.Logger, parallelism
 }
 
 type TestBinaries []*TestBinary
+
+func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([]map[k8simage.ImageID]k8simage.Config, error) {
+	var (
+		allImages []map[k8simage.ImageID]k8simage.Config
+		mu        sync.Mutex
+		wg        sync.WaitGroup
+		errCh     = make(chan error, len(binaries))
+		jobCh     = make(chan *TestBinary)
+	)
+
+	// Producer: sends jobs to the jobCh channel
+	go func() {
+		defer close(jobCh)
+		for _, binary := range binaries {
+			select {
+			case <-ctx.Done():
+				return // Exit when context is cancelled
+			case jobCh <- binary:
+			}
+		}
+	}()
+
+	// Consumer workers: extract tests concurrently
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return // Exit when context is cancelled
+				case binary, ok := <-jobCh:
+					if !ok {
+						return // Channel was closed
+					}
+					images, err := binary.ListImages(ctx)
+					if err != nil {
+						errCh <- err
+					}
+					mu.Lock()
+					allImages = append(allImages, images)
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+
+	// Wait for all workers to finish
+	wg.Wait()
+	close(errCh)
+
+	// Check if any errors were reported
+	var errs []string
+	for err := range errCh {
+		errs = append(errs, err.Error())
+	}
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("encountered errors while listing tests: %s", strings.Join(errs, ";"))
+	}
+
+	return allImages, nil
+}
 
 // ListTests extracts the tests from all TestBinaries using the specified parallelism.
 func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int) (ExtensionTestSpecs, error) {
