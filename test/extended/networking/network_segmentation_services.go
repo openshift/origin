@@ -18,10 +18,12 @@ import (
 	kapi "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -30,11 +32,11 @@ import (
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services", func() {
-	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
-	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
-	// it didn't work.
-	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e-services", admissionapi.LevelPrivileged)
+	// disable automatic namespace creation, we need to add the required UDN label
+	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e-services")
 	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+
 	ocDefault := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e-services-default", admissionapi.LevelPrivileged)
 	fDefault := ocDefault.KubeFramework()
 
@@ -58,6 +60,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 			var err error
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
+			Expect(err).NotTo(HaveOccurred())
+
+			namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+				"e2e-framework":           f.BaseName,
+				RequiredUDNNamespaceLabel: "",
+			})
+			f.Namespace = namespace
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -90,6 +99,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			) {
 				namespace := f.Namespace.Name
 				jig := e2eservice.NewTestJig(cs, namespace, "udn-service")
+
+				// UDN namespaces must be annotated
+				err := annotateFrameworkNamespaceForUDN(ctx, f)
+				Expect(err).NotTo(HaveOccurred())
 
 				netConfigParams.cidr = sanitizeCIDRString(oc, netConfigParams.cidr)
 
@@ -557,3 +570,20 @@ func waitForURLToResolve(url string) {
 // 			Should(Equal(expectedOutput), "Failed to verify that %s", msg)
 // 	}
 // }
+
+func annotateFrameworkNamespaceForUDN(ctx context.Context, f *framework.Framework) error {
+	namespace := f.Namespace
+	annotationKey := "k8s.ovn.org/primary-user-defined-network"
+
+	patch := []byte(fmt.Sprintf(`{"metadata":{"annotations": {"%s":""}}}`, annotationKey))
+	if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
+		_, err := f.ClientSet.CoreV1().Namespaces().Patch(ctx, namespace.Name, types.MergePatchType,
+			patch,
+			metav1.PatchOptions{})
+		return err
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
