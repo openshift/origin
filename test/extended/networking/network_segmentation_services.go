@@ -30,11 +30,11 @@ import (
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services", func() {
-	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
-	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
-	// it didn't work.
-	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e-services", admissionapi.LevelPrivileged)
+	// disable automatic namespace creation, we need to add the required UDN label
+	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e-services")
 	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
+
 	ocDefault := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e-services-default", admissionapi.LevelPrivileged)
 	fDefault := ocDefault.KubeFramework()
 
@@ -58,6 +58,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 			var err error
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
+			Expect(err).NotTo(HaveOccurred())
+
+			namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+				"e2e-framework":           f.BaseName,
+				RequiredUDNNamespaceLabel: "",
+			})
+			f.Namespace = namespace
 			Expect(err).NotTo(HaveOccurred())
 		})
 
