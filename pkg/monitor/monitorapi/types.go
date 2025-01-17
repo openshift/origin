@@ -109,6 +109,9 @@ const (
 	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
 	LocatorTypeKind            LocatorType = "Kind"
 	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
+
+	LocatorTypeKubeletSyncLoopProbe LocatorType = "KubeletSyncLoopProbe"
+	LocatorTypeKubeletSyncLoopPLEG  LocatorType = "KubeletSyncLoopPLEG"
 )
 
 type LocatorKey string
@@ -143,6 +146,10 @@ const (
 	LocatorRowKey                   LocatorKey = "row"
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
+
+	LocatorTypeKubeletSyncLoopProbeType LocatorKey = "probe"
+	LocatorTypeKubeletSyncLoopPLEGType  LocatorKey = "plegType"
+	LocatorStaticPodInstallType         LocatorKey = "podType"
 )
 
 type Locator struct {
@@ -175,6 +182,8 @@ const (
 	PodReasonEvicted               IntervalReason = "Evicted"
 	PodReasonPreempted             IntervalReason = "Preempted"
 	PodReasonFailed                IntervalReason = "Failed"
+	PodReasonReady                 IntervalReason = "PodReady"
+	PodReasonNotReady              IntervalReason = "PodNotReady"
 
 	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
 	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
