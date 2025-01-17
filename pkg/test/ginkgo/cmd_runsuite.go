@@ -153,13 +153,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		// TODO(stbenjam): we'll eventually use this information to get suite information -- but not yet in this iteration
 		infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer infoContextCancel()
-		extensionInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
+		extensionsInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
 		if err != nil {
 			return err
 		}
-		logrus.Infof("Discovered %d extensions, detailed below", len(extensionInfo))
-		j, _ := json.MarshalIndent(extensionInfo, "", "  ")
-		fmt.Fprintf(o.Out, string(j)+"\n")
+		logrus.Infof("Discovered %d extensions", len(extensionsInfo))
+		for _, e := range extensionsInfo {
+			id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
+			logrus.Infof("Extension %s found in %s:%s", id, e.Source.SourceImage, e.Source.SourceBinary)
+		}
 
 		// List tests from all available binaries and convert them to origin's testCase format
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
