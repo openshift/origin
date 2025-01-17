@@ -50,7 +50,9 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s info': %w", b.binaryPath, err)
 	}
-	err = json.Unmarshal(infoJson, &info)
+	jsonBegins := bytes.IndexByte(infoJson, '{')
+	jsonEnds := bytes.LastIndexByte(infoJson, '}')
+	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
 	}
