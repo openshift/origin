@@ -38,6 +38,25 @@ import (
 
 const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
 
+// NOTE: We are observing pod creation requests taking more than two minutes t
+// reach the CNI for the CNI to do the necessary plumbing. This is causing tests
+// to timeout since pod doesn't go into ready state.
+// See https://issues.redhat.com/browse/OCPBUGS-48362 for details. We can revisit
+// these values when that bug is fixed but given the Kubernetes test default for a
+// pod to startup is 5mins: https://github.com/kubernetes/kubernetes/blob/60c4c2b2521fb454ce69dee737e3eb91a25e0535/test/e2e/framework/timeouts.go#L22-L23
+// we are not too far from the mark or against test policy
+const podReadyPollTimeout = 4 * time.Minute
+const podReadyPollInterval = 6 * time.Second
+
+// NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
+// the tests have hardcoded values with 5sec being common for polltimeout and 10ms for pollinterval
+// This is being changed to be 10seconds poll timeout to account for infrastructure complexity between
+// OpenShift and KIND clusters. Also changing the polling interval to be 1 second so that in both
+// Eventually and Consistently blocks we get at least 10 retries (10/1) in good conditions and 5 retries (10/2) in
+// bad conditions since connectToServer util has a 2 second timeout.
+const serverConnectPollTimeout = 10 * time.Second
+const serverConnectPollInterval = 1 * time.Second
+
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
 	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
@@ -263,7 +282,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							By("checking the default network pod can't reach UDN pod on IP " + destIP)
 							Consistently(func() bool {
 								return connectToServer(podConfiguration{namespace: defaultPod.Namespace, name: defaultPod.Name}, destIP, port) != nil
-							}, 5*time.Second).Should(BeTrue())
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 						}
 
 						defaultIPv4, defaultIPv6, err := podIPsForDefaultNetwork(
@@ -280,11 +299,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							By("checking the default network client pod can reach default pod on IP " + destIP)
 							Eventually(func() bool {
 								return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
-							}).Should(BeTrue())
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 							By("checking the UDN pod can't reach the default network pod on IP " + destIP)
 							Consistently(func() bool {
 								return connectToServer(udnPodConfig, destIP, defaultPort) != nil
-							}, 5*time.Second).Should(BeTrue())
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 						}
 
 						// connectivity check is run every second + 1sec initialDelay
@@ -314,7 +333,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									ping, "-I", "eth0", "-c", "1", "-W", "1", hostIP.IP,
 								)
 								return err == nil
-							}, 4*time.Second).Should(BeFalse())
+							}, 4*time.Second, 1*time.Second).Should(BeFalse())
 						}
 
 						By("asserting UDN pod can reach the kapi service in the default network")
@@ -331,7 +350,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								"--insecure",
 								"https://kubernetes.default/healthz")
 							return err == nil
-						}, 5*time.Second).Should(BeTrue())
+						}, 5*time.Second, 1*time.Second).Should(BeTrue())
 
 						By("asserting UDN pod can't reach default services via default network interface")
 						// route setup is already done, get kapi IPs
@@ -353,7 +372,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									"--insecure",
 									fmt.Sprintf("https://%s/healthz", kapiIP))
 								return err != nil
-							}, 5*time.Second).Should(BeTrue())
+							}, 5*time.Second, 1*time.Second).Should(BeTrue())
 						}
 					},
 					Entry(
@@ -662,7 +681,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						_ = nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Delete(ctx, testUdnName, metav1.DeleteOptions{})
 						_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Get(ctx, testUdnName, metav1.GetOptions{})
 						return err
-					}).ShouldNot(HaveOccurred(),
+					}, udnInUseDeleteTimeout, deleteNetworkInterval).ShouldNot(HaveOccurred(),
 						"should fail to delete UserDefinedNetwork associated NetworkAttachmentDefinition when used")
 
 					By("verify UserDefinedNetwork status reports consuming pod")
@@ -907,7 +926,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						_ = nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Delete(ctx, testClusterUdnName, metav1.DeleteOptions{})
 						_, err := nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Get(ctx, testClusterUdnName, metav1.GetOptions{})
 						return err
-					}).ShouldNot(HaveOccurred(),
+					}, udnInUseDeleteTimeout, deleteNetworkInterval).ShouldNot(HaveOccurred(),
 						"should fail to delete UserDefinedNetwork associated NetworkAttachmentDefinition when used")
 
 					By("verify CR status reports consuming pod")
@@ -969,6 +988,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			By("create primary Cluster UDN CR")
 			cudnName := randomNetworkMetaName()
 			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
+			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
 				cleanup()
 				_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 60))
@@ -1060,7 +1080,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Consistently(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 
 				By("Open UDN pod port")
@@ -1078,7 +1098,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) == nil
-					}, 5*time.Second).Should(BeTrue())
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 
 				By("Update UDN pod port with the wrong syntax")
@@ -1097,10 +1117,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 				By("Verify syntax error is reported via event")
 				events, err := cs.CoreV1().Events(udnPod.Namespace).List(context.Background(), metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
 				found := false
 				for _, event := range events.Items {
 					if event.Reason == "ErrorUpdatingResource" && strings.Contains(event.Message, "invalid protocol ppp") {
@@ -1586,7 +1607,7 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 			return v1.PodFailed
 		}
 		return updatedPod.Status.Phase
-	}, 2*time.Minute, 6*time.Second).Should(Equal(v1.PodRunning))
+	}, podReadyPollTimeout, podReadyPollInterval).Should(Equal(v1.PodRunning))
 	return updatedPod
 }
 

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -25,9 +24,6 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		oc                 = exutil.NewCLI("image-registry-config")
 		originalConfigSpec *imageregistryv1.ImageRegistryConfigStorageS3
 	)
-
-	o.SetDefaultEventuallyTimeout(5 * time.Minute)
-	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	g.BeforeEach(func() {
 
