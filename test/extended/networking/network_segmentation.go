@@ -414,11 +414,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						namespaceRed := f.Namespace.Name + "-" + red
 						namespaceBlue := f.Namespace.Name + "-" + blue
 
-						netConfig := &networkAttachmentConfigParams{
-							topology: topology,
-							cidr:     correctCIDRFamily(oc, userDefinedv4Subnet, userDefinedv6Subnet),
-							role:     "primary",
-						}
 						for _, namespace := range []string{namespaceRed, namespaceBlue} {
 							By("Creating namespace " + namespace)
 							_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
@@ -428,6 +423,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							}, metav1.CreateOptions{})
 							Expect(err).NotTo(HaveOccurred())
 							defer func() {
+								By("Removing namespace " + namespace)
 								Expect(cs.CoreV1().Namespaces().Delete(
 									context.Background(),
 									namespace,
@@ -438,8 +434,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						networkNamespaceMap := map[string]string{namespaceRed: red, namespaceBlue: blue}
 						for namespace, network := range networkNamespaceMap {
 							By("creating the network " + network + " in namespace " + namespace)
-							netConfig.namespace = namespace
-							netConfig.name = network
+							netConfig := &networkAttachmentConfigParams{
+								topology:  topology,
+								cidr:      correctCIDRFamily(oc, userDefinedv4Subnet, userDefinedv6Subnet),
+								role:      "primary",
+								namespace: namespace,
+								name:      network,
+							}
 
 							Expect(createNetworkFn(netConfig)).To(Succeed())
 							// update the name because createNetworkFn may mutate the netConfig.name
@@ -601,7 +602,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				cleanup, err := createManifest("", cudnManifest)
 				DeferCleanup(func() {
 					cleanup()
-					By("delete pods in test namespace to unblock CUDN CR & associate NAD deletion")
+					By(fmt.Sprintf("delete pods in %s namespace to unblock CUDN CR & associate NAD deletion", c.namespace))
 					Expect(cs.CoreV1().Pods(c.namespace).DeleteCollection(context.Background(), metav1.DeleteOptions{}, metav1.ListOptions{})).To(Succeed())
 					_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 120))
 					Expect(err).NotTo(HaveOccurred())
