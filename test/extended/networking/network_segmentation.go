@@ -999,7 +999,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 			By("create primary Cluster UDN CR")
 			cudnName := randomNetworkMetaName()
-			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(cudnName, testTenantNamespaces...))
+			cleanup, err := createManifest(f.Namespace.Name, newPrimaryClusterUDNManifest(oc, cudnName, testTenantNamespaces...))
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
 				cleanup()
@@ -1491,7 +1491,7 @@ spec:
 `
 }
 
-func newPrimaryClusterUDNManifest(name string, targetNamespaces ...string) string {
+func newPrimaryClusterUDNManifest(oc *exutil.CLI, name string, targetNamespaces ...string) string {
 	targetNs := strings.Join(targetNamespaces, ",")
 	return `
 apiVersion: k8s.ovn.org/v1
@@ -1508,8 +1508,19 @@ spec:
     topology: Layer3
     layer3:
       role: Primary
-      subnets: [{cidr: "10.100.0.0/16"}]
-`
+      subnets: ` + generateCIDRforClusterUDN(oc)
+}
+
+func generateCIDRforClusterUDN(oc *exutil.CLI) string {
+	hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+	Expect(err).NotTo(HaveOccurred())
+	cidr := `[{cidr: "203.203.0.0/16"}]`
+	if hasIPv6 && hasIPv4 {
+		cidr = `[{cidr: "203.203.0.0/16"},{cidr: "2014:100:200::0/60"}]`
+	} else if hasIPv6 {
+		cidr = `[{cidr: "2014:100:200::0/60"}]`
+	}
+	return cidr
 }
 
 func setRuntimeDefaultPSA(pod *v1.Pod) {
