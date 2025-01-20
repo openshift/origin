@@ -365,6 +365,8 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	req.Header.Add("Accept", "application/vnd.kubernetes.protobuf, */*")
+	req.Header.Add("Accept-Encoding", "gzip")
 
 	uid := uuid.New().String()
 	req.Header.Set(audit.HeaderAuditID, uid)
