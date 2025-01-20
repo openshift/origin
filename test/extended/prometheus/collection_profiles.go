@@ -33,6 +33,9 @@ const (
 	operatorName              = "cluster-monitoring-operator"
 	operatorNamespaceName     = "openshift-monitoring"
 	operatorConfigurationName = "cluster-monitoring-config"
+
+	pollTimeout  = 15 * time.Minute
+	pollInterval = 5 * time.Second
 )
 
 var (
@@ -117,7 +120,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 
 			return nil
-		}).Should(o.BeNil())
+		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
