@@ -33,8 +33,9 @@ const (
 	operatorName              = "cluster-monitoring-operator"
 	operatorNamespaceName     = "openshift-monitoring"
 	operatorConfigurationName = "cluster-monitoring-config"
-	pollTimeout               = 15 * time.Minute
-	pollInterval              = 5 * time.Second
+
+	pollTimeout  = 15 * time.Minute
+	pollInterval = 5 * time.Second
 )
 
 var (
@@ -56,7 +57,7 @@ type runner struct {
 // NOTE: The containers themselves are guaranteed to run in the order in which they appear.
 var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
-	
+
 	r := &runner{}
 	oc := exutil.NewCLI(projectName)
 	tctx := context.Background()
@@ -119,7 +120,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 
 			return nil
-		}).Should(o.BeNil())
+		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
@@ -294,7 +295,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				wantCount := int(queryResponse.Data.Result[0].Value)
 
 				kubeStateMetricsMainMetricsString := strings.Join(kubeStateMetricsMainMetrics, "")
-				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */ ])
+				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */])
 				queryResponse, err = helper.RunQuery(tctx, r.pclient, kubeStateMetricsMainMetricsCountQuery)
 				if err != nil {
 					return err
