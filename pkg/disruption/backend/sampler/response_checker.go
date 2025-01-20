@@ -1,7 +1,9 @@
 package sampler
 
 import (
+	"errors"
 	"fmt"
+	"syscall"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 )
@@ -52,11 +54,18 @@ func (c checker) CheckResponse(rr backend.RequestResponse) error {
 }
 
 func (c checker) CheckError(err error) error {
-	// TODO: check for obvious error type and determine the category, to
-	//  begin with, we could resolve the following errors:
-	//    a) "no route to host" or "io timeout": these can be
-	//        safely considered network error
-	//    b) "connection refused": needs triage to begin with
-	//    c) "connection reset":  needs triage to begin with
+	if errors.Is(err, syscall.EHOSTUNREACH) || errors.Is(err, syscall.ETIMEDOUT) {
+		return &KnownError{
+			category: "NetworkError",
+			err:      fmt.Errorf("network error: %v", err),
+		}
+	}
+	if errors.Is(err, syscall.ECONNRESET) || errors.Is(err, syscall.ECONNABORTED) || errors.Is(err, syscall.ECONNREFUSED) {
+		return &KnownError{
+			category: "NeedsTriage",
+			err:      fmt.Errorf("connection error: %v", err),
+		}
+	}
+
 	return err
 }
