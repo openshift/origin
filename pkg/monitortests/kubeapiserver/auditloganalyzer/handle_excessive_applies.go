@@ -90,7 +90,7 @@ func (s *excessiveApplies) HandleAuditLogEvent(auditEvent *auditv1.Event, beginn
 	if !ok {
 		users = map[string]int{}
 	}
-	users[auditEvent.User.Username] = users[auditEvent.User.Username] + 1
+	users[auditEvent.User.Username] += 1
 	s.namespacesToUserToNumberOfApplies[nsName] = users
 
 	obj := auditEvent.ObjectRef

@@ -1,12 +1,13 @@
 package auditloganalyzer
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"net/http"
 	"strings"
 	"sync"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 )
 
 type invalidRequests struct {
@@ -76,7 +77,7 @@ func CheckForInvalidMutations() *invalidRequests {
 
 func isApply(auditEvent *auditv1.Event) bool {
 	// only SSA
-	if auditEvent.Verb != "patch" {
+	if auditEvent.Verb != "patch" || auditEvent.Verb == "apply" {
 		return false
 	}
 	// SSA requires a field manager
