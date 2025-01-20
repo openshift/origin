@@ -1437,7 +1437,12 @@ func assertClusterUDNStatusReportsActiveNamespaces(cudnName string, expectedActi
 	// equality matcher cannot be used since condition message namespaces order is inconsistent
 	ExpectWithOffset(1, c.Type).Should(SatisfyAny(Equal("NetworkReady"), Equal("NetworkCreated")))
 	ExpectWithOffset(1, c.Status).Should(Equal(metav1.ConditionTrue))
-	ExpectWithOffset(1, c.Reason).Should(Equal("NetworkAttachmentDefinitionReady"))
+	// TOOD(kyrtapz): Remove the NetworkAttachmentDefinitionReady entry
+	// once https://github.com/ovn-kubernetes/ovn-kubernetes/commit/97d9b67ab59632e3bcebc66049b400c2a096e370 lands downstream
+	ExpectWithOffset(1, c.Reason).Should(Or(
+		Equal("NetworkAttachmentDefinitionReady"),
+		Equal("NetworkAttachmentDefinitionCreated"),
+	))
 
 	ExpectWithOffset(1, c.Message).To(ContainSubstring("NetworkAttachmentDefinition has been created in following namespaces:"))
 	for _, ns := range expectedActiveNsNames {
