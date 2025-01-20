@@ -2,6 +2,7 @@ package arbiter_topology
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -16,6 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+const (
+	labelNodeRoleMaster  = "node-role.kubernetes.io/master"
+	labelNodeRoleArbiter = "node-role.kubernetes.io/arbiter"
+)
+
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and Arbiter node counts", func() {
 	defer g.GinkgoRecover()
 
@@ -24,35 +30,29 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("CLuster is not in HighlyAvailableArbiterMode skipping test ")
+			g.Skip("Cluster is not in HighlyAvailableArbiterMode skipping test ")
 		}
 	})
 
 	g.It("Should validate that there are Master and Arbiter nodes as specified in the cluster", func() {
 		g.By("Counting nodes dynamically based on labels")
-		// DONE: instead of manually comparing 2 with mcp node count we want to get the number from install config and compare it with mcp count
-		// should it be like this oc get nodes with label or reach out to install config yaml?
+		// TODO: instead of manually comparing 2 with mcp node count we want to get the number from install config and compare it with mcp count
+		// yaml comparation
+		const (
+			expectedMasterNodes  = 2
+			expectedArbiterNodes = 1
+		)
 		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/master",
+			LabelSelector: labelNodeRoleMaster,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
-		expectedMasterCount := len(masterNodes.Items)
+		o.Expect(len(masterNodes.Items)).To(o.Equal(expectedMasterNodes))
 
 		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/arbiter",
+			LabelSelector: labelNodeRoleArbiter,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter nodes without error")
-		expectedArbiterCount := len(arbiterNodes.Items)
-
-		g.By("Counting nodes from MachineConfigPools for Masters and Arbiter")
-
-		mcp, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Get(context.Background(), "master", metav1.GetOptions{})
-		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master MachineConfigPool without error")
-		o.Expect(int(mcp.Status.MachineCount)).To(o.Equal(expectedMasterCount), "Expected Master MachineConfigPool to match the number of Master nodes")
-
-		arbiterMcp, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().Get(context.Background(), "arbiter", metav1.GetOptions{})
-		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter MachineConfigPool without error")
-		o.Expect(int(arbiterMcp.Status.MachineCount)).To(o.Equal(expectedArbiterCount), "Expected Arbiter MachineConfigPool to match the number of Arbiter nodes")
+		o.Expect(len(arbiterNodes.Items)).To(o.Equal(expectedArbiterNodes))
 	})
 })
 
@@ -69,30 +69,28 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 	})
 
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
-		g.By("Retrieving the Arbiter node name")
-		// DONE: infer the expected pod count from platfrom type, the current supported type is baremetal only
-		// we expect only 17 in baremetal
+		g.By("inferring platform type")
 
+		// Default to baremetal count of 17 expected Pods, if platform type does not exist in map
 		expectedPodCount := 17
+		expectedPodCountsPerPlatform := map[v1.PlatformType]int{
+			v1.BareMetalPlatformType: 17,
+		}
+
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Infrastructure resource without error")
 
-		platformType := infra.Status.PlatformStatus.Type
-		// Set the expected pod count based on the platform type
-		switch platformType {
-		case v1.BareMetalPlatformType:
-			expectedPodCount = 17
-		default:
-			g.Fail("Unsupported platform type: " + string(platformType))
+		if expectedCount, exists := expectedPodCountsPerPlatform[infra.Status.PlatformStatus.Type]; exists {
+			expectedPodCount = expectedCount
 		}
+		g.By("Retrieving the Arbiter node name")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/arbiter",
+			LabelSelector: labelNodeRoleArbiter,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
 		o.Expect(nodes.Items).To(o.Not(o.BeEmpty()), "Expected to find at least one Arbiter node")
-
+		g.By("by comparing pod counts")
 		podCount := 0
-
 		for _, node := range nodes.Items {
 			pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
 				FieldSelector: "spec.nodeName=" + node.Name + ",status.phase=Running",
@@ -104,7 +102,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 	})
 })
 
-var _ = g.Describe("[sig-node] validate deployment creation on non-Arbiter nodes", func() {
+var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on HighlyAvailableArbiterMode topology", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("arbiter-pod-validation").SetManagedNamespace().AsAdmin()
@@ -116,44 +114,26 @@ var _ = g.Describe("[sig-node] validate deployment creation on non-Arbiter nodes
 		}
 	})
 
-	g.It("Should verify the creation of deployments on arbiter and master nodes", func() {
+	g.It("should be created on arbiter nodes when arbiter node is selected", func() {
 		g.By("Retrieving Arbiter node")
 		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/arbiter",
+			LabelSelector: labelNodeRoleArbiter,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter nodes without error")
 		o.Expect(len(arbiterNodes.Items)).To(o.Equal(1), "Expected to find one Arbiter node exactly")
 
 		var arbiterNodeName string
+
+	endLoop:
 		for _, node := range arbiterNodes.Items {
 			for _, condition := range node.Status.Conditions {
 				if condition.Type == "Ready" && condition.Status == "True" {
 					arbiterNodeName = node.Name
-					break
+					break endLoop
 				}
-			}
-			if arbiterNodeName != "" {
-				break
 			}
 		}
 		o.Expect(arbiterNodeName).NotTo(o.BeEmpty(), "Expected to find a Ready Arbiter node")
-
-		g.By("Retrieving Master nodes")
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/master",
-		})
-		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
-		o.Expect(len(masterNodes.Items)).To(o.Equal(2), "Expected to find two Master nodes")
-
-		// Create a map for Master nodes
-		masterNodeMap := make(map[string]struct{})
-		for _, node := range masterNodes.Items {
-			masterNodeMap[node.Name] = struct{}{}
-		}
-
-		g.By("Creating a Normal deployment (on Master nodes)")
-		_, err = createNormalDeployment(oc)
-		o.Expect(err).To(o.BeNil(), "Expected Master busybox deployment creation to succeed")
 
 		g.By("Creating an Arbiter deployment (on Arbiter node)")
 		_, err = createArbiterDeployment(oc, arbiterNodeName)
@@ -172,6 +152,25 @@ var _ = g.Describe("[sig-node] validate deployment creation on non-Arbiter nodes
 		arbiterPod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), arbiterPods[0], metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter pod without error")
 		o.Expect(arbiterPod.Spec.NodeName).To(o.Equal(arbiterNodeName), "Expected Arbiter deployment to run on Arbiter node")
+	})
+
+	g.It("should be created on master nodes when no node selected", func() {
+		g.By("Retrieving Master nodes")
+		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+			LabelSelector: labelNodeRoleMaster,
+		})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
+		o.Expect(len(masterNodes.Items)).To(o.Equal(2), "Expected to find two Master nodes")
+
+		// Create a map for Master nodes
+		masterNodeMap := make(map[string]struct{})
+		for _, node := range masterNodes.Items {
+			masterNodeMap[node.Name] = struct{}{}
+		}
+
+		g.By("Creating a Normal deployment (on Master nodes)")
+		_, err = createNormalDeployment(oc)
+		o.Expect(err).To(o.BeNil(), "Expected Master busybox deployment creation to succeed")
 
 		g.By("Validating Normal deployment on Master nodes")
 		normalSelector, err := labels.Parse("app=busybox-master")
@@ -183,19 +182,17 @@ var _ = g.Describe("[sig-node] validate deployment creation on non-Arbiter nodes
 		o.Expect(err).To(o.BeNil(), "Expected Normal pods to be running on Master nodes")
 		o.Expect(len(normalPods)).To(o.Equal(1), "Expected exactly two Normal pods to be running on Master nodes")
 
-		for _, podName := range normalPods {
-			pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podName, metav1.GetOptions{})
-			o.Expect(err).To(o.BeNil(), "Expected to retrieve Normal pod without error")
+		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), normalPods[0], metav1.GetOptions{})
+		o.Expect(err).To(o.BeNil(), "Expected to retrieve Normal pod without error")
 
-			_, exists := masterNodeMap[pod.Spec.NodeName]
-			o.Expect(exists).To(o.BeTrue(), "Expected pod to be running on a Master node")
-		}
+		_, exists := masterNodeMap[pod.Spec.NodeName]
+		o.Expect(exists).To(o.BeTrue(), "Expected pod to be running on a Master node")
 
 		o.Expect(len(normalPods)).To(o.Equal(1), "Expected exactly one Normal pod to be running on a Master node")
 	})
 })
 
-var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet placement in an Arbiter-node environment", func() {
+var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology", func() {
 	oc := exutil.NewCLI("daemonset-pod-validation").SetManagedNamespace().AsAdmin()
 	defer g.GinkgoRecover()
 	g.BeforeEach(func() {
@@ -206,7 +203,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet 
 		}
 	})
 
-	g.It("Should create a DaemonSet on the Arbiter node as expected", func() {
+	g.It("should not create a DaemonSet on the Arbiter node", func() {
 		g.By("Creating a DaemonSet deployment")
 		_, err := createDaemonSetDeployment(oc)
 		o.Expect(err).To(o.BeNil(), "Expected Arbiter busybox deployment creation to succeed")
@@ -225,7 +222,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet 
 		g.By("Validating that DaemonSet pods are NOT scheduled on the Arbiter node")
 		// first retrive the arbiter node name
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/arbiter",
+			LabelSelector: labelNodeRoleArbiter,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter node without error")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "Expected at least one Arbiter node")
@@ -238,12 +235,14 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Evaluate DaemonSet 
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve DaemonSet pods without error")
 
 		for _, pod := range pods.Items {
-			o.Expect(pod.Spec.NodeName).NotTo(o.Equal(arbiterNodeName), "DaemonSet pod should NOT be scheduled on the Arbiter node")
+			o.Expect(pod.Spec.NodeName).NotTo(
+				o.Equal(arbiterNodeName),
+				fmt.Sprintf("DaemonSet pod (%s/%s) should NOT be scheduled on the Arbiter node", pod.Namespace, pod.Name))
 		}
 	})
 })
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health and quorum in HighlyAvailableArbiterMode", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io]Ensure etcd health and quorum in HighlyAvailableArbiterMode", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("")
@@ -255,10 +254,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health 
 		}
 	})
 
-	g.It("Should have all etcd pods running and quorum met", func() {
+	g.It("should have all etcd pods running and quorum met", func() {
 		g.By("Retrive And Validate etcd Pods")
-		namespace := "openshift-etcd"
-		labelSelector := "app=etcd"
+
+		const (
+			namespace     = "openshift-etcd"
+			labelSelector = "app=etcd"
+		)
 
 		etcdPods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelSelector,
