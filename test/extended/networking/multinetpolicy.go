@@ -140,12 +140,12 @@ func namespacePodShouldReach(oc *exutil.CLI, namespace, podName, address string)
 	o.EventuallyWithOffset(1, func() error {
 		var err error
 		if namespace == "" {
-			out, err = oc.AsAdmin().Run("exec").Args(podName, "--", "curl", "--connect-timeout", "1", address).Output()
+			out, err = oc.AsAdmin().Run("exec").Args(podName, "--", "curl", "--connect-timeout", "1", "--max-time", "5", address).Output()
 		} else {
-			out, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "curl", "--connect-timeout", "1", address).Output()
+			out, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "curl", "--connect-timeout", "1", "--max-time", "5", address).Output()
 		}
 		return err
-	}, "30s", "1s").ShouldNot(o.HaveOccurred(), "cmd output: %s", out)
+	}, "30s", "5s").ShouldNot(o.HaveOccurred(), "cmd output: %s", out)
 }
 
 func podShouldNotReach(oc *exutil.CLI, podName, address string) {
@@ -157,12 +157,12 @@ func namespacePodShouldNotReach(oc *exutil.CLI, namespace, podName, address stri
 	o.EventuallyWithOffset(1, func() error {
 		var err error
 		if namespace == "" {
-			out, err = oc.AsAdmin().Run("exec").Args(podName, "--", "curl", "--connect-timeout", "1", address).Output()
+			out, err = oc.AsAdmin().Run("exec").Args(podName, "--", "curl", "--connect-timeout", "1", "--max-time", "5", address).Output()
 		} else {
-			out, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "curl", "--connect-timeout", "1", address).Output()
+			out, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "curl", "--connect-timeout", "1", "--max-time", "5", address).Output()
 		}
 		return err
-	}, "30s", "1s").Should(o.HaveOccurred(), "cmd output: %s", out)
+	}, "30s", "5s").Should(o.HaveOccurred(), "cmd output: %s", out)
 }
 
 func mustParseIPAndMask(in string) *net.IPNet {
