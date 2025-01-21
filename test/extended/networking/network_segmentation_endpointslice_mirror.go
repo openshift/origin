@@ -168,7 +168,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnManifest := generateUserDefinedNetworkManifest(&c)
 				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
 				DeferCleanup(cleanup)
-				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, 5*time.Second)).To(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), 5*time.Second, time.Second).Should(Succeed())
 				return err
 			}),
 		)
@@ -254,7 +254,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnManifest := generateUserDefinedNetworkManifest(&c)
 				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
 				DeferCleanup(cleanup)
-				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, 5*time.Second)).To(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), 5*time.Second, time.Second).Should(Succeed())
 				return err
 			}),
 		)
