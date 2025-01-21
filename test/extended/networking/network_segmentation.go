@@ -236,7 +236,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								},
 								InitialDelaySeconds: 1,
 								PeriodSeconds:       1,
-								FailureThreshold:    1,
+								// FIXME: On OCP we have seen readiness probe failures happening for the UDN pod which
+								// causes immediate container restarts - the first readiness probe failure usually happens because
+								// connection gets reset by the pod since normally a liveness probe fails first causing a
+								// restart that also causes the readiness probes to start failing.
+								// Hence increase the failure threshold to 3 tries.
+								FailureThreshold: 3,
+								TimeoutSeconds:   3,
 							}
 							pod.Spec.Containers[0].LivenessProbe = &v1.Probe{
 								ProbeHandler: v1.ProbeHandler{
@@ -247,7 +253,24 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								},
 								InitialDelaySeconds: 1,
 								PeriodSeconds:       1,
-								FailureThreshold:    1,
+								// FIXME: On OCP we have seen liveness probe failures happening for the UDN pod which
+								// causes immediate container restarts. Hence increase the failure threshold to 3 tries
+								// TBD: We unfortunately don't know why the 1st liveness probe timesout - once we know the
+								// why we could bring this back to 1 even though 1 is still aggressive.
+								FailureThreshold: 3,
+								// FIXME: On OCP, we have seen this flake in the CI; example:
+								// Pod event: Type=Warning Reason=Unhealthy Message=Liveness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
+								// context deadline exceeded (Client.Timeout exceeded while awaiting headers) LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+								// Pod event: Type=Normal Reason=Killing Message=Container agnhost-container failed liveness probe, will be restarted
+								// LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+								// Pod event: Type=Warning Reason=Unhealthy Message=Readiness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
+								// context deadline exceeded (Client.Timeout exceeded while awaiting headers) LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+								// Pod event: Type=Warning Reason=Unhealthy Message=Readiness probe failed: Get "http://[fd01:0:0:5::2ed]:9000/healthz":
+								// read tcp [fd01:0:0:5::2]:33400->[fd01:0:0:5::2ed]:9000: read: connection reset by peer LastTimestamp=2025-01-21 15:16:43 +0000 UTC Count=1
+								// While we don't know why 1second wasn't enough to receive the headers for the liveness probe
+								// it is clear the TCP conn is getting established but 1second is not enough to complete the probe.
+								// Let's increase the timeout to 3seconds till we understand what causes the 1st probe failure.
+								TimeoutSeconds: 3,
 							}
 							pod.Spec.Containers[0].StartupProbe = &v1.Probe{
 								ProbeHandler: v1.ProbeHandler{
@@ -259,6 +282,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								InitialDelaySeconds: 1,
 								PeriodSeconds:       1,
 								FailureThreshold:    3,
+								// FIXME: Figure out why it sometimes takes more than 3seconds for the healthcheck to complete
+								TimeoutSeconds: 3,
 							}
 							// add NET_ADMIN to change pod routes
 							pod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
@@ -332,7 +357,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 
 						// connectivity check is run every second + 1sec initialDelay
-						// By this time we have spent at least 8 seconds doing the above checks
+						// By this time we have spent at least 20 seconds doing the above consistently checks
 						udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
 						Expect(err).NotTo(HaveOccurred())
 						Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
