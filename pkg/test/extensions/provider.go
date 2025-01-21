@@ -1,8 +1,8 @@
-package externalbinary
+package extensions
 
 import (
 	"fmt"
-	"log"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"path/filepath"
@@ -24,13 +24,11 @@ type ExternalBinaryProvider struct {
 	oc                   *util.CLI
 	binPath              string
 	tmpDir               string
-	logger               *log.Logger
 	registryAuthFilePath string
 	imageStream          *imagev1.ImageStream
 }
 
-func NewExternalBinaryProvider(logger *log.Logger, releaseImage,
-	registryAuthfilePath string) (*ExternalBinaryProvider,
+func NewExternalBinaryProvider(releaseImage, registryAuthfilePath string) (*ExternalBinaryProvider,
 	error) {
 	oc := util.NewCLIWithoutNamespace("default")
 
@@ -43,11 +41,11 @@ func NewExternalBinaryProvider(logger *log.Logger, releaseImage,
 		if cacheBase == "" {
 			cacheBase = path.Join(os.Getenv("HOME"), ".cache", "openshift-tests")
 		}
-		cleanOldCacheFiles(cacheBase, logger)
+		cleanOldCacheFiles(cacheBase)
 		binDir = path.Join(cacheBase, binDir)
-		logger.Printf("External binary cache is enabled, will use %q", cacheBase)
+		logrus.WithField("cache_dir", cacheBase).Infof("External binary cache is enabled")
 	} else {
-		logger.Printf("External binary cache is disabled, using a temp directory instead")
+		logrus.Infof("External binary cache is disabled, using a temp directory instead")
 		var err error
 		tmpDir, err = os.MkdirTemp("", "openshift-tests")
 		if err != nil {
@@ -55,21 +53,19 @@ func NewExternalBinaryProvider(logger *log.Logger, releaseImage,
 		}
 		binDir = path.Join(tmpDir, binDir)
 	}
-	logger.Printf("Using path for binaries %q", binDir)
+	logrus.Infof("Using path for binaries %s", binDir)
 
 	if err := createBinPath(binDir); err != nil {
-		return nil, errors.WithMessagef(err, "error creating cache path %q", binDir)
+		return nil, errors.WithMessagef(err, "error creating cache path %s", binDir)
 	}
 
-	releasePayloadImageStream, releaseImage, err := extractReleaseImageStream(logger, binDir,
-		releaseImage, registryAuthfilePath)
+	releasePayloadImageStream, releaseImage, err := extractReleaseImageStream(binDir, releaseImage, registryAuthfilePath)
 	if err != nil {
 		return nil, errors.WithMessage(err, "couldn't extract release payload image stream")
 	}
 
 	return &ExternalBinaryProvider{
 		registryAuthFilePath: registryAuthfilePath,
-		logger:               logger,
 		oc:                   oc,
 		imageStream:          releasePayloadImageStream,
 		binPath:              binDir,
@@ -80,9 +76,9 @@ func NewExternalBinaryProvider(logger *log.Logger, releaseImage,
 func (provider *ExternalBinaryProvider) Cleanup() {
 	if provider.tmpDir != "" {
 		if err := os.RemoveAll(provider.tmpDir); err != nil {
-			provider.logger.Printf("Failed to remove tmpDir %q: %v", provider.tmpDir, err)
+			logrus.Errorf("Failed to remove tmpDir %s: %v", provider.tmpDir, err)
 		} else {
-			provider.logger.Printf("Successfully removed tmpDir %q", provider.tmpDir)
+			logrus.Infof("Successfully removed tmpDir %s", provider.tmpDir)
 		}
 	}
 
@@ -120,16 +116,16 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 
 	// Check if the binary already exists in the path
 	if _, err := os.Stat(binPath); err == nil {
-		provider.logger.Printf("Using existing binary %q for tag %q", binPath, tag)
+		logrus.Infof("Using existing binary %s for tag %s", binPath, tag)
 		return &TestBinary{
-			logger: provider.logger,
-			path:   binPath,
+			imageTag:   tag,
+			binaryPath: binPath,
 		}, nil
 	}
 
 	// Start the extraction process.
 	startTime := time.Now()
-	if err := runImageExtract(image, binary, provider.binPath, provider.registryAuthFilePath, provider.logger); err != nil {
+	if err := runImageExtract(image, binary, provider.binPath, provider.registryAuthFilePath); err != nil {
 		return nil, fmt.Errorf("failed extracting %q from %q: %w", binary, image, err)
 	}
 	extractDuration := time.Since(startTime)
@@ -158,21 +154,20 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		return nil, errors.WithMessage(err, "error checking binary architecture compatability")
 	}
 
-	provider.logger.Printf("Extracted %q for tag %q from %q (disk size %v, extraction duration %v)",
+	logrus.Infof("Extracted %s for tag %s from %s (disk size %v, extraction duration %v)",
 		binary, tag, image, fileInfo.Size(), extractDuration)
 
 	return &TestBinary{
-		logger: provider.logger,
-		path:   extractedBinary,
+		binaryPath: extractedBinary,
 	}, nil
 }
 
-func cleanOldCacheFiles(dir string, logger *log.Logger) {
+func cleanOldCacheFiles(dir string) {
 	maxAge := 24 * 7 * time.Hour // 7 days
-	logger.Printf("Cleaning up older cached data...")
+	logrus.Infof("Cleaning up older cached data...")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		logger.Printf("Failed to read cache directory '%s': %v", dir, err)
+		logrus.Warningf("Failed to read cache directory '%s': %v", dir, err)
 		return
 	}
 
@@ -185,10 +180,10 @@ func cleanOldCacheFiles(dir string, logger *log.Logger) {
 
 		tgtPath := filepath.Join(dir, entry.Name())
 		if err := os.RemoveAll(tgtPath); err != nil {
-			logger.Printf("Failed to remove cache file '%s': %v", tgtPath, err)
+			logrus.Errorf("Failed to remove cache file '%s': %v", tgtPath, err)
 		} else {
-			logger.Printf("Removed old cache file '%s'", tgtPath)
+			logrus.Infof("Removed old cache file '%s'", tgtPath)
 		}
 	}
-	logger.Printf("Cleaned up old cached data in %v", time.Since(start))
+	logrus.Infof("Cleaned up old cached data in %v", time.Since(start))
 }

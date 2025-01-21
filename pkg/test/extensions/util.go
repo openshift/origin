@@ -1,4 +1,4 @@
-package externalbinary
+package extensions
 
 import (
 	"compress/gzip"
@@ -7,8 +7,8 @@ import (
 	"debug/elf"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -105,12 +105,12 @@ func checkCompatibleArchitecture(executablePath string) error {
 }
 
 // runImageExtract extracts src from specified image to dst
-func runImageExtract(image, src, dst string, dockerConfigJsonPath string, logger *log.Logger) error {
+func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error {
 	var err error
 	var out []byte
 	maxRetries := 6
 	startTime := time.Now()
-	logger.Printf("Run image extract for release image %q and src %q at %v", image, src, startTime)
+	logrus.Infof("Run image extract for release image %q and src %q", image, src)
 	for i := 1; i <= maxRetries; i++ {
 		args := []string{"--kubeconfig=" + util.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm"}
 		if len(dockerConfigJsonPath) > 0 {
@@ -125,8 +125,7 @@ func runImageExtract(image, src, dst string, dockerConfigJsonPath string, logger
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		extractionTime := time.Since(startTime)
-		logger.Printf("Run image extract for release image %q at %v", image, extractionTime)
+		logrus.Infof("Completed image extract for release image %q in %+v", image, time.Since(startTime))
 		return nil
 	}
 	return fmt.Errorf("error during image extract: %w (%v)", err, string(out))
@@ -151,7 +150,7 @@ func pullSpecToDirName(input string) string {
 	return filepath.Clean(safeName)
 }
 
-func determineReleasePayloadImage(logger *log.Logger) (string, error) {
+func determineReleasePayloadImage() (string, error) {
 	var releaseImage string
 
 	// Highest priority override is EXTENSIONS_PAYLOAD_OVERRIDE
@@ -160,14 +159,14 @@ func determineReleasePayloadImage(logger *log.Logger) (string, error) {
 		// if "cluster" is specified, prefer target cluster payload even if RELEASE_IMAGE_LATEST is set.
 		if overrideReleaseImage != "cluster" {
 			releaseImage = overrideReleaseImage
-			logger.Printf("Using env EXTENSIONS_PAYLOAD_OVERRIDE for release image %q", releaseImage)
+			logrus.Infof("Using env EXTENSIONS_PAYLOAD_OVERRIDE for release image %q", releaseImage)
 		}
 	} else {
 		// Allow testing using an overridden source for external tests.
 		envReleaseImage := os.Getenv("RELEASE_IMAGE_LATEST")
 		if len(envReleaseImage) != 0 {
 			releaseImage = envReleaseImage
-			logger.Printf("Using env RELEASE_IMAGE_LATEST for release image %q", releaseImage)
+			logrus.Infof("Using env RELEASE_IMAGE_LATEST for release image %q", releaseImage)
 		}
 	}
 
@@ -184,7 +183,7 @@ func determineReleasePayloadImage(logger *log.Logger) (string, error) {
 		if len(releaseImage) == 0 {
 			return "", fmt.Errorf("cannot determine release image from ClusterVersion resource")
 		}
-		logger.Printf("Using target cluster release image %q", releaseImage)
+		logrus.WithField("release_image", releaseImage).Infof("Using target cluster release image")
 	}
 
 	return releaseImage, nil
@@ -224,12 +223,11 @@ func createBinPath(path string) error {
 
 // extractReleaseImageStream extracts image references from the given releaseImage and returns
 // an ImageStream object with tags associated with image-references from that payload.
-func extractReleaseImageStream(logger *log.Logger, extractPath, releaseImage string,
+func extractReleaseImageStream(extractPath, releaseImage string,
 	registryAuthFilePath string) (*imagev1.ImageStream, string, error) {
 
 	if _, err := os.Stat(path.Join(extractPath, "image-references")); err != nil {
-		if err := runImageExtract(releaseImage, "/release-manifests/image-references", extractPath, registryAuthFilePath,
-			logger); err != nil {
+		if err := runImageExtract(releaseImage, "/release-manifests/image-references", extractPath, registryAuthFilePath); err != nil {
 			return nil, "", fmt.Errorf("failed extracting image-references from %q: %w", releaseImage, err)
 		}
 	}
@@ -250,15 +248,13 @@ func extractReleaseImageStream(logger *log.Logger, extractPath, releaseImage str
 		return nil, "", fmt.Errorf("unrecognized image-references in release payload %q", releaseImage)
 	}
 
-	logger.Printf("Targeting release image %q for default external binaries", releaseImage)
-
 	// Allow environmental overrides for individual component images.
 	for _, tag := range is.Spec.Tags {
 		componentEnvName := "EXTENSIONS_PAYLOAD_OVERRIDE_" + tag.Name
 		componentOverrideImage := os.Getenv(componentEnvName)
 		if len(componentOverrideImage) != 0 {
 			tag.From.Name = componentOverrideImage
-			logger.Printf("Overrode release image tag %q for with env %s value %q", tag.Name, componentEnvName, componentOverrideImage)
+			logrus.Infof("Overrode release image tag %q for with env %s value %q", tag.Name, componentEnvName, componentOverrideImage)
 		}
 	}
 
