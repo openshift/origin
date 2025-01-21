@@ -104,7 +104,19 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						waitForVMReadiness(virtClient, vmCreationParams.VMNamespace, vmCreationParams.VMName)
 
 						By("Retrieving addresses before test operation")
-						initialAddresses := obtainAddresses(virtClient, netConfig, vmName)
+						var initialAddresses []string
+						Eventually(func(g Gomega) []string {
+							GinkgoHelper()
+
+							var err error
+							initialAddresses, err = obtainAddresses(virtClient, vmName)
+							g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain IP addresses for VM")
+							return initialAddresses
+						}).
+							WithPolling(time.Second).
+							WithTimeout(5 * time.Minute).
+							ShouldNot(BeEmpty())
+
 						expectedNumberOfAddresses := 1
 						if isDualStack {
 							expectedNumberOfAddresses = 2
@@ -119,7 +131,18 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						opCmd(virtClient, f.Namespace.Name, vmName)
 
 						By("Retrieving addresses after test operation")
-						obtainedAddresses := obtainAddresses(virtClient, netConfig, vmName)
+						var obtainedAddresses []string
+						Eventually(func(g Gomega) []string {
+							GinkgoHelper()
+
+							var err error
+							obtainedAddresses, err = obtainAddresses(virtClient, vmName)
+							g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain IP addresses for VM after the migrate or restart operation")
+							return obtainedAddresses
+						}).
+							WithPolling(time.Second).
+							WithTimeout(5 * time.Minute).
+							ShouldNot(BeEmpty())
 						Expect(obtainedAddresses).To(ConsistOf(initialAddresses))
 
 						By("Check east/west after test operation")
@@ -338,46 +361,24 @@ func waitForVMIMSuccess(vmClient *kubevirt.Client, namespace, vmName string) {
 	Expect(migrationFailedStr).To(BeEmpty())
 }
 
-func addressFromStatus(cli *kubevirt.Client, vmName string) []string {
-	GinkgoHelper()
-	addressesStr, err := cli.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].ipAddresses}")
-	Expect(err).NotTo(HaveOccurred())
+func addressFromStatus(cli *kubevirt.Client, vmName string) ([]string, error) {
 	var addresses []string
-	Expect(json.Unmarshal([]byte(addressesStr), &addresses)).To(Succeed())
-	return addresses
+	addressesStr, err := cli.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].ipAddresses}")
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract the IP addresses from VM %q: %w", vmName, err)
+	}
+
+	if addressesStr == "" {
+		return nil, nil
+	}
+
+	if err := json.Unmarshal([]byte(addressesStr), &addresses); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal addresses %q: %w", addressesStr, err)
+	}
+	return addresses, nil
 }
 
-func addressFromGuest(cli *kubevirt.Client, vmName string) []string {
-	GinkgoHelper()
-	Expect(cli.Login(vmName, vmName)).To(Succeed())
-	output, err := cli.Console(vmName, "ip -j a show dev eth0")
-	Expect(err).NotTo(HaveOccurred())
-	// [{"ifindex":2,"ifname":"eth0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1300,"qdisc":"fq_codel","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"02:ba:c3:00:00:0a","broadcast":"ff:ff:ff:ff:ff:ff","altnames":["enp1s0"],"addr_info":[{"family":"inet","local":"100.10.0.1","prefixlen":24,"broadcast":"100.10.0.255","scope":"global","dynamic":true,"noprefixroute":true,"label":"eth0","valid_life_time":86313548,"preferred_life_time":86313548},{"family":"inet6","local":"fe80::ba:c3ff:fe00:a","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]}]
-	type address struct {
-		IP    string `json:"local,omitempty"`
-		Scope string `json:"scope,omitempty"`
-	}
-	type iface struct {
-		Name      string    `json:"ifname,omitempty"`
-		Addresses []address `json:"addr_info,omitempty"`
-	}
-	ifaces := []iface{}
-	Expect(json.Unmarshal([]byte(output), &ifaces)).To(Succeed())
-	addresses := []string{}
-	Expect(ifaces).NotTo(BeEmpty())
-	for _, address := range ifaces[0].Addresses {
-		if address.Scope == "link" {
-			continue
-		}
-		addresses = append(addresses, address.IP)
-	}
-	return addresses
-}
-
-func obtainAddresses(virtClient *kubevirt.Client, netConfig networkAttachmentConfigParams, vmName string) []string {
-	if netConfig.role == "primary" {
-		return addressFromGuest(virtClient, vmName)
-	}
+func obtainAddresses(virtClient *kubevirt.Client, vmName string) ([]string, error) {
 	return addressFromStatus(virtClient, vmName)
 }
 
