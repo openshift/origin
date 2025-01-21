@@ -39,6 +39,7 @@ var legacyCRDSsWithUnstableVersions = map[string]sets.String{
 	"addons.addons.managed.openshift.io":                            sets.NewString("v1alpha1"),
 	"clusterurlmonitors.monitoring.openshift.io":                    sets.NewString("v1alpha1"),
 	"customdomains.managed.openshift.io":                            sets.NewString("v1alpha1"),
+	"hypershiftlogforwarders.logging.managed.openshift.io":          sets.NewString("v1alpha1"),
 	"managedfleetnotificationrecords.ocmagent.managed.openshift.io": sets.NewString("v1alpha1"),
 	"managedfleetnotifications.ocmagent.managed.openshift.io":       sets.NewString("v1alpha1"),
 	"managednotifications.ocmagent.managed.openshift.io":            sets.NewString("v1alpha1"),
