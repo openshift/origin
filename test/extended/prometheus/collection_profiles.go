@@ -36,9 +36,6 @@ const (
 )
 
 var (
-	oc   = exutil.NewCLI(projectName)
-	tctx = context.Background()
-
 	collectionProfilesSupportedList = []string{
 		collectionProfileFull,
 		collectionProfileMinimal,
@@ -62,6 +59,8 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	r := &runner{}
+	oc := exutil.NewCLI(projectName)
+	tctx := context.Background()
 
 	g.BeforeAll(func() {
 		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
@@ -117,7 +116,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(profile)
+				enabled, err := r.isProfileEnabled(tctx, profile)
 				if err != nil {
 					return err
 				}
@@ -172,7 +171,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
-					monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile})
+					monitors, err := r.fetchMonitorsFor(tctx, [2]string{collectionProfileFeatureLabel, profile})
 					if err != nil {
 						return err
 					}
@@ -189,7 +188,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			o.Expect(err).To(o.BeNil())
 
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(collectionProfileFull)
+				enabled, err := r.isProfileEnabled(tctx, collectionProfileFull)
 				if err != nil {
 					return err
 				}
@@ -209,7 +208,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(profile)
+				enabled, err := r.isProfileEnabled(tctx, profile)
 				if err != nil {
 					return err
 				}
@@ -227,7 +226,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 
 			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
 			o.Eventually(func() error {
-				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+				monitors, err := r.fetchMonitorsFor(tctx, [2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
 				if err != nil {
 					return err
 				}
@@ -302,9 +301,9 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 })
 
-func (r runner) isProfileEnabled(profile string) (bool, error) {
+func (r runner) isProfileEnabled(ctx context.Context, profile string) (bool, error) {
 	vectorExpression := "max(profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"}) == 1"
-	queryResponse, err := helper.RunQuery(tctx, r.pclient, fmt.Sprintf(vectorExpression, profile))
+	queryResponse, err := helper.RunQuery(ctx, r.pclient, fmt.Sprintf(vectorExpression, profile))
 	if err != nil {
 		return false, err
 	}
@@ -315,14 +314,14 @@ func (r runner) isProfileEnabled(profile string) (bool, error) {
 	return true, nil
 }
 
-func (r runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
+func (r runner) fetchMonitorsFor(ctx context.Context, selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
 	managedMonitorsSelectors := []string{
 		fmt.Sprintf("%s=%s", "app.kubernetes.io/managed-by", operatorName),
 	}
 	for _, selector := range selectors {
 		managedMonitorsSelectors = append(managedMonitorsSelectors, fmt.Sprintf("%s=%s", selector[0], selector[1]))
 	}
-	return r.mclient.ServiceMonitors(operatorNamespaceName).List(tctx, metav1.ListOptions{
+	return r.mclient.ServiceMonitors(operatorNamespaceName).List(ctx, metav1.ListOptions{
 		LabelSelector: strings.Join(managedMonitorsSelectors, ","),
 	})
 }
