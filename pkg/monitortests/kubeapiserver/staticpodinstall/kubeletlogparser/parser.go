@@ -10,19 +10,20 @@ import (
 // log for SyncLoop PLEG and probe events.
 // For now, we are interested in the etcd installer and the etcd static pod
 func NewEtcdStaticPodEventsFromKubelet() func(node, line string) monitorapi.Intervals {
-	filter := func(node, ns, podName string) bool {
-		return ns == "openshift-etcd" && (strings.HasPrefix(podName, "installer-") || podName == "etcd-"+node)
-	}
 	p := parsers{
 		// we want to observe the unready window for ectd static pods
 		&SyncLoopProbeParser{
 			source: monitorapi.SourceKubeletLog,
-			want:   filter,
+			want: func(node, ns, podName string) bool {
+				return ns == "openshift-etcd" && podName == "etcd-"+node
+			},
 		},
 		// we want to observe the container start and exit pleg events for the etcd installer pods
 		&SyncLoopPLEGParser{
 			source: monitorapi.SourceKubeletLog,
-			filter: filter,
+			filter: func(node, ns, podName string) bool {
+				return ns == "openshift-etcd" && strings.HasPrefix(podName, "installer-")
+			},
 		},
 	}
 	return p.parse

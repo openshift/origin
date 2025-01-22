@@ -112,6 +112,7 @@ const (
 
 	LocatorTypeKubeletSyncLoopProbe LocatorType = "KubeletSyncLoopProbe"
 	LocatorTypeKubeletSyncLoopPLEG  LocatorType = "KubeletSyncLoopPLEG"
+	LocatorTypeStaticPodInstall     LocatorType = "StaticPodInstall"
 )
 
 type LocatorKey string
@@ -327,6 +328,8 @@ const (
 
 	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
 	SourceMachine                  IntervalSource = "MachineMonitor"
+
+	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
 )
 
 type Interval struct {
