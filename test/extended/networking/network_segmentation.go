@@ -56,7 +56,9 @@ const podReadyPollInterval = 6 * time.Second
 // OpenShift and KIND clusters. Also changing the polling interval to be 1 second so that in both
 // Eventually and Consistently blocks we get at least 10 retries (10/1) in good conditions and 5 retries (10/2) in
 // bad conditions since connectToServer util has a 2 second timeout.
-const serverConnectPollTimeout = 10 * time.Second
+// FIXME: Timeout increased to 30 seconds because default network controller does not receive the pod event after its annotations
+// are updated. Reduce timeout back to sensible value once issue is understood.
+const serverConnectPollTimeout = 30 * time.Second
 const serverConnectPollInterval = 1 * time.Second
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
