@@ -1015,18 +1015,21 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					_, err := cmd.Exec()
 					Expect(err).To(HaveOccurred(), "should fail to delete ClusterUserDefinedNetwork when used")
 
-					By("verify CR associate NAD cannot be deleted")
-					Eventually(func() error {
+					By("verify CR-associated NAD cannot be deleted")
+					Eventually(func() error { // TODO why eventually and not consistently?
 						ctx, cancel := context.WithTimeout(context.Background(), deleteNetworkTimeout)
 						defer cancel()
-						_ = nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Delete(ctx, testClusterUdnName, metav1.DeleteOptions{})
-						_, err := nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Get(ctx, testClusterUdnName, metav1.GetOptions{})
+						// TODO deletion error is silenced here, why?
+						err1 := nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Delete(ctx, testClusterUdnName, metav1.DeleteOptions{})
+						fmt.Printf("Tried to delete NAD and got err=%v\n", err1)
+						n, err := nadClient.NetworkAttachmentDefinitions(inUseNetTestTenantNamespace).Get(ctx, testClusterUdnName, metav1.GetOptions{})
+						fmt.Printf("Tried to get NAD after attempted deletion and got nad=%v, err=%v\n", n, err1)
 						return err
-					}, udnInUseDeleteTimeout, deleteNetworkInterval).ShouldNot(HaveOccurred(),
-						"should fail to delete UserDefinedNetwork associated NetworkAttachmentDefinition when used")
+					}, udnInUseDeleteTimeout, deleteNetworkInterval).ShouldNot(HaveOccurred(), 
+						"should fail to delete UserDefinedNetwork associated NetworkAttachmentDefinition when used")  // = eventually it shouldn't fail to get the NAD. Why should it fail at first if the NAD wasn't deleted?
 
-					By("verify CR status reports consuming pod")
-					err = validateClusterUDNStatusReportConsumers(oc.AdminDynamicClient(), testClusterUdnName, inUseNetTestTenantNamespace, testPodName)
+					By("verify CR status reports consuming pod") // fails here downstream
+					err = validateClusterUDNStatusReportConsumers(oc.AdminDynamicClient(), testClusterUdnName, inUseNetTestTenantNamespace, testPodName) // fails here downstream
 					Expect(err).NotTo(HaveOccurred())
 
 					By("delete test pod")
@@ -1629,6 +1632,7 @@ func validateClusterUDNStatusReportConsumers(client dynamic.Interface, cUDNName,
 		return err
 	}
 	conditions = normalizeConditions(conditions)
+
 	expectedMsg := fmt.Sprintf("failed to delete NetworkAttachmentDefinition [%[1]s/%[2]s]: network in use by the following pods: [%[1]s/%[3]s]",
 		udnNamespace, cUDNName, expectedPodName)
 	networkCreatedCondition := metav1.Condition{
