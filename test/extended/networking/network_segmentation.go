@@ -33,6 +33,7 @@ import (
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
+	psapi "k8s.io/pod-security-admission/api"
 	utilnet "k8s.io/utils/net"
 	"k8s.io/utils/pointer"
 
@@ -215,6 +216,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						_, err = cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 							ObjectMeta: metav1.ObjectMeta{
 								Name: defaultNetNamespace,
+								// labels are required to run a hostNetwork pod
+								Labels: map[string]string{
+									psapi.AuditLevelLabel:   string(psapi.LevelPrivileged),
+									psapi.EnforceLevelLabel: string(psapi.LevelPrivileged),
+									psapi.WarnLevelLabel:    string(psapi.LevelPrivileged),
+								},
 							},
 						}, metav1.CreateOptions{})
 						Expect(err).NotTo(HaveOccurred())
@@ -298,6 +305,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							}
 						})
 
+						testNodeName := getPodNodeName(f.ClientSet, udnPod.Namespace, udnPod.Name)
+
 						const podGenerateName = "udn-test-pod-"
 						By("creating default network pod")
 						defaultPod := frameworkpod.CreateExecPodOrFail(
@@ -307,6 +316,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							podGenerateName,
 							func(pod *v1.Pod) {
 								pod.Spec.Containers[0].Args = []string{"netexec"}
+								pod.Spec.NodeName = testNodeName
 								setRuntimeDefaultPSA(pod)
 							},
 						)
@@ -318,6 +328,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							defaultNetNamespace,
 							podGenerateName,
 							func(pod *v1.Pod) {
+								pod.Spec.NodeName = testNodeName
 								setRuntimeDefaultPSA(pod)
 							},
 						)
@@ -371,8 +382,49 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						// The pod should be ready
 						Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
 
-						// TODO
-						//By("checking non-kubelet default network host process can't reach the UDN pod")
+						By("restarting kubelet, pod should stay ready")
+						err = oc.AsAdmin().Run("debug").Args("-n", f.Namespace.Name, "node/"+testNodeName, "--", "chroot", "/host", "/bin/bash", "-c", "systemctl restart kubelet").Execute()
+						Expect(err).NotTo(HaveOccurred())
+
+						By("asserting healthcheck still works (kubelet can access the UDN pod)")
+						// The pod should stay ready
+						Consistently(func() bool {
+							return podutils.IsPodReady(udnPod)
+						}, 10*time.Second, 1*time.Second).Should(BeTrue())
+						Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
+
+						By("checking default network hostNetwork pod can't reach the UDN pod")
+						hostNetPod := frameworkpod.CreateExecPodOrFail(
+							context.Background(),
+							f.ClientSet,
+							defaultNetNamespace,
+							"host-net-pod",
+							func(pod *v1.Pod) {
+								pod.Spec.HostNetwork = true
+								pod.Spec.NodeName = testNodeName
+							})
+
+						// positive check for reachable default network pod
+						for _, destIP := range []string{defaultIPv4, defaultIPv6} {
+							if destIP == "" {
+								continue
+							}
+							By("checking the default network hostNetwork can reach default pod on IP " + destIP)
+							Eventually(func() bool {
+								return connectToServer(podConfiguration{namespace: hostNetPod.Namespace, name: hostNetPod.Name}, destIP, defaultPort) == nil
+							}).Should(BeTrue())
+						}
+						// negative check for UDN pod
+						for _, destIP := range []string{udnIPv4, udnIPv6} {
+							if destIP == "" {
+								continue
+							}
+
+							By("checking the default network hostNetwork pod can't reach UDN pod on IP " + destIP)
+							Consistently(func() bool {
+								return connectToServer(podConfiguration{namespace: hostNetPod.Namespace, name: hostNetPod.Name}, destIP, port) != nil
+							}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
+						}
 
 						By("asserting UDN pod can't reach host via default network interface")
 						// Now try to reach the host from the UDN pod
