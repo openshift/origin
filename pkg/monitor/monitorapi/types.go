@@ -117,6 +117,7 @@ const (
 
 	LocatorTypeKubeletSyncLoopProbe LocatorType = "KubeletSyncLoopProbe"
 	LocatorTypeKubeletSyncLoopPLEG  LocatorType = "KubeletSyncLoopPLEG"
+	LocatorTypeStaticPodInstall     LocatorType = "StaticPodInstall"
 )
 
 type LocatorKey string
@@ -363,6 +364,8 @@ const (
 	SourceMachine                  IntervalSource = "MachineMonitor"
 
 	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
+
+	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
 )
 
 type Interval struct {

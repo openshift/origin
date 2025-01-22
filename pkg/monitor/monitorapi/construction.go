@@ -444,6 +444,13 @@ func (b *LocatorBuilder) KubeletSyncLoopPLEG(node, ns, podName, eventType string
 	return b.Build()
 }
 
+func (b *LocatorBuilder) StaticPodInstall(node, podType string) Locator {
+	b.targetType = LocatorTypeStaticPodInstall
+	b.withNode(node)
+	b.annotations[LocatorStaticPodInstallType] = podType
+	return b.Build()
+}
+
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) Locator {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer
