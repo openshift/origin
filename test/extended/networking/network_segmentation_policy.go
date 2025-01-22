@@ -23,8 +23,10 @@ import (
 var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies", func() {
 	defer ginkgo.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-policy-e2e", admissionapi.LevelPrivileged)
+	// disable automatic namespace creation, we need to add the required UDN label
+	oc := exutil.NewCLIWithoutNamespace("network-segmentation-policy-e2e")
 	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	InOVNKubernetesContext(func() {
 		const (
 			nodeHostnameKey              = "kubernetes.io/hostname"
@@ -46,8 +48,12 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 
 		ginkgo.BeforeEach(func() {
 			cs = f.ClientSet
-
-			var err error
+			namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+				"e2e-framework":           f.BaseName,
+				RequiredUDNNamespaceLabel: "",
+			})
+			f.Namespace = namespace
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
@@ -57,7 +63,8 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 				ginkgo.By("Creating namespace " + namespace)
 				ns, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namespace,
+						Name:   namespace,
+						Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
 					},
 				}, metav1.CreateOptions{})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -126,7 +133,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 					}
 
 					ginkgo.By("asserting the *client* pod can contact the server pod exposed endpoint")
-					podShouldReach(oc, clientPodConfig.name, formatHostAndPort(net.ParseIP(serverIP), port))
+					namespacePodShouldReach(oc, f.Namespace.Name, clientPodConfig.name, formatHostAndPort(net.ParseIP(serverIP), port))
 				}
 
 				ginkgo.By("creating a \"default deny\" network policy")

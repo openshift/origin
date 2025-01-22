@@ -31,8 +31,10 @@ import (
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e", admissionapi.LevelBaseline)
+	// disable automatic namespace creation, we need to add the required UDN label
+	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
 	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
 
 	InOVNKubernetesContext(func() {
 		var (
@@ -68,6 +70,15 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 
 					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string)) {
 						var err error
+						l := map[string]string{
+							"e2e-framework": f.BaseName,
+						}
+						if netConfig.role == "primary" {
+							l[RequiredUDNNamespaceLabel] = ""
+						}
+						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
+						Expect(err).NotTo(HaveOccurred())
+						f.Namespace = ns
 						netConfig.namespace = f.Namespace.Name
 						// correctCIDRFamily makes use of the ginkgo framework so it needs to be in the testcase
 						netConfig.cidr = correctCIDRFamily(oc, cidrIPv4, cidrIPv6)
@@ -240,8 +251,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 })
 
 var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e", admissionapi.LevelBaseline)
+	// disable automatic namespace creation, we need to add the required UDN label
+	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
 	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
 
 	const (
 		nadName  = "blue"
@@ -258,7 +271,11 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 		BeforeEach(func() {
 			cs = f.ClientSet
 
-			var err error
+			ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+				"e2e-framework":           f.BaseName,
+				RequiredUDNNamespaceLabel: "",
+			})
+			f.Namespace = ns
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
 			Expect(err).NotTo(HaveOccurred())
 		})
