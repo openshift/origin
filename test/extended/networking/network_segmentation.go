@@ -371,11 +371,33 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								"--",
 								"curl",
 								"--connect-timeout",
-								"2",
+								// FIXME: We have seen in OCP CI that it can take two seconds or maybe more
+								// for a single curl to succeed. Example:
+								//     STEP: asserting UDN pod can reach the kapi service in the default network @ 01/20/25 00:38:42.32
+								// I0120 00:38:42.320808 70120 builder.go:121] Running '/usr/bin/kubectl
+								// --server=https://api.ci-op-bkg2qwwq-4edbf.XXXXXXXXXXXXXXXXXXXXXX:6443 --kubeconfig=/tmp/kubeconfig-1734723086
+								// --namespace=e2e-test-network-segmentation-e2e-kzdw7 exec udn-pod -- curl --connect-timeout 2 --insecure https://kubernetes.default/healthz'
+								// I0120 00:38:44.108334 70120 builder.go:146] stderr: "  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current\n                                 Dload  Upload   Total   Spent    Left  Speed\n\r  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0\r100     2  100     2    0     0      9      0 --:--:-- --:--:-- --:--:--     9\r100     2  100     2    0     0      9      0 --:--:-- --:--:-- --:--:--     9\n"
+								// I0120 00:38:44.108415 70120 builder.go:147] stdout: "ok" --> 2 seconds later
+								// I0120 00:38:45.109237 70120 builder.go:121] Running '/usr/bin/kubectl
+								// --server=https://api.ci-op-bkg2qwwq-4edbf.XXXXXXXXXXXXXXXXXXXXXX:6443 --kubeconfig=/tmp/kubeconfig-1734723086
+								// --namespace=e2e-test-network-segmentation-e2e-kzdw7 exec udn-pod -- curl --connect-timeout 2 --insecure https://kubernetes.default/healthz'
+								// I0120 00:38:48.460089 70120 builder.go:135] rc: 28
+								// around the same time we have observed OVS issues like:
+								// Jan 20 00:38:45.329999 ci-op-bkg2qwwq-4edbf-xv8kb-worker-b-flqxd ovs-vswitchd[1094]: ovs|03661|timeval|WARN|context switches: 0 voluntary, 695 involuntary
+								// Jan 20 00:38:45.329967 ci-op-bkg2qwwq-4edbf-xv8kb-worker-b-flqxd ovs-vswitchd[1094]: ovs|03660|timeval|WARN|Unreasonably long 1730ms poll interval (32ms user, 903ms system)
+								// which might need more investigation. Bumping the timeout to 5seconds can help with this
+								// but we need to figure out what exactly is causing random timeouts in CI when trying to reach kapi-server
+								// sometimes we have also seen more than 2seconds being taken for the timeout which also needs to be investigated:
+								// I0118 13:35:50.419638 87083 builder.go:121] Running '/usr/bin/kubectl
+								// --server=https://api.ostest.test.metalkube.org:6443 --kubeconfig=/tmp/secret/kubeconfig
+								// --namespace=e2e-test-network-segmentation-e2e-d4fzk exec udn-pod -- curl --connect-timeout 2 --insecure https://kubernetes.default/healthz'
+								// I0118 13:35:54.093268 87083 builder.go:135] rc: 28 --> takes close to 4seconds?
+								"5",
 								"--insecure",
 								"https://kubernetes.default/healthz")
 							return err == nil
-						}, 5*time.Second, 1*time.Second).Should(BeTrue())
+						}, 15*time.Second, 3*time.Second).Should(BeTrue())
 
 						By("asserting UDN pod can't reach default services via default network interface")
 						// route setup is already done, get kapi IPs
