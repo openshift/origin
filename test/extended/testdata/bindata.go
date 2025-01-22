@@ -51638,11 +51638,6 @@ items:
       dockerfile: |
         FROM quay.io/openshift/origin-cli:latest
         WORKDIR /var/lib/origin
-        RUN source /etc/os-release \
-            && rhel_major=${VERSION_ID%.*} \
-            && yum config-manager \
-            --add-repo "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi${rhel_major}/${rhel_major}/\$basearch/baseos/os/" \
-            --add-repo "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi${rhel_major}/${rhel_major}/\$basearch/appstream/os/"
         RUN yum install -y skopeo && \
             yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
         RUN echo $'%echo Generating openpgp key ...\n\
@@ -51663,9 +51658,6 @@ items:
         env:
           - name: "BUILD_LOGLEVEL"
             value: "2"
-        from:
-          kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
     output:
       to:
         kind: ImageStreamTag
