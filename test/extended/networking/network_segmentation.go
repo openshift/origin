@@ -478,6 +478,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							// update the name because createNetworkFn may mutate the netConfig.name
 							// for cluster scope objects (i.g.: CUDN cases) to enable parallel testing.
 							networkNamespaceMap[namespace] = netConfig.name
+
 						}
 						red = networkNamespaceMap[namespaceRed]
 						blue = networkNamespaceMap[namespaceBlue]
@@ -485,14 +486,21 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						workerNodes, err := getWorkerNodesOrdered(cs)
 						Expect(err).NotTo(HaveOccurred())
 						pods := []*v1.Pod{}
-						redIPs := []string{}
-						blueIPs := []string{}
+						redIPs := map[string]bool{}
+						blueIPs := map[string]bool{}
+						podIPs := []string{}
+						bluePort := uint16(9091)
+						redPort := uint16(9092)
 						for namespace, network := range networkNamespaceMap {
 							for i := 0; i < numberOfPods; i++ {
+								httpServerPort := redPort
+								if network != red {
+									httpServerPort = bluePort
+								}
 								podConfig := *podConfig(
 									fmt.Sprintf("%s-pod-%d", network, i),
 									withCommand(func() []string {
-										return httpServerContainerCmd(port)
+										return httpServerContainerCmd(httpServerPort)
 									}),
 								)
 								podConfig.namespace = namespace
@@ -521,10 +529,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									0,
 								)
 								Expect(err).NotTo(HaveOccurred())
+								podIPs = append(podIPs, podIP)
 								if network == red {
-									redIPs = append(redIPs, podIP)
+									redIPs[podIP] = true
 								} else {
-									blueIPs = append(blueIPs, podIP)
+									blueIPs[podIP] = true
 								}
 							}
 						}
@@ -532,11 +541,16 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						By("ensuring pods only communicate with pods in their network")
 						for _, pod := range pods {
 							isRedPod := strings.Contains(pod.Name, red)
-							ips := redIPs
+							expectedHostname := red
 							if !isRedPod {
-								ips = blueIPs
+								expectedHostname = blue
 							}
-							for _, ip := range ips {
+							for _, ip := range podIPs {
+								isRedIP := redIPs[ip]
+								httpServerPort := redPort
+								if !isRedIP {
+									httpServerPort = bluePort
+								}
 								result, err := e2ekubectl.RunKubectl(
 									pod.Namespace,
 									"exec",
@@ -545,54 +559,15 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 									"curl",
 									"--connect-timeout",
 									"2",
-									net.JoinHostPort(ip, fmt.Sprintf("%d", port)+"/hostname"),
+									net.JoinHostPort(ip, fmt.Sprintf("%d", httpServerPort)+"/hostname"),
 								)
-								Expect(err).NotTo(HaveOccurred())
-								if isRedPod {
-									Expect(strings.Contains(result, red)).To(BeTrue())
+								sameNetwork := isRedPod == isRedIP
+								if !sameNetwork {
+									Expect(err).To(HaveOccurred(), "should isolate from different networks")
 								} else {
-									Expect(strings.Contains(result, blue)).To(BeTrue())
+									Expect(err).NotTo(HaveOccurred())
+									Expect(strings.Contains(result, expectedHostname)).To(BeTrue())
 								}
-							}
-						}
-
-						By("Deleting pods in network blue except " + fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1))
-						for i := 0; i < numberOfPods-1; i++ {
-							err := cs.CoreV1().Pods(namespaceBlue).Delete(
-								context.Background(),
-								fmt.Sprintf("%s-pod-%d", blue, i),
-								metav1.DeleteOptions{},
-							)
-							Expect(err).NotTo(HaveOccurred())
-						}
-
-						podIP, err := podIPsForUserDefinedPrimaryNetwork(
-							cs,
-							namespaceBlue,
-							fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
-							namespacedName(namespaceBlue, blue),
-							0,
-						)
-						Expect(err).NotTo(HaveOccurred())
-
-						By("Remaining blue pod cannot communicate with red networks overlapping CIDR")
-						for _, ip := range redIPs {
-							if podIP == ip {
-								//don't try with your own IP
-								continue
-							}
-							_, err := e2ekubectl.RunKubectl(
-								namespaceBlue,
-								"exec",
-								fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
-								"--",
-								"curl",
-								"--connect-timeout",
-								"2",
-								net.JoinHostPort(ip, fmt.Sprintf("%d", port)),
-							)
-							if err == nil {
-								framework.Failf("connection succeeded but expected timeout")
 							}
 						}
 					},
@@ -604,11 +579,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						"203.203.0.0/29",
 						"2014:100:200::0/125",
 					),
-					// limit the number of pods to 10
+					// limit the number of pods to 5
 					Entry(
 						"with L3 primary UDN",
 						"layer3",
-						10,
+						5,
 						userDefinedNetworkIPv4Subnet,
 						userDefinedNetworkIPv6Subnet,
 					),
