@@ -536,8 +536,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						redIPs := map[string]bool{}
 						blueIPs := map[string]bool{}
 						podIPs := []string{}
-						bluePort := uint16(9091)
-						redPort := uint16(9092)
+						bluePort := int(9091)
+						redPort := int(9092)
 						for namespace, network := range networkNamespaceMap {
 							for i := 0; i < numberOfPods; i++ {
 								httpServerPort := redPort
@@ -547,7 +547,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								podConfig := *podConfig(
 									fmt.Sprintf("%s-pod-%d", network, i),
 									withCommand(func() []string {
-										return httpServerContainerCmd(httpServerPort)
+										return httpServerContainerCmd(uint16(httpServerPort))
 									}),
 								)
 								podConfig.namespace = namespace
@@ -598,22 +598,19 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								if !isRedIP {
 									httpServerPort = bluePort
 								}
-								result, err := e2ekubectl.RunKubectl(
-									pod.Namespace,
-									"exec",
-									pod.Name,
-									"--",
-									"curl",
-									"--connect-timeout",
-									"2",
-									net.JoinHostPort(ip, fmt.Sprintf("%d", httpServerPort)+"/hostname"),
-								)
 								sameNetwork := isRedPod == isRedIP
 								if !sameNetwork {
-									Expect(err).To(HaveOccurred(), "should isolate from different networks")
+									_, err := connectToServerWithPath(pod.Namespace, pod.Name, ip, "/hostname", httpServerPort)
+									Expect(err).Should(HaveOccurred(), "should isolate from different networks")
 								} else {
-									Expect(err).NotTo(HaveOccurred())
-									Expect(strings.Contains(result, expectedHostname)).To(BeTrue())
+									Eventually(func(g Gomega) {
+										result, err := connectToServerWithPath(pod.Namespace, pod.Name, ip, "/hostname", httpServerPort)
+										g.Expect(err).NotTo(HaveOccurred())
+										g.Expect(result).To(ContainSubstring(expectedHostname))
+									}).
+										WithTimeout(serverConnectPollTimeout).
+										WithPolling(serverConnectPollInterval).
+										Should(Succeed(), "should not isolate from same network")
 								}
 							}
 						}
@@ -1992,17 +1989,21 @@ func inRange(cidr string, ip string) error {
 }
 
 func connectToServer(clientPodConfig podConfiguration, serverIP string, port int) error {
-	_, err := e2ekubectl.RunKubectl(
-		clientPodConfig.namespace,
+	_, err := connectToServerWithPath(clientPodConfig.namespace, clientPodConfig.name, serverIP, "" /* no path */, port)
+	return err
+}
+
+func connectToServerWithPath(podNamespace, podName, serverIP, path string, port int) (string, error) {
+	return e2ekubectl.RunKubectl(
+		podNamespace,
 		"exec",
-		clientPodConfig.name,
+		podName,
 		"--",
 		"curl",
 		"--connect-timeout",
 		"2",
-		net.JoinHostPort(serverIP, fmt.Sprintf("%d", port)),
+		net.JoinHostPort(serverIP, fmt.Sprintf("%d", port))+path,
 	)
-	return err
 }
 
 // Returns pod's ipv4 and ipv6 addresses IN ORDER
