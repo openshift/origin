@@ -1248,6 +1248,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: defaultNetNamespace,
+						// labels are required to run a hostNetwork pod
+						Labels: map[string]string{
+							psapi.AuditLevelLabel:   string(psapi.LevelPrivileged),
+							psapi.EnforceLevelLabel: string(psapi.LevelPrivileged),
+							psapi.WarnLevelLabel:    string(psapi.LevelPrivileged),
+						},
 					},
 				}, metav1.CreateOptions{})
 				Expect(err).NotTo(HaveOccurred())
@@ -1266,6 +1272,18 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						setRuntimeDefaultPSA(pod)
 					},
 				)
+				testNodeName := getPodNodeName(f.ClientSet, udnPod.Namespace, udnPod.Name)
+
+				By("creating default network hostNetwork client pod")
+				hostNetPod := frameworkpod.CreateExecPodOrFail(
+					context.Background(),
+					f.ClientSet,
+					defaultNetNamespace,
+					"host-net-client-pod",
+					func(pod *v1.Pod) {
+						pod.Spec.HostNetwork = true
+						pod.Spec.NodeName = testNodeName
+					})
 
 				udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
 					cs,
@@ -1282,6 +1300,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Consistently(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
+
+					By("checking the default hostNetwork pod can't reach UDN pod on IP " + destIP)
+					Consistently(func() bool {
+						return connectToServer(podConfiguration{namespace: hostNetPod.Namespace, name: hostNetPod.Name}, destIP, port) != nil
 					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 
@@ -1301,6 +1324,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) == nil
 					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
+
+					By("checking the default hostNetwork pod can reach UDN pod on IP " + destIP)
+					Eventually(func() bool {
+						return connectToServer(podConfiguration{namespace: hostNetPod.Namespace, name: hostNetPod.Name}, destIP, port) == nil
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 
 				By("Update UDN pod port with the wrong syntax")
@@ -1319,6 +1347,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					By("checking the default network pod can't reach UDN pod on IP " + destIP)
 					Eventually(func() bool {
 						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, port) != nil
+					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
+
+					By("checking the default hostNetwork pod can't reach UDN pod on IP " + destIP)
+					Eventually(func() bool {
+						return connectToServer(podConfiguration{namespace: hostNetPod.Namespace, name: hostNetPod.Name}, destIP, port) != nil
 					}, serverConnectPollTimeout, serverConnectPollInterval).Should(BeTrue())
 				}
 				By("Verify syntax error is reported via event")
