@@ -189,6 +189,12 @@ var Annotations = map[string]string{
 
 	"[sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-apps][apigroup:apps.openshift.io] Deployments on HighlyAvailableArbiterMode topology should be created on arbiter nodes when arbiter node is selected": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-apps][apigroup:apps.openshift.io] Deployments on HighlyAvailableArbiterMode topology should be created on master nodes when no node selected": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology should not create a DaemonSet on the Arbiter node": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] ClusterOperators [apigroup:config.openshift.io] should define at least one namespace in their lists of related objects": " [Suite:openshift/conformance/parallel]",
@@ -1732,12 +1738,6 @@ var Annotations = map[string]string{
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the fifo algorithm": " [Serial]",
 
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the round robin algorithm": " [Serial]",
-
-	"[sig-node][apigroup:apps.openshift.io] Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology should not create a DaemonSet on the Arbiter node": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-node][apigroup:apps.openshift.io]Deployments on HighlyAvailableArbiterMode topology should be created on arbiter nodes when arbiter node is selected": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-node][apigroup:apps.openshift.io]Deployments on HighlyAvailableArbiterMode topology should be created on master nodes when no node selected": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster infrastructure should be configured correctly": " [Suite:openshift/conformance/parallel]",
 
