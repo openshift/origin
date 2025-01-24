@@ -721,7 +721,7 @@ func deployNmstateHandler(oc *exutil.CLI) error {
 }
 
 func ensureNmstateHandlerRunning(oc *exutil.CLI) error {
-	err := wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
+	err := wait.PollUntilContextTimeout(context.Background(), poll, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			// Ensure nmstate handler is running.
 			return isDaemonSetRunning(oc, nmstateNamespace, "nmstate-handler")
