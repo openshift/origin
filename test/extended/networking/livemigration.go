@@ -34,7 +34,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 	// disable automatic namespace creation, we need to add the required UDN label
 	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
 	f := oc.KubeFramework()
-	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 	InOVNKubernetesContext(func() {
 		var (
@@ -238,7 +238,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
-					Eventually(userDefinedNetworkReadyFunc(oc.DynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
+					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 
 					nad, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
 						context.Background(), c.name, metav1.GetOptions{},
