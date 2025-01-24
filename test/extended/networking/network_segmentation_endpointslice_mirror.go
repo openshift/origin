@@ -2,7 +2,6 @@ package networking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -175,7 +174,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnManifest := generateUserDefinedNetworkManifest(&c)
 				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
 				DeferCleanup(cleanup)
-				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 				return err
 			}),
 		)
@@ -268,38 +267,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnManifest := generateUserDefinedNetworkManifest(&c)
 				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
-				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 				return err
 			}),
 		)
 	})
 })
-
-// parseHostSubnet parses the "k8s.ovn.org/host-cidrs" annotation and returns the v4 and v6 host CIDRs
-func parseHostSubnet(node *corev1.Node) (string, string, error) {
-	const ovnNodeHostCIDRAnnot = "k8s.ovn.org/host-cidrs"
-	var v4HostSubnet, v6HostSubnet string
-	addrAnnotation, ok := node.Annotations[ovnNodeHostCIDRAnnot]
-	if !ok {
-		return "", "", fmt.Errorf("%s annotation not found for node %q", ovnNodeHostCIDRAnnot, node.Name)
-	}
-
-	var subnets []string
-	if err := json.Unmarshal([]byte(addrAnnotation), &subnets); err != nil {
-		return "", "", fmt.Errorf("failed to unmarshal %s annotation %s for node %q: %v", ovnNodeHostCIDRAnnot,
-			addrAnnotation, node.Name, err)
-	}
-
-	for _, subnet := range subnets {
-		ipFamily := utilnet.IPFamilyOfCIDRString(subnet)
-		if ipFamily == utilnet.IPv6 {
-			v6HostSubnet = subnet
-		} else if ipFamily == utilnet.IPv4 {
-			v4HostSubnet = subnet
-		}
-	}
-	return v4HostSubnet, v6HostSubnet, nil
-}
 
 func validateMirroredEndpointSlices(cs clientset.Interface, namespace, svcName, expectedV4Subnet, expectedV6Subnet string, expectedEndpoints int, isDualStack, isHostNetwork bool) error {
 	esList, err := cs.DiscoveryV1().EndpointSlices(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svcName)})

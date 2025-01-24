@@ -241,7 +241,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
-					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
+					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name),  networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 
 					nad, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
 						context.Background(), c.name, metav1.GetOptions{},
