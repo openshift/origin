@@ -32,6 +32,8 @@ import (
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services", func() {
+
+	defer GinkgoRecover()
 	// disable automatic namespace creation, we need to add the required UDN label
 	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e-services")
 	f := oc.KubeFramework()
