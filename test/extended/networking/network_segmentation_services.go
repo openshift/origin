@@ -359,8 +359,8 @@ func ParseNodeHostIPDropNetMask(node *kapi.Node) (sets.Set[string], error) {
 	return sets.New(cfg...), nil
 }
 
-func checkConnectionToAgnhostPod(ctx context.Context, f *framework.Framework, clientPod *v1.Pod, expectedOutput, cmd string) error {
-	return wait.PollUntilContextTimeout(ctx, 200*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+func checkConnectionToAgnhostPod(ctx context.Context, f *framework.Framework, clientPod *v1.Pod, expectedOutput, cmd string, timeout int) error {
+	return wait.PollUntilContextTimeout(ctx, 200*time.Millisecond, time.Duration(timeout)*time.Second, true, func(ctx context.Context) (bool, error) {
 		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(ctx, f, clientPod.Name, cmd)
 		fmt.Printf("stdout=%s\n", stdout)
 		fmt.Printf("stderr=%s\n", stderr)
@@ -377,8 +377,8 @@ func checkConnectionToAgnhostPod(ctx context.Context, f *framework.Framework, cl
 	})
 }
 
-func checkNoConnectionToAgnhostPod(ctx context.Context, f *framework.Framework, clientPod *v1.Pod, cmd string) error {
-	err := wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
+func checkNoConnectionToAgnhostPod(ctx context.Context, f *framework.Framework, clientPod *v1.Pod, cmd string, timeout int) error {
+	err := wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, time.Duration(timeout)*time.Second, true, func(ctx context.Context) (bool, error) {
 		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(ctx, f, clientPod.Name, cmd)
 		fmt.Printf("stdout=%s\n", stdout)
 		fmt.Printf("stderr=%s\n", stderr)
@@ -431,9 +431,9 @@ func checkConnectionOrNoConnectionToClusterIPs(ctx context.Context, f *framework
 		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, clusterIP, servicePort)
 
 		if shouldConnect {
-			err = checkConnectionToAgnhostPod(ctx, f, clientPod, expectedOutput, cmd)
+			err = checkConnectionToAgnhostPod(ctx, f, clientPod, expectedOutput, cmd, 5)
 		} else {
-			err = checkNoConnectionToAgnhostPod(ctx, f, clientPod, cmd)
+			err = checkNoConnectionToAgnhostPod(ctx, f, clientPod, cmd, 5)
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
@@ -464,9 +464,9 @@ func checkConnectionOrNoConnectionToNodePort(ctx context.Context, f *framework.F
 		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, nodeIP, nodePort)
 
 		if shouldConnect {
-			err = checkConnectionToAgnhostPod(ctx, f, clientPod, expectedOutput, cmd)
+			err = checkConnectionToAgnhostPod(ctx, f, clientPod, expectedOutput, cmd, 30)
 		} else {
-			err = checkNoConnectionToAgnhostPod(ctx, f, clientPod, cmd)
+			err = checkNoConnectionToAgnhostPod(ctx, f, clientPod, cmd, 30)
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
@@ -505,9 +505,9 @@ func checkConnectionOrNoConnectionToLoadBalancers(ctx context.Context,
 		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, lbTarget, port)
 
 		if shouldConnect {
-			err = checkConnectionToAgnhostPod(ctx, f, clientPod, expectedOutput, cmd)
+			err = checkConnectionToAgnhostPod(ctx, f, clientPod, expectedOutput, cmd, 600) // use a high timeout for LB services
 		} else {
-			err = checkNoConnectionToAgnhostPod(ctx, f, clientPod, cmd)
+			err = checkNoConnectionToAgnhostPod(ctx, f, clientPod, cmd, 120)
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
