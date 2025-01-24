@@ -1965,6 +1965,44 @@ func correctCIDRFamily(oc *exutil.CLI, ipv4CIDR, ipv6CIDR string) string {
 	return ipv4CIDR
 }
 
+// sanitizeCIDRString takes the CLI, a string with comma-separated
+// potential ipv4 and ipv6 cidrs and returns the correct
+// comma-separated CIDRs for the cluster under test.  This is used
+// instead of correctCIDRFamily when the CIDR string has already been
+// passed as input to the test, without filtering, and assertions are
+// postponed to the test itself, when we're inside a ginkgo container
+// node and we can make assertions.
+// https://onsi.github.io/ginkgo/#no-assertions-in-container-nodes
+func sanitizeCIDRString(oc *exutil.CLI, CIDRString string) string {
+	hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+	Expect(err).NotTo(HaveOccurred())
+
+	cidrs := strings.Split(CIDRString, ",")
+	Expect(len(cidrs)).To(BeNumerically(">", 0))
+
+	var ipv4CIDR, ipv6CIDR string
+	for _, cidr := range cidrs {
+		if utilnet.IsIPv4CIDRString(cidr) {
+			Expect(ipv4CIDR).To(BeEmpty())
+			ipv4CIDR = cidr
+		} else if utilnet.IsIPv6CIDRString(cidr) {
+			Expect(ipv6CIDR).To(BeEmpty())
+			ipv6CIDR = cidr
+		}
+	}
+
+	// dual stack cluster
+	if hasIPv6 && hasIPv4 {
+		return strings.Join([]string{ipv4CIDR, ipv6CIDR}, ",")
+	}
+	// single stack ipv6 cluster
+	if hasIPv6 {
+		return ipv6CIDR
+	}
+	// single stack ipv4 cluster
+	return ipv4CIDR
+}
+
 func getNetCIDRSubnet(netCIDR string) (string, error) {
 	subStrings := strings.Split(netCIDR, "/")
 	if len(subStrings) == 3 {
