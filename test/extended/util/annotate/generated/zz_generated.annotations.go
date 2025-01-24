@@ -1487,6 +1487,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for north south IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in full mode": "",
 
+	"[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test when using openshift ovn-kubernetes assert the primary UDN feature works as expected": "",
+
 	"[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines Placeholder test for GA": "",
 
 	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv4": " [Suite:openshift/conformance/serial]",
@@ -1603,11 +1605,45 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L2 primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should create NetworkAttachmentDefinition according to spec": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L3 primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes pods within namespace should be isolated when deny policy is present in L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes pods within namespace should be isolated when deny policy is present in L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller pod connected to ClusterUserDefinedNetwork CR & managed NADs cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller should create NAD according to spec in each target namespace and report active namespaces": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller should create NAD in new created namespaces that apply to namespace-selector": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller when CR is deleted, should delete all managed NAD in each target namespace": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller when namespace-selector is mutated should create NAD in namespaces that apply to mutated namespace-selector": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes ClusterUserDefinedNetwork CRD Controller when namespace-selector is mutated should delete managed NAD in namespaces that no longer apply to namespace-selector": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UDN Pod should react to k8s.ovn.org/open-default-ports annotations changes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork CRD controller pod connected to UserDefinedNetwork cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork CRD controller should create NetworkAttachmentDefinition according to spec": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork CRD controller should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork is isolated from the default network with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork is isolated from the default network with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork isolates overlapping CIDRs with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
 
@@ -1633,6 +1669,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes when primary network exist, ClusterUserDefinedNetwork status should report not-ready": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork status should report not-ready": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes": "",
@@ -1647,17 +1685,17 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip when the VMI attached to a secondary UDN is migrated between nodes": "",
 
-	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes": "",
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes": "",
 
-	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted": "",
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted": "",
 
-	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes": "",
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes": "",
 
-	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is migrated between nodes": "",
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is migrated between nodes": "",
 
-	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is restarted": "",
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is restarted": "",
 
-	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VMI attached to a secondary UDN is migrated between nodes": "",
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VMI attached to a secondary UDN is migrated between nodes": "",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
