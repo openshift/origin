@@ -31,6 +31,7 @@ type auditLogAnalyzer struct {
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
 	violationChecker              *auditViolations
+	apiserverPanicChecker         *apiserverPaniced
 
 	countsForInstall *CountsForRun
 }
@@ -42,6 +43,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
+		apiserverPanicChecker:         CheckForApiserverPaniced(),
 	}
 }
 
@@ -85,6 +87,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
 		w.violationChecker,
+		w.apiserverPanicChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -366,6 +369,37 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	}
 
 	ret = append(ret, w.violationChecker.CreateJunits()...)
+
+	for userAgent, userAgentPanics := range w.apiserverPanicChecker.panicEventsPerUserAgent.panicEvents {
+		testName := fmt.Sprintf("user %s must not produce too many apiserver handler panics", userAgent)
+
+		failures := []string{}
+		if userAgentPanics.Len() > 5 {
+			failures := append(failures, userAgentPanics.String())
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+					FailureOutput: &junitapi.FailureOutput{
+						Message: strings.Join(failures, "\n"),
+						Output:  "details in audit log",
+					},
+				},
+			)
+			// Add success again to make it a flake
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				},
+			)
+		} else {
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				},
+			)
+		}
+
+	}
 
 	return ret, nil
 }
