@@ -27,9 +27,10 @@ import (
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring", func() {
 	defer GinkgoRecover()
-
-	oc := exutil.NewCLIWithPodSecurityLevel("endpointslices-mirror-e2e", admissionapi.LevelPrivileged)
+	// disable automatic namespace creation, we need to add the required UDN label
+	oc := exutil.NewCLIWithoutNamespace("endpointslices-mirror-e2e")
 	f := oc.KubeFramework()
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	InOVNKubernetesContext(func() {
 		const (
 			userDefinedNetworkIPv4Subnet = "203.203.0.0/16"
@@ -44,8 +45,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 		BeforeEach(func() {
 			cs = f.ClientSet
-
-			var err error
+			namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+				"e2e-framework":           f.BaseName,
+				RequiredUDNNamespaceLabel: "",
+			})
+			f.Namespace = namespace
+			Expect(err).NotTo(HaveOccurred())
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -168,7 +173,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnManifest := generateUserDefinedNetworkManifest(&c)
 				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
 				DeferCleanup(cleanup)
-				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, 5*time.Second)).To(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), 5*time.Second, time.Second).Should(Succeed())
 				return err
 			}),
 		)
@@ -180,16 +185,23 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					func(
 						netConfig networkAttachmentConfigParams,
 					) {
+						netConfig.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+						By("creating default net namespace")
+						defaultNSName := f.BaseName + "-default"
+						defaultNetNamespace, err := f.CreateNamespace(context.TODO(), defaultNSName, map[string]string{
+							"e2e-framework": defaultNSName,
+						})
+						Expect(err).NotTo(HaveOccurred())
 						By("creating the network")
-						netConfig.namespace = f.Namespace.Name
+						netConfig.namespace = defaultNetNamespace.Name
 						Expect(createNetworkFn(netConfig)).To(Succeed())
 
 						By("deploying the backend pods")
 						replicas := 3
 						for i := 0; i < replicas; i++ {
-							runUDNPod(cs, f.Namespace.Name,
+							runUDNPod(cs, defaultNetNamespace.Name,
 								*podConfig(fmt.Sprintf("backend-%d", i), func(cfg *podConfiguration) {
-									cfg.namespace = f.Namespace.Name
+									cfg.namespace = defaultNetNamespace.Name
 									// Add the net-attach annotation for secondary networks
 									if netConfig.role == "secondary" {
 										cfg.attachments = []nadapi.NetworkSelectionElement{{Name: netConfig.name}}
@@ -208,12 +220,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						svc := e2eservice.CreateServiceSpec("test-service", "", false, map[string]string{"app": "test"})
 						familyPolicy := corev1.IPFamilyPolicyPreferDualStack
 						svc.Spec.IPFamilyPolicy = &familyPolicy
-						_, err := cs.CoreV1().Services(f.Namespace.Name).Create(context.Background(), svc, metav1.CreateOptions{})
+						_, err = cs.CoreV1().Services(defaultNetNamespace.Name).Create(context.Background(), svc, metav1.CreateOptions{})
 						framework.ExpectNoError(err, "Failed creating service %v", err)
 
 						By("asserting the mirrored EndpointSlice does not exist")
 						Eventually(func() error {
-							esList, err := cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
+							esList, err := cs.DiscoveryV1().EndpointSlices(defaultNetNamespace.Name).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
 							if err != nil {
 								return err
 							}
@@ -229,7 +241,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "secondary",
 						},
 					),
@@ -238,7 +249,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "secondary",
 						},
 					),
@@ -247,14 +257,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
 				netConfig := newNetworkAttachmentConfig(c)
 				nad := generateNAD(netConfig)
-				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(context.Background(), nad, metav1.CreateOptions{})
+				_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 				return err
 			}),
 			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
 				udnManifest := generateUserDefinedNetworkManifest(&c)
-				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
+				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
-				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, 5*time.Second)).To(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), 5*time.Second, time.Second).Should(Succeed())
 				return err
 			}),
 		)
