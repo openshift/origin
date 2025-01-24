@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	kapi "k8s.io/api/core/v1"
@@ -90,6 +91,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				jig := e2eservice.NewTestJig(cs, namespace, "udn-service")
 
 				netConfigParams.cidr = sanitizeCIDRString(oc, netConfigParams.cidr)
+
+				infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				cloudType := infra.Spec.PlatformSpec.Type
+
 				By("Selecting at most 3 schedulable nodes (min 1)")
 				nodes, err := e2enode.GetBoundedReadySchedulableNodes(context.TODO(), f.ClientSet, 3)
 				Expect(err).NotTo(HaveOccurred())
@@ -125,6 +131,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					}
 					s.Spec.Type = v1.ServiceTypeLoadBalancer
 					s.Spec.IPFamilyPolicy = &policy
+					if cloudType == configv1.AWSPlatformType {
+						s.Annotations = map[string]string{"service.beta.kubernetes.io/aws-load-balancer-type": "nlb"}
+					}
+
 				})
 				framework.ExpectNoError(err)
 
