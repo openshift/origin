@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/faultyloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/generationanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/installerpod"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/machines/watchmachines"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
@@ -133,6 +134,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie(apiunreachablefromclientmetrics.MonitorName, "kube-apiserver", apiunreachablefromclientmetrics.NewMonitorTest())
 	monitorTestRegistry.AddMonitorTestOrDie(faultyloadbalancer.MonitorName, "kube-apiserver", faultyloadbalancer.NewMonitorTest())
+	monitorTestRegistry.AddMonitorTestOrDie(installerpod.MonitorName, "kube-apiserver", installerpod.NewInstallerPodMonitorTest())
 
 	return monitorTestRegistry
 }
