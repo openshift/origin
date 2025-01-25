@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
-			routerURL := fmt.Sprintf("http://%s", routerIP)
+			routerURL := fmt.Sprintf("http://%s", exutil.IPUrl(routerIP))
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
@@ -137,7 +137,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
-			routerURL := fmt.Sprintf("http://%s", routerIP)
+			routerURL := fmt.Sprintf("http://%s", exutil.IPUrl(routerIP))
 			pattern := "%s-%s.myapps.mycompany.com"
 
 			g.By("waiting for the healthz endpoint to respond")
@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
-			routerURL := fmt.Sprintf("http://%s", routerIP)
+			routerURL := fmt.Sprintf("http://%s", exutil.IPUrl(routerIP))
 			pattern := "%s-%s.apps.veto.test"
 
 			g.By("waiting for the healthz endpoint to respond")
@@ -241,6 +241,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 })
 
 func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSeconds int) error {
+	// bracket IPv6 IPs when used as URI
+	host = exutil.IPUrl(host)
 	cmd := fmt.Sprintf(`
 		set -e
 		pass=%[4]d
@@ -364,6 +366,10 @@ func createOverrideRouterPod(routerImage string) *corev1.Pod {
 							},
 						},
 						{
+							Name:  "ROUTER_IP_V4_V6_MODE",
+							Value: "v4v6",
+						},
+						{
 							Name:  "DEFAULT_CERTIFICATE",
 							Value: defaultPemData,
 						},
@@ -428,6 +434,10 @@ func createOverrideDomainRouterPod(routerImage string) *corev1.Pod {
 									FieldPath: "metadata.namespace",
 								},
 							},
+						},
+						{
+							Name:  "ROUTER_IP_V4_V6_MODE",
+							Value: "v4v6",
 						},
 						{
 							Name:  "DEFAULT_CERTIFICATE",
