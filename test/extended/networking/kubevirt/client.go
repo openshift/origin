@@ -87,7 +87,7 @@ func (c *Client) Login(vmName, hostname string) error {
 	return LoginToFedoraWithHostname(c.virtCtl, c.oc.Namespace(), vmName, "fedora", "fedora", hostname)
 }
 func (c *Client) GetJSONPath(resource, name, jsonPath string) (string, error) {
-	output, err := c.oc.Run("get").Args(resource, name, "-o", fmt.Sprintf(`jsonpath=%q`, jsonPath)).Output()
+	output, err := c.oc.AsAdmin().Run("get").Args(resource, name, "-n", c.oc.Namespace(), "-o", fmt.Sprintf(`jsonpath=%q`, jsonPath)).Output()
 	if err != nil {
 		return "", err
 	}
