@@ -115,6 +115,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 						Expect(err).NotTo(HaveOccurred())
+						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+						Expect(err).NotTo(HaveOccurred())
 						f.Namespace = ns
 
 						netConfig.namespace = f.Namespace.Name
@@ -203,6 +205,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							l[RequiredUDNNamespaceLabel] = ""
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
+						Expect(err).NotTo(HaveOccurred())
+						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
 						Expect(err).NotTo(HaveOccurred())
 						f.Namespace = ns
 						By("Creating second namespace for default network pods")
@@ -485,6 +489,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 						Expect(err).NotTo(HaveOccurred())
+						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+						Expect(err).NotTo(HaveOccurred())
 						f.Namespace = ns
 						red := "red"
 						blue := "blue"
@@ -659,6 +665,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					"e2e-framework": f.BaseName,
 				})
 				Expect(err).NotTo(HaveOccurred())
+				err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), namespace.Name)
+				Expect(err).NotTo(HaveOccurred())
 				f.Namespace = namespace
 
 				By("create tests UserDefinedNetwork")
@@ -763,6 +771,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				RequiredUDNNamespaceLabel: "",
 			}
 			ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
+			Expect(err).NotTo(HaveOccurred())
+			err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
 			Expect(err).NotTo(HaveOccurred())
 			f.Namespace = ns
 
