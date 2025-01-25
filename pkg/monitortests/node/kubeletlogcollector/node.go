@@ -19,6 +19,8 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/staticpodinstall/kubeletlogparser"
+
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -90,6 +92,8 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
 	ret := monitorapi.Intervals{}
 
+	parse := kubeletlogparser.NewEtcdStaticPodEventsFromKubelet()
+
 	scanner := bufio.NewScanner(bytes.NewBuffer(kubeletLog))
 	for scanner.Scan() {
 		currLine := scanner.Text()
@@ -104,6 +108,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
 		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
 		ret = append(ret, leaseFailBackOff(nodeLocator, currLine)...)
+		ret = append(ret, parse(nodeName, currLine)...)
 	}
 
 	return ret

@@ -53597,6 +53597,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return (eventInterval.source === "APIUnreachableFromClient")
     }
 
+    function isStaticPodInstallMonitorActivity(eventInterval) {
+        return (eventInterval.source === "StaticPodInstallMonitor")
+    }
+
     function isEndpointConnectivity(eventInterval) {
         if (eventInterval.message.reason !== "DisruptionBegan" && eventInterval.message.reason !== "DisruptionSamplerOutageBegan") {
             return false
@@ -53725,6 +53729,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function isAPIUnreachableFromClientValue(item) {
         return [buildLocatorDisplayString(item.locator), "", "APIUnreachableFromClientMetrics"]
+    }
+
+    function isStaticPodInstallMonitorValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", item.message.reason]
     }
 
     function disruptionValue(item) {
@@ -53941,6 +53949,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "api-unreachable", data: []})
         createTimelineData(isAPIUnreachableFromClientValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIUnreachableFromClientActivity, regex)
+
+        timelineGroups.push({group: "staticpod-install", data: []})
+        createTimelineData(isStaticPodInstallMonitorValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isStaticPodInstallMonitorActivity, regex)
 
         timelineGroups.push({ group: "etcd-leaders", data: [] })
         createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
