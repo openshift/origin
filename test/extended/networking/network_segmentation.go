@@ -1847,6 +1847,18 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 		if err != nil {
 			return v1.PodFailed
 		}
+		// break out of the printing and return
+		if updatedPod.Status.Phase == v1.PodRunning {
+			return updatedPod.Status.Phase
+		}
+		// otherwise print the reasons
+		fmt.Printf("-----\n")
+		fmt.Printf("%s Phase: - %s\n", updatedPod.Name, updatedPod.Status.Phase)
+		fmt.Printf("%s Message: %s\n", updatedPod.Name, updatedPod.Status.Message)
+		fmt.Printf("%s Reason: %s\n", updatedPod.Name, updatedPod.Status.Reason)
+		fmt.Printf("%s PodStatus: %+v\n", updatedPod.Name, updatedPod.Status)
+		fmt.Printf("-------\n")
+
 		return updatedPod.Status.Phase
 	}, podReadyPollTimeout, podReadyPollInterval).Should(Equal(v1.PodRunning))
 	return updatedPod
