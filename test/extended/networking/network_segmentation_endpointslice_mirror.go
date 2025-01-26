@@ -51,6 +51,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			})
 			f.Namespace = namespace
 			Expect(err).NotTo(HaveOccurred())
+			err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), namespace.Name)
+			Expect(err).NotTo(HaveOccurred())
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -191,6 +193,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						defaultNetNamespace, err := f.CreateNamespace(context.TODO(), defaultNSName, map[string]string{
 							"e2e-framework": defaultNSName,
 						})
+						Expect(err).NotTo(HaveOccurred())
+						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), defaultNetNamespace.Name)
 						Expect(err).NotTo(HaveOccurred())
 						By("creating the network")
 						netConfig.namespace = defaultNetNamespace.Name
