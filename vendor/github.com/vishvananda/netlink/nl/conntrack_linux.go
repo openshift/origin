@@ -40,9 +40,11 @@ const (
 	NFNETLINK_V0 = 0
 )
 
-// #define NLA_F_NESTED (1 << 15)
 const (
-	NLA_F_NESTED = (1 << 15)
+	NLA_F_NESTED        uint16 = (1 << 15) // #define NLA_F_NESTED (1 << 15)
+	NLA_F_NET_BYTEORDER uint16 = (1 << 14) // #define NLA_F_NESTED (1 << 14)
+	NLA_TYPE_MASK              = ^(NLA_F_NESTED | NLA_F_NET_BYTEORDER)
+	NLA_ALIGNTO         uint16 = 4 // #define NLA_ALIGNTO 4
 )
 
 // enum ctattr_type {
@@ -87,6 +89,7 @@ const (
 	CTA_USE            = 11
 	CTA_ID             = 12
 	CTA_TIMESTAMP      = 20
+	CTA_LABELS         = 22
 )
 
 // enum ctattr_tuple {

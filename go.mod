@@ -22,9 +22,10 @@ require (
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/google/uuid v1.6.0
 	github.com/h2non/gock v1.2.0
-	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.6.0
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
 	github.com/lithammer/dedent v1.1.0
+	github.com/metallb/frr-k8s v0.0.15
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/opencontainers/go-digest v1.0.0
@@ -34,6 +35,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20241001162912-da6d55e4611f
 	github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
 	github.com/openshift/library-go v0.0.0-20241015130640-f9ecd211c68b
+	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.74.0
@@ -110,7 +112,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
 	github.com/JeffAshton/win_pdh v0.0.0-20161109143554-76bb4ee9f0ab // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
-	github.com/Microsoft/hcsshim v0.8.26 // indirect
+	github.com/Microsoft/hcsshim v0.9.6 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
@@ -127,7 +129,7 @@ require (
 	github.com/container-storage-interface/spec v1.9.0 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
-	github.com/containerd/containerd v1.4.12 // indirect
+	github.com/containerd/containerd v1.5.1 // indirect
 	github.com/containerd/ttrpc v1.2.2 // indirect
 	github.com/coreos/go-oidc v2.2.1+incompatible // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
@@ -235,7 +237,7 @@ require (
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/smartystreets/assertions v1.1.0 // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
-	github.com/spf13/afero v1.9.2 // indirect
+	github.com/spf13/afero v1.10.0 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/src-d/gcfg v1.4.0 // indirect
@@ -243,11 +245,10 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75 // indirect
-	github.com/vishvananda/netlink v1.1.0 // indirect
+	github.com/vishvananda/netlink v1.2.1-beta.2.0.20231024175852-77df5d35f725 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.2.1 // indirect
-	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.etcd.io/bbolt v1.3.9 // indirect
@@ -280,7 +281,7 @@ require (
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
-	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect
+	google.golang.org/genproto v0.0.0-20240227224415-6ceb2ff114de // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240725223205-93522f1f2a9f // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
@@ -293,7 +294,7 @@ require (
 	k8s.io/cloud-provider v0.31.1 // indirect
 	k8s.io/cluster-bootstrap v0.0.0 // indirect
 	k8s.io/controller-manager v0.31.1 // indirect
-	k8s.io/cri-api v0.0.0 // indirect
+	k8s.io/cri-api v0.20.6 // indirect
 	k8s.io/cri-client v0.0.0 // indirect
 	k8s.io/csi-translation-lib v0.0.0 // indirect
 	k8s.io/dynamic-resource-allocation v0.0.0 // indirect
@@ -305,13 +306,14 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient v0.0.29 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16 // indirect
-	sigs.k8s.io/controller-runtime v0.18.4 // indirect
+	sigs.k8s.io/controller-runtime v0.19.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
 	sigs.k8s.io/kustomize/api v0.17.2 // indirect
 )
 
 replace (
+	github.com/Microsoft/hcsshim => github.com/Microsoft/hcsshim v0.8.20
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240806135314-3946b2b7b2a8
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20241002124647-1892e4deb967
 	k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20241002124647-1892e4deb967
