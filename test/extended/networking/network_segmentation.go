@@ -475,7 +475,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					),
 				)
 				DescribeTable(
-					"isolates overlapping CIDRs",
+					"isolates overlapping CIDRs [OCPFlaky]",
 					func(
 						topology string,
 						numberOfPods int,
