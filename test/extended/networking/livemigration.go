@@ -56,7 +56,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 		Context("with user defined networks and persistent ips configured", func() {
 			const (
 				nadName           = "blue"
-				bindingName       = "passt"
+				bindingName       = "l2bridge"
 				udnCrReadyTimeout = 5 * time.Second
 				vmName            = "myvm"
 			)
