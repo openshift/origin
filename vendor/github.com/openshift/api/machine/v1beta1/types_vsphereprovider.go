@@ -190,6 +190,10 @@ type Workspace struct {
 	// ResourcePool is the resource pool in which VMs are created/located.
 	// +optional
 	ResourcePool string `gcfg:"resourcepool-path,omitempty" json:"resourcePool,omitempty"`
+	// vmGroup is the cluster vm group in which virtual machines will be added for vm host group based zonal.
+	// +openshift:validation:featureGate=VSphereHostVMGroupZonal
+	// +optional
+	VMGroup string `gcfg:"vmGroup,omitempty" json:"vmGroup,omitempty"`
 }
 
 // VSphereMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
