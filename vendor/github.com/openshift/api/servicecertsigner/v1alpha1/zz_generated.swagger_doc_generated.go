@@ -23,7 +23,7 @@ func (ServiceCertSignerOperatorConfig) SwaggerDoc() map[string]string {
 var map_ServiceCertSignerOperatorConfigList = map[string]string{
 	"":         "ServiceCertSignerOperatorConfigList is a collection of items\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
-	"items":    "Items contains the items",
+	"items":    "items contains the items",
 }
 
 func (ServiceCertSignerOperatorConfigList) SwaggerDoc() map[string]string {
