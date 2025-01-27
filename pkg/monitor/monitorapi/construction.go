@@ -360,6 +360,34 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	return b.Build()
 }
 
+// KubeletSyncLoopProbe constructs a locator from a Kubelet SyncLoop
+// probe event, typically kubelet log prints the events as follows:
+// "SyncLoop (probe)" probe="readiness" status="ready" pod="openshift-etcd/etcd-ci-op-bzbjn2bk-206af-gfdsw-master-2"
+func (b *LocatorBuilder) KubeletSyncLoopProbe(node, ns, podName, probeType string) Locator {
+	b.targetType = LocatorTypeKubeletSyncLoopProbe
+	b.withNode(node).
+		withNamespace(ns).
+		withPodName(podName)
+	b.annotations[LocatorTypeKubeletSyncLoopProbeType] = probeType
+	return b.Build()
+}
+
+func (b *LocatorBuilder) KubeletSyncLoopPLEG(node, ns, podName, eventType string) Locator {
+	b.targetType = LocatorTypeKubeletSyncLoopPLEG
+	b.withNode(node).
+		withNamespace(ns).
+		withPodName(podName)
+	b.annotations[LocatorTypeKubeletSyncLoopPLEGType] = eventType
+	return b.Build()
+}
+
+func (b *LocatorBuilder) StaticPodInstall(node, podType string) Locator {
+	b.targetType = LocatorTypeStaticPodInstall
+	b.withNode(node)
+	b.annotations[LocatorStaticPodInstallType] = podType
+	return b.Build()
+}
+
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) Locator {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer
