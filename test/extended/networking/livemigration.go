@@ -89,7 +89,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						Expect(err).NotTo(HaveOccurred())
 						Expect(len(workerNodes)).To(BeNumerically(">=", 2))
 
-						isDualStack := getIPFamilyForCluster(f) == DualStack
+						isDualStack := false
+						if strings.Contains(netConfig.cidr, ",") {
+							isDualStack = true
+						}
 
 						provisionedNetConfig := createNetworkFn(netConfig)
 
