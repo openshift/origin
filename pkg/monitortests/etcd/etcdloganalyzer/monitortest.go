@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -61,6 +62,7 @@ func (w *etcdLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *
 		logToIntervalConverter,
 		namespaceScopedCoreInformers.Pods(),
 	)
+	logrus.Infof("Starting informers")
 
 	go kubeInformers.Start(ctx.Done())
 	go podStreamer.Run(ctx, w.finishedCollecting)

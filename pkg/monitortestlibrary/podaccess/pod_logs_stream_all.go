@@ -98,6 +98,7 @@ func (c *PodsStreamer) Stop(ctx context.Context) {
 func (c *PodsStreamer) syncPods(ctx context.Context) error {
 	pods, err := c.podLister.Pods(c.namespaceName).List(c.selector)
 	if err != nil {
+		c.logger.WithField("error", err).WithField("namespace", c.namespaceName).Info("error listing pods")
 		return err
 	}
 
@@ -106,6 +107,7 @@ func (c *PodsStreamer) syncPods(ctx context.Context) error {
 		pod := pods[i]
 		// skip pods that are not on nodes
 		if len(pod.Spec.NodeName) == 0 {
+			c.logger.WithField("pod", pod.Name).WithField("namespace", c.namespaceName).Info("pod not on node")
 			continue
 		}
 
