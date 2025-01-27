@@ -60,12 +60,18 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
-	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], b.info)
+	var info ExtensionInfo
+	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
 	}
+	b.info = &info
+
+	// Set fields origin knows or calculates:
 	b.info.Source.SourceBinary = binName
 	b.info.Source.SourceImage = b.imageTag
+	b.info.ExtensionArtifactDir = path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&b.info.Component))
+
 	logrus.Infof("Fetched info for %s in %v", binName, time.Since(start))
 	return b.info, nil
 }
@@ -119,9 +125,8 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		// unlikely to happen in reality, we'll have always run info and cached it before running tests
 		logrus.Warningf("Failed to fetch info for %s: %v", binName, err)
 	}
-	// e.g. k8s-tests-ext's extension will be $ARTIFACT_DIR/openshift/payload/hyperkube
-	extensionArtifactsDir := path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&info.Component))
-	env = append(env, fmt.Sprintf("EXTENSION_ARTIFACT_DIR=%s", extensionArtifactsDir))
+	// Example: k8s-tests-ext's extension will be $ARTIFACT_DIR/openshift/payload/hyperkube
+	env = append(env, fmt.Sprintf("EXTENSION_ARTIFACT_DIR=%s", info.ExtensionArtifactDir))
 
 	// Build command
 	args := []string{"run-test"}
@@ -477,13 +482,13 @@ func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]
 	return c.CombinedOutput()
 }
 
+var safePathRegexp = regexp.MustCompile(`[<>:"/\\|?*\s]+`)
+
 // safeComponentPath sanitizes a component identifier to be safe for use as a file or directory name.
 func safeComponentPath(c *Component) string {
-	safeRegexp := regexp.MustCompile(`[<>:"/\\|?*\s]+`)
-
 	return path.Join(
-		safeRegexp.ReplaceAllString(c.Product, "_"),
-		safeRegexp.ReplaceAllString(c.Kind, "_"),
-		safeRegexp.ReplaceAllString(c.Name, "_"),
+		safePathRegexp.ReplaceAllString(c.Product, "_"),
+		safePathRegexp.ReplaceAllString(c.Kind, "_"),
+		safePathRegexp.ReplaceAllString(c.Name, "_"),
 	)
 }
