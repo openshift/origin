@@ -89,9 +89,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						Expect(err).NotTo(HaveOccurred())
 						Expect(len(workerNodes)).To(BeNumerically(">=", 2))
 
-						isDualStack := getIPFamilyForCluster(f) == DualStack
-
 						provisionedNetConfig := createNetworkFn(netConfig)
+
+						isDualStack := getIPFamilyForCluster(f) == DualStack
 
 						for _, node := range workerNodes {
 							Eventually(func() bool {
