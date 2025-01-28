@@ -29,6 +29,15 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 )
 
+const (
+	checkConnectionToClusterIPsTimeout      = 5 * time.Second
+	checkNoConnectionToClusterIPsTimeout    = 5 * time.Second
+	checkConnectionToNodePortTimeout        = 30 * time.Second
+	checkNoConnectionToNodePortTimeout      = 30 * time.Second
+	checkConnectionToLoadBalancersTimeout   = 600 * time.Second
+	checkNoConnectionToLoadBalancersTimeout = 120 * time.Second
+)
+
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services", func() {
 	// disable automatic namespace creation, we need to add the required UDN label
 	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e-services")
@@ -352,8 +361,8 @@ func ParseNodeHostIPDropNetMask(node *kapi.Node) (sets.Set[string], error) {
 	return sets.New(cfg...), nil
 }
 
-func checkConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, expectedOutput, cmd string) error {
-	return wait.PollUntilContextTimeout(context.TODO(), 200*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+func checkConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, expectedOutput, cmd string, timeout time.Duration) error {
+	return wait.PollUntilContextTimeout(context.TODO(), 200*time.Millisecond, timeout, true, func(ctx context.Context) (bool, error) {
 		defer GinkgoRecover()
 		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(ctx, f, clientPod.Name, cmd)
 		fmt.Printf("stdout=%s\n", stdout)
@@ -371,8 +380,8 @@ func checkConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, expe
 	})
 }
 
-func checkNoConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, cmd string) error {
-	err := wait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
+func checkNoConnectionToAgnhostPod(f *framework.Framework, clientPod *v1.Pod, cmd string, timeout time.Duration) error {
+	err := wait.PollUntilContextTimeout(context.TODO(), 500*time.Millisecond, timeout, true, func(ctx context.Context) (bool, error) {
 		defer GinkgoRecover()
 		stdout, stderr, err2 := e2epod.ExecShellInPodWithFullOutput(ctx, f, clientPod.Name, cmd)
 		fmt.Printf("stdout=%s\n", stdout)
@@ -426,9 +435,9 @@ func checkConnectionOrNoConnectionToClusterIPs(f *framework.Framework, clientPod
 		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, clusterIP, servicePort)
 
 		if shouldConnect {
-			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd)
+			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd, checkConnectionToClusterIPsTimeout)
 		} else {
-			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd)
+			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd, checkNoConnectionToClusterIPsTimeout)
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
@@ -459,9 +468,9 @@ func checkConnectionOrNoConnectionToNodePort(f *framework.Framework, clientPod *
 		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, nodeIP, nodePort)
 
 		if shouldConnect {
-			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd)
+			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd, checkConnectionToNodePortTimeout)
 		} else {
-			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd)
+			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd, checkNoConnectionToNodePortTimeout)
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
@@ -497,9 +506,9 @@ func checkConnectionOrNoConnectionToLoadBalancers(f *framework.Framework, client
 		cmd := fmt.Sprintf(`/bin/sh -c 'echo hostname | nc -u -w 1 %s %d '`, lbTarget, port)
 
 		if shouldConnect {
-			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd)
+			err = checkConnectionToAgnhostPod(f, clientPod, expectedOutput, cmd, checkConnectionToLoadBalancersTimeout)
 		} else {
-			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd)
+			err = checkNoConnectionToAgnhostPod(f, clientPod, cmd, checkNoConnectionToLoadBalancersTimeout)
 		}
 		framework.ExpectNoError(err, fmt.Sprintf("Failed to verify that %s", msg))
 	}
