@@ -12,7 +12,7 @@ aliases:
   team-leads:
   - JAORMX # Infrastructure Security and Compliance
   - JoelSpeed # Cluster Infrastructure
-  - LalatenduMohanty # Over the Air Updates
+  - PratikMahajan # Over the Air Updates
   - Miciah # Network Edge
   - coreydaley # Build + Jenkins
   - ashishkamra # Performance and Latency Sensitive Application Platform
@@ -33,7 +33,7 @@ aliases:
   - jparrill # Portfolio Integration
   - jsafrane # Storage
   - jwmatthews # App Migration
-  - kevinrizza # Operator Lifecycle Manager
+  - LalatenduMohanty # Operator Lifecycle Manager
   - mandre # Shift on Stack
   - mike-nguyen # CoreOS
   - pacevedom # MicroShift
