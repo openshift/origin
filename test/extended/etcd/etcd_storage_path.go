@@ -282,11 +282,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "31") {
+	if strings.HasPrefix(version.Minor, "33") {
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
-			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.30 release.
+			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.33 release.
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -296,11 +296,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 
 		// Modified etcd data.
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
-		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.30 release.
+		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.33 release.
 
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
-		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.29 release.
+		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.33 release.
 		removeStorageData(t, etcdStorageData)
 	}
 
