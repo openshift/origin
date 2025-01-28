@@ -1364,7 +1364,8 @@ func generateIPAMLifecycle(params *networkAttachmentConfigParams) string {
 	if !params.allowPersistentIPs {
 		return ""
 	}
-	return "ipamLifecycle: Persistent"
+	return `ipam:
+      lifecycle: Persistent`
 }
 
 func createManifest(namespace, manifest string) (func(), error) {
