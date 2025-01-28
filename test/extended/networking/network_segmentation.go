@@ -38,29 +38,37 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
-const RequiredUDNNamespaceLabel = "k8s.ovn.org/primary-user-defined-network"
+const (
+	openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
 
-// NOTE: We are observing pod creation requests taking more than two minutes t
-// reach the CNI for the CNI to do the necessary plumbing. This is causing tests
-// to timeout since pod doesn't go into ready state.
-// See https://issues.redhat.com/browse/OCPBUGS-48362 for details. We can revisit
-// these values when that bug is fixed but given the Kubernetes test default for a
-// pod to startup is 5mins: https://github.com/kubernetes/kubernetes/blob/60c4c2b2521fb454ce69dee737e3eb91a25e0535/test/e2e/framework/timeouts.go#L22-L23
-// we are not too far from the mark or against test policy
-const podReadyPollTimeout = 4 * time.Minute
-const podReadyPollInterval = 6 * time.Second
+	RequiredUDNNamespaceLabel = "k8s.ovn.org/primary-user-defined-network"
 
-// NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
-// the tests have hardcoded values with 5sec being common for polltimeout and 10ms for pollinterval
-// This is being changed to be 10seconds poll timeout to account for infrastructure complexity between
-// OpenShift and KIND clusters. Also changing the polling interval to be 1 second so that in both
-// Eventually and Consistently blocks we get at least 10 retries (10/1) in good conditions and 5 retries (10/2) in
-// bad conditions since connectToServer util has a 2 second timeout.
-// FIXME: Timeout increased to 30 seconds because default network controller does not receive the pod event after its annotations
-// are updated. Reduce timeout back to sensible value once issue is understood.
-const serverConnectPollTimeout = 30 * time.Second
-const serverConnectPollInterval = 1 * time.Second
+	// NOTE: We are observing pod creation requests taking more than two minutes t
+	// reach the CNI for the CNI to do the necessary plumbing. This is causing tests
+	// to timeout since pod doesn't go into ready state.
+	// See https://issues.redhat.com/browse/OCPBUGS-48362 for details. We can revisit
+	// these values when that bug is fixed but given the Kubernetes test default for a
+	// pod to startup is 5mins: https://github.com/kubernetes/kubernetes/blob/60c4c2b2521fb454ce69dee737e3eb91a25e0535/test/e2e/framework/timeouts.go#L22-L23
+	// we are not too far from the mark or against test policy
+	podReadyPollTimeout  = 4 * time.Minute
+	podReadyPollInterval = 6 * time.Second
+
+	// NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
+	// the tests have hardcoded values with 5sec being common for polltimeout and 10ms for pollinterval
+	// This is being changed to be 10seconds poll timeout to account for infrastructure complexity between
+	// OpenShift and KIND clusters. Also changing the polling interval to be 1 second so that in both
+	// Eventually and Consistently blocks we get at least 10 retries (10/1) in good conditions and 5 retries (10/2) in
+	// bad conditions since connectToServer util has a 2 second timeout.
+	// FIXME: Timeout increased to 30 seconds because default network controller does not receive the pod event after its annotations
+	// are updated. Reduce timeout back to sensible value once issue is understood.
+	serverConnectPollTimeout  = 30 * time.Second
+	serverConnectPollInterval = 1 * time.Second
+
+	// NOTE: Set relatively high UDN and CUDN readiness timeouts to accommodate platforms
+	// with a slow API server, such as SNO.
+	networkReadyPollTimeout  = 90 * time.Second
+	networkReadyPollInterval = 3 * time.Second
+)
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
@@ -79,8 +87,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			userDefinedNetworkIPv4Subnet = "203.203.0.0/16"
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			nadName                      = "gryffindor"
-
-			udnCrReadyTimeout = 5 * time.Second
 		)
 
 		var (
@@ -649,7 +655,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				udnManifest := generateUserDefinedNetworkManifest(c)
 				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
-				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 				return err
 			}),
 			Entry("ClusterUserDefinedNetwork", func(c *networkAttachmentConfigParams) error {
@@ -664,7 +670,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 120))
 					Expect(err).NotTo(HaveOccurred())
 				})
-				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.name), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.name), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 				return err
 			}),
 		)
@@ -688,7 +694,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				cleanup, err := createManifest(f.Namespace.Name, newUserDefinedNetworkManifest(testUdnName))
 				DeferCleanup(cleanup)
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, testUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, testUdnName), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 			})
 
 			It("should create NetworkAttachmentDefinition according to spec", func() {
@@ -891,7 +897,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					return nil
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 			})
 
 			It("should create NAD according to spec in each target namespace and report active namespaces", func() {
@@ -931,7 +937,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				patch := fmt.Sprintf(`[{"op": "add", "path": "./spec/namespaceSelector/matchExpressions/0/values/-", "value": "%s"}]`, testNewNs)
 				_, err := e2ekubectl.RunKubectl("", "patch", clusterUserDefinedNetworkResource, testClusterUdnName, "--type=json", "-p="+patch)
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 				Eventually(
 					validateClusterUDNStatusReportsActiveNamespacesFunc(oc.AdminDynamicClient(), testClusterUdnName, testTenantNamespaces...),
 					1*time.Minute, 3*time.Second).Should(Succeed())
@@ -1180,7 +1186,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				cleanup, err := createManifest(f.Namespace.Name, newPrimaryUserDefinedNetworkManifest(oc, testUdnName))
 				DeferCleanup(cleanup)
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, testUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
+				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, testUdnName), networkReadyPollTimeout, networkReadyPollInterval).Should(Succeed())
 				By("create UDN pod")
 				cfg := podConfig(testPodName, withCommand(func() []string {
 					return httpServerContainerCmd(port)
