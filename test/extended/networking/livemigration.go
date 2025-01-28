@@ -243,6 +243,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) networkAttachmentConfig {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
+					By(fmt.Sprintf("DEBUG| The UDN manifest: %s", udnManifest))
 					Expect(applyManifest(c.namespace, udnManifest, "--validate=ignore")).To(Succeed())
 					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 
