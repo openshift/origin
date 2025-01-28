@@ -262,6 +262,8 @@ const (
 
 	ReasonHighGeneration    IntervalReason = "HighGeneration"
 	ReasonInvalidGeneration IntervalReason = "GenerationViolation"
+
+	ReasonEtcdBootstrap IntervalReason = "EtcdBootstrap"
 )
 
 type AnnotationKey string

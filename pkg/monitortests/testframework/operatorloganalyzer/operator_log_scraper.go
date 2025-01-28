@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -203,6 +204,17 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 				Locator(logLine.Locator).
 				Message(monitorapi.NewMessage().
 					Reason(monitorapi.ReasonBadOperatorApply).
+					HumanMessage(logLine.Line),
+				).
+				Build(logLine.Instant, logLine.Instant),
+		)
+	case strings.Contains(logLine.Line, "Removing bootstrap member") || strings.Contains(logLine.Line, "Successfully removed bootstrap member") || strings.Contains(logLine.Line, "Cluster etcd operator bootstrapped successfully"): // ceo removed bootstrap member
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
+				Locator(logLine.Locator).
+				Display().
+				Message(monitorapi.NewMessage().
+					Reason(monitorapi.ReasonEtcdBootstrap).
 					HumanMessage(logLine.Line),
 				).
 				Build(logLine.Instant, logLine.Instant),
