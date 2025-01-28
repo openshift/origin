@@ -897,7 +897,8 @@ func generateIPAMLifecycle(params *networkAttachmentConfigParams) string {
 	if !params.allowPersistentIPs {
 		return ""
 	}
-	return `ipam:
+	return `ipamLifecycle: Persistent
+    ipam:
       lifecycle: Persistent`
 }
 
