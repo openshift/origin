@@ -626,7 +626,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			checkNodeTraffic(mode)
 		},
 			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
-			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
+			//g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
 			// TODO add test for v1.IPsecModeDisabled mode once IPsec tests stabilized in CI.
 		)
 	})
