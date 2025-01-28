@@ -20,6 +20,7 @@ import (
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
 
+	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,7 +116,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 						Expect(err).NotTo(HaveOccurred())
-						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+						err = udnWaitForOpenShift(oc, ns.Name)
 						Expect(err).NotTo(HaveOccurred())
 						f.Namespace = ns
 
@@ -206,7 +207,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 						Expect(err).NotTo(HaveOccurred())
-						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+						err = udnWaitForOpenShift(oc, ns.Name)
 						Expect(err).NotTo(HaveOccurred())
 						f.Namespace = ns
 						By("Creating second namespace for default network pods")
@@ -489,7 +490,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 						Expect(err).NotTo(HaveOccurred())
-						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+						err = udnWaitForOpenShift(oc, ns.Name)
 						Expect(err).NotTo(HaveOccurred())
 						f.Namespace = ns
 						red := "red"
@@ -665,7 +666,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					"e2e-framework": f.BaseName,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), namespace.Name)
+				err = udnWaitForOpenShift(oc, namespace.Name)
 				Expect(err).NotTo(HaveOccurred())
 				f.Namespace = namespace
 
@@ -772,7 +773,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			}
 			ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 			Expect(err).NotTo(HaveOccurred())
-			err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+			err = udnWaitForOpenShift(oc, ns.Name)
 			Expect(err).NotTo(HaveOccurred())
 			f.Namespace = ns
 
@@ -1777,4 +1778,33 @@ func Network(ipn *net.IPNet) *net.IPNet {
 		IP:   maskedIP,
 		Mask: ipn.Mask,
 	}
+}
+
+func udnWaitForOpenShift(oc *exutil.CLI, namespace string) error {
+	serviceAccountName := "default"
+	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", serviceAccountName)
+	err := exutil.WaitForServiceAccount(oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace), serviceAccountName)
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Waiting on permissions in namespace %q ...", namespace)
+	err = exutil.WaitForSelfSAR(1*time.Second, 60*time.Second, oc.AdminKubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "create",
+			Group:     "",
+			Resource:  "pods",
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Waiting on SCC annotations in namespace %q ...", namespace)
+	err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), namespace)
+	if err != nil {
+		return err
+	}
+	return nil
 }
