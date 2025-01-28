@@ -249,15 +249,15 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 		}
 
 		g.By("should only allow the system:authenticated group to access certain policy rules", func() {
-			testAllGroupRules(ruleResolver, kuser.AllAuthenticated, allAuthenticatedRules, namespaces.Items)
+			testAllGroupRules(ctx, ruleResolver, kuser.AllAuthenticated, allAuthenticatedRules, namespaces.Items)
 		})
 
 		g.By("should only allow the system:unauthenticated group to access certain policy rules", func() {
-			testAllGroupRules(ruleResolver, kuser.AllUnauthenticated, allUnauthenticatedRules, namespaces.Items)
+			testAllGroupRules(ctx, ruleResolver, kuser.AllUnauthenticated, allUnauthenticatedRules, namespaces.Items)
 		})
 
 		g.By("should only allow the system:authenticated:oauth group to access certain policy rules", func() {
-			testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
+			testAllGroupRules(ctx, ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
 				rbacv1helpers.NewRule("get", "list", "watch", "delete").Groups(oauthGroup).Resources("useroauthaccesstokens").RuleOrDie(),
 			}, namespaces.Items)
@@ -266,20 +266,20 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 	})
 })
 
-func testAllGroupRules(ruleResolver validation.AuthorizationRuleResolver, group string, expectedClusterRules []rbacv1.PolicyRule, namespaces []corev1.Namespace) {
-	testGroupRules(ruleResolver, group, metav1.NamespaceNone, expectedClusterRules)
+func testAllGroupRules(ctx context.Context, ruleResolver validation.AuthorizationRuleResolver, group string, expectedClusterRules []rbacv1.PolicyRule, namespaces []corev1.Namespace) {
+	testGroupRules(ctx, ruleResolver, group, metav1.NamespaceNone, expectedClusterRules)
 
 	for _, namespace := range namespaces {
 		// merge the namespace scoped and cluster wide rules
 		rules := append([]rbacv1.PolicyRule{}, groupNamespaceRules[group][namespace.Name]...)
 		rules = append(rules, expectedClusterRules...)
 
-		testGroupRules(ruleResolver, group, namespace.Name, rules)
+		testGroupRules(ctx, ruleResolver, group, namespace.Name, rules)
 	}
 }
 
-func testGroupRules(ruleResolver validation.AuthorizationRuleResolver, group, namespace string, expectedRules []rbacv1.PolicyRule) {
-	actualRules, err := ruleResolver.RulesFor(&kuser.DefaultInfo{Groups: []string{group}}, namespace)
+func testGroupRules(ctx context.Context, ruleResolver validation.AuthorizationRuleResolver, group, namespace string, expectedRules []rbacv1.PolicyRule) {
+	actualRules, err := ruleResolver.RulesFor(ctx, &kuser.DefaultInfo{Groups: []string{group}}, namespace)
 	o.Expect(err).NotTo(o.HaveOccurred()) // our default RBAC policy should never have rule resolution errors
 
 	if cover, missing := rbacvalidation.Covers(expectedRules, actualRules); !cover {
