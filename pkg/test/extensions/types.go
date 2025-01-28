@@ -1,8 +1,9 @@
 package extensions
 
 import (
-	"k8s.io/apimachinery/pkg/util/sets"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // ExtensionInfo represents an extension to openshift-tests.
@@ -13,6 +14,9 @@ type ExtensionInfo struct {
 
 	// Suites that the extension wants to advertise/participate in.
 	Suites []Suite `json:"suites"`
+
+	// -- origin specific info --
+	ExtensionArtifactDir string `json:"extension_artifact_dir"`
 }
 
 // Source contains the details of the commit and source URL.
