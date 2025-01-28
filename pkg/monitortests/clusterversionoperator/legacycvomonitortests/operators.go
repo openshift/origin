@@ -111,7 +111,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "etcd" {
 				return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
 			}
-			if operator == "ingress" && condition.Reason == "IngressDegraded" {
+			if operator == "ingress" {
 				return "https://issues.redhat.com/browse/OCPBUGS-45921", nil
 			}
 			if operator == "kube-apiserver" {
@@ -283,6 +283,22 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					logrus.Infof("Operator %s is in Degraded=True state outside of upgrade window, but we will check for exceptions", operator)
 				} else {
 					return "", nil
+				}
+			case "console":
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+					return "https://issues.redhat.com/browse/OCPBUGS-38676", nil
+				}
+			case "etcd":
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+					return "https://issues.redhat.com/browse/OCPBUGS-38659", nil
+				}
+			case "machine-config":
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+					return "https://issues.redhat.com/browse/MCO-1447", nil
+				}
+			case "kube-apiserver":
+				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+					return "https://issues.redhat.com/browse/OCPBUGS-38661", nil
 				}
 			default:
 				// flake this to collect more exceptions
