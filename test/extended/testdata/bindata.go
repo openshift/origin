@@ -53563,6 +53563,11 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     }
 
+    function isEtcdBootstrap(eventInterval) {
+        return eventInterval.source === 'PodLog' && eventInterval.message.reason === "EtcdBootstrap";
+
+    }
+
     function isPodLog(eventInterval) {
         if (eventInterval.source === 'PodLog') {
             return true
@@ -53962,6 +53967,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({ group: "etcd-leaders", data: [] })
         createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
+        createTimelineData("Bootstrap", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdBootstrap, regex)
 
         timelineGroups.push({group: "cloud-metrics", data: []})
         createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
