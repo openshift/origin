@@ -924,8 +924,10 @@ func createManifest(namespace, manifest string) (func(), error) {
 	return cleanup, nil
 }
 
-func applyManifest(namespace, manifest string) error {
-	_, err := e2ekubectl.RunKubectlInput(namespace, manifest, "apply", "-f", "-")
+func applyManifest(namespace, manifest string, opts ...string) error {
+	applyArgs := []string{"apply"}
+	applyArgs = append(applyArgs, opts...)
+	_, err := e2ekubectl.RunKubectlInput(namespace, manifest, append(applyArgs, "-f", "-")...)
 	return err
 }
 
