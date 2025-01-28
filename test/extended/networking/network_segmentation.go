@@ -1392,7 +1392,7 @@ func createManifest(namespace, manifest string) (func(), error) {
 }
 
 func applyManifest(namespace, manifest string) error {
-	_, err := e2ekubectl.RunKubectlInput(namespace, manifest, "apply", "-f", "-")
+	_, err := e2ekubectl.RunKubectlInput(namespace, manifest, "apply", "--validate=strict", "-f", "-")
 	return err
 }
 
