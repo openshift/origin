@@ -3,6 +3,7 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"time"
@@ -1241,3 +1242,99 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 		})
 	})
 })
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry access", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("bootstrap-policy")
+
+	g.Context("", func() {
+		g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
+			g.It("should succeed [apigroup:image.openshift.io]", func() {
+
+				g.By("Checking if the image registry is available")
+				available := isImageRegistryAvailable(oc)
+				if !available {
+					g.Skip("Image registry is not available. Skipping test.")
+				}
+
+				g.By("Enable default route for the image registry")
+				err := oc.AsAdmin().WithoutNamespace().Run("patch").Args(
+					"configs.imageregistry.operator.openshift.io/cluster",
+					"--type=merge",
+					"--patch", `{"spec": {"defaultRoute": true}}`,
+				).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Wait for the default route to become ready")
+				waitRouteReady("default-route")
+
+				g.By("Grant public access to the openshift namespace")
+				defer oc.AsAdmin().WithoutNamespace().Run("policy").Args(
+					"remove-role-from-group",
+					"system:image-puller", "system:unauthenticated",
+					"--namespace", "openshift",
+				).Execute()
+				output, err := oc.AsAdmin().WithoutNamespace().Run("policy").Args(
+					"add-role-to-group", "system:image-puller", "system:unauthenticated",
+					"--namespace", "openshift",
+				).Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).To(o.ContainSubstring(
+					"clusterrole.rbac.authorization.k8s.io/system:image-puller added: \"system:unauthenticated\"",
+				))
+
+				g.By("Fetch image metadata")
+				output, err = oc.AsAdmin().Run("image").Args(
+					"info", "--insecure",
+					"registry.openshift-image-registry.svc.cluster.local/openshift/tools:latest",
+					"--show-multiarch",
+				).Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).NotTo(o.ContainSubstring("error: unauthorized: authentication required"))
+				o.Expect(output).NotTo(o.ContainSubstring("Unable to connect to the server: no basic auth credentials"))
+				o.Expect(output).To(o.ContainSubstring(
+					"registry.openshift-image-registry.svc.cluster.local/openshift/tools:latest",
+				))
+			})
+		})
+	})
+})
+
+func isImageRegistryAvailable(oc *exutil.CLI) bool {
+	output, err := oc.AsAdmin().Run("get").Args(
+		"co", "image-registry",
+		"-o=jsonpath={.status.conditions[?(@.type=='Available')].status}",
+	).Output()
+	if err != nil {
+		e2e.Logf("Error fetching image registry status: %v", err)
+		return false
+	}
+
+	status := strings.TrimSpace(output)
+	if status == "" {
+		e2e.Logf("Image registry status is not available.")
+		return false
+	}
+	return status == "True"
+}
+
+func waitRouteReady(route string) {
+	// Create a context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	curlCmd := "curl -k https://" + route
+	var output []byte
+	var curlErr error
+	pollErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 1*time.Minute, true, func(ctx context.Context) (bool, error) {
+		output, curlErr = exec.Command("bash", "-c", curlCmd).CombinedOutput()
+		if curlErr != nil {
+			e2e.Logf("the route is not ready, go to next round")
+			return false, nil
+		}
+		return true, nil
+	})
+	if pollErr != nil {
+		e2e.Logf("output is: %v with error %v", string(output), curlErr.Error())
+	}
+	exutil.AssertWaitPollNoErr(pollErr, "The route can't be used")
+}
