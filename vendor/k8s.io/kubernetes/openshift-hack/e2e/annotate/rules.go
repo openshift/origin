@@ -15,7 +15,6 @@ var (
 			`\[Feature:WatchList\]`,
 			`\[Feature:ServiceCIDRs\]`,
 			`\[Feature:ClusterTrustBundle\]`,
-			`\[Feature:SELinuxMount\]`,
 			`\[FeatureGate:SELinuxMount\]`,
 			`\[Feature:RelaxedEnvironmentVariableValidation\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
@@ -25,14 +24,7 @@ var (
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
-			`Monitoring`,                  // Not installed, should be
-			`Cluster level logging`,       // Not installed yet
-			`Kibana`,                      // Not installed
-			`Ubernetes`,                   // Can't set zone labels today
-			`kube-ui`,                     // Not installed by default
-			`Kubernetes Dashboard`,        // Not installed by default (also probably slow image pull)
-			`should proxy to cadvisor`,    // we don't expose cAdvisor port directly for security reasons
-			`\[Feature:BootstrapTokens\]`, // we don't serve cluster-info configmap
+			`\[Feature:BootstrapTokens\]`,                // we don't serve cluster-info configmap
 			`\[Feature:KubeProxyDaemonSetMigration\]`,    // upgrades are run separately
 			`\[Feature:BoundServiceAccountTokenVolume\]`, // upgrades are run separately
 			`\[Feature:StatefulUpgrade\]`,                // upgrades are run separately
@@ -41,19 +33,14 @@ var (
 		"[Disabled:SpecialConfig]": {
 			// GPU node needs to be available
 			`\[Feature:GPUDevicePlugin\]`,
-			`\[sig-scheduling\] GPUDevicePluginAcrossRecreate \[Feature:Recreate\]`,
 
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
 			`\[sig-cloud-provider-gcp\]`,                // these test require a different configuration - note that GCE tests from the sig-cluster-lifecycle were moved to the sig-cloud-provider-gcpcluster lifecycle see https://github.com/kubernetes/kubernetes/commit/0b3d50b6dccdc4bbd0b3e411c648b092477d79ac#diff-3b1910d08fb8fd8b32956b5e264f87cb
 
 			`kube-dns-autoscaler`, // Don't run kube-dns
-			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
-			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
+			`DNS configMap`,       // this tests dns federation configuration via configmap, which we don't support yet
 
-			`NodeProblemDetector`,                   // requires a non-master node to run on
-			`Advanced Audit should audit API calls`, // expects to be able to call /logs
-
-			`Firewall rule should have correct firewall rules for e2e cluster`, // Upstream-install specific
+			`NodeProblemDetector`, // requires a non-master node to run on
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2079958
 			`\[sig-network\] \[Feature:Topology Hints\] should distribute endpoints evenly`,
@@ -67,14 +54,12 @@ var (
 		// always add an issue here
 		"[Disabled:Broken]": {
 			`mount an API token into pods`,                              // We add 6 secrets, not 1
-			`ServiceAccounts should ensure a single API token exists`,   // We create lots of secrets
 			`unchanging, static URL paths for kubernetes api services`,  // the test needs to exclude URLs that are not part of conformance (/logs)
 			`Services should be able to up and down services`,           // we don't have wget installed on nodes
 			`KubeProxy should set TCP CLOSE_WAIT timeout`,               // the test require communication to port 11302 in the cluster nodes
 			`should check kube-proxy urls`,                              // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
 			`SSH`,                                                       // TRIAGE
 			`should implement service.kubernetes.io/service-proxy-name`, // this is an optional test that requires SSH. sig-network
-			`recreate nodes and ensure they function upon restart`,      // https://bugzilla.redhat.com/show_bug.cgi?id=1756428
 			`\[Driver: iscsi\]`,                                         // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 
 			"RuntimeClass should reject",
@@ -85,7 +70,6 @@ var (
 
 			// TODO(node): configure the cri handler for the runtime class to make this work
 			"should run a Pod requesting a RuntimeClass with a configured handler",
-			"should reject a Pod requesting a RuntimeClass with conflicting node selector",
 			"should run a Pod requesting a RuntimeClass with scheduling",
 
 			// A fix is in progress: https://github.com/openshift/origin/pull/24709
@@ -97,9 +81,6 @@ var (
 			"MetricsGrabber should grab all metrics from API server",
 			"MetricsGrabber should grab all metrics from a ControllerManager",
 			"MetricsGrabber should grab all metrics from a Scheduler",
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1906808
-			`ServiceAccounts should support OIDC discovery of service account issuer`,
 
 			// NFS umount is broken in kernels 5.7+
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1854379
@@ -123,14 +104,8 @@ var (
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy based on Ports`,
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
 
-			`Topology Hints should distribute endpoints evenly`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
 			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
-			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service\(hostNetwork\)`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1952460
-			`\[sig-network\] Firewall rule control plane should not expose well-known ports`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1988272
 			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
@@ -144,9 +119,6 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-34577
-			`\[sig-storage\] Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-34594
 			`\[sig-node\] \[Feature:PodLifecycleSleepAction\] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
@@ -163,23 +135,9 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-38838
-			`\[sig-cli\] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from all pods based on default container`,
-			`\[sig-cli\] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from each pod and each container in Deployment`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
-			`\[Driver: rbd\]`,           // OpenShift 4.x does not support Ceph RBD (use CSI instead)
-			`\[Driver: ceph\]`,          // OpenShift 4.x does not support CephFS (use CSI instead)
-			`\[Driver: gluster\]`,       // OpenShift 4.x does not support Gluster
-			`Volumes GlusterFS`,         // OpenShift 4.x does not support Gluster
-			`GlusterDynamicProvisioner`, // OpenShift 4.x does not support Gluster
-
-			// Skip vSphere-specific storage tests. The standard in-tree storage tests for vSphere
-			// (prefixed with `In-tree Volumes [Driver: vsphere]`) are enough for testing this plugin.
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2019115
-			`\[sig-storage\].*\[Feature:vsphere\]`,
 			// Also, our CI doesn't support topology, so disable those tests
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies`,
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
@@ -188,7 +146,6 @@ var (
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
-			`\[sig-scalability\]`,                          // disable from the default set for now
 			`should create and stop a working application`, // Inordinately slow tests
 
 			`\[Feature:PerformanceDNS\]`, // very slow
@@ -198,25 +155,13 @@ var (
 		// tests that are known flaky
 		"[Flaky]": {
 			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
-			// TODO(node): test works when run alone, but not in the suite in CI
-			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
 		},
 		// tests that must be run without competition
 		"[Serial]": {
 			`\[Disruptive\]`,
-			`\[Feature:Performance\]`, // requires isolation
 
 			`Service endpoints latency`, // requires low latency
 			`Clean up pods on node`,     // schedules up to max pods per node
-			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
-
-			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
-
-			`\[Feature:HPA\] Horizontal pod autoscaling \(scale resource: CPU\) \[sig-autoscaling\] ReplicationController light Should scale from 1 pod to 2 pods`,
-
-			`should prevent Ingress creation if more than 1 IngressClass marked as default`, // https://bugzilla.redhat.com/show_bug.cgi?id=1822286
-
-			`\[sig-network\] IngressClass \[Feature:Ingress\] should set default value on new IngressClass`, //https://bugzilla.redhat.com/show_bug.cgi?id=1833583
 		},
 		// Tests that don't pass on disconnected, either due to requiring
 		// internet access for GitHub (e.g. many of the s2i builds), or
@@ -249,33 +194,14 @@ var (
 			`\[Feature:LoadBalancer\]`,
 		},
 		"[Skipped:gce]": {
-			// Requires creation of a different compute instance in a different zone and is not compatible with volumeBindingMode of WaitForFirstConsumer which we use in 4.x
-			`\[sig-storage\] Multi-AZ Cluster Volumes should only be allowed to provision PDs in zones where nodes exist`,
-
 			// The following tests try to ssh directly to a node. None of our nodes have external IPs
-			`\[k8s.io\] \[sig-node\] crictl should be able to run crictl on the node`,
 			`\[sig-storage\] Flexvolumes should be mountable`,
-			`\[sig-storage\] Detaching volumes should not work when mount is in progress`,
-
-			// We are using openshift-sdn to conceal metadata
-			`\[sig-auth\] Metadata Concealment should run a check-metadata-concealment job to completion`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
-			`\[sig-api-machinery\] AdmissionWebhook should be able to deny pod and configmap creation`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1745720
 			`\[sig-storage\] CSI Volumes \[Driver: pd.csi.storage.gke.io\]`,
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1749882
-			`\[sig-storage\] CSI Volumes CSI Topology test using GCE PD driver \[Serial\]`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1751367
 			`gce-localssd-scsi-fs`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1750851
-			// should be serial if/when it's re-enabled
-			`\[HPA\] Horizontal pod autoscaling \(scale resource: Custom Metrics from Stackdriver\)`,
-			`\[Feature:CustomMetricsAutoscaling\]`,
 		},
 		"[Skipped:ibmcloud]": {
 			// LoadBalancer tests in 1.31 require explicit platform-specific skips
@@ -306,41 +232,6 @@ var (
 			// LoadBalancer tests in 1.31 require explicit platform-specific skips
 			// https://issues.redhat.com/browse/OCPBUGS-38840
 			`\[Feature:LoadBalancer\]`,
-		},
-
-		"[sig-node]": {
-			`\[NodeConformance\]`,
-			`NodeLease`,
-			`lease API`,
-			`\[NodeFeature`,
-			`\[NodeAlphaFeature`,
-			`Probing container`,
-			`Security Context When creating a`,
-			`Downward API should create a pod that prints his name and namespace`,
-			`Liveness liveness pods should be automatically restarted`,
-			`Secret should create a pod that reads a secret`,
-			`Pods should delete a collection of pods`,
-			`Pods should run through the lifecycle of Pods and PodStatus`,
-		},
-		"[sig-cluster-lifecycle]": {
-			`Feature:ClusterAutoscalerScalability`,
-			`recreate nodes and ensure they function`,
-		},
-		"[sig-arch]": {
-			// not run, assigned to arch as catch-all
-			`\[Feature:GKELocalSSD\]`,
-			`\[Feature:GKENodePool\]`,
-		},
-		// Tests that don't pass under openshift-sdn.
-		// These are skipped explicitly by openshift-hack/test-kubernetes-e2e.sh,
-		// but will also be skipped by openshift-tests in jobs that use openshift-sdn.
-		"[Skipped:Network/OpenShiftSDN]": {
-			`NetworkPolicy.*IPBlock`,    // feature is not supported by openshift-sdn
-			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
-			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
-
-			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
-			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
 		},
 
 		// These tests are skipped when openshift-tests needs to use a proxy to reach the
@@ -377,8 +268,6 @@ var (
 			`\[sig-node\] NoExecuteTaintManager Multiple Pods \[Serial\] evicts pods with minTolerationSeconds \[Disruptive\] \[Conformance\]`,
 			`\[sig-node\] NoExecuteTaintManager Multiple Pods \[Serial\] only evicts pods without tolerations from tainted nodes`,
 			`\[sig-cli\] Kubectl client Kubectl taint \[Serial\] should remove all the taints with the same key off a node`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes`,
 			`\[sig-architecture\] Conformance Tests should have at least two untainted nodes`,
 		},
 
@@ -387,14 +276,9 @@ var (
 			// Requires CSISnapshot capability
 			`\[Feature:VolumeSnapshotDataSource\]`,
 			// Requires Storage capability
-			`\[Driver: aws\]`,
 			`\[Feature:StorageProvider\]`,
 		},
 
-		// tests that don't pass under openshift-sdn multitenant mode
-		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
-			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
 			// ovn-kubernetes does not support named ports
