@@ -79,6 +79,7 @@ var systemNamespaces = sets.NewString(
 	"kube-public",
 	"openshift-node",
 	"openshift-infra",
+	"openshift-cnv",
 	"openshift",
 )
 
