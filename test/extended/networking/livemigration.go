@@ -78,7 +78,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						}
 						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
 						Expect(err).NotTo(HaveOccurred())
-						err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+						err = udnWaitForOpenShift(oc, ns.Name)
 						Expect(err).NotTo(HaveOccurred())
 
 						f.Namespace = ns
@@ -281,7 +281,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 				"e2e-framework":           f.BaseName,
 				RequiredUDNNamespaceLabel: "",
 			})
-			err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), ns.Name)
+			err = udnWaitForOpenShift(oc, ns.Name)
 			Expect(err).NotTo(HaveOccurred())
 			f.Namespace = ns
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())

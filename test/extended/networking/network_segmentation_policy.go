@@ -54,7 +54,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 			})
 			f.Namespace = namespace
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			err = exutil.WaitForNamespaceSCCAnnotations(oc.AdminKubeClient().CoreV1(), namespace.Name)
+			err = udnWaitForOpenShift(oc, namespace.Name)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
