@@ -1503,6 +1503,14 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:RouteAdvertisements][apigroup:operator.openshift.io] [EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:RouteAdvertisements][apigroup:operator.openshift.io] [EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:RouteAdvertisements][apigroup:operator.openshift.io] [PodNetwork][apigroup:user.openshift.io][apigroup:security.openshift.io] External host should be able to quay route advertised pods by the pod IP": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:RouteAdvertisements][apigroup:operator.openshift.io] [PodNetwork][apigroup:user.openshift.io][apigroup:security.openshift.io] Route advertised pods should query external host with its pod IP": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:Router] The HAProxy router should enable openshift-monitoring to pull metrics": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router] The HAProxy router should expose a health check on the metrics port": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
