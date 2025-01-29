@@ -3,7 +3,7 @@
 package v1beta1
 
 import (
-	v1beta1 "github.com/openshift/api/machine/v1beta1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -12,17 +12,17 @@ import (
 // MachineStatusApplyConfiguration represents a declarative configuration of the MachineStatus type for use
 // with apply.
 type MachineStatusApplyConfiguration struct {
-	NodeRef                *v1.ObjectReference              `json:"nodeRef,omitempty"`
-	LastUpdated            *metav1.Time                     `json:"lastUpdated,omitempty"`
-	ErrorReason            *v1beta1.MachineStatusError      `json:"errorReason,omitempty"`
-	ErrorMessage           *string                          `json:"errorMessage,omitempty"`
-	ProviderStatus         *runtime.RawExtension            `json:"providerStatus,omitempty"`
-	Addresses              []v1.NodeAddress                 `json:"addresses,omitempty"`
-	LastOperation          *LastOperationApplyConfiguration `json:"lastOperation,omitempty"`
-	Phase                  *string                          `json:"phase,omitempty"`
-	Conditions             []ConditionApplyConfiguration    `json:"conditions,omitempty"`
-	AuthoritativeAPI       *v1beta1.MachineAuthority        `json:"authoritativeAPI,omitempty"`
-	SynchronizedGeneration *int64                           `json:"synchronizedGeneration,omitempty"`
+	NodeRef                *v1.ObjectReference                `json:"nodeRef,omitempty"`
+	LastUpdated            *metav1.Time                       `json:"lastUpdated,omitempty"`
+	ErrorReason            *machinev1beta1.MachineStatusError `json:"errorReason,omitempty"`
+	ErrorMessage           *string                            `json:"errorMessage,omitempty"`
+	ProviderStatus         *runtime.RawExtension              `json:"providerStatus,omitempty"`
+	Addresses              []v1.NodeAddress                   `json:"addresses,omitempty"`
+	LastOperation          *LastOperationApplyConfiguration   `json:"lastOperation,omitempty"`
+	Phase                  *string                            `json:"phase,omitempty"`
+	Conditions             []ConditionApplyConfiguration      `json:"conditions,omitempty"`
+	AuthoritativeAPI       *machinev1beta1.MachineAuthority   `json:"authoritativeAPI,omitempty"`
+	SynchronizedGeneration *int64                             `json:"synchronizedGeneration,omitempty"`
 }
 
 // MachineStatusApplyConfiguration constructs a declarative configuration of the MachineStatus type for use with
@@ -50,7 +50,7 @@ func (b *MachineStatusApplyConfiguration) WithLastUpdated(value metav1.Time) *Ma
 // WithErrorReason sets the ErrorReason field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ErrorReason field is set to the value of the last call.
-func (b *MachineStatusApplyConfiguration) WithErrorReason(value v1beta1.MachineStatusError) *MachineStatusApplyConfiguration {
+func (b *MachineStatusApplyConfiguration) WithErrorReason(value machinev1beta1.MachineStatusError) *MachineStatusApplyConfiguration {
 	b.ErrorReason = &value
 	return b
 }
@@ -113,7 +113,7 @@ func (b *MachineStatusApplyConfiguration) WithConditions(values ...*ConditionApp
 // WithAuthoritativeAPI sets the AuthoritativeAPI field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
-func (b *MachineStatusApplyConfiguration) WithAuthoritativeAPI(value v1beta1.MachineAuthority) *MachineStatusApplyConfiguration {
+func (b *MachineStatusApplyConfiguration) WithAuthoritativeAPI(value machinev1beta1.MachineAuthority) *MachineStatusApplyConfiguration {
 	b.AuthoritativeAPI = &value
 	return b
 }

@@ -23,7 +23,7 @@ func OpenShiftAPIServerSpec() *OpenShiftAPIServerSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *OpenShiftAPIServerSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *OpenShiftAPIServerSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *OpenShiftAPIServerSpecApplyConfiguration) WithManagementState(value ope
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *OpenShiftAPIServerSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *OpenShiftAPIServerSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *OpenShiftAPIServerSpecApplyConfiguration) WithLogLevel(value operatorv1
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *OpenShiftAPIServerSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *OpenShiftAPIServerSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *OpenShiftAPIServerSpecApplyConfiguration) WithOperatorLogLevel(value op
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *OpenShiftAPIServerSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *OpenShiftAPIServerSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,6 +55,6 @@ func (b *OpenShiftAPIServerSpecApplyConfiguration) WithUnsupportedConfigOverride
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *OpenShiftAPIServerSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *OpenShiftAPIServerSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }

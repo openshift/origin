@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // NetworkInfoApplyConfiguration represents a declarative configuration of the NetworkInfo type for use
 // with apply.
 type NetworkInfoApplyConfiguration struct {
-	MTUMigration *v1.MTUMigration `json:"mtuMigration,omitempty"`
+	MTUMigration *configv1.MTUMigration `json:"mtuMigration,omitempty"`
 }
 
 // NetworkInfoApplyConfiguration constructs a declarative configuration of the NetworkInfo type for use with
@@ -21,7 +21,7 @@ func NetworkInfo() *NetworkInfoApplyConfiguration {
 // WithMTUMigration sets the MTUMigration field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MTUMigration field is set to the value of the last call.
-func (b *NetworkInfoApplyConfiguration) WithMTUMigration(value v1.MTUMigration) *NetworkInfoApplyConfiguration {
+func (b *NetworkInfoApplyConfiguration) WithMTUMigration(value configv1.MTUMigration) *NetworkInfoApplyConfiguration {
 	b.MTUMigration = &value
 	return b
 }

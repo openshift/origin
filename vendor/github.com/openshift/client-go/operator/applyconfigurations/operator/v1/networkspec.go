@@ -35,7 +35,7 @@ func NetworkSpec() *NetworkSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *NetworkSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -43,7 +43,7 @@ func (b *NetworkSpecApplyConfiguration) WithManagementState(value operatorv1.Man
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *NetworkSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -51,7 +51,7 @@ func (b *NetworkSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) 
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *NetworkSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -59,7 +59,7 @@ func (b *NetworkSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.Lo
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *NetworkSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -67,7 +67,7 @@ func (b *NetworkSpecApplyConfiguration) WithUnsupportedConfigOverrides(value run
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *NetworkSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 

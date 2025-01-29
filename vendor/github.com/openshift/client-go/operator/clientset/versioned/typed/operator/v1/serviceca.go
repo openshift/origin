@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type ServiceCAsGetter interface {
 
 // ServiceCAInterface has methods to work with ServiceCA resources.
 type ServiceCAInterface interface {
-	Create(ctx context.Context, serviceCA *v1.ServiceCA, opts metav1.CreateOptions) (*v1.ServiceCA, error)
-	Update(ctx context.Context, serviceCA *v1.ServiceCA, opts metav1.UpdateOptions) (*v1.ServiceCA, error)
+	Create(ctx context.Context, serviceCA *operatorv1.ServiceCA, opts metav1.CreateOptions) (*operatorv1.ServiceCA, error)
+	Update(ctx context.Context, serviceCA *operatorv1.ServiceCA, opts metav1.UpdateOptions) (*operatorv1.ServiceCA, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, serviceCA *v1.ServiceCA, opts metav1.UpdateOptions) (*v1.ServiceCA, error)
+	UpdateStatus(ctx context.Context, serviceCA *operatorv1.ServiceCA, opts metav1.UpdateOptions) (*operatorv1.ServiceCA, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ServiceCA, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceCAList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.ServiceCA, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.ServiceCAList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ServiceCA, err error)
-	Apply(ctx context.Context, serviceCA *operatorv1.ServiceCAApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCA, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.ServiceCA, err error)
+	Apply(ctx context.Context, serviceCA *applyconfigurationsoperatorv1.ServiceCAApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ServiceCA, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, serviceCA *operatorv1.ServiceCAApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCA, err error)
+	ApplyStatus(ctx context.Context, serviceCA *applyconfigurationsoperatorv1.ServiceCAApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ServiceCA, err error)
 	ServiceCAExpansion
 }
 
 // serviceCAs implements ServiceCAInterface
 type serviceCAs struct {
-	*gentype.ClientWithListAndApply[*v1.ServiceCA, *v1.ServiceCAList, *operatorv1.ServiceCAApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.ServiceCA, *operatorv1.ServiceCAList, *applyconfigurationsoperatorv1.ServiceCAApplyConfiguration]
 }
 
 // newServiceCAs returns a ServiceCAs
 func newServiceCAs(c *OperatorV1Client) *serviceCAs {
 	return &serviceCAs{
-		gentype.NewClientWithListAndApply[*v1.ServiceCA, *v1.ServiceCAList, *operatorv1.ServiceCAApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.ServiceCA, *operatorv1.ServiceCAList, *applyconfigurationsoperatorv1.ServiceCAApplyConfiguration](
 			"servicecas",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ServiceCA { return &v1.ServiceCA{} },
-			func() *v1.ServiceCAList { return &v1.ServiceCAList{} }),
+			func() *operatorv1.ServiceCA { return &operatorv1.ServiceCA{} },
+			func() *operatorv1.ServiceCAList { return &operatorv1.ServiceCAList{} },
+		),
 	}
 }

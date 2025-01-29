@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type KubeSchedulersGetter interface {
 
 // KubeSchedulerInterface has methods to work with KubeScheduler resources.
 type KubeSchedulerInterface interface {
-	Create(ctx context.Context, kubeScheduler *v1.KubeScheduler, opts metav1.CreateOptions) (*v1.KubeScheduler, error)
-	Update(ctx context.Context, kubeScheduler *v1.KubeScheduler, opts metav1.UpdateOptions) (*v1.KubeScheduler, error)
+	Create(ctx context.Context, kubeScheduler *operatorv1.KubeScheduler, opts metav1.CreateOptions) (*operatorv1.KubeScheduler, error)
+	Update(ctx context.Context, kubeScheduler *operatorv1.KubeScheduler, opts metav1.UpdateOptions) (*operatorv1.KubeScheduler, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, kubeScheduler *v1.KubeScheduler, opts metav1.UpdateOptions) (*v1.KubeScheduler, error)
+	UpdateStatus(ctx context.Context, kubeScheduler *operatorv1.KubeScheduler, opts metav1.UpdateOptions) (*operatorv1.KubeScheduler, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.KubeScheduler, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.KubeSchedulerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.KubeScheduler, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.KubeSchedulerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.KubeScheduler, err error)
-	Apply(ctx context.Context, kubeScheduler *operatorv1.KubeSchedulerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeScheduler, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.KubeScheduler, err error)
+	Apply(ctx context.Context, kubeScheduler *applyconfigurationsoperatorv1.KubeSchedulerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.KubeScheduler, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, kubeScheduler *operatorv1.KubeSchedulerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeScheduler, err error)
+	ApplyStatus(ctx context.Context, kubeScheduler *applyconfigurationsoperatorv1.KubeSchedulerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.KubeScheduler, err error)
 	KubeSchedulerExpansion
 }
 
 // kubeSchedulers implements KubeSchedulerInterface
 type kubeSchedulers struct {
-	*gentype.ClientWithListAndApply[*v1.KubeScheduler, *v1.KubeSchedulerList, *operatorv1.KubeSchedulerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.KubeScheduler, *operatorv1.KubeSchedulerList, *applyconfigurationsoperatorv1.KubeSchedulerApplyConfiguration]
 }
 
 // newKubeSchedulers returns a KubeSchedulers
 func newKubeSchedulers(c *OperatorV1Client) *kubeSchedulers {
 	return &kubeSchedulers{
-		gentype.NewClientWithListAndApply[*v1.KubeScheduler, *v1.KubeSchedulerList, *operatorv1.KubeSchedulerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.KubeScheduler, *operatorv1.KubeSchedulerList, *applyconfigurationsoperatorv1.KubeSchedulerApplyConfiguration](
 			"kubeschedulers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.KubeScheduler { return &v1.KubeScheduler{} },
-			func() *v1.KubeSchedulerList { return &v1.KubeSchedulerList{} }),
+			func() *operatorv1.KubeScheduler { return &operatorv1.KubeScheduler{} },
+			func() *operatorv1.KubeSchedulerList { return &operatorv1.KubeSchedulerList{} },
+		),
 	}
 }

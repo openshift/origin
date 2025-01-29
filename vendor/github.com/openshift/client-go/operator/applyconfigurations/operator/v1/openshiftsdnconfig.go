@@ -3,17 +3,17 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // OpenShiftSDNConfigApplyConfiguration represents a declarative configuration of the OpenShiftSDNConfig type for use
 // with apply.
 type OpenShiftSDNConfigApplyConfiguration struct {
-	Mode                   *v1.SDNMode `json:"mode,omitempty"`
-	VXLANPort              *uint32     `json:"vxlanPort,omitempty"`
-	MTU                    *uint32     `json:"mtu,omitempty"`
-	UseExternalOpenvswitch *bool       `json:"useExternalOpenvswitch,omitempty"`
-	EnableUnidling         *bool       `json:"enableUnidling,omitempty"`
+	Mode                   *operatorv1.SDNMode `json:"mode,omitempty"`
+	VXLANPort              *uint32             `json:"vxlanPort,omitempty"`
+	MTU                    *uint32             `json:"mtu,omitempty"`
+	UseExternalOpenvswitch *bool               `json:"useExternalOpenvswitch,omitempty"`
+	EnableUnidling         *bool               `json:"enableUnidling,omitempty"`
 }
 
 // OpenShiftSDNConfigApplyConfiguration constructs a declarative configuration of the OpenShiftSDNConfig type for use with
@@ -25,7 +25,7 @@ func OpenShiftSDNConfig() *OpenShiftSDNConfigApplyConfiguration {
 // WithMode sets the Mode field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Mode field is set to the value of the last call.
-func (b *OpenShiftSDNConfigApplyConfiguration) WithMode(value v1.SDNMode) *OpenShiftSDNConfigApplyConfiguration {
+func (b *OpenShiftSDNConfigApplyConfiguration) WithMode(value operatorv1.SDNMode) *OpenShiftSDNConfigApplyConfiguration {
 	b.Mode = &value
 	return b
 }

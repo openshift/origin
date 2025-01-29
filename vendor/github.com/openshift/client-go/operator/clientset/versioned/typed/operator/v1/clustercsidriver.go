@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type ClusterCSIDriversGetter interface {
 
 // ClusterCSIDriverInterface has methods to work with ClusterCSIDriver resources.
 type ClusterCSIDriverInterface interface {
-	Create(ctx context.Context, clusterCSIDriver *v1.ClusterCSIDriver, opts metav1.CreateOptions) (*v1.ClusterCSIDriver, error)
-	Update(ctx context.Context, clusterCSIDriver *v1.ClusterCSIDriver, opts metav1.UpdateOptions) (*v1.ClusterCSIDriver, error)
+	Create(ctx context.Context, clusterCSIDriver *operatorv1.ClusterCSIDriver, opts metav1.CreateOptions) (*operatorv1.ClusterCSIDriver, error)
+	Update(ctx context.Context, clusterCSIDriver *operatorv1.ClusterCSIDriver, opts metav1.UpdateOptions) (*operatorv1.ClusterCSIDriver, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, clusterCSIDriver *v1.ClusterCSIDriver, opts metav1.UpdateOptions) (*v1.ClusterCSIDriver, error)
+	UpdateStatus(ctx context.Context, clusterCSIDriver *operatorv1.ClusterCSIDriver, opts metav1.UpdateOptions) (*operatorv1.ClusterCSIDriver, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ClusterCSIDriver, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ClusterCSIDriverList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.ClusterCSIDriver, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.ClusterCSIDriverList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ClusterCSIDriver, err error)
-	Apply(ctx context.Context, clusterCSIDriver *operatorv1.ClusterCSIDriverApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ClusterCSIDriver, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.ClusterCSIDriver, err error)
+	Apply(ctx context.Context, clusterCSIDriver *applyconfigurationsoperatorv1.ClusterCSIDriverApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ClusterCSIDriver, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, clusterCSIDriver *operatorv1.ClusterCSIDriverApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ClusterCSIDriver, err error)
+	ApplyStatus(ctx context.Context, clusterCSIDriver *applyconfigurationsoperatorv1.ClusterCSIDriverApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ClusterCSIDriver, err error)
 	ClusterCSIDriverExpansion
 }
 
 // clusterCSIDrivers implements ClusterCSIDriverInterface
 type clusterCSIDrivers struct {
-	*gentype.ClientWithListAndApply[*v1.ClusterCSIDriver, *v1.ClusterCSIDriverList, *operatorv1.ClusterCSIDriverApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.ClusterCSIDriver, *operatorv1.ClusterCSIDriverList, *applyconfigurationsoperatorv1.ClusterCSIDriverApplyConfiguration]
 }
 
 // newClusterCSIDrivers returns a ClusterCSIDrivers
 func newClusterCSIDrivers(c *OperatorV1Client) *clusterCSIDrivers {
 	return &clusterCSIDrivers{
-		gentype.NewClientWithListAndApply[*v1.ClusterCSIDriver, *v1.ClusterCSIDriverList, *operatorv1.ClusterCSIDriverApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.ClusterCSIDriver, *operatorv1.ClusterCSIDriverList, *applyconfigurationsoperatorv1.ClusterCSIDriverApplyConfiguration](
 			"clustercsidrivers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ClusterCSIDriver { return &v1.ClusterCSIDriver{} },
-			func() *v1.ClusterCSIDriverList { return &v1.ClusterCSIDriverList{} }),
+			func() *operatorv1.ClusterCSIDriver { return &operatorv1.ClusterCSIDriver{} },
+			func() *operatorv1.ClusterCSIDriverList { return &operatorv1.ClusterCSIDriverList{} },
+		),
 	}
 }

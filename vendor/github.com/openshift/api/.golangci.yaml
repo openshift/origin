@@ -1,0 +1,24 @@
+linters-settings:
+  custom:
+    kal:
+      type: "module"
+      description: KAL is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+      settings:
+        linters:
+          enable:
+          - "maxlength"
+          - "nobools"
+          - "statussubresource"
+        lintersConfig:
+          conditions:
+            isFirstField: Warn
+            useProtobuf: Ignore
+linters:
+  disable-all: true
+  enable:
+    - kal
+issues:
+  # We have a lot of existing issues.
+  # Want to make sure that those adding new fields have an
+  # opportunity to fix them when running the linter locally.
+  max-issues-per-linter: 1000

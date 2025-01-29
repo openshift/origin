@@ -24,7 +24,7 @@ func CloudCredentialSpec() *CloudCredentialSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *CloudCredentialSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *CloudCredentialSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -32,7 +32,7 @@ func (b *CloudCredentialSpecApplyConfiguration) WithManagementState(value operat
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *CloudCredentialSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *CloudCredentialSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -40,7 +40,7 @@ func (b *CloudCredentialSpecApplyConfiguration) WithLogLevel(value operatorv1.Lo
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *CloudCredentialSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *CloudCredentialSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -48,7 +48,7 @@ func (b *CloudCredentialSpecApplyConfiguration) WithOperatorLogLevel(value opera
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *CloudCredentialSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *CloudCredentialSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -56,7 +56,7 @@ func (b *CloudCredentialSpecApplyConfiguration) WithUnsupportedConfigOverrides(v
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *CloudCredentialSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *CloudCredentialSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 

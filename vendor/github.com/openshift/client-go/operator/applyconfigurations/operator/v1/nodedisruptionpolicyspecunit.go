@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // NodeDisruptionPolicySpecUnitApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicySpecUnit type for use
 // with apply.
 type NodeDisruptionPolicySpecUnitApplyConfiguration struct {
-	Name    *v1.NodeDisruptionPolicyServiceName                `json:"name,omitempty"`
+	Name    *operatorv1.NodeDisruptionPolicyServiceName        `json:"name,omitempty"`
 	Actions []NodeDisruptionPolicySpecActionApplyConfiguration `json:"actions,omitempty"`
 }
 
@@ -22,7 +22,7 @@ func NodeDisruptionPolicySpecUnit() *NodeDisruptionPolicySpecUnitApplyConfigurat
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *NodeDisruptionPolicySpecUnitApplyConfiguration) WithName(value v1.NodeDisruptionPolicyServiceName) *NodeDisruptionPolicySpecUnitApplyConfiguration {
+func (b *NodeDisruptionPolicySpecUnitApplyConfiguration) WithName(value operatorv1.NodeDisruptionPolicyServiceName) *NodeDisruptionPolicySpecUnitApplyConfiguration {
 	b.Name = &value
 	return b
 }

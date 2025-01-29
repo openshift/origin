@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/openshift/api/operator/v1alpha1"
-	operatorv1alpha1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1alpha1"
+	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	applyconfigurationsoperatorv1alpha1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1alpha1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,35 @@ type ImageContentSourcePoliciesGetter interface {
 
 // ImageContentSourcePolicyInterface has methods to work with ImageContentSourcePolicy resources.
 type ImageContentSourcePolicyInterface interface {
-	Create(ctx context.Context, imageContentSourcePolicy *v1alpha1.ImageContentSourcePolicy, opts v1.CreateOptions) (*v1alpha1.ImageContentSourcePolicy, error)
-	Update(ctx context.Context, imageContentSourcePolicy *v1alpha1.ImageContentSourcePolicy, opts v1.UpdateOptions) (*v1alpha1.ImageContentSourcePolicy, error)
+	Create(ctx context.Context, imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, opts v1.CreateOptions) (*operatorv1alpha1.ImageContentSourcePolicy, error)
+	Update(ctx context.Context, imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicy, opts v1.UpdateOptions) (*operatorv1alpha1.ImageContentSourcePolicy, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.ImageContentSourcePolicy, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.ImageContentSourcePolicyList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*operatorv1alpha1.ImageContentSourcePolicy, error)
+	List(ctx context.Context, opts v1.ListOptions) (*operatorv1alpha1.ImageContentSourcePolicyList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ImageContentSourcePolicy, err error)
-	Apply(ctx context.Context, imageContentSourcePolicy *operatorv1alpha1.ImageContentSourcePolicyApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.ImageContentSourcePolicy, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *operatorv1alpha1.ImageContentSourcePolicy, err error)
+	Apply(ctx context.Context, imageContentSourcePolicy *applyconfigurationsoperatorv1alpha1.ImageContentSourcePolicyApplyConfiguration, opts v1.ApplyOptions) (result *operatorv1alpha1.ImageContentSourcePolicy, err error)
 	ImageContentSourcePolicyExpansion
 }
 
 // imageContentSourcePolicies implements ImageContentSourcePolicyInterface
 type imageContentSourcePolicies struct {
-	*gentype.ClientWithListAndApply[*v1alpha1.ImageContentSourcePolicy, *v1alpha1.ImageContentSourcePolicyList, *operatorv1alpha1.ImageContentSourcePolicyApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1alpha1.ImageContentSourcePolicy, *operatorv1alpha1.ImageContentSourcePolicyList, *applyconfigurationsoperatorv1alpha1.ImageContentSourcePolicyApplyConfiguration]
 }
 
 // newImageContentSourcePolicies returns a ImageContentSourcePolicies
 func newImageContentSourcePolicies(c *OperatorV1alpha1Client) *imageContentSourcePolicies {
 	return &imageContentSourcePolicies{
-		gentype.NewClientWithListAndApply[*v1alpha1.ImageContentSourcePolicy, *v1alpha1.ImageContentSourcePolicyList, *operatorv1alpha1.ImageContentSourcePolicyApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1alpha1.ImageContentSourcePolicy, *operatorv1alpha1.ImageContentSourcePolicyList, *applyconfigurationsoperatorv1alpha1.ImageContentSourcePolicyApplyConfiguration](
 			"imagecontentsourcepolicies",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1alpha1.ImageContentSourcePolicy { return &v1alpha1.ImageContentSourcePolicy{} },
-			func() *v1alpha1.ImageContentSourcePolicyList { return &v1alpha1.ImageContentSourcePolicyList{} }),
+			func() *operatorv1alpha1.ImageContentSourcePolicy { return &operatorv1alpha1.ImageContentSourcePolicy{} },
+			func() *operatorv1alpha1.ImageContentSourcePolicyList {
+				return &operatorv1alpha1.ImageContentSourcePolicyList{}
+			},
+		),
 	}
 }

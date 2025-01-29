@@ -25,7 +25,7 @@ type ConsoleSample struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// spec contains configuration for a console sample.
-	// +kubebuilder:validation:Required
+	// +required
 	Spec ConsoleSampleSpec `json:"spec"`
 }
 
@@ -35,7 +35,7 @@ type ConsoleSampleSpec struct {
 	// title is the display name of the sample.
 	//
 	// It is required and must be no more than 50 characters in length.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=50
 	Title string `json:"title"`
@@ -46,7 +46,7 @@ type ConsoleSampleSpec struct {
 	//
 	// The abstract is shown on the sample card tile below the title and provider
 	// and is limited to three lines of content.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MaxLength=100
 	Abstract string `json:"abstract"`
 
@@ -56,7 +56,7 @@ type ConsoleSampleSpec struct {
 	//
 	// It is a README.md-like content for additional information, links, pre-conditions, and other instructions.
 	// It will be rendered as Markdown so that it can contain line breaks, links, and other simple formatting.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MaxLength=4096
 	Description string `json:"description"`
 
@@ -119,7 +119,7 @@ type ConsoleSampleSpec struct {
 
 	// source defines where to deploy the sample service from.
 	// The sample may be sourced from an external git repository or container image.
-	// +kubebuilder:validation:Required
+	// +required
 	Source ConsoleSampleSource `json:"source"`
 }
 
@@ -143,7 +143,7 @@ const (
 type ConsoleSampleSource struct {
 	// type of the sample, currently supported: "GitImport";"ContainerImport"
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Enum:="GitImport";"ContainerImport"
 	Type ConsoleSampleSourceType `json:"type"`
 
@@ -161,7 +161,7 @@ type ConsoleSampleSource struct {
 // ConsoleSampleGitImportSource let the user import code from a public Git repository.
 type ConsoleSampleGitImportSource struct {
 	// repository contains the reference to the actual Git repository.
-	// +kubebuilder:validation:Required
+	// +required
 	Repository ConsoleSampleGitImportSourceRepository `json:"repository"`
 	// service contains configuration for the Service resource created for this sample.
 	// +optional
@@ -183,7 +183,7 @@ type ConsoleSampleGitImportSourceRepository struct {
 	//   - https://bitbucket.org/<org>/<repository>
 	//
 	// The url must have a maximum length of 256 characters.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	// +kubebuilder:validation:Pattern=`^https:\/\/(github.com|gitlab.com|bitbucket.org)\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+(.git)?$`
@@ -232,7 +232,7 @@ type ConsoleSampleContainerImportSource struct {
 	//   - quay.io/<repository-name>/<image-name>
 	//   - quay.io/<repository-name>/<image-name>@sha256:<image hash>
 	//   - quay.io/<repository-name>/<image-name>:<tag>
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Image string `json:"image"`

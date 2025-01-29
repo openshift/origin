@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/console/v1"
-	consolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	applyconfigurationsconsolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
 	scheme "github.com/openshift/client-go/console/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,33 @@ type ConsoleYAMLSamplesGetter interface {
 
 // ConsoleYAMLSampleInterface has methods to work with ConsoleYAMLSample resources.
 type ConsoleYAMLSampleInterface interface {
-	Create(ctx context.Context, consoleYAMLSample *v1.ConsoleYAMLSample, opts metav1.CreateOptions) (*v1.ConsoleYAMLSample, error)
-	Update(ctx context.Context, consoleYAMLSample *v1.ConsoleYAMLSample, opts metav1.UpdateOptions) (*v1.ConsoleYAMLSample, error)
+	Create(ctx context.Context, consoleYAMLSample *consolev1.ConsoleYAMLSample, opts metav1.CreateOptions) (*consolev1.ConsoleYAMLSample, error)
+	Update(ctx context.Context, consoleYAMLSample *consolev1.ConsoleYAMLSample, opts metav1.UpdateOptions) (*consolev1.ConsoleYAMLSample, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleYAMLSample, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleYAMLSampleList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*consolev1.ConsoleYAMLSample, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*consolev1.ConsoleYAMLSampleList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleYAMLSample, err error)
-	Apply(ctx context.Context, consoleYAMLSample *consolev1.ConsoleYAMLSampleApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConsoleYAMLSample, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *consolev1.ConsoleYAMLSample, err error)
+	Apply(ctx context.Context, consoleYAMLSample *applyconfigurationsconsolev1.ConsoleYAMLSampleApplyConfiguration, opts metav1.ApplyOptions) (result *consolev1.ConsoleYAMLSample, err error)
 	ConsoleYAMLSampleExpansion
 }
 
 // consoleYAMLSamples implements ConsoleYAMLSampleInterface
 type consoleYAMLSamples struct {
-	*gentype.ClientWithListAndApply[*v1.ConsoleYAMLSample, *v1.ConsoleYAMLSampleList, *consolev1.ConsoleYAMLSampleApplyConfiguration]
+	*gentype.ClientWithListAndApply[*consolev1.ConsoleYAMLSample, *consolev1.ConsoleYAMLSampleList, *applyconfigurationsconsolev1.ConsoleYAMLSampleApplyConfiguration]
 }
 
 // newConsoleYAMLSamples returns a ConsoleYAMLSamples
 func newConsoleYAMLSamples(c *ConsoleV1Client) *consoleYAMLSamples {
 	return &consoleYAMLSamples{
-		gentype.NewClientWithListAndApply[*v1.ConsoleYAMLSample, *v1.ConsoleYAMLSampleList, *consolev1.ConsoleYAMLSampleApplyConfiguration](
+		gentype.NewClientWithListAndApply[*consolev1.ConsoleYAMLSample, *consolev1.ConsoleYAMLSampleList, *applyconfigurationsconsolev1.ConsoleYAMLSampleApplyConfiguration](
 			"consoleyamlsamples",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ConsoleYAMLSample { return &v1.ConsoleYAMLSample{} },
-			func() *v1.ConsoleYAMLSampleList { return &v1.ConsoleYAMLSampleList{} }),
+			func() *consolev1.ConsoleYAMLSample { return &consolev1.ConsoleYAMLSample{} },
+			func() *consolev1.ConsoleYAMLSampleList { return &consolev1.ConsoleYAMLSampleList{} },
+		),
 	}
 }

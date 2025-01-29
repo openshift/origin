@@ -142,18 +142,18 @@ type PowerVSMachineProviderConfig struct {
 // a validation error.
 // +union
 type PowerVSResource struct {
-	// Type identifies the resource type for this entry.
+	// type identifies the resource type for this entry.
 	// Valid values are ID, Name and RegEx
 	// +kubebuilder:validation:Enum:=ID;Name;RegEx
 	// +optional
 	Type PowerVSResourceType `json:"type,omitempty"`
-	// ID of resource
+	// id of resource
 	// +optional
 	ID *string `json:"id,omitempty"`
-	// Name of resource
+	// name of resource
 	// +optional
 	Name *string `json:"name,omitempty"`
-	// Regex to find resource
+	// regex to find resource
 	// Regex contains the pattern to match to find a resource
 	// +optional
 	RegEx *string `json:"regex,omitempty"`
@@ -200,7 +200,7 @@ type PowerVSMachineProviderStatus struct {
 // referenced secret inside the same namespace.
 // +structType=atomic
 type PowerVSSecretReference struct {
-	// Name of the secret.
+	// name of the secret.
 	// +optional
 	Name string `json:"name,omitempty"`
 }
@@ -211,7 +211,7 @@ type LoadBalancerReference struct {
 	// The name should be between 1 and 63 characters long and may consist of lowercase alphanumeric characters and hyphens only.
 	// The value must not end with a hyphen.
 	// It is a reference to existing LoadBalancer created by openshift installer component.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Pattern=`^([a-z]|[a-z][-a-z0-9]*[a-z0-9]|[0-9][-a-z0-9]*([a-z]|[-a-z][-a-z0-9]*[a-z0-9]))$`
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
@@ -221,7 +221,7 @@ type LoadBalancerReference struct {
 	// More details about Application LoadBalancer
 	// https://cloud.ibm.com/docs/vpc?topic=vpc-load-balancers-about&interface=ui
 	// Supported values are Application.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Enum:="Application"
 	Type IBMVPCLoadBalancerType `json:"type"`
 }

@@ -28,7 +28,6 @@ type ConsoleQuickStart struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// +kubebuilder:validation:Required
 	// +required
 	Spec ConsoleQuickStartSpec `json:"spec"`
 }
@@ -36,7 +35,6 @@ type ConsoleQuickStart struct {
 // ConsoleQuickStartSpec is the desired quick start configuration.
 type ConsoleQuickStartSpec struct {
 	// displayName is the display name of the Quick Start.
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	DisplayName string `json:"displayName"`
@@ -48,12 +46,10 @@ type ConsoleQuickStartSpec struct {
 	// +optional
 	Tags []string `json:"tags,omitempty"`
 	// durationMinutes describes approximately how many minutes it will take to complete the Quick Start.
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	// +required
 	DurationMinutes int `json:"durationMinutes"`
 	// description is the description of the Quick Start. (includes markdown)
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	// +required
@@ -62,12 +58,10 @@ type ConsoleQuickStartSpec struct {
 	// +optional
 	Prerequisites []string `json:"prerequisites,omitempty"`
 	// introduction describes the purpose of the Quick Start. (includes markdown)
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	Introduction string `json:"introduction"`
 	// tasks is the list of steps the user has to perform to complete the Quick Start.
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +required
 	Tasks []ConsoleQuickStartTask `json:"tasks"`
@@ -87,12 +81,10 @@ type ConsoleQuickStartSpec struct {
 // ConsoleQuickStartTask is a single step in a Quick Start.
 type ConsoleQuickStartTask struct {
 	// title describes the task and is displayed as a step heading.
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	Title string `json:"title"`
 	// description describes the steps needed to complete the task. (includes markdown)
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	Description string `json:"description"`
@@ -109,12 +101,10 @@ type ConsoleQuickStartTask struct {
 type ConsoleQuickStartTaskReview struct {
 	// instructions contains steps that user needs to take in order
 	// to validate his work after going through a task. (includes markdown)
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	Instructions string `json:"instructions"`
 	// failedTaskHelp contains suggestions for a failed task review and is shown at the end of task. (includes markdown)
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	FailedTaskHelp string `json:"failedTaskHelp"`
@@ -123,12 +113,10 @@ type ConsoleQuickStartTaskReview struct {
 // ConsoleQuickStartTaskSummary contains information about a passed step.
 type ConsoleQuickStartTaskSummary struct {
 	// success describes the succesfully passed task.
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +required
 	Success string `json:"success"`
 	// failed briefly describes the unsuccessfully passed task. (includes markdown)
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	// +required

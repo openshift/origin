@@ -14,8 +14,8 @@ package v1
 var map_ActiveDirectoryConfig = map[string]string{
 	"":                          "ActiveDirectoryConfig holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP server using the Active Directory schema",
 	"usersQuery":                "AllUsersQuery holds the template for an LDAP query that returns user entries.",
-	"userNameAttributes":        "UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.",
-	"groupMembershipAttributes": "GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as the groups it is a member of",
+	"userNameAttributes":        "userNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.",
+	"groupMembershipAttributes": "groupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as the groups it is a member of",
 }
 
 func (ActiveDirectoryConfig) SwaggerDoc() map[string]string {
@@ -24,8 +24,8 @@ func (ActiveDirectoryConfig) SwaggerDoc() map[string]string {
 
 var map_AdmissionConfig = map[string]string{
 	"":                    "AdmissionConfig holds the necessary configuration options for admission",
-	"pluginConfig":        "PluginConfig allows specifying a configuration file per admission control plugin",
-	"pluginOrderOverride": "PluginOrderOverride is a list of admission control plugin names that will be installed on the master. Order is significant. If empty, a default list of plugins is used.",
+	"pluginConfig":        "pluginConfig allows specifying a configuration file per admission control plugin",
+	"pluginOrderOverride": "pluginOrderOverride is a list of admission control plugin names that will be installed on the master. Order is significant. If empty, a default list of plugins is used.",
 }
 
 func (AdmissionConfig) SwaggerDoc() map[string]string {
@@ -34,8 +34,8 @@ func (AdmissionConfig) SwaggerDoc() map[string]string {
 
 var map_AdmissionPluginConfig = map[string]string{
 	"":              "AdmissionPluginConfig holds the necessary configuration options for admission plugins",
-	"location":      "Location is the path to a configuration file that contains the plugin's configuration",
-	"configuration": "Configuration is an embedded configuration object to be used as the plugin's configuration. If present, it will be used instead of the path to the configuration file.",
+	"location":      "location is the path to a configuration file that contains the plugin's configuration",
+	"configuration": "configuration is an embedded configuration object to be used as the plugin's configuration. If present, it will be used instead of the path to the configuration file.",
 }
 
 func (AdmissionPluginConfig) SwaggerDoc() map[string]string {
@@ -44,7 +44,7 @@ func (AdmissionPluginConfig) SwaggerDoc() map[string]string {
 
 var map_AggregatorConfig = map[string]string{
 	"":                "AggregatorConfig holds information required to make the aggregator function.",
-	"proxyClientInfo": "ProxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers",
+	"proxyClientInfo": "proxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers",
 }
 
 func (AggregatorConfig) SwaggerDoc() map[string]string {
@@ -66,8 +66,8 @@ var map_AuditConfig = map[string]string{
 	"maximumFileRetentionDays": "Maximum number of days to retain old log files based on the timestamp encoded in their filename.",
 	"maximumRetainedFiles":     "Maximum number of old log files to retain.",
 	"maximumFileSizeMegabytes": "Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.",
-	"policyFile":               "PolicyFile is a path to the file that defines the audit policy configuration.",
-	"policyConfiguration":      "PolicyConfiguration is an embedded policy configuration object to be used as the audit policy configuration. If present, it will be used instead of the path to the policy file.",
+	"policyFile":               "policyFile is a path to the file that defines the audit policy configuration.",
+	"policyConfiguration":      "policyConfiguration is an embedded policy configuration object to be used as the audit policy configuration. If present, it will be used instead of the path to the policy file.",
 	"logFormat":                "Format of saved audits (legacy or json).",
 	"webHookKubeConfig":        "Path to a .kubeconfig formatted file that defines the audit webhook configuration.",
 	"webHookMode":              "Strategy for sending audit events (block or batch).",
@@ -80,11 +80,11 @@ func (AuditConfig) SwaggerDoc() map[string]string {
 var map_AugmentedActiveDirectoryConfig = map[string]string{
 	"":                          "AugmentedActiveDirectoryConfig holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP server using the augmented Active Directory schema",
 	"usersQuery":                "AllUsersQuery holds the template for an LDAP query that returns user entries.",
-	"userNameAttributes":        "UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.",
-	"groupMembershipAttributes": "GroupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as the groups it is a member of",
+	"userNameAttributes":        "userNameAttributes defines which attributes on an LDAP user entry will be interpreted as its OpenShift user name.",
+	"groupMembershipAttributes": "groupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as the groups it is a member of",
 	"groupsQuery":               "AllGroupsQuery holds the template for an LDAP query that returns group entries.",
 	"groupUIDAttribute":         "GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier. (ldapGroupUID)",
-	"groupNameAttributes":       "GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group",
+	"groupNameAttributes":       "groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group",
 }
 
 func (AugmentedActiveDirectoryConfig) SwaggerDoc() map[string]string {
@@ -131,8 +131,8 @@ func (BuildOverridesConfig) SwaggerDoc() map[string]string {
 
 var map_CertInfo = map[string]string{
 	"":         "CertInfo relates a certificate with a private key",
-	"certFile": "CertFile is a file containing a PEM-encoded certificate",
-	"keyFile":  "KeyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
+	"certFile": "certFile is a file containing a PEM-encoded certificate",
+	"keyFile":  "keyFile is a file containing a PEM-encoded private key for the certificate specified by CertFile",
 }
 
 func (CertInfo) SwaggerDoc() map[string]string {
@@ -141,10 +141,10 @@ func (CertInfo) SwaggerDoc() map[string]string {
 
 var map_ClientConnectionOverrides = map[string]string{
 	"":                   "ClientConnectionOverrides are a set of overrides to the default client connection settings.",
-	"acceptContentTypes": "AcceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the default value of 'application/json'. This field will control all connections to the server used by a particular client.",
-	"contentType":        "ContentType is the content type used when sending data to the server from this client.",
-	"qps":                "QPS controls the number of queries per second allowed for this connection.",
-	"burst":              "Burst allows extra queries to accumulate when a client is exceeding its rate.",
+	"acceptContentTypes": "acceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the default value of 'application/json'. This field will control all connections to the server used by a particular client.",
+	"contentType":        "contentType is the content type used when sending data to the server from this client.",
+	"qps":                "qps controls the number of queries per second allowed for this connection.",
+	"burst":              "burst allows extra queries to accumulate when a client is exceeding its rate.",
 }
 
 func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
@@ -153,8 +153,8 @@ func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
 
 var map_ClusterNetworkEntry = map[string]string{
 	"":                 "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
-	"cidr":             "CIDR defines the total range of a cluster networks address space.",
-	"hostSubnetLength": "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.",
+	"cidr":             "cidr defines the total range of a cluster networks address space.",
+	"hostSubnetLength": "hostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.",
 }
 
 func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
@@ -163,9 +163,9 @@ func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
 
 var map_ControllerConfig = map[string]string{
 	"":                   "ControllerConfig holds configuration values for controllers",
-	"controllers":        "Controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller \"+ named 'foo', '-foo' disables the controller named 'foo'. Defaults to \"*\".",
-	"election":           "Election defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
-	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
+	"controllers":        "controllers is a list of controllers to enable.  '*' enables all on-by-default controllers, 'foo' enables the controller \"+ named 'foo', '-foo' disables the controller named 'foo'. Defaults to \"*\".",
+	"election":           "election defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
+	"serviceServingCert": "serviceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
 }
 
 func (ControllerConfig) SwaggerDoc() map[string]string {
@@ -174,9 +174,9 @@ func (ControllerConfig) SwaggerDoc() map[string]string {
 
 var map_ControllerElectionConfig = map[string]string{
 	"":              "ControllerElectionConfig contains configuration values for deciding how a controller will be elected to act as leader.",
-	"lockName":      "LockName is the resource name used to act as the lock for determining which controller instance should lead.",
-	"lockNamespace": "LockNamespace is the resource namespace used to act as the lock for determining which controller instance should lead. It defaults to \"kube-system\"",
-	"lockResource":  "LockResource is the group and resource name to use to coordinate for the controller lock. If unset, defaults to \"configmaps\".",
+	"lockName":      "lockName is the resource name used to act as the lock for determining which controller instance should lead.",
+	"lockNamespace": "lockNamespace is the resource namespace used to act as the lock for determining which controller instance should lead. It defaults to \"kube-system\"",
+	"lockResource":  "lockResource is the group and resource name to use to coordinate for the controller lock. If unset, defaults to \"configmaps\".",
 }
 
 func (ControllerElectionConfig) SwaggerDoc() map[string]string {
@@ -185,9 +185,9 @@ func (ControllerElectionConfig) SwaggerDoc() map[string]string {
 
 var map_DNSConfig = map[string]string{
 	"":                      "DNSConfig holds the necessary configuration options for DNS",
-	"bindAddress":           "BindAddress is the ip:port to serve DNS on",
-	"bindNetwork":           "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
-	"allowRecursiveQueries": "AllowRecursiveQueries allows the DNS server on the master to answer queries recursively. Note that open resolvers can be used for DNS amplification attacks and the master DNS should not be made accessible to public networks.",
+	"bindAddress":           "bindAddress is the ip:port to serve DNS on",
+	"bindNetwork":           "bindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+	"allowRecursiveQueries": "allowRecursiveQueries allows the DNS server on the master to answer queries recursively. Note that open resolvers can be used for DNS amplification attacks and the master DNS should not be made accessible to public networks.",
 }
 
 func (DNSConfig) SwaggerDoc() map[string]string {
@@ -196,7 +196,7 @@ func (DNSConfig) SwaggerDoc() map[string]string {
 
 var map_DefaultAdmissionConfig = map[string]string{
 	"":        "DefaultAdmissionConfig can be used to enable or disable various admission plugins. When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it, this will cause an \"off by default\" admission plugin to be enabled\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"disable": "Disable turns off an admission plugin that is enabled by default.",
+	"disable": "disable turns off an admission plugin that is enabled by default.",
 }
 
 func (DefaultAdmissionConfig) SwaggerDoc() map[string]string {
@@ -213,9 +213,9 @@ func (DenyAllPasswordIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_DockerConfig = map[string]string{
 	"":                        "DockerConfig holds Docker related configuration options.",
-	"execHandlerName":         "ExecHandlerName is the name of the handler to use for executing commands in containers.",
-	"dockerShimSocket":        "DockerShimSocket is the location of the dockershim socket the kubelet uses. Currently unix socket is supported on Linux, and tcp is supported on windows. Examples:'unix:///var/run/dockershim.sock', 'tcp://localhost:3735'",
-	"dockerShimRootDirectory": "DockershimRootDirectory is the dockershim root directory.",
+	"execHandlerName":         "execHandlerName is the name of the handler to use for executing commands in containers.",
+	"dockerShimSocket":        "dockerShimSocket is the location of the dockershim socket the kubelet uses. Currently unix socket is supported on Linux, and tcp is supported on windows. Examples:'unix:///var/run/dockershim.sock', 'tcp://localhost:3735'",
+	"dockerShimRootDirectory": "dockerShimRootDirectory is the dockershim root directory.",
 }
 
 func (DockerConfig) SwaggerDoc() map[string]string {
@@ -224,10 +224,10 @@ func (DockerConfig) SwaggerDoc() map[string]string {
 
 var map_EtcdConfig = map[string]string{
 	"":                 "EtcdConfig holds the necessary configuration options for connecting with an etcd database",
-	"servingInfo":      "ServingInfo describes how to start serving the etcd master",
-	"address":          "Address is the advertised host:port for client connections to etcd",
-	"peerServingInfo":  "PeerServingInfo describes how to start serving the etcd peer",
-	"peerAddress":      "PeerAddress is the advertised host:port for peer connections to etcd",
+	"servingInfo":      "servingInfo describes how to start serving the etcd master",
+	"address":          "address is the advertised host:port for client connections to etcd",
+	"peerServingInfo":  "peerServingInfo describes how to start serving the etcd peer",
+	"peerAddress":      "peerAddress is the advertised host:port for peer connections to etcd",
 	"storageDirectory": "StorageDir is the path to the etcd storage directory",
 }
 
@@ -237,8 +237,8 @@ func (EtcdConfig) SwaggerDoc() map[string]string {
 
 var map_EtcdConnectionInfo = map[string]string{
 	"":     "EtcdConnectionInfo holds information necessary for connecting to an etcd server",
-	"urls": "URLs are the URLs for etcd",
-	"ca":   "CA is a file containing trusted roots for the etcd server certificates",
+	"urls": "urls are the URLs for etcd",
+	"ca":   "ca is a file containing trusted roots for the etcd server certificates",
 }
 
 func (EtcdConnectionInfo) SwaggerDoc() map[string]string {
@@ -247,10 +247,10 @@ func (EtcdConnectionInfo) SwaggerDoc() map[string]string {
 
 var map_EtcdStorageConfig = map[string]string{
 	"":                         "EtcdStorageConfig holds the necessary configuration options for the etcd storage underlying OpenShift and Kubernetes",
-	"kubernetesStorageVersion": "KubernetesStorageVersion is the API version that Kube resources in etcd should be serialized to. This value should *not* be advanced until all clients in the cluster that read from etcd have code that allows them to read the new version.",
-	"kubernetesStoragePrefix":  "KubernetesStoragePrefix is the path within etcd that the Kubernetes resources will be rooted under. This value, if changed, will mean existing objects in etcd will no longer be located. The default value is 'kubernetes.io'.",
-	"openShiftStorageVersion":  "OpenShiftStorageVersion is the API version that OS resources in etcd should be serialized to. This value should *not* be advanced until all clients in the cluster that read from etcd have code that allows them to read the new version.",
-	"openShiftStoragePrefix":   "OpenShiftStoragePrefix is the path within etcd that the OpenShift resources will be rooted under. This value, if changed, will mean existing objects in etcd will no longer be located. The default value is 'openshift.io'.",
+	"kubernetesStorageVersion": "kubernetesStorageVersion is the API version that Kube resources in etcd should be serialized to. This value should *not* be advanced until all clients in the cluster that read from etcd have code that allows them to read the new version.",
+	"kubernetesStoragePrefix":  "kubernetesStoragePrefix is the path within etcd that the Kubernetes resources will be rooted under. This value, if changed, will mean existing objects in etcd will no longer be located. The default value is 'kubernetes.io'.",
+	"openShiftStorageVersion":  "openShiftStorageVersion is the API version that OS resources in etcd should be serialized to. This value should *not* be advanced until all clients in the cluster that read from etcd have code that allows them to read the new version.",
+	"openShiftStoragePrefix":   "openShiftStoragePrefix is the path within etcd that the OpenShift resources will be rooted under. This value, if changed, will mean existing objects in etcd will no longer be located. The default value is 'openshift.io'.",
 }
 
 func (EtcdStorageConfig) SwaggerDoc() map[string]string {
@@ -259,12 +259,12 @@ func (EtcdStorageConfig) SwaggerDoc() map[string]string {
 
 var map_GitHubIdentityProvider = map[string]string{
 	"":              "GitHubIdentityProvider provides identities for users authenticating using GitHub credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"clientID":      "ClientID is the oauth client ID",
-	"clientSecret":  "ClientSecret is the oauth client secret",
-	"organizations": "Organizations optionally restricts which organizations are allowed to log in",
-	"teams":         "Teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.",
-	"hostname":      "Hostname is the optional domain (e.g. \"mycompany.com\") for use with a hosted instance of GitHub Enterprise. It must match the GitHub Enterprise settings value that is configured at /setup/settings#hostname.",
-	"ca":            "CA is the optional trusted certificate authority bundle to use when making requests to the server. If empty, the default system roots are used.  This can only be configured when hostname is set to a non-empty value.",
+	"clientID":      "clientID is the oauth client ID",
+	"clientSecret":  "clientSecret is the oauth client secret",
+	"organizations": "organizations optionally restricts which organizations are allowed to log in",
+	"teams":         "teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.",
+	"hostname":      "hostname is the optional domain (e.g. \"mycompany.com\") for use with a hosted instance of GitHub Enterprise. It must match the GitHub Enterprise settings value that is configured at /setup/settings#hostname.",
+	"ca":            "ca is the optional trusted certificate authority bundle to use when making requests to the server. If empty, the default system roots are used.  This can only be configured when hostname is set to a non-empty value.",
 }
 
 func (GitHubIdentityProvider) SwaggerDoc() map[string]string {
@@ -273,11 +273,11 @@ func (GitHubIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_GitLabIdentityProvider = map[string]string{
 	"":             "GitLabIdentityProvider provides identities for users authenticating using GitLab credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"ca":           "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
-	"url":          "URL is the oauth server base URL",
-	"clientID":     "ClientID is the oauth client ID",
-	"clientSecret": "ClientSecret is the oauth client secret",
-	"legacy":       "Legacy determines if OAuth2 or OIDC should be used If true, OAuth2 is used If false, OIDC is used If nil and the URL's host is gitlab.com, OIDC is used Otherwise, OAuth2 is used In a future release, nil will default to using OIDC Eventually this flag will be removed and only OIDC will be used",
+	"ca":           "ca is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
+	"url":          "url is the oauth server base URL",
+	"clientID":     "clientID is the oauth client ID",
+	"clientSecret": "clientSecret is the oauth client secret",
+	"legacy":       "legacy determines if OAuth2 or OIDC should be used If true, OAuth2 is used If false, OIDC is used If nil and the URL's host is gitlab.com, OIDC is used Otherwise, OAuth2 is used In a future release, nil will default to using OIDC Eventually this flag will be removed and only OIDC will be used",
 }
 
 func (GitLabIdentityProvider) SwaggerDoc() map[string]string {
@@ -286,9 +286,9 @@ func (GitLabIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_GoogleIdentityProvider = map[string]string{
 	"":             "GoogleIdentityProvider provides identities for users authenticating using Google credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"clientID":     "ClientID is the oauth client ID",
-	"clientSecret": "ClientSecret is the oauth client secret",
-	"hostedDomain": "HostedDomain is the optional Google App domain (e.g. \"mycompany.com\") to restrict logins to",
+	"clientID":     "clientID is the oauth client ID",
+	"clientSecret": "clientSecret is the oauth client secret",
+	"hostedDomain": "hostedDomain is the optional Google App domain (e.g. \"mycompany.com\") to restrict logins to",
 }
 
 func (GoogleIdentityProvider) SwaggerDoc() map[string]string {
@@ -297,8 +297,8 @@ func (GoogleIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_GrantConfig = map[string]string{
 	"":                     "GrantConfig holds the necessary configuration options for grant handlers",
-	"method":               "Method determines the default strategy to use when an OAuth client requests a grant. This method will be used only if the specific OAuth client doesn't provide a strategy of their own. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients",
-	"serviceAccountMethod": "ServiceAccountMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt",
+	"method":               "method determines the default strategy to use when an OAuth client requests a grant. This method will be used only if the specific OAuth client doesn't provide a strategy of their own. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients",
+	"serviceAccountMethod": "serviceAccountMethod is used for determining client authorization for service account oauth client. It must be either: deny, prompt",
 }
 
 func (GrantConfig) SwaggerDoc() map[string]string {
@@ -307,8 +307,8 @@ func (GrantConfig) SwaggerDoc() map[string]string {
 
 var map_GroupResource = map[string]string{
 	"":         "GroupResource points to a resource by its name and API group.",
-	"group":    "Group is the name of an API group",
-	"resource": "Resource is the name of a resource.",
+	"group":    "group is the name of an API group",
+	"resource": "resource is the name of a resource.",
 }
 
 func (GroupResource) SwaggerDoc() map[string]string {
@@ -317,7 +317,7 @@ func (GroupResource) SwaggerDoc() map[string]string {
 
 var map_HTPasswdPasswordIdentityProvider = map[string]string{
 	"":     "HTPasswdPasswordIdentityProvider provides identities for users authenticating using htpasswd credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"file": "File is a reference to your htpasswd file",
+	"file": "file is a reference to your htpasswd file",
 }
 
 func (HTPasswdPasswordIdentityProvider) SwaggerDoc() map[string]string {
@@ -326,8 +326,8 @@ func (HTPasswdPasswordIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_HTTPServingInfo = map[string]string{
 	"":                      "HTTPServingInfo holds configuration for serving HTTP",
-	"maxRequestsInFlight":   "MaxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
-	"requestTimeoutSeconds": "RequestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
+	"maxRequestsInFlight":   "maxRequestsInFlight is the number of concurrent requests allowed to the server. If zero, no limit.",
+	"requestTimeoutSeconds": "requestTimeoutSeconds is the number of seconds before requests are timed out. The default is 60 minutes, if -1 there is no limit on requests.",
 }
 
 func (HTTPServingInfo) SwaggerDoc() map[string]string {
@@ -336,11 +336,11 @@ func (HTTPServingInfo) SwaggerDoc() map[string]string {
 
 var map_IdentityProvider = map[string]string{
 	"":              "IdentityProvider provides identities for users authenticating using credentials",
-	"name":          "Name is used to qualify the identities returned by this provider",
+	"name":          "name is used to qualify the identities returned by this provider",
 	"challenge":     "UseAsChallenger indicates whether to issue WWW-Authenticate challenges for this provider",
 	"login":         "UseAsLogin indicates whether to use this identity provider for unauthenticated browsers to login against",
-	"mappingMethod": "MappingMethod determines how identities from this provider are mapped to users",
-	"provider":      "Provider contains the information about how to set up a specific identity provider",
+	"mappingMethod": "mappingMethod determines how identities from this provider are mapped to users",
+	"provider":      "provider contains the information about how to set up a specific identity provider",
 }
 
 func (IdentityProvider) SwaggerDoc() map[string]string {
@@ -349,8 +349,8 @@ func (IdentityProvider) SwaggerDoc() map[string]string {
 
 var map_ImageConfig = map[string]string{
 	"":       "ImageConfig holds the necessary configuration options for building image names for system components",
-	"format": "Format is the format of the name to be built for the system component",
-	"latest": "Latest determines if the latest tag will be pulled from the registry",
+	"format": "format is the format of the name to be built for the system component",
+	"latest": "latest determines if the latest tag will be pulled from the registry",
 }
 
 func (ImageConfig) SwaggerDoc() map[string]string {
@@ -359,14 +359,14 @@ func (ImageConfig) SwaggerDoc() map[string]string {
 
 var map_ImagePolicyConfig = map[string]string{
 	"":                                   "ImagePolicyConfig holds the necessary configuration options for limits and behavior for importing images",
-	"maxImagesBulkImportedPerRepository": "MaxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a container repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
-	"disableScheduledImport":             "DisableScheduledImport allows scheduled background import of images to be disabled.",
-	"scheduledImageImportMinimumIntervalSeconds": "ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
-	"maxScheduledImageImportsPerMinute":          "MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
-	"allowedRegistriesForImport":                 "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
-	"internalRegistryHostname":                   "InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format.",
-	"externalRegistryHostname":                   "ExternalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
-	"additionalTrustedCA":                        "AdditionalTrustedCA is a path to a pem bundle file containing additional CAs that should be trusted during imagestream import.",
+	"maxImagesBulkImportedPerRepository": "maxImagesBulkImportedPerRepository controls the number of images that are imported when a user does a bulk import of a container repository. This number defaults to 50 to prevent users from importing large numbers of images accidentally. Set -1 for no limit.",
+	"disableScheduledImport":             "disableScheduledImport allows scheduled background import of images to be disabled.",
+	"scheduledImageImportMinimumIntervalSeconds": "scheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
+	"maxScheduledImageImportsPerMinute":          "maxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
+	"allowedRegistriesForImport":                 "allowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
+	"internalRegistryHostname":                   "internalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format.",
+	"externalRegistryHostname":                   "externalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
+	"additionalTrustedCA":                        "additionalTrustedCA is a path to a pem bundle file containing additional CAs that should be trusted during imagestream import.",
 }
 
 func (ImagePolicyConfig) SwaggerDoc() map[string]string {
@@ -375,11 +375,11 @@ func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 
 var map_JenkinsPipelineConfig = map[string]string{
 	"":                     "JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy",
-	"autoProvisionEnabled": "AutoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
-	"templateNamespace":    "TemplateNamespace contains the namespace name where the Jenkins template is stored",
-	"templateName":         "TemplateName is the name of the default Jenkins template",
-	"serviceName":          "ServiceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
-	"parameters":           "Parameters specifies a set of optional parameters to the Jenkins template.",
+	"autoProvisionEnabled": "autoProvisionEnabled determines whether a Jenkins server will be spawned from the provided template when the first build config in the project with type JenkinsPipeline is created. When not specified this option defaults to true.",
+	"templateNamespace":    "templateNamespace contains the namespace name where the Jenkins template is stored",
+	"templateName":         "templateName is the name of the default Jenkins template",
+	"serviceName":          "serviceName is the name of the Jenkins service OpenShift uses to detect whether a Jenkins pipeline handler has already been installed in a project. This value *must* match a service name in the provided template.",
+	"parameters":           "parameters specifies a set of optional parameters to the Jenkins template.",
 }
 
 func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
@@ -389,7 +389,7 @@ func (JenkinsPipelineConfig) SwaggerDoc() map[string]string {
 var map_KeystonePasswordIdentityProvider = map[string]string{
 	"":                    "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"domainName":          "Domain Name is required for keystone v3",
-	"useKeystoneIdentity": "UseKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username",
+	"useKeystoneIdentity": "useKeystoneIdentity flag indicates that user should be authenticated by keystone ID, not by username",
 }
 
 func (KeystonePasswordIdentityProvider) SwaggerDoc() map[string]string {
@@ -398,8 +398,8 @@ func (KeystonePasswordIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_KubeletConnectionInfo = map[string]string{
 	"":     "KubeletConnectionInfo holds information necessary for connecting to a kubelet",
-	"port": "Port is the port to connect to kubelets on",
-	"ca":   "CA is the CA for verifying TLS connections to kubelets",
+	"port": "port is the port to connect to kubelets on",
+	"ca":   "ca is the CA for verifying TLS connections to kubelets",
 }
 
 func (KubeletConnectionInfo) SwaggerDoc() map[string]string {
@@ -408,18 +408,18 @@ func (KubeletConnectionInfo) SwaggerDoc() map[string]string {
 
 var map_KubernetesMasterConfig = map[string]string{
 	"":                           "KubernetesMasterConfig holds the necessary configuration options for the Kubernetes master",
-	"apiLevels":                  "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
-	"disabledAPIGroupVersions":   "DisabledAPIGroupVersions is a map of groups to the versions (or *) that should be disabled.",
-	"masterIP":                   "MasterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.",
-	"masterEndpointReconcileTTL": "MasterEndpointReconcileTTL sets the time to live in seconds of an endpoint record recorded by each master. The endpoints are checked at an interval that is 2/3 of this value and this value defaults to 15s if unset. In very large clusters, this value may be increased to reduce the possibility that the master endpoint record expires (due to other load on the etcd server) and causes masters to drop in and out of the kubernetes service record. It is not recommended to set this value below 15s.",
-	"servicesSubnet":             "ServicesSubnet is the subnet to use for assigning service IPs",
-	"servicesNodePortRange":      "ServicesNodePortRange is the range to use for assigning service public ports on a host.",
-	"schedulerConfigFile":        "SchedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.",
-	"podEvictionTimeout":         "PodEvictionTimeout controls grace period for deleting pods on failed nodes. It takes valid time duration string. If empty, you get the default pod eviction timeout.",
-	"proxyClientInfo":            "ProxyClientInfo specifies the client cert/key to use when proxying to pods",
-	"apiServerArguments":         "APIServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
-	"controllerArguments":        "ControllerArguments are key value pairs that will be passed directly to the Kube controller manager that match the controller manager's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
-	"schedulerArguments":         "SchedulerArguments are key value pairs that will be passed directly to the Kube scheduler that match the scheduler's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
+	"apiLevels":                  "apiLevels is a list of API levels that should be enabled on startup: v1 as examples",
+	"disabledAPIGroupVersions":   "disabledAPIGroupVersions is a map of groups to the versions (or *) that should be disabled.",
+	"masterIP":                   "masterIP is the public IP address of kubernetes stuff.  If empty, the first result from net.InterfaceAddrs will be used.",
+	"masterEndpointReconcileTTL": "masterEndpointReconcileTTL sets the time to live in seconds of an endpoint record recorded by each master. The endpoints are checked at an interval that is 2/3 of this value and this value defaults to 15s if unset. In very large clusters, this value may be increased to reduce the possibility that the master endpoint record expires (due to other load on the etcd server) and causes masters to drop in and out of the kubernetes service record. It is not recommended to set this value below 15s.",
+	"servicesSubnet":             "servicesSubnet is the subnet to use for assigning service IPs",
+	"servicesNodePortRange":      "servicesNodePortRange is the range to use for assigning service public ports on a host.",
+	"schedulerConfigFile":        "schedulerConfigFile points to a file that describes how to set up the scheduler. If empty, you get the default scheduling rules.",
+	"podEvictionTimeout":         "podEvictionTimeout controls grace period for deleting pods on failed nodes. It takes valid time duration string. If empty, you get the default pod eviction timeout.",
+	"proxyClientInfo":            "proxyClientInfo specifies the client cert/key to use when proxying to pods",
+	"apiServerArguments":         "apiServerArguments are key value pairs that will be passed directly to the Kube apiserver that match the apiservers's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
+	"controllerArguments":        "controllerArguments are key value pairs that will be passed directly to the Kube controller manager that match the controller manager's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
+	"schedulerArguments":         "schedulerArguments are key value pairs that will be passed directly to the Kube scheduler that match the scheduler's command line arguments.  These are not migrated, but if you reference a value that does not exist the server will not start. These values may override other settings in KubernetesMasterConfig which may cause invalid configurations.",
 }
 
 func (KubernetesMasterConfig) SwaggerDoc() map[string]string {
@@ -428,10 +428,10 @@ func (KubernetesMasterConfig) SwaggerDoc() map[string]string {
 
 var map_LDAPAttributeMapping = map[string]string{
 	"":                  "LDAPAttributeMapping maps LDAP attributes to OpenShift identity fields",
-	"id":                "ID is the list of attributes whose values should be used as the user ID. Required. LDAP standard identity attribute is \"dn\"",
-	"preferredUsername": "PreferredUsername is the list of attributes whose values should be used as the preferred username. LDAP standard login attribute is \"uid\"",
-	"name":              "Name is the list of attributes whose values should be used as the display name. Optional. If unspecified, no display name is set for the identity LDAP standard display name attribute is \"cn\"",
-	"email":             "Email is the list of attributes whose values should be used as the email address. Optional. If unspecified, no email is set for the identity",
+	"id":                "id is the list of attributes whose values should be used as the user ID. Required. LDAP standard identity attribute is \"dn\"",
+	"preferredUsername": "preferredUsername is the list of attributes whose values should be used as the preferred username. LDAP standard login attribute is \"uid\"",
+	"name":              "name is the list of attributes whose values should be used as the display name. Optional. If unspecified, no display name is set for the identity LDAP standard display name attribute is \"cn\"",
+	"email":             "email is the list of attributes whose values should be used as the email address. Optional. If unspecified, no email is set for the identity",
 }
 
 func (LDAPAttributeMapping) SwaggerDoc() map[string]string {
@@ -440,12 +440,12 @@ func (LDAPAttributeMapping) SwaggerDoc() map[string]string {
 
 var map_LDAPPasswordIdentityProvider = map[string]string{
 	"":             "LDAPPasswordIdentityProvider provides identities for users authenticating using LDAP credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"url":          "URL is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is\n   ldap://host:port/basedn?attribute?scope?filter",
-	"bindDN":       "BindDN is an optional DN to bind with during the search phase.",
-	"bindPassword": "BindPassword is an optional password to bind with during the search phase.",
+	"url":          "url is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is\n   ldap://host:port/basedn?attribute?scope?filter",
+	"bindDN":       "bindDN is an optional DN to bind with during the search phase.",
+	"bindPassword": "bindPassword is an optional password to bind with during the search phase.",
 	"insecure":     "Insecure, if true, indicates the connection should not use TLS. Cannot be set to true with a URL scheme of \"ldaps://\" If false, \"ldaps://\" URLs connect using TLS, and \"ldap://\" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830",
-	"ca":           "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
-	"attributes":   "Attributes maps LDAP attributes to identities",
+	"ca":           "ca is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
+	"attributes":   "attributes maps LDAP attributes to identities",
 }
 
 func (LDAPPasswordIdentityProvider) SwaggerDoc() map[string]string {
@@ -458,8 +458,8 @@ var map_LDAPQuery = map[string]string{
 	"scope":        "The (optional) scope of the search. Can be: base: only the base object, one:  all object on the base level, sub:  the entire subtree Defaults to the entire subtree if not set",
 	"derefAliases": "The (optional) behavior of the search with regards to alisases. Can be: never:  never dereference aliases, search: only dereference in searching, base:   only dereference in finding the base object, always: always dereference Defaults to always dereferencing if not set",
 	"timeout":      "TimeLimit holds the limit of time in seconds that any request to the server can remain outstanding before the wait for a response is given up. If this is 0, no client-side limit is imposed",
-	"filter":       "Filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN",
-	"pageSize":     "PageSize is the maximum preferred page size, measured in LDAP entries. A page size of 0 means no paging will be done.",
+	"filter":       "filter is a valid LDAP search filter that retrieves all relevant entries from the LDAP server with the base DN",
+	"pageSize":     "pageSize is the maximum preferred page size, measured in LDAP entries. A page size of 0 means no paging will be done.",
 }
 
 func (LDAPQuery) SwaggerDoc() map[string]string {
@@ -469,10 +469,10 @@ func (LDAPQuery) SwaggerDoc() map[string]string {
 var map_LDAPSyncConfig = map[string]string{
 	"":                         "LDAPSyncConfig holds the necessary configuration options to define an LDAP group sync\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"url":                      "Host is the scheme, host and port of the LDAP server to connect to: scheme://host:port",
-	"bindDN":                   "BindDN is an optional DN to bind to the LDAP server with",
-	"bindPassword":             "BindPassword is an optional password to bind with during the search phase.",
+	"bindDN":                   "bindDN is an optional DN to bind to the LDAP server with",
+	"bindPassword":             "bindPassword is an optional password to bind with during the search phase.",
 	"insecure":                 "Insecure, if true, indicates the connection should not use TLS. Cannot be set to true with a URL scheme of \"ldaps://\" If false, \"ldaps://\" URLs connect using TLS, and \"ldap://\" URLs are upgraded to a TLS connection using StartTLS as specified in https://tools.ietf.org/html/rfc2830",
-	"ca":                       "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
+	"ca":                       "ca is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
 	"groupUIDNameMapping":      "LDAPGroupUIDToOpenShiftGroupNameMapping is an optional direct mapping of LDAP group UIDs to OpenShift Group names",
 	"rfc2307":                  "RFC2307Config holds the configuration for extracting data from an LDAP server set up in a fashion similar to RFC2307: first-class group and user entries, with group membership determined by a multi-valued attribute on the group entry listing its members",
 	"activeDirectory":          "ActiveDirectoryConfig holds the configuration for extracting data from an LDAP server set up in a fashion similar to that used in Active Directory: first-class user entries, with group membership determined by a multi-valued attribute on members listing groups they are a member of",
@@ -494,9 +494,9 @@ func (LocalQuota) SwaggerDoc() map[string]string {
 
 var map_MasterAuthConfig = map[string]string{
 	"":                           "MasterAuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
-	"requestHeader":              "RequestHeader holds options for setting up a front proxy against the API.  It is optional.",
+	"requestHeader":              "requestHeader holds options for setting up a front proxy against the API.  It is optional.",
 	"webhookTokenAuthenticators": "WebhookTokenAuthnConfig, if present configures remote token reviewers",
-	"oauthMetadataFile":          "OAuthMetadataFile is a path to a file containing the discovery endpoint for OAuth 2.0 Authorization Server Metadata for an external OAuth server. See IETF Draft: // https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 This option is mutually exclusive with OAuthConfig",
+	"oauthMetadataFile":          "oauthMetadataFile is a path to a file containing the discovery endpoint for OAuth 2.0 Authorization Server Metadata for an external OAuth server. See IETF Draft: // https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 This option is mutually exclusive with OAuthConfig",
 }
 
 func (MasterAuthConfig) SwaggerDoc() map[string]string {
@@ -505,8 +505,8 @@ func (MasterAuthConfig) SwaggerDoc() map[string]string {
 
 var map_MasterClients = map[string]string{
 	"":                            "MasterClients holds references to `.kubeconfig` files that qualify master clients for OpenShift and Kubernetes",
-	"openshiftLoopbackKubeConfig": "OpenShiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
-	"openshiftLoopbackClientConnectionOverrides": "OpenShiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.",
+	"openshiftLoopbackKubeConfig": "openshiftLoopbackKubeConfig is a .kubeconfig filename for system components to loopback to this master",
+	"openshiftLoopbackClientConnectionOverrides": "openshiftLoopbackClientConnectionOverrides specifies client overrides for system components to loop back to this master.",
 }
 
 func (MasterClients) SwaggerDoc() map[string]string {
@@ -515,33 +515,33 @@ func (MasterClients) SwaggerDoc() map[string]string {
 
 var map_MasterConfig = map[string]string{
 	"":                       "MasterConfig holds the necessary configuration options for the OpenShift master\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"servingInfo":            "ServingInfo describes how to start serving",
-	"authConfig":             "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
-	"aggregatorConfig":       "AggregatorConfig has options for configuring the aggregator component of the API server.",
+	"servingInfo":            "servingInfo describes how to start serving",
+	"authConfig":             "authConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
+	"aggregatorConfig":       "aggregatorConfig has options for configuring the aggregator component of the API server.",
 	"corsAllowedOrigins":     "CORSAllowedOrigins",
-	"apiLevels":              "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
-	"masterPublicURL":        "MasterPublicURL is how clients can access the OpenShift API server",
-	"controllers":            "Controllers is a list of the controllers that should be started. If set to \"none\", no controllers will start automatically. The default value is \"*\" which will start all controllers. When using \"*\", you may exclude controllers by prepending a \"-\" in front of their name. No other values are recognized at this time.",
-	"admissionConfig":        "AdmissionConfig contains admission control plugin configuration.",
-	"controllerConfig":       "ControllerConfig holds configuration values for controllers",
-	"etcdStorageConfig":      "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
-	"etcdClientInfo":         "EtcdClientInfo contains information about how to connect to etcd",
-	"kubeletClientInfo":      "KubeletClientInfo contains information about how to connect to kubelets",
+	"apiLevels":              "apiLevels is a list of API levels that should be enabled on startup: v1 as examples",
+	"masterPublicURL":        "masterPublicURL is how clients can access the OpenShift API server",
+	"controllers":            "controllers is a list of the controllers that should be started. If set to \"none\", no controllers will start automatically. The default value is \"*\" which will start all controllers. When using \"*\", you may exclude controllers by prepending a \"-\" in front of their name. No other values are recognized at this time.",
+	"admissionConfig":        "admissionConfig contains admission control plugin configuration.",
+	"controllerConfig":       "controllerConfig holds configuration values for controllers",
+	"etcdStorageConfig":      "etcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
+	"etcdClientInfo":         "etcdClientInfo contains information about how to connect to etcd",
+	"kubeletClientInfo":      "kubeletClientInfo contains information about how to connect to kubelets",
 	"kubernetesMasterConfig": "KubernetesMasterConfig, if present start the kubernetes master in this process",
 	"etcdConfig":             "EtcdConfig, if present start etcd in this process",
 	"oauthConfig":            "OAuthConfig, if present start the /oauth endpoint in this process",
 	"dnsConfig":              "DNSConfig, if present start the DNS server in this process",
-	"serviceAccountConfig":   "ServiceAccountConfig holds options related to service accounts",
-	"masterClients":          "MasterClients holds all the client connection information for controllers and other system components",
-	"imageConfig":            "ImageConfig holds options that describe how to build image names for system components",
-	"imagePolicyConfig":      "ImagePolicyConfig controls limits and behavior for importing images",
-	"policyConfig":           "PolicyConfig holds information about where to locate critical pieces of bootstrapping policy",
-	"projectConfig":          "ProjectConfig holds information about project creation and defaults",
-	"routingConfig":          "RoutingConfig holds information about routing and route generation",
-	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
+	"serviceAccountConfig":   "serviceAccountConfig holds options related to service accounts",
+	"masterClients":          "masterClients holds all the client connection information for controllers and other system components",
+	"imageConfig":            "imageConfig holds options that describe how to build image names for system components",
+	"imagePolicyConfig":      "imagePolicyConfig controls limits and behavior for importing images",
+	"policyConfig":           "policyConfig holds information about where to locate critical pieces of bootstrapping policy",
+	"projectConfig":          "projectConfig holds information about project creation and defaults",
+	"routingConfig":          "routingConfig holds information about routing and route generation",
+	"networkConfig":          "networkConfig to be passed to the compiled in network plugin",
 	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
-	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
-	"auditConfig":            "AuditConfig holds information related to auditing capabilities.",
+	"jenkinsPipelineConfig":  "jenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
+	"auditConfig":            "auditConfig holds information related to auditing capabilities.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {
@@ -550,14 +550,14 @@ func (MasterConfig) SwaggerDoc() map[string]string {
 
 var map_MasterNetworkConfig = map[string]string{
 	"":                       "MasterNetworkConfig to be passed to the compiled in network plugin",
-	"networkPluginName":      "NetworkPluginName is the name of the network plugin to use",
-	"clusterNetworkCIDR":     "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.",
-	"clusterNetworks":        "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.  If this is specified, then ClusterNetworkCIDR and HostSubnetLength may not be set.",
-	"hostSubnetLength":       "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.",
+	"networkPluginName":      "networkPluginName is the name of the network plugin to use",
+	"clusterNetworkCIDR":     "clusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.",
+	"clusterNetworks":        "clusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.  If this is specified, then ClusterNetworkCIDR and HostSubnetLength may not be set.",
+	"hostSubnetLength":       "hostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.",
 	"serviceNetworkCIDR":     "ServiceNetwork is the CIDR string to specify the service networks",
-	"externalIPNetworkCIDRs": "ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.",
-	"ingressIPNetworkCIDR":   "IngressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from. For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips, nodes, pods, or services.",
-	"vxlanPort":              "VXLANPort is the VXLAN port used by the cluster defaults. If it is not set, 4789 is the default value",
+	"externalIPNetworkCIDRs": "externalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.",
+	"ingressIPNetworkCIDR":   "ingressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from. For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips, nodes, pods, or services.",
+	"vxlanPort":              "vxlanPort is the VXLAN port used by the cluster defaults. If it is not set, 4789 is the default value",
 }
 
 func (MasterNetworkConfig) SwaggerDoc() map[string]string {
@@ -566,7 +566,7 @@ func (MasterNetworkConfig) SwaggerDoc() map[string]string {
 
 var map_MasterVolumeConfig = map[string]string{
 	"":                           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
-	"dynamicProvisioningEnabled": "DynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true",
+	"dynamicProvisioningEnabled": "dynamicProvisioningEnabled is a boolean that toggles dynamic provisioning off when false, defaults to true",
 }
 
 func (MasterVolumeConfig) SwaggerDoc() map[string]string {
@@ -575,7 +575,7 @@ func (MasterVolumeConfig) SwaggerDoc() map[string]string {
 
 var map_NamedCertificate = map[string]string{
 	"":      "NamedCertificate specifies a certificate/key, and the names it should be served for",
-	"names": "Names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
+	"names": "names is a list of DNS names this certificate should be used to secure A name can be a normal DNS name, or can contain leading wildcard segments.",
 }
 
 func (NamedCertificate) SwaggerDoc() map[string]string {
@@ -584,10 +584,10 @@ func (NamedCertificate) SwaggerDoc() map[string]string {
 
 var map_NodeAuthConfig = map[string]string{
 	"":                        "NodeAuthConfig holds authn/authz configuration options",
-	"authenticationCacheTTL":  "AuthenticationCacheTTL indicates how long an authentication result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get the default timeout. If zero (e.g. \"0m\"), caching is disabled",
-	"authenticationCacheSize": "AuthenticationCacheSize indicates how many authentication results should be cached. If 0, the default cache size is used.",
-	"authorizationCacheTTL":   "AuthorizationCacheTTL indicates how long an authorization result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get the default timeout. If zero (e.g. \"0m\"), caching is disabled",
-	"authorizationCacheSize":  "AuthorizationCacheSize indicates how many authorization results should be cached. If 0, the default cache size is used.",
+	"authenticationCacheTTL":  "authenticationCacheTTL indicates how long an authentication result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get the default timeout. If zero (e.g. \"0m\"), caching is disabled",
+	"authenticationCacheSize": "authenticationCacheSize indicates how many authentication results should be cached. If 0, the default cache size is used.",
+	"authorizationCacheTTL":   "authorizationCacheTTL indicates how long an authorization result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get the default timeout. If zero (e.g. \"0m\"), caching is disabled",
+	"authorizationCacheSize":  "authorizationCacheSize indicates how many authorization results should be cached. If 0, the default cache size is used.",
 }
 
 func (NodeAuthConfig) SwaggerDoc() map[string]string {
@@ -596,29 +596,29 @@ func (NodeAuthConfig) SwaggerDoc() map[string]string {
 
 var map_NodeConfig = map[string]string{
 	"":                                "NodeConfig is the fully specified config starting an OpenShift node\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"nodeName":                        "NodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname. If you're describing a set of static nodes to the master, this value must match one of the values in the list",
+	"nodeName":                        "nodeName is the value used to identify this particular node in the cluster.  If possible, this should be your fully qualified hostname. If you're describing a set of static nodes to the master, this value must match one of the values in the list",
 	"nodeIP":                          "Node may have multiple IPs, specify the IP to use for pod traffic routing If not specified, network parse/lookup on the nodeName is performed and the first non-loopback address is used",
-	"servingInfo":                     "ServingInfo describes how to start serving",
-	"masterKubeConfig":                "MasterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master",
-	"masterClientConnectionOverrides": "MasterClientConnectionOverrides provides overrides to the client connection used to connect to the master.",
-	"dnsDomain":                       "DNSDomain holds the domain suffix that will be used for the DNS search path inside each container. Defaults to 'cluster.local'.",
-	"dnsIP":                           "DNSIP is the IP address that pods will use to access cluster DNS. Defaults to the service IP of the Kubernetes master. This IP must be listening on port 53 for compatibility with libc resolvers (which cannot be configured to resolve names from any other port). When running more complex local DNS configurations, this is often set to the local address of a DNS proxy like dnsmasq, which then will consult either the local DNS (see dnsBindAddress) or the master DNS.",
-	"dnsBindAddress":                  "DNSBindAddress is the ip:port to serve DNS on. If this is not set, the DNS server will not be started. Because most DNS resolvers will only listen on port 53, if you select an alternative port you will need a DNS proxy like dnsmasq to answer queries for containers. A common configuration is dnsmasq configured on a node IP listening on 53 and delegating queries for dnsDomain to this process, while sending other queries to the host environments nameservers.",
-	"dnsNameservers":                  "DNSNameservers is a list of ip:port values of recursive nameservers to forward queries to when running a local DNS server if dnsBindAddress is set. If this value is empty, the DNS server will default to the nameservers listed in /etc/resolv.conf. If you have configured dnsmasq or another DNS proxy on the system, this value should be set to the upstream nameservers dnsmasq resolves with.",
-	"dnsRecursiveResolvConf":          "DNSRecursiveResolvConf is a path to a resolv.conf file that contains settings for an upstream server. Only the nameservers and port fields are used. The file must exist and parse correctly. It adds extra nameservers to DNSNameservers if set.",
+	"servingInfo":                     "servingInfo describes how to start serving",
+	"masterKubeConfig":                "masterKubeConfig is a filename for the .kubeconfig file that describes how to connect this node to the master",
+	"masterClientConnectionOverrides": "masterClientConnectionOverrides provides overrides to the client connection used to connect to the master.",
+	"dnsDomain":                       "dnsDomain holds the domain suffix that will be used for the DNS search path inside each container. Defaults to 'cluster.local'.",
+	"dnsIP":                           "dnsIP is the IP address that pods will use to access cluster DNS. Defaults to the service IP of the Kubernetes master. This IP must be listening on port 53 for compatibility with libc resolvers (which cannot be configured to resolve names from any other port). When running more complex local DNS configurations, this is often set to the local address of a DNS proxy like dnsmasq, which then will consult either the local DNS (see dnsBindAddress) or the master DNS.",
+	"dnsBindAddress":                  "dnsBindAddress is the ip:port to serve DNS on. If this is not set, the DNS server will not be started. Because most DNS resolvers will only listen on port 53, if you select an alternative port you will need a DNS proxy like dnsmasq to answer queries for containers. A common configuration is dnsmasq configured on a node IP listening on 53 and delegating queries for dnsDomain to this process, while sending other queries to the host environments nameservers.",
+	"dnsNameservers":                  "dnsNameservers is a list of ip:port values of recursive nameservers to forward queries to when running a local DNS server if dnsBindAddress is set. If this value is empty, the DNS server will default to the nameservers listed in /etc/resolv.conf. If you have configured dnsmasq or another DNS proxy on the system, this value should be set to the upstream nameservers dnsmasq resolves with.",
+	"dnsRecursiveResolvConf":          "dnsRecursiveResolvConf is a path to a resolv.conf file that contains settings for an upstream server. Only the nameservers and port fields are used. The file must exist and parse correctly. It adds extra nameservers to DNSNameservers if set.",
 	"networkPluginName":               "Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead",
-	"networkConfig":                   "NetworkConfig provides network options for the node",
-	"volumeDirectory":                 "VolumeDirectory is the directory that volumes will be stored under",
-	"imageConfig":                     "ImageConfig holds options that describe how to build image names for system components",
-	"allowDisabledDocker":             "AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.",
-	"podManifestConfig":               "PodManifestConfig holds the configuration for enabling the Kubelet to create pods based from a manifest file(s) placed locally on the node",
-	"authConfig":                      "AuthConfig holds authn/authz configuration options",
-	"dockerConfig":                    "DockerConfig holds Docker related configuration options.",
-	"kubeletArguments":                "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
-	"proxyArguments":                  "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
-	"iptablesSyncPeriod":              "IPTablesSyncPeriod is how often iptable rules are refreshed",
-	"enableUnidling":                  "EnableUnidling controls whether or not the hybrid unidling proxy will be set up",
-	"volumeConfig":                    "VolumeConfig contains options for configuring volumes on the node.",
+	"networkConfig":                   "networkConfig provides network options for the node",
+	"volumeDirectory":                 "volumeDirectory is the directory that volumes will be stored under",
+	"imageConfig":                     "imageConfig holds options that describe how to build image names for system components",
+	"allowDisabledDocker":             "allowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.",
+	"podManifestConfig":               "podManifestConfig holds the configuration for enabling the Kubelet to create pods based from a manifest file(s) placed locally on the node",
+	"authConfig":                      "authConfig holds authn/authz configuration options",
+	"dockerConfig":                    "dockerConfig holds Docker related configuration options.",
+	"kubeletArguments":                "kubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
+	"proxyArguments":                  "proxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
+	"iptablesSyncPeriod":              "iptablesSyncPeriod is how often iptable rules are refreshed",
+	"enableUnidling":                  "enableUnidling controls whether or not the hybrid unidling proxy will be set up",
+	"volumeConfig":                    "volumeConfig contains options for configuring volumes on the node.",
 }
 
 func (NodeConfig) SwaggerDoc() map[string]string {
@@ -627,7 +627,7 @@ func (NodeConfig) SwaggerDoc() map[string]string {
 
 var map_NodeNetworkConfig = map[string]string{
 	"":                  "NodeNetworkConfig provides network options for the node",
-	"networkPluginName": "NetworkPluginName is a string specifying the networking plugin",
+	"networkPluginName": "networkPluginName is a string specifying the networking plugin",
 	"mtu":               "Maximum transmission unit for the network packets",
 }
 
@@ -637,7 +637,7 @@ func (NodeNetworkConfig) SwaggerDoc() map[string]string {
 
 var map_NodeVolumeConfig = map[string]string{
 	"":           "NodeVolumeConfig contains options for configuring volumes on the node.",
-	"localQuota": "LocalQuota contains options for controlling local volume quota on the node.",
+	"localQuota": "localQuota contains options for controlling local volume quota on the node.",
 }
 
 func (NodeVolumeConfig) SwaggerDoc() map[string]string {
@@ -646,16 +646,16 @@ func (NodeVolumeConfig) SwaggerDoc() map[string]string {
 
 var map_OAuthConfig = map[string]string{
 	"":                            "OAuthConfig holds the necessary configuration options for OAuth authentication",
-	"masterCA":                    "MasterCA is the CA for verifying the TLS connection back to the MasterURL.",
-	"masterURL":                   "MasterURL is used for making server-to-server calls to exchange authorization codes for access tokens",
-	"masterPublicURL":             "MasterPublicURL is used for building valid client redirect URLs for internal and external access",
-	"assetPublicURL":              "AssetPublicURL is used for building valid client redirect URLs for external access",
-	"alwaysShowProviderSelection": "AlwaysShowProviderSelection will force the provider selection page to render even when there is only a single provider.",
-	"identityProviders":           "IdentityProviders is an ordered list of ways for a user to identify themselves",
-	"grantConfig":                 "GrantConfig describes how to handle grants",
-	"sessionConfig":               "SessionConfig hold information about configuring sessions.",
-	"tokenConfig":                 "TokenConfig contains options for authorization and access tokens",
-	"templates":                   "Templates allow you to customize pages like the login page.",
+	"masterCA":                    "masterCA is the CA for verifying the TLS connection back to the MasterURL.",
+	"masterURL":                   "masterURL is used for making server-to-server calls to exchange authorization codes for access tokens",
+	"masterPublicURL":             "masterPublicURL is used for building valid client redirect URLs for internal and external access",
+	"assetPublicURL":              "assetPublicURL is used for building valid client redirect URLs for external access",
+	"alwaysShowProviderSelection": "alwaysShowProviderSelection will force the provider selection page to render even when there is only a single provider.",
+	"identityProviders":           "identityProviders is an ordered list of ways for a user to identify themselves",
+	"grantConfig":                 "grantConfig describes how to handle grants",
+	"sessionConfig":               "sessionConfig hold information about configuring sessions.",
+	"tokenConfig":                 "tokenConfig contains options for authorization and access tokens",
+	"templates":                   "templates allow you to customize pages like the login page.",
 }
 
 func (OAuthConfig) SwaggerDoc() map[string]string {
@@ -664,9 +664,9 @@ func (OAuthConfig) SwaggerDoc() map[string]string {
 
 var map_OAuthTemplates = map[string]string{
 	"":                  "OAuthTemplates allow for customization of pages like the login page",
-	"login":             "Login is a path to a file containing a go template used to render the login page. If unspecified, the default login page is used.",
-	"providerSelection": "ProviderSelection is a path to a file containing a go template used to render the provider selection page. If unspecified, the default provider selection page is used.",
-	"error":             "Error is a path to a file containing a go template used to render error pages during the authentication or grant flow If unspecified, the default error page is used.",
+	"login":             "login is a path to a file containing a go template used to render the login page. If unspecified, the default login page is used.",
+	"providerSelection": "providerSelection is a path to a file containing a go template used to render the provider selection page. If unspecified, the default provider selection page is used.",
+	"error":             "error is a path to a file containing a go template used to render error pages during the authentication or grant flow If unspecified, the default error page is used.",
 }
 
 func (OAuthTemplates) SwaggerDoc() map[string]string {
@@ -675,10 +675,10 @@ func (OAuthTemplates) SwaggerDoc() map[string]string {
 
 var map_OpenIDClaims = map[string]string{
 	"":                  "OpenIDClaims contains a list of OpenID claims to use when authenticating with an OpenID identity provider",
-	"id":                "ID is the list of claims whose values should be used as the user ID. Required. OpenID standard identity claim is \"sub\"",
-	"preferredUsername": "PreferredUsername is the list of claims whose values should be used as the preferred username. If unspecified, the preferred username is determined from the value of the id claim",
-	"name":              "Name is the list of claims whose values should be used as the display name. Optional. If unspecified, no display name is set for the identity",
-	"email":             "Email is the list of claims whose values should be used as the email address. Optional. If unspecified, no email is set for the identity",
+	"id":                "id is the list of claims whose values should be used as the user ID. Required. OpenID standard identity claim is \"sub\"",
+	"preferredUsername": "preferredUsername is the list of claims whose values should be used as the preferred username. If unspecified, the preferred username is determined from the value of the id claim",
+	"name":              "name is the list of claims whose values should be used as the display name. Optional. If unspecified, no display name is set for the identity",
+	"email":             "email is the list of claims whose values should be used as the email address. Optional. If unspecified, no email is set for the identity",
 }
 
 func (OpenIDClaims) SwaggerDoc() map[string]string {
@@ -687,13 +687,13 @@ func (OpenIDClaims) SwaggerDoc() map[string]string {
 
 var map_OpenIDIdentityProvider = map[string]string{
 	"":                         "OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"ca":                       "CA is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
-	"clientID":                 "ClientID is the oauth client ID",
-	"clientSecret":             "ClientSecret is the oauth client secret",
-	"extraScopes":              "ExtraScopes are any scopes to request in addition to the standard \"openid\" scope.",
-	"extraAuthorizeParameters": "ExtraAuthorizeParameters are any custom parameters to add to the authorize request.",
-	"urls":                     "URLs to use to authenticate",
-	"claims":                   "Claims mappings",
+	"ca":                       "ca is the optional trusted certificate authority bundle to use when making requests to the server If empty, the default system roots are used",
+	"clientID":                 "clientID is the oauth client ID",
+	"clientSecret":             "clientSecret is the oauth client secret",
+	"extraScopes":              "extraScopes are any scopes to request in addition to the standard \"openid\" scope.",
+	"extraAuthorizeParameters": "extraAuthorizeParameters are any custom parameters to add to the authorize request.",
+	"urls":                     "urls to use to authenticate",
+	"claims":                   "claims mappings",
 }
 
 func (OpenIDIdentityProvider) SwaggerDoc() map[string]string {
@@ -702,9 +702,9 @@ func (OpenIDIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_OpenIDURLs = map[string]string{
 	"":          "OpenIDURLs are URLs to use when authenticating with an OpenID identity provider",
-	"authorize": "Authorize is the oauth authorization URL",
-	"token":     "Token is the oauth token granting URL",
-	"userInfo":  "UserInfo is the optional userinfo URL. If present, a granted access_token is used to request claims If empty, a granted id_token is parsed for claims",
+	"authorize": "authorize is the oauth authorization URL",
+	"token":     "token is the oauth token granting URL",
+	"userInfo":  "userInfo is the optional userinfo URL. If present, a granted access_token is used to request claims If empty, a granted id_token is parsed for claims",
 }
 
 func (OpenIDURLs) SwaggerDoc() map[string]string {
@@ -713,8 +713,8 @@ func (OpenIDURLs) SwaggerDoc() map[string]string {
 
 var map_PodManifestConfig = map[string]string{
 	"":                         "PodManifestConfig holds the necessary configuration options for using pod manifests",
-	"path":                     "Path specifies the path for the pod manifest file or directory If its a directory, its expected to contain on or more manifest files This is used by the Kubelet to create pods on the node",
-	"fileCheckIntervalSeconds": "FileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data The interval needs to be a positive value",
+	"path":                     "path specifies the path for the pod manifest file or directory If its a directory, its expected to contain on or more manifest files This is used by the Kubelet to create pods on the node",
+	"fileCheckIntervalSeconds": "fileCheckIntervalSeconds is the interval in seconds for checking the manifest file(s) for new data The interval needs to be a positive value",
 }
 
 func (PodManifestConfig) SwaggerDoc() map[string]string {
@@ -723,7 +723,7 @@ func (PodManifestConfig) SwaggerDoc() map[string]string {
 
 var map_PolicyConfig = map[string]string{
 	"":                        "holds the necessary configuration options for",
-	"userAgentMatchingConfig": "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"userAgentMatchingConfig": "userAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 }
 
 func (PolicyConfig) SwaggerDoc() map[string]string {
@@ -732,10 +732,10 @@ func (PolicyConfig) SwaggerDoc() map[string]string {
 
 var map_ProjectConfig = map[string]string{
 	"":                       "holds the necessary configuration options for",
-	"defaultNodeSelector":    "DefaultNodeSelector holds default project node label selector",
-	"projectRequestMessage":  "ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint",
-	"projectRequestTemplate": "ProjectRequestTemplate is the template to use for creating projects in response to projectrequest. It is in the format namespace/template and it is optional. If it is not specified, a default template is used.",
-	"securityAllocator":      "SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.",
+	"defaultNodeSelector":    "defaultNodeSelector holds default project node label selector",
+	"projectRequestMessage":  "projectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint",
+	"projectRequestTemplate": "projectRequestTemplate is the template to use for creating projects in response to projectrequest. It is in the format namespace/template and it is optional. If it is not specified, a default template is used.",
+	"securityAllocator":      "securityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.",
 }
 
 func (ProjectConfig) SwaggerDoc() map[string]string {
@@ -746,13 +746,13 @@ var map_RFC2307Config = map[string]string{
 	"":                               "RFC2307Config holds the necessary configuration options to define how an LDAP group sync interacts with an LDAP server using the RFC2307 schema",
 	"groupsQuery":                    "AllGroupsQuery holds the template for an LDAP query that returns group entries.",
 	"groupUIDAttribute":              "GroupUIDAttributes defines which attribute on an LDAP group entry will be interpreted as its unique identifier. (ldapGroupUID)",
-	"groupNameAttributes":            "GroupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group",
-	"groupMembershipAttributes":      "GroupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted  as its members. The values contained in those attributes must be queryable by your UserUIDAttribute",
+	"groupNameAttributes":            "groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group",
+	"groupMembershipAttributes":      "groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted  as its members. The values contained in those attributes must be queryable by your UserUIDAttribute",
 	"usersQuery":                     "AllUsersQuery holds the template for an LDAP query that returns user entries.",
-	"userUIDAttribute":               "UserUIDAttribute defines which attribute on an LDAP user entry will be interpreted as its unique identifier. It must correspond to values that will be found from the GroupMembershipAttributes",
-	"userNameAttributes":             "UserNameAttributes defines which attributes on an LDAP user entry will be used, in order, as its OpenShift user name. The first attribute with a non-empty value is used. This should match your PreferredUsername setting for your LDAPPasswordIdentityProvider",
-	"tolerateMemberNotFoundErrors":   "TolerateMemberNotFoundErrors determines the behavior of the LDAP sync job when missing user entries are encountered. If 'true', an LDAP query for users that doesn't find any will be tolerated and an only and error will be logged. If 'false', the LDAP sync job will fail if a query for users doesn't find any. The default value is 'false'. Misconfigured LDAP sync jobs with this flag set to 'true' can cause group membership to be removed, so it is recommended to use this flag with caution.",
-	"tolerateMemberOutOfScopeErrors": "TolerateMemberOutOfScopeErrors determines the behavior of the LDAP sync job when out-of-scope user entries are encountered. If 'true', an LDAP query for a user that falls outside of the base DN given for the all user query will be tolerated and only an error will be logged. If 'false', the LDAP sync job will fail if a user query would search outside of the base DN specified by the all user query. Misconfigured LDAP sync jobs with this flag set to 'true' can result in groups missing users, so it is recommended to use this flag with caution.",
+	"userUIDAttribute":               "userUIDAttribute defines which attribute on an LDAP user entry will be interpreted as its unique identifier. It must correspond to values that will be found from the GroupMembershipAttributes",
+	"userNameAttributes":             "userNameAttributes defines which attributes on an LDAP user entry will be used, in order, as its OpenShift user name. The first attribute with a non-empty value is used. This should match your PreferredUsername setting for your LDAPPasswordIdentityProvider",
+	"tolerateMemberNotFoundErrors":   "tolerateMemberNotFoundErrors determines the behavior of the LDAP sync job when missing user entries are encountered. If 'true', an LDAP query for users that doesn't find any will be tolerated and an only and error will be logged. If 'false', the LDAP sync job will fail if a query for users doesn't find any. The default value is 'false'. Misconfigured LDAP sync jobs with this flag set to 'true' can cause group membership to be removed, so it is recommended to use this flag with caution.",
+	"tolerateMemberOutOfScopeErrors": "tolerateMemberOutOfScopeErrors determines the behavior of the LDAP sync job when out-of-scope user entries are encountered. If 'true', an LDAP query for a user that falls outside of the base DN given for the all user query will be tolerated and only an error will be logged. If 'false', the LDAP sync job will fail if a user query would search outside of the base DN specified by the all user query. Misconfigured LDAP sync jobs with this flag set to 'true' can result in groups missing users, so it is recommended to use this flag with caution.",
 }
 
 func (RFC2307Config) SwaggerDoc() map[string]string {
@@ -761,8 +761,8 @@ func (RFC2307Config) SwaggerDoc() map[string]string {
 
 var map_RegistryLocation = map[string]string{
 	"":           "RegistryLocation contains a location of the registry specified by the registry domain name. The domain name might include wildcards, like '*' or '??'.",
-	"domainName": "DomainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
-	"insecure":   "Insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
+	"domainName": "domainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
+	"insecure":   "insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
 }
 
 func (RegistryLocation) SwaggerDoc() map[string]string {
@@ -771,8 +771,8 @@ func (RegistryLocation) SwaggerDoc() map[string]string {
 
 var map_RemoteConnectionInfo = map[string]string{
 	"":    "RemoteConnectionInfo holds information necessary for establishing a remote connection",
-	"url": "URL is the remote URL to connect to",
-	"ca":  "CA is the CA for verifying TLS connections",
+	"url": "url is the remote URL to connect to",
+	"ca":  "ca is the CA for verifying TLS connections",
 }
 
 func (RemoteConnectionInfo) SwaggerDoc() map[string]string {
@@ -781,11 +781,11 @@ func (RemoteConnectionInfo) SwaggerDoc() map[string]string {
 
 var map_RequestHeaderAuthenticationOptions = map[string]string{
 	"":                    "RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire API instead of against the /oauth endpoint.",
-	"clientCA":            "ClientCA is a file with the trusted signer certs.  It is required.",
-	"clientCommonNames":   "ClientCommonNames is a required list of common names to require a match from.",
-	"usernameHeaders":     "UsernameHeaders is the list of headers to check for user information.  First hit wins.",
+	"clientCA":            "clientCA is a file with the trusted signer certs.  It is required.",
+	"clientCommonNames":   "clientCommonNames is a required list of common names to require a match from.",
+	"usernameHeaders":     "usernameHeaders is the list of headers to check for user information.  First hit wins.",
 	"groupHeaders":        "GroupNameHeader is the set of headers to check for group information.  All are unioned.",
-	"extraHeaderPrefixes": "ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.",
+	"extraHeaderPrefixes": "extraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.",
 }
 
 func (RequestHeaderAuthenticationOptions) SwaggerDoc() map[string]string {
@@ -794,14 +794,14 @@ func (RequestHeaderAuthenticationOptions) SwaggerDoc() map[string]string {
 
 var map_RequestHeaderIdentityProvider = map[string]string{
 	"":                         "RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"loginURL":                 "LoginURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
-	"challengeURL":             "ChallengeURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
-	"clientCA":                 "ClientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.",
-	"clientCommonNames":        "ClientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.",
-	"headers":                  "Headers is the set of headers to check for identity information",
-	"preferredUsernameHeaders": "PreferredUsernameHeaders is the set of headers to check for the preferred username",
-	"nameHeaders":              "NameHeaders is the set of headers to check for the display name",
-	"emailHeaders":             "EmailHeaders is the set of headers to check for the email address",
+	"loginURL":                 "loginURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
+	"challengeURL":             "challengeURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}",
+	"clientCA":                 "clientCA is a file with the trusted signer certs.  If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.",
+	"clientCommonNames":        "clientCommonNames is an optional list of common names to require a match from. If empty, any client certificate validated against the clientCA bundle is considered authoritative.",
+	"headers":                  "headers is the set of headers to check for identity information",
+	"preferredUsernameHeaders": "preferredUsernameHeaders is the set of headers to check for the preferred username",
+	"nameHeaders":              "nameHeaders is the set of headers to check for the display name",
+	"emailHeaders":             "emailHeaders is the set of headers to check for the email address",
 }
 
 func (RequestHeaderIdentityProvider) SwaggerDoc() map[string]string {
@@ -810,7 +810,7 @@ func (RequestHeaderIdentityProvider) SwaggerDoc() map[string]string {
 
 var map_RoutingConfig = map[string]string{
 	"":          "RoutingConfig holds the necessary configuration options for routing to subdomains",
-	"subdomain": "Subdomain is the suffix appended to $service.$namespace. to form the default route hostname DEPRECATED: This field is being replaced by routers setting their own defaults. This is the \"default\" route.",
+	"subdomain": "subdomain is the suffix appended to $service.$namespace. to form the default route hostname DEPRECATED: This field is being replaced by routers setting their own defaults. This is the \"default\" route.",
 }
 
 func (RoutingConfig) SwaggerDoc() map[string]string {
@@ -819,9 +819,9 @@ func (RoutingConfig) SwaggerDoc() map[string]string {
 
 var map_SecurityAllocator = map[string]string{
 	"":                    "SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.",
-	"uidAllocatorRange":   "UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges container images will use once user namespaces are started).",
-	"mcsAllocatorRange":   "MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is \"<prefix>/<numberOfLabels>[,<maxCategory>]\". The default is \"s0/2\" and will allocate from c0 -> c1023, which means a total of 535k labels are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default will allow the server to set them automatically.\n\nExamples: * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511 * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511",
-	"mcsLabelsPerProject": "MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS ranges (100k namespaces, 535k/5 labels).",
+	"uidAllocatorRange":   "uidAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges container images will use once user namespaces are started).",
+	"mcsAllocatorRange":   "mcsAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is \"<prefix>/<numberOfLabels>[,<maxCategory>]\". The default is \"s0/2\" and will allocate from c0 -> c1023, which means a total of 535k labels are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default will allow the server to set them automatically.\n\nExamples: * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511 * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511",
+	"mcsLabelsPerProject": "mcsLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS ranges (100k namespaces, 535k/5 labels).",
 }
 
 func (SecurityAllocator) SwaggerDoc() map[string]string {
@@ -830,11 +830,11 @@ func (SecurityAllocator) SwaggerDoc() map[string]string {
 
 var map_ServiceAccountConfig = map[string]string{
 	"":                      "ServiceAccountConfig holds the necessary configuration options for a service account",
-	"managedNames":          "ManagedNames is a list of service account names that will be auto-created in every namespace. If no names are specified, the ServiceAccountsController will not be started.",
-	"limitSecretReferences": "LimitSecretReferences controls whether or not to allow a service account to reference any secret in a namespace without explicitly referencing them",
-	"privateKeyFile":        "PrivateKeyFile is a file containing a PEM-encoded private RSA key, used to sign service account tokens. If no private key is specified, the service account TokensController will not be started.",
-	"publicKeyFiles":        "PublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key. (If any file contains a private key, the public portion of the key is used) The list of public keys is used to verify presented service account tokens. Each key is tried in order until the list is exhausted or verification succeeds. If no keys are specified, no service account authentication will be available.",
-	"masterCA":              "MasterCA is the CA for verifying the TLS connection back to the master.  The service account controller will automatically inject the contents of this file into pods so they can verify connections to the master.",
+	"managedNames":          "managedNames is a list of service account names that will be auto-created in every namespace. If no names are specified, the ServiceAccountsController will not be started.",
+	"limitSecretReferences": "limitSecretReferences controls whether or not to allow a service account to reference any secret in a namespace without explicitly referencing them",
+	"privateKeyFile":        "privateKeyFile is a file containing a PEM-encoded private RSA key, used to sign service account tokens. If no private key is specified, the service account TokensController will not be started.",
+	"publicKeyFiles":        "publicKeyFiles is a list of files, each containing a PEM-encoded public RSA key. (If any file contains a private key, the public portion of the key is used) The list of public keys is used to verify presented service account tokens. Each key is tried in order until the list is exhausted or verification succeeds. If no keys are specified, no service account authentication will be available.",
+	"masterCA":              "masterCA is the CA for verifying the TLS connection back to the master.  The service account controller will automatically inject the contents of this file into pods so they can verify connections to the master.",
 }
 
 func (ServiceAccountConfig) SwaggerDoc() map[string]string {
@@ -843,7 +843,7 @@ func (ServiceAccountConfig) SwaggerDoc() map[string]string {
 
 var map_ServiceServingCert = map[string]string{
 	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
-	"signer": "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
+	"signer": "signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
 }
 
 func (ServiceServingCert) SwaggerDoc() map[string]string {
@@ -852,12 +852,12 @@ func (ServiceServingCert) SwaggerDoc() map[string]string {
 
 var map_ServingInfo = map[string]string{
 	"":                  "ServingInfo holds information about serving web pages",
-	"bindAddress":       "BindAddress is the ip:port to serve on",
-	"bindNetwork":       "BindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
-	"clientCA":          "ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
-	"namedCertificates": "NamedCertificates is a list of certificates to use to secure requests to specific hostnames",
-	"minTLSVersion":     "MinTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
-	"cipherSuites":      "CipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
+	"bindAddress":       "bindAddress is the ip:port to serve on",
+	"bindNetwork":       "bindNetwork is the type of network to bind to - defaults to \"tcp4\", accepts \"tcp\", \"tcp4\", and \"tcp6\"",
+	"clientCA":          "clientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates",
+	"namedCertificates": "namedCertificates is a list of certificates to use to secure requests to specific hostnames",
+	"minTLSVersion":     "minTLSVersion is the minimum TLS version supported. Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants",
+	"cipherSuites":      "cipherSuites contains an overridden list of ciphers for the server to support. Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants",
 }
 
 func (ServingInfo) SwaggerDoc() map[string]string {
@@ -866,9 +866,9 @@ func (ServingInfo) SwaggerDoc() map[string]string {
 
 var map_SessionConfig = map[string]string{
 	"":                     "SessionConfig specifies options for cookie-based sessions. Used by AuthRequestHandlerSession",
-	"sessionSecretsFile":   "SessionSecretsFile is a reference to a file containing a serialized SessionSecrets object If no file is specified, a random signing and encryption key are generated at each server start",
-	"sessionMaxAgeSeconds": "SessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession",
-	"sessionName":          "SessionName is the cookie name used to store the session",
+	"sessionSecretsFile":   "sessionSecretsFile is a reference to a file containing a serialized SessionSecrets object If no file is specified, a random signing and encryption key are generated at each server start",
+	"sessionMaxAgeSeconds": "sessionMaxAgeSeconds specifies how long created sessions last. Used by AuthRequestHandlerSession",
+	"sessionName":          "sessionName is the cookie name used to store the session",
 }
 
 func (SessionConfig) SwaggerDoc() map[string]string {
@@ -877,8 +877,8 @@ func (SessionConfig) SwaggerDoc() map[string]string {
 
 var map_SessionSecret = map[string]string{
 	"":               "SessionSecret is a secret used to authenticate/decrypt cookie-based sessions",
-	"authentication": "Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.",
-	"encryption":     "Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-",
+	"authentication": "authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.",
+	"encryption":     "encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-",
 }
 
 func (SessionSecret) SwaggerDoc() map[string]string {
@@ -887,7 +887,7 @@ func (SessionSecret) SwaggerDoc() map[string]string {
 
 var map_SessionSecrets = map[string]string{
 	"":        "SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"secrets": "Secrets is a list of secrets New sessions are signed and encrypted using the first secret. Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.",
+	"secrets": "secrets is a list of secrets New sessions are signed and encrypted using the first secret. Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.",
 }
 
 func (SessionSecrets) SwaggerDoc() map[string]string {
@@ -913,10 +913,10 @@ func (StringSource) SwaggerDoc() map[string]string {
 
 var map_StringSourceSpec = map[string]string{
 	"":        "StringSourceSpec specifies a string value, or external location",
-	"value":   "Value specifies the cleartext value, or an encrypted value if keyFile is specified.",
-	"env":     "Env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.",
-	"file":    "File references a file containing the cleartext value, or an encrypted value if a keyFile is specified.",
-	"keyFile": "KeyFile references a file containing the key to use to decrypt the value.",
+	"value":   "value specifies the cleartext value, or an encrypted value if keyFile is specified.",
+	"env":     "env specifies an envvar containing the cleartext value, or an encrypted value if the keyFile is specified.",
+	"file":    "file references a file containing the cleartext value, or an encrypted value if a keyFile is specified.",
+	"keyFile": "keyFile references a file containing the key to use to decrypt the value.",
 }
 
 func (StringSourceSpec) SwaggerDoc() map[string]string {
@@ -925,9 +925,9 @@ func (StringSourceSpec) SwaggerDoc() map[string]string {
 
 var map_TokenConfig = map[string]string{
 	"":                                    "TokenConfig holds the necessary configuration options for authorization and access tokens",
-	"authorizeTokenMaxAgeSeconds":         "AuthorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens",
-	"accessTokenMaxAgeSeconds":            "AccessTokenMaxAgeSeconds defines the maximum age of access tokens",
-	"accessTokenInactivityTimeoutSeconds": "AccessTokenInactivityTimeoutSeconds defined the default token inactivity timeout for tokens granted by any client. Setting it to nil means the feature is completely disabled (default) The default setting can be overriden on OAuthClient basis. The value represents the maximum amount of time that can occur between consecutive uses of the token. Tokens become invalid if they are not used within this temporal window. The user will need to acquire a new token to regain access once a token times out. Valid values are: - 0: Tokens never time out - X: Tokens time out if there is no activity for X seconds The current minimum allowed value for X is 300 (5 minutes)",
+	"authorizeTokenMaxAgeSeconds":         "authorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens",
+	"accessTokenMaxAgeSeconds":            "accessTokenMaxAgeSeconds defines the maximum age of access tokens",
+	"accessTokenInactivityTimeoutSeconds": "accessTokenInactivityTimeoutSeconds defined the default token inactivity timeout for tokens granted by any client. Setting it to nil means the feature is completely disabled (default) The default setting can be overriden on OAuthClient basis. The value represents the maximum amount of time that can occur between consecutive uses of the token. Tokens become invalid if they are not used within this temporal window. The user will need to acquire a new token to regain access once a token times out. Valid values are: - 0: Tokens never time out - X: Tokens time out if there is no activity for X seconds The current minimum allowed value for X is 300 (5 minutes)",
 }
 
 func (TokenConfig) SwaggerDoc() map[string]string {
@@ -936,7 +936,7 @@ func (TokenConfig) SwaggerDoc() map[string]string {
 
 var map_UserAgentDenyRule = map[string]string{
 	"":                 "UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client",
-	"rejectionMessage": "RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.",
+	"rejectionMessage": "rejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.",
 }
 
 func (UserAgentDenyRule) SwaggerDoc() map[string]string {
@@ -946,7 +946,7 @@ func (UserAgentDenyRule) SwaggerDoc() map[string]string {
 var map_UserAgentMatchRule = map[string]string{
 	"":          "UserAgentMatchRule describes how to match a given request based on User-Agent and HTTPVerb",
 	"regex":     "UserAgentRegex is a regex that is checked against the User-Agent. Known variants of oc clients 1. oc accessing kube resources: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d 2. oc accessing openshift resources: oc/v1.1.3 (linux/amd64) openshift/b348c2f 3. openshift kubectl accessing kube resources:  openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d 4. openshift kubectl accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f 5. oadm accessing kube resources: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d 6. oadm accessing openshift resources: oadm/v1.1.3 (linux/amd64) openshift/b348c2f 7. openshift cli accessing kube resources: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d 8. openshift cli accessing openshift resources: openshift/v1.1.3 (linux/amd64) openshift/b348c2f",
-	"httpVerbs": "HTTPVerbs specifies which HTTP verbs should be matched.  An empty list means \"match all verbs\".",
+	"httpVerbs": "httpVerbs specifies which HTTP verbs should be matched.  An empty list means \"match all verbs\".",
 }
 
 func (UserAgentMatchRule) SwaggerDoc() map[string]string {
@@ -957,7 +957,7 @@ var map_UserAgentMatchingConfig = map[string]string{
 	"":                        "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 	"requiredClients":         "If this list is non-empty, then a User-Agent must match one of the UserAgentRegexes to be allowed",
 	"deniedClients":           "If this list is non-empty, then a User-Agent must not match any of the UserAgentRegexes",
-	"defaultRejectionMessage": "DefaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.",
+	"defaultRejectionMessage": "defaultRejectionMessage is the message shown when rejecting a client.  If it is not a set, a generic message is given.",
 }
 
 func (UserAgentMatchingConfig) SwaggerDoc() map[string]string {
@@ -966,8 +966,8 @@ func (UserAgentMatchingConfig) SwaggerDoc() map[string]string {
 
 var map_WebhookTokenAuthenticator = map[string]string{
 	"":           "WebhookTokenAuthenticators holds the necessary configuation options for external token authenticators",
-	"configFile": "ConfigFile is a path to a Kubeconfig file with the webhook configuration",
-	"cacheTTL":   "CacheTTL indicates how long an authentication result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get a default timeout of 2 minutes. If zero (e.g. \"0m\"), caching is disabled",
+	"configFile": "configFile is a path to a Kubeconfig file with the webhook configuration",
+	"cacheTTL":   "cacheTTL indicates how long an authentication result should be cached. It takes a valid time duration string (e.g. \"5m\"). If empty, you get a default timeout of 2 minutes. If zero (e.g. \"0m\"), caching is disabled",
 }
 
 func (WebhookTokenAuthenticator) SwaggerDoc() map[string]string {

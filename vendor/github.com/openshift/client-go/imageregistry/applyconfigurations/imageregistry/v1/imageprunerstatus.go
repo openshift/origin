@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 )
 
 // ImagePrunerStatusApplyConfiguration represents a declarative configuration of the ImagePrunerStatus type for use
 // with apply.
 type ImagePrunerStatusApplyConfiguration struct {
-	ObservedGeneration *int64                                   `json:"observedGeneration,omitempty"`
-	Conditions         []v1.OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
+	ObservedGeneration *int64                                           `json:"observedGeneration,omitempty"`
+	Conditions         []operatorv1.OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // ImagePrunerStatusApplyConfiguration constructs a declarative configuration of the ImagePrunerStatus type for use with
@@ -30,7 +30,7 @@ func (b *ImagePrunerStatusApplyConfiguration) WithObservedGeneration(value int64
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *ImagePrunerStatusApplyConfiguration) WithConditions(values ...*v1.OperatorConditionApplyConfiguration) *ImagePrunerStatusApplyConfiguration {
+func (b *ImagePrunerStatusApplyConfiguration) WithConditions(values ...*operatorv1.OperatorConditionApplyConfiguration) *ImagePrunerStatusApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")

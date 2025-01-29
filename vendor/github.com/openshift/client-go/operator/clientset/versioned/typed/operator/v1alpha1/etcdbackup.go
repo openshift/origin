@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/openshift/api/operator/v1alpha1"
-	operatorv1alpha1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1alpha1"
+	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	applyconfigurationsoperatorv1alpha1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1alpha1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type EtcdBackupsGetter interface {
 
 // EtcdBackupInterface has methods to work with EtcdBackup resources.
 type EtcdBackupInterface interface {
-	Create(ctx context.Context, etcdBackup *v1alpha1.EtcdBackup, opts v1.CreateOptions) (*v1alpha1.EtcdBackup, error)
-	Update(ctx context.Context, etcdBackup *v1alpha1.EtcdBackup, opts v1.UpdateOptions) (*v1alpha1.EtcdBackup, error)
+	Create(ctx context.Context, etcdBackup *operatorv1alpha1.EtcdBackup, opts v1.CreateOptions) (*operatorv1alpha1.EtcdBackup, error)
+	Update(ctx context.Context, etcdBackup *operatorv1alpha1.EtcdBackup, opts v1.UpdateOptions) (*operatorv1alpha1.EtcdBackup, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, etcdBackup *v1alpha1.EtcdBackup, opts v1.UpdateOptions) (*v1alpha1.EtcdBackup, error)
+	UpdateStatus(ctx context.Context, etcdBackup *operatorv1alpha1.EtcdBackup, opts v1.UpdateOptions) (*operatorv1alpha1.EtcdBackup, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.EtcdBackup, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.EtcdBackupList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*operatorv1alpha1.EtcdBackup, error)
+	List(ctx context.Context, opts v1.ListOptions) (*operatorv1alpha1.EtcdBackupList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.EtcdBackup, err error)
-	Apply(ctx context.Context, etcdBackup *operatorv1alpha1.EtcdBackupApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.EtcdBackup, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *operatorv1alpha1.EtcdBackup, err error)
+	Apply(ctx context.Context, etcdBackup *applyconfigurationsoperatorv1alpha1.EtcdBackupApplyConfiguration, opts v1.ApplyOptions) (result *operatorv1alpha1.EtcdBackup, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, etcdBackup *operatorv1alpha1.EtcdBackupApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.EtcdBackup, err error)
+	ApplyStatus(ctx context.Context, etcdBackup *applyconfigurationsoperatorv1alpha1.EtcdBackupApplyConfiguration, opts v1.ApplyOptions) (result *operatorv1alpha1.EtcdBackup, err error)
 	EtcdBackupExpansion
 }
 
 // etcdBackups implements EtcdBackupInterface
 type etcdBackups struct {
-	*gentype.ClientWithListAndApply[*v1alpha1.EtcdBackup, *v1alpha1.EtcdBackupList, *operatorv1alpha1.EtcdBackupApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1alpha1.EtcdBackup, *operatorv1alpha1.EtcdBackupList, *applyconfigurationsoperatorv1alpha1.EtcdBackupApplyConfiguration]
 }
 
 // newEtcdBackups returns a EtcdBackups
 func newEtcdBackups(c *OperatorV1alpha1Client) *etcdBackups {
 	return &etcdBackups{
-		gentype.NewClientWithListAndApply[*v1alpha1.EtcdBackup, *v1alpha1.EtcdBackupList, *operatorv1alpha1.EtcdBackupApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1alpha1.EtcdBackup, *operatorv1alpha1.EtcdBackupList, *applyconfigurationsoperatorv1alpha1.EtcdBackupApplyConfiguration](
 			"etcdbackups",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1alpha1.EtcdBackup { return &v1alpha1.EtcdBackup{} },
-			func() *v1alpha1.EtcdBackupList { return &v1alpha1.EtcdBackupList{} }),
+			func() *operatorv1alpha1.EtcdBackup { return &operatorv1alpha1.EtcdBackup{} },
+			func() *operatorv1alpha1.EtcdBackupList { return &operatorv1alpha1.EtcdBackupList{} },
+		),
 	}
 }

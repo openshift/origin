@@ -3,21 +3,21 @@
 package v1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NodeStatusApplyConfiguration represents a declarative configuration of the NodeStatus type for use
 // with apply.
 type NodeStatusApplyConfiguration struct {
-	NodeName                 *string  `json:"nodeName,omitempty"`
-	CurrentRevision          *int32   `json:"currentRevision,omitempty"`
-	TargetRevision           *int32   `json:"targetRevision,omitempty"`
-	LastFailedRevision       *int32   `json:"lastFailedRevision,omitempty"`
-	LastFailedTime           *v1.Time `json:"lastFailedTime,omitempty"`
-	LastFailedReason         *string  `json:"lastFailedReason,omitempty"`
-	LastFailedCount          *int     `json:"lastFailedCount,omitempty"`
-	LastFallbackCount        *int     `json:"lastFallbackCount,omitempty"`
-	LastFailedRevisionErrors []string `json:"lastFailedRevisionErrors,omitempty"`
+	NodeName                 *string      `json:"nodeName,omitempty"`
+	CurrentRevision          *int32       `json:"currentRevision,omitempty"`
+	TargetRevision           *int32       `json:"targetRevision,omitempty"`
+	LastFailedRevision       *int32       `json:"lastFailedRevision,omitempty"`
+	LastFailedTime           *metav1.Time `json:"lastFailedTime,omitempty"`
+	LastFailedReason         *string      `json:"lastFailedReason,omitempty"`
+	LastFailedCount          *int         `json:"lastFailedCount,omitempty"`
+	LastFallbackCount        *int         `json:"lastFallbackCount,omitempty"`
+	LastFailedRevisionErrors []string     `json:"lastFailedRevisionErrors,omitempty"`
 }
 
 // NodeStatusApplyConfiguration constructs a declarative configuration of the NodeStatus type for use with
@@ -61,7 +61,7 @@ func (b *NodeStatusApplyConfiguration) WithLastFailedRevision(value int32) *Node
 // WithLastFailedTime sets the LastFailedTime field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LastFailedTime field is set to the value of the last call.
-func (b *NodeStatusApplyConfiguration) WithLastFailedTime(value v1.Time) *NodeStatusApplyConfiguration {
+func (b *NodeStatusApplyConfiguration) WithLastFailedTime(value metav1.Time) *NodeStatusApplyConfiguration {
 	b.LastFailedTime = &value
 	return b
 }

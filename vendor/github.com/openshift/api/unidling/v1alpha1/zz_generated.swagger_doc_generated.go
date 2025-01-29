@@ -13,10 +13,10 @@ package v1alpha1
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_CrossGroupObjectReference = map[string]string{
 	"":           "CrossGroupObjectReference is a reference to an object in the same namespace in the specified group.  It is similar to autoscaling.CrossVersionObjectReference.",
-	"kind":       "Kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds\"",
-	"name":       "Name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names",
+	"kind":       "kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds\"",
+	"name":       "name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names",
 	"apiVersion": "API version of the referent (deprecated, prefer usng Group instead)",
-	"group":      "Group of the referent",
+	"group":      "group of the referent",
 }
 
 func (CrossGroupObjectReference) SwaggerDoc() map[string]string {

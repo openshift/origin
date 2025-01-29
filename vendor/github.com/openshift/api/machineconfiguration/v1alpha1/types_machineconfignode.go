@@ -40,7 +40,7 @@ type MachineConfigNode struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec describes the configuration of the machine config node.
-	// +kubebuilder:validation:Required
+	// +required
 	Spec MachineConfigNodeSpec `json:"spec"`
 
 	// status describes the last observed state of this machine config node.
@@ -70,25 +70,25 @@ type MCOObjectReference struct {
 	// and must be at most 253 characters in length.
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 }
 
 // MachineConfigNodeSpec describes the MachineConfigNode we are managing.
 type MachineConfigNodeSpec struct {
 	// node contains a reference to the node for this machine config node.
-	// +kubebuilder:validation:Required
+	// +required
 	Node MCOObjectReference `json:"node"`
 
 	// pool contains a reference to the machine config pool that this machine config node's
 	// referenced node belongs to.
-	// +kubebuilder:validation:Required
+	// +required
 	Pool MCOObjectReference `json:"pool"`
 
 	// configVersion holds the desired config version for the node targeted by this machine config node resource.
 	// The desired version represents the machine config the node will attempt to update to. This gets set before the machine config operator validates
 	// the new machine config against the current machine config.
-	// +kubebuilder:validation:Required
+	// +required
 	ConfigVersion MachineConfigNodeSpecMachineConfigVersion `json:"configVersion"`
 
 	// pinnedImageSets holds the desired pinned image sets that this node should pin and pull.
@@ -109,13 +109,13 @@ type MachineConfigNodeStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 	// observedGeneration represents the generation observed by the controller.
 	// This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.
-	// +kubebuilder:validation:Required
+	// +required
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// configVersion describes the current and desired machine config for this node.
 	// The current version represents the current machine config for the node and is updated after a successful update.
 	// The desired version represents the machine config the node will attempt to update to.
 	// This desired machine config has been compared to the current machine config and has been validated by the machine config operator as one that is valid and that exists.
-	// +kubebuilder:validation:Required
+	// +required
 	ConfigVersion MachineConfigNodeStatusMachineConfigVersion `json:"configVersion"`
 	// pinnedImageSets describes the current and desired pinned image sets for this node.
 	// The current version is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.
@@ -137,7 +137,7 @@ type MachineConfigNodeStatusPinnedImageSet struct {
 	// and must be at most 253 characters in length.
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 	// currentGeneration is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.
 	// +optional
@@ -180,7 +180,7 @@ type MachineConfigNodeStatusMachineConfigVersion struct {
 	// and must be at most 253 characters in length.
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +kubebuilder:validation:Required
+	// +required
 	Desired string `json:"desired"`
 }
 
@@ -198,7 +198,7 @@ type MachineConfigNodeSpecMachineConfigVersion struct {
 	// and must be at most 253 characters in length.
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +kubebuilder:validation:Required
+	// +required
 	Desired string `json:"desired"`
 }
 
@@ -209,7 +209,7 @@ type MachineConfigNodeSpecPinnedImageSet struct {
 	// and must be at most 253 characters in length.
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 }
 

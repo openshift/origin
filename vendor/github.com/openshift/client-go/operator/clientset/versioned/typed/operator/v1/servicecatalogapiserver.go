@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type ServiceCatalogAPIServersGetter interface {
 
 // ServiceCatalogAPIServerInterface has methods to work with ServiceCatalogAPIServer resources.
 type ServiceCatalogAPIServerInterface interface {
-	Create(ctx context.Context, serviceCatalogAPIServer *v1.ServiceCatalogAPIServer, opts metav1.CreateOptions) (*v1.ServiceCatalogAPIServer, error)
-	Update(ctx context.Context, serviceCatalogAPIServer *v1.ServiceCatalogAPIServer, opts metav1.UpdateOptions) (*v1.ServiceCatalogAPIServer, error)
+	Create(ctx context.Context, serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, opts metav1.CreateOptions) (*operatorv1.ServiceCatalogAPIServer, error)
+	Update(ctx context.Context, serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, opts metav1.UpdateOptions) (*operatorv1.ServiceCatalogAPIServer, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, serviceCatalogAPIServer *v1.ServiceCatalogAPIServer, opts metav1.UpdateOptions) (*v1.ServiceCatalogAPIServer, error)
+	UpdateStatus(ctx context.Context, serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, opts metav1.UpdateOptions) (*operatorv1.ServiceCatalogAPIServer, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ServiceCatalogAPIServer, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceCatalogAPIServerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.ServiceCatalogAPIServer, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.ServiceCatalogAPIServerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ServiceCatalogAPIServer, err error)
-	Apply(ctx context.Context, serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogAPIServer, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.ServiceCatalogAPIServer, err error)
+	Apply(ctx context.Context, serviceCatalogAPIServer *applyconfigurationsoperatorv1.ServiceCatalogAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ServiceCatalogAPIServer, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogAPIServer, err error)
+	ApplyStatus(ctx context.Context, serviceCatalogAPIServer *applyconfigurationsoperatorv1.ServiceCatalogAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ServiceCatalogAPIServer, err error)
 	ServiceCatalogAPIServerExpansion
 }
 
 // serviceCatalogAPIServers implements ServiceCatalogAPIServerInterface
 type serviceCatalogAPIServers struct {
-	*gentype.ClientWithListAndApply[*v1.ServiceCatalogAPIServer, *v1.ServiceCatalogAPIServerList, *operatorv1.ServiceCatalogAPIServerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.ServiceCatalogAPIServer, *operatorv1.ServiceCatalogAPIServerList, *applyconfigurationsoperatorv1.ServiceCatalogAPIServerApplyConfiguration]
 }
 
 // newServiceCatalogAPIServers returns a ServiceCatalogAPIServers
 func newServiceCatalogAPIServers(c *OperatorV1Client) *serviceCatalogAPIServers {
 	return &serviceCatalogAPIServers{
-		gentype.NewClientWithListAndApply[*v1.ServiceCatalogAPIServer, *v1.ServiceCatalogAPIServerList, *operatorv1.ServiceCatalogAPIServerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.ServiceCatalogAPIServer, *operatorv1.ServiceCatalogAPIServerList, *applyconfigurationsoperatorv1.ServiceCatalogAPIServerApplyConfiguration](
 			"servicecatalogapiservers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ServiceCatalogAPIServer { return &v1.ServiceCatalogAPIServer{} },
-			func() *v1.ServiceCatalogAPIServerList { return &v1.ServiceCatalogAPIServerList{} }),
+			func() *operatorv1.ServiceCatalogAPIServer { return &operatorv1.ServiceCatalogAPIServer{} },
+			func() *operatorv1.ServiceCatalogAPIServerList { return &operatorv1.ServiceCatalogAPIServerList{} },
+		),
 	}
 }
