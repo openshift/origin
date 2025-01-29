@@ -48,6 +48,10 @@ var staticSuites = []ginkgo.TestSuite{
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
 		Matches: func(name string) bool {
+			_, isFlaky := flakyTestNames[name]
+			if isFlaky {
+				return false
+			}
 			if isDisabled(name) {
 				return false
 			}
@@ -55,6 +59,21 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
+	},
+	{
+		Name: "openshift/conformance/ocp-flaky",
+		Description: templates.LongDesc(`
+		Our flaky tests plus the portion of the openshift/conformance test suite that run in parallel.
+		`),
+		// same as Matches from "openshift/conformance/parallel" without the flakyTestName check
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
+		},
+		Parallelism:          30,
+		MaximumAllowedFlakes: 0,
 	},
 	{
 		Name: "openshift/conformance/serial",
