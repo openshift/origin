@@ -173,7 +173,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 					Reason(monitorapi.LeaseAcquiringStarted).
 					HumanMessage(logLine.Line),
 				).
-				Build(logLine.Instant, logLine.Instant),
+				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
 		)
 	case strings.Contains(logLine.Line, "successfully acquired lease") &&
 		!strings.Contains(logLine.Line, "Degraded"): // need to exclude lines that re-embed the kube-controller-manager log
@@ -184,7 +184,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 					Reason(monitorapi.LeaseAcquired).
 					HumanMessage(logLine.Line),
 				).
-				Build(logLine.Instant, logLine.Instant),
+				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
 		)
 	case strings.Contains(logLine.Line, "unable to ApplyStatus for operator") &&
 		strings.Contains(logLine.Line, "is invalid"): // apply failures
@@ -195,7 +195,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 					Reason(monitorapi.ReasonBadOperatorApply).
 					HumanMessage(logLine.Line),
 				).
-				Build(logLine.Instant, logLine.Instant),
+				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
 		)
 	case strings.Contains(logLine.Line, "unable to Apply for operator") &&
 		strings.Contains(logLine.Line, "is invalid"): // apply failures
@@ -206,7 +206,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 					Reason(monitorapi.ReasonBadOperatorApply).
 					HumanMessage(logLine.Line),
 				).
-				Build(logLine.Instant, logLine.Instant),
+				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
 		)
 	case strings.Contains(logLine.Line, "Removing bootstrap member") || strings.Contains(logLine.Line, "Successfully removed bootstrap member") || strings.Contains(logLine.Line, "Cluster etcd operator bootstrapped successfully"): // ceo removed bootstrap member
 		g.recorder.AddIntervals(
@@ -217,7 +217,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 					Reason(monitorapi.ReasonEtcdBootstrap).
 					HumanMessage(logLine.Line),
 				).
-				Build(logLine.Instant, logLine.Instant),
+				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
 		)
 	}
 
