@@ -31,6 +31,17 @@ spec:
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
         [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
         due to JSONSchema errors on unchanged uncorrelatable fields'
+  - featureGate: CSIVolumeHealth
+    tests:
+    - testName: '[sig-storage] CSI Mock Node Volume Health [Feature:CSIVolumeHealth]
+        [FeatureGate:CSIVolumeHealth] [Alpha] CSI Mock Node Volume Health [Slow] return
+        normal volume stats'
+    - testName: '[sig-storage] CSI Mock Node Volume Health [Feature:CSIVolumeHealth]
+        [FeatureGate:CSIVolumeHealth] [Alpha] CSI Mock Node Volume Health [Slow] return
+        normal volume stats with abnormal volume condition'
+    - testName: '[sig-storage] CSI Mock Node Volume Health [Feature:CSIVolumeHealth]
+        [FeatureGate:CSIVolumeHealth] [Alpha] CSI Mock Node Volume Health [Slow] return
+        normal volume stats without volume condition'
   - featureGate: ChunkSizeMiB
     tests:
     - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
@@ -45,11 +56,6 @@ spec:
         Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value'
     - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value'
-  - featureGate: CustomResourceFieldSelectors
-    tests:
-    - testName: '[sig-api-machinery] CustomResourceFieldSelectors [Privileged:ClusterAdmin]
-        [FeatureGate:CustomResourceFieldSelectors] [Beta] CustomResourceFieldSelectors
-        MUST list and watch custom resources matching the field selector'
   - featureGate: DNSNameResolver
     tests:
     - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
@@ -122,6 +128,10 @@ spec:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
         collection profiles feature-set initially, in a homogeneous default environment,
         should expose default metrics'
+  - featureGate: MultiCIDRServiceAllocator
+    tests:
+    - testName: '[sig-network] [Feature:ServiceCIDRs] [FeatureGate:MultiCIDRServiceAllocator]
+        [Beta] should create Services and serve on different Service CIDRs'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
