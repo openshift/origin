@@ -4,6 +4,8 @@ cel.dev/expr
 # git.sr.ht/~sbinet/gg v0.5.0
 ## explicit; go 1.19
 git.sr.ht/~sbinet/gg
+# github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
+## explicit; go 1.20
 # github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
 ## explicit
 github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2022-08-01/compute
@@ -203,10 +205,6 @@ github.com/chai2010/gettext-go/po
 # github.com/container-storage-interface/spec v1.9.0
 ## explicit; go 1.18
 github.com/container-storage-interface/spec/lib/go/csi
-# github.com/containerd/containerd v1.7.25
-## explicit; go 1.21
-github.com/containerd/containerd/pkg/userns
-github.com/containerd/containerd/tracing
 # github.com/containerd/containerd/api v1.8.0
 ## explicit; go 1.21
 github.com/containerd/containerd/api/services/containers/v1
@@ -214,7 +212,7 @@ github.com/containerd/containerd/api/services/tasks/v1
 github.com/containerd/containerd/api/services/version/v1
 github.com/containerd/containerd/api/types
 github.com/containerd/containerd/api/types/task
-# github.com/containerd/errdefs v0.3.0
+# github.com/containerd/errdefs v0.3.0 => github.com/containerd/errdefs v0.1.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
 # github.com/containerd/log v0.1.0
@@ -250,7 +248,7 @@ github.com/distribution/distribution/v3/reference
 # github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
-# github.com/docker/docker v26.1.4+incompatible
+# github.com/docker/docker v27.1.2+incompatible
 ## explicit
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/container
@@ -264,12 +262,10 @@ github.com/docker/docker/api/types/swarm/runtime
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/internal/multierror
 github.com/docker/docker/pkg/archive
-github.com/docker/docker/pkg/fileutils
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/idtools
 github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/jsonmessage
-github.com/docker/docker/pkg/longpath
 github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/system
@@ -318,8 +314,8 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.7.1
-## explicit; go 1.15
+# github.com/fsouza/go-dockerclient v1.12.0
+## explicit; go 1.22
 github.com/fsouza/go-dockerclient
 # github.com/fxamacker/cbor/v2 v2.7.0
 ## explicit; go 1.17
@@ -1330,7 +1326,6 @@ go.opentelemetry.io/otel/semconv/v1.12.0
 go.opentelemetry.io/otel/semconv/v1.17.0
 go.opentelemetry.io/otel/semconv/v1.17.0/httpconv
 go.opentelemetry.io/otel/semconv/v1.20.0
-go.opentelemetry.io/otel/semconv/v1.21.0
 go.opentelemetry.io/otel/semconv/v1.24.0
 go.opentelemetry.io/otel/semconv/v1.26.0
 go.opentelemetry.io/otel/semconv/v1.4.0
@@ -3820,3 +3815,4 @@ sigs.k8s.io/yaml/goyaml.v3
 # k8s.io/sample-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250129121942-084abc57924b
 # k8s.io/sample-cli-plugin => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250129121942-084abc57924b
 # k8s.io/sample-controller => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250129121942-084abc57924b
+# github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
