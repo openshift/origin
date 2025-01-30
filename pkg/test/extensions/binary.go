@@ -8,7 +8,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"syscall"
@@ -29,6 +31,9 @@ type TestBinary struct {
 	imageTag string
 	// The binary path to extract from the image
 	binaryPath string
+
+	// Cache the info after gathering it
+	info *ExtensionInfo
 }
 
 var extensionBinaries = []TestBinary{
@@ -40,7 +45,10 @@ var extensionBinaries = []TestBinary{
 
 // Info returns information about this particular extension.
 func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
-	var info ExtensionInfo
+	if b.info != nil {
+		return b.info, nil
+	}
+
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
 
@@ -52,14 +60,20 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
+	var info ExtensionInfo
 	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
 	}
-	info.Source.SourceBinary = binName
-	info.Source.SourceImage = b.imageTag
+	b.info = &info
+
+	// Set fields origin knows or calculates:
+	b.info.Source.SourceBinary = binName
+	b.info.Source.SourceImage = b.imageTag
+	b.info.ExtensionArtifactDir = path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&b.info.Component))
+
 	logrus.Infof("Fetched info for %s in %v", binName, time.Since(start))
-	return &info, nil
+	return b.info, nil
 }
 
 // ListTests returns which tests this binary advertises.  Eventually, it should take an environment struct
@@ -103,6 +117,16 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	var results []*ExtensionTestResult
 	expectedTests := sets.New[string](names...)
 	binName := filepath.Base(b.binaryPath)
+
+	// Configure EXTENSION_ARTIFACTS_DIR -- extension is responsible for MkdirAll if they want
+	// to produce artifacts.
+	info, err := b.Info(ctx)
+	if err != nil {
+		// unlikely to happen in reality, we'll have always run info and cached it before running tests
+		logrus.Warningf("Failed to fetch info for %s: %v", binName, err)
+	}
+	// Example: k8s-tests-ext's extension will be $ARTIFACT_DIR/openshift/payload/hyperkube
+	env = append(env, fmt.Sprintf("EXTENSION_ARTIFACT_DIR=%s", info.ExtensionArtifactDir))
 
 	// Build command
 	args := []string{"run-test"}
@@ -456,4 +480,15 @@ func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]
 		}()
 	}
 	return c.CombinedOutput()
+}
+
+var safePathRegexp = regexp.MustCompile(`[<>:"/\\|?*\s]+`)
+
+// safeComponentPath sanitizes a component identifier to be safe for use as a file or directory name.
+func safeComponentPath(c *Component) string {
+	return path.Join(
+		safePathRegexp.ReplaceAllString(c.Product, "_"),
+		safePathRegexp.ReplaceAllString(c.Kind, "_"),
+		safePathRegexp.ReplaceAllString(c.Name, "_"),
+	)
 }
