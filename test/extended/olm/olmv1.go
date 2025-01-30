@@ -276,7 +276,8 @@ func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) 
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return func() {
 		g.By("cleaning the necessary resources")
-		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
+		err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}, ceName
 }
 
