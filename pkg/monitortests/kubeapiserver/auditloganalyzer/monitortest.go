@@ -144,9 +144,9 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 			}
 			if startOfCurrentProblems < 0 {
 				startOfCurrentProblems = i
-				outageTotalNumberOf500s += currentNumberOf500s
-				outageTotalRequests += currSecondRequests.NumberOfRequestsReceived
 			}
+			outageTotalNumberOf500s += currentNumberOf500s
+			outageTotalRequests += currSecondRequests.NumberOfRequestsReceived
 		}
 	}
 
