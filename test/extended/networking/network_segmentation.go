@@ -239,7 +239,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 										Port: intstr.FromInt32(port),
 									},
 								},
-								InitialDelaySeconds: 1,
+								InitialDelaySeconds: 5,
 								PeriodSeconds:       1,
 								// FIXME: On OCP we have seen readiness probe failures happening for the UDN pod which
 								// causes immediate container restarts - the first readiness probe failure usually happens because
@@ -256,7 +256,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 										Port: intstr.FromInt32(port),
 									},
 								},
-								InitialDelaySeconds: 1,
+								InitialDelaySeconds: 5,
 								PeriodSeconds:       1,
 								// FIXME: On OCP we have seen liveness probe failures happening for the UDN pod which
 								// causes immediate container restarts. Hence increase the failure threshold to 3 tries
@@ -284,7 +284,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 										Port: intstr.FromInt32(port),
 									},
 								},
-								InitialDelaySeconds: 1,
+								InitialDelaySeconds: 5,
 								PeriodSeconds:       1,
 								FailureThreshold:    3,
 								// FIXME: Figure out why it sometimes takes more than 3seconds for the healthcheck to complete
