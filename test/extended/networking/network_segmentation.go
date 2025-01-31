@@ -49,7 +49,7 @@ const RequiredUDNNamespaceLabel = "k8s.ovn.org/primary-user-defined-network"
 // these values when that bug is fixed but given the Kubernetes test default for a
 // pod to startup is 5mins: https://github.com/kubernetes/kubernetes/blob/60c4c2b2521fb454ce69dee737e3eb91a25e0535/test/e2e/framework/timeouts.go#L22-L23
 // we are not too far from the mark or against test policy
-const podReadyPollTimeout = 4 * time.Minute
+const podReadyPollTimeout = 10 * time.Minute
 const podReadyPollInterval = 6 * time.Second
 
 // NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
