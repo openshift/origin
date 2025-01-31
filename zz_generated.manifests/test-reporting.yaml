@@ -107,20 +107,21 @@ spec:
         boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
   - featureGate: MetricsCollectionProfiles
     tests:
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in a heterogeneous environment, should expose
-        information about the applied collection profile using meta-metrics'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in a heterogeneous environment, should have
-        at least one implementation for each collection profile'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in a heterogeneous environment, should revert
-        to default collection profile when an empty collection profile value is specified'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in a homogeneous minimal environment, should
-        hide default metrics'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set initially, in a homogeneous default environment,
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
+        The collection profiles feature-set in a heterogeneous environment, should
+        expose information about the applied collection profile using meta-metrics'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
+        The collection profiles feature-set in a heterogeneous environment, should
+        have at least one implementation for each collection profile'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
+        The collection profiles feature-set in a heterogeneous environment, should
+        revert to default collection profile when an empty collection profile value
+        is specified'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
+        The collection profiles feature-set in a homogeneous minimal environment,
+        should hide default metrics'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
+        The collection profiles feature-set initially, in a homogeneous default environment,
         should expose default metrics'
   - featureGate: NetworkDiagnosticsConfig
     tests:
