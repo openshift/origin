@@ -463,12 +463,21 @@ func ApplySecretImproved(ctx context.Context, client coreclientv1.SecretsGetter,
 
 // SyncConfigMap applies a ConfigMap from a location `sourceNamespace/sourceName` to `targetNamespace/targetName`
 func SyncConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, ownerRefs []metav1.OwnerReference) (*corev1.ConfigMap, bool, error) {
-	return SyncPartialConfigMap(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, nil, ownerRefs)
+	return syncPartialConfigMap(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, nil, ownerRefs, nil)
+}
+
+// SyncConfigMapWithLabels does what SyncConfigMap does, but adds additional labels to the target ConfigMap.
+func SyncConfigMapWithLabels(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, ownerRefs []metav1.OwnerReference, labels map[string]string) (*corev1.ConfigMap, bool, error) {
+	return syncPartialConfigMap(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, nil, ownerRefs, labels)
 }
 
 // SyncPartialConfigMap does what SyncConfigMap does but it only synchronizes a subset of keys given by `syncedKeys`.
 // SyncPartialConfigMap will delete the target if `syncedKeys` are set but the source does not contain any of these keys.
 func SyncPartialConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.Set[string], ownerRefs []metav1.OwnerReference) (*corev1.ConfigMap, bool, error) {
+	return syncPartialConfigMap(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, syncedKeys, ownerRefs, nil)
+}
+
+func syncPartialConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.Set[string], ownerRefs []metav1.OwnerReference, labels map[string]string) (*corev1.ConfigMap, bool, error) {
 	source, err := client.ConfigMaps(sourceNamespace).Get(ctx, sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):
@@ -500,6 +509,12 @@ func SyncPartialConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGet
 		source.Name = targetName
 		source.ResourceVersion = ""
 		source.OwnerReferences = ownerRefs
+		if labels != nil && source.Labels == nil {
+			source.Labels = map[string]string{}
+		}
+		for k, v := range labels {
+			source.Labels[k] = v
+		}
 		return ApplyConfigMap(ctx, client, recorder, source)
 	}
 }
@@ -524,12 +539,21 @@ func deleteConfigMapSyncTarget(ctx context.Context, client coreclientv1.ConfigMa
 
 // SyncSecret applies a Secret from a location `sourceNamespace/sourceName` to `targetNamespace/targetName`
 func SyncSecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, ownerRefs []metav1.OwnerReference) (*corev1.Secret, bool, error) {
-	return SyncPartialSecret(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, nil, ownerRefs)
+	return syncPartialSecret(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, nil, ownerRefs, nil)
+}
+
+// SyncSecretWithLabels does what SyncSecret does, but adds additional labels to the target Secret.
+func SyncSecretWithLabels(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, ownerRefs []metav1.OwnerReference, labels map[string]string) (*corev1.Secret, bool, error) {
+	return syncPartialSecret(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, nil, ownerRefs, labels)
 }
 
 // SyncPartialSecret does what SyncSecret does but it only synchronizes a subset of keys given by `syncedKeys`.
 // SyncPartialSecret will delete the target if `syncedKeys` are set but the source does not contain any of these keys.
 func SyncPartialSecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.Set[string], ownerRefs []metav1.OwnerReference) (*corev1.Secret, bool, error) {
+	return syncPartialSecret(ctx, client, recorder, sourceNamespace, sourceName, targetNamespace, targetName, syncedKeys, ownerRefs, nil)
+}
+
+func syncPartialSecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.Set[string], ownerRefs []metav1.OwnerReference, labels map[string]string) (*corev1.Secret, bool, error) {
 	source, err := client.Secrets(sourceNamespace).Get(ctx, sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):
@@ -579,6 +603,12 @@ func SyncPartialSecret(ctx context.Context, client coreclientv1.SecretsGetter, r
 		source.Name = targetName
 		source.ResourceVersion = ""
 		source.OwnerReferences = ownerRefs
+		if labels != nil && source.Labels == nil {
+			source.Labels = map[string]string{}
+		}
+		for k, v := range labels {
+			source.Labels[k] = v
+		}
 		return ApplySecret(ctx, client, recorder, source)
 	}
 }
