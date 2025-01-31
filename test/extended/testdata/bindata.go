@@ -302,6 +302,8 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
+// test/extended/testdata/dns/go-dns-resolver/Dockerfile
+// test/extended/testdata/dns/go-dns-resolver/dns_libraries_go
 // test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml
 // test/extended/testdata/egress-firewall/ovnk-egressfirewall-wildcard-test.yaml
 // test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml
@@ -43482,6 +43484,82 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataDnsGoDnsResolverDockerfile = []byte(`ARG GO_VERSION
+ARG GO_TOOLSET_IMAGE
+FROM ${GO_TOOLSET_IMAGE}:${GO_VERSION}
+
+ENV GOCACHE=/tmp/
+
+COPY dns_libraries_go /go/dns_libraries.go
+
+CMD ["/bin/sh", "-c", "sleep infinity"]
+`)
+
+func testExtendedTestdataDnsGoDnsResolverDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoDnsResolverDockerfile, nil
+}
+
+func testExtendedTestdataDnsGoDnsResolverDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoDnsResolverDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-dns-resolver/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDnsGoDnsResolverDns_libraries_go = []byte(`package main
+
+import (
+	"context"
+	"flag"
+	"log"
+	"net"
+	"time"
+)
+
+func main() {
+	clusterIP := flag.String("cluster-ip", "", "clusterIP for CoreDNS service")
+	flag.Parse()
+	if *clusterIP == "" {
+		log.Fatal("cluster-ip must be set")
+	}
+
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 10 * time.Second,
+			}
+			return d.DialContext(ctx, network, net.JoinHostPort(*clusterIP, "53"))
+		},
+	}
+	addrs, err := r.LookupHost(context.Background(), "www.redhat.com")
+	if err != nil {
+		log.Fatalf("Failed to look up host: %v", err)
+	}
+
+	log.Printf("Successfully resolved: %q", addrs)
+}
+`)
+
+func testExtendedTestdataDnsGoDnsResolverDns_libraries_goBytes() ([]byte, error) {
+	return _testExtendedTestdataDnsGoDnsResolverDns_libraries_go, nil
+}
+
+func testExtendedTestdataDnsGoDnsResolverDns_libraries_go() (*asset, error) {
+	bytes, err := testExtendedTestdataDnsGoDnsResolverDns_libraries_goBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/dns/go-dns-resolver/dns_libraries_go", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml = []byte(`apiVersion: k8s.ovn.org/v1
 kind: EgressFirewall
 metadata:
@@ -55567,6 +55645,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
+	"test/extended/testdata/dns/go-dns-resolver/Dockerfile":                                                  testExtendedTestdataDnsGoDnsResolverDockerfile,
+	"test/extended/testdata/dns/go-dns-resolver/dns_libraries_go":                                            testExtendedTestdataDnsGoDnsResolverDns_libraries_go,
 	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml":                                   testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml,
 	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-wildcard-test.yaml":                          testExtendedTestdataEgressFirewallOvnkEgressfirewallWildcardTestYaml,
 	"test/extended/testdata/egress-firewall/sdn-egressnetworkpolicy-test.yaml":                               testExtendedTestdataEgressFirewallSdnEgressnetworkpolicyTestYaml,
@@ -56249,6 +56329,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"tag-images-deployment.yaml":          {testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml":         {testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
+				}},
+				"dns": {nil, map[string]*bintree{
+					"go-dns-resolver": {nil, map[string]*bintree{
+						"Dockerfile":       {testExtendedTestdataDnsGoDnsResolverDockerfile, map[string]*bintree{}},
+						"dns_libraries_go": {testExtendedTestdataDnsGoDnsResolverDns_libraries_go, map[string]*bintree{}},
+					}},
 				}},
 				"egress-firewall": {nil, map[string]*bintree{
 					"ovnk-egressfirewall-test.yaml":          {testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml, map[string]*bintree{}},
