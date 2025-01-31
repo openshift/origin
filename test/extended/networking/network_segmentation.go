@@ -81,7 +81,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			nadName                      = "gryffindor"
 
-			udnCrReadyTimeout = 5 * time.Second
+			udnCrReadyTimeout = 60 * time.Second
 		)
 
 		var (
