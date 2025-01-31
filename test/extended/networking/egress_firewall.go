@@ -154,6 +154,12 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://docs.openshift.com").Output()
 	expectNoError(err)
 
+	// Test curl to docs.redhat.com should pass
+	// because we have allow dns rule for docs.redhat.com
+	g.By("sending traffic that matches allow dns rule")
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://docs.redhat.com").Output()
+	expectNoError(err)
+
 	if checkWildcard {
 		// Test curl to `www.google.com` and `translate.google.com` should pass
 		// because we have allow dns rule for `*.google.com`.
