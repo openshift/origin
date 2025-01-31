@@ -160,6 +160,15 @@ func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startin
 func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
+	ret = append(ret, &junitapi.JUnitTestCase{
+		Name: "a failed test that has never been seen before",
+		FailureOutput: &junitapi.FailureOutput{
+			Message: "stuff failed",
+			Output:  "stuff definitely failed fo sho",
+		},
+	})
+	ret = append(ret, &junitapi.JUnitTestCase{Name: "a passed test that has never been seen before"})
+
 	fiveHundredsTestName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
 	apiserver500s := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
