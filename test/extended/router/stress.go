@@ -27,8 +27,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/ptr"
 
 	routev1 "github.com/openshift/api/route/v1"
+	v2 "github.com/openshift/api/security/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	v1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -76,6 +78,24 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			RoleRef: rbacv1.RoleRef{
 				Kind: "ClusterRole",
 				Name: "system:router",
+			},
+		}, metav1.CreateOptions{})
+		// The router typically runs with allowPrivilegeEscalation enabled; however, all service accounts are assigned
+		// to restricted-v2 scc by default, which disallows privilege escalation. The restricted policy permits
+		// privilege escalation.
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(context.Background(), &rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "router-restricted",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind: "ServiceAccount",
+					Name: "default",
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				Kind: "ClusterRole",
+				Name: "system:openshift:scc:restricted",
 			},
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -546,17 +566,54 @@ func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"app": name},
+					Annotations: map[string]string{
+						// The restricted-v2 scc preempts restricted, so we must pin to restricted.
+						v2.RequiredSCCAnnotation: "restricted",
+					},
 				},
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: &one,
 					Containers: []corev1.Container{
 						{
 							Env: []corev1.EnvVar{
-								{Name: "NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+								{
+									Name: "NAME", ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.name",
+										},
+									},
+								},
+								{
+									Name: "POD_NAMESPACE",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
+								},
 							},
 							Name:  "router",
 							Image: image,
-							Args:  args,
+							Args:  append(args, "--stats-port=1936", "--metrics-type=haproxy"),
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 1936,
+									Name:          "stats",
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path: "/healthz/ready",
+										Port: intstr.FromInt32(1936),
+									},
+								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								// Default is true, but explicitly specified here for clarity.
+								AllowPrivilegeEscalation: ptr.To[bool](true),
+							},
 						},
 					},
 				},
