@@ -665,7 +665,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					_, err := e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", cudnName, "--wait", fmt.Sprintf("--timeout=%ds", 120))
 					Expect(err).NotTo(HaveOccurred())
 				})
-				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.name), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 				return err
 			}),
 		)
@@ -892,7 +892,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					return nil
 				})
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
 			})
 
 			It("should create NAD according to spec in each target namespace and report active namespaces", func() {
@@ -932,7 +932,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				patch := fmt.Sprintf(`[{"op": "add", "path": "./spec/namespaceSelector/matchExpressions/0/values/-", "value": "%s"}]`, testNewNs)
 				_, err := e2ekubectl.RunKubectl("", "patch", clusterUserDefinedNetworkResource, testClusterUdnName, "--type=json", "-p="+patch)
 				Expect(err).NotTo(HaveOccurred())
-				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), 5*time.Second, time.Second).Should(Succeed())
+				Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testClusterUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
 				Eventually(
 					validateClusterUDNStatusReportsActiveNamespacesFunc(oc.AdminDynamicClient(), testClusterUdnName, testTenantNamespaces...),
 					1*time.Minute, 3*time.Second).Should(Succeed())
