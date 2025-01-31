@@ -18,13 +18,8 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
@@ -33,6 +28,14 @@ import (
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"golang.org/x/mod/semver"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -160,13 +163,20 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		logrus.Infof("Discovered %d extensions", len(extensionsInfo))
 		for _, e := range extensionsInfo {
 			id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
-			logrus.Infof("Extension %s found in %s:%s", id, e.Source.SourceImage, e.Source.SourceBinary)
+			logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
 		}
 
 		// List tests from all available binaries and convert them to origin's testCase format
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer listContextCancel()
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism)
+
+		envFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
+		if err != nil {
+			return fmt.Errorf("could not determine environment flags: %w", err)
+		}
+		logrus.WithField("flags", envFlags.String()).Infof("Determined all potential environment flags")
+
+		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
 		if err != nil {
 			return err
 		}
@@ -682,4 +692,58 @@ outerLoop:
 		matches = append(matches, test)
 	}
 	return matches, nil
+}
+
+func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.EnvironmentFlags, error) {
+	clientConfig, err := e2e.LoadConfig(true)
+	if err != nil {
+		logrus.WithError(err).Error("error calling e2e.LoadConfig")
+		return nil, err
+	}
+	clusterState, err := clusterdiscovery.DiscoverClusterState(clientConfig)
+	if err != nil {
+		logrus.WithError(err).Error("error Discovering Cluster State")
+		return nil, err
+	}
+	config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), dryRun, true, clusterState)
+	if err != nil {
+		logrus.WithError(err).Error("error determining information about the cluster")
+		return nil, err
+	}
+
+	upgradeType := "None"
+	if upgrade {
+		upgradeType = determineUpgradeType(clusterState.Version.Status)
+	}
+
+	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
+	return envFlagBuilder.
+		AddPlatform(config.ProviderName).
+		AddNetwork(config.NetworkPlugin).
+		AddNetworkStack(config.IPFamily).
+		AddTopology(clusterState.ControlPlaneTopology).
+		AddUpgrade(upgradeType).
+		AddArchitecture(clusterState.Masters.Items[0].Status.NodeInfo.Architecture). //TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+		AddVersion(clusterState.Version.Status.Desired.Version).
+		Build(), nil
+}
+
+func determineUpgradeType(versionStatus configv1.ClusterVersionStatus) string {
+	history := versionStatus.History
+	version := versionStatus.Desired.Version
+	if len(history) > 1 { // If there aren't at least 2 versions in the history we don't have any way to determine the upgrade type
+		mostRecent := history[1] // history[0] will be the desired version, so check one further back
+		current := fmt.Sprintf("v%s", version)
+		last := fmt.Sprintf("v%s", mostRecent.Version)
+		if semver.Compare(semver.Major(current), semver.Major(last)) > 0 {
+			return "Major"
+		}
+		if semver.Compare(semver.MajorMinor(current), semver.MajorMinor(last)) > 0 {
+			return "Minor"
+		}
+
+		return "Micro"
+	}
+
+	return "Unknown"
 }

@@ -18,6 +18,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/semver"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -76,15 +77,20 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	return b.info, nil
 }
 
-// ListTests returns which tests this binary advertises.  Eventually, it should take an environment struct
-// to provide to the binary so it can determine for itself which tests are relevant.
-func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) {
+// ListTests takes a list of EnvironmentFlags to pass to the command so it can determine for itself which tests are relevant.
+// returns which tests this binary advertises.
+func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
 	var tests ExtensionTestSpecs
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
 
-	logrus.Infof("Listing tests for %s", binName)
+	binLogger := logrus.WithField("binary", binName)
+	binLogger.Info("Listing tests")
+	binLogger.Infof("OTE API version is: %s", b.info.APIVersion)
+	envFlags = b.filterToApplicableEnvironmentFlags(envFlags)
 	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
+	binLogger.Infof("adding the following applicable flags to the list command: %s", envFlags.String())
+	command.Args = append(command.Args, envFlags.ArgStrings()...)
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s list': %w", b.binaryPath, err)
@@ -107,7 +113,7 @@ func (b *TestBinary) ListTests(ctx context.Context) (ExtensionTestSpecs, error) 
 		extensionTestSpec.Binary = b
 		tests = append(tests, extensionTestSpec)
 	}
-	logrus.Infof("Listed %d tests for %s in %v", len(tests), binName, time.Since(start))
+	binLogger.Infof("Listed %d tests in %v", len(tests), time.Since(start))
 	return tests, nil
 }
 
@@ -391,8 +397,9 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 	return infos, nil
 }
 
-// ListTests extracts the tests from all TestBinaries using the specified parallelism.
-func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int) (ExtensionTestSpecs, error) {
+// ListTests extracts the tests from all TestBinaries using the specified parallelism,
+// and passes the provided EnvironmentFlags for proper filtering of results.
+func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
 	var (
 		allTests ExtensionTestSpecs
 		mu       sync.Mutex
@@ -426,7 +433,7 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int) (Ex
 					if !ok {
 						return // Channel was closed
 					}
-					tests, err := binary.ListTests(ctx)
+					tests, err := binary.ListTests(ctx, envFlags)
 					if err != nil {
 						errCh <- err
 					}
@@ -491,4 +498,18 @@ func safeComponentPath(c *Component) string {
 		safePathRegexp.ReplaceAllString(c.Kind, "_"),
 		safePathRegexp.ReplaceAllString(c.Name, "_"),
 	)
+}
+
+// filterToApplicableEnvironmentFlags filters the provided envFlags to only those that are applicable to the
+// APIVersion of OTE within the external binary.
+func (b *TestBinary) filterToApplicableEnvironmentFlags(envFlags EnvironmentFlags) EnvironmentFlags {
+	apiVersion := b.info.APIVersion
+	filtered := EnvironmentFlags{}
+	for _, flag := range envFlags {
+		if semver.Compare(apiVersion, flag.SinceVersion) >= 0 {
+			filtered = append(filtered, flag)
+		}
+	}
+
+	return filtered
 }
