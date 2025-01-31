@@ -11,19 +11,20 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // "csi.sharedresource.openshift.io" CSI driver and a reference to the SharedConfigMap in the volume attributes:
 //
 // spec:
-//  volumes:
-//  - name: shared-configmap
-//    csi:
-//      driver: csi.sharedresource.openshift.io
-//      volumeAttributes:
-//        sharedConfigMap: my-share
+//
+//	volumes:
+//	- name: shared-configmap
+//	  csi:
+//	    driver: csi.sharedresource.openshift.io
+//	    volumeAttributes:
+//	      sharedConfigMap: my-share
 //
 // For the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedConfigMap object
 // within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating
 // such Role and RoleBinding objects.
 //
-//  `oc create role shared-resource-my-share --verb=use --resource=sharedconfigmaps.sharedresource.openshift.io --resource-name=my-share`
-//  `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`
+//	`oc create role shared-resource-my-share --verb=use --resource=sharedconfigmaps.sharedresource.openshift.io --resource-name=my-share`
+//	`oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`
 //
 // Shared resource objects, in this case ConfigMaps, have default permissions of list, get, and watch for system authenticated users.
 //
@@ -45,7 +46,7 @@ type SharedConfigMap struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the specification of the desired shared configmap
-	// +kubebuilder:validation:Required
+	// +required
 	Spec SharedConfigMapSpec `json:"spec,omitempty"`
 
 	// status is the observed status of the shared configmap
@@ -72,10 +73,10 @@ type SharedConfigMapList struct {
 // SharedConfigMapReference contains information about which ConfigMap to share
 type SharedConfigMapReference struct {
 	// name represents the name of the ConfigMap that is being referenced.
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 	// namespace represents the namespace where the referenced ConfigMap is located.
-	// +kubebuilder:validation:Required
+	// +required
 	Namespace string `json:"namespace"`
 }
 
@@ -83,7 +84,7 @@ type SharedConfigMapReference struct {
 // +k8s:openapi-gen=true
 type SharedConfigMapSpec struct {
 	//configMapRef is a reference to the ConfigMap to share
-	// +kubebuilder:validation:Required
+	// +required
 	ConfigMapRef SharedConfigMapReference `json:"configMapRef"`
 	// description is a user readable explanation of what the backing resource provides.
 	Description string `json:"description,omitempty"`
