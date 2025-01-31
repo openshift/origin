@@ -17,6 +17,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
@@ -25,6 +26,8 @@ import (
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
 
+	"github.com/openshift/api/features"
+	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -241,6 +244,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					return netConfig
 				}),
 				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+					if !isNetworkSegmentationEnabled(oc.AdminConfig()) {
+						Skip("Network segmentation is not enabled on this cluster")
+					}
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
@@ -255,6 +261,25 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 		})
 	})
 })
+
+func isNetworkSegmentationEnabled(config *rest.Config) bool {
+	GinkgoHelper()
+
+	configClient, err := kubeconfig.NewConfigClientGetter(config).GetConfigClient()
+	Expect(err).NotTo(HaveOccurred())
+
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, featGate := range featureGate.Status.FeatureGates {
+		for _, enabledGates := range featGate.Enabled {
+			if enabledGates.Name == features.FeatureGateNetworkSegmentation {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines", func() {
 	It("Placeholder test for GA", func() {
