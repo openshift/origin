@@ -72,9 +72,9 @@ func (RouteHTTPHeaders) SwaggerDoc() map[string]string {
 
 var map_RouteIngress = map[string]string{
 	"":                        "RouteIngress holds information about the places where a route is exposed.",
-	"host":                    "Host is the host string under which the route is exposed; this value is required",
+	"host":                    "host is the host string under which the route is exposed; this value is required",
 	"routerName":              "Name is a name chosen by the router to identify itself; this value is required",
-	"conditions":              "Conditions is the state of the route, may be empty.",
+	"conditions":              "conditions is the state of the route, may be empty.",
 	"wildcardPolicy":          "Wildcard policy is the wildcard policy that was allowed where this route is exposed.",
 	"routerCanonicalHostname": "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.",
 }
@@ -85,8 +85,8 @@ func (RouteIngress) SwaggerDoc() map[string]string {
 
 var map_RouteIngressCondition = map[string]string{
 	"":                   "RouteIngressCondition contains details for the current condition of this route on a particular router.",
-	"type":               "Type is the type of the condition. Currently only Admitted or UnservableInFutureVersions.",
-	"status":             "Status is the status of the condition. Can be True, False, Unknown.",
+	"type":               "type is the type of the condition. Currently only Admitted or UnservableInFutureVersions.",
+	"status":             "status is the status of the condition. Can be True, False, Unknown.",
 	"reason":             "(brief) reason for the condition's last transition, and is usually a machine and human readable constant",
 	"message":            "Human readable message indicating details about last transition.",
 	"lastTransitionTime": "RFC 3339 date and time when this condition last transitioned",
@@ -179,7 +179,7 @@ var map_TLSConfig = map[string]string{
 	"caCertificate":                 "caCertificate provides the cert authority certificate contents",
 	"destinationCACertificate":      "destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt termination this file should be provided in order to have routers use it for health checks on the secure connection. If this field is not specified, the router may provide its own destination CA and perform hostname validation using the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically verify.",
 	"insecureEdgeTerminationPolicy": "insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While each router may make its own decisions on which ports to expose, this is normally port 80.\n\nIf a route does not specify insecureEdgeTerminationPolicy, then the default behavior is \"None\".\n\n* Allow - traffic is sent to the server on the insecure port (edge/reencrypt terminations only).\n\n* None - no traffic is allowed on the insecure port (default).\n\n* Redirect - clients are redirected to the secure port.",
-	"externalCertificate":           "externalCertificate provides certificate contents as a secret reference. This should be a single serving certificate, not a certificate chain. Do not include a CA certificate. The secret referenced should be present in the same namespace as that of the Route. Forbidden when `certificate` is set.",
+	"externalCertificate":           "externalCertificate provides certificate contents as a secret reference. This should be a single serving certificate, not a certificate chain. Do not include a CA certificate. The secret referenced should be present in the same namespace as that of the Route. Forbidden when `certificate` is set. The router service account needs to be granted with read-only access to this secret, please refer to openshift docs for additional details.",
 }
 
 func (TLSConfig) SwaggerDoc() map[string]string {

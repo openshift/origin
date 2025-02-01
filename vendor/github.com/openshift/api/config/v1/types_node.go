@@ -28,7 +28,6 @@ type Node struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
-	// +kubebuilder:validation:Required
 	// +required
 	Spec NodeSpec `json:"spec"`
 
@@ -38,11 +37,11 @@ type Node struct {
 }
 
 type NodeSpec struct {
-	// CgroupMode determines the cgroups version on the node
+	// cgroupMode determines the cgroups version on the node
 	// +optional
 	CgroupMode CgroupMode `json:"cgroupMode,omitempty"`
 
-	// WorkerLatencyProfile determins the how fast the kubelet is updating
+	// workerLatencyProfile determins the how fast the kubelet is updating
 	// the status and corresponding reaction of the cluster
 	// +optional
 	WorkerLatencyProfile WorkerLatencyProfileType `json:"workerLatencyProfile,omitempty"`

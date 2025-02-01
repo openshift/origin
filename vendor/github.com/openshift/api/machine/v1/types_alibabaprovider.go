@@ -108,7 +108,7 @@ type AlibabaCloudMachineProviderConfig struct {
 	// +optional
 	DataDisks []DataDiskProperties `json:"dataDisk,omitempty"`
 
-	// SecurityGroups is a list of security group references to assign to the instance.
+	// securityGroups is a list of security group references to assign to the instance.
 	// A reference holds either the security group ID, the resource name, or the required tags to search.
 	// When more than one security group is returned for a tag search, all the groups are associated with the instance up to the
 	// maximum number of security groups to which an instance can belong.
@@ -116,32 +116,32 @@ type AlibabaCloudMachineProviderConfig struct {
 	// https://www.alibabacloud.com/help/en/doc-detail/25412.htm
 	SecurityGroups []AlibabaResourceReference `json:"securityGroups,omitempty"`
 
-	// Bandwidth describes the internet bandwidth strategy for the instance
+	// bandwidth describes the internet bandwidth strategy for the instance
 	// +optional
 	Bandwidth BandwidthProperties `json:"bandwidth,omitempty"`
 
-	// SystemDisk holds the properties regarding the system disk for the instance
+	// systemDisk holds the properties regarding the system disk for the instance
 	// +optional
 	SystemDisk SystemDiskProperties `json:"systemDisk,omitempty"`
 
-	// VSwitch is a reference to the vswitch to use for this instance.
+	// vSwitch is a reference to the vswitch to use for this instance.
 	// A reference holds either the vSwitch ID, the resource name, or the required tags to search.
 	// When more than one vSwitch is returned for a tag search, only the first vSwitch returned will be used.
 	// This parameter is required when you create an instance of the VPC type.
 	// You can call the DescribeVSwitches operation to query the created vSwitches.
 	VSwitch AlibabaResourceReference `json:"vSwitch"`
 
-	// RAMRoleName is the name of the instance Resource Access Management (RAM) role. This allows the instance to perform API calls as this specified RAM role.
+	// ramRoleName is the name of the instance Resource Access Management (RAM) role. This allows the instance to perform API calls as this specified RAM role.
 	// +optional
 	RAMRoleName string `json:"ramRoleName,omitempty"`
 
-	// ResourceGroup references the resource group to which to assign the instance.
+	// resourceGroup references the resource group to which to assign the instance.
 	// A reference holds either the resource group ID, the resource name, or the required tags to search.
 	// When more than one resource group are returned for a search, an error will be produced and the Machine will not be created.
 	// Resource Groups do not support searching by tags.
 	ResourceGroup AlibabaResourceReference `json:"resourceGroup"`
 
-	// Tenancy specifies whether to create the instance on a dedicated host.
+	// tenancy specifies whether to create the instance on a dedicated host.
 	// Valid values:
 	//
 	// default: creates the instance on a non-dedicated host.
@@ -151,12 +151,12 @@ type AlibabaCloudMachineProviderConfig struct {
 	// +optional
 	Tenancy InstanceTenancy `json:"tenancy,omitempty"`
 
-	// UserDataSecret contains a local reference to a secret that contains the
+	// userDataSecret contains a local reference to a secret that contains the
 	// UserData to apply to the instance
 	// +optional
 	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
 
-	// CredentialsSecret is a reference to the secret with alibabacloud credentials. Otherwise, defaults to permissions
+	// credentialsSecret is a reference to the secret with alibabacloud credentials. Otherwise, defaults to permissions
 	// provided by attached RAM role where the actuator is running.
 	// +optional
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
@@ -173,15 +173,15 @@ type AlibabaResourceReference struct {
 	// type identifies the resource reference type for this entry.
 	Type AlibabaResourceReferenceType `json:"type"`
 
-	// ID of resource
+	// id of resource
 	// +optional
 	ID *string `json:"id,omitempty"`
 
-	// Name of the resource
+	// name of the resource
 	// +optional
 	Name *string `json:"name,omitempty"`
 
-	// Tags is a set of metadata based upon ECS object tags used to identify a resource.
+	// tags is a set of metadata based upon ECS object tags used to identify a resource.
 	// For details about usage when multiple resources are found, please see the owning parent field documentation.
 	// +optional
 	Tags *[]Tag `json:"tags,omitempty"`
@@ -213,15 +213,15 @@ type AlibabaCloudMachineProviderStatus struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// InstanceID is the instance ID of the machine created in alibabacloud
+	// instanceId is the instance ID of the machine created in alibabacloud
 	// +optional
 	InstanceID *string `json:"instanceId,omitempty"`
 
-	// InstanceState is the state of the alibabacloud instance for this machine
+	// instanceState is the state of the alibabacloud instance for this machine
 	// +optional
 	InstanceState *string `json:"instanceState,omitempty"`
 
-	// Conditions is a set of conditions associated with the Machine to indicate
+	// conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -229,7 +229,7 @@ type AlibabaCloudMachineProviderStatus struct {
 
 // SystemDiskProperties contains the information regarding the system disk including performance, size, name, and category
 type SystemDiskProperties struct {
-	// Category is the category of the system disk.
+	// category is the category of the system disk.
 	// Valid values:
 	// cloud_essd: ESSD. When the parameter is set to this value, you can use the SystemDisk.PerformanceLevel parameter to specify the performance level of the disk.
 	// cloud_efficiency: ultra disk.
@@ -242,7 +242,7 @@ type SystemDiskProperties struct {
 	// +optional
 	Category string `json:"category,omitempty"`
 
-	// PerformanceLevel is the performance level of the ESSD used as the system disk.
+	// performanceLevel is the performance level of the ESSD used as the system disk.
 	// Valid values:
 	//
 	// PL0: A single ESSD can deliver up to 10,000 random read/write IOPS.
@@ -256,14 +256,14 @@ type SystemDiskProperties struct {
 	// +optional
 	PerformanceLevel string `json:"performanceLevel,omitempty"`
 
-	// Name is the name of the system disk. If the name is specified the name must be 2 to 128 characters in length. It must start with a letter and cannot start with http:// or https://. It can contain letters, digits, colons (:), underscores (_), and hyphens (-).
+	// name is the name of the system disk. If the name is specified the name must be 2 to 128 characters in length. It must start with a letter and cannot start with http:// or https://. It can contain letters, digits, colons (:), underscores (_), and hyphens (-).
 	// Empty value means the platform chooses a default, which is subject to change over time.
 	// Currently the default is `""`.
 	// +kubebuilder:validation:MaxLength=128
 	// +optional
 	Name string `json:"name,omitempty"`
 
-	// Size is the size of the system disk. Unit: GiB. Valid values: 20 to 500.
+	// size is the size of the system disk. Unit: GiB. Valid values: 20 to 500.
 	// The value must be at least 20 and greater than or equal to the size of the image.
 	// Empty value means the platform chooses a default, which is subject to change over time.
 	// Currently the default is `40` or the size of the image depending on whichever is greater.
@@ -357,7 +357,7 @@ type Tag struct {
 
 // Bandwidth describes the bandwidth strategy for the network of the instance
 type BandwidthProperties struct {
-	// InternetMaxBandwidthIn is the maximum inbound public bandwidth. Unit: Mbit/s. Valid values:
+	// internetMaxBandwidthIn is the maximum inbound public bandwidth. Unit: Mbit/s. Valid values:
 	// When the purchased outbound public bandwidth is less than or equal to 10 Mbit/s, the valid values of this parameter are 1 to 10.
 	// Currently the default is `10` when outbound bandwidth is less than or equal to 10 Mbit/s.
 	// When the purchased outbound public bandwidth is greater than 10, the valid values are 1 to the InternetMaxBandwidthOut value.
@@ -365,7 +365,7 @@ type BandwidthProperties struct {
 	// +optional
 	InternetMaxBandwidthIn int64 `json:"internetMaxBandwidthIn,omitempty"`
 
-	// InternetMaxBandwidthOut is the maximum outbound public bandwidth. Unit: Mbit/s. Valid values: 0 to 100.
+	// internetMaxBandwidthOut is the maximum outbound public bandwidth. Unit: Mbit/s. Valid values: 0 to 100.
 	// When a value greater than 0 is used then a public IP address is assigned to the instance.
 	// Empty value means no opinion and the platform chooses the a default, which is subject to change over time.
 	// Currently the default is `0`

@@ -64,7 +64,7 @@ type MachineHealthCheckSpec struct {
 	// Note: An empty selector will match all machines.
 	Selector metav1.LabelSelector `json:"selector"`
 
-	// UnhealthyConditions contains a list of the conditions that determine
+	// unhealthyConditions contains a list of the conditions that determine
 	// whether a node is considered unhealthy.  The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
@@ -96,7 +96,7 @@ type MachineHealthCheckSpec struct {
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 
-	// RemediationTemplate is a reference to a remediation template
+	// remediationTemplate is a reference to a remediation template
 	// provided by an infrastructure provider.
 	//
 	// This field is completely optional, when filled, the MachineHealthCheck controller
@@ -136,13 +136,13 @@ type MachineHealthCheckStatus struct {
 	// +kubebuilder:validation:Minimum=0
 	CurrentHealthy *int `json:"currentHealthy"`
 
-	// RemediationsAllowed is the number of further remediations allowed by this machine health check before
+	// remediationsAllowed is the number of further remediations allowed by this machine health check before
 	// maxUnhealthy short circuiting will be applied
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	RemediationsAllowed int32 `json:"remediationsAllowed"`
 
-	// Conditions defines the current state of the MachineHealthCheck
+	// conditions defines the current state of the MachineHealthCheck
 	// +optional
 	// +listType=map
 	// +listMapKey=type

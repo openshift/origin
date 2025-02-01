@@ -34,6 +34,8 @@ type MachineConfigurationExpansion interface{}
 
 type NetworkExpansion interface{}
 
+type OLMExpansion interface{}
+
 type OpenShiftAPIServerExpansion interface{}
 
 type OpenShiftControllerManagerExpansion interface{}

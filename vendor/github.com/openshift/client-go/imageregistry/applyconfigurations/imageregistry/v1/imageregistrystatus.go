@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 )
 
 // ImageRegistryStatusApplyConfiguration represents a declarative configuration of the ImageRegistryStatus type for use
 // with apply.
 type ImageRegistryStatusApplyConfiguration struct {
-	v1.OperatorStatusApplyConfiguration `json:",inline"`
-	StorageManaged                      *bool                                         `json:"storageManaged,omitempty"`
-	Storage                             *ImageRegistryConfigStorageApplyConfiguration `json:"storage,omitempty"`
+	operatorv1.OperatorStatusApplyConfiguration `json:",inline"`
+	StorageManaged                              *bool                                         `json:"storageManaged,omitempty"`
+	Storage                                     *ImageRegistryConfigStorageApplyConfiguration `json:"storage,omitempty"`
 }
 
 // ImageRegistryStatusApplyConfiguration constructs a declarative configuration of the ImageRegistryStatus type for use with
@@ -24,19 +24,19 @@ func ImageRegistryStatus() *ImageRegistryStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *ImageRegistryStatusApplyConfiguration) WithObservedGeneration(value int64) *ImageRegistryStatusApplyConfiguration {
-	b.ObservedGeneration = &value
+	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
 	return b
 }
 
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *ImageRegistryStatusApplyConfiguration) WithConditions(values ...*v1.OperatorConditionApplyConfiguration) *ImageRegistryStatusApplyConfiguration {
+func (b *ImageRegistryStatusApplyConfiguration) WithConditions(values ...*operatorv1.OperatorConditionApplyConfiguration) *ImageRegistryStatusApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
 	}
 	return b
 }
@@ -45,7 +45,7 @@ func (b *ImageRegistryStatusApplyConfiguration) WithConditions(values ...*v1.Ope
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *ImageRegistryStatusApplyConfiguration) WithVersion(value string) *ImageRegistryStatusApplyConfiguration {
-	b.Version = &value
+	b.OperatorStatusApplyConfiguration.Version = &value
 	return b
 }
 
@@ -53,7 +53,7 @@ func (b *ImageRegistryStatusApplyConfiguration) WithVersion(value string) *Image
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ImageRegistryStatusApplyConfiguration) WithReadyReplicas(value int32) *ImageRegistryStatusApplyConfiguration {
-	b.ReadyReplicas = &value
+	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
 	return b
 }
 
@@ -61,19 +61,19 @@ func (b *ImageRegistryStatusApplyConfiguration) WithReadyReplicas(value int32) *
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *ImageRegistryStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ImageRegistryStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
+	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
 	return b
 }
 
 // WithGenerations adds the given value to the Generations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Generations field.
-func (b *ImageRegistryStatusApplyConfiguration) WithGenerations(values ...*v1.GenerationStatusApplyConfiguration) *ImageRegistryStatusApplyConfiguration {
+func (b *ImageRegistryStatusApplyConfiguration) WithGenerations(values ...*operatorv1.GenerationStatusApplyConfiguration) *ImageRegistryStatusApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.Generations = append(b.Generations, *values[i])
+		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
 	return b
 }

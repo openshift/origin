@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
 )
 
 // ConsoleSampleSourceApplyConfiguration represents a declarative configuration of the ConsoleSampleSource type for use
 // with apply.
 type ConsoleSampleSourceApplyConfiguration struct {
-	Type            *v1.ConsoleSampleSourceType                           `json:"type,omitempty"`
+	Type            *consolev1.ConsoleSampleSourceType                    `json:"type,omitempty"`
 	GitImport       *ConsoleSampleGitImportSourceApplyConfiguration       `json:"gitImport,omitempty"`
 	ContainerImport *ConsoleSampleContainerImportSourceApplyConfiguration `json:"containerImport,omitempty"`
 }
@@ -23,7 +23,7 @@ func ConsoleSampleSource() *ConsoleSampleSourceApplyConfiguration {
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *ConsoleSampleSourceApplyConfiguration) WithType(value v1.ConsoleSampleSourceType) *ConsoleSampleSourceApplyConfiguration {
+func (b *ConsoleSampleSourceApplyConfiguration) WithType(value consolev1.ConsoleSampleSourceType) *ConsoleSampleSourceApplyConfiguration {
 	b.Type = &value
 	return b
 }

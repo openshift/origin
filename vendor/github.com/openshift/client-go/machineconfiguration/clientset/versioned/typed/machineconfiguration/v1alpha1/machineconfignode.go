@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
-	machineconfigurationv1alpha1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1alpha1"
+	machineconfigurationv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	applyconfigurationsmachineconfigurationv1alpha1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1alpha1"
 	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,41 @@ type MachineConfigNodesGetter interface {
 
 // MachineConfigNodeInterface has methods to work with MachineConfigNode resources.
 type MachineConfigNodeInterface interface {
-	Create(ctx context.Context, machineConfigNode *v1alpha1.MachineConfigNode, opts v1.CreateOptions) (*v1alpha1.MachineConfigNode, error)
-	Update(ctx context.Context, machineConfigNode *v1alpha1.MachineConfigNode, opts v1.UpdateOptions) (*v1alpha1.MachineConfigNode, error)
+	Create(ctx context.Context, machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, opts v1.CreateOptions) (*machineconfigurationv1alpha1.MachineConfigNode, error)
+	Update(ctx context.Context, machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, opts v1.UpdateOptions) (*machineconfigurationv1alpha1.MachineConfigNode, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, machineConfigNode *v1alpha1.MachineConfigNode, opts v1.UpdateOptions) (*v1alpha1.MachineConfigNode, error)
+	UpdateStatus(ctx context.Context, machineConfigNode *machineconfigurationv1alpha1.MachineConfigNode, opts v1.UpdateOptions) (*machineconfigurationv1alpha1.MachineConfigNode, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.MachineConfigNode, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.MachineConfigNodeList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*machineconfigurationv1alpha1.MachineConfigNode, error)
+	List(ctx context.Context, opts v1.ListOptions) (*machineconfigurationv1alpha1.MachineConfigNodeList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.MachineConfigNode, err error)
-	Apply(ctx context.Context, machineConfigNode *machineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.MachineConfigNode, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *machineconfigurationv1alpha1.MachineConfigNode, err error)
+	Apply(ctx context.Context, machineConfigNode *applyconfigurationsmachineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration, opts v1.ApplyOptions) (result *machineconfigurationv1alpha1.MachineConfigNode, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, machineConfigNode *machineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.MachineConfigNode, err error)
+	ApplyStatus(ctx context.Context, machineConfigNode *applyconfigurationsmachineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration, opts v1.ApplyOptions) (result *machineconfigurationv1alpha1.MachineConfigNode, err error)
 	MachineConfigNodeExpansion
 }
 
 // machineConfigNodes implements MachineConfigNodeInterface
 type machineConfigNodes struct {
-	*gentype.ClientWithListAndApply[*v1alpha1.MachineConfigNode, *v1alpha1.MachineConfigNodeList, *machineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machineconfigurationv1alpha1.MachineConfigNode, *machineconfigurationv1alpha1.MachineConfigNodeList, *applyconfigurationsmachineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration]
 }
 
 // newMachineConfigNodes returns a MachineConfigNodes
 func newMachineConfigNodes(c *MachineconfigurationV1alpha1Client) *machineConfigNodes {
 	return &machineConfigNodes{
-		gentype.NewClientWithListAndApply[*v1alpha1.MachineConfigNode, *v1alpha1.MachineConfigNodeList, *machineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machineconfigurationv1alpha1.MachineConfigNode, *machineconfigurationv1alpha1.MachineConfigNodeList, *applyconfigurationsmachineconfigurationv1alpha1.MachineConfigNodeApplyConfiguration](
 			"machineconfignodes",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1alpha1.MachineConfigNode { return &v1alpha1.MachineConfigNode{} },
-			func() *v1alpha1.MachineConfigNodeList { return &v1alpha1.MachineConfigNodeList{} }),
+			func() *machineconfigurationv1alpha1.MachineConfigNode {
+				return &machineconfigurationv1alpha1.MachineConfigNode{}
+			},
+			func() *machineconfigurationv1alpha1.MachineConfigNodeList {
+				return &machineconfigurationv1alpha1.MachineConfigNodeList{}
+			},
+		),
 	}
 }

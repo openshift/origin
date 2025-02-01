@@ -3,21 +3,21 @@
 package v1
 
 import (
-	apioperatorv1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	internal "github.com/openshift/client-go/operator/applyconfigurations/internal"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // InsightsOperatorApplyConfiguration represents a declarative configuration of the InsightsOperator type for use
 // with apply.
 type InsightsOperatorApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
-	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *InsightsOperatorSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *InsightsOperatorStatusApplyConfiguration `json:"status,omitempty"`
+	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                                 *InsightsOperatorSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                               *InsightsOperatorStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // InsightsOperator constructs a declarative configuration of the InsightsOperator type for use with
@@ -41,18 +41,18 @@ func InsightsOperator(name string) *InsightsOperatorApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractInsightsOperator(insightsOperator *apioperatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
+func ExtractInsightsOperator(insightsOperator *operatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
 	return extractInsightsOperator(insightsOperator, fieldManager, "")
 }
 
 // ExtractInsightsOperatorStatus is the same as ExtractInsightsOperator except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractInsightsOperatorStatus(insightsOperator *apioperatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
+func ExtractInsightsOperatorStatus(insightsOperator *operatorv1.InsightsOperator, fieldManager string) (*InsightsOperatorApplyConfiguration, error) {
 	return extractInsightsOperator(insightsOperator, fieldManager, "status")
 }
 
-func extractInsightsOperator(insightsOperator *apioperatorv1.InsightsOperator, fieldManager string, subresource string) (*InsightsOperatorApplyConfiguration, error) {
+func extractInsightsOperator(insightsOperator *operatorv1.InsightsOperator, fieldManager string, subresource string) (*InsightsOperatorApplyConfiguration, error) {
 	b := &InsightsOperatorApplyConfiguration{}
 	err := managedfields.ExtractInto(insightsOperator, internal.Parser().Type("com.github.openshift.api.operator.v1.InsightsOperator"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractInsightsOperator(insightsOperator *apioperatorv1.InsightsOperator, f
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithKind(value string) *InsightsOperatorApplyConfiguration {
-	b.Kind = &value
+	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *InsightsOperatorApplyConfiguration) WithKind(value string) *InsightsOpe
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithAPIVersion(value string) *InsightsOperatorApplyConfiguration {
-	b.APIVersion = &value
+	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *InsightsOperatorApplyConfiguration) WithAPIVersion(value string) *Insig
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithName(value string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Name = &value
+	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *InsightsOperatorApplyConfiguration) WithName(value string) *InsightsOpe
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithGenerateName(value string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.GenerateName = &value
+	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *InsightsOperatorApplyConfiguration) WithGenerateName(value string) *Ins
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithNamespace(value string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Namespace = &value
+	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *InsightsOperatorApplyConfiguration) WithNamespace(value string) *Insigh
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithUID(value types.UID) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.UID = &value
+	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *InsightsOperatorApplyConfiguration) WithUID(value types.UID) *InsightsO
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithResourceVersion(value string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ResourceVersion = &value
+	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *InsightsOperatorApplyConfiguration) WithResourceVersion(value string) *
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithGeneration(value int64) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Generation = &value
+	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *InsightsOperatorApplyConfiguration) WithCreationTimestamp(value metav1.Time) *InsightsOperatorApplyConfiguration {
+func (b *InsightsOperatorApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.CreationTimestamp = &value
+	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *InsightsOperatorApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *InsightsOperatorApplyConfiguration {
+func (b *InsightsOperatorApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.DeletionTimestamp = &value
+	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *InsightsOperatorApplyConfiguration) WithDeletionTimestamp(value metav1.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *InsightsOperatorApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.DeletionGracePeriodSeconds = &value
+	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *InsightsOperatorApplyConfiguration) WithDeletionGracePeriodSeconds(valu
 // overwriting an existing map entries in Labels field with the same key.
 func (b *InsightsOperatorApplyConfiguration) WithLabels(entries map[string]string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.Labels == nil && len(entries) > 0 {
-		b.Labels = make(map[string]string, len(entries))
+	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.Labels[k] = v
+		b.ObjectMetaApplyConfiguration.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *InsightsOperatorApplyConfiguration) WithLabels(entries map[string]strin
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *InsightsOperatorApplyConfiguration) WithAnnotations(entries map[string]string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.Annotations == nil && len(entries) > 0 {
-		b.Annotations = make(map[string]string, len(entries))
+	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.Annotations[k] = v
+		b.ObjectMetaApplyConfiguration.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *InsightsOperatorApplyConfiguration) WithAnnotations(entries map[string]
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *InsightsOperatorApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *InsightsOperatorApplyConfiguration {
+func (b *InsightsOperatorApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.OwnerReferences = append(b.OwnerReferences, *values[i])
+		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *InsightsOperatorApplyConfiguration) WithOwnerReferences(values ...*v1.O
 func (b *InsightsOperatorApplyConfiguration) WithFinalizers(values ...string) *InsightsOperatorApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.Finalizers = append(b.Finalizers, values[i])
+		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *InsightsOperatorApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *InsightsOperatorApplyConfiguration) WithStatus(value *InsightsOperatorS
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *InsightsOperatorApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.Name
+	return b.ObjectMetaApplyConfiguration.Name
 }

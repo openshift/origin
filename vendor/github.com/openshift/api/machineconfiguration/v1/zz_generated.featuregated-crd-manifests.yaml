@@ -32,6 +32,8 @@ controllerconfigs.machineconfiguration.openshift.io:
   - BareMetalLoadBalancer
   - GCPClusterHostedDNS
   - GCPLabelsTags
+  - HighlyAvailableArbiter
+  - NutanixMultiSubnets
   - VSphereControlPlaneMachineSet
   - VSphereMultiNetworks
   - VSphereMultiVCenters
@@ -167,5 +169,71 @@ machineconfigpools.machineconfiguration.openshift.io:
   ShortNames:
   - mcp
   TopLevelFeatureGates: []
+  Version: v1
+
+machineosbuilds.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2090
+  CRDName: machineosbuilds.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - OnClusterBuild
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: MachineOSBuild
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: machineosbuilds
+  PrinterColumns:
+  - jsonPath: .status.conditions[?(@.type=="Prepared")].status
+    name: Prepared
+    type: string
+  - jsonPath: .status.conditions[?(@.type=="Building")].status
+    name: Building
+    type: string
+  - jsonPath: .status.conditions[?(@.type=="Succeeded")].status
+    name: Succeeded
+    type: string
+  - jsonPath: .status.conditions[?(@.type=="Interrupted")].status
+    name: Interrupted
+    type: string
+  - jsonPath: .status.conditions[?(@.type=="Failed")].status
+    name: Failed
+    type: string
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - OnClusterBuild
+  Version: v1
+
+machineosconfigs.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2090
+  CRDName: machineosconfigs.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - OnClusterBuild
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: MachineOSConfig
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: machineosconfigs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - OnClusterBuild
   Version: v1
 

@@ -25,7 +25,7 @@ func ClusterCSIDriverSpec() *ClusterCSIDriverSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *ClusterCSIDriverSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *ClusterCSIDriverSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -33,7 +33,7 @@ func (b *ClusterCSIDriverSpecApplyConfiguration) WithManagementState(value opera
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *ClusterCSIDriverSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *ClusterCSIDriverSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -41,7 +41,7 @@ func (b *ClusterCSIDriverSpecApplyConfiguration) WithLogLevel(value operatorv1.L
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *ClusterCSIDriverSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *ClusterCSIDriverSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -49,7 +49,7 @@ func (b *ClusterCSIDriverSpecApplyConfiguration) WithOperatorLogLevel(value oper
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *ClusterCSIDriverSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *ClusterCSIDriverSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -57,7 +57,7 @@ func (b *ClusterCSIDriverSpecApplyConfiguration) WithUnsupportedConfigOverrides(
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *ClusterCSIDriverSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *ClusterCSIDriverSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 

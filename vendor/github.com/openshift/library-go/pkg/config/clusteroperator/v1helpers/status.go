@@ -3,32 +3,31 @@ package v1helpers
 import (
 	"bytes"
 	"fmt"
-	"strings"
-	"time"
-
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/utils/clock"
+	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
 )
 
 // SetStatusCondition sets the corresponding condition in conditions to newCondition.
-func SetStatusCondition(conditions *[]configv1.ClusterOperatorStatusCondition, newCondition configv1.ClusterOperatorStatusCondition) {
+func SetStatusCondition(conditions *[]configv1.ClusterOperatorStatusCondition, newCondition configv1.ClusterOperatorStatusCondition, clock clock.PassiveClock) {
 	if conditions == nil {
 		conditions = &[]configv1.ClusterOperatorStatusCondition{}
 	}
 	existingCondition := FindStatusCondition(*conditions, newCondition.Type)
 	if existingCondition == nil {
-		newCondition.LastTransitionTime = metav1.NewTime(time.Now())
+		newCondition.LastTransitionTime = metav1.NewTime(clock.Now())
 		*conditions = append(*conditions, newCondition)
 		return
 	}
 
 	if existingCondition.Status != newCondition.Status {
 		existingCondition.Status = newCondition.Status
-		existingCondition.LastTransitionTime = metav1.NewTime(time.Now())
+		existingCondition.LastTransitionTime = metav1.NewTime(clock.Now())
 	}
 
 	existingCondition.Reason = newCondition.Reason

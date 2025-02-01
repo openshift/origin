@@ -23,7 +23,7 @@ func KubeStorageVersionMigratorSpec() *KubeStorageVersionMigratorSpecApplyConfig
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *KubeStorageVersionMigratorSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithManagementState(v
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *KubeStorageVersionMigratorSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithLogLevel(value op
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *KubeStorageVersionMigratorSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithOperatorLogLevel(
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *KubeStorageVersionMigratorSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,6 +55,6 @@ func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithUnsupportedConfig
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *KubeStorageVersionMigratorSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *KubeStorageVersionMigratorSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }

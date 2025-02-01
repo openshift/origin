@@ -7,6 +7,7 @@ controlplanemachinesets.machine.openshift.io:
   Capability: MachineAPI
   Category: ""
   FeatureGates:
+  - CPMSMachineNamePrefix
   - MachineAPIMigration
   FilenameOperatorName: control-plane-machine-set
   FilenameOperatorOrdering: "01"

@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // CapabilityVisibilityApplyConfiguration represents a declarative configuration of the CapabilityVisibility type for use
 // with apply.
 type CapabilityVisibilityApplyConfiguration struct {
-	State *v1.CapabilityState `json:"state,omitempty"`
+	State *operatorv1.CapabilityState `json:"state,omitempty"`
 }
 
 // CapabilityVisibilityApplyConfiguration constructs a declarative configuration of the CapabilityVisibility type for use with
@@ -21,7 +21,7 @@ func CapabilityVisibility() *CapabilityVisibilityApplyConfiguration {
 // WithState sets the State field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the State field is set to the value of the last call.
-func (b *CapabilityVisibilityApplyConfiguration) WithState(value v1.CapabilityState) *CapabilityVisibilityApplyConfiguration {
+func (b *CapabilityVisibilityApplyConfiguration) WithState(value operatorv1.CapabilityState) *CapabilityVisibilityApplyConfiguration {
 	b.State = &value
 	return b
 }

@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // DNSOverTLSConfigApplyConfiguration represents a declarative configuration of the DNSOverTLSConfig type for use
 // with apply.
 type DNSOverTLSConfigApplyConfiguration struct {
-	ServerName *string                    `json:"serverName,omitempty"`
-	CABundle   *v1.ConfigMapNameReference `json:"caBundle,omitempty"`
+	ServerName *string                          `json:"serverName,omitempty"`
+	CABundle   *configv1.ConfigMapNameReference `json:"caBundle,omitempty"`
 }
 
 // DNSOverTLSConfigApplyConfiguration constructs a declarative configuration of the DNSOverTLSConfig type for use with
@@ -30,7 +30,7 @@ func (b *DNSOverTLSConfigApplyConfiguration) WithServerName(value string) *DNSOv
 // WithCABundle sets the CABundle field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CABundle field is set to the value of the last call.
-func (b *DNSOverTLSConfigApplyConfiguration) WithCABundle(value v1.ConfigMapNameReference) *DNSOverTLSConfigApplyConfiguration {
+func (b *DNSOverTLSConfigApplyConfiguration) WithCABundle(value configv1.ConfigMapNameReference) *DNSOverTLSConfigApplyConfiguration {
 	b.CABundle = &value
 	return b
 }

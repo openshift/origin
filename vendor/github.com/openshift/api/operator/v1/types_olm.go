@@ -13,6 +13,8 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=olms,scope=Cluster
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:annotations=include.release.openshift.io/ibm-cloud-managed=false
+// +kubebuilder:metadata:annotations=include.release.openshift.io/self-managed-high-availability=true
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1504
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=operator-lifecycle-manager,operatorOrdering=01
 // +openshift:enable:FeatureGate=NewOLM
@@ -54,6 +56,6 @@ type OLMList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata"`
 
-	// Items contains the items
+	// items contains the items
 	Items []OLM `json:"items"`
 }

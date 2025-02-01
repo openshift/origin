@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // IngressControllerHTTPHeadersApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaders type for use
 // with apply.
 type IngressControllerHTTPHeadersApplyConfiguration struct {
-	ForwardedHeaderPolicy     *v1.IngressControllerHTTPHeaderPolicy                        `json:"forwardedHeaderPolicy,omitempty"`
+	ForwardedHeaderPolicy     *operatorv1.IngressControllerHTTPHeaderPolicy                `json:"forwardedHeaderPolicy,omitempty"`
 	UniqueId                  *IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration `json:"uniqueId,omitempty"`
-	HeaderNameCaseAdjustments []v1.IngressControllerHTTPHeaderNameCaseAdjustment           `json:"headerNameCaseAdjustments,omitempty"`
+	HeaderNameCaseAdjustments []operatorv1.IngressControllerHTTPHeaderNameCaseAdjustment   `json:"headerNameCaseAdjustments,omitempty"`
 	Actions                   *IngressControllerHTTPHeaderActionsApplyConfiguration        `json:"actions,omitempty"`
 }
 
@@ -24,7 +24,7 @@ func IngressControllerHTTPHeaders() *IngressControllerHTTPHeadersApplyConfigurat
 // WithForwardedHeaderPolicy sets the ForwardedHeaderPolicy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ForwardedHeaderPolicy field is set to the value of the last call.
-func (b *IngressControllerHTTPHeadersApplyConfiguration) WithForwardedHeaderPolicy(value v1.IngressControllerHTTPHeaderPolicy) *IngressControllerHTTPHeadersApplyConfiguration {
+func (b *IngressControllerHTTPHeadersApplyConfiguration) WithForwardedHeaderPolicy(value operatorv1.IngressControllerHTTPHeaderPolicy) *IngressControllerHTTPHeadersApplyConfiguration {
 	b.ForwardedHeaderPolicy = &value
 	return b
 }
@@ -40,7 +40,7 @@ func (b *IngressControllerHTTPHeadersApplyConfiguration) WithUniqueId(value *Ing
 // WithHeaderNameCaseAdjustments adds the given value to the HeaderNameCaseAdjustments field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the HeaderNameCaseAdjustments field.
-func (b *IngressControllerHTTPHeadersApplyConfiguration) WithHeaderNameCaseAdjustments(values ...v1.IngressControllerHTTPHeaderNameCaseAdjustment) *IngressControllerHTTPHeadersApplyConfiguration {
+func (b *IngressControllerHTTPHeadersApplyConfiguration) WithHeaderNameCaseAdjustments(values ...operatorv1.IngressControllerHTTPHeaderNameCaseAdjustment) *IngressControllerHTTPHeadersApplyConfiguration {
 	for i := range values {
 		b.HeaderNameCaseAdjustments = append(b.HeaderNameCaseAdjustments, values[i])
 	}

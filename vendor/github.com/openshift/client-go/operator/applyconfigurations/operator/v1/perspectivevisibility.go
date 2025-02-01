@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // PerspectiveVisibilityApplyConfiguration represents a declarative configuration of the PerspectiveVisibility type for use
 // with apply.
 type PerspectiveVisibilityApplyConfiguration struct {
-	State        *v1.PerspectiveState                              `json:"state,omitempty"`
+	State        *operatorv1.PerspectiveState                      `json:"state,omitempty"`
 	AccessReview *ResourceAttributesAccessReviewApplyConfiguration `json:"accessReview,omitempty"`
 }
 
@@ -22,7 +22,7 @@ func PerspectiveVisibility() *PerspectiveVisibilityApplyConfiguration {
 // WithState sets the State field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the State field is set to the value of the last call.
-func (b *PerspectiveVisibilityApplyConfiguration) WithState(value v1.PerspectiveState) *PerspectiveVisibilityApplyConfiguration {
+func (b *PerspectiveVisibilityApplyConfiguration) WithState(value operatorv1.PerspectiveState) *PerspectiveVisibilityApplyConfiguration {
 	b.State = &value
 	return b
 }

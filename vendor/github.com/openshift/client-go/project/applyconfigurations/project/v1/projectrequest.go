@@ -5,19 +5,19 @@ package v1
 import (
 	projectv1 "github.com/openshift/api/project/v1"
 	internal "github.com/openshift/client-go/project/applyconfigurations/internal"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ProjectRequestApplyConfiguration represents a declarative configuration of the ProjectRequest type for use
 // with apply.
 type ProjectRequestApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
-	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	DisplayName                      *string `json:"displayName,omitempty"`
-	Description                      *string `json:"description,omitempty"`
+	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	DisplayName                          *string `json:"displayName,omitempty"`
+	Description                          *string `json:"description,omitempty"`
 }
 
 // ProjectRequest constructs a declarative configuration of the ProjectRequest type for use with
@@ -69,7 +69,7 @@ func extractProjectRequest(projectRequest *projectv1.ProjectRequest, fieldManage
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithKind(value string) *ProjectRequestApplyConfiguration {
-	b.Kind = &value
+	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *ProjectRequestApplyConfiguration) WithKind(value string) *ProjectReques
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithAPIVersion(value string) *ProjectRequestApplyConfiguration {
-	b.APIVersion = &value
+	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *ProjectRequestApplyConfiguration) WithAPIVersion(value string) *Project
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithName(value string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Name = &value
+	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *ProjectRequestApplyConfiguration) WithName(value string) *ProjectReques
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithGenerateName(value string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.GenerateName = &value
+	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *ProjectRequestApplyConfiguration) WithGenerateName(value string) *Proje
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithNamespace(value string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Namespace = &value
+	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ProjectRequestApplyConfiguration) WithNamespace(value string) *ProjectR
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithUID(value types.UID) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.UID = &value
+	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *ProjectRequestApplyConfiguration) WithUID(value types.UID) *ProjectRequ
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithResourceVersion(value string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ResourceVersion = &value
+	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *ProjectRequestApplyConfiguration) WithResourceVersion(value string) *Pr
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithGeneration(value int64) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Generation = &value
+	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ProjectRequestApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ProjectRequestApplyConfiguration {
+func (b *ProjectRequestApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.CreationTimestamp = &value
+	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ProjectRequestApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ProjectRequestApplyConfiguration {
+func (b *ProjectRequestApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.DeletionTimestamp = &value
+	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *ProjectRequestApplyConfiguration) WithDeletionTimestamp(value metav1.Ti
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ProjectRequestApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.DeletionGracePeriodSeconds = &value
+	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *ProjectRequestApplyConfiguration) WithDeletionGracePeriodSeconds(value 
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ProjectRequestApplyConfiguration) WithLabels(entries map[string]string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.Labels == nil && len(entries) > 0 {
-		b.Labels = make(map[string]string, len(entries))
+	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.Labels[k] = v
+		b.ObjectMetaApplyConfiguration.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *ProjectRequestApplyConfiguration) WithLabels(entries map[string]string)
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ProjectRequestApplyConfiguration) WithAnnotations(entries map[string]string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.Annotations == nil && len(entries) > 0 {
-		b.Annotations = make(map[string]string, len(entries))
+	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.Annotations[k] = v
+		b.ObjectMetaApplyConfiguration.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *ProjectRequestApplyConfiguration) WithAnnotations(entries map[string]st
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ProjectRequestApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ProjectRequestApplyConfiguration {
+func (b *ProjectRequestApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.OwnerReferences = append(b.OwnerReferences, *values[i])
+		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *ProjectRequestApplyConfiguration) WithOwnerReferences(values ...*v1.Own
 func (b *ProjectRequestApplyConfiguration) WithFinalizers(values ...string) *ProjectRequestApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.Finalizers = append(b.Finalizers, values[i])
+		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ProjectRequestApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *ProjectRequestApplyConfiguration) WithDescription(value string) *Projec
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ProjectRequestApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.Name
+	return b.ObjectMetaApplyConfiguration.Name
 }

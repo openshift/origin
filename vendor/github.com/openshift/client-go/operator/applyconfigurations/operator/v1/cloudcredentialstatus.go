@@ -18,7 +18,7 @@ func CloudCredentialStatus() *CloudCredentialStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *CloudCredentialStatusApplyConfiguration) WithObservedGeneration(value int64) *CloudCredentialStatusApplyConfiguration {
-	b.ObservedGeneration = &value
+	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
 	return b
 }
 
@@ -30,7 +30,7 @@ func (b *CloudCredentialStatusApplyConfiguration) WithConditions(values ...*Oper
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
 	}
 	return b
 }
@@ -39,7 +39,7 @@ func (b *CloudCredentialStatusApplyConfiguration) WithConditions(values ...*Oper
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *CloudCredentialStatusApplyConfiguration) WithVersion(value string) *CloudCredentialStatusApplyConfiguration {
-	b.Version = &value
+	b.OperatorStatusApplyConfiguration.Version = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *CloudCredentialStatusApplyConfiguration) WithVersion(value string) *Clo
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *CloudCredentialStatusApplyConfiguration) WithReadyReplicas(value int32) *CloudCredentialStatusApplyConfiguration {
-	b.ReadyReplicas = &value
+	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *CloudCredentialStatusApplyConfiguration) WithReadyReplicas(value int32)
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *CloudCredentialStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *CloudCredentialStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
+	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
 	return b
 }
 
@@ -67,7 +67,7 @@ func (b *CloudCredentialStatusApplyConfiguration) WithGenerations(values ...*Gen
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.Generations = append(b.Generations, *values[i])
+		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
 	return b
 }

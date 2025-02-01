@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // DeveloperConsoleCatalogTypesApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogTypes type for use
 // with apply.
 type DeveloperConsoleCatalogTypesApplyConfiguration struct {
-	State    *v1.CatalogTypesState `json:"state,omitempty"`
-	Enabled  *[]string             `json:"enabled,omitempty"`
-	Disabled *[]string             `json:"disabled,omitempty"`
+	State    *operatorv1.CatalogTypesState `json:"state,omitempty"`
+	Enabled  *[]string                     `json:"enabled,omitempty"`
+	Disabled *[]string                     `json:"disabled,omitempty"`
 }
 
 // DeveloperConsoleCatalogTypesApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogTypes type for use with
@@ -23,7 +23,7 @@ func DeveloperConsoleCatalogTypes() *DeveloperConsoleCatalogTypesApplyConfigurat
 // WithState sets the State field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the State field is set to the value of the last call.
-func (b *DeveloperConsoleCatalogTypesApplyConfiguration) WithState(value v1.CatalogTypesState) *DeveloperConsoleCatalogTypesApplyConfiguration {
+func (b *DeveloperConsoleCatalogTypesApplyConfiguration) WithState(value operatorv1.CatalogTypesState) *DeveloperConsoleCatalogTypesApplyConfiguration {
 	b.State = &value
 	return b
 }

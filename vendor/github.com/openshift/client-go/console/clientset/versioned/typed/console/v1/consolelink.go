@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/console/v1"
-	consolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	applyconfigurationsconsolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
 	scheme "github.com/openshift/client-go/console/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,33 @@ type ConsoleLinksGetter interface {
 
 // ConsoleLinkInterface has methods to work with ConsoleLink resources.
 type ConsoleLinkInterface interface {
-	Create(ctx context.Context, consoleLink *v1.ConsoleLink, opts metav1.CreateOptions) (*v1.ConsoleLink, error)
-	Update(ctx context.Context, consoleLink *v1.ConsoleLink, opts metav1.UpdateOptions) (*v1.ConsoleLink, error)
+	Create(ctx context.Context, consoleLink *consolev1.ConsoleLink, opts metav1.CreateOptions) (*consolev1.ConsoleLink, error)
+	Update(ctx context.Context, consoleLink *consolev1.ConsoleLink, opts metav1.UpdateOptions) (*consolev1.ConsoleLink, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleLink, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleLinkList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*consolev1.ConsoleLink, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*consolev1.ConsoleLinkList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleLink, err error)
-	Apply(ctx context.Context, consoleLink *consolev1.ConsoleLinkApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConsoleLink, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *consolev1.ConsoleLink, err error)
+	Apply(ctx context.Context, consoleLink *applyconfigurationsconsolev1.ConsoleLinkApplyConfiguration, opts metav1.ApplyOptions) (result *consolev1.ConsoleLink, err error)
 	ConsoleLinkExpansion
 }
 
 // consoleLinks implements ConsoleLinkInterface
 type consoleLinks struct {
-	*gentype.ClientWithListAndApply[*v1.ConsoleLink, *v1.ConsoleLinkList, *consolev1.ConsoleLinkApplyConfiguration]
+	*gentype.ClientWithListAndApply[*consolev1.ConsoleLink, *consolev1.ConsoleLinkList, *applyconfigurationsconsolev1.ConsoleLinkApplyConfiguration]
 }
 
 // newConsoleLinks returns a ConsoleLinks
 func newConsoleLinks(c *ConsoleV1Client) *consoleLinks {
 	return &consoleLinks{
-		gentype.NewClientWithListAndApply[*v1.ConsoleLink, *v1.ConsoleLinkList, *consolev1.ConsoleLinkApplyConfiguration](
+		gentype.NewClientWithListAndApply[*consolev1.ConsoleLink, *consolev1.ConsoleLinkList, *applyconfigurationsconsolev1.ConsoleLinkApplyConfiguration](
 			"consolelinks",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ConsoleLink { return &v1.ConsoleLink{} },
-			func() *v1.ConsoleLinkList { return &v1.ConsoleLinkList{} }),
+			func() *consolev1.ConsoleLink { return &consolev1.ConsoleLink{} },
+			func() *consolev1.ConsoleLinkList { return &consolev1.ConsoleLinkList{} },
+		),
 	}
 }

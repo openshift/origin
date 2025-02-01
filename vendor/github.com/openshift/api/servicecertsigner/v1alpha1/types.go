@@ -48,6 +48,6 @@ type ServiceCertSignerOperatorConfigList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	// Items contains the items
+	// items contains the items
 	Items []ServiceCertSignerOperatorConfig `json:"items"`
 }

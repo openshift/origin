@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type EtcdsGetter interface {
 
 // EtcdInterface has methods to work with Etcd resources.
 type EtcdInterface interface {
-	Create(ctx context.Context, etcd *v1.Etcd, opts metav1.CreateOptions) (*v1.Etcd, error)
-	Update(ctx context.Context, etcd *v1.Etcd, opts metav1.UpdateOptions) (*v1.Etcd, error)
+	Create(ctx context.Context, etcd *operatorv1.Etcd, opts metav1.CreateOptions) (*operatorv1.Etcd, error)
+	Update(ctx context.Context, etcd *operatorv1.Etcd, opts metav1.UpdateOptions) (*operatorv1.Etcd, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, etcd *v1.Etcd, opts metav1.UpdateOptions) (*v1.Etcd, error)
+	UpdateStatus(ctx context.Context, etcd *operatorv1.Etcd, opts metav1.UpdateOptions) (*operatorv1.Etcd, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Etcd, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.EtcdList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.Etcd, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.EtcdList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Etcd, err error)
-	Apply(ctx context.Context, etcd *operatorv1.EtcdApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Etcd, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.Etcd, err error)
+	Apply(ctx context.Context, etcd *applyconfigurationsoperatorv1.EtcdApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.Etcd, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, etcd *operatorv1.EtcdApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Etcd, err error)
+	ApplyStatus(ctx context.Context, etcd *applyconfigurationsoperatorv1.EtcdApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.Etcd, err error)
 	EtcdExpansion
 }
 
 // etcds implements EtcdInterface
 type etcds struct {
-	*gentype.ClientWithListAndApply[*v1.Etcd, *v1.EtcdList, *operatorv1.EtcdApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.Etcd, *operatorv1.EtcdList, *applyconfigurationsoperatorv1.EtcdApplyConfiguration]
 }
 
 // newEtcds returns a Etcds
 func newEtcds(c *OperatorV1Client) *etcds {
 	return &etcds{
-		gentype.NewClientWithListAndApply[*v1.Etcd, *v1.EtcdList, *operatorv1.EtcdApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.Etcd, *operatorv1.EtcdList, *applyconfigurationsoperatorv1.EtcdApplyConfiguration](
 			"etcds",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.Etcd { return &v1.Etcd{} },
-			func() *v1.EtcdList { return &v1.EtcdList{} }),
+			func() *operatorv1.Etcd { return &operatorv1.Etcd{} },
+			func() *operatorv1.EtcdList { return &operatorv1.EtcdList{} },
+		),
 	}
 }

@@ -149,7 +149,7 @@ type OperatorStatus struct {
 type GenericOperatorConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// ServingInfo is the HTTP serving information for the controller's endpoints
+	// servingInfo is the HTTP serving information for the controller's endpoints
 	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty"`
 
 	// leaderElection provides information to elect a leader. Only override this if you have a specific need

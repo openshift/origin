@@ -20,7 +20,7 @@ func InsightsOperatorStatus() *InsightsOperatorStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *InsightsOperatorStatusApplyConfiguration) WithObservedGeneration(value int64) *InsightsOperatorStatusApplyConfiguration {
-	b.ObservedGeneration = &value
+	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
 	return b
 }
 
@@ -32,7 +32,7 @@ func (b *InsightsOperatorStatusApplyConfiguration) WithConditions(values ...*Ope
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
 	}
 	return b
 }
@@ -41,7 +41,7 @@ func (b *InsightsOperatorStatusApplyConfiguration) WithConditions(values ...*Ope
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *InsightsOperatorStatusApplyConfiguration) WithVersion(value string) *InsightsOperatorStatusApplyConfiguration {
-	b.Version = &value
+	b.OperatorStatusApplyConfiguration.Version = &value
 	return b
 }
 
@@ -49,7 +49,7 @@ func (b *InsightsOperatorStatusApplyConfiguration) WithVersion(value string) *In
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *InsightsOperatorStatusApplyConfiguration) WithReadyReplicas(value int32) *InsightsOperatorStatusApplyConfiguration {
-	b.ReadyReplicas = &value
+	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
 	return b
 }
 
@@ -57,7 +57,7 @@ func (b *InsightsOperatorStatusApplyConfiguration) WithReadyReplicas(value int32
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *InsightsOperatorStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *InsightsOperatorStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
+	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
 	return b
 }
 
@@ -69,7 +69,7 @@ func (b *InsightsOperatorStatusApplyConfiguration) WithGenerations(values ...*Ge
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.Generations = append(b.Generations, *values[i])
+		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
 	return b
 }

@@ -18,7 +18,7 @@ func ServiceCAStatus() *ServiceCAStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *ServiceCAStatusApplyConfiguration) WithObservedGeneration(value int64) *ServiceCAStatusApplyConfiguration {
-	b.ObservedGeneration = &value
+	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
 	return b
 }
 
@@ -30,7 +30,7 @@ func (b *ServiceCAStatusApplyConfiguration) WithConditions(values ...*OperatorCo
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
 	}
 	return b
 }
@@ -39,7 +39,7 @@ func (b *ServiceCAStatusApplyConfiguration) WithConditions(values ...*OperatorCo
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *ServiceCAStatusApplyConfiguration) WithVersion(value string) *ServiceCAStatusApplyConfiguration {
-	b.Version = &value
+	b.OperatorStatusApplyConfiguration.Version = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *ServiceCAStatusApplyConfiguration) WithVersion(value string) *ServiceCA
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ServiceCAStatusApplyConfiguration) WithReadyReplicas(value int32) *ServiceCAStatusApplyConfiguration {
-	b.ReadyReplicas = &value
+	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *ServiceCAStatusApplyConfiguration) WithReadyReplicas(value int32) *Serv
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *ServiceCAStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ServiceCAStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
+	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
 	return b
 }
 
@@ -67,7 +67,7 @@ func (b *ServiceCAStatusApplyConfiguration) WithGenerations(values ...*Generatio
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.Generations = append(b.Generations, *values[i])
+		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
 	return b
 }

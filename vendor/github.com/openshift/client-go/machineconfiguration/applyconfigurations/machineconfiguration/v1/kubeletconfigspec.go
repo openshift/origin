@@ -5,17 +5,17 @@ package v1
 import (
 	configv1 "github.com/openshift/api/config/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // KubeletConfigSpecApplyConfiguration represents a declarative configuration of the KubeletConfigSpec type for use
 // with apply.
 type KubeletConfigSpecApplyConfiguration struct {
-	AutoSizingReserved        *bool                               `json:"autoSizingReserved,omitempty"`
-	LogLevel                  *int32                              `json:"logLevel,omitempty"`
-	MachineConfigPoolSelector *v1.LabelSelectorApplyConfiguration `json:"machineConfigPoolSelector,omitempty"`
-	KubeletConfig             *runtime.RawExtension               `json:"kubeletConfig,omitempty"`
-	TLSSecurityProfile        *configv1.TLSSecurityProfile        `json:"tlsSecurityProfile,omitempty"`
+	AutoSizingReserved        *bool                                   `json:"autoSizingReserved,omitempty"`
+	LogLevel                  *int32                                  `json:"logLevel,omitempty"`
+	MachineConfigPoolSelector *metav1.LabelSelectorApplyConfiguration `json:"machineConfigPoolSelector,omitempty"`
+	KubeletConfig             *runtime.RawExtension                   `json:"kubeletConfig,omitempty"`
+	TLSSecurityProfile        *configv1.TLSSecurityProfile            `json:"tlsSecurityProfile,omitempty"`
 }
 
 // KubeletConfigSpecApplyConfiguration constructs a declarative configuration of the KubeletConfigSpec type for use with
@@ -43,7 +43,7 @@ func (b *KubeletConfigSpecApplyConfiguration) WithLogLevel(value int32) *Kubelet
 // WithMachineConfigPoolSelector sets the MachineConfigPoolSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MachineConfigPoolSelector field is set to the value of the last call.
-func (b *KubeletConfigSpecApplyConfiguration) WithMachineConfigPoolSelector(value *v1.LabelSelectorApplyConfiguration) *KubeletConfigSpecApplyConfiguration {
+func (b *KubeletConfigSpecApplyConfiguration) WithMachineConfigPoolSelector(value *metav1.LabelSelectorApplyConfiguration) *KubeletConfigSpecApplyConfiguration {
 	b.MachineConfigPoolSelector = value
 	return b
 }

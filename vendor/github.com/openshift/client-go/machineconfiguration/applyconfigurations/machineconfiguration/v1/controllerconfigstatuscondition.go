@@ -3,7 +3,7 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/machineconfiguration/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -11,11 +11,11 @@ import (
 // ControllerConfigStatusConditionApplyConfiguration represents a declarative configuration of the ControllerConfigStatusCondition type for use
 // with apply.
 type ControllerConfigStatusConditionApplyConfiguration struct {
-	Type               *v1.ControllerConfigStatusConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus                 `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                            `json:"lastTransitionTime,omitempty"`
-	Reason             *string                                 `json:"reason,omitempty"`
-	Message            *string                                 `json:"message,omitempty"`
+	Type               *machineconfigurationv1.ControllerConfigStatusConditionType `json:"type,omitempty"`
+	Status             *corev1.ConditionStatus                                     `json:"status,omitempty"`
+	LastTransitionTime *metav1.Time                                                `json:"lastTransitionTime,omitempty"`
+	Reason             *string                                                     `json:"reason,omitempty"`
+	Message            *string                                                     `json:"message,omitempty"`
 }
 
 // ControllerConfigStatusConditionApplyConfiguration constructs a declarative configuration of the ControllerConfigStatusCondition type for use with
@@ -27,7 +27,7 @@ func ControllerConfigStatusCondition() *ControllerConfigStatusConditionApplyConf
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *ControllerConfigStatusConditionApplyConfiguration) WithType(value v1.ControllerConfigStatusConditionType) *ControllerConfigStatusConditionApplyConfiguration {
+func (b *ControllerConfigStatusConditionApplyConfiguration) WithType(value machineconfigurationv1.ControllerConfigStatusConditionType) *ControllerConfigStatusConditionApplyConfiguration {
 	b.Type = &value
 	return b
 }
