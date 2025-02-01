@@ -57,8 +57,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			const (
 				nadName           = "blue"
 				bindingName       = "passt"
-				udnCrReadyTimeout = 5 * time.Second
-				vmName            = "myvm"
+				udnCrReadyTimeout = 60 * time.Second
+				// TODO(trozet): lower this timeout once https://issues.redhat.com/browse/OCPBUGS-49727 is fixed
+				udnNetworkReadyTimeout = 5 * time.Minute
+				vmName                 = "myvm"
 			)
 			var (
 				cidrIPv4 = "203.203.0.0/16"
@@ -100,7 +102,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							Eventually(func() bool {
 								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName)
 								return err == nil && isNetProvisioned
-							}).WithPolling(time.Second).WithTimeout(udnCrReadyTimeout).Should(
+							}).WithPolling(time.Second).WithTimeout(udnNetworkReadyTimeout).Should(
 								BeTrueBecause("the network must be ready before creating workloads"),
 							)
 						}
