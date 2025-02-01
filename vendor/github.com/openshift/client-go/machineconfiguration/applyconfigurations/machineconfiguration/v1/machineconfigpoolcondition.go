@@ -3,7 +3,7 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/machineconfiguration/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -11,11 +11,11 @@ import (
 // MachineConfigPoolConditionApplyConfiguration represents a declarative configuration of the MachineConfigPoolCondition type for use
 // with apply.
 type MachineConfigPoolConditionApplyConfiguration struct {
-	Type               *v1.MachineConfigPoolConditionType `json:"type,omitempty"`
-	Status             *corev1.ConditionStatus            `json:"status,omitempty"`
-	LastTransitionTime *metav1.Time                       `json:"lastTransitionTime,omitempty"`
-	Reason             *string                            `json:"reason,omitempty"`
-	Message            *string                            `json:"message,omitempty"`
+	Type               *machineconfigurationv1.MachineConfigPoolConditionType `json:"type,omitempty"`
+	Status             *corev1.ConditionStatus                                `json:"status,omitempty"`
+	LastTransitionTime *metav1.Time                                           `json:"lastTransitionTime,omitempty"`
+	Reason             *string                                                `json:"reason,omitempty"`
+	Message            *string                                                `json:"message,omitempty"`
 }
 
 // MachineConfigPoolConditionApplyConfiguration constructs a declarative configuration of the MachineConfigPoolCondition type for use with
@@ -27,7 +27,7 @@ func MachineConfigPoolCondition() *MachineConfigPoolConditionApplyConfiguration 
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *MachineConfigPoolConditionApplyConfiguration) WithType(value v1.MachineConfigPoolConditionType) *MachineConfigPoolConditionApplyConfiguration {
+func (b *MachineConfigPoolConditionApplyConfiguration) WithType(value machineconfigurationv1.MachineConfigPoolConditionType) *MachineConfigPoolConditionApplyConfiguration {
 	b.Type = &value
 	return b
 }

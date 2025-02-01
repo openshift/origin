@@ -7,7 +7,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImagePrunerSpecApplyConfiguration represents a declarative configuration of the ImagePrunerSpec type for use
@@ -17,7 +17,7 @@ type ImagePrunerSpecApplyConfiguration struct {
 	Suspend                      *bool                        `json:"suspend,omitempty"`
 	KeepTagRevisions             *int                         `json:"keepTagRevisions,omitempty"`
 	KeepYoungerThan              *time.Duration               `json:"keepYoungerThan,omitempty"`
-	KeepYoungerThanDuration      *v1.Duration                 `json:"keepYoungerThanDuration,omitempty"`
+	KeepYoungerThanDuration      *metav1.Duration             `json:"keepYoungerThanDuration,omitempty"`
 	Resources                    *corev1.ResourceRequirements `json:"resources,omitempty"`
 	Affinity                     *corev1.Affinity             `json:"affinity,omitempty"`
 	NodeSelector                 map[string]string            `json:"nodeSelector,omitempty"`
@@ -69,7 +69,7 @@ func (b *ImagePrunerSpecApplyConfiguration) WithKeepYoungerThan(value time.Durat
 // WithKeepYoungerThanDuration sets the KeepYoungerThanDuration field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the KeepYoungerThanDuration field is set to the value of the last call.
-func (b *ImagePrunerSpecApplyConfiguration) WithKeepYoungerThanDuration(value v1.Duration) *ImagePrunerSpecApplyConfiguration {
+func (b *ImagePrunerSpecApplyConfiguration) WithKeepYoungerThanDuration(value metav1.Duration) *ImagePrunerSpecApplyConfiguration {
 	b.KeepYoungerThanDuration = &value
 	return b
 }

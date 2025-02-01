@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/console/v1"
-	consolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	applyconfigurationsconsolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
 	scheme "github.com/openshift/client-go/console/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,33 @@ type ConsoleExternalLogLinksGetter interface {
 
 // ConsoleExternalLogLinkInterface has methods to work with ConsoleExternalLogLink resources.
 type ConsoleExternalLogLinkInterface interface {
-	Create(ctx context.Context, consoleExternalLogLink *v1.ConsoleExternalLogLink, opts metav1.CreateOptions) (*v1.ConsoleExternalLogLink, error)
-	Update(ctx context.Context, consoleExternalLogLink *v1.ConsoleExternalLogLink, opts metav1.UpdateOptions) (*v1.ConsoleExternalLogLink, error)
+	Create(ctx context.Context, consoleExternalLogLink *consolev1.ConsoleExternalLogLink, opts metav1.CreateOptions) (*consolev1.ConsoleExternalLogLink, error)
+	Update(ctx context.Context, consoleExternalLogLink *consolev1.ConsoleExternalLogLink, opts metav1.UpdateOptions) (*consolev1.ConsoleExternalLogLink, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleExternalLogLink, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleExternalLogLinkList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*consolev1.ConsoleExternalLogLink, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*consolev1.ConsoleExternalLogLinkList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleExternalLogLink, err error)
-	Apply(ctx context.Context, consoleExternalLogLink *consolev1.ConsoleExternalLogLinkApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConsoleExternalLogLink, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *consolev1.ConsoleExternalLogLink, err error)
+	Apply(ctx context.Context, consoleExternalLogLink *applyconfigurationsconsolev1.ConsoleExternalLogLinkApplyConfiguration, opts metav1.ApplyOptions) (result *consolev1.ConsoleExternalLogLink, err error)
 	ConsoleExternalLogLinkExpansion
 }
 
 // consoleExternalLogLinks implements ConsoleExternalLogLinkInterface
 type consoleExternalLogLinks struct {
-	*gentype.ClientWithListAndApply[*v1.ConsoleExternalLogLink, *v1.ConsoleExternalLogLinkList, *consolev1.ConsoleExternalLogLinkApplyConfiguration]
+	*gentype.ClientWithListAndApply[*consolev1.ConsoleExternalLogLink, *consolev1.ConsoleExternalLogLinkList, *applyconfigurationsconsolev1.ConsoleExternalLogLinkApplyConfiguration]
 }
 
 // newConsoleExternalLogLinks returns a ConsoleExternalLogLinks
 func newConsoleExternalLogLinks(c *ConsoleV1Client) *consoleExternalLogLinks {
 	return &consoleExternalLogLinks{
-		gentype.NewClientWithListAndApply[*v1.ConsoleExternalLogLink, *v1.ConsoleExternalLogLinkList, *consolev1.ConsoleExternalLogLinkApplyConfiguration](
+		gentype.NewClientWithListAndApply[*consolev1.ConsoleExternalLogLink, *consolev1.ConsoleExternalLogLinkList, *applyconfigurationsconsolev1.ConsoleExternalLogLinkApplyConfiguration](
 			"consoleexternalloglinks",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ConsoleExternalLogLink { return &v1.ConsoleExternalLogLink{} },
-			func() *v1.ConsoleExternalLogLinkList { return &v1.ConsoleExternalLogLinkList{} }),
+			func() *consolev1.ConsoleExternalLogLink { return &consolev1.ConsoleExternalLogLink{} },
+			func() *consolev1.ConsoleExternalLogLinkList { return &consolev1.ConsoleExternalLogLinkList{} },
+		),
 	}
 }

@@ -4,14 +4,14 @@ package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // NodePlacementApplyConfiguration represents a declarative configuration of the NodePlacement type for use
 // with apply.
 type NodePlacementApplyConfiguration struct {
-	NodeSelector *v1.LabelSelectorApplyConfiguration `json:"nodeSelector,omitempty"`
-	Tolerations  []corev1.Toleration                 `json:"tolerations,omitempty"`
+	NodeSelector *metav1.LabelSelectorApplyConfiguration `json:"nodeSelector,omitempty"`
+	Tolerations  []corev1.Toleration                     `json:"tolerations,omitempty"`
 }
 
 // NodePlacementApplyConfiguration constructs a declarative configuration of the NodePlacement type for use with
@@ -23,7 +23,7 @@ func NodePlacement() *NodePlacementApplyConfiguration {
 // WithNodeSelector sets the NodeSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NodeSelector field is set to the value of the last call.
-func (b *NodePlacementApplyConfiguration) WithNodeSelector(value *v1.LabelSelectorApplyConfiguration) *NodePlacementApplyConfiguration {
+func (b *NodePlacementApplyConfiguration) WithNodeSelector(value *metav1.LabelSelectorApplyConfiguration) *NodePlacementApplyConfiguration {
 	b.NodeSelector = value
 	return b
 }

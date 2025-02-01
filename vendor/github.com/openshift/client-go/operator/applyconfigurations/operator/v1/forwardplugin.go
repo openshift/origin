@@ -3,16 +3,16 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // ForwardPluginApplyConfiguration represents a declarative configuration of the ForwardPlugin type for use
 // with apply.
 type ForwardPluginApplyConfiguration struct {
 	Upstreams        []string                              `json:"upstreams,omitempty"`
-	Policy           *v1.ForwardingPolicy                  `json:"policy,omitempty"`
+	Policy           *operatorv1.ForwardingPolicy          `json:"policy,omitempty"`
 	TransportConfig  *DNSTransportConfigApplyConfiguration `json:"transportConfig,omitempty"`
-	ProtocolStrategy *v1.ProtocolStrategy                  `json:"protocolStrategy,omitempty"`
+	ProtocolStrategy *operatorv1.ProtocolStrategy          `json:"protocolStrategy,omitempty"`
 }
 
 // ForwardPluginApplyConfiguration constructs a declarative configuration of the ForwardPlugin type for use with
@@ -34,7 +34,7 @@ func (b *ForwardPluginApplyConfiguration) WithUpstreams(values ...string) *Forwa
 // WithPolicy sets the Policy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Policy field is set to the value of the last call.
-func (b *ForwardPluginApplyConfiguration) WithPolicy(value v1.ForwardingPolicy) *ForwardPluginApplyConfiguration {
+func (b *ForwardPluginApplyConfiguration) WithPolicy(value operatorv1.ForwardingPolicy) *ForwardPluginApplyConfiguration {
 	b.Policy = &value
 	return b
 }
@@ -50,7 +50,7 @@ func (b *ForwardPluginApplyConfiguration) WithTransportConfig(value *DNSTranspor
 // WithProtocolStrategy sets the ProtocolStrategy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ProtocolStrategy field is set to the value of the last call.
-func (b *ForwardPluginApplyConfiguration) WithProtocolStrategy(value v1.ProtocolStrategy) *ForwardPluginApplyConfiguration {
+func (b *ForwardPluginApplyConfiguration) WithProtocolStrategy(value operatorv1.ProtocolStrategy) *ForwardPluginApplyConfiguration {
 	b.ProtocolStrategy = &value
 	return b
 }

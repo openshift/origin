@@ -111,6 +111,25 @@ conventions](https://github.com/openshift/enhancements/blob/master/CONVENTIONS.m
 and then follow the instructions below to regenerate CRDs (if necessary) and
 submit a pull request with your new API definitions and generated files.
 
+New APIs (new CRDs) must be added first as an unstable API (v1alpha1).
+Once the feature is more developed, and ready to be promoted to stable, the API can be promoted to v1.
+
+### Why do we start with v1alpha1?
+
+By starting an API as a v1alpha1, we can iterate on the API with the ability to make breaking changes.
+We can make changes to the schema, change validations, change entire types and even serialization without worry.
+
+When changes are made to an API, any existing client code will need to be updated to match.
+If there are breaking changes (such as changing the serialization), then this requires a new version of the API.
+
+If we did not bump the API version for each breaking change, a client, generated prior to the breaking change,
+would panic when it tried to deserialize the new serialization of the API.
+
+If, during development of a feature, we need to make a breaking change, we should move the feature to v1alpha2 (or v1alpha3, etc),
+until we reach a version that we are happy to promote to v1.
+
+Do not make changes to the API when promoting the feature to v1.
+
 ### Adding a new stable API (v1)
 When copying, it matters which `// +foo` markers are two comments blocks up and which are one comment block up.
 

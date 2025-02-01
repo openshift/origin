@@ -3,10 +3,10 @@
 package v1beta1
 
 import (
-	"context"
+	context "context"
 
-	v1beta1 "github.com/openshift/api/machine/v1beta1"
-	machinev1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	applyconfigurationsmachinev1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
 	scheme "github.com/openshift/client-go/machine/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type MachinesGetter interface {
 
 // MachineInterface has methods to work with Machine resources.
 type MachineInterface interface {
-	Create(ctx context.Context, machine *v1beta1.Machine, opts v1.CreateOptions) (*v1beta1.Machine, error)
-	Update(ctx context.Context, machine *v1beta1.Machine, opts v1.UpdateOptions) (*v1beta1.Machine, error)
+	Create(ctx context.Context, machine *machinev1beta1.Machine, opts v1.CreateOptions) (*machinev1beta1.Machine, error)
+	Update(ctx context.Context, machine *machinev1beta1.Machine, opts v1.UpdateOptions) (*machinev1beta1.Machine, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, machine *v1beta1.Machine, opts v1.UpdateOptions) (*v1beta1.Machine, error)
+	UpdateStatus(ctx context.Context, machine *machinev1beta1.Machine, opts v1.UpdateOptions) (*machinev1beta1.Machine, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.Machine, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.MachineList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*machinev1beta1.Machine, error)
+	List(ctx context.Context, opts v1.ListOptions) (*machinev1beta1.MachineList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Machine, err error)
-	Apply(ctx context.Context, machine *machinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Machine, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *machinev1beta1.Machine, err error)
+	Apply(ctx context.Context, machine *applyconfigurationsmachinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *machinev1beta1.Machine, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, machine *machinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.Machine, err error)
+	ApplyStatus(ctx context.Context, machine *applyconfigurationsmachinev1beta1.MachineApplyConfiguration, opts v1.ApplyOptions) (result *machinev1beta1.Machine, err error)
 	MachineExpansion
 }
 
 // machines implements MachineInterface
 type machines struct {
-	*gentype.ClientWithListAndApply[*v1beta1.Machine, *v1beta1.MachineList, *machinev1beta1.MachineApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machinev1beta1.Machine, *machinev1beta1.MachineList, *applyconfigurationsmachinev1beta1.MachineApplyConfiguration]
 }
 
 // newMachines returns a Machines
 func newMachines(c *MachineV1beta1Client, namespace string) *machines {
 	return &machines{
-		gentype.NewClientWithListAndApply[*v1beta1.Machine, *v1beta1.MachineList, *machinev1beta1.MachineApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machinev1beta1.Machine, *machinev1beta1.MachineList, *applyconfigurationsmachinev1beta1.MachineApplyConfiguration](
 			"machines",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1beta1.Machine { return &v1beta1.Machine{} },
-			func() *v1beta1.MachineList { return &v1beta1.MachineList{} }),
+			func() *machinev1beta1.Machine { return &machinev1beta1.Machine{} },
+			func() *machinev1beta1.MachineList { return &machinev1beta1.MachineList{} },
+		),
 	}
 }

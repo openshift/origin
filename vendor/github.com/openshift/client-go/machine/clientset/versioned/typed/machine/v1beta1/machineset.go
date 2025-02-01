@@ -3,10 +3,10 @@
 package v1beta1
 
 import (
-	"context"
+	context "context"
 
-	v1beta1 "github.com/openshift/api/machine/v1beta1"
-	machinev1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	applyconfigurationsmachinev1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
 	scheme "github.com/openshift/client-go/machine/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type MachineSetsGetter interface {
 
 // MachineSetInterface has methods to work with MachineSet resources.
 type MachineSetInterface interface {
-	Create(ctx context.Context, machineSet *v1beta1.MachineSet, opts v1.CreateOptions) (*v1beta1.MachineSet, error)
-	Update(ctx context.Context, machineSet *v1beta1.MachineSet, opts v1.UpdateOptions) (*v1beta1.MachineSet, error)
+	Create(ctx context.Context, machineSet *machinev1beta1.MachineSet, opts v1.CreateOptions) (*machinev1beta1.MachineSet, error)
+	Update(ctx context.Context, machineSet *machinev1beta1.MachineSet, opts v1.UpdateOptions) (*machinev1beta1.MachineSet, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, machineSet *v1beta1.MachineSet, opts v1.UpdateOptions) (*v1beta1.MachineSet, error)
+	UpdateStatus(ctx context.Context, machineSet *machinev1beta1.MachineSet, opts v1.UpdateOptions) (*machinev1beta1.MachineSet, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.MachineSet, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.MachineSetList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*machinev1beta1.MachineSet, error)
+	List(ctx context.Context, opts v1.ListOptions) (*machinev1beta1.MachineSetList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.MachineSet, err error)
-	Apply(ctx context.Context, machineSet *machinev1beta1.MachineSetApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.MachineSet, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *machinev1beta1.MachineSet, err error)
+	Apply(ctx context.Context, machineSet *applyconfigurationsmachinev1beta1.MachineSetApplyConfiguration, opts v1.ApplyOptions) (result *machinev1beta1.MachineSet, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, machineSet *machinev1beta1.MachineSetApplyConfiguration, opts v1.ApplyOptions) (result *v1beta1.MachineSet, err error)
+	ApplyStatus(ctx context.Context, machineSet *applyconfigurationsmachinev1beta1.MachineSetApplyConfiguration, opts v1.ApplyOptions) (result *machinev1beta1.MachineSet, err error)
 	MachineSetExpansion
 }
 
 // machineSets implements MachineSetInterface
 type machineSets struct {
-	*gentype.ClientWithListAndApply[*v1beta1.MachineSet, *v1beta1.MachineSetList, *machinev1beta1.MachineSetApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machinev1beta1.MachineSet, *machinev1beta1.MachineSetList, *applyconfigurationsmachinev1beta1.MachineSetApplyConfiguration]
 }
 
 // newMachineSets returns a MachineSets
 func newMachineSets(c *MachineV1beta1Client, namespace string) *machineSets {
 	return &machineSets{
-		gentype.NewClientWithListAndApply[*v1beta1.MachineSet, *v1beta1.MachineSetList, *machinev1beta1.MachineSetApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machinev1beta1.MachineSet, *machinev1beta1.MachineSetList, *applyconfigurationsmachinev1beta1.MachineSetApplyConfiguration](
 			"machinesets",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1beta1.MachineSet { return &v1beta1.MachineSet{} },
-			func() *v1beta1.MachineSetList { return &v1beta1.MachineSetList{} }),
+			func() *machinev1beta1.MachineSet { return &machinev1beta1.MachineSet{} },
+			func() *machinev1beta1.MachineSetList { return &machinev1beta1.MachineSetList{} },
+		),
 	}
 }

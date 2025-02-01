@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	projectv1 "github.com/openshift/api/project/v1"
-	v1 "github.com/openshift/client-go/project/applyconfigurations/project/v1"
+	apiprojectv1 "github.com/openshift/api/project/v1"
+	projectv1 "github.com/openshift/client-go/project/applyconfigurations/project/v1"
 	scheme "github.com/openshift/client-go/project/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	gentype "k8s.io/client-go/gentype"
@@ -20,32 +20,33 @@ type ProjectRequestsGetter interface {
 
 // ProjectRequestInterface has methods to work with ProjectRequest resources.
 type ProjectRequestInterface interface {
-	Apply(ctx context.Context, projectRequest *v1.ProjectRequestApplyConfiguration, opts metav1.ApplyOptions) (result *projectv1.ProjectRequest, err error)
-	Create(ctx context.Context, projectRequest *projectv1.ProjectRequest, opts metav1.CreateOptions) (*projectv1.Project, error)
+	Apply(ctx context.Context, projectRequest *projectv1.ProjectRequestApplyConfiguration, opts metav1.ApplyOptions) (result *apiprojectv1.ProjectRequest, err error)
+	Create(ctx context.Context, projectRequest *apiprojectv1.ProjectRequest, opts metav1.CreateOptions) (*apiprojectv1.Project, error)
 
 	ProjectRequestExpansion
 }
 
 // projectRequests implements ProjectRequestInterface
 type projectRequests struct {
-	*gentype.ClientWithApply[*projectv1.ProjectRequest, *v1.ProjectRequestApplyConfiguration]
+	*gentype.ClientWithApply[*apiprojectv1.ProjectRequest, *projectv1.ProjectRequestApplyConfiguration]
 }
 
 // newProjectRequests returns a ProjectRequests
 func newProjectRequests(c *ProjectV1Client) *projectRequests {
 	return &projectRequests{
-		gentype.NewClientWithApply[*projectv1.ProjectRequest, *v1.ProjectRequestApplyConfiguration](
+		gentype.NewClientWithApply[*apiprojectv1.ProjectRequest, *projectv1.ProjectRequestApplyConfiguration](
 			"projectrequests",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *projectv1.ProjectRequest { return &projectv1.ProjectRequest{} }),
+			func() *apiprojectv1.ProjectRequest { return &apiprojectv1.ProjectRequest{} },
+		),
 	}
 }
 
 // Create takes the representation of a projectRequest and creates it.  Returns the server's representation of the project, and an error, if there is any.
-func (c *projectRequests) Create(ctx context.Context, projectRequest *projectv1.ProjectRequest, opts metav1.CreateOptions) (result *projectv1.Project, err error) {
-	result = &projectv1.Project{}
+func (c *projectRequests) Create(ctx context.Context, projectRequest *apiprojectv1.ProjectRequest, opts metav1.CreateOptions) (result *apiprojectv1.Project, err error) {
+	result = &apiprojectv1.Project{}
 	err = c.GetClient().Post().
 		Resource("projectrequests").
 		VersionedParams(&opts, scheme.ParameterCodec).

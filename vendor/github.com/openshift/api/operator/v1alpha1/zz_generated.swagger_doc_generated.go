@@ -44,7 +44,7 @@ func (GenerationHistory) SwaggerDoc() map[string]string {
 
 var map_GenericOperatorConfig = map[string]string{
 	"":               "GenericOperatorConfig provides information to configure an operator\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"servingInfo":    "ServingInfo is the HTTP serving information for the controller's endpoints",
+	"servingInfo":    "servingInfo is the HTTP serving information for the controller's endpoints",
 	"leaderElection": "leaderElection provides information to elect a leader. Only override this if you have a specific need",
 	"authentication": "authentication allows configuration of authentication for the endpoints",
 	"authorization":  "authorization allows configuration of authentication for the endpoints",
@@ -135,6 +135,45 @@ func (VersionAvailability) SwaggerDoc() map[string]string {
 	return map_VersionAvailability
 }
 
+var map_ClusterVersionOperator = map[string]string{
+	"":         "ClusterVersionOperator holds cluster-wide information about the Cluster Version Operator.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec is the specification of the desired behavior of the Cluster Version Operator.",
+	"status":   "status is the most recently observed status of the Cluster Version Operator.",
+}
+
+func (ClusterVersionOperator) SwaggerDoc() map[string]string {
+	return map_ClusterVersionOperator
+}
+
+var map_ClusterVersionOperatorList = map[string]string{
+	"":         "ClusterVersionOperatorList is a collection of ClusterVersionOperators.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items is a list of ClusterVersionOperators.",
+}
+
+func (ClusterVersionOperatorList) SwaggerDoc() map[string]string {
+	return map_ClusterVersionOperatorList
+}
+
+var map_ClusterVersionOperatorSpec = map[string]string{
+	"":                 "ClusterVersionOperatorSpec is the specification of the desired behavior of the Cluster Version Operator.",
+	"operatorLogLevel": "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.\n\nValid values are: \"Normal\", \"Debug\", \"Trace\", \"TraceAll\". Defaults to \"Normal\".",
+}
+
+func (ClusterVersionOperatorSpec) SwaggerDoc() map[string]string {
+	return map_ClusterVersionOperatorSpec
+}
+
+var map_ClusterVersionOperatorStatus = map[string]string{
+	"":                   "ClusterVersionOperatorStatus defines the observed status of the Cluster Version Operator.",
+	"observedGeneration": "observedGeneration represents the most recent generation observed by the operator and specifies the version of the spec field currently being synced.",
+}
+
+func (ClusterVersionOperatorStatus) SwaggerDoc() map[string]string {
+	return map_ClusterVersionOperatorStatus
+}
+
 var map_BackupJobReference = map[string]string{
 	"":          "BackupJobReference holds a reference to the batch/v1 Job created to run the etcd backup",
 	"namespace": "namespace is the namespace of the Job. this is always expected to be \"openshift-etcd\" since the user provided PVC is also required to be in \"openshift-etcd\" Required",
@@ -164,7 +203,7 @@ func (EtcdBackupList) SwaggerDoc() map[string]string {
 }
 
 var map_EtcdBackupSpec = map[string]string{
-	"pvcName": "PVCName specifies the name of the PersistentVolumeClaim (PVC) which binds a PersistentVolume where the etcd backup file would be saved The PVC itself must always be created in the \"openshift-etcd\" namespace If the PVC is left unspecified \"\" then the platform will choose a reasonable default location to save the backup. In the future this would be backups saved across the control-plane master nodes.",
+	"pvcName": "pvcName specifies the name of the PersistentVolumeClaim (PVC) which binds a PersistentVolume where the etcd backup file would be saved The PVC itself must always be created in the \"openshift-etcd\" namespace If the PVC is left unspecified \"\" then the platform will choose a reasonable default location to save the backup. In the future this would be backups saved across the control-plane master nodes.",
 }
 
 func (EtcdBackupSpec) SwaggerDoc() map[string]string {
@@ -232,7 +271,7 @@ func (OLM) SwaggerDoc() map[string]string {
 var map_OLMList = map[string]string{
 	"":         "OLMList is a collection of items\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
-	"items":    "Items contains the items",
+	"items":    "items contains the items",
 }
 
 func (OLMList) SwaggerDoc() map[string]string {

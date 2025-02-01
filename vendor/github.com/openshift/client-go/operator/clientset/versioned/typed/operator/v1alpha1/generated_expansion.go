@@ -2,6 +2,8 @@
 
 package v1alpha1
 
+type ClusterVersionOperatorExpansion interface{}
+
 type EtcdBackupExpansion interface{}
 
 type ImageContentSourcePolicyExpansion interface{}

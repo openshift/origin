@@ -45,13 +45,9 @@ func (in *AlertRelabelConfigList) DeepCopyInto(out *AlertRelabelConfigList) {
 	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]*AlertRelabelConfig, len(*in))
+		*out = make([]AlertRelabelConfig, len(*in))
 		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = new(AlertRelabelConfig)
-				(*in).DeepCopyInto(*out)
-			}
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return

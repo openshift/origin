@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // PrivateStrategyApplyConfiguration represents a declarative configuration of the PrivateStrategy type for use
 // with apply.
 type PrivateStrategyApplyConfiguration struct {
-	Protocol *v1.IngressControllerProtocol `json:"protocol,omitempty"`
+	Protocol *operatorv1.IngressControllerProtocol `json:"protocol,omitempty"`
 }
 
 // PrivateStrategyApplyConfiguration constructs a declarative configuration of the PrivateStrategy type for use with
@@ -21,7 +21,7 @@ func PrivateStrategy() *PrivateStrategyApplyConfiguration {
 // WithProtocol sets the Protocol field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Protocol field is set to the value of the last call.
-func (b *PrivateStrategyApplyConfiguration) WithProtocol(value v1.IngressControllerProtocol) *PrivateStrategyApplyConfiguration {
+func (b *PrivateStrategyApplyConfiguration) WithProtocol(value operatorv1.IngressControllerProtocol) *PrivateStrategyApplyConfiguration {
 	b.Protocol = &value
 	return b
 }

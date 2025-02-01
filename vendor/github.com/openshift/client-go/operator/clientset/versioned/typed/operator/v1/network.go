@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type NetworksGetter interface {
 
 // NetworkInterface has methods to work with Network resources.
 type NetworkInterface interface {
-	Create(ctx context.Context, network *v1.Network, opts metav1.CreateOptions) (*v1.Network, error)
-	Update(ctx context.Context, network *v1.Network, opts metav1.UpdateOptions) (*v1.Network, error)
+	Create(ctx context.Context, network *operatorv1.Network, opts metav1.CreateOptions) (*operatorv1.Network, error)
+	Update(ctx context.Context, network *operatorv1.Network, opts metav1.UpdateOptions) (*operatorv1.Network, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, network *v1.Network, opts metav1.UpdateOptions) (*v1.Network, error)
+	UpdateStatus(ctx context.Context, network *operatorv1.Network, opts metav1.UpdateOptions) (*operatorv1.Network, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Network, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.NetworkList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.Network, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.NetworkList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Network, err error)
-	Apply(ctx context.Context, network *operatorv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Network, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.Network, err error)
+	Apply(ctx context.Context, network *applyconfigurationsoperatorv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.Network, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, network *operatorv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Network, err error)
+	ApplyStatus(ctx context.Context, network *applyconfigurationsoperatorv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.Network, err error)
 	NetworkExpansion
 }
 
 // networks implements NetworkInterface
 type networks struct {
-	*gentype.ClientWithListAndApply[*v1.Network, *v1.NetworkList, *operatorv1.NetworkApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.Network, *operatorv1.NetworkList, *applyconfigurationsoperatorv1.NetworkApplyConfiguration]
 }
 
 // newNetworks returns a Networks
 func newNetworks(c *OperatorV1Client) *networks {
 	return &networks{
-		gentype.NewClientWithListAndApply[*v1.Network, *v1.NetworkList, *operatorv1.NetworkApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.Network, *operatorv1.NetworkList, *applyconfigurationsoperatorv1.NetworkApplyConfiguration](
 			"networks",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.Network { return &v1.Network{} },
-			func() *v1.NetworkList { return &v1.NetworkList{} }),
+			func() *operatorv1.Network { return &operatorv1.Network{} },
+			func() *operatorv1.NetworkList { return &operatorv1.NetworkList{} },
+		),
 	}
 }

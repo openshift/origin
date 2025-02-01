@@ -3,16 +3,16 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 )
 
 // ImageRegistryConfigStorageAlibabaOSSApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageAlibabaOSS type for use
 // with apply.
 type ImageRegistryConfigStorageAlibabaOSSApplyConfiguration struct {
-	Bucket                *string                              `json:"bucket,omitempty"`
-	Region                *string                              `json:"region,omitempty"`
-	EndpointAccessibility *v1.EndpointAccessibility            `json:"endpointAccessibility,omitempty"`
-	Encryption            *EncryptionAlibabaApplyConfiguration `json:"encryption,omitempty"`
+	Bucket                *string                                `json:"bucket,omitempty"`
+	Region                *string                                `json:"region,omitempty"`
+	EndpointAccessibility *imageregistryv1.EndpointAccessibility `json:"endpointAccessibility,omitempty"`
+	Encryption            *EncryptionAlibabaApplyConfiguration   `json:"encryption,omitempty"`
 }
 
 // ImageRegistryConfigStorageAlibabaOSSApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageAlibabaOSS type for use with
@@ -40,7 +40,7 @@ func (b *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration) WithRegion(valu
 // WithEndpointAccessibility sets the EndpointAccessibility field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the EndpointAccessibility field is set to the value of the last call.
-func (b *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration) WithEndpointAccessibility(value v1.EndpointAccessibility) *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration {
+func (b *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration) WithEndpointAccessibility(value imageregistryv1.EndpointAccessibility) *ImageRegistryConfigStorageAlibabaOSSApplyConfiguration {
 	b.EndpointAccessibility = &value
 	return b
 }

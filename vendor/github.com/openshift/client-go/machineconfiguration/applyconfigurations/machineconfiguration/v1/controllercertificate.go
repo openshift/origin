@@ -3,17 +3,17 @@
 package v1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ControllerCertificateApplyConfiguration represents a declarative configuration of the ControllerCertificate type for use
 // with apply.
 type ControllerCertificateApplyConfiguration struct {
-	Subject    *string  `json:"subject,omitempty"`
-	Signer     *string  `json:"signer,omitempty"`
-	NotBefore  *v1.Time `json:"notBefore,omitempty"`
-	NotAfter   *v1.Time `json:"notAfter,omitempty"`
-	BundleFile *string  `json:"bundleFile,omitempty"`
+	Subject    *string      `json:"subject,omitempty"`
+	Signer     *string      `json:"signer,omitempty"`
+	NotBefore  *metav1.Time `json:"notBefore,omitempty"`
+	NotAfter   *metav1.Time `json:"notAfter,omitempty"`
+	BundleFile *string      `json:"bundleFile,omitempty"`
 }
 
 // ControllerCertificateApplyConfiguration constructs a declarative configuration of the ControllerCertificate type for use with
@@ -41,7 +41,7 @@ func (b *ControllerCertificateApplyConfiguration) WithSigner(value string) *Cont
 // WithNotBefore sets the NotBefore field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NotBefore field is set to the value of the last call.
-func (b *ControllerCertificateApplyConfiguration) WithNotBefore(value v1.Time) *ControllerCertificateApplyConfiguration {
+func (b *ControllerCertificateApplyConfiguration) WithNotBefore(value metav1.Time) *ControllerCertificateApplyConfiguration {
 	b.NotBefore = &value
 	return b
 }
@@ -49,7 +49,7 @@ func (b *ControllerCertificateApplyConfiguration) WithNotBefore(value v1.Time) *
 // WithNotAfter sets the NotAfter field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NotAfter field is set to the value of the last call.
-func (b *ControllerCertificateApplyConfiguration) WithNotAfter(value v1.Time) *ControllerCertificateApplyConfiguration {
+func (b *ControllerCertificateApplyConfiguration) WithNotAfter(value metav1.Time) *ControllerCertificateApplyConfiguration {
 	b.NotAfter = &value
 	return b
 }

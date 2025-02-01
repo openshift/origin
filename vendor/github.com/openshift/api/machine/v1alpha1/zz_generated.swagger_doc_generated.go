@@ -76,14 +76,14 @@ func (FixedIPs) SwaggerDoc() map[string]string {
 
 var map_NetworkParam = map[string]string{
 	"uuid":                  "The UUID of the network. Required if you omit the port attribute.",
-	"fixedIp":               "A fixed IPv4 address for the NIC.",
+	"fixedIp":               "A fixed IPv4 address for the NIC. Deprecated: fixedIP is silently ignored. Use subnets instead.",
 	"filter":                "Filters for optional network query",
 	"subnets":               "Subnet within a network to use",
-	"noAllowedAddressPairs": "NoAllowedAddressPairs disables creation of allowed address pairs for the network ports",
-	"portTags":              "PortTags allows users to specify a list of tags to add to ports created in a given network",
+	"noAllowedAddressPairs": "noAllowedAddressPairs disables creation of allowed address pairs for the network ports",
+	"portTags":              "portTags allows users to specify a list of tags to add to ports created in a given network",
 	"vnicType":              "The virtual network interface card (vNIC) type that is bound to the neutron port.",
 	"profile":               "A dictionary that enables the application running on the specified host to pass and receive virtual network interface (VIF) port-specific information to the plug-in.",
-	"portSecurity":          "PortSecurity optionally enables or disables security on ports managed by OpenStack",
+	"portSecurity":          "portSecurity optionally enables or disables security on ports managed by OpenStack",
 }
 
 func (NetworkParam) SwaggerDoc() map[string]string {
@@ -98,7 +98,7 @@ var map_OpenstackProviderSpec = map[string]string{
 	"flavor":                 "The flavor reference for the flavor for your server instance.",
 	"image":                  "The name of the image to use for your server instance. If the RootVolume is specified, this will be ignored and use rootVolume directly.",
 	"keyName":                "The ssh key to inject in the instance",
-	"sshUserName":            "The machine ssh username",
+	"sshUserName":            "The machine ssh username Deprecated: sshUserName is silently ignored.",
 	"networks":               "A networks object. Required parameter when there are multiple networks defined for the tenant. When you do not specify the networks parameter, the server attaches to the only network created for the current tenant.",
 	"ports":                  "Create and assign additional ports to instances",
 	"floatingIP":             "floatingIP specifies a floating IP to be associated with the machine. Note that it is not safe to use this parameter in a MachineSet, as only one Machine may be assigned the same floating IP.\n\nDeprecated: floatingIP will be removed in a future release as it cannot be implemented correctly.",
@@ -113,7 +113,7 @@ var map_OpenstackProviderSpec = map[string]string{
 	"additionalBlockDevices": "additionalBlockDevices is a list of specifications for additional block devices to attach to the server instance",
 	"serverGroupID":          "The server group to assign the machine to.",
 	"serverGroupName":        "The server group to assign the machine to. A server group with that name will be created if it does not exist. If both ServerGroupID and ServerGroupName are non-empty, they must refer to the same OpenStack resource.",
-	"primarySubnet":          "The subnet that a set of machines will get ingress/egress traffic from",
+	"primarySubnet":          "The subnet that a set of machines will get ingress/egress traffic from Deprecated: primarySubnet is silently ignored. Use subnets instead.",
 }
 
 func (OpenstackProviderSpec) SwaggerDoc() map[string]string {
@@ -127,8 +127,8 @@ var map_PortOpts = map[string]string{
 	"adminStateUp":        "adminStateUp sets the administrative state of the created port to up (true), or down (false).",
 	"macAddress":          "macAddress specifies the MAC address of the created port.",
 	"fixedIPs":            "fixedIPs specifies a set of fixed IPs to assign to the port. They must all be valid for the port's network.",
-	"tenantID":            "tenantID specifies the tenant ID of the created port. Note that this requires OpenShift to have administrative permissions, which is typically not the case. Use of this field is not recommended. Deprecated: use projectID instead. It will be ignored if projectID is set.",
-	"projectID":           "projectID specifies the project ID of the created port. Note that this requires OpenShift to have administrative permissions, which is typically not the case. Use of this field is not recommended.",
+	"tenantID":            "tenantID specifies the tenant ID of the created port. Note that this requires OpenShift to have administrative permissions, which is typically not the case. Use of this field is not recommended. Deprecated: tenantID is silently ignored.",
+	"projectID":           "projectID specifies the project ID of the created port. Note that this requires OpenShift to have administrative permissions, which is typically not the case. Use of this field is not recommended. Deprecated: projectID is silently ignored.",
 	"securityGroups":      "securityGroups specifies a set of security group UUIDs to use instead of the machine's default security groups. The default security groups will be used if this is left empty or not specified.",
 	"allowedAddressPairs": "allowedAddressPairs specifies a set of allowed address pairs to add to the port.",
 	"tags":                "tags species a set of tags to add to the port.",
@@ -146,7 +146,7 @@ func (PortOpts) SwaggerDoc() map[string]string {
 var map_RootVolume = map[string]string{
 	"sourceUUID":       "sourceUUID specifies the UUID of a glance image used to populate the root volume. Deprecated: set image in the platform spec instead. This will be ignored if image is set in the platform spec.",
 	"volumeType":       "volumeType specifies a volume type to use when creating the root volume. If not specified the default volume type will be used.",
-	"diskSize":         "diskSize specifies the size, in GB, of the created root volume.",
+	"diskSize":         "diskSize specifies the size, in GiB, of the created root volume.",
 	"availabilityZone": "availabilityZone specifies the Cinder availability where the root volume will be created.",
 	"sourceType":       "Deprecated: sourceType will be silently ignored. There is no replacement.",
 	"deviceType":       "Deprecated: deviceType will be silently ignored. There is no replacement.",
@@ -198,7 +198,7 @@ var map_SubnetFilter = map[string]string{
 	"cidr":            "cidr filters subnets by CIDR.",
 	"ipv6AddressMode": "ipv6AddressMode filters subnets by IPv6 address mode.",
 	"ipv6RaMode":      "ipv6RaMode filters subnets by IPv6 router adversiement mode.",
-	"subnetpoolId":    "subnetpoolId filters subnets by subnet pool ID.",
+	"subnetpoolId":    "subnetpoolId filters subnets by subnet pool ID. Deprecated: subnetpoolId is silently ignored.",
 	"tags":            "tags filters by subnets containing all specified tags. Multiple tags are comma separated.",
 	"tagsAny":         "tagsAny filters by subnets containing any specified tags. Multiple tags are comma separated.",
 	"notTags":         "notTags filters by subnets which don't match all specified tags. NOT (t1 AND t2...) Multiple tags are comma separated.",
@@ -217,8 +217,8 @@ func (SubnetFilter) SwaggerDoc() map[string]string {
 var map_SubnetParam = map[string]string{
 	"uuid":         "The UUID of the network. Required if you omit the port attribute.",
 	"filter":       "Filters for optional network query",
-	"portTags":     "PortTags are tags that are added to ports created on this subnet",
-	"portSecurity": "PortSecurity optionally enables or disables security on ports managed by OpenStack",
+	"portTags":     "portTags are tags that are added to ports created on this subnet",
+	"portSecurity": "portSecurity optionally enables or disables security on ports managed by OpenStack Deprecated: portSecurity is silently ignored. Set portSecurity on the parent network instead.",
 }
 
 func (SubnetParam) SwaggerDoc() map[string]string {

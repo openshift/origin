@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/clock"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +13,7 @@ import (
 type inMemoryEventRecorder struct {
 	events []*corev1.Event
 	source string
+	clock  clock.PassiveClock
 	ctx    context.Context
 	sync.Mutex
 }
@@ -31,8 +33,12 @@ type InMemoryRecorder interface {
 
 // NewInMemoryRecorder provides event recorder that stores all events recorded in memory and allow to replay them using the Events() method.
 // This recorder should be only used in unit tests.
-func NewInMemoryRecorder(sourceComponent string) InMemoryRecorder {
-	return &inMemoryEventRecorder{events: []*corev1.Event{}, source: sourceComponent}
+func NewInMemoryRecorder(sourceComponent string, clock clock.PassiveClock) InMemoryRecorder {
+	return &inMemoryEventRecorder{
+		events: []*corev1.Event{},
+		source: sourceComponent,
+		clock:  clock,
+	}
 }
 
 func (r *inMemoryEventRecorder) ComponentName() string {
@@ -65,7 +71,7 @@ func (r *inMemoryEventRecorder) Events() []*corev1.Event {
 func (r *inMemoryEventRecorder) Event(reason, message string) {
 	r.Lock()
 	defer r.Unlock()
-	event := makeEvent(&inMemoryDummyObjectReference, r.source, corev1.EventTypeNormal, reason, message)
+	event := makeEvent(r.clock, &inMemoryDummyObjectReference, r.source, corev1.EventTypeNormal, reason, message)
 	r.events = append(r.events, event)
 }
 
@@ -76,7 +82,7 @@ func (r *inMemoryEventRecorder) Eventf(reason, messageFmt string, args ...interf
 func (r *inMemoryEventRecorder) Warning(reason, message string) {
 	r.Lock()
 	defer r.Unlock()
-	event := makeEvent(&inMemoryDummyObjectReference, r.source, corev1.EventTypeWarning, reason, message)
+	event := makeEvent(r.clock, &inMemoryDummyObjectReference, r.source, corev1.EventTypeWarning, reason, message)
 	klog.Info(event.String())
 	r.events = append(r.events, event)
 }

@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/imageregistry/v1"
-	imageregistryv1 "github.com/openshift/client-go/imageregistry/applyconfigurations/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
+	applyconfigurationsimageregistryv1 "github.com/openshift/client-go/imageregistry/applyconfigurations/imageregistry/v1"
 	scheme "github.com/openshift/client-go/imageregistry/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type ConfigsGetter interface {
 
 // ConfigInterface has methods to work with Config resources.
 type ConfigInterface interface {
-	Create(ctx context.Context, config *v1.Config, opts metav1.CreateOptions) (*v1.Config, error)
-	Update(ctx context.Context, config *v1.Config, opts metav1.UpdateOptions) (*v1.Config, error)
+	Create(ctx context.Context, config *imageregistryv1.Config, opts metav1.CreateOptions) (*imageregistryv1.Config, error)
+	Update(ctx context.Context, config *imageregistryv1.Config, opts metav1.UpdateOptions) (*imageregistryv1.Config, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, config *v1.Config, opts metav1.UpdateOptions) (*v1.Config, error)
+	UpdateStatus(ctx context.Context, config *imageregistryv1.Config, opts metav1.UpdateOptions) (*imageregistryv1.Config, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Config, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConfigList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*imageregistryv1.Config, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*imageregistryv1.ConfigList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Config, err error)
-	Apply(ctx context.Context, config *imageregistryv1.ConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Config, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *imageregistryv1.Config, err error)
+	Apply(ctx context.Context, config *applyconfigurationsimageregistryv1.ConfigApplyConfiguration, opts metav1.ApplyOptions) (result *imageregistryv1.Config, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, config *imageregistryv1.ConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Config, err error)
+	ApplyStatus(ctx context.Context, config *applyconfigurationsimageregistryv1.ConfigApplyConfiguration, opts metav1.ApplyOptions) (result *imageregistryv1.Config, err error)
 	ConfigExpansion
 }
 
 // configs implements ConfigInterface
 type configs struct {
-	*gentype.ClientWithListAndApply[*v1.Config, *v1.ConfigList, *imageregistryv1.ConfigApplyConfiguration]
+	*gentype.ClientWithListAndApply[*imageregistryv1.Config, *imageregistryv1.ConfigList, *applyconfigurationsimageregistryv1.ConfigApplyConfiguration]
 }
 
 // newConfigs returns a Configs
 func newConfigs(c *ImageregistryV1Client) *configs {
 	return &configs{
-		gentype.NewClientWithListAndApply[*v1.Config, *v1.ConfigList, *imageregistryv1.ConfigApplyConfiguration](
+		gentype.NewClientWithListAndApply[*imageregistryv1.Config, *imageregistryv1.ConfigList, *applyconfigurationsimageregistryv1.ConfigApplyConfiguration](
 			"configs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.Config { return &v1.Config{} },
-			func() *v1.ConfigList { return &v1.ConfigList{} }),
+			func() *imageregistryv1.Config { return &imageregistryv1.Config{} },
+			func() *imageregistryv1.ConfigList { return &imageregistryv1.ConfigList{} },
+		),
 	}
 }

@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
 )
 
 // ConsolePluginProxyEndpointApplyConfiguration represents a declarative configuration of the ConsolePluginProxyEndpoint type for use
 // with apply.
 type ConsolePluginProxyEndpointApplyConfiguration struct {
-	Type    *v1.ConsolePluginProxyType                         `json:"type,omitempty"`
+	Type    *consolev1.ConsolePluginProxyType                  `json:"type,omitempty"`
 	Service *ConsolePluginProxyServiceConfigApplyConfiguration `json:"service,omitempty"`
 }
 
@@ -22,7 +22,7 @@ func ConsolePluginProxyEndpoint() *ConsolePluginProxyEndpointApplyConfiguration 
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *ConsolePluginProxyEndpointApplyConfiguration) WithType(value v1.ConsolePluginProxyType) *ConsolePluginProxyEndpointApplyConfiguration {
+func (b *ConsolePluginProxyEndpointApplyConfiguration) WithType(value consolev1.ConsolePluginProxyType) *ConsolePluginProxyEndpointApplyConfiguration {
 	b.Type = &value
 	return b
 }

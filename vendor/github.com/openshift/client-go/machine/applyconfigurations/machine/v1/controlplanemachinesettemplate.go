@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/machine/v1"
+	machinev1 "github.com/openshift/api/machine/v1"
 )
 
 // ControlPlaneMachineSetTemplateApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetTemplate type for use
 // with apply.
 type ControlPlaneMachineSetTemplateApplyConfiguration struct {
-	MachineType                    *v1.ControlPlaneMachineSetMachineType                     `json:"machineType,omitempty"`
+	MachineType                    *machinev1.ControlPlaneMachineSetMachineType              `json:"machineType,omitempty"`
 	OpenShiftMachineV1Beta1Machine *OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration `json:"machines_v1beta1_machine_openshift_io,omitempty"`
 }
 
@@ -22,7 +22,7 @@ func ControlPlaneMachineSetTemplate() *ControlPlaneMachineSetTemplateApplyConfig
 // WithMachineType sets the MachineType field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MachineType field is set to the value of the last call.
-func (b *ControlPlaneMachineSetTemplateApplyConfiguration) WithMachineType(value v1.ControlPlaneMachineSetMachineType) *ControlPlaneMachineSetTemplateApplyConfiguration {
+func (b *ControlPlaneMachineSetTemplateApplyConfiguration) WithMachineType(value machinev1.ControlPlaneMachineSetMachineType) *ControlPlaneMachineSetTemplateApplyConfiguration {
 	b.MachineType = &value
 	return b
 }

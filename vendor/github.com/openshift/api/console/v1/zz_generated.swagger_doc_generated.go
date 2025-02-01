@@ -91,7 +91,7 @@ func (ConsoleExternalLogLinkSpec) SwaggerDoc() map[string]string {
 var map_ApplicationMenuSpec = map[string]string{
 	"":         "ApplicationMenuSpec is the specification of the desired section and icon used for the link in the application menu.",
 	"section":  "section is the section of the application menu in which the link should appear. This can be any text that will appear as a subheading in the application menu dropdown. A new section will be created if the text does not match text of an existing section.",
-	"imageURL": "imageUrl is the URL for the icon used in front of the link in the application menu. The URL must be an HTTPS URL or a Data URI. The image should be square and will be shown at 24x24 pixels.",
+	"imageURL": "imageURL is the URL for the icon used in front of the link in the application menu. The URL must be an HTTPS URL or a Data URI. The image should be square and will be shown at 24x24 pixels.",
 }
 
 func (ApplicationMenuSpec) SwaggerDoc() map[string]string {
@@ -171,6 +171,7 @@ func (ConsoleNotificationSpec) SwaggerDoc() map[string]string {
 var map_ConsolePlugin = map[string]string{
 	"":         "ConsolePlugin is an extension for customizing OpenShift web console by dynamically loading code from another service running on the cluster.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec contains the desired configuration for the console plugin.",
 }
 
 func (ConsolePlugin) SwaggerDoc() map[string]string {
@@ -185,6 +186,16 @@ var map_ConsolePluginBackend = map[string]string{
 
 func (ConsolePluginBackend) SwaggerDoc() map[string]string {
 	return map_ConsolePluginBackend
+}
+
+var map_ConsolePluginCSP = map[string]string{
+	"":          "ConsolePluginCSP holds configuration for a specific CSP directive",
+	"directive": "directive specifies which Content-Security-Policy directive to configure. Available directive types are DefaultSrc, ScriptSrc, StyleSrc, ImgSrc, FontSrc and ConnectSrc. DefaultSrc directive serves as a fallback for the other CSP fetch directives. For more information about the DefaultSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src ScriptSrc directive specifies valid sources for JavaScript. For more information about the ScriptSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src StyleSrc directive specifies valid sources for stylesheets. For more information about the StyleSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src ImgSrc directive specifies a valid sources of images and favicons. For more information about the ImgSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src FontSrc directive specifies valid sources for fonts loaded using @font-face. For more information about the FontSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src ConnectSrc directive restricts the URLs which can be loaded using script interfaces. For more information about the ConnectSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/connect-src",
+	"values":    "values defines an array of values to append to the console defaults for this directive. Each ConsolePlugin may define their own directives with their values. These will be set by the OpenShift web console's backend, as part of its Content-Security-Policy header. The array can contain at most 16 values. Each directive value must have a maximum length of 1024 characters and must not contain whitespace, commas (,), semicolons (;) or single quotes ('). The value '*' is not permitted. Each value in the array must be unique.",
+}
+
+func (ConsolePluginCSP) SwaggerDoc() map[string]string {
+	return map_ConsolePluginCSP
 }
 
 var map_ConsolePluginI18n = map[string]string{
@@ -251,11 +262,12 @@ func (ConsolePluginService) SwaggerDoc() map[string]string {
 }
 
 var map_ConsolePluginSpec = map[string]string{
-	"":            "ConsolePluginSpec is the desired plugin configuration.",
-	"displayName": "displayName is the display name of the plugin. The dispalyName should be between 1 and 128 characters.",
-	"backend":     "backend holds the configuration of backend which is serving console's plugin .",
-	"proxy":       "proxy is a list of proxies that describe various service type to which the plugin needs to connect to.",
-	"i18n":        "i18n is the configuration of plugin's localization resources.",
+	"":                      "ConsolePluginSpec is the desired plugin configuration.",
+	"displayName":           "displayName is the display name of the plugin. The dispalyName should be between 1 and 128 characters.",
+	"backend":               "backend holds the configuration of backend which is serving console's plugin .",
+	"proxy":                 "proxy is a list of proxies that describe various service type to which the plugin needs to connect to.",
+	"i18n":                  "i18n is the configuration of plugin's localization resources.",
+	"contentSecurityPolicy": "contentSecurityPolicy is a list of Content-Security-Policy (CSP) directives for the plugin. Each directive specifies a list of values, appropriate for the given directive type, for example a list of remote endpoints for fetch directives such as ScriptSrc. Console web application uses CSP to detect and mitigate certain types of attacks, such as cross-site scripting (XSS) and data injection attacks. Dynamic plugins should specify this field if need to load assets from outside the cluster or if violation reports are observed. Dynamic plugins should always prefer loading their assets from within the cluster, either by vendoring them, or fetching from a cluster service. CSP violation reports can be viewed in the browser's console logs during development and testing of the plugin in the OpenShift web console. Available directive types are DefaultSrc, ScriptSrc, StyleSrc, ImgSrc, FontSrc and ConnectSrc. Each of the available directives may be defined only once in the list. The value 'self' is automatically included in all fetch directives by the OpenShift web console's backend. For more information about the CSP directives, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy\n\nThe OpenShift web console server aggregates the CSP directives and values across its own default values and all enabled ConsolePlugin CRs, merging them into a single policy string that is sent to the browser via `Content-Security-Policy` HTTP response header.\n\nExample:\n  ConsolePlugin A directives:\n    script-src: https://script1.com/, https://script2.com/\n    font-src: https://font1.com/\n\n  ConsolePlugin B directives:\n    script-src: https://script2.com/, https://script3.com/\n    font-src: https://font2.com/\n    img-src: https://img1.com/\n\n  Unified set of CSP directives, passed to the OpenShift web console server:\n    script-src: https://script1.com/, https://script2.com/, https://script3.com/\n    font-src: https://font1.com/, https://font2.com/\n    img-src: https://img1.com/\n\n  OpenShift web console server CSP response header:\n    Content-Security-Policy: default-src 'self'; base-uri 'self'; script-src 'self' https://script1.com/ https://script2.com/ https://script3.com/; font-src 'self' https://font1.com/ https://font2.com/; img-src 'self' https://img1.com/; style-src 'self'; frame-src 'none'; object-src 'none'",
 }
 
 func (ConsolePluginSpec) SwaggerDoc() map[string]string {

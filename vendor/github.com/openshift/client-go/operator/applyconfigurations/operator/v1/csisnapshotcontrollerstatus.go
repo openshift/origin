@@ -18,7 +18,7 @@ func CSISnapshotControllerStatus() *CSISnapshotControllerStatusApplyConfiguratio
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *CSISnapshotControllerStatusApplyConfiguration) WithObservedGeneration(value int64) *CSISnapshotControllerStatusApplyConfiguration {
-	b.ObservedGeneration = &value
+	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
 	return b
 }
 
@@ -30,7 +30,7 @@ func (b *CSISnapshotControllerStatusApplyConfiguration) WithConditions(values ..
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
 	}
 	return b
 }
@@ -39,7 +39,7 @@ func (b *CSISnapshotControllerStatusApplyConfiguration) WithConditions(values ..
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *CSISnapshotControllerStatusApplyConfiguration) WithVersion(value string) *CSISnapshotControllerStatusApplyConfiguration {
-	b.Version = &value
+	b.OperatorStatusApplyConfiguration.Version = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *CSISnapshotControllerStatusApplyConfiguration) WithVersion(value string
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *CSISnapshotControllerStatusApplyConfiguration) WithReadyReplicas(value int32) *CSISnapshotControllerStatusApplyConfiguration {
-	b.ReadyReplicas = &value
+	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *CSISnapshotControllerStatusApplyConfiguration) WithReadyReplicas(value 
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *CSISnapshotControllerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *CSISnapshotControllerStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
+	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
 	return b
 }
 
@@ -67,7 +67,7 @@ func (b *CSISnapshotControllerStatusApplyConfiguration) WithGenerations(values .
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.Generations = append(b.Generations, *values[i])
+		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
 	return b
 }

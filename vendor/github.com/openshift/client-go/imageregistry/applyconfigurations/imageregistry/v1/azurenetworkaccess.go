@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 )
 
 // AzureNetworkAccessApplyConfiguration represents a declarative configuration of the AzureNetworkAccess type for use
 // with apply.
 type AzureNetworkAccessApplyConfiguration struct {
-	Type     *v1.AzureNetworkAccessType                    `json:"type,omitempty"`
+	Type     *imageregistryv1.AzureNetworkAccessType       `json:"type,omitempty"`
 	Internal *AzureNetworkAccessInternalApplyConfiguration `json:"internal,omitempty"`
 }
 
@@ -22,7 +22,7 @@ func AzureNetworkAccess() *AzureNetworkAccessApplyConfiguration {
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *AzureNetworkAccessApplyConfiguration) WithType(value v1.AzureNetworkAccessType) *AzureNetworkAccessApplyConfiguration {
+func (b *AzureNetworkAccessApplyConfiguration) WithType(value imageregistryv1.AzureNetworkAccessType) *AzureNetworkAccessApplyConfiguration {
 	b.Type = &value
 	return b
 }

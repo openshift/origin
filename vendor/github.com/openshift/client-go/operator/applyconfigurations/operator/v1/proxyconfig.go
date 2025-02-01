@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // ProxyConfigApplyConfiguration represents a declarative configuration of the ProxyConfig type for use
 // with apply.
 type ProxyConfigApplyConfiguration struct {
-	IptablesSyncPeriod *string                         `json:"iptablesSyncPeriod,omitempty"`
-	BindAddress        *string                         `json:"bindAddress,omitempty"`
-	ProxyArguments     map[string]v1.ProxyArgumentList `json:"proxyArguments,omitempty"`
+	IptablesSyncPeriod *string                                 `json:"iptablesSyncPeriod,omitempty"`
+	BindAddress        *string                                 `json:"bindAddress,omitempty"`
+	ProxyArguments     map[string]operatorv1.ProxyArgumentList `json:"proxyArguments,omitempty"`
 }
 
 // ProxyConfigApplyConfiguration constructs a declarative configuration of the ProxyConfig type for use with
@@ -40,9 +40,9 @@ func (b *ProxyConfigApplyConfiguration) WithBindAddress(value string) *ProxyConf
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the ProxyArguments field,
 // overwriting an existing map entries in ProxyArguments field with the same key.
-func (b *ProxyConfigApplyConfiguration) WithProxyArguments(entries map[string]v1.ProxyArgumentList) *ProxyConfigApplyConfiguration {
+func (b *ProxyConfigApplyConfiguration) WithProxyArguments(entries map[string]operatorv1.ProxyArgumentList) *ProxyConfigApplyConfiguration {
 	if b.ProxyArguments == nil && len(entries) > 0 {
-		b.ProxyArguments = make(map[string]v1.ProxyArgumentList, len(entries))
+		b.ProxyArguments = make(map[string]operatorv1.ProxyArgumentList, len(entries))
 	}
 	for k, v := range entries {
 		b.ProxyArguments[k] = v

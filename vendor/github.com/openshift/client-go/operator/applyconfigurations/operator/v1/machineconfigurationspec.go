@@ -25,7 +25,7 @@ func MachineConfigurationSpec() *MachineConfigurationSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *MachineConfigurationSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -33,7 +33,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithManagementState(value o
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *MachineConfigurationSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -41,7 +41,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithLogLevel(value operator
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *MachineConfigurationSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -49,7 +49,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithOperatorLogLevel(value 
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *MachineConfigurationSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -57,7 +57,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithUnsupportedConfigOverri
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *MachineConfigurationSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 
@@ -65,7 +65,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithObservedConfig(value ru
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ForceRedeploymentReason field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithForceRedeploymentReason(value string) *MachineConfigurationSpecApplyConfiguration {
-	b.ForceRedeploymentReason = &value
+	b.StaticPodOperatorSpecApplyConfiguration.ForceRedeploymentReason = &value
 	return b
 }
 
@@ -73,7 +73,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithForceRedeploymentReason
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the FailedRevisionLimit field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithFailedRevisionLimit(value int32) *MachineConfigurationSpecApplyConfiguration {
-	b.FailedRevisionLimit = &value
+	b.StaticPodOperatorSpecApplyConfiguration.FailedRevisionLimit = &value
 	return b
 }
 
@@ -81,7 +81,7 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithFailedRevisionLimit(val
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the SucceededRevisionLimit field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithSucceededRevisionLimit(value int32) *MachineConfigurationSpecApplyConfiguration {
-	b.SucceededRevisionLimit = &value
+	b.StaticPodOperatorSpecApplyConfiguration.SucceededRevisionLimit = &value
 	return b
 }
 
