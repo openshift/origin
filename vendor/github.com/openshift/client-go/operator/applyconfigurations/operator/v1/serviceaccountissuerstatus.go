@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ServiceAccountIssuerStatusApplyConfiguration represents a declarative configuration of the ServiceAccountIssuerStatus type for use
 // with apply.
 type ServiceAccountIssuerStatusApplyConfiguration struct {
-	Name           *string  `json:"name,omitempty"`
-	ExpirationTime *v1.Time `json:"expirationTime,omitempty"`
+	Name           *string      `json:"name,omitempty"`
+	ExpirationTime *metav1.Time `json:"expirationTime,omitempty"`
 }
 
 // ServiceAccountIssuerStatusApplyConfiguration constructs a declarative configuration of the ServiceAccountIssuerStatus type for use with
@@ -30,7 +30,7 @@ func (b *ServiceAccountIssuerStatusApplyConfiguration) WithName(value string) *S
 // WithExpirationTime sets the ExpirationTime field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ExpirationTime field is set to the value of the last call.
-func (b *ServiceAccountIssuerStatusApplyConfiguration) WithExpirationTime(value v1.Time) *ServiceAccountIssuerStatusApplyConfiguration {
+func (b *ServiceAccountIssuerStatusApplyConfiguration) WithExpirationTime(value metav1.Time) *ServiceAccountIssuerStatusApplyConfiguration {
 	b.ExpirationTime = &value
 	return b
 }

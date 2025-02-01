@@ -3,18 +3,18 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // OperatorSpecApplyConfiguration represents a declarative configuration of the OperatorSpec type for use
 // with apply.
 type OperatorSpecApplyConfiguration struct {
-	ManagementState            *v1.ManagementState   `json:"managementState,omitempty"`
-	LogLevel                   *v1.LogLevel          `json:"logLevel,omitempty"`
-	OperatorLogLevel           *v1.LogLevel          `json:"operatorLogLevel,omitempty"`
-	UnsupportedConfigOverrides *runtime.RawExtension `json:"unsupportedConfigOverrides,omitempty"`
-	ObservedConfig             *runtime.RawExtension `json:"observedConfig,omitempty"`
+	ManagementState            *operatorv1.ManagementState `json:"managementState,omitempty"`
+	LogLevel                   *operatorv1.LogLevel        `json:"logLevel,omitempty"`
+	OperatorLogLevel           *operatorv1.LogLevel        `json:"operatorLogLevel,omitempty"`
+	UnsupportedConfigOverrides *runtime.RawExtension       `json:"unsupportedConfigOverrides,omitempty"`
+	ObservedConfig             *runtime.RawExtension       `json:"observedConfig,omitempty"`
 }
 
 // OperatorSpecApplyConfiguration constructs a declarative configuration of the OperatorSpec type for use with
@@ -26,7 +26,7 @@ func OperatorSpec() *OperatorSpecApplyConfiguration {
 // WithManagementState sets the ManagementState field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
-func (b *OperatorSpecApplyConfiguration) WithManagementState(value v1.ManagementState) *OperatorSpecApplyConfiguration {
+func (b *OperatorSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *OperatorSpecApplyConfiguration {
 	b.ManagementState = &value
 	return b
 }
@@ -34,7 +34,7 @@ func (b *OperatorSpecApplyConfiguration) WithManagementState(value v1.Management
 // WithLogLevel sets the LogLevel field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
-func (b *OperatorSpecApplyConfiguration) WithLogLevel(value v1.LogLevel) *OperatorSpecApplyConfiguration {
+func (b *OperatorSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *OperatorSpecApplyConfiguration {
 	b.LogLevel = &value
 	return b
 }
@@ -42,7 +42,7 @@ func (b *OperatorSpecApplyConfiguration) WithLogLevel(value v1.LogLevel) *Operat
 // WithOperatorLogLevel sets the OperatorLogLevel field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
-func (b *OperatorSpecApplyConfiguration) WithOperatorLogLevel(value v1.LogLevel) *OperatorSpecApplyConfiguration {
+func (b *OperatorSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *OperatorSpecApplyConfiguration {
 	b.OperatorLogLevel = &value
 	return b
 }

@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/machineconfiguration/v1"
-	machineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
+	applyconfigurationsmachineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
 	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,33 @@ type MachineConfigsGetter interface {
 
 // MachineConfigInterface has methods to work with MachineConfig resources.
 type MachineConfigInterface interface {
-	Create(ctx context.Context, machineConfig *v1.MachineConfig, opts metav1.CreateOptions) (*v1.MachineConfig, error)
-	Update(ctx context.Context, machineConfig *v1.MachineConfig, opts metav1.UpdateOptions) (*v1.MachineConfig, error)
+	Create(ctx context.Context, machineConfig *machineconfigurationv1.MachineConfig, opts metav1.CreateOptions) (*machineconfigurationv1.MachineConfig, error)
+	Update(ctx context.Context, machineConfig *machineconfigurationv1.MachineConfig, opts metav1.UpdateOptions) (*machineconfigurationv1.MachineConfig, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.MachineConfig, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.MachineConfigList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*machineconfigurationv1.MachineConfig, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*machineconfigurationv1.MachineConfigList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.MachineConfig, err error)
-	Apply(ctx context.Context, machineConfig *machineconfigurationv1.MachineConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.MachineConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *machineconfigurationv1.MachineConfig, err error)
+	Apply(ctx context.Context, machineConfig *applyconfigurationsmachineconfigurationv1.MachineConfigApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.MachineConfig, err error)
 	MachineConfigExpansion
 }
 
 // machineConfigs implements MachineConfigInterface
 type machineConfigs struct {
-	*gentype.ClientWithListAndApply[*v1.MachineConfig, *v1.MachineConfigList, *machineconfigurationv1.MachineConfigApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machineconfigurationv1.MachineConfig, *machineconfigurationv1.MachineConfigList, *applyconfigurationsmachineconfigurationv1.MachineConfigApplyConfiguration]
 }
 
 // newMachineConfigs returns a MachineConfigs
 func newMachineConfigs(c *MachineconfigurationV1Client) *machineConfigs {
 	return &machineConfigs{
-		gentype.NewClientWithListAndApply[*v1.MachineConfig, *v1.MachineConfigList, *machineconfigurationv1.MachineConfigApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machineconfigurationv1.MachineConfig, *machineconfigurationv1.MachineConfigList, *applyconfigurationsmachineconfigurationv1.MachineConfigApplyConfiguration](
 			"machineconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.MachineConfig { return &v1.MachineConfig{} },
-			func() *v1.MachineConfigList { return &v1.MachineConfigList{} }),
+			func() *machineconfigurationv1.MachineConfig { return &machineconfigurationv1.MachineConfig{} },
+			func() *machineconfigurationv1.MachineConfigList { return &machineconfigurationv1.MachineConfigList{} },
+		),
 	}
 }

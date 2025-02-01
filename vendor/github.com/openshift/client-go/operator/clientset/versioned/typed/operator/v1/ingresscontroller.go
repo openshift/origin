@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type IngressControllersGetter interface {
 
 // IngressControllerInterface has methods to work with IngressController resources.
 type IngressControllerInterface interface {
-	Create(ctx context.Context, ingressController *v1.IngressController, opts metav1.CreateOptions) (*v1.IngressController, error)
-	Update(ctx context.Context, ingressController *v1.IngressController, opts metav1.UpdateOptions) (*v1.IngressController, error)
+	Create(ctx context.Context, ingressController *operatorv1.IngressController, opts metav1.CreateOptions) (*operatorv1.IngressController, error)
+	Update(ctx context.Context, ingressController *operatorv1.IngressController, opts metav1.UpdateOptions) (*operatorv1.IngressController, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, ingressController *v1.IngressController, opts metav1.UpdateOptions) (*v1.IngressController, error)
+	UpdateStatus(ctx context.Context, ingressController *operatorv1.IngressController, opts metav1.UpdateOptions) (*operatorv1.IngressController, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.IngressController, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.IngressControllerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.IngressController, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.IngressControllerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.IngressController, err error)
-	Apply(ctx context.Context, ingressController *operatorv1.IngressControllerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.IngressController, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.IngressController, err error)
+	Apply(ctx context.Context, ingressController *applyconfigurationsoperatorv1.IngressControllerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.IngressController, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, ingressController *operatorv1.IngressControllerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.IngressController, err error)
+	ApplyStatus(ctx context.Context, ingressController *applyconfigurationsoperatorv1.IngressControllerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.IngressController, err error)
 	IngressControllerExpansion
 }
 
 // ingressControllers implements IngressControllerInterface
 type ingressControllers struct {
-	*gentype.ClientWithListAndApply[*v1.IngressController, *v1.IngressControllerList, *operatorv1.IngressControllerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.IngressController, *operatorv1.IngressControllerList, *applyconfigurationsoperatorv1.IngressControllerApplyConfiguration]
 }
 
 // newIngressControllers returns a IngressControllers
 func newIngressControllers(c *OperatorV1Client, namespace string) *ingressControllers {
 	return &ingressControllers{
-		gentype.NewClientWithListAndApply[*v1.IngressController, *v1.IngressControllerList, *operatorv1.IngressControllerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.IngressController, *operatorv1.IngressControllerList, *applyconfigurationsoperatorv1.IngressControllerApplyConfiguration](
 			"ingresscontrollers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1.IngressController { return &v1.IngressController{} },
-			func() *v1.IngressControllerList { return &v1.IngressControllerList{} }),
+			func() *operatorv1.IngressController { return &operatorv1.IngressController{} },
+			func() *operatorv1.IngressControllerList { return &operatorv1.IngressControllerList{} },
+		),
 	}
 }

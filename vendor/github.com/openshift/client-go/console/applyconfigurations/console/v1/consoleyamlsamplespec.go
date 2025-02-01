@@ -4,13 +4,13 @@ package v1
 
 import (
 	consolev1 "github.com/openshift/api/console/v1"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ConsoleYAMLSampleSpecApplyConfiguration represents a declarative configuration of the ConsoleYAMLSampleSpec type for use
 // with apply.
 type ConsoleYAMLSampleSpecApplyConfiguration struct {
-	TargetResource *v1.TypeMetaApplyConfiguration          `json:"targetResource,omitempty"`
+	TargetResource *metav1.TypeMetaApplyConfiguration      `json:"targetResource,omitempty"`
 	Title          *consolev1.ConsoleYAMLSampleTitle       `json:"title,omitempty"`
 	Description    *consolev1.ConsoleYAMLSampleDescription `json:"description,omitempty"`
 	YAML           *consolev1.ConsoleYAMLSampleYAML        `json:"yaml,omitempty"`
@@ -26,7 +26,7 @@ func ConsoleYAMLSampleSpec() *ConsoleYAMLSampleSpecApplyConfiguration {
 // WithTargetResource sets the TargetResource field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the TargetResource field is set to the value of the last call.
-func (b *ConsoleYAMLSampleSpecApplyConfiguration) WithTargetResource(value *v1.TypeMetaApplyConfiguration) *ConsoleYAMLSampleSpecApplyConfiguration {
+func (b *ConsoleYAMLSampleSpecApplyConfiguration) WithTargetResource(value *metav1.TypeMetaApplyConfiguration) *ConsoleYAMLSampleSpecApplyConfiguration {
 	b.TargetResource = value
 	return b
 }

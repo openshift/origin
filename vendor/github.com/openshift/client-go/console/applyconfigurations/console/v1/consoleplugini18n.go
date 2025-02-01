@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
 )
 
 // ConsolePluginI18nApplyConfiguration represents a declarative configuration of the ConsolePluginI18n type for use
 // with apply.
 type ConsolePluginI18nApplyConfiguration struct {
-	LoadType *v1.LoadType `json:"loadType,omitempty"`
+	LoadType *consolev1.LoadType `json:"loadType,omitempty"`
 }
 
 // ConsolePluginI18nApplyConfiguration constructs a declarative configuration of the ConsolePluginI18n type for use with
@@ -21,7 +21,7 @@ func ConsolePluginI18n() *ConsolePluginI18nApplyConfiguration {
 // WithLoadType sets the LoadType field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LoadType field is set to the value of the last call.
-func (b *ConsolePluginI18nApplyConfiguration) WithLoadType(value v1.LoadType) *ConsolePluginI18nApplyConfiguration {
+func (b *ConsolePluginI18nApplyConfiguration) WithLoadType(value consolev1.LoadType) *ConsolePluginI18nApplyConfiguration {
 	b.LoadType = &value
 	return b
 }

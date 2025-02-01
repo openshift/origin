@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 )
 
 // EncryptionAlibabaApplyConfiguration represents a declarative configuration of the EncryptionAlibaba type for use
 // with apply.
 type EncryptionAlibabaApplyConfiguration struct {
-	Method *v1.AlibabaEncryptionMethod             `json:"method,omitempty"`
-	KMS    *KMSEncryptionAlibabaApplyConfiguration `json:"kms,omitempty"`
+	Method *imageregistryv1.AlibabaEncryptionMethod `json:"method,omitempty"`
+	KMS    *KMSEncryptionAlibabaApplyConfiguration  `json:"kms,omitempty"`
 }
 
 // EncryptionAlibabaApplyConfiguration constructs a declarative configuration of the EncryptionAlibaba type for use with
@@ -22,7 +22,7 @@ func EncryptionAlibaba() *EncryptionAlibabaApplyConfiguration {
 // WithMethod sets the Method field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Method field is set to the value of the last call.
-func (b *EncryptionAlibabaApplyConfiguration) WithMethod(value v1.AlibabaEncryptionMethod) *EncryptionAlibabaApplyConfiguration {
+func (b *EncryptionAlibabaApplyConfiguration) WithMethod(value imageregistryv1.AlibabaEncryptionMethod) *EncryptionAlibabaApplyConfiguration {
 	b.Method = &value
 	return b
 }

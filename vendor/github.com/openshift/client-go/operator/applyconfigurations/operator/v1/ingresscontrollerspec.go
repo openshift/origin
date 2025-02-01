@@ -3,8 +3,8 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/config/v1"
-	apioperatorv1 "github.com/openshift/api/operator/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -13,23 +13,24 @@ import (
 // IngressControllerSpecApplyConfiguration represents a declarative configuration of the IngressControllerSpec type for use
 // with apply.
 type IngressControllerSpecApplyConfiguration struct {
-	Domain                     *string                                           `json:"domain,omitempty"`
-	HttpErrorCodePages         *v1.ConfigMapNameReference                        `json:"httpErrorCodePages,omitempty"`
-	Replicas                   *int32                                            `json:"replicas,omitempty"`
-	EndpointPublishingStrategy *EndpointPublishingStrategyApplyConfiguration     `json:"endpointPublishingStrategy,omitempty"`
-	DefaultCertificate         *corev1.LocalObjectReference                      `json:"defaultCertificate,omitempty"`
-	NamespaceSelector          *metav1.LabelSelectorApplyConfiguration           `json:"namespaceSelector,omitempty"`
-	RouteSelector              *metav1.LabelSelectorApplyConfiguration           `json:"routeSelector,omitempty"`
-	NodePlacement              *NodePlacementApplyConfiguration                  `json:"nodePlacement,omitempty"`
-	TLSSecurityProfile         *v1.TLSSecurityProfile                            `json:"tlsSecurityProfile,omitempty"`
-	ClientTLS                  *ClientTLSApplyConfiguration                      `json:"clientTLS,omitempty"`
-	RouteAdmission             *RouteAdmissionPolicyApplyConfiguration           `json:"routeAdmission,omitempty"`
-	Logging                    *IngressControllerLoggingApplyConfiguration       `json:"logging,omitempty"`
-	HTTPHeaders                *IngressControllerHTTPHeadersApplyConfiguration   `json:"httpHeaders,omitempty"`
-	HTTPEmptyRequestsPolicy    *apioperatorv1.HTTPEmptyRequestsPolicy            `json:"httpEmptyRequestsPolicy,omitempty"`
-	TuningOptions              *IngressControllerTuningOptionsApplyConfiguration `json:"tuningOptions,omitempty"`
-	UnsupportedConfigOverrides *runtime.RawExtension                             `json:"unsupportedConfigOverrides,omitempty"`
-	HTTPCompression            *HTTPCompressionPolicyApplyConfiguration          `json:"httpCompression,omitempty"`
+	Domain                          *string                                                  `json:"domain,omitempty"`
+	HttpErrorCodePages              *configv1.ConfigMapNameReference                         `json:"httpErrorCodePages,omitempty"`
+	Replicas                        *int32                                                   `json:"replicas,omitempty"`
+	EndpointPublishingStrategy      *EndpointPublishingStrategyApplyConfiguration            `json:"endpointPublishingStrategy,omitempty"`
+	DefaultCertificate              *corev1.LocalObjectReference                             `json:"defaultCertificate,omitempty"`
+	NamespaceSelector               *metav1.LabelSelectorApplyConfiguration                  `json:"namespaceSelector,omitempty"`
+	RouteSelector                   *metav1.LabelSelectorApplyConfiguration                  `json:"routeSelector,omitempty"`
+	NodePlacement                   *NodePlacementApplyConfiguration                         `json:"nodePlacement,omitempty"`
+	TLSSecurityProfile              *configv1.TLSSecurityProfile                             `json:"tlsSecurityProfile,omitempty"`
+	ClientTLS                       *ClientTLSApplyConfiguration                             `json:"clientTLS,omitempty"`
+	RouteAdmission                  *RouteAdmissionPolicyApplyConfiguration                  `json:"routeAdmission,omitempty"`
+	Logging                         *IngressControllerLoggingApplyConfiguration              `json:"logging,omitempty"`
+	HTTPHeaders                     *IngressControllerHTTPHeadersApplyConfiguration          `json:"httpHeaders,omitempty"`
+	HTTPEmptyRequestsPolicy         *operatorv1.HTTPEmptyRequestsPolicy                      `json:"httpEmptyRequestsPolicy,omitempty"`
+	TuningOptions                   *IngressControllerTuningOptionsApplyConfiguration        `json:"tuningOptions,omitempty"`
+	UnsupportedConfigOverrides      *runtime.RawExtension                                    `json:"unsupportedConfigOverrides,omitempty"`
+	HTTPCompression                 *HTTPCompressionPolicyApplyConfiguration                 `json:"httpCompression,omitempty"`
+	IdleConnectionTerminationPolicy *operatorv1.IngressControllerConnectionTerminationPolicy `json:"idleConnectionTerminationPolicy,omitempty"`
 }
 
 // IngressControllerSpecApplyConfiguration constructs a declarative configuration of the IngressControllerSpec type for use with
@@ -49,7 +50,7 @@ func (b *IngressControllerSpecApplyConfiguration) WithDomain(value string) *Ingr
 // WithHttpErrorCodePages sets the HttpErrorCodePages field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the HttpErrorCodePages field is set to the value of the last call.
-func (b *IngressControllerSpecApplyConfiguration) WithHttpErrorCodePages(value v1.ConfigMapNameReference) *IngressControllerSpecApplyConfiguration {
+func (b *IngressControllerSpecApplyConfiguration) WithHttpErrorCodePages(value configv1.ConfigMapNameReference) *IngressControllerSpecApplyConfiguration {
 	b.HttpErrorCodePages = &value
 	return b
 }
@@ -105,7 +106,7 @@ func (b *IngressControllerSpecApplyConfiguration) WithNodePlacement(value *NodeP
 // WithTLSSecurityProfile sets the TLSSecurityProfile field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the TLSSecurityProfile field is set to the value of the last call.
-func (b *IngressControllerSpecApplyConfiguration) WithTLSSecurityProfile(value v1.TLSSecurityProfile) *IngressControllerSpecApplyConfiguration {
+func (b *IngressControllerSpecApplyConfiguration) WithTLSSecurityProfile(value configv1.TLSSecurityProfile) *IngressControllerSpecApplyConfiguration {
 	b.TLSSecurityProfile = &value
 	return b
 }
@@ -145,7 +146,7 @@ func (b *IngressControllerSpecApplyConfiguration) WithHTTPHeaders(value *Ingress
 // WithHTTPEmptyRequestsPolicy sets the HTTPEmptyRequestsPolicy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the HTTPEmptyRequestsPolicy field is set to the value of the last call.
-func (b *IngressControllerSpecApplyConfiguration) WithHTTPEmptyRequestsPolicy(value apioperatorv1.HTTPEmptyRequestsPolicy) *IngressControllerSpecApplyConfiguration {
+func (b *IngressControllerSpecApplyConfiguration) WithHTTPEmptyRequestsPolicy(value operatorv1.HTTPEmptyRequestsPolicy) *IngressControllerSpecApplyConfiguration {
 	b.HTTPEmptyRequestsPolicy = &value
 	return b
 }
@@ -171,5 +172,13 @@ func (b *IngressControllerSpecApplyConfiguration) WithUnsupportedConfigOverrides
 // If called multiple times, the HTTPCompression field is set to the value of the last call.
 func (b *IngressControllerSpecApplyConfiguration) WithHTTPCompression(value *HTTPCompressionPolicyApplyConfiguration) *IngressControllerSpecApplyConfiguration {
 	b.HTTPCompression = value
+	return b
+}
+
+// WithIdleConnectionTerminationPolicy sets the IdleConnectionTerminationPolicy field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IdleConnectionTerminationPolicy field is set to the value of the last call.
+func (b *IngressControllerSpecApplyConfiguration) WithIdleConnectionTerminationPolicy(value operatorv1.IngressControllerConnectionTerminationPolicy) *IngressControllerSpecApplyConfiguration {
+	b.IdleConnectionTerminationPolicy = &value
 	return b
 }

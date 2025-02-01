@@ -3,21 +3,21 @@
 package v1
 
 import (
-	apiimageregistryv1 "github.com/openshift/api/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 	internal "github.com/openshift/client-go/imageregistry/applyconfigurations/internal"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ImagePrunerApplyConfiguration represents a declarative configuration of the ImagePruner type for use
 // with apply.
 type ImagePrunerApplyConfiguration struct {
-	v1.TypeMetaApplyConfiguration    `json:",inline"`
-	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                             *ImagePrunerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                           *ImagePrunerStatusApplyConfiguration `json:"status,omitempty"`
+	metav1.TypeMetaApplyConfiguration    `json:",inline"`
+	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                                 *ImagePrunerSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                               *ImagePrunerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ImagePruner constructs a declarative configuration of the ImagePruner type for use with
@@ -41,18 +41,18 @@ func ImagePruner(name string) *ImagePrunerApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractImagePruner(imagePruner *apiimageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
+func ExtractImagePruner(imagePruner *imageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
 	return extractImagePruner(imagePruner, fieldManager, "")
 }
 
 // ExtractImagePrunerStatus is the same as ExtractImagePruner except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractImagePrunerStatus(imagePruner *apiimageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
+func ExtractImagePrunerStatus(imagePruner *imageregistryv1.ImagePruner, fieldManager string) (*ImagePrunerApplyConfiguration, error) {
 	return extractImagePruner(imagePruner, fieldManager, "status")
 }
 
-func extractImagePruner(imagePruner *apiimageregistryv1.ImagePruner, fieldManager string, subresource string) (*ImagePrunerApplyConfiguration, error) {
+func extractImagePruner(imagePruner *imageregistryv1.ImagePruner, fieldManager string, subresource string) (*ImagePrunerApplyConfiguration, error) {
 	b := &ImagePrunerApplyConfiguration{}
 	err := managedfields.ExtractInto(imagePruner, internal.Parser().Type("com.github.openshift.api.imageregistry.v1.ImagePruner"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractImagePruner(imagePruner *apiimageregistryv1.ImagePruner, fieldManage
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithKind(value string) *ImagePrunerApplyConfiguration {
-	b.Kind = &value
+	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *ImagePrunerApplyConfiguration) WithKind(value string) *ImagePrunerApply
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithAPIVersion(value string) *ImagePrunerApplyConfiguration {
-	b.APIVersion = &value
+	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *ImagePrunerApplyConfiguration) WithAPIVersion(value string) *ImagePrune
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithName(value string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Name = &value
+	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *ImagePrunerApplyConfiguration) WithName(value string) *ImagePrunerApply
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithGenerateName(value string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.GenerateName = &value
+	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *ImagePrunerApplyConfiguration) WithGenerateName(value string) *ImagePru
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithNamespace(value string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Namespace = &value
+	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ImagePrunerApplyConfiguration) WithNamespace(value string) *ImagePruner
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithUID(value types.UID) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.UID = &value
+	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *ImagePrunerApplyConfiguration) WithUID(value types.UID) *ImagePrunerApp
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithResourceVersion(value string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ResourceVersion = &value
+	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *ImagePrunerApplyConfiguration) WithResourceVersion(value string) *Image
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithGeneration(value int64) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.Generation = &value
+	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ImagePrunerApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ImagePrunerApplyConfiguration {
+func (b *ImagePrunerApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.CreationTimestamp = &value
+	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ImagePrunerApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ImagePrunerApplyConfiguration {
+func (b *ImagePrunerApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.DeletionTimestamp = &value
+	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *ImagePrunerApplyConfiguration) WithDeletionTimestamp(value metav1.Time)
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ImagePrunerApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.DeletionGracePeriodSeconds = &value
+	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *ImagePrunerApplyConfiguration) WithDeletionGracePeriodSeconds(value int
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ImagePrunerApplyConfiguration) WithLabels(entries map[string]string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.Labels == nil && len(entries) > 0 {
-		b.Labels = make(map[string]string, len(entries))
+	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.Labels[k] = v
+		b.ObjectMetaApplyConfiguration.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *ImagePrunerApplyConfiguration) WithLabels(entries map[string]string) *I
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ImagePrunerApplyConfiguration) WithAnnotations(entries map[string]string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.Annotations == nil && len(entries) > 0 {
-		b.Annotations = make(map[string]string, len(entries))
+	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
+		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.Annotations[k] = v
+		b.ObjectMetaApplyConfiguration.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *ImagePrunerApplyConfiguration) WithAnnotations(entries map[string]strin
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ImagePrunerApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ImagePrunerApplyConfiguration {
+func (b *ImagePrunerApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.OwnerReferences = append(b.OwnerReferences, *values[i])
+		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *ImagePrunerApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerR
 func (b *ImagePrunerApplyConfiguration) WithFinalizers(values ...string) *ImagePrunerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.Finalizers = append(b.Finalizers, values[i])
+		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ImagePrunerApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *ImagePrunerApplyConfiguration) WithStatus(value *ImagePrunerStatusApply
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ImagePrunerApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.Name
+	return b.ObjectMetaApplyConfiguration.Name
 }

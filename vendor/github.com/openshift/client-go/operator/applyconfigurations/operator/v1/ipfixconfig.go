@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // IPFIXConfigApplyConfiguration represents a declarative configuration of the IPFIXConfig type for use
 // with apply.
 type IPFIXConfigApplyConfiguration struct {
-	Collectors []v1.IPPort `json:"collectors,omitempty"`
+	Collectors []operatorv1.IPPort `json:"collectors,omitempty"`
 }
 
 // IPFIXConfigApplyConfiguration constructs a declarative configuration of the IPFIXConfig type for use with
@@ -21,7 +21,7 @@ func IPFIXConfig() *IPFIXConfigApplyConfiguration {
 // WithCollectors adds the given value to the Collectors field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Collectors field.
-func (b *IPFIXConfigApplyConfiguration) WithCollectors(values ...v1.IPPort) *IPFIXConfigApplyConfiguration {
+func (b *IPFIXConfigApplyConfiguration) WithCollectors(values ...operatorv1.IPPort) *IPFIXConfigApplyConfiguration {
 	for i := range values {
 		b.Collectors = append(b.Collectors, values[i])
 	}

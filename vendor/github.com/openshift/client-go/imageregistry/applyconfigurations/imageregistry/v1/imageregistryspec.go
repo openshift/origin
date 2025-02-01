@@ -3,8 +3,8 @@
 package v1
 
 import (
-	operatorv1 "github.com/openshift/api/operator/v1"
-	v1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	apioperatorv1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -12,23 +12,23 @@ import (
 // ImageRegistrySpecApplyConfiguration represents a declarative configuration of the ImageRegistrySpec type for use
 // with apply.
 type ImageRegistrySpecApplyConfiguration struct {
-	v1.OperatorSpecApplyConfiguration `json:",inline"`
-	HTTPSecret                        *string                                        `json:"httpSecret,omitempty"`
-	Proxy                             *ImageRegistryConfigProxyApplyConfiguration    `json:"proxy,omitempty"`
-	Storage                           *ImageRegistryConfigStorageApplyConfiguration  `json:"storage,omitempty"`
-	ReadOnly                          *bool                                          `json:"readOnly,omitempty"`
-	DisableRedirect                   *bool                                          `json:"disableRedirect,omitempty"`
-	Requests                          *ImageRegistryConfigRequestsApplyConfiguration `json:"requests,omitempty"`
-	DefaultRoute                      *bool                                          `json:"defaultRoute,omitempty"`
-	Routes                            []ImageRegistryConfigRouteApplyConfiguration   `json:"routes,omitempty"`
-	Replicas                          *int32                                         `json:"replicas,omitempty"`
-	Logging                           *int64                                         `json:"logging,omitempty"`
-	Resources                         *corev1.ResourceRequirements                   `json:"resources,omitempty"`
-	NodeSelector                      map[string]string                              `json:"nodeSelector,omitempty"`
-	Tolerations                       []corev1.Toleration                            `json:"tolerations,omitempty"`
-	RolloutStrategy                   *string                                        `json:"rolloutStrategy,omitempty"`
-	Affinity                          *corev1.Affinity                               `json:"affinity,omitempty"`
-	TopologySpreadConstraints         []corev1.TopologySpreadConstraint              `json:"topologySpreadConstraints,omitempty"`
+	operatorv1.OperatorSpecApplyConfiguration `json:",inline"`
+	HTTPSecret                                *string                                        `json:"httpSecret,omitempty"`
+	Proxy                                     *ImageRegistryConfigProxyApplyConfiguration    `json:"proxy,omitempty"`
+	Storage                                   *ImageRegistryConfigStorageApplyConfiguration  `json:"storage,omitempty"`
+	ReadOnly                                  *bool                                          `json:"readOnly,omitempty"`
+	DisableRedirect                           *bool                                          `json:"disableRedirect,omitempty"`
+	Requests                                  *ImageRegistryConfigRequestsApplyConfiguration `json:"requests,omitempty"`
+	DefaultRoute                              *bool                                          `json:"defaultRoute,omitempty"`
+	Routes                                    []ImageRegistryConfigRouteApplyConfiguration   `json:"routes,omitempty"`
+	Replicas                                  *int32                                         `json:"replicas,omitempty"`
+	Logging                                   *int64                                         `json:"logging,omitempty"`
+	Resources                                 *corev1.ResourceRequirements                   `json:"resources,omitempty"`
+	NodeSelector                              map[string]string                              `json:"nodeSelector,omitempty"`
+	Tolerations                               []corev1.Toleration                            `json:"tolerations,omitempty"`
+	RolloutStrategy                           *string                                        `json:"rolloutStrategy,omitempty"`
+	Affinity                                  *corev1.Affinity                               `json:"affinity,omitempty"`
+	TopologySpreadConstraints                 []corev1.TopologySpreadConstraint              `json:"topologySpreadConstraints,omitempty"`
 }
 
 // ImageRegistrySpecApplyConfiguration constructs a declarative configuration of the ImageRegistrySpec type for use with
@@ -40,24 +40,24 @@ func ImageRegistrySpec() *ImageRegistrySpecApplyConfiguration {
 // WithManagementState sets the ManagementState field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
-func (b *ImageRegistrySpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *ImageRegistrySpecApplyConfiguration {
-	b.ManagementState = &value
+func (b *ImageRegistrySpecApplyConfiguration) WithManagementState(value apioperatorv1.ManagementState) *ImageRegistrySpecApplyConfiguration {
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
 // WithLogLevel sets the LogLevel field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
-func (b *ImageRegistrySpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *ImageRegistrySpecApplyConfiguration {
-	b.LogLevel = &value
+func (b *ImageRegistrySpecApplyConfiguration) WithLogLevel(value apioperatorv1.LogLevel) *ImageRegistrySpecApplyConfiguration {
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
 // WithOperatorLogLevel sets the OperatorLogLevel field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
-func (b *ImageRegistrySpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *ImageRegistrySpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+func (b *ImageRegistrySpecApplyConfiguration) WithOperatorLogLevel(value apioperatorv1.LogLevel) *ImageRegistrySpecApplyConfiguration {
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -65,7 +65,7 @@ func (b *ImageRegistrySpecApplyConfiguration) WithOperatorLogLevel(value operato
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *ImageRegistrySpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *ImageRegistrySpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -73,7 +73,7 @@ func (b *ImageRegistrySpecApplyConfiguration) WithUnsupportedConfigOverrides(val
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *ImageRegistrySpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *ImageRegistrySpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 

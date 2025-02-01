@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/machineconfiguration/v1"
-	machineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
+	applyconfigurationsmachineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
 	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,39 @@ type ControllerConfigsGetter interface {
 
 // ControllerConfigInterface has methods to work with ControllerConfig resources.
 type ControllerConfigInterface interface {
-	Create(ctx context.Context, controllerConfig *v1.ControllerConfig, opts metav1.CreateOptions) (*v1.ControllerConfig, error)
-	Update(ctx context.Context, controllerConfig *v1.ControllerConfig, opts metav1.UpdateOptions) (*v1.ControllerConfig, error)
+	Create(ctx context.Context, controllerConfig *machineconfigurationv1.ControllerConfig, opts metav1.CreateOptions) (*machineconfigurationv1.ControllerConfig, error)
+	Update(ctx context.Context, controllerConfig *machineconfigurationv1.ControllerConfig, opts metav1.UpdateOptions) (*machineconfigurationv1.ControllerConfig, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, controllerConfig *v1.ControllerConfig, opts metav1.UpdateOptions) (*v1.ControllerConfig, error)
+	UpdateStatus(ctx context.Context, controllerConfig *machineconfigurationv1.ControllerConfig, opts metav1.UpdateOptions) (*machineconfigurationv1.ControllerConfig, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ControllerConfig, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ControllerConfigList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*machineconfigurationv1.ControllerConfig, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*machineconfigurationv1.ControllerConfigList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ControllerConfig, err error)
-	Apply(ctx context.Context, controllerConfig *machineconfigurationv1.ControllerConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ControllerConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *machineconfigurationv1.ControllerConfig, err error)
+	Apply(ctx context.Context, controllerConfig *applyconfigurationsmachineconfigurationv1.ControllerConfigApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.ControllerConfig, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, controllerConfig *machineconfigurationv1.ControllerConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ControllerConfig, err error)
+	ApplyStatus(ctx context.Context, controllerConfig *applyconfigurationsmachineconfigurationv1.ControllerConfigApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.ControllerConfig, err error)
 	ControllerConfigExpansion
 }
 
 // controllerConfigs implements ControllerConfigInterface
 type controllerConfigs struct {
-	*gentype.ClientWithListAndApply[*v1.ControllerConfig, *v1.ControllerConfigList, *machineconfigurationv1.ControllerConfigApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machineconfigurationv1.ControllerConfig, *machineconfigurationv1.ControllerConfigList, *applyconfigurationsmachineconfigurationv1.ControllerConfigApplyConfiguration]
 }
 
 // newControllerConfigs returns a ControllerConfigs
 func newControllerConfigs(c *MachineconfigurationV1Client) *controllerConfigs {
 	return &controllerConfigs{
-		gentype.NewClientWithListAndApply[*v1.ControllerConfig, *v1.ControllerConfigList, *machineconfigurationv1.ControllerConfigApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machineconfigurationv1.ControllerConfig, *machineconfigurationv1.ControllerConfigList, *applyconfigurationsmachineconfigurationv1.ControllerConfigApplyConfiguration](
 			"controllerconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ControllerConfig { return &v1.ControllerConfig{} },
-			func() *v1.ControllerConfigList { return &v1.ControllerConfigList{} }),
+			func() *machineconfigurationv1.ControllerConfig { return &machineconfigurationv1.ControllerConfig{} },
+			func() *machineconfigurationv1.ControllerConfigList {
+				return &machineconfigurationv1.ControllerConfigList{}
+			},
+		),
 	}
 }

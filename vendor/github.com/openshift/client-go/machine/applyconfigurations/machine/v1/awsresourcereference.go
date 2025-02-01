@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/machine/v1"
+	machinev1 "github.com/openshift/api/machine/v1"
 )
 
 // AWSResourceReferenceApplyConfiguration represents a declarative configuration of the AWSResourceReference type for use
 // with apply.
 type AWSResourceReferenceApplyConfiguration struct {
-	Type    *v1.AWSResourceReferenceType           `json:"type,omitempty"`
+	Type    *machinev1.AWSResourceReferenceType    `json:"type,omitempty"`
 	ID      *string                                `json:"id,omitempty"`
 	ARN     *string                                `json:"arn,omitempty"`
 	Filters *[]AWSResourceFilterApplyConfiguration `json:"filters,omitempty"`
@@ -24,7 +24,7 @@ func AWSResourceReference() *AWSResourceReferenceApplyConfiguration {
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *AWSResourceReferenceApplyConfiguration) WithType(value v1.AWSResourceReferenceType) *AWSResourceReferenceApplyConfiguration {
+func (b *AWSResourceReferenceApplyConfiguration) WithType(value machinev1.AWSResourceReferenceType) *AWSResourceReferenceApplyConfiguration {
 	b.Type = &value
 	return b
 }

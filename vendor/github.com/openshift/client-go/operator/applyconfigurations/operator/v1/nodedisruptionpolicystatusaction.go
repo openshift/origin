@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // NodeDisruptionPolicyStatusActionApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatusAction type for use
 // with apply.
 type NodeDisruptionPolicyStatusActionApplyConfiguration struct {
-	Type    *v1.NodeDisruptionPolicyStatusActionType `json:"type,omitempty"`
-	Reload  *ReloadServiceApplyConfiguration         `json:"reload,omitempty"`
-	Restart *RestartServiceApplyConfiguration        `json:"restart,omitempty"`
+	Type    *operatorv1.NodeDisruptionPolicyStatusActionType `json:"type,omitempty"`
+	Reload  *ReloadServiceApplyConfiguration                 `json:"reload,omitempty"`
+	Restart *RestartServiceApplyConfiguration                `json:"restart,omitempty"`
 }
 
 // NodeDisruptionPolicyStatusActionApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicyStatusAction type for use with
@@ -23,7 +23,7 @@ func NodeDisruptionPolicyStatusAction() *NodeDisruptionPolicyStatusActionApplyCo
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *NodeDisruptionPolicyStatusActionApplyConfiguration) WithType(value v1.NodeDisruptionPolicyStatusActionType) *NodeDisruptionPolicyStatusActionApplyConfiguration {
+func (b *NodeDisruptionPolicyStatusActionApplyConfiguration) WithType(value operatorv1.NodeDisruptionPolicyStatusActionType) *NodeDisruptionPolicyStatusActionApplyConfiguration {
 	b.Type = &value
 	return b
 }

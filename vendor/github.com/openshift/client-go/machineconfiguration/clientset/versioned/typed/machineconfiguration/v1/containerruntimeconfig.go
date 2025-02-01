@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/machineconfiguration/v1"
-	machineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
+	applyconfigurationsmachineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
 	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,41 @@ type ContainerRuntimeConfigsGetter interface {
 
 // ContainerRuntimeConfigInterface has methods to work with ContainerRuntimeConfig resources.
 type ContainerRuntimeConfigInterface interface {
-	Create(ctx context.Context, containerRuntimeConfig *v1.ContainerRuntimeConfig, opts metav1.CreateOptions) (*v1.ContainerRuntimeConfig, error)
-	Update(ctx context.Context, containerRuntimeConfig *v1.ContainerRuntimeConfig, opts metav1.UpdateOptions) (*v1.ContainerRuntimeConfig, error)
+	Create(ctx context.Context, containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, opts metav1.CreateOptions) (*machineconfigurationv1.ContainerRuntimeConfig, error)
+	Update(ctx context.Context, containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, opts metav1.UpdateOptions) (*machineconfigurationv1.ContainerRuntimeConfig, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, containerRuntimeConfig *v1.ContainerRuntimeConfig, opts metav1.UpdateOptions) (*v1.ContainerRuntimeConfig, error)
+	UpdateStatus(ctx context.Context, containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, opts metav1.UpdateOptions) (*machineconfigurationv1.ContainerRuntimeConfig, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ContainerRuntimeConfig, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ContainerRuntimeConfigList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*machineconfigurationv1.ContainerRuntimeConfig, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*machineconfigurationv1.ContainerRuntimeConfigList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ContainerRuntimeConfig, err error)
-	Apply(ctx context.Context, containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ContainerRuntimeConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *machineconfigurationv1.ContainerRuntimeConfig, err error)
+	Apply(ctx context.Context, containerRuntimeConfig *applyconfigurationsmachineconfigurationv1.ContainerRuntimeConfigApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.ContainerRuntimeConfig, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ContainerRuntimeConfig, err error)
+	ApplyStatus(ctx context.Context, containerRuntimeConfig *applyconfigurationsmachineconfigurationv1.ContainerRuntimeConfigApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.ContainerRuntimeConfig, err error)
 	ContainerRuntimeConfigExpansion
 }
 
 // containerRuntimeConfigs implements ContainerRuntimeConfigInterface
 type containerRuntimeConfigs struct {
-	*gentype.ClientWithListAndApply[*v1.ContainerRuntimeConfig, *v1.ContainerRuntimeConfigList, *machineconfigurationv1.ContainerRuntimeConfigApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machineconfigurationv1.ContainerRuntimeConfig, *machineconfigurationv1.ContainerRuntimeConfigList, *applyconfigurationsmachineconfigurationv1.ContainerRuntimeConfigApplyConfiguration]
 }
 
 // newContainerRuntimeConfigs returns a ContainerRuntimeConfigs
 func newContainerRuntimeConfigs(c *MachineconfigurationV1Client) *containerRuntimeConfigs {
 	return &containerRuntimeConfigs{
-		gentype.NewClientWithListAndApply[*v1.ContainerRuntimeConfig, *v1.ContainerRuntimeConfigList, *machineconfigurationv1.ContainerRuntimeConfigApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machineconfigurationv1.ContainerRuntimeConfig, *machineconfigurationv1.ContainerRuntimeConfigList, *applyconfigurationsmachineconfigurationv1.ContainerRuntimeConfigApplyConfiguration](
 			"containerruntimeconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ContainerRuntimeConfig { return &v1.ContainerRuntimeConfig{} },
-			func() *v1.ContainerRuntimeConfigList { return &v1.ContainerRuntimeConfigList{} }),
+			func() *machineconfigurationv1.ContainerRuntimeConfig {
+				return &machineconfigurationv1.ContainerRuntimeConfig{}
+			},
+			func() *machineconfigurationv1.ContainerRuntimeConfigList {
+				return &machineconfigurationv1.ContainerRuntimeConfigList{}
+			},
+		),
 	}
 }

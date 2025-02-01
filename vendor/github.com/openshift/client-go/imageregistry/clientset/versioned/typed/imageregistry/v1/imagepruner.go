@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/imageregistry/v1"
-	imageregistryv1 "github.com/openshift/client-go/imageregistry/applyconfigurations/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
+	applyconfigurationsimageregistryv1 "github.com/openshift/client-go/imageregistry/applyconfigurations/imageregistry/v1"
 	scheme "github.com/openshift/client-go/imageregistry/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type ImagePrunersGetter interface {
 
 // ImagePrunerInterface has methods to work with ImagePruner resources.
 type ImagePrunerInterface interface {
-	Create(ctx context.Context, imagePruner *v1.ImagePruner, opts metav1.CreateOptions) (*v1.ImagePruner, error)
-	Update(ctx context.Context, imagePruner *v1.ImagePruner, opts metav1.UpdateOptions) (*v1.ImagePruner, error)
+	Create(ctx context.Context, imagePruner *imageregistryv1.ImagePruner, opts metav1.CreateOptions) (*imageregistryv1.ImagePruner, error)
+	Update(ctx context.Context, imagePruner *imageregistryv1.ImagePruner, opts metav1.UpdateOptions) (*imageregistryv1.ImagePruner, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, imagePruner *v1.ImagePruner, opts metav1.UpdateOptions) (*v1.ImagePruner, error)
+	UpdateStatus(ctx context.Context, imagePruner *imageregistryv1.ImagePruner, opts metav1.UpdateOptions) (*imageregistryv1.ImagePruner, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ImagePruner, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ImagePrunerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*imageregistryv1.ImagePruner, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*imageregistryv1.ImagePrunerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ImagePruner, err error)
-	Apply(ctx context.Context, imagePruner *imageregistryv1.ImagePrunerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ImagePruner, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *imageregistryv1.ImagePruner, err error)
+	Apply(ctx context.Context, imagePruner *applyconfigurationsimageregistryv1.ImagePrunerApplyConfiguration, opts metav1.ApplyOptions) (result *imageregistryv1.ImagePruner, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, imagePruner *imageregistryv1.ImagePrunerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ImagePruner, err error)
+	ApplyStatus(ctx context.Context, imagePruner *applyconfigurationsimageregistryv1.ImagePrunerApplyConfiguration, opts metav1.ApplyOptions) (result *imageregistryv1.ImagePruner, err error)
 	ImagePrunerExpansion
 }
 
 // imagePruners implements ImagePrunerInterface
 type imagePruners struct {
-	*gentype.ClientWithListAndApply[*v1.ImagePruner, *v1.ImagePrunerList, *imageregistryv1.ImagePrunerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*imageregistryv1.ImagePruner, *imageregistryv1.ImagePrunerList, *applyconfigurationsimageregistryv1.ImagePrunerApplyConfiguration]
 }
 
 // newImagePruners returns a ImagePruners
 func newImagePruners(c *ImageregistryV1Client) *imagePruners {
 	return &imagePruners{
-		gentype.NewClientWithListAndApply[*v1.ImagePruner, *v1.ImagePrunerList, *imageregistryv1.ImagePrunerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*imageregistryv1.ImagePruner, *imageregistryv1.ImagePrunerList, *applyconfigurationsimageregistryv1.ImagePrunerApplyConfiguration](
 			"imagepruners",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ImagePruner { return &v1.ImagePruner{} },
-			func() *v1.ImagePrunerList { return &v1.ImagePrunerList{} }),
+			func() *imageregistryv1.ImagePruner { return &imageregistryv1.ImagePruner{} },
+			func() *imageregistryv1.ImagePrunerList { return &imageregistryv1.ImagePrunerList{} },
+		),
 	}
 }

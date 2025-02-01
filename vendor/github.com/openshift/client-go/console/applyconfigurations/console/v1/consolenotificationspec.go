@@ -3,17 +3,17 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
 )
 
 // ConsoleNotificationSpecApplyConfiguration represents a declarative configuration of the ConsoleNotificationSpec type for use
 // with apply.
 type ConsoleNotificationSpecApplyConfiguration struct {
-	Text            *string                         `json:"text,omitempty"`
-	Location        *v1.ConsoleNotificationLocation `json:"location,omitempty"`
-	Link            *LinkApplyConfiguration         `json:"link,omitempty"`
-	Color           *string                         `json:"color,omitempty"`
-	BackgroundColor *string                         `json:"backgroundColor,omitempty"`
+	Text            *string                                `json:"text,omitempty"`
+	Location        *consolev1.ConsoleNotificationLocation `json:"location,omitempty"`
+	Link            *LinkApplyConfiguration                `json:"link,omitempty"`
+	Color           *string                                `json:"color,omitempty"`
+	BackgroundColor *string                                `json:"backgroundColor,omitempty"`
 }
 
 // ConsoleNotificationSpecApplyConfiguration constructs a declarative configuration of the ConsoleNotificationSpec type for use with
@@ -33,7 +33,7 @@ func (b *ConsoleNotificationSpecApplyConfiguration) WithText(value string) *Cons
 // WithLocation sets the Location field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Location field is set to the value of the last call.
-func (b *ConsoleNotificationSpecApplyConfiguration) WithLocation(value v1.ConsoleNotificationLocation) *ConsoleNotificationSpecApplyConfiguration {
+func (b *ConsoleNotificationSpecApplyConfiguration) WithLocation(value consolev1.ConsoleNotificationLocation) *ConsoleNotificationSpecApplyConfiguration {
 	b.Location = &value
 	return b
 }

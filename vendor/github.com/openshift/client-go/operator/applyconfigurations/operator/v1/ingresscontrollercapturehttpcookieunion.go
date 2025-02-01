@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // IngressControllerCaptureHTTPCookieUnionApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use
 // with apply.
 type IngressControllerCaptureHTTPCookieUnionApplyConfiguration struct {
-	MatchType  *v1.CookieMatchType `json:"matchType,omitempty"`
-	Name       *string             `json:"name,omitempty"`
-	NamePrefix *string             `json:"namePrefix,omitempty"`
+	MatchType  *operatorv1.CookieMatchType `json:"matchType,omitempty"`
+	Name       *string                     `json:"name,omitempty"`
+	NamePrefix *string                     `json:"namePrefix,omitempty"`
 }
 
 // IngressControllerCaptureHTTPCookieUnionApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use with
@@ -23,7 +23,7 @@ func IngressControllerCaptureHTTPCookieUnion() *IngressControllerCaptureHTTPCook
 // WithMatchType sets the MatchType field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MatchType field is set to the value of the last call.
-func (b *IngressControllerCaptureHTTPCookieUnionApplyConfiguration) WithMatchType(value v1.CookieMatchType) *IngressControllerCaptureHTTPCookieUnionApplyConfiguration {
+func (b *IngressControllerCaptureHTTPCookieUnionApplyConfiguration) WithMatchType(value operatorv1.CookieMatchType) *IngressControllerCaptureHTTPCookieUnionApplyConfiguration {
 	b.MatchType = &value
 	return b
 }

@@ -11,17 +11,21 @@ var (
 		"[Disabled:Alpha]": {
 			`\[Feature:StorageVersionAPI\]`,
 			`\[Feature:InPlacePodVerticalScaling\]`,
-			`\[Feature:RecoverVolumeExpansionFailure\]`,
-			`\[Feature:WatchList\]`,
 			`\[Feature:ServiceCIDRs\]`,
 			`\[Feature:ClusterTrustBundle\]`,
 			`\[Feature:SELinuxMount\]`,
 			`\[FeatureGate:SELinuxMount\]`,
-			`\[Feature:RelaxedEnvironmentVariableValidation\]`,
 			`\[Feature:UserNamespacesPodSecurityStandards\]`,
 			`\[Feature:UserNamespacesSupport\]`, // disabled Beta
 			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:VolumeAttributesClass\]`, // disabled Beta
+			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`, // Alpha feature since k8s 1.27
+			// 4.19
+			`\[Feature:PodLevelResources\]`,
+			`\[Feature:SchedulerAsyncPreemption\]`,
+			`\[Feature:RelaxedDNSSearchValidation\]`,
+			`\[Feature:PodLogsQuerySplitStreams\]`,
+			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -158,15 +162,32 @@ var (
 		"[Disabled:RebaseInProgress]": {
 			// https://issues.redhat.com/browse/OCPBUGS-7297
 			`DNS HostNetwork should resolve DNS of partial qualified names for services on hostNetwork pods with dnsPolicy`,
-			`\[sig-network\] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod`, // TODO(network): simple test in k8s 1.27, needs investigation
-			`\[sig-cli\] Kubectl client Kubectl prune with applyset should apply and prune objects`,                    // TODO(workloads): alpha feature in k8s 1.27. It's failing with `error: unknown flag: --applyset`. Needs investigation
+
+			// https://issues.redhat.com/browse/OCPBUGS-45275
+			`\[sig-network\] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-38838
-			`\[sig-cli\] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from all pods based on default container`,
-			`\[sig-cli\] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from each pod and each container in Deployment`,
+			// https://issues.redhat.com/browse/OCPBUGS-45214
+			// Even though this feature is not GA in k/k, it will be GA in OCP 4.19, so we should fix it and unskip this test
+			`\[Feature:volumegroupsnapshot\]`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-45273
+			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-45273
+			`\[sig-cli\] Kubectl Port forwarding Shutdown client connection while the remote stream is writing data to the port-forward connection port-forward should keep working after detect broken connection`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-45274
+			// https://github.com/kubernetes/kubernetes/issues/129056
+			`\[sig-node\] PodRejectionStatus Kubelet should reject pod when the node didn't have enough resource`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-45359
+			`\[Feature:RecoverVolumeExpansionFailure\]`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-46477
+			`\[sig-storage\] In-tree Volumes \[Driver: azure-file\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
@@ -257,7 +278,7 @@ var (
 			`\[sig-storage\] Flexvolumes should be mountable`,
 			`\[sig-storage\] Detaching volumes should not work when mount is in progress`,
 
-			// We are using openshift-sdn to conceal metadata
+			// We are using ovn-kubernetes to conceal metadata
 			`\[sig-auth\] Metadata Concealment should run a check-metadata-concealment job to completion`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1740959
@@ -331,17 +352,6 @@ var (
 			`\[Feature:GKELocalSSD\]`,
 			`\[Feature:GKENodePool\]`,
 		},
-		// Tests that don't pass under openshift-sdn.
-		// These are skipped explicitly by openshift-hack/test-kubernetes-e2e.sh,
-		// but will also be skipped by openshift-tests in jobs that use openshift-sdn.
-		"[Skipped:Network/OpenShiftSDN]": {
-			`NetworkPolicy.*IPBlock`,    // feature is not supported by openshift-sdn
-			`NetworkPolicy.*[Ee]gress`,  // feature is not supported by openshift-sdn
-			`NetworkPolicy.*named port`, // feature is not supported by openshift-sdn
-
-			`NetworkPolicy between server and client should support a 'default-deny-all' policy`,            // uses egress feature
-			`NetworkPolicy between server and client should stop enforcing policies after they are deleted`, // uses egress feature
-		},
 
 		// These tests are skipped when openshift-tests needs to use a proxy to reach the
 		// cluster -- either because the test won't work while proxied, or because the test
@@ -391,10 +401,6 @@ var (
 			`\[Feature:StorageProvider\]`,
 		},
 
-		// tests that don't pass under openshift-sdn multitenant mode
-		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
-			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-		},
 		// tests that don't pass under OVN Kubernetes
 		"[Skipped:Network/OVNKubernetes]": {
 			// ovn-kubernetes does not support named ports

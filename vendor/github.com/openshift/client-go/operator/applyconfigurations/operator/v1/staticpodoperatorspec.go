@@ -26,7 +26,7 @@ func StaticPodOperatorSpec() *StaticPodOperatorSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *StaticPodOperatorSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *StaticPodOperatorSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -34,7 +34,7 @@ func (b *StaticPodOperatorSpecApplyConfiguration) WithManagementState(value oper
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *StaticPodOperatorSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *StaticPodOperatorSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -42,7 +42,7 @@ func (b *StaticPodOperatorSpecApplyConfiguration) WithLogLevel(value operatorv1.
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *StaticPodOperatorSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *StaticPodOperatorSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -50,7 +50,7 @@ func (b *StaticPodOperatorSpecApplyConfiguration) WithOperatorLogLevel(value ope
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *StaticPodOperatorSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *StaticPodOperatorSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -58,7 +58,7 @@ func (b *StaticPodOperatorSpecApplyConfiguration) WithUnsupportedConfigOverrides
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *StaticPodOperatorSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *StaticPodOperatorSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 

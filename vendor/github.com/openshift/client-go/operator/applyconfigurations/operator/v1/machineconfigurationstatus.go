@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // MachineConfigurationStatusApplyConfiguration represents a declarative configuration of the MachineConfigurationStatus type for use
 // with apply.
 type MachineConfigurationStatusApplyConfiguration struct {
 	ObservedGeneration         *int64                                        `json:"observedGeneration,omitempty"`
-	Conditions                 []v1.ConditionApplyConfiguration              `json:"conditions,omitempty"`
+	Conditions                 []metav1.ConditionApplyConfiguration          `json:"conditions,omitempty"`
 	NodeDisruptionPolicyStatus *NodeDisruptionPolicyStatusApplyConfiguration `json:"nodeDisruptionPolicyStatus,omitempty"`
 }
 
@@ -31,7 +31,7 @@ func (b *MachineConfigurationStatusApplyConfiguration) WithObservedGeneration(va
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *MachineConfigurationStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *MachineConfigurationStatusApplyConfiguration {
+func (b *MachineConfigurationStatusApplyConfiguration) WithConditions(values ...*metav1.ConditionApplyConfiguration) *MachineConfigurationStatusApplyConfiguration {
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")

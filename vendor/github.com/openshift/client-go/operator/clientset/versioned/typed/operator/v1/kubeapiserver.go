@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type KubeAPIServersGetter interface {
 
 // KubeAPIServerInterface has methods to work with KubeAPIServer resources.
 type KubeAPIServerInterface interface {
-	Create(ctx context.Context, kubeAPIServer *v1.KubeAPIServer, opts metav1.CreateOptions) (*v1.KubeAPIServer, error)
-	Update(ctx context.Context, kubeAPIServer *v1.KubeAPIServer, opts metav1.UpdateOptions) (*v1.KubeAPIServer, error)
+	Create(ctx context.Context, kubeAPIServer *operatorv1.KubeAPIServer, opts metav1.CreateOptions) (*operatorv1.KubeAPIServer, error)
+	Update(ctx context.Context, kubeAPIServer *operatorv1.KubeAPIServer, opts metav1.UpdateOptions) (*operatorv1.KubeAPIServer, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, kubeAPIServer *v1.KubeAPIServer, opts metav1.UpdateOptions) (*v1.KubeAPIServer, error)
+	UpdateStatus(ctx context.Context, kubeAPIServer *operatorv1.KubeAPIServer, opts metav1.UpdateOptions) (*operatorv1.KubeAPIServer, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.KubeAPIServer, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.KubeAPIServerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.KubeAPIServer, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.KubeAPIServerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.KubeAPIServer, err error)
-	Apply(ctx context.Context, kubeAPIServer *operatorv1.KubeAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeAPIServer, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.KubeAPIServer, err error)
+	Apply(ctx context.Context, kubeAPIServer *applyconfigurationsoperatorv1.KubeAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.KubeAPIServer, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, kubeAPIServer *operatorv1.KubeAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.KubeAPIServer, err error)
+	ApplyStatus(ctx context.Context, kubeAPIServer *applyconfigurationsoperatorv1.KubeAPIServerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.KubeAPIServer, err error)
 	KubeAPIServerExpansion
 }
 
 // kubeAPIServers implements KubeAPIServerInterface
 type kubeAPIServers struct {
-	*gentype.ClientWithListAndApply[*v1.KubeAPIServer, *v1.KubeAPIServerList, *operatorv1.KubeAPIServerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.KubeAPIServer, *operatorv1.KubeAPIServerList, *applyconfigurationsoperatorv1.KubeAPIServerApplyConfiguration]
 }
 
 // newKubeAPIServers returns a KubeAPIServers
 func newKubeAPIServers(c *OperatorV1Client) *kubeAPIServers {
 	return &kubeAPIServers{
-		gentype.NewClientWithListAndApply[*v1.KubeAPIServer, *v1.KubeAPIServerList, *operatorv1.KubeAPIServerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.KubeAPIServer, *operatorv1.KubeAPIServerList, *applyconfigurationsoperatorv1.KubeAPIServerApplyConfiguration](
 			"kubeapiservers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.KubeAPIServer { return &v1.KubeAPIServer{} },
-			func() *v1.KubeAPIServerList { return &v1.KubeAPIServerList{} }),
+			func() *operatorv1.KubeAPIServer { return &operatorv1.KubeAPIServer{} },
+			func() *operatorv1.KubeAPIServerList { return &operatorv1.KubeAPIServerList{} },
+		),
 	}
 }

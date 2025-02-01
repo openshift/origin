@@ -29,7 +29,6 @@ type Config struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
-	// +kubebuilder:validation:Required
 	// +required
 	Spec ConfigSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 	// +optional

@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // ProjectStatusApplyConfiguration represents a declarative configuration of the ProjectStatus type for use
 // with apply.
 type ProjectStatusApplyConfiguration struct {
-	Phase      *v1.NamespacePhase      `json:"phase,omitempty"`
-	Conditions []v1.NamespaceCondition `json:"conditions,omitempty"`
+	Phase      *corev1.NamespacePhase      `json:"phase,omitempty"`
+	Conditions []corev1.NamespaceCondition `json:"conditions,omitempty"`
 }
 
 // ProjectStatusApplyConfiguration constructs a declarative configuration of the ProjectStatus type for use with
@@ -22,7 +22,7 @@ func ProjectStatus() *ProjectStatusApplyConfiguration {
 // WithPhase sets the Phase field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Phase field is set to the value of the last call.
-func (b *ProjectStatusApplyConfiguration) WithPhase(value v1.NamespacePhase) *ProjectStatusApplyConfiguration {
+func (b *ProjectStatusApplyConfiguration) WithPhase(value corev1.NamespacePhase) *ProjectStatusApplyConfiguration {
 	b.Phase = &value
 	return b
 }
@@ -30,7 +30,7 @@ func (b *ProjectStatusApplyConfiguration) WithPhase(value v1.NamespacePhase) *Pr
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *ProjectStatusApplyConfiguration) WithConditions(values ...v1.NamespaceCondition) *ProjectStatusApplyConfiguration {
+func (b *ProjectStatusApplyConfiguration) WithConditions(values ...corev1.NamespaceCondition) *ProjectStatusApplyConfiguration {
 	for i := range values {
 		b.Conditions = append(b.Conditions, values[i])
 	}

@@ -3,25 +3,25 @@
 package v1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IngressControllerTuningOptionsApplyConfiguration represents a declarative configuration of the IngressControllerTuningOptions type for use
 // with apply.
 type IngressControllerTuningOptionsApplyConfiguration struct {
-	HeaderBufferBytes           *int32       `json:"headerBufferBytes,omitempty"`
-	HeaderBufferMaxRewriteBytes *int32       `json:"headerBufferMaxRewriteBytes,omitempty"`
-	ThreadCount                 *int32       `json:"threadCount,omitempty"`
-	ClientTimeout               *v1.Duration `json:"clientTimeout,omitempty"`
-	ClientFinTimeout            *v1.Duration `json:"clientFinTimeout,omitempty"`
-	ServerTimeout               *v1.Duration `json:"serverTimeout,omitempty"`
-	ServerFinTimeout            *v1.Duration `json:"serverFinTimeout,omitempty"`
-	TunnelTimeout               *v1.Duration `json:"tunnelTimeout,omitempty"`
-	ConnectTimeout              *v1.Duration `json:"connectTimeout,omitempty"`
-	TLSInspectDelay             *v1.Duration `json:"tlsInspectDelay,omitempty"`
-	HealthCheckInterval         *v1.Duration `json:"healthCheckInterval,omitempty"`
-	MaxConnections              *int32       `json:"maxConnections,omitempty"`
-	ReloadInterval              *v1.Duration `json:"reloadInterval,omitempty"`
+	HeaderBufferBytes           *int32           `json:"headerBufferBytes,omitempty"`
+	HeaderBufferMaxRewriteBytes *int32           `json:"headerBufferMaxRewriteBytes,omitempty"`
+	ThreadCount                 *int32           `json:"threadCount,omitempty"`
+	ClientTimeout               *metav1.Duration `json:"clientTimeout,omitempty"`
+	ClientFinTimeout            *metav1.Duration `json:"clientFinTimeout,omitempty"`
+	ServerTimeout               *metav1.Duration `json:"serverTimeout,omitempty"`
+	ServerFinTimeout            *metav1.Duration `json:"serverFinTimeout,omitempty"`
+	TunnelTimeout               *metav1.Duration `json:"tunnelTimeout,omitempty"`
+	ConnectTimeout              *metav1.Duration `json:"connectTimeout,omitempty"`
+	TLSInspectDelay             *metav1.Duration `json:"tlsInspectDelay,omitempty"`
+	HealthCheckInterval         *metav1.Duration `json:"healthCheckInterval,omitempty"`
+	MaxConnections              *int32           `json:"maxConnections,omitempty"`
+	ReloadInterval              *metav1.Duration `json:"reloadInterval,omitempty"`
 }
 
 // IngressControllerTuningOptionsApplyConfiguration constructs a declarative configuration of the IngressControllerTuningOptions type for use with
@@ -57,7 +57,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithThreadCount(value
 // WithClientTimeout sets the ClientTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ClientTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithClientTimeout(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithClientTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ClientTimeout = &value
 	return b
 }
@@ -65,7 +65,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithClientTimeout(val
 // WithClientFinTimeout sets the ClientFinTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ClientFinTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithClientFinTimeout(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithClientFinTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ClientFinTimeout = &value
 	return b
 }
@@ -73,7 +73,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithClientFinTimeout(
 // WithServerTimeout sets the ServerTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ServerTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithServerTimeout(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithServerTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ServerTimeout = &value
 	return b
 }
@@ -81,7 +81,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithServerTimeout(val
 // WithServerFinTimeout sets the ServerFinTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ServerFinTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithServerFinTimeout(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithServerFinTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ServerFinTimeout = &value
 	return b
 }
@@ -89,7 +89,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithServerFinTimeout(
 // WithTunnelTimeout sets the TunnelTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the TunnelTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithTunnelTimeout(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithTunnelTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.TunnelTimeout = &value
 	return b
 }
@@ -97,7 +97,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithTunnelTimeout(val
 // WithConnectTimeout sets the ConnectTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ConnectTimeout field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithConnectTimeout(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithConnectTimeout(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ConnectTimeout = &value
 	return b
 }
@@ -105,7 +105,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithConnectTimeout(va
 // WithTLSInspectDelay sets the TLSInspectDelay field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the TLSInspectDelay field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithTLSInspectDelay(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithTLSInspectDelay(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.TLSInspectDelay = &value
 	return b
 }
@@ -113,7 +113,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithTLSInspectDelay(v
 // WithHealthCheckInterval sets the HealthCheckInterval field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the HealthCheckInterval field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithHealthCheckInterval(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithHealthCheckInterval(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.HealthCheckInterval = &value
 	return b
 }
@@ -129,7 +129,7 @@ func (b *IngressControllerTuningOptionsApplyConfiguration) WithMaxConnections(va
 // WithReloadInterval sets the ReloadInterval field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReloadInterval field is set to the value of the last call.
-func (b *IngressControllerTuningOptionsApplyConfiguration) WithReloadInterval(value v1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
+func (b *IngressControllerTuningOptionsApplyConfiguration) WithReloadInterval(value metav1.Duration) *IngressControllerTuningOptionsApplyConfiguration {
 	b.ReloadInterval = &value
 	return b
 }

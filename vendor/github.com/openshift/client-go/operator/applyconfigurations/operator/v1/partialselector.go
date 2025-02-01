@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // PartialSelectorApplyConfiguration represents a declarative configuration of the PartialSelector type for use
 // with apply.
 type PartialSelectorApplyConfiguration struct {
-	MachineResourceSelector *v1.LabelSelectorApplyConfiguration `json:"machineResourceSelector,omitempty"`
+	MachineResourceSelector *metav1.LabelSelectorApplyConfiguration `json:"machineResourceSelector,omitempty"`
 }
 
 // PartialSelectorApplyConfiguration constructs a declarative configuration of the PartialSelector type for use with
@@ -21,7 +21,7 @@ func PartialSelector() *PartialSelectorApplyConfiguration {
 // WithMachineResourceSelector sets the MachineResourceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MachineResourceSelector field is set to the value of the last call.
-func (b *PartialSelectorApplyConfiguration) WithMachineResourceSelector(value *v1.LabelSelectorApplyConfiguration) *PartialSelectorApplyConfiguration {
+func (b *PartialSelectorApplyConfiguration) WithMachineResourceSelector(value *metav1.LabelSelectorApplyConfiguration) *PartialSelectorApplyConfiguration {
 	b.MachineResourceSelector = value
 	return b
 }

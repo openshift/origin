@@ -24,7 +24,7 @@ func KubeControllerManagerSpec() *KubeControllerManagerSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *KubeControllerManagerSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -32,7 +32,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithManagementState(value 
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *KubeControllerManagerSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -40,7 +40,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithLogLevel(value operato
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *KubeControllerManagerSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -48,7 +48,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithOperatorLogLevel(value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *KubeControllerManagerSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -56,7 +56,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithUnsupportedConfigOverr
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *KubeControllerManagerSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }
 
@@ -64,7 +64,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithObservedConfig(value r
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ForceRedeploymentReason field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithForceRedeploymentReason(value string) *KubeControllerManagerSpecApplyConfiguration {
-	b.ForceRedeploymentReason = &value
+	b.StaticPodOperatorSpecApplyConfiguration.ForceRedeploymentReason = &value
 	return b
 }
 
@@ -72,7 +72,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithForceRedeploymentReaso
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the FailedRevisionLimit field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithFailedRevisionLimit(value int32) *KubeControllerManagerSpecApplyConfiguration {
-	b.FailedRevisionLimit = &value
+	b.StaticPodOperatorSpecApplyConfiguration.FailedRevisionLimit = &value
 	return b
 }
 
@@ -80,7 +80,7 @@ func (b *KubeControllerManagerSpecApplyConfiguration) WithFailedRevisionLimit(va
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the SucceededRevisionLimit field is set to the value of the last call.
 func (b *KubeControllerManagerSpecApplyConfiguration) WithSucceededRevisionLimit(value int32) *KubeControllerManagerSpecApplyConfiguration {
-	b.SucceededRevisionLimit = &value
+	b.StaticPodOperatorSpecApplyConfiguration.SucceededRevisionLimit = &value
 	return b
 }
 

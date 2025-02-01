@@ -23,7 +23,7 @@ func ServiceCatalogAPIServerSpec() *ServiceCatalogAPIServerSpecApplyConfiguratio
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *ServiceCatalogAPIServerSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithManagementState(valu
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *ServiceCatalogAPIServerSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithLogLevel(value opera
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *ServiceCatalogAPIServerSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithOperatorLogLevel(val
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *ServiceCatalogAPIServerSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,6 +55,6 @@ func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithUnsupportedConfigOve
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *ServiceCatalogAPIServerSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }

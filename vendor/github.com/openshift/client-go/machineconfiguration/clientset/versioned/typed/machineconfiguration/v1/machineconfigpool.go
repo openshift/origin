@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/machineconfiguration/v1"
-	machineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
+	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
+	applyconfigurationsmachineconfigurationv1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1"
 	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,39 @@ type MachineConfigPoolsGetter interface {
 
 // MachineConfigPoolInterface has methods to work with MachineConfigPool resources.
 type MachineConfigPoolInterface interface {
-	Create(ctx context.Context, machineConfigPool *v1.MachineConfigPool, opts metav1.CreateOptions) (*v1.MachineConfigPool, error)
-	Update(ctx context.Context, machineConfigPool *v1.MachineConfigPool, opts metav1.UpdateOptions) (*v1.MachineConfigPool, error)
+	Create(ctx context.Context, machineConfigPool *machineconfigurationv1.MachineConfigPool, opts metav1.CreateOptions) (*machineconfigurationv1.MachineConfigPool, error)
+	Update(ctx context.Context, machineConfigPool *machineconfigurationv1.MachineConfigPool, opts metav1.UpdateOptions) (*machineconfigurationv1.MachineConfigPool, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, machineConfigPool *v1.MachineConfigPool, opts metav1.UpdateOptions) (*v1.MachineConfigPool, error)
+	UpdateStatus(ctx context.Context, machineConfigPool *machineconfigurationv1.MachineConfigPool, opts metav1.UpdateOptions) (*machineconfigurationv1.MachineConfigPool, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.MachineConfigPool, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.MachineConfigPoolList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*machineconfigurationv1.MachineConfigPool, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*machineconfigurationv1.MachineConfigPoolList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.MachineConfigPool, err error)
-	Apply(ctx context.Context, machineConfigPool *machineconfigurationv1.MachineConfigPoolApplyConfiguration, opts metav1.ApplyOptions) (result *v1.MachineConfigPool, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *machineconfigurationv1.MachineConfigPool, err error)
+	Apply(ctx context.Context, machineConfigPool *applyconfigurationsmachineconfigurationv1.MachineConfigPoolApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.MachineConfigPool, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, machineConfigPool *machineconfigurationv1.MachineConfigPoolApplyConfiguration, opts metav1.ApplyOptions) (result *v1.MachineConfigPool, err error)
+	ApplyStatus(ctx context.Context, machineConfigPool *applyconfigurationsmachineconfigurationv1.MachineConfigPoolApplyConfiguration, opts metav1.ApplyOptions) (result *machineconfigurationv1.MachineConfigPool, err error)
 	MachineConfigPoolExpansion
 }
 
 // machineConfigPools implements MachineConfigPoolInterface
 type machineConfigPools struct {
-	*gentype.ClientWithListAndApply[*v1.MachineConfigPool, *v1.MachineConfigPoolList, *machineconfigurationv1.MachineConfigPoolApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machineconfigurationv1.MachineConfigPool, *machineconfigurationv1.MachineConfigPoolList, *applyconfigurationsmachineconfigurationv1.MachineConfigPoolApplyConfiguration]
 }
 
 // newMachineConfigPools returns a MachineConfigPools
 func newMachineConfigPools(c *MachineconfigurationV1Client) *machineConfigPools {
 	return &machineConfigPools{
-		gentype.NewClientWithListAndApply[*v1.MachineConfigPool, *v1.MachineConfigPoolList, *machineconfigurationv1.MachineConfigPoolApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machineconfigurationv1.MachineConfigPool, *machineconfigurationv1.MachineConfigPoolList, *applyconfigurationsmachineconfigurationv1.MachineConfigPoolApplyConfiguration](
 			"machineconfigpools",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.MachineConfigPool { return &v1.MachineConfigPool{} },
-			func() *v1.MachineConfigPoolList { return &v1.MachineConfigPoolList{} }),
+			func() *machineconfigurationv1.MachineConfigPool { return &machineconfigurationv1.MachineConfigPool{} },
+			func() *machineconfigurationv1.MachineConfigPoolList {
+				return &machineconfigurationv1.MachineConfigPoolList{}
+			},
+		),
 	}
 }

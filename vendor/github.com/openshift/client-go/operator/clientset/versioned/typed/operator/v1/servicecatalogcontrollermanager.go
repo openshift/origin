@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,41 @@ type ServiceCatalogControllerManagersGetter interface {
 
 // ServiceCatalogControllerManagerInterface has methods to work with ServiceCatalogControllerManager resources.
 type ServiceCatalogControllerManagerInterface interface {
-	Create(ctx context.Context, serviceCatalogControllerManager *v1.ServiceCatalogControllerManager, opts metav1.CreateOptions) (*v1.ServiceCatalogControllerManager, error)
-	Update(ctx context.Context, serviceCatalogControllerManager *v1.ServiceCatalogControllerManager, opts metav1.UpdateOptions) (*v1.ServiceCatalogControllerManager, error)
+	Create(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, opts metav1.CreateOptions) (*operatorv1.ServiceCatalogControllerManager, error)
+	Update(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, opts metav1.UpdateOptions) (*operatorv1.ServiceCatalogControllerManager, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, serviceCatalogControllerManager *v1.ServiceCatalogControllerManager, opts metav1.UpdateOptions) (*v1.ServiceCatalogControllerManager, error)
+	UpdateStatus(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, opts metav1.UpdateOptions) (*operatorv1.ServiceCatalogControllerManager, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ServiceCatalogControllerManager, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ServiceCatalogControllerManagerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.ServiceCatalogControllerManager, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.ServiceCatalogControllerManagerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ServiceCatalogControllerManager, err error)
-	Apply(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogControllerManager, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.ServiceCatalogControllerManager, err error)
+	Apply(ctx context.Context, serviceCatalogControllerManager *applyconfigurationsoperatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ServiceCatalogControllerManager, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ServiceCatalogControllerManager, err error)
+	ApplyStatus(ctx context.Context, serviceCatalogControllerManager *applyconfigurationsoperatorv1.ServiceCatalogControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.ServiceCatalogControllerManager, err error)
 	ServiceCatalogControllerManagerExpansion
 }
 
 // serviceCatalogControllerManagers implements ServiceCatalogControllerManagerInterface
 type serviceCatalogControllerManagers struct {
-	*gentype.ClientWithListAndApply[*v1.ServiceCatalogControllerManager, *v1.ServiceCatalogControllerManagerList, *operatorv1.ServiceCatalogControllerManagerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.ServiceCatalogControllerManager, *operatorv1.ServiceCatalogControllerManagerList, *applyconfigurationsoperatorv1.ServiceCatalogControllerManagerApplyConfiguration]
 }
 
 // newServiceCatalogControllerManagers returns a ServiceCatalogControllerManagers
 func newServiceCatalogControllerManagers(c *OperatorV1Client) *serviceCatalogControllerManagers {
 	return &serviceCatalogControllerManagers{
-		gentype.NewClientWithListAndApply[*v1.ServiceCatalogControllerManager, *v1.ServiceCatalogControllerManagerList, *operatorv1.ServiceCatalogControllerManagerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.ServiceCatalogControllerManager, *operatorv1.ServiceCatalogControllerManagerList, *applyconfigurationsoperatorv1.ServiceCatalogControllerManagerApplyConfiguration](
 			"servicecatalogcontrollermanagers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ServiceCatalogControllerManager { return &v1.ServiceCatalogControllerManager{} },
-			func() *v1.ServiceCatalogControllerManagerList { return &v1.ServiceCatalogControllerManagerList{} }),
+			func() *operatorv1.ServiceCatalogControllerManager {
+				return &operatorv1.ServiceCatalogControllerManager{}
+			},
+			func() *operatorv1.ServiceCatalogControllerManagerList {
+				return &operatorv1.ServiceCatalogControllerManagerList{}
+			},
+		),
 	}
 }

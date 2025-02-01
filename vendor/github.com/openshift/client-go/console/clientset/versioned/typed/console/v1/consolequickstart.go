@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/console/v1"
-	consolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	applyconfigurationsconsolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
 	scheme "github.com/openshift/client-go/console/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,33 @@ type ConsoleQuickStartsGetter interface {
 
 // ConsoleQuickStartInterface has methods to work with ConsoleQuickStart resources.
 type ConsoleQuickStartInterface interface {
-	Create(ctx context.Context, consoleQuickStart *v1.ConsoleQuickStart, opts metav1.CreateOptions) (*v1.ConsoleQuickStart, error)
-	Update(ctx context.Context, consoleQuickStart *v1.ConsoleQuickStart, opts metav1.UpdateOptions) (*v1.ConsoleQuickStart, error)
+	Create(ctx context.Context, consoleQuickStart *consolev1.ConsoleQuickStart, opts metav1.CreateOptions) (*consolev1.ConsoleQuickStart, error)
+	Update(ctx context.Context, consoleQuickStart *consolev1.ConsoleQuickStart, opts metav1.UpdateOptions) (*consolev1.ConsoleQuickStart, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleQuickStart, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleQuickStartList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*consolev1.ConsoleQuickStart, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*consolev1.ConsoleQuickStartList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleQuickStart, err error)
-	Apply(ctx context.Context, consoleQuickStart *consolev1.ConsoleQuickStartApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConsoleQuickStart, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *consolev1.ConsoleQuickStart, err error)
+	Apply(ctx context.Context, consoleQuickStart *applyconfigurationsconsolev1.ConsoleQuickStartApplyConfiguration, opts metav1.ApplyOptions) (result *consolev1.ConsoleQuickStart, err error)
 	ConsoleQuickStartExpansion
 }
 
 // consoleQuickStarts implements ConsoleQuickStartInterface
 type consoleQuickStarts struct {
-	*gentype.ClientWithListAndApply[*v1.ConsoleQuickStart, *v1.ConsoleQuickStartList, *consolev1.ConsoleQuickStartApplyConfiguration]
+	*gentype.ClientWithListAndApply[*consolev1.ConsoleQuickStart, *consolev1.ConsoleQuickStartList, *applyconfigurationsconsolev1.ConsoleQuickStartApplyConfiguration]
 }
 
 // newConsoleQuickStarts returns a ConsoleQuickStarts
 func newConsoleQuickStarts(c *ConsoleV1Client) *consoleQuickStarts {
 	return &consoleQuickStarts{
-		gentype.NewClientWithListAndApply[*v1.ConsoleQuickStart, *v1.ConsoleQuickStartList, *consolev1.ConsoleQuickStartApplyConfiguration](
+		gentype.NewClientWithListAndApply[*consolev1.ConsoleQuickStart, *consolev1.ConsoleQuickStartList, *applyconfigurationsconsolev1.ConsoleQuickStartApplyConfiguration](
 			"consolequickstarts",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ConsoleQuickStart { return &v1.ConsoleQuickStart{} },
-			func() *v1.ConsoleQuickStartList { return &v1.ConsoleQuickStartList{} }),
+			func() *consolev1.ConsoleQuickStart { return &consolev1.ConsoleQuickStart{} },
+			func() *consolev1.ConsoleQuickStartList { return &consolev1.ConsoleQuickStartList{} },
+		),
 	}
 }

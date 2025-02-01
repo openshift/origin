@@ -3,16 +3,16 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // LoadBalancerStrategyApplyConfiguration represents a declarative configuration of the LoadBalancerStrategy type for use
 // with apply.
 type LoadBalancerStrategyApplyConfiguration struct {
-	Scope               *v1.LoadBalancerScope                             `json:"scope,omitempty"`
-	AllowedSourceRanges []v1.CIDR                                         `json:"allowedSourceRanges,omitempty"`
+	Scope               *operatorv1.LoadBalancerScope                     `json:"scope,omitempty"`
+	AllowedSourceRanges []operatorv1.CIDR                                 `json:"allowedSourceRanges,omitempty"`
 	ProviderParameters  *ProviderLoadBalancerParametersApplyConfiguration `json:"providerParameters,omitempty"`
-	DNSManagementPolicy *v1.LoadBalancerDNSManagementPolicy               `json:"dnsManagementPolicy,omitempty"`
+	DNSManagementPolicy *operatorv1.LoadBalancerDNSManagementPolicy       `json:"dnsManagementPolicy,omitempty"`
 }
 
 // LoadBalancerStrategyApplyConfiguration constructs a declarative configuration of the LoadBalancerStrategy type for use with
@@ -24,7 +24,7 @@ func LoadBalancerStrategy() *LoadBalancerStrategyApplyConfiguration {
 // WithScope sets the Scope field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Scope field is set to the value of the last call.
-func (b *LoadBalancerStrategyApplyConfiguration) WithScope(value v1.LoadBalancerScope) *LoadBalancerStrategyApplyConfiguration {
+func (b *LoadBalancerStrategyApplyConfiguration) WithScope(value operatorv1.LoadBalancerScope) *LoadBalancerStrategyApplyConfiguration {
 	b.Scope = &value
 	return b
 }
@@ -32,7 +32,7 @@ func (b *LoadBalancerStrategyApplyConfiguration) WithScope(value v1.LoadBalancer
 // WithAllowedSourceRanges adds the given value to the AllowedSourceRanges field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the AllowedSourceRanges field.
-func (b *LoadBalancerStrategyApplyConfiguration) WithAllowedSourceRanges(values ...v1.CIDR) *LoadBalancerStrategyApplyConfiguration {
+func (b *LoadBalancerStrategyApplyConfiguration) WithAllowedSourceRanges(values ...operatorv1.CIDR) *LoadBalancerStrategyApplyConfiguration {
 	for i := range values {
 		b.AllowedSourceRanges = append(b.AllowedSourceRanges, values[i])
 	}
@@ -50,7 +50,7 @@ func (b *LoadBalancerStrategyApplyConfiguration) WithProviderParameters(value *P
 // WithDNSManagementPolicy sets the DNSManagementPolicy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DNSManagementPolicy field is set to the value of the last call.
-func (b *LoadBalancerStrategyApplyConfiguration) WithDNSManagementPolicy(value v1.LoadBalancerDNSManagementPolicy) *LoadBalancerStrategyApplyConfiguration {
+func (b *LoadBalancerStrategyApplyConfiguration) WithDNSManagementPolicy(value operatorv1.LoadBalancerDNSManagementPolicy) *LoadBalancerStrategyApplyConfiguration {
 	b.DNSManagementPolicy = &value
 	return b
 }

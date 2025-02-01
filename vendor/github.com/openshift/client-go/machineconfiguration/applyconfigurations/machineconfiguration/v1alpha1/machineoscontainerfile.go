@@ -3,14 +3,14 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	machineconfigurationv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 )
 
 // MachineOSContainerfileApplyConfiguration represents a declarative configuration of the MachineOSContainerfile type for use
 // with apply.
 type MachineOSContainerfileApplyConfiguration struct {
-	ContainerfileArch *v1alpha1.ContainerfileArch `json:"containerfileArch,omitempty"`
-	Content           *string                     `json:"content,omitempty"`
+	ContainerfileArch *machineconfigurationv1alpha1.ContainerfileArch `json:"containerfileArch,omitempty"`
+	Content           *string                                         `json:"content,omitempty"`
 }
 
 // MachineOSContainerfileApplyConfiguration constructs a declarative configuration of the MachineOSContainerfile type for use with
@@ -22,7 +22,7 @@ func MachineOSContainerfile() *MachineOSContainerfileApplyConfiguration {
 // WithContainerfileArch sets the ContainerfileArch field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ContainerfileArch field is set to the value of the last call.
-func (b *MachineOSContainerfileApplyConfiguration) WithContainerfileArch(value v1alpha1.ContainerfileArch) *MachineOSContainerfileApplyConfiguration {
+func (b *MachineOSContainerfileApplyConfiguration) WithContainerfileArch(value machineconfigurationv1alpha1.ContainerfileArch) *MachineOSContainerfileApplyConfiguration {
 	b.ContainerfileArch = &value
 	return b
 }

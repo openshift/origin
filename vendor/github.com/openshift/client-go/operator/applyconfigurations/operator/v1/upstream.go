@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // UpstreamApplyConfiguration represents a declarative configuration of the Upstream type for use
 // with apply.
 type UpstreamApplyConfiguration struct {
-	Type    *v1.UpstreamType `json:"type,omitempty"`
-	Address *string          `json:"address,omitempty"`
-	Port    *uint32          `json:"port,omitempty"`
+	Type    *operatorv1.UpstreamType `json:"type,omitempty"`
+	Address *string                  `json:"address,omitempty"`
+	Port    *uint32                  `json:"port,omitempty"`
 }
 
 // UpstreamApplyConfiguration constructs a declarative configuration of the Upstream type for use with
@@ -23,7 +23,7 @@ func Upstream() *UpstreamApplyConfiguration {
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *UpstreamApplyConfiguration) WithType(value v1.UpstreamType) *UpstreamApplyConfiguration {
+func (b *UpstreamApplyConfiguration) WithType(value operatorv1.UpstreamType) *UpstreamApplyConfiguration {
 	b.Type = &value
 	return b
 }

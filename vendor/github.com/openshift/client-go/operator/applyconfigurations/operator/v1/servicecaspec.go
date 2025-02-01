@@ -23,7 +23,7 @@ func ServiceCASpec() *ServiceCASpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *ServiceCASpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *ServiceCASpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *ServiceCASpecApplyConfiguration) WithManagementState(value operatorv1.M
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *ServiceCASpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *ServiceCASpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *ServiceCASpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *ServiceCASpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *ServiceCASpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *ServiceCASpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *ServiceCASpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *ServiceCASpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,6 +55,6 @@ func (b *ServiceCASpecApplyConfiguration) WithUnsupportedConfigOverrides(value r
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *ServiceCASpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *ServiceCASpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }

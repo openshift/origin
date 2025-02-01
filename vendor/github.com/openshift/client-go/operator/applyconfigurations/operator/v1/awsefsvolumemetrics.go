@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // AWSEFSVolumeMetricsApplyConfiguration represents a declarative configuration of the AWSEFSVolumeMetrics type for use
 // with apply.
 type AWSEFSVolumeMetricsApplyConfiguration struct {
-	State         *v1.AWSEFSVolumeMetricsState                              `json:"state,omitempty"`
+	State         *operatorv1.AWSEFSVolumeMetricsState                      `json:"state,omitempty"`
 	RecursiveWalk *AWSEFSVolumeMetricsRecursiveWalkConfigApplyConfiguration `json:"recursiveWalk,omitempty"`
 }
 
@@ -22,7 +22,7 @@ func AWSEFSVolumeMetrics() *AWSEFSVolumeMetricsApplyConfiguration {
 // WithState sets the State field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the State field is set to the value of the last call.
-func (b *AWSEFSVolumeMetricsApplyConfiguration) WithState(value v1.AWSEFSVolumeMetricsState) *AWSEFSVolumeMetricsApplyConfiguration {
+func (b *AWSEFSVolumeMetricsApplyConfiguration) WithState(value operatorv1.AWSEFSVolumeMetricsState) *AWSEFSVolumeMetricsApplyConfiguration {
 	b.State = &value
 	return b
 }

@@ -25,7 +25,7 @@ func ConsoleLinkSpec() *ConsoleLinkSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Text field is set to the value of the last call.
 func (b *ConsoleLinkSpecApplyConfiguration) WithText(value string) *ConsoleLinkSpecApplyConfiguration {
-	b.Text = &value
+	b.LinkApplyConfiguration.Text = &value
 	return b
 }
 
@@ -33,7 +33,7 @@ func (b *ConsoleLinkSpecApplyConfiguration) WithText(value string) *ConsoleLinkS
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Href field is set to the value of the last call.
 func (b *ConsoleLinkSpecApplyConfiguration) WithHref(value string) *ConsoleLinkSpecApplyConfiguration {
-	b.Href = &value
+	b.LinkApplyConfiguration.Href = &value
 	return b
 }
 

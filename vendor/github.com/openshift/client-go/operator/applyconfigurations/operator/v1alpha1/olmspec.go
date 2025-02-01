@@ -24,7 +24,7 @@ func OLMSpec() *OLMSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *OLMSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *OLMSpecApplyConfiguration {
-	b.ManagementState = &value
+	b.OperatorSpecApplyConfiguration.ManagementState = &value
 	return b
 }
 
@@ -32,7 +32,7 @@ func (b *OLMSpecApplyConfiguration) WithManagementState(value operatorv1.Managem
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *OLMSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *OLMSpecApplyConfiguration {
-	b.LogLevel = &value
+	b.OperatorSpecApplyConfiguration.LogLevel = &value
 	return b
 }
 
@@ -40,7 +40,7 @@ func (b *OLMSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *OLM
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *OLMSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *OLMSpecApplyConfiguration {
-	b.OperatorLogLevel = &value
+	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
 	return b
 }
 
@@ -48,7 +48,7 @@ func (b *OLMSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLev
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *OLMSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *OLMSpecApplyConfiguration {
-	b.UnsupportedConfigOverrides = &value
+	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -56,6 +56,6 @@ func (b *OLMSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *OLMSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *OLMSpecApplyConfiguration {
-	b.ObservedConfig = &value
+	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
 	return b
 }

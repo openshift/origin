@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 
-	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
-	machineconfigurationv1alpha1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1alpha1"
+	machineconfigurationv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	applyconfigurationsmachineconfigurationv1alpha1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1alpha1"
 	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,41 @@ type PinnedImageSetsGetter interface {
 
 // PinnedImageSetInterface has methods to work with PinnedImageSet resources.
 type PinnedImageSetInterface interface {
-	Create(ctx context.Context, pinnedImageSet *v1alpha1.PinnedImageSet, opts v1.CreateOptions) (*v1alpha1.PinnedImageSet, error)
-	Update(ctx context.Context, pinnedImageSet *v1alpha1.PinnedImageSet, opts v1.UpdateOptions) (*v1alpha1.PinnedImageSet, error)
+	Create(ctx context.Context, pinnedImageSet *machineconfigurationv1alpha1.PinnedImageSet, opts v1.CreateOptions) (*machineconfigurationv1alpha1.PinnedImageSet, error)
+	Update(ctx context.Context, pinnedImageSet *machineconfigurationv1alpha1.PinnedImageSet, opts v1.UpdateOptions) (*machineconfigurationv1alpha1.PinnedImageSet, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, pinnedImageSet *v1alpha1.PinnedImageSet, opts v1.UpdateOptions) (*v1alpha1.PinnedImageSet, error)
+	UpdateStatus(ctx context.Context, pinnedImageSet *machineconfigurationv1alpha1.PinnedImageSet, opts v1.UpdateOptions) (*machineconfigurationv1alpha1.PinnedImageSet, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.PinnedImageSet, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.PinnedImageSetList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*machineconfigurationv1alpha1.PinnedImageSet, error)
+	List(ctx context.Context, opts v1.ListOptions) (*machineconfigurationv1alpha1.PinnedImageSetList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.PinnedImageSet, err error)
-	Apply(ctx context.Context, pinnedImageSet *machineconfigurationv1alpha1.PinnedImageSetApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.PinnedImageSet, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *machineconfigurationv1alpha1.PinnedImageSet, err error)
+	Apply(ctx context.Context, pinnedImageSet *applyconfigurationsmachineconfigurationv1alpha1.PinnedImageSetApplyConfiguration, opts v1.ApplyOptions) (result *machineconfigurationv1alpha1.PinnedImageSet, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, pinnedImageSet *machineconfigurationv1alpha1.PinnedImageSetApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.PinnedImageSet, err error)
+	ApplyStatus(ctx context.Context, pinnedImageSet *applyconfigurationsmachineconfigurationv1alpha1.PinnedImageSetApplyConfiguration, opts v1.ApplyOptions) (result *machineconfigurationv1alpha1.PinnedImageSet, err error)
 	PinnedImageSetExpansion
 }
 
 // pinnedImageSets implements PinnedImageSetInterface
 type pinnedImageSets struct {
-	*gentype.ClientWithListAndApply[*v1alpha1.PinnedImageSet, *v1alpha1.PinnedImageSetList, *machineconfigurationv1alpha1.PinnedImageSetApplyConfiguration]
+	*gentype.ClientWithListAndApply[*machineconfigurationv1alpha1.PinnedImageSet, *machineconfigurationv1alpha1.PinnedImageSetList, *applyconfigurationsmachineconfigurationv1alpha1.PinnedImageSetApplyConfiguration]
 }
 
 // newPinnedImageSets returns a PinnedImageSets
 func newPinnedImageSets(c *MachineconfigurationV1alpha1Client) *pinnedImageSets {
 	return &pinnedImageSets{
-		gentype.NewClientWithListAndApply[*v1alpha1.PinnedImageSet, *v1alpha1.PinnedImageSetList, *machineconfigurationv1alpha1.PinnedImageSetApplyConfiguration](
+		gentype.NewClientWithListAndApply[*machineconfigurationv1alpha1.PinnedImageSet, *machineconfigurationv1alpha1.PinnedImageSetList, *applyconfigurationsmachineconfigurationv1alpha1.PinnedImageSetApplyConfiguration](
 			"pinnedimagesets",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1alpha1.PinnedImageSet { return &v1alpha1.PinnedImageSet{} },
-			func() *v1alpha1.PinnedImageSetList { return &v1alpha1.PinnedImageSetList{} }),
+			func() *machineconfigurationv1alpha1.PinnedImageSet {
+				return &machineconfigurationv1alpha1.PinnedImageSet{}
+			},
+			func() *machineconfigurationv1alpha1.PinnedImageSetList {
+				return &machineconfigurationv1alpha1.PinnedImageSetList{}
+			},
+		),
 	}
 }
