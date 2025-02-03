@@ -30,6 +30,9 @@ var excludedPriorityClassPods = map[string][]string{
 		"configure-alertmanager-operator",
 		"osd-cluster-ready",
 	},
+	"openshift-operator-lifecycle-manager": {
+		"sre-replace-packageserver-csv",
+	},
 }
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {
