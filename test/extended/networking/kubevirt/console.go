@@ -24,6 +24,7 @@ package kubevirt
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -119,7 +120,7 @@ func newExpecter(
 	timeout time.Duration,
 	opts ...expect.Option) (expect.Expecter, <-chan error, error) {
 	virtctlCmd := []string{virtctlPath, "console", "-n", vmiNamespace, vmiName}
-	return expect.SpawnWithArgs(virtctlCmd, timeout, expect.SendTimeout(timeout), expect.Verbose(true), expect.VerboseWriter(GinkgoWriter))
+	return expect.SpawnWithArgs(virtctlCmd, timeout, expect.SendTimeout(timeout), expect.Verbose(true), expect.VerboseWriter(GinkgoWriter), expect.DebugCheck(log.New(GinkgoWriter, "virtctl-console-check", 0)))
 }
 
 // expectBatchWithValidatedSend adds the expect.BSnd command to the exect.BExp expression.
