@@ -24,7 +24,7 @@ func WaitForOperatorsToSettleWithDefaultClient(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return WaitForOperatorsToSettle(ctx, configClient)
+	return WaitForOperatorsToSettle(ctx, configClient, 5)
 }
 
 // can be overridden for tests
@@ -34,10 +34,10 @@ func realNow() time.Time {
 	return time.Now()
 }
 
-func WaitForOperatorsToSettle(ctx context.Context, configClient clientconfigv1.Interface) error {
+func WaitForOperatorsToSettle(ctx context.Context, configClient clientconfigv1.Interface, waitTime int) error {
 	framework.Logf("Waiting for operators to settle")
 	unsettledOperatorStatus := []string{}
-	if err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(10*time.Second, time.Duration(waitTime)*time.Minute, func() (bool, error) {
 		coList, err := configClient.ConfigV1().ClusterOperators().List(ctx, metav1.ListOptions{})
 		if err != nil {
 			framework.Logf("error getting ClusterOperators %v", err)

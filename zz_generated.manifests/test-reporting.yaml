@@ -81,6 +81,17 @@ spec:
     - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
         [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
         mock driver Static provisioning should honor pv retain reclaim policy'
+  - featureGate: ImageStreamImportMode
+    tests:
+    - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
+        ImageStream API import mode should be Legacy if the import mode specified
+        in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]'
+    - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
+        ImageStream API import mode should be PreserveOriginal if the import mode
+        specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]'
+    - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
+        ImageStream API import mode should be PreserveOriginal or Legacy depending
+        on desired.architecture field in the CV [apigroup:image.openshift.io]'
   - featureGate: ManagedBootImages
     tests:
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
