@@ -1538,17 +1538,29 @@ func assertNetAttachDefManifest(nadClient nadclient.K8sCniCncfIoV1Interface, nam
 		BlockOwnerDeletion: pointer.Bool(true),
 		Controller:         pointer.Bool(true),
 	}}))
-	expectedNetworkName := namespace + "." + udnName
-	expectedNadName := namespace + "/" + udnName
-	ExpectWithOffset(1, nad.Spec.Config).To(MatchJSON(`{
+
+	jsonTemplate := `{
 		"cniVersion":"1.0.0",
 		"type": "ovn-k8s-cni-overlay",
-		"name": "` + expectedNetworkName + `",
-		"netAttachDefName": "` + expectedNadName + `",
+		"name": "%s",
+		"netAttachDefName": "%s",
 		"topology": "layer2",
 		"role": "secondary",
 		"subnets": "10.100.0.0/16"
-	}`))
+	}`
+
+	// REMOVEME(trozet): after network name has been updated to use underscores in OVNK
+	expectedLegacyNetworkName := namespace + "." + udnName
+	expectedNetworkName := namespace + "_" + udnName
+	expectedNadName := namespace + "/" + udnName
+
+	nadJSONLegacy := fmt.Sprintf(jsonTemplate, expectedLegacyNetworkName, expectedNadName)
+	nadJSON := fmt.Sprintf(jsonTemplate, expectedNetworkName, expectedNadName)
+
+	ExpectWithOffset(1, nad.Spec.Config).To(SatisfyAny(
+		MatchJSON(nadJSONLegacy),
+		MatchJSON(nadJSON),
+	))
 }
 
 func validateUDNStatusReportsConsumers(client dynamic.Interface, udnNamesapce, udnName, expectedPodName string) error {
@@ -1608,17 +1620,29 @@ func assertClusterNADManifest(nadClient nadclient.K8sCniCncfIoV1Interface, names
 	ExpectWithOffset(1, nad.Labels).To(Equal(map[string]string{"k8s.ovn.org/user-defined-network": ""}))
 	ExpectWithOffset(1, nad.Finalizers).To(Equal([]string{"k8s.ovn.org/user-defined-network-protection"}))
 
-	expectedNetworkName := "cluster.udn." + udnName
+	// REMOVEME(trozet): after network name has been updated to use underscores in OVNK
+	expectedLegacyNetworkName := "cluster.udn." + udnName
+
+	expectedNetworkName := "cluster_udn_" + udnName
 	expectedNadName := namespace + "/" + udnName
-	ExpectWithOffset(1, nad.Spec.Config).To(MatchJSON(`{
+
+	jsonTemplate := `{
 		"cniVersion":"1.0.0",
 		"type": "ovn-k8s-cni-overlay",
-		"name": "` + expectedNetworkName + `",
-		"netAttachDefName": "` + expectedNadName + `",
+		"name": "%s",
+		"netAttachDefName": "%s",
 		"topology": "layer2",
 		"role": "secondary",
 		"subnets": "10.100.0.0/16"
-	}`))
+	}`
+
+	nadJSONLegacy := fmt.Sprintf(jsonTemplate, expectedLegacyNetworkName, expectedNadName)
+	nadJSON := fmt.Sprintf(jsonTemplate, expectedNetworkName, expectedNadName)
+
+	ExpectWithOffset(1, nad.Spec.Config).To(SatisfyAny(
+		MatchJSON(nadJSONLegacy),
+		MatchJSON(nadJSON),
+	))
 }
 
 func validateClusterUDNStatusReportsActiveNamespacesFunc(client dynamic.Interface, cUDNName string, expectedActiveNsNames ...string) func() error {
