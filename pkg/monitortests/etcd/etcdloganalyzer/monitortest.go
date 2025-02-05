@@ -3,11 +3,14 @@ package etcdloganalyzer
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	coreinformers "k8s.io/client-go/informers/core/v1"
 
@@ -23,6 +26,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
+
+const leaderlessTimeout = 5 * time.Second
 
 type etcdLogAnalyzer struct {
 	adminRESTConfig *rest.Config
@@ -77,7 +82,7 @@ func (w *etcdLogAnalyzer) CollectData(ctx context.Context, storageDir string, be
 	return nil, nil, nil
 }
 
-func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+func (w *etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	ret := monitorapi.Intervals{}
 
 	leader := ""
@@ -141,8 +146,45 @@ func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 	return ret, nil
 }
 
-func (*etcdLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+func (w *etcdLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	etcdIntervals := monitorapi.Intervals{}
+	for _, interval := range finalIntervals {
+		value, ok := interval.Message.Annotations[monitorapi.AnnotationConstructed]
+		if !ok {
+			continue
+		}
+		if value != monitorapi.ConstructionOwnerEtcdLifecycle {
+			continue
+		}
+		if len(interval.Message.Reason) != 0 {
+			continue
+		}
+		if interval.Locator.HasKey("node") {
+			if len(interval.Locator.Keys["node"]) == 0 {
+				continue
+			}
+		}
+		if value, ok := interval.Message.Annotations[monitorapi.AnnotationEtcdLeader]; ok && len(value) == 0 {
+			continue
+		}
+		etcdIntervals = append(etcdIntervals, interval)
+	}
+	sort.Sort(etcdIntervals)
+
+	junitTest := &junitTest{
+		name:     fmt.Sprintf("[sig-etcd] cluster should not be without a leader for too long"),
+		computed: etcdIntervals,
+	}
+
+	framework.Logf("monitor[%s]: found %d intervals of interest", "EtcdLogAnalyzer", len(junitTest.computed))
+	if len(junitTest.computed) == 0 {
+		// no constructed/computed interval observed, mark the test as skipped.
+		// TODO: we should fail it, since we should always observe
+		// intervals where etcd has a leader.
+		return junitTest.Skip(), nil
+	}
+
+	return junitTest.Result(), nil
 }
 
 func (w *etcdLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -330,4 +372,63 @@ func searchForKey(msg, key string) string {
 		}
 	}
 	return ""
+}
+
+type junitTest struct {
+	name     string
+	computed monitorapi.Intervals
+}
+
+func (jut *junitTest) Result() []*junitapi.JUnitTestCase {
+	passed := &junitapi.JUnitTestCase{
+		Name:      jut.name,
+		SystemOut: "",
+	}
+
+	type leaderless struct {
+		duration   time.Duration
+		prev, next *monitorapi.Interval
+	}
+
+	exceeded := make([]leaderless, 0)
+	for i := 1; i < len(jut.computed); i++ {
+		prev, next := &jut.computed[i-1], &jut.computed[i]
+		if duration := next.From.Sub(prev.To); duration > leaderlessTimeout {
+			exceeded = append(exceeded, leaderless{
+				duration: duration,
+				prev:     prev,
+				next:     next,
+			})
+		}
+	}
+
+	if len(exceeded) == 0 {
+		// passed
+		return []*junitapi.JUnitTestCase{passed}
+	}
+
+	// flake
+	failed := &junitapi.JUnitTestCase{
+		Name:          jut.name,
+		SystemOut:     fmt.Sprintf("etcd cluster leader loss exceeded threshold %d times", len(exceeded)),
+		FailureOutput: &junitapi.FailureOutput{},
+	}
+	for _, l := range exceeded {
+		failed.FailureOutput.Output = fmt.Sprintf("%s\netcd cluster did not have a leader for %s\n%s\n%s",
+			failed.FailureOutput.Output, l.duration, l.prev.String(), l.next.String())
+	}
+
+	// TODO: for now, we flake the test, Once we know it's fully
+	// passing then we can remove the flake test case.
+	return []*junitapi.JUnitTestCase{failed, passed}
+}
+
+func (jut *junitTest) Skip() []*junitapi.JUnitTestCase {
+	skipped := &junitapi.JUnitTestCase{
+		Name: jut.name,
+		SkipMessage: &junitapi.SkipMessage{
+			Message: "No intervals of interest seen",
+		},
+	}
+	return []*junitapi.JUnitTestCase{skipped}
 }
