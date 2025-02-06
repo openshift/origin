@@ -1217,3 +1217,82 @@ func getNodesForPool(ctx context.Context, oc *exutil.CLI, kubeClient *kubernetes
 	}
 	return nodes, nil
 }
+
+// WaitForConfigAndPoolComplete is a helper function that gets a renderedConfig and waits for its pool to complete.
+// The return value is the final rendered config.
+func WaitForConfigAndPoolComplete(oc *exutil.CLI, pool, mcName string) string {
+	config, err := WaitForRenderedConfig(oc, pool, mcName)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%v: failed to render machine config %s from pool %s", err, mcName, pool))
+
+	err = WaitForPoolComplete(oc, pool, config)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%v: pool %s did not update to config %s", err, pool, config))
+	return config
+}
+
+// WaitForRenderedConfig polls a MachineConfigPool until it has
+// included the given mcName in its config, and returns the new
+// rendered config name.
+func WaitForRenderedConfig(oc *exutil.CLI, pool, mcName string) (string, error) {
+	return WaitForRenderedConfigs(oc, pool, mcName)
+}
+
+// WaitForRenderedConfigs polls a MachineConfigPool until it has
+// included the given mcNames in its config, and returns the new
+// rendered config name.
+func WaitForRenderedConfigs(oc *exutil.CLI, pool string, mcNames ...string) (string, error) {
+	var renderedConfig string
+	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	found := make(map[string]bool)
+	o.Eventually(func() bool {
+		// Set up the list
+		for _, name := range mcNames {
+			found[name] = false
+		}
+
+		// Update found based on the MCP
+		mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), pool, metav1.GetOptions{})
+		if err != nil {
+			return false
+		}
+		for _, mc := range mcp.Spec.Configuration.Source {
+			if _, ok := found[mc.Name]; ok {
+				found[mc.Name] = true
+			}
+		}
+
+		// If any are still false, then they weren't included in the MCP
+		for _, nameFound := range found {
+			if !nameFound {
+				return false
+			}
+		}
+
+		// All the required names were found
+		renderedConfig = mcp.Spec.Configuration.Name
+		return true
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
+	return renderedConfig, nil
+}
+
+// WaitForPoolComplete polls a pool until it has completed an update to target
+func WaitForPoolComplete(oc *exutil.CLI, pool, target string) error {
+	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Waiting for pool %s to complete %s", pool, target)
+	o.Eventually(func() bool {
+		mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), pool, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Failed to grab machineconfigpools, error :%v", err)
+			return false
+		}
+		if mcp.Status.Configuration.Name != target {
+			return false
+		}
+		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) {
+			return true
+		}
+		return false
+	}, 20*time.Minute, 10*time.Second).Should(o.BeTrue())
+	return nil
+}

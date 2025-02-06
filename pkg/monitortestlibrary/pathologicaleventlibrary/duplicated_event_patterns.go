@@ -487,6 +487,12 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	vsphereConfigurationTestsRollOutTooOftenMatcher := newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(vsphereConfigurationTestsRollOutTooOftenMatcher)
 
+	newDeferringOperatorNodeUpdateTooOftenEventMatcher := newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newDeferringOperatorNodeUpdateTooOftenEventMatcher)
+
+	newCrioReloadedTooOftenEventMatcher := newCrioReloadedTooOftenEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newCrioReloadedTooOftenEventMatcher)
+
 	return registry
 }
 
@@ -1059,5 +1065,46 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 			topology:          &snoTopology,
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,
+	}
+}
+
+func newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	DeferringOperatorNodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
+	})
+	for i := range DeferringOperatorNodeUpdateIntervals {
+		DeferringOperatorNodeUpdateIntervals[i].To = DeferringOperatorNodeUpdateIntervals[i].To.Add(time.Minute * 2)
+		DeferringOperatorNodeUpdateIntervals[i].From = DeferringOperatorNodeUpdateIntervals[i].From.Add(time.Minute * -2)
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "DeferringOperatorNodeUpdateTooOften",
+			messageReasonRegex: regexp.MustCompile(`^DeferringOperatorNodeUpdate$`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-52260",
+		},
+		allowIfWithinIntervals: DeferringOperatorNodeUpdateIntervals,
+	}
+}
+
+func newCrioReloadedTooOftenEventMatcher(finalInternals monitorapi.Intervals) EventMatcher {
+	crioReloadedIntervals := finalInternals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
+	})
+	for i := range crioReloadedIntervals {
+		crioReloadedIntervals[i].To = crioReloadedIntervals[i].To.Add(time.Minute * 2)
+		crioReloadedIntervals[i].From = crioReloadedIntervals[i].From.Add(time.Minute * -2)
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "CrioReloadedTooOften",
+			messageReasonRegex: regexp.MustCompile(`^ServiceReload$`),
+			messageHumanRegex:  regexp.MustCompile(`Service crio.service was reloaded.`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-52260",
+		},
+		allowIfWithinIntervals: crioReloadedIntervals,
 	}
 }
