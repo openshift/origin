@@ -113,7 +113,7 @@ type imagesOptions struct {
 func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
 	source := ref.Exact()
 
-	initialDefaults := []extensions.ImageConfig{
+	initialImageSets := []extensions.ImageSet{
 		k8simage.GetOriginalImageConfigs(),
 	}
 
@@ -131,35 +131,34 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		// List test images from all available binaries
 		listContext, listContextCancel := context.WithTimeout(context.Background(), time.Minute)
 		defer listContextCancel()
-
-		imagesFromExternalBinaries, err := externalBinaries.ListImages(listContext, 10)
+		imageSetsFromBinaries, err := externalBinaries.ListImages(listContext, 10)
 		if err != nil {
 			return nil, err
 		}
-		initialDefaults = imagesFromExternalBinaries
+		initialImageSets = imageSetsFromBinaries
 	}
 
-	// Take the initial images coming from external binaries and remove any exceptions that
+	// Take the initial images coming from external binaries and remove any exceptions that might exist.
 	exceptions := image.Exceptions.List()
-	defaults := []extensions.ImageConfig{}
-	for j := range initialDefaults {
-		filtered := extensions.ImageConfig{}
-		for i, config := range initialDefaults[j] {
+	defaultImageSets := []extensions.ImageSet{}
+	for i := range initialImageSets {
+		filtered := extensions.ImageSet{}
+		for imageID, imageConfig := range initialImageSets[i] {
 			if !slices.ContainsFunc(exceptions, func(e string) bool {
-				return strings.Contains(config.GetE2EImage(), e)
+				return strings.Contains(imageConfig.GetE2EImage(), e)
 			}) {
-				filtered[i] = config
+				filtered[imageID] = imageConfig
 			}
 		}
 		if len(filtered) > 0 {
-			defaults = append(defaults, filtered)
+			defaultImageSets = append(defaultImageSets, filtered)
 		}
 	}
 
-	// Created a new slice with the updated addresses for the images
-	updated := []extensions.ImageConfig{}
-	for i := range defaults {
-		updated = append(updated, k8simage.GetMappedImageConfigs(defaults[i], ref.Exact()))
+	// Created a new slice with the updatedImageSets addresses for the images
+	updatedImageSets := []extensions.ImageSet{}
+	for i := range defaultImageSets {
+		updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
 	}
 
 	openshiftDefaults := image.OriginalImages()
@@ -174,10 +173,10 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 		// calculate the mapping of upstream images by setting defaults to baseRef
 		covered := sets.NewString()
-		for iii := range updated {
-			for i, config := range updated[iii] {
-				defaultConfig := defaults[iii][i]
-				pullSpec := config.GetE2EImage()
+		for i := range updatedImageSets {
+			for imageID, imageConfig := range updatedImageSets[i] {
+				defaultConfig := defaultImageSets[i][imageID]
+				pullSpec := imageConfig.GetE2EImage()
 				if pullSpec == defaultConfig.GetE2EImage() {
 					continue
 				}
@@ -192,10 +191,10 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 				if len(e2eRef.Tag) == 0 {
 					return nil, fmt.Errorf("invalid test image: %s: no tag", pullSpec)
 				}
-				config.SetRegistry(baseRef.Registry)
-				config.SetName(baseRef.RepositoryName())
-				config.SetVersion(e2eRef.Tag)
-				defaults[iii][i] = config
+				imageConfig.SetRegistry(baseRef.Registry)
+				imageConfig.SetName(baseRef.RepositoryName())
+				imageConfig.SetVersion(e2eRef.Tag)
+				defaultImageSets[i][imageID] = imageConfig
 			}
 		}
 
@@ -219,9 +218,9 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	covered := sets.NewString()
 	var lines []string
-	for iii := range updated {
-		for i := range updated[iii] {
-			a, b := defaults[iii][i], updated[iii][i]
+	for i := range updatedImageSets {
+		for imageID := range updatedImageSets[i] {
+			a, b := defaultImageSets[i][imageID], updatedImageSets[i][imageID]
 			from, to := a.GetE2EImage(), b.GetE2EImage()
 			if from == to {
 				continue
