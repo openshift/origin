@@ -717,15 +717,20 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 	}
 
 	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
-	return envFlagBuilder.
+	envFlagBuilder.
 		AddPlatform(config.ProviderName).
 		AddNetwork(config.NetworkPlugin).
 		AddNetworkStack(config.IPFamily).
 		AddTopology(clusterState.ControlPlaneTopology).
 		AddUpgrade(upgradeType).
 		AddArchitecture(clusterState.Masters.Items[0].Status.NodeInfo.Architecture). //TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
-		AddVersion(clusterState.Version.Status.Desired.Version).
-		Build(), nil
+		AddExternalConnectivity(determineExternalConnectivity(config)).
+		AddVersion(clusterState.Version.Status.Desired.Version)
+	for _, optionalCapability := range clusterState.OptionalCapabilities {
+		envFlagBuilder.AddOptionalCapability(string(optionalCapability))
+	}
+
+	return envFlagBuilder.Build(), nil
 }
 
 func determineUpgradeType(versionStatus configv1.ClusterVersionStatus) string {
@@ -746,4 +751,14 @@ func determineUpgradeType(versionStatus configv1.ClusterVersionStatus) string {
 	}
 
 	return "Unknown"
+}
+
+func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfiguration) string {
+	if clusterConfig.Disconnected {
+		return "Disconnected"
+	}
+	if clusterConfig.IsProxied {
+		return "Proxied"
+	}
+	return "Direct"
 }

@@ -174,14 +174,16 @@ func (dbt *DBTime) UnmarshalJSON(b []byte) error {
 type EnvironmentFlagName string
 
 const (
-	platform     EnvironmentFlagName = "platform"
-	network      EnvironmentFlagName = "network"
-	networkStack EnvironmentFlagName = "network-stack"
-	upgrade      EnvironmentFlagName = "upgrade"
-	topology     EnvironmentFlagName = "topology"
-	architecture EnvironmentFlagName = "architecture"
-	fact         EnvironmentFlagName = "fact"
-	version      EnvironmentFlagName = "version"
+	platform             EnvironmentFlagName = "platform"
+	network              EnvironmentFlagName = "network"
+	networkStack         EnvironmentFlagName = "network-stack"
+	upgrade              EnvironmentFlagName = "upgrade"
+	topology             EnvironmentFlagName = "topology"
+	architecture         EnvironmentFlagName = "architecture"
+	externalConnectivity EnvironmentFlagName = "external-connectivity"
+	optionalCapability   EnvironmentFlagName = "optional-capability"
+	fact                 EnvironmentFlagName = "fact"
+	version              EnvironmentFlagName = "version"
 )
 
 type EnvironmentFlagsBuilder struct {
@@ -220,6 +222,16 @@ func (e *EnvironmentFlagsBuilder) AddArchitecture(value string) *EnvironmentFlag
 	return e
 }
 
+func (e *EnvironmentFlagsBuilder) AddExternalConnectivity(value string) *EnvironmentFlagsBuilder {
+	e.flags = append(e.flags, newEnvironmentFlag(externalConnectivity, value))
+	return e
+}
+
+func (e *EnvironmentFlagsBuilder) AddOptionalCapability(value string) *EnvironmentFlagsBuilder {
+	e.flags = append(e.flags, newEnvironmentFlag(optionalCapability, value))
+	return e
+}
+
 func (e *EnvironmentFlagsBuilder) AddFact(value string) *EnvironmentFlagsBuilder {
 	e.flags = append(e.flags, newEnvironmentFlag(fact, value))
 	return e
@@ -247,7 +259,8 @@ func newEnvironmentFlag(name EnvironmentFlagName, value string) EnvironmentFlag 
 }
 
 func (ef EnvironmentFlag) ArgString() string {
-	return fmt.Sprintf("%s=%s", ef.Name, ef.Value)
+	return fmt.Sprintf("--%s=%s", ef.Name, ef.Value)
+	//return fmt.Sprintf("%s=%s", ef.Name, ef.Value)
 }
 
 type EnvironmentFlags []EnvironmentFlag
@@ -267,12 +280,14 @@ func (ef EnvironmentFlags) String() string {
 
 // EnvironmentFlagVersions holds the "Since" version metadata for each flag.
 var EnvironmentFlagVersions = map[EnvironmentFlagName]string{
-	platform:     "v1.0",
-	network:      "v1.0",
-	networkStack: "v1.0",
-	upgrade:      "v1.0",
-	topology:     "v1.0",
-	architecture: "v1.0",
-	fact:         "v1.0", //TODO(sgoeddel): this will be set in a later version
-	version:      "v1.0",
+	platform:             "v1.0",
+	network:              "v1.0",
+	networkStack:         "v1.0",
+	upgrade:              "v1.0",
+	topology:             "v1.0",
+	architecture:         "v1.0",
+	externalConnectivity: "v1.0",
+	optionalCapability:   "v1.0",
+	fact:                 "v1.0", //TODO(sgoeddel): this will be set in a later version
+	version:              "v1.0",
 }
