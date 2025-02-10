@@ -1165,7 +1165,7 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to \"\" [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-etcd][apigroup:config.openshift.io]Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
+	"[sig-etcd][apigroup:config.openshift.io] Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
