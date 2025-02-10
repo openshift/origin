@@ -386,8 +386,8 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			allowedCount, exists := upperBound[operator]
 
 			if !exists {
-				framework.Logf("Operator %v not found in upper bounds for %v", operator, infra.Spec.PlatformSpec.Type)
-				framework.Logf("operator=%v, watchrequestcount=%v", item.Operator, item.Count)
+				framework.Logf("Operator %v   not found in upper bounds for %v", operator, infra.Spec.PlatformSpec.Type)
+				framework.Logf("operator=%v,   watchrequestcount=%v", item.Operator, item.Count)
 				continue
 			}
 
@@ -396,9 +396,9 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			allowedCount = allowedCount * 2
 			ratio := float64(item.Count) / float64(allowedCount)
 			ratio = math.Round(ratio*100) / 100
-			framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio)
+			framework.Logf("operator=%v,   watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio)
 			if item.Count > allowedCount {
-				framework.Logf("Operator %q produces more watch requests than expected", operator)
+				framework.Logf("Operator %q   produces more watch requests than expected", operator)
 				operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio))
 			}
 		}
@@ -415,7 +415,7 @@ func getClusterVersions(clusterVersion *configv1.ClusterVersion) (*utilversion.V
 			if to == nil {
 				to = utilversion.MustParseSemantic(h.Version)
 			} else {
-				from = utilversion.MustParseSemantic(h.Version)
+				// with diff
 				break
 			}
 		}
