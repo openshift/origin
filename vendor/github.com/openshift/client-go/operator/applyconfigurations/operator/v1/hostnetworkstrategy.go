@@ -3,16 +3,16 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // HostNetworkStrategyApplyConfiguration represents a declarative configuration of the HostNetworkStrategy type for use
 // with apply.
 type HostNetworkStrategyApplyConfiguration struct {
-	Protocol  *v1.IngressControllerProtocol `json:"protocol,omitempty"`
-	HTTPPort  *int32                        `json:"httpPort,omitempty"`
-	HTTPSPort *int32                        `json:"httpsPort,omitempty"`
-	StatsPort *int32                        `json:"statsPort,omitempty"`
+	Protocol  *operatorv1.IngressControllerProtocol `json:"protocol,omitempty"`
+	HTTPPort  *int32                                `json:"httpPort,omitempty"`
+	HTTPSPort *int32                                `json:"httpsPort,omitempty"`
+	StatsPort *int32                                `json:"statsPort,omitempty"`
 }
 
 // HostNetworkStrategyApplyConfiguration constructs a declarative configuration of the HostNetworkStrategy type for use with
@@ -24,7 +24,7 @@ func HostNetworkStrategy() *HostNetworkStrategyApplyConfiguration {
 // WithProtocol sets the Protocol field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Protocol field is set to the value of the last call.
-func (b *HostNetworkStrategyApplyConfiguration) WithProtocol(value v1.IngressControllerProtocol) *HostNetworkStrategyApplyConfiguration {
+func (b *HostNetworkStrategyApplyConfiguration) WithProtocol(value operatorv1.IngressControllerProtocol) *HostNetworkStrategyApplyConfiguration {
 	b.Protocol = &value
 	return b
 }

@@ -56,7 +56,7 @@ type ApplicationMenuSpec struct {
 	// This can be any text that will appear as a subheading in the application menu dropdown.
 	// A new section will be created if the text does not match text of an existing section.
 	Section string `json:"section"`
-	// imageUrl is the URL for the icon used in front of the link in the application menu.
+	// imageURL is the URL for the icon used in front of the link in the application menu.
 	// The URL must be an HTTPS URL or a Data URI. The image should be square and will be shown at 24x24 pixels.
 	// +optional
 	ImageURL string `json:"imageURL,omitempty"`

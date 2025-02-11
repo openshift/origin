@@ -40,12 +40,10 @@ message CloudPrivateIPConfig {
   optional .k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is the definition of the desired private IP request.
-  // +kubebuilder:validation:Required
   // +required
   optional CloudPrivateIPConfigSpec spec = 2;
 
   // status is the observed status of the desired private IP request. Read-only.
-  // +kubebuilder:validation:Optional
   // +optional
   optional CloudPrivateIPConfigStatus status = 3;
 }
@@ -68,7 +66,6 @@ message CloudPrivateIPConfigList {
 // +k8s:openapi-gen=true
 message CloudPrivateIPConfigSpec {
   // node is the node name, as specified by the Kubernetes field: node.metadata.name
-  // +kubebuilder:validation:Optional
   // +optional
   optional string node = 1;
 }
@@ -77,12 +74,10 @@ message CloudPrivateIPConfigSpec {
 // +k8s:openapi-gen=true
 message CloudPrivateIPConfigStatus {
   // node is the node name, as specified by the Kubernetes field: node.metadata.name
-  // +kubebuilder:validation:Optional
   // +optional
   optional string node = 1;
 
   // condition is the assignment condition of the private IP and its status
-  // +kubebuilder:validation:Required
   // +required
   repeated .k8s.io.apimachinery.pkg.apis.meta.v1.Condition conditions = 2;
 }

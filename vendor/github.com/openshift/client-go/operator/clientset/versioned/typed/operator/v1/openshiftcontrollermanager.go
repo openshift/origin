@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type OpenShiftControllerManagersGetter interface {
 
 // OpenShiftControllerManagerInterface has methods to work with OpenShiftControllerManager resources.
 type OpenShiftControllerManagerInterface interface {
-	Create(ctx context.Context, openShiftControllerManager *v1.OpenShiftControllerManager, opts metav1.CreateOptions) (*v1.OpenShiftControllerManager, error)
-	Update(ctx context.Context, openShiftControllerManager *v1.OpenShiftControllerManager, opts metav1.UpdateOptions) (*v1.OpenShiftControllerManager, error)
+	Create(ctx context.Context, openShiftControllerManager *operatorv1.OpenShiftControllerManager, opts metav1.CreateOptions) (*operatorv1.OpenShiftControllerManager, error)
+	Update(ctx context.Context, openShiftControllerManager *operatorv1.OpenShiftControllerManager, opts metav1.UpdateOptions) (*operatorv1.OpenShiftControllerManager, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, openShiftControllerManager *v1.OpenShiftControllerManager, opts metav1.UpdateOptions) (*v1.OpenShiftControllerManager, error)
+	UpdateStatus(ctx context.Context, openShiftControllerManager *operatorv1.OpenShiftControllerManager, opts metav1.UpdateOptions) (*operatorv1.OpenShiftControllerManager, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.OpenShiftControllerManager, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.OpenShiftControllerManagerList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.OpenShiftControllerManager, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.OpenShiftControllerManagerList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.OpenShiftControllerManager, err error)
-	Apply(ctx context.Context, openShiftControllerManager *operatorv1.OpenShiftControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.OpenShiftControllerManager, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.OpenShiftControllerManager, err error)
+	Apply(ctx context.Context, openShiftControllerManager *applyconfigurationsoperatorv1.OpenShiftControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.OpenShiftControllerManager, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, openShiftControllerManager *operatorv1.OpenShiftControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *v1.OpenShiftControllerManager, err error)
+	ApplyStatus(ctx context.Context, openShiftControllerManager *applyconfigurationsoperatorv1.OpenShiftControllerManagerApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.OpenShiftControllerManager, err error)
 	OpenShiftControllerManagerExpansion
 }
 
 // openShiftControllerManagers implements OpenShiftControllerManagerInterface
 type openShiftControllerManagers struct {
-	*gentype.ClientWithListAndApply[*v1.OpenShiftControllerManager, *v1.OpenShiftControllerManagerList, *operatorv1.OpenShiftControllerManagerApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.OpenShiftControllerManager, *operatorv1.OpenShiftControllerManagerList, *applyconfigurationsoperatorv1.OpenShiftControllerManagerApplyConfiguration]
 }
 
 // newOpenShiftControllerManagers returns a OpenShiftControllerManagers
 func newOpenShiftControllerManagers(c *OperatorV1Client) *openShiftControllerManagers {
 	return &openShiftControllerManagers{
-		gentype.NewClientWithListAndApply[*v1.OpenShiftControllerManager, *v1.OpenShiftControllerManagerList, *operatorv1.OpenShiftControllerManagerApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.OpenShiftControllerManager, *operatorv1.OpenShiftControllerManagerList, *applyconfigurationsoperatorv1.OpenShiftControllerManagerApplyConfiguration](
 			"openshiftcontrollermanagers",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.OpenShiftControllerManager { return &v1.OpenShiftControllerManager{} },
-			func() *v1.OpenShiftControllerManagerList { return &v1.OpenShiftControllerManagerList{} }),
+			func() *operatorv1.OpenShiftControllerManager { return &operatorv1.OpenShiftControllerManager{} },
+			func() *operatorv1.OpenShiftControllerManagerList { return &operatorv1.OpenShiftControllerManagerList{} },
+		),
 	}
 }

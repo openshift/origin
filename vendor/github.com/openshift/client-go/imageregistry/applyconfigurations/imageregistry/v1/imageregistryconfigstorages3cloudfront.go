@@ -3,17 +3,17 @@
 package v1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImageRegistryConfigStorageS3CloudFrontApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use
 // with apply.
 type ImageRegistryConfigStorageS3CloudFrontApplyConfiguration struct {
-	BaseURL    *string               `json:"baseURL,omitempty"`
-	PrivateKey *v1.SecretKeySelector `json:"privateKey,omitempty"`
-	KeypairID  *string               `json:"keypairID,omitempty"`
-	Duration   *metav1.Duration      `json:"duration,omitempty"`
+	BaseURL    *string                   `json:"baseURL,omitempty"`
+	PrivateKey *corev1.SecretKeySelector `json:"privateKey,omitempty"`
+	KeypairID  *string                   `json:"keypairID,omitempty"`
+	Duration   *metav1.Duration          `json:"duration,omitempty"`
 }
 
 // ImageRegistryConfigStorageS3CloudFrontApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageS3CloudFront type for use with
@@ -33,7 +33,7 @@ func (b *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration) WithBaseURL(v
 // WithPrivateKey sets the PrivateKey field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the PrivateKey field is set to the value of the last call.
-func (b *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration) WithPrivateKey(value v1.SecretKeySelector) *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration {
+func (b *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration) WithPrivateKey(value corev1.SecretKeySelector) *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration {
 	b.PrivateKey = &value
 	return b
 }

@@ -115,6 +115,7 @@ clusterversions.config.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - ImageStreamImportMode
   - SignatureStores
   FilenameOperatorName: cluster-version-operator
   FilenameOperatorOrdering: "01"
@@ -314,7 +315,10 @@ infrastructures.config.openshift.io:
   - BareMetalLoadBalancer
   - GCPClusterHostedDNS
   - GCPLabelsTags
+  - HighlyAvailableArbiter
+  - NutanixMultiSubnets
   - VSphereControlPlaneMachineSet
+  - VSphereHostVMGroupZonal
   - VSphereMultiNetworks
   - VSphereMultiVCenters
   FilenameOperatorName: config-operator

@@ -38,7 +38,7 @@ type KubeAPIServerConfig struct {
 	// DEPRECATED: consolePublicURL has been deprecated and setting it has no effect.
 	ConsolePublicURL string `json:"consolePublicURL"`
 
-	// UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
+	// userAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!
 	// TODO I think we should just drop this feature.
 	UserAgentMatchingConfig UserAgentMatchingConfig `json:"userAgentMatchingConfig"`
 
@@ -153,7 +153,7 @@ type UserAgentMatchRule struct {
 type UserAgentDenyRule struct {
 	UserAgentMatchRule `json:",inline"`
 
-	// RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
+	// rejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.
 	RejectionMessage string `json:"rejectionMessage"`
 }
 
@@ -231,6 +231,6 @@ type KubeControllerManagerProjectConfig struct {
 // ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for
 // pods fulfilling a service to serve with.
 type ServiceServingCert struct {
-	// CertFile is a file containing a PEM-encoded certificate
+	// certFile is a file containing a PEM-encoded certificate
 	CertFile string `json:"certFile"`
 }

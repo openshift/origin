@@ -4,15 +4,15 @@ package v1
 
 import (
 	configv1 "github.com/openshift/api/config/v1"
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // ClientTLSApplyConfiguration represents a declarative configuration of the ClientTLS type for use
 // with apply.
 type ClientTLSApplyConfiguration struct {
-	ClientCertificatePolicy *v1.ClientCertificatePolicy      `json:"clientCertificatePolicy,omitempty"`
-	ClientCA                *configv1.ConfigMapNameReference `json:"clientCA,omitempty"`
-	AllowedSubjectPatterns  []string                         `json:"allowedSubjectPatterns,omitempty"`
+	ClientCertificatePolicy *operatorv1.ClientCertificatePolicy `json:"clientCertificatePolicy,omitempty"`
+	ClientCA                *configv1.ConfigMapNameReference    `json:"clientCA,omitempty"`
+	AllowedSubjectPatterns  []string                            `json:"allowedSubjectPatterns,omitempty"`
 }
 
 // ClientTLSApplyConfiguration constructs a declarative configuration of the ClientTLS type for use with
@@ -24,7 +24,7 @@ func ClientTLS() *ClientTLSApplyConfiguration {
 // WithClientCertificatePolicy sets the ClientCertificatePolicy field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ClientCertificatePolicy field is set to the value of the last call.
-func (b *ClientTLSApplyConfiguration) WithClientCertificatePolicy(value v1.ClientCertificatePolicy) *ClientTLSApplyConfiguration {
+func (b *ClientTLSApplyConfiguration) WithClientCertificatePolicy(value operatorv1.ClientCertificatePolicy) *ClientTLSApplyConfiguration {
 	b.ClientCertificatePolicy = &value
 	return b
 }

@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/console/v1"
-	consolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
+	consolev1 "github.com/openshift/api/console/v1"
+	applyconfigurationsconsolev1 "github.com/openshift/client-go/console/applyconfigurations/console/v1"
 	scheme "github.com/openshift/client-go/console/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,32 +22,33 @@ type ConsoleCLIDownloadsGetter interface {
 
 // ConsoleCLIDownloadInterface has methods to work with ConsoleCLIDownload resources.
 type ConsoleCLIDownloadInterface interface {
-	Create(ctx context.Context, consoleCLIDownload *v1.ConsoleCLIDownload, opts metav1.CreateOptions) (*v1.ConsoleCLIDownload, error)
-	Update(ctx context.Context, consoleCLIDownload *v1.ConsoleCLIDownload, opts metav1.UpdateOptions) (*v1.ConsoleCLIDownload, error)
+	Create(ctx context.Context, consoleCLIDownload *consolev1.ConsoleCLIDownload, opts metav1.CreateOptions) (*consolev1.ConsoleCLIDownload, error)
+	Update(ctx context.Context, consoleCLIDownload *consolev1.ConsoleCLIDownload, opts metav1.UpdateOptions) (*consolev1.ConsoleCLIDownload, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.ConsoleCLIDownload, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.ConsoleCLIDownloadList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*consolev1.ConsoleCLIDownload, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*consolev1.ConsoleCLIDownloadList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.ConsoleCLIDownload, err error)
-	Apply(ctx context.Context, consoleCLIDownload *consolev1.ConsoleCLIDownloadApplyConfiguration, opts metav1.ApplyOptions) (result *v1.ConsoleCLIDownload, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *consolev1.ConsoleCLIDownload, err error)
+	Apply(ctx context.Context, consoleCLIDownload *applyconfigurationsconsolev1.ConsoleCLIDownloadApplyConfiguration, opts metav1.ApplyOptions) (result *consolev1.ConsoleCLIDownload, err error)
 	ConsoleCLIDownloadExpansion
 }
 
 // consoleCLIDownloads implements ConsoleCLIDownloadInterface
 type consoleCLIDownloads struct {
-	*gentype.ClientWithListAndApply[*v1.ConsoleCLIDownload, *v1.ConsoleCLIDownloadList, *consolev1.ConsoleCLIDownloadApplyConfiguration]
+	*gentype.ClientWithListAndApply[*consolev1.ConsoleCLIDownload, *consolev1.ConsoleCLIDownloadList, *applyconfigurationsconsolev1.ConsoleCLIDownloadApplyConfiguration]
 }
 
 // newConsoleCLIDownloads returns a ConsoleCLIDownloads
 func newConsoleCLIDownloads(c *ConsoleV1Client) *consoleCLIDownloads {
 	return &consoleCLIDownloads{
-		gentype.NewClientWithListAndApply[*v1.ConsoleCLIDownload, *v1.ConsoleCLIDownloadList, *consolev1.ConsoleCLIDownloadApplyConfiguration](
+		gentype.NewClientWithListAndApply[*consolev1.ConsoleCLIDownload, *consolev1.ConsoleCLIDownloadList, *applyconfigurationsconsolev1.ConsoleCLIDownloadApplyConfiguration](
 			"consoleclidownloads",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.ConsoleCLIDownload { return &v1.ConsoleCLIDownload{} },
-			func() *v1.ConsoleCLIDownloadList { return &v1.ConsoleCLIDownloadList{} }),
+			func() *consolev1.ConsoleCLIDownload { return &consolev1.ConsoleCLIDownload{} },
+			func() *consolev1.ConsoleCLIDownloadList { return &consolev1.ConsoleCLIDownloadList{} },
+		),
 	}
 }

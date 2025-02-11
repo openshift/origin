@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/imageregistry/v1"
+	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 )
 
 // ImageRegistryConfigStorageApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorage type for use
 // with apply.
 type ImageRegistryConfigStorageApplyConfiguration struct {
-	EmptyDir        *v1.ImageRegistryConfigStorageEmptyDir                  `json:"emptyDir,omitempty"`
+	EmptyDir        *imageregistryv1.ImageRegistryConfigStorageEmptyDir     `json:"emptyDir,omitempty"`
 	S3              *ImageRegistryConfigStorageS3ApplyConfiguration         `json:"s3,omitempty"`
 	GCS             *ImageRegistryConfigStorageGCSApplyConfiguration        `json:"gcs,omitempty"`
 	Swift           *ImageRegistryConfigStorageSwiftApplyConfiguration      `json:"swift,omitempty"`
@@ -29,7 +29,7 @@ func ImageRegistryConfigStorage() *ImageRegistryConfigStorageApplyConfiguration 
 // WithEmptyDir sets the EmptyDir field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the EmptyDir field is set to the value of the last call.
-func (b *ImageRegistryConfigStorageApplyConfiguration) WithEmptyDir(value v1.ImageRegistryConfigStorageEmptyDir) *ImageRegistryConfigStorageApplyConfiguration {
+func (b *ImageRegistryConfigStorageApplyConfiguration) WithEmptyDir(value imageregistryv1.ImageRegistryConfigStorageEmptyDir) *ImageRegistryConfigStorageApplyConfiguration {
 	b.EmptyDir = &value
 	return b
 }

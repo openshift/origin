@@ -3,15 +3,15 @@
 package v1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImageRegistryConfigRequestsLimitsApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRequestsLimits type for use
 // with apply.
 type ImageRegistryConfigRequestsLimitsApplyConfiguration struct {
-	MaxRunning     *int         `json:"maxRunning,omitempty"`
-	MaxInQueue     *int         `json:"maxInQueue,omitempty"`
-	MaxWaitInQueue *v1.Duration `json:"maxWaitInQueue,omitempty"`
+	MaxRunning     *int             `json:"maxRunning,omitempty"`
+	MaxInQueue     *int             `json:"maxInQueue,omitempty"`
+	MaxWaitInQueue *metav1.Duration `json:"maxWaitInQueue,omitempty"`
 }
 
 // ImageRegistryConfigRequestsLimitsApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigRequestsLimits type for use with
@@ -39,7 +39,7 @@ func (b *ImageRegistryConfigRequestsLimitsApplyConfiguration) WithMaxInQueue(val
 // WithMaxWaitInQueue sets the MaxWaitInQueue field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MaxWaitInQueue field is set to the value of the last call.
-func (b *ImageRegistryConfigRequestsLimitsApplyConfiguration) WithMaxWaitInQueue(value v1.Duration) *ImageRegistryConfigRequestsLimitsApplyConfiguration {
+func (b *ImageRegistryConfigRequestsLimitsApplyConfiguration) WithMaxWaitInQueue(value metav1.Duration) *ImageRegistryConfigRequestsLimitsApplyConfiguration {
 	b.MaxWaitInQueue = &value
 	return b
 }

@@ -28,7 +28,7 @@ var map_KubeAPIServerConfig = map[string]string{
 	"servicesSubnet":               "servicesSubnet is the subnet to use for assigning service IPs",
 	"servicesNodePortRange":        "servicesNodePortRange is the range to use for assigning service public ports on a host.",
 	"consolePublicURL":             "DEPRECATED: consolePublicURL has been deprecated and setting it has no effect.",
-	"userAgentMatchingConfig":      "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
+	"userAgentMatchingConfig":      "userAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 	"imagePolicyConfig":            "imagePolicyConfig feeds the image policy admission plugin",
 	"projectConfig":                "projectConfig feeds an admission plugin",
 	"serviceAccountPublicKeyFiles": "serviceAccountPublicKeyFiles is a list of files, each containing a PEM-encoded public RSA key. (If any file contains a private key, the public portion of the key is used) The list of public keys is used to verify presented service account tokens. Each key is tried in order until the list is exhausted or verification succeeds. If no keys are specified, no service account authentication will be available.",
@@ -112,7 +112,7 @@ func (RequestHeaderAuthenticationOptions) SwaggerDoc() map[string]string {
 
 var map_ServiceServingCert = map[string]string{
 	"":         "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
-	"certFile": "CertFile is a file containing a PEM-encoded certificate",
+	"certFile": "certFile is a file containing a PEM-encoded certificate",
 }
 
 func (ServiceServingCert) SwaggerDoc() map[string]string {
@@ -121,7 +121,7 @@ func (ServiceServingCert) SwaggerDoc() map[string]string {
 
 var map_UserAgentDenyRule = map[string]string{
 	"":                 "UserAgentDenyRule adds a rejection message that can be used to help a user figure out how to get an approved client",
-	"rejectionMessage": "RejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.",
+	"rejectionMessage": "rejectionMessage is the message shown when rejecting a client.  If it is not a set, the default message is used.",
 }
 
 func (UserAgentDenyRule) SwaggerDoc() map[string]string {

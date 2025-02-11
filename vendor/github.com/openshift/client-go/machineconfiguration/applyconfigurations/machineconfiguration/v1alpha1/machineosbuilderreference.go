@@ -3,14 +3,14 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	machineconfigurationv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 )
 
 // MachineOSBuilderReferenceApplyConfiguration represents a declarative configuration of the MachineOSBuilderReference type for use
 // with apply.
 type MachineOSBuilderReferenceApplyConfiguration struct {
-	ImageBuilderType *v1alpha1.MachineOSImageBuilderType `json:"imageBuilderType,omitempty"`
-	PodImageBuilder  *ObjectReferenceApplyConfiguration  `json:"buildPod,omitempty"`
+	ImageBuilderType *machineconfigurationv1alpha1.MachineOSImageBuilderType `json:"imageBuilderType,omitempty"`
+	PodImageBuilder  *ObjectReferenceApplyConfiguration                      `json:"buildPod,omitempty"`
 }
 
 // MachineOSBuilderReferenceApplyConfiguration constructs a declarative configuration of the MachineOSBuilderReference type for use with
@@ -22,7 +22,7 @@ func MachineOSBuilderReference() *MachineOSBuilderReferenceApplyConfiguration {
 // WithImageBuilderType sets the ImageBuilderType field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ImageBuilderType field is set to the value of the last call.
-func (b *MachineOSBuilderReferenceApplyConfiguration) WithImageBuilderType(value v1alpha1.MachineOSImageBuilderType) *MachineOSBuilderReferenceApplyConfiguration {
+func (b *MachineOSBuilderReferenceApplyConfiguration) WithImageBuilderType(value machineconfigurationv1alpha1.MachineOSImageBuilderType) *MachineOSBuilderReferenceApplyConfiguration {
 	b.ImageBuilderType = &value
 	return b
 }

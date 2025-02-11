@@ -3,14 +3,14 @@
 package v1
 
 import (
-	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // NamespaceDashboardSpecApplyConfiguration represents a declarative configuration of the NamespaceDashboardSpec type for use
 // with apply.
 type NamespaceDashboardSpecApplyConfiguration struct {
-	Namespaces        []string                            `json:"namespaces,omitempty"`
-	NamespaceSelector *v1.LabelSelectorApplyConfiguration `json:"namespaceSelector,omitempty"`
+	Namespaces        []string                                `json:"namespaces,omitempty"`
+	NamespaceSelector *metav1.LabelSelectorApplyConfiguration `json:"namespaceSelector,omitempty"`
 }
 
 // NamespaceDashboardSpecApplyConfiguration constructs a declarative configuration of the NamespaceDashboardSpec type for use with
@@ -32,7 +32,7 @@ func (b *NamespaceDashboardSpecApplyConfiguration) WithNamespaces(values ...stri
 // WithNamespaceSelector sets the NamespaceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NamespaceSelector field is set to the value of the last call.
-func (b *NamespaceDashboardSpecApplyConfiguration) WithNamespaceSelector(value *v1.LabelSelectorApplyConfiguration) *NamespaceDashboardSpecApplyConfiguration {
+func (b *NamespaceDashboardSpecApplyConfiguration) WithNamespaceSelector(value *metav1.LabelSelectorApplyConfiguration) *NamespaceDashboardSpecApplyConfiguration {
 	b.NamespaceSelector = value
 	return b
 }

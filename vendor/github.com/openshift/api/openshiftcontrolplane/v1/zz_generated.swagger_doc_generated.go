@@ -59,8 +59,8 @@ func (BuildOverridesConfig) SwaggerDoc() map[string]string {
 
 var map_ClusterNetworkEntry = map[string]string{
 	"":                 "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
-	"cidr":             "CIDR defines the total range of a cluster networks address space.",
-	"hostSubnetLength": "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.",
+	"cidr":             "cidr defines the total range of a cluster networks address space.",
+	"hostSubnetLength": "hostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.",
 }
 
 func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
@@ -90,8 +90,8 @@ func (FrontProxyConfig) SwaggerDoc() map[string]string {
 
 var map_ImageConfig = map[string]string{
 	"":       "ImageConfig holds the necessary configuration options for building image names for system components",
-	"format": "Format is the format of the name to be built for the system component",
-	"latest": "Latest determines if the latest tag will be pulled from the registry",
+	"format": "format is the format of the name to be built for the system component",
+	"latest": "latest determines if the latest tag will be pulled from the registry",
 }
 
 func (ImageConfig) SwaggerDoc() map[string]string {
@@ -201,8 +201,8 @@ func (ProjectConfig) SwaggerDoc() map[string]string {
 
 var map_RegistryLocation = map[string]string{
 	"":           "RegistryLocation contains a location of the registry specified by the registry domain name. The domain name might include wildcards, like '*' or '??'.",
-	"domainName": "DomainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
-	"insecure":   "Insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
+	"domainName": "domainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
+	"insecure":   "insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
 }
 
 func (RegistryLocation) SwaggerDoc() map[string]string {
@@ -220,9 +220,9 @@ func (RoutingConfig) SwaggerDoc() map[string]string {
 
 var map_SecurityAllocator = map[string]string{
 	"":                    "SecurityAllocator controls the automatic allocation of UIDs and MCS labels to a project. If nil, allocation is disabled.",
-	"uidAllocatorRange":   "UIDAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges container images will use once user namespaces are started).",
-	"mcsAllocatorRange":   "MCSAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is \"<prefix>/<numberOfLabels>[,<maxCategory>]\". The default is \"s0/2\" and will allocate from c0 -> c1023, which means a total of 535k labels are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default will allow the server to set them automatically.\n\nExamples: * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511 * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511",
-	"mcsLabelsPerProject": "MCSLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS ranges (100k namespaces, 535k/5 labels).",
+	"uidAllocatorRange":   "uidAllocatorRange defines the total set of Unix user IDs (UIDs) that will be allocated to projects automatically, and the size of the block each namespace gets. For example, 1000-1999/10 will allocate ten UIDs per namespace, and will be able to allocate up to 100 blocks before running out of space. The default is to allocate from 1 billion to 2 billion in 10k blocks (which is the expected size of the ranges container images will use once user namespaces are started).",
+	"mcsAllocatorRange":   "mcsAllocatorRange defines the range of MCS categories that will be assigned to namespaces. The format is \"<prefix>/<numberOfLabels>[,<maxCategory>]\". The default is \"s0/2\" and will allocate from c0 -> c1023, which means a total of 535k labels are available (1024 choose 2 ~ 535k). If this value is changed after startup, new projects may receive labels that are already allocated to other projects. Prefix may be any valid SELinux set of terms (including user, role, and type), although leaving them as the default will allow the server to set them automatically.\n\nExamples: * s0:/2     - Allocate labels from s0:c0,c0 to s0:c511,c511 * s0:/2,512 - Allocate labels from s0:c0,c0,c0 to s0:c511,c511,511",
+	"mcsLabelsPerProject": "mcsLabelsPerProject defines the number of labels that should be reserved per project. The default is 5 to match the default UID and MCS ranges (100k namespaces, 535k/5 labels).",
 }
 
 func (SecurityAllocator) SwaggerDoc() map[string]string {
@@ -239,7 +239,7 @@ func (ServiceAccountControllerConfig) SwaggerDoc() map[string]string {
 
 var map_ServiceServingCert = map[string]string{
 	"":       "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
-	"signer": "Signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
+	"signer": "signer holds the signing information used to automatically sign serving certificates. If this value is nil, then certs are not signed automatically.",
 }
 
 func (ServiceServingCert) SwaggerDoc() map[string]string {

@@ -22,7 +22,7 @@ func OLMStatus() *OLMStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *OLMStatusApplyConfiguration) WithObservedGeneration(value int64) *OLMStatusApplyConfiguration {
-	b.ObservedGeneration = &value
+	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
 	return b
 }
 
@@ -34,7 +34,7 @@ func (b *OLMStatusApplyConfiguration) WithConditions(values ...*v1.OperatorCondi
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.Conditions = append(b.Conditions, *values[i])
+		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
 	}
 	return b
 }
@@ -43,7 +43,7 @@ func (b *OLMStatusApplyConfiguration) WithConditions(values ...*v1.OperatorCondi
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *OLMStatusApplyConfiguration) WithVersion(value string) *OLMStatusApplyConfiguration {
-	b.Version = &value
+	b.OperatorStatusApplyConfiguration.Version = &value
 	return b
 }
 
@@ -51,7 +51,7 @@ func (b *OLMStatusApplyConfiguration) WithVersion(value string) *OLMStatusApplyC
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *OLMStatusApplyConfiguration) WithReadyReplicas(value int32) *OLMStatusApplyConfiguration {
-	b.ReadyReplicas = &value
+	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
 	return b
 }
 
@@ -59,7 +59,7 @@ func (b *OLMStatusApplyConfiguration) WithReadyReplicas(value int32) *OLMStatusA
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *OLMStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OLMStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
+	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
 	return b
 }
 
@@ -71,7 +71,7 @@ func (b *OLMStatusApplyConfiguration) WithGenerations(values ...*v1.GenerationSt
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.Generations = append(b.Generations, *values[i])
+		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
 	}
 	return b
 }

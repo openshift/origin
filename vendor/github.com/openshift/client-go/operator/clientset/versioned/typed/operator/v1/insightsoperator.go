@@ -3,10 +3,10 @@
 package v1
 
 import (
-	"context"
+	context "context"
 
-	v1 "github.com/openshift/api/operator/v1"
-	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	applyconfigurationsoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,36 +22,37 @@ type InsightsOperatorsGetter interface {
 
 // InsightsOperatorInterface has methods to work with InsightsOperator resources.
 type InsightsOperatorInterface interface {
-	Create(ctx context.Context, insightsOperator *v1.InsightsOperator, opts metav1.CreateOptions) (*v1.InsightsOperator, error)
-	Update(ctx context.Context, insightsOperator *v1.InsightsOperator, opts metav1.UpdateOptions) (*v1.InsightsOperator, error)
+	Create(ctx context.Context, insightsOperator *operatorv1.InsightsOperator, opts metav1.CreateOptions) (*operatorv1.InsightsOperator, error)
+	Update(ctx context.Context, insightsOperator *operatorv1.InsightsOperator, opts metav1.UpdateOptions) (*operatorv1.InsightsOperator, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, insightsOperator *v1.InsightsOperator, opts metav1.UpdateOptions) (*v1.InsightsOperator, error)
+	UpdateStatus(ctx context.Context, insightsOperator *operatorv1.InsightsOperator, opts metav1.UpdateOptions) (*operatorv1.InsightsOperator, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.InsightsOperator, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.InsightsOperatorList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*operatorv1.InsightsOperator, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*operatorv1.InsightsOperatorList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.InsightsOperator, err error)
-	Apply(ctx context.Context, insightsOperator *operatorv1.InsightsOperatorApplyConfiguration, opts metav1.ApplyOptions) (result *v1.InsightsOperator, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *operatorv1.InsightsOperator, err error)
+	Apply(ctx context.Context, insightsOperator *applyconfigurationsoperatorv1.InsightsOperatorApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.InsightsOperator, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, insightsOperator *operatorv1.InsightsOperatorApplyConfiguration, opts metav1.ApplyOptions) (result *v1.InsightsOperator, err error)
+	ApplyStatus(ctx context.Context, insightsOperator *applyconfigurationsoperatorv1.InsightsOperatorApplyConfiguration, opts metav1.ApplyOptions) (result *operatorv1.InsightsOperator, err error)
 	InsightsOperatorExpansion
 }
 
 // insightsOperators implements InsightsOperatorInterface
 type insightsOperators struct {
-	*gentype.ClientWithListAndApply[*v1.InsightsOperator, *v1.InsightsOperatorList, *operatorv1.InsightsOperatorApplyConfiguration]
+	*gentype.ClientWithListAndApply[*operatorv1.InsightsOperator, *operatorv1.InsightsOperatorList, *applyconfigurationsoperatorv1.InsightsOperatorApplyConfiguration]
 }
 
 // newInsightsOperators returns a InsightsOperators
 func newInsightsOperators(c *OperatorV1Client) *insightsOperators {
 	return &insightsOperators{
-		gentype.NewClientWithListAndApply[*v1.InsightsOperator, *v1.InsightsOperatorList, *operatorv1.InsightsOperatorApplyConfiguration](
+		gentype.NewClientWithListAndApply[*operatorv1.InsightsOperator, *operatorv1.InsightsOperatorList, *applyconfigurationsoperatorv1.InsightsOperatorApplyConfiguration](
 			"insightsoperators",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.InsightsOperator { return &v1.InsightsOperator{} },
-			func() *v1.InsightsOperatorList { return &v1.InsightsOperatorList{} }),
+			func() *operatorv1.InsightsOperator { return &operatorv1.InsightsOperator{} },
+			func() *operatorv1.InsightsOperatorList { return &operatorv1.InsightsOperatorList{} },
+		),
 	}
 }

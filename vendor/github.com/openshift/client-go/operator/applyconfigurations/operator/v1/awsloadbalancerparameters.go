@@ -3,13 +3,13 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // AWSLoadBalancerParametersApplyConfiguration represents a declarative configuration of the AWSLoadBalancerParameters type for use
 // with apply.
 type AWSLoadBalancerParametersApplyConfiguration struct {
-	Type                          *v1.AWSLoadBalancerType                             `json:"type,omitempty"`
+	Type                          *operatorv1.AWSLoadBalancerType                     `json:"type,omitempty"`
 	ClassicLoadBalancerParameters *AWSClassicLoadBalancerParametersApplyConfiguration `json:"classicLoadBalancer,omitempty"`
 	NetworkLoadBalancerParameters *AWSNetworkLoadBalancerParametersApplyConfiguration `json:"networkLoadBalancer,omitempty"`
 }
@@ -23,7 +23,7 @@ func AWSLoadBalancerParameters() *AWSLoadBalancerParametersApplyConfiguration {
 // WithType sets the Type field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Type field is set to the value of the last call.
-func (b *AWSLoadBalancerParametersApplyConfiguration) WithType(value v1.AWSLoadBalancerType) *AWSLoadBalancerParametersApplyConfiguration {
+func (b *AWSLoadBalancerParametersApplyConfiguration) WithType(value operatorv1.AWSLoadBalancerType) *AWSLoadBalancerParametersApplyConfiguration {
 	b.Type = &value
 	return b
 }
