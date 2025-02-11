@@ -1,10 +1,14 @@
 package resourcemerge
 
 import (
+	errorsstdlib "errors"
+	"fmt"
 	"reflect"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -16,6 +20,48 @@ func EnsureObjectMeta(modified *bool, existing *metav1.ObjectMeta, required meta
 	MergeMap(modified, &existing.Labels, required.Labels)
 	MergeMap(modified, &existing.Annotations, required.Annotations)
 	MergeOwnerRefs(modified, &existing.OwnerReferences, required.OwnerReferences)
+}
+
+func EnsureObjectMetaForUnstructured(modified *bool, existing *unstructured.Unstructured, required *unstructured.Unstructured) error {
+
+	// Ensure metadata field is present on the object.
+	existingObjectMeta, found, err := unstructured.NestedMap(existing.Object, "metadata")
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errorsstdlib.New(fmt.Sprintf("metadata not found in the existing object: %s/%s", existing.GetNamespace(), existing.GetName()))
+	}
+	var requiredObjectMeta map[string]interface{}
+	requiredObjectMeta, found, err = unstructured.NestedMap(required.Object, "metadata")
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errorsstdlib.New(fmt.Sprintf("metadata not found in the required object: %s/%s", required.GetNamespace(), required.GetName()))
+	}
+
+	// Cast the metadata to the correct type.
+	var existingObjectMetaTyped, requiredObjectMetaTyped metav1.ObjectMeta
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(existingObjectMeta, &existingObjectMetaTyped)
+	if err != nil {
+		return err
+	}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(requiredObjectMeta, &requiredObjectMetaTyped)
+	if err != nil {
+		return err
+	}
+
+	// Check if the metadata objects differ. This only checks for selective fields (excluding the resource version, among others).
+	EnsureObjectMeta(modified, &existingObjectMetaTyped, requiredObjectMetaTyped)
+	if *modified {
+		existing.Object["metadata"], err = runtime.DefaultUnstructuredConverter.ToUnstructured(&existingObjectMetaTyped)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // WithCleanLabelsAndAnnotations cleans the metadata off the removal annotations/labels/ownerrefs
