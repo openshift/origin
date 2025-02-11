@@ -43491,6 +43491,9 @@ spec:
   - type: Allow
     to:
       dnsName: docs.openshift.com
+  - type: Allow
+    to:
+      dnsName: DOCS.REDHAT.COM
   - type: Deny
     to:
       dnsName: www.google.com
@@ -43536,6 +43539,9 @@ spec:
       dnsName: docs.openshift.com
   - type: Allow
     to:
+      dnsName: DOCS.REDHAT.COM
+  - type: Allow
+    to:
       dnsName: "*.google.com"
   - type: Allow
     to:
@@ -43574,6 +43580,9 @@ spec:
   - type: Allow
     to:
       dnsName: docs.openshift.com
+  - type: Allow
+    to:
+      dnsName: docs.redhat.com
   - type: Allow
     to:
       cidrSelector: 8.8.8.8/32
