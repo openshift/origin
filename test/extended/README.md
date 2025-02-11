@@ -1,3 +1,5 @@
+# Noop test
+
 # OpenShift extended test suite
 
 This document describes how a developer can write a new extended test for
