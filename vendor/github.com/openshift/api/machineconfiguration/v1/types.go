@@ -196,7 +196,8 @@ type ControllerConfigStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// conditions represents the latest available observations of current state.
-	// +listType=atomic
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []ControllerConfigStatusCondition `json:"conditions"`
 

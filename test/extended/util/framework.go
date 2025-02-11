@@ -1446,6 +1446,11 @@ func CheckPodIsSucceeded(pod corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodSucceeded
 }
 
+// CheckPodIsRunning returns true if the pod is running
+func CheckPodIsPending(pod corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodPending
+}
+
 // CheckPodIsReady returns true if the pod's ready probe determined that the pod is ready.
 func CheckPodIsReady(pod corev1.Pod) bool {
 	if pod.Status.Phase != corev1.PodRunning {
