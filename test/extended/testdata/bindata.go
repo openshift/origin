@@ -18595,7 +18595,7 @@ var _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile = []byte(`source "h
 
 gem "rack"
 gem "rackup"
-`)
+gem "webrick"`)
 
 func testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfileBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsS2iEnvironmentBuildAppGemfile, nil
