@@ -135,6 +135,9 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if err != nil {
 			return nil, err
 		}
+		if len(imageSetsFromBinaries) == 0 {
+			return nil, fmt.Errorf("no test images were reported by external binaries")
+		}
 		initialImageSets = imageSetsFromBinaries
 	}
 
