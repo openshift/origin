@@ -231,6 +231,29 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						udnPodConfig.namespace = f.Namespace.Name
 
+						// make sure UDN pod is scheduled on a node that uses cgroupv2
+						events, err := cs.CoreV1().Events("default").List(context.Background(), metav1.ListOptions{})
+						Expect(err).NotTo(HaveOccurred())
+						cgroupv1Nodes := map[string]bool{}
+						for _, event := range events.Items {
+							if event.Reason == "UDNKubeletProbesNotSupported" {
+								cgroupv1Nodes[event.InvolvedObject.Name] = true
+							}
+						}
+						if len(cgroupv1Nodes) > 0 {
+							By(fmt.Sprintf("cgroupv1 nodes are found: %+v\n", cgroupv1Nodes))
+							nodes, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+							Expect(err).NotTo(HaveOccurred())
+							for _, node := range nodes.Items {
+								_, isControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]
+								if _, ok := cgroupv1Nodes[node.Name]; !ok && !isControlPlane {
+									udnPodConfig.nodeSelector = map[string]string{nodeHostnameKey: node.Name}
+									By(fmt.Sprintf("UDN pod will be scheduled on cgroupv2 node: %s", node.Name))
+									break
+								}
+							}
+						}
+
 						udnPod := runUDNPod(cs, f.Namespace.Name, udnPodConfig, func(pod *v1.Pod) {
 							pod.Spec.Containers[0].ReadinessProbe = &v1.Probe{
 								ProbeHandler: v1.ProbeHandler{
