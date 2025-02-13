@@ -9,9 +9,6 @@ spec:
       dnsName: docs.openshift.com
   - type: Allow
     to:
-      dnsName: DOCS.REDHAT.COM
-  - type: Allow
-    to:
       dnsName: "*.google.com"
   - type: Allow
     to:
