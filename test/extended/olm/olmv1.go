@@ -217,7 +217,6 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
-		g.Skip("This test is broken: need to verify OCP max version behavior")
 		checkFeatureCapability(ctx, oc)
 
 		const (
