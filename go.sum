@@ -649,8 +649,8 @@ github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250131233843-55625722a4b8/go.mod h1:owAehkeYLq2tHccss/uBNAaqS7UtrFlgkK40soLfHLc=
 github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70 h1:VLj8CU9q009xlMuR4wNcqDX4lVa2Ji3u/iYnBLHtQUc=
 github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70/go.mod h1:TQx0VEhZ/92qRXIMDu2Wg4bUPmw5HRNE6wpSZ+IsP0Y=
-github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240806135314-3946b2b7b2a8 h1:HJvLw9nNfoqCs16h505eP8E1kVmq6KNdzGm5csPlYsQ=
-github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240806135314-3946b2b7b2a8/go.mod h1:rlwLi9PilAFJ8jCg9UE1QP6VBpd6/xj3SRC0d6TU0To=
+github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241205171354-8006f302fd12 h1:AKx/w1qpS8We43bsRgf8Nll3CGlDHpr/WAXvuedTNZI=
+github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20241205171354-8006f302fd12/go.mod h1:7Du3c42kxCUegi0IImZ1wUQzMBVecgIHjR1C+NkhLQo=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde/go.mod h1:nZgzbfBr3hhjoZnS66nKrHmduYNpc34ny7RK4z5/HM0=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
