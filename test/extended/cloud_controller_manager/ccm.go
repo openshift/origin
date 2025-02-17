@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/ghodss/yaml"
 	g "github.com/onsi/ginkgo/v2"
@@ -12,6 +14,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const cloudControllerNamespace = "openshift-cloud-controller-manager"
@@ -88,6 +92,38 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 				o.HaveField("Contents", o.ContainSubstring("cloud-provider=external")),
 			)))
 	})
+
+	g.It("Cluster scoped load balancer healthcheck port and path should be 10256/healthz", func() {
+		exutil.SkipIfNotPlatform(oc, "AWS")
+		if strings.HasPrefix(exutil.GetClusterRegion(oc), "us-iso") {
+			g.Skip("Skipped: There is no public subnet on AWS C2S/SC2S disconnected clusters!")
+		}
+
+		g.By("Create a cluster scope load balancer")
+		svcName := "test-lb"
+		defer oc.WithoutNamespace().AsAdmin().Run("delete").Args("-n", oc.Namespace(), "service", "loadbalancer", svcName, "--ignore-not-found").Execute()
+		out, err := oc.AsAdmin().WithoutNamespace().Run("create").Args("-n", oc.Namespace(), "service", "loadbalancer", svcName, "--tcp=80:8080").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to create lb service")
+		o.Expect(out).To(o.ContainSubstring("service/" + svcName + " created"))
+
+		g.By("Check External-IP assigned")
+		svcExternalIP := getLoadBalancerExternalIP(oc, oc.Namespace(), svcName)
+		e2e.Logf("External IP assigned: %s", svcExternalIP)
+		o.Expect(svcExternalIP).NotTo(o.BeEmpty(), "externalIP should not be empty")
+		lbName := strings.Split(svcExternalIP, "-")[0]
+
+		g.By("Check healthcheck port and path should be 10256/healthz")
+		healthCheckPort := "10256"
+		healthCheckPath := "/healthz"
+		exutil.GetAwsCredentialFromCluster(oc)
+		region := exutil.GetClusterRegion(oc)
+		sess := exutil.InitAwsSession(region)
+		elbClient := exutil.NewELBClient(sess)
+		healthCheck, err := elbClient.GetLBHealthCheckPortPath(lbName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get health check port and path")
+		e2e.Logf("Health check port and path: %v", healthCheck)
+		o.Expect(healthCheck).To(o.Equal(fmt.Sprintf("HTTP:%s%s", healthCheckPort, healthCheckPath)))
+	})
 })
 
 // isPlatformExternal returns true when the platform has an in-tree provider,
@@ -102,4 +138,20 @@ func isPlatformExternal(platformType configv1.PlatformType) bool {
 	default:
 		return false
 	}
+}
+
+// getLoadBalancerExternalIP get IP address of LB service
+func getLoadBalancerExternalIP(oc *exutil.CLI, namespace string, svcName string) string {
+	var svcExternalIP string
+	var cmdErr error
+	checkErr := wait.Poll(5*time.Second, 300*time.Second, func() (bool, error) {
+		svcExternalIP, cmdErr = oc.AsAdmin().WithoutNamespace().Run("get").Args("service", "-n", namespace, svcName, "-o=jsonpath={.status.loadBalancer.ingress[0].hostname}").Output()
+		if svcExternalIP == "" || cmdErr != nil {
+			e2e.Logf("Waiting for lb service IP assignment. Trying again...")
+			return false, nil
+		}
+		return true, nil
+	})
+	o.Expect(checkErr).NotTo(o.HaveOccurred())
+	return svcExternalIP
 }
