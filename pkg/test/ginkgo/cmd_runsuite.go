@@ -716,6 +716,12 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 		upgradeType = determineUpgradeType(clusterState.Version.Status)
 	}
 
+	arch := "Unknown"
+	if len(clusterState.Masters.Items) > 0 {
+		//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+		arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
+	}
+
 	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
 	envFlagBuilder.
 		AddPlatform(config.ProviderName).
@@ -723,7 +729,7 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 		AddNetworkStack(config.IPFamily).
 		AddTopology(clusterState.ControlPlaneTopology).
 		AddUpgrade(upgradeType).
-		AddArchitecture(clusterState.Masters.Items[0].Status.NodeInfo.Architecture). //TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+		AddArchitecture(arch).
 		AddExternalConnectivity(determineExternalConnectivity(config)).
 		AddVersion(clusterState.Version.Status.Desired.Version)
 	for _, optionalCapability := range clusterState.OptionalCapabilities {
