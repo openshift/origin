@@ -10,6 +10,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
+	mg "github.com/openshift/origin/test/extended/machine_config"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +41,6 @@ const (
 	ipsecRolloutWaitDuration     = 40 * time.Minute
 	ipsecRolloutWaitInterval     = 1 * time.Minute
 	nmstateConfigureManifestFile = "nmstate.yaml"
-	nsCertMachineConfigFile      = "ipsec-nsconfig-machine-config.yaml"
 	nsCertMachineConfigName      = "99-worker-north-south-ipsec-config"
 	leftNodeIPsecPolicyName      = "left-node-ipsec-policy"
 	rightNodeIPsecPolicyName     = "right-node-ipsec-policy"
@@ -462,6 +462,13 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			g.By("deploy nmstate handler")
 			err = deployNmstateHandler(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Create machine configuation policy so that worker nodes don't go
+			// for a reboot while configuring certificates for NS traffic.
+			g.By("deploy machine configuration policy")
+			err = oc.AsAdmin().Run("apply").Args("-f", nsNodeRebootNoneFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			mg.WaitForBootImageControllerToComplete(oc)
 		})
 
 		g.BeforeEach(func() {
