@@ -237,14 +237,6 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Early] Operators low level operators should have at least the conditions we had in 4.17": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][Feature:ClusterUpgrade] All nodes should be in ready state [Early][Suite:upgrade]": "",
-
-	"[sig-arch][Feature:ClusterUpgrade] Cluster should be upgradeable after finishing upgrade [Late][Suite:upgrade]": "",
-
-	"[sig-arch][Feature:ClusterUpgrade] Cluster should be upgradeable before beginning upgrade [Early][Suite:upgrade]": "",
-
-	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
-
 	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Late] operators should not create watch channels very often [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
