@@ -10,6 +10,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
+	mg "github.com/openshift/origin/test/extended/machine_config"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +41,6 @@ const (
 	ipsecRolloutWaitDuration     = 40 * time.Minute
 	ipsecRolloutWaitInterval     = 1 * time.Minute
 	nmstateConfigureManifestFile = "nmstate.yaml"
-	nsCertMachineConfigFile      = "ipsec-nsconfig-machine-config.yaml"
 	nsCertMachineConfigName      = "99-worker-north-south-ipsec-config"
 	leftNodeIPsecPolicyName      = "left-node-ipsec-policy"
 	rightNodeIPsecPolicyName     = "right-node-ipsec-policy"
@@ -462,6 +462,15 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			g.By("deploy nmstate handler")
 			err = deployNmstateHandler(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Update cluster machine configuration object with few more nodeDisruptionPolicy defined
+			// in test/extended/testdata/ipsec/nsconfig-reboot-none-policy.yaml file so that worker
+			// nodes don't go for a reboot while rolling out `99-worker-north-south-ipsec-config`
+			// machine config which configures certificates for testing IPsec north south traffic.
+			g.By("deploy machine configuration policy")
+			err = oc.AsAdmin().Run("apply").Args("-f", nsNodeRebootNoneFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			mg.WaitForBootImageControllerToComplete(oc)
 		})
 
 		g.BeforeEach(func() {
@@ -491,6 +500,13 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(config.dstNodeConfig.nodeIP).NotTo(o.BeEmpty())
 
 			g.By("configure IPsec certs on the worker nodes")
+			// The certificates for configuring NS IPsec between two worker nodes are deployed through machine config
+			// which is in the test/extended/testdata/ipsec/nsconfig-machine-config.yaml file. This is a butane generated
+			// file via a butane config file available with commit:
+			// https://github.com/openshift/origin/pull/28658/commits/7399006f3750c530cfef51fa1044e941ccb85087
+			// The machine config mounts cert files into node's /etc/pki/certs directory and runs ipsec-addcert.sh script
+			// to import those certs into Libreswan nss db and will be used by Libreswan for IPsec north south connection
+			// configured via NodeNetworkConfigurationPolicy on the node.
 			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
 			// so proceed with test if system date is before April 10, 2034. Otherwise fail the test.
 			if !time.Now().Before(certExpirationDate) {
