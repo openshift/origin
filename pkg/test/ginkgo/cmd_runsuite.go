@@ -702,8 +702,7 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 	}
 	clusterState, err := clusterdiscovery.DiscoverClusterState(clientConfig)
 	if err != nil {
-		logrus.WithError(err).Error("error Discovering Cluster State")
-		return nil, err
+		logrus.WithError(err).Warn("error Discovering Cluster State, flags requiring it will not be present")
 	}
 	config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), dryRun, true, clusterState)
 	if err != nil {
@@ -711,29 +710,35 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 		return nil, err
 	}
 
-	upgradeType := "None"
-	if upgrade {
-		upgradeType = determineUpgradeType(clusterState.Version.Status)
-	}
-
-	arch := "Unknown"
-	if len(clusterState.Masters.Items) > 0 {
-		//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
-		arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
-	}
-
 	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
 	envFlagBuilder.
 		AddPlatform(config.ProviderName).
 		AddNetwork(config.NetworkPlugin).
 		AddNetworkStack(config.IPFamily).
-		AddTopology(clusterState.ControlPlaneTopology).
-		AddUpgrade(upgradeType).
-		AddArchitecture(arch).
-		AddExternalConnectivity(determineExternalConnectivity(config)).
-		AddVersion(clusterState.Version.Status.Desired.Version)
-	for _, optionalCapability := range clusterState.OptionalCapabilities {
-		envFlagBuilder.AddOptionalCapability(string(optionalCapability))
+		AddExternalConnectivity(determineExternalConnectivity(config))
+
+	//Additional flags can only be determined if we are able to obtain the clusterState
+	if clusterState != nil {
+		upgradeType := "None"
+		if upgrade {
+			upgradeType = determineUpgradeType(clusterState.Version.Status)
+		}
+		envFlagBuilder.AddUpgrade(upgradeType)
+
+		arch := "Unknown"
+		if len(clusterState.Masters.Items) > 0 {
+			//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+			arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
+		}
+		envFlagBuilder.AddArchitecture(arch)
+
+		for _, optionalCapability := range clusterState.OptionalCapabilities {
+			envFlagBuilder.AddOptionalCapability(string(optionalCapability))
+		}
+
+		envFlagBuilder.
+			AddTopology(clusterState.ControlPlaneTopology).
+			AddVersion(clusterState.Version.Status.Desired.Version)
 	}
 
 	return envFlagBuilder.Build(), nil
