@@ -704,7 +704,11 @@ func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.Environmen
 	if err != nil {
 		logrus.WithError(err).Warn("error Discovering Cluster State, flags requiring it will not be present")
 	}
-	config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), dryRun, true, clusterState)
+	provider := os.Getenv("TEST_PROVIDER")
+	if clusterState == nil { // If we know we cannot discover the clusterState, the provider must be set to "none" in order for the config to be loaded without error
+		provider = "none"
+	}
+	config, err := clusterdiscovery.DecodeProvider(provider, dryRun, true, clusterState)
 	if err != nil {
 		logrus.WithError(err).Error("error determining information about the cluster")
 		return nil, err
