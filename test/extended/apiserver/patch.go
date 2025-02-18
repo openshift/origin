@@ -2,7 +2,9 @@ package apiserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -109,12 +111,22 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 func createWellKnownKubeAPIServerOperatorResource(ctx context.Context, resourceClient dynamic.ResourceInterface) *operatorv1.KubeAPIServer {
 	kasOperatorYaml := testdata.MustAsset("test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml")
 	unstructuredKasOperatorManifest := resourceread.ReadUnstructuredOrDie(kasOperatorYaml)
+	manifest, _ := json.Marshal(unstructuredKasOperatorManifest)
+	framework.Logf("JSONPATCH: unstructuredKasOperatorManifest %s", string(manifest))
 	unstructuredKasOperator, err := resourceClient.Create(ctx, unstructuredKasOperatorManifest, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
+	manifest2, _ := json.Marshal(unstructuredKasOperator)
+	framework.Logf("JSONPATCH: unstructuredKasOperator %s", string(manifest2))
 
 	kasOperator := unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
+	manifest3, _ := json.Marshal(kasOperator)
+	framework.Logf("JSONPATCH: kasOperator %s", string(manifest3))
 	kasOperatorFromManifest := unstructuredToKubeAPIServerOperator(unstructuredKasOperatorManifest.Object)
+	manifest4, _ := json.Marshal(kasOperatorFromManifest)
+	framework.Logf("JSONPATCH: kasOperatorFromManifest %s", string(manifest4))
 	kasOperator.Status = kasOperatorFromManifest.Status
+	manifest5, _ := json.Marshal(kasOperator)
+	framework.Logf("JSONPATCH: kasOperator with status %s", string(manifest5))
 	unstructuredKasOperator, err = resourceClient.UpdateStatus(ctx, kubeAPIServerOperatorToUnstructured(kasOperator), metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	kasOperator = unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
