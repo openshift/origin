@@ -434,7 +434,7 @@ const (
 	// The resulting lines will be something like:
 	// 10.128.2.15.36749  /f8f721fa-53c9-444f-bc96-69c7388fcb5a
 	tcpCaptureScript = `#!/bin/bash
-tcpdump -nne -i %s -l -s 0  'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '{print $10 " " $(NF-1)}'
+tcpdump -nn -i %s -l -s 0 -A 'tcp and port %d' | awk '/IP / || /IP6 / {ip=$3} /GET \// {print ip, $2}'
 `
 
 	// The udpCaptureScript runs tcpdump with option -xx and then decodes the hexadecimal information.
@@ -636,7 +636,7 @@ func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, tar
 		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
 		logs, err := req.Stream(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("Error in opening log stream")
+			return nil, fmt.Errorf("Error in opening log stream: %v", err)
 		}
 		defer logs.Close()
 
