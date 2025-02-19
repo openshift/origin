@@ -475,6 +475,24 @@ spec:
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VMI attached to a secondary UDN is migrated between nodes'
+  - featureGate: RouteAdvertisements
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
+        defined network [Serial][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        External host should be able to query route advertised pods by the pod IP'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
+        defined network [Serial][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should communicate with external host without being SNATed'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [PodNetwork] Advertising the default network
+        [apigroup:user.openshift.io][apigroup:security.openshift.io] External host
+        should be able to query route advertised pods by the pod IP'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [PodNetwork] Advertising the default network
+        [apigroup:user.openshift.io][apigroup:security.openshift.io] pods should communicate
+        with external host without being SNATed'
   - featureGate: RouteExternalCertificate
     tests:
     - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
