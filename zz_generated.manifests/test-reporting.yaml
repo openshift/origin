@@ -456,6 +456,14 @@ spec:
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VMI attached to a secondary UDN is migrated between nodes'
+  - featureGate: RouteAdvertisements
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        [PodNetwork] Advertising the default network [apigroup:user.openshift.io][apigroup:security.openshift.io]
+        External host should be able to quay route advertised pods by the pod IP'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        [PodNetwork] Advertising the default network [apigroup:user.openshift.io][apigroup:security.openshift.io]
+        pods should communicate with external host without being SNATed'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
