@@ -89,6 +89,13 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		if strings.HasPrefix(pod.Namespace, "openshift-must-gather") {
 			continue
 		}
+		// namespace does not show up consistently so we get
+		// 1 pass or flake out of 10 runs and fail due to not
+		// enough passes
+		if strings.HasPrefix(pod.Namespace, "openshift-infra") {
+			continue
+		}
+
 		if _, ok := failuresByNamespace[pod.Namespace]; !ok {
 			failuresByNamespace[pod.Namespace] = []string{}
 		}
