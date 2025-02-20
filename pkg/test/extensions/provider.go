@@ -2,7 +2,6 @@ package extensions
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/test/extended/util"
 )
@@ -96,6 +96,20 @@ func (provider *ExternalBinaryProvider) Cleanup() {
 func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binary string) (*TestBinary, error) {
 	if provider.binPath == "" {
 		return nil, fmt.Errorf("extraction path is not set, cleanup was already run")
+	}
+
+	// Allow overriding image path to an already existing local path, mostly useful
+	// for development.
+	if override := binaryPathOverride(tag, binary); override != "" {
+		logrus.WithFields(logrus.Fields{
+			"tag":      tag,
+			"binary":   binary,
+			"override": override,
+		}).Info("Found override for this extension")
+		return &TestBinary{
+			imageTag:   tag,
+			binaryPath: override,
+		}, nil
 	}
 
 	// Resolve the image tag from the image stream.
@@ -186,4 +200,23 @@ func cleanOldCacheFiles(dir string) {
 		}
 	}
 	logrus.Infof("Cleaned up old cached data in %v", time.Since(start))
+}
+
+func binaryPathOverride(imageTag, binaryPath string) string {
+	safeEnvVar := strings.NewReplacer("/", "_", "-", "_", ".", "_")
+
+	// Check for a specific override for this binary path, less common but allows supporting
+	// images that have multiple test binaries.
+	// 	Example: EXTENSION_BINARY_OVERRIDE_HYPERKUBE_USR_BIN_K8S_TESTS_EXT_GZ
+	specificOverrideEnvVar := fmt.Sprintf("EXTENSION_BINARY_OVERRIDE_%s_%s",
+		strings.ToUpper(safeEnvVar.Replace(imageTag)),
+		strings.ToUpper(safeEnvVar.Replace(strings.TrimPrefix(binaryPath, "/"))),
+	)
+	if specificOverride := os.Getenv(specificOverrideEnvVar); specificOverride != "" {
+		return specificOverride
+	}
+
+	// Check for a global override for all binaries in this image
+	// 	Example: EXTENSION_BINARY_OVERRIDE_HYPERKUBE
+	return os.Getenv(fmt.Sprintf("EXTENSION_BINARY_OVERRIDE_%s", strings.ToUpper(safeEnvVar.Replace(imageTag))))
 }
