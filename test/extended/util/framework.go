@@ -2403,3 +2403,26 @@ func IsCapabilityEnabled(oc *CLI, cap configv1.ClusterVersionCapability) (bool, 
 	}
 	return false, nil
 }
+
+// SkipIfNotPlatform skip the test if supported platforms are not matched
+func SkipIfNotPlatform(oc *CLI, platforms ...configv1.PlatformType) {
+	var match bool
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	for _, platform := range platforms {
+		if infra.Status.PlatformStatus.Type == platform {
+			match = true
+			break
+		}
+	}
+	if !match {
+		g.Skip("Skip this test scenario because it is not supported on the " + string(infra.Status.PlatformStatus.Type) + " platform")
+	}
+}
+
+// GetClusterRegion get the cluster's region
+func GetClusterRegion(oc *CLI) string {
+	region, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", `-ojsonpath={.items[].metadata.labels.topology\.kubernetes\.io/region}`).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return region
+}
