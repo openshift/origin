@@ -70,7 +70,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	command := exec.Command(b.binaryPath, "info")
 	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s info': %w", b.binaryPath, err)
+		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
@@ -106,7 +106,7 @@ func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (
 	command.Args = append(command.Args, envFlags.ArgStrings()...)
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w", b.binaryPath, err)
+		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, testList)
 	}
 	buf := bytes.NewBuffer(testList)
 	for {
@@ -212,7 +212,7 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 	command := exec.Command(b.binaryPath, "images")
 	output, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w", b.binaryPath, err)
+		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
 	}
 
 	var images []Image

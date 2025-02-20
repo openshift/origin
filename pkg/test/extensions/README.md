@@ -28,6 +28,24 @@ credentials to use are found in this code, and extensively documented in code
 comments.  The following environment variables are available to force certain
 behaviors:
 
+### Extension Binary
+
+When developing locally, you may want to use a locally built extension
+binary. You can override the binary from the registry by setting:
+
+```
+export EXTENSION_BINARY_OVERRIDE_HYPERKUBE="/home/sally/git/kubernetes/_output/bin/k8s-tests-ext"
+```
+
+This overrides all extension binaries registered for that image tag
+(i.e. hyperkube). In the uncommon situation where an image tag is
+providing multiple test binaries, you can more specifically override one
+like this:
+
+```
+export EXTENSION_BINARY_OVERRIDE_HYPERKUBE_USR_BIN_K8S_TESTS_EXT_GZ="/home/sally/git/kubernetes/_output/bin/k8s-tests-ext"
+```
+
 ### Caching
 
 By default, binaries will be cached in `$XDG_CACHE_HOME/openshift-tests`
