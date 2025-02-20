@@ -501,12 +501,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						for _, namespace := range []string{namespaceRed, namespaceBlue} {
 							By("Creating namespace " + namespace)
-							_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-								ObjectMeta: metav1.ObjectMeta{
-									Name:   namespace,
-									Labels: l,
-								},
-							}, metav1.CreateOptions{})
+							_, err := f.CreateNamespace(context.TODO(), namespace, l)
 							Expect(err).NotTo(HaveOccurred())
 							defer func() {
 								By("Removing namespace " + namespace)
