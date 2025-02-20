@@ -115,7 +115,7 @@ func createWellKnownKubeAPIServerOperatorResource(ctx context.Context, resourceC
 	kasOperator := unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
 	kasOperatorFromManifest := unstructuredToKubeAPIServerOperator(unstructuredKasOperatorManifest.Object)
 	kasOperator.Status = kasOperatorFromManifest.Status
-	unstructuredKasOperator, err = resourceClient.UpdateStatus(ctx, kubeAPIServerOperatorToUnstructured(kasOperator), metav1.UpdateOptions{})
+	unstructuredKasOperator, err = resourceClient.ApplyStatus(ctx, kasOperator.Name, kubeAPIServerOperatorToUnstructured(kasOperator), metav1.ApplyOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	kasOperator = unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
 	o.Expect(kasOperator.Status.NodeStatuses).To(o.Equal([]operatorv1.NodeStatus{
@@ -203,6 +203,23 @@ func unstructuredToKubeAPIServerOperator(obj map[string]interface{}) *operatorv1
 func kubeAPIServerOperatorToUnstructured(kasOperator *operatorv1.KubeAPIServer) *unstructured.Unstructured {
 	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(kasOperator)
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// We are not going to allow setting NodeStatus.CurrentRevision on creation of a NodeStatus.
+	// Ensure we remove the current revision from the node status every time because
+	// NodeStatus.CurrentRevision doesn't have omitempty in the JSON tag on the API.
+	nodeStatuses, ok, err := unstructured.NestedSlice(raw, "status", "nodeStatuses")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if ok {
+		newNodeStatuses := []interface{}{}
+		for _, nodeStatus := range nodeStatuses {
+			unstructured.RemoveNestedField(nodeStatus.(map[string]interface{}), "currentRevision")
+			newNodeStatuses = append(newNodeStatuses, nodeStatus)
+		}
+
+		err = unstructured.SetNestedField(raw, newNodeStatuses, "status", "nodeStatuses")
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
 	return &unstructured.Unstructured{Object: raw}
 }
 
