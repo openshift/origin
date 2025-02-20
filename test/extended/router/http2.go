@@ -592,11 +592,8 @@ func resolveHost(oc *exutil.CLI, interval, timeout time.Duration, host string) (
 // clients.
 func platformHasHTTP2LoadBalancerService(platformType configv1.PlatformType) bool {
 	switch platformType {
-	case configv1.AzurePlatformType, configv1.GCPPlatformType:
+	case configv1.AWSPlatformType, configv1.AzurePlatformType, configv1.GCPPlatformType:
 		return true
-	case configv1.AWSPlatformType:
-		e2e.Logf("AWS support waiting on https://bugzilla.redhat.com/show_bug.cgi?id=1912413")
-		fallthrough
 	default:
 		return false
 	}
