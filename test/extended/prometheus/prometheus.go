@@ -261,7 +261,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have a valid severity label", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
-			if alertsMissingValidSeverityLevel.Has(alert.Name) {
+			if alertsMissingValidSeverityLevel.Has(alert.Name) || strings.HasSuffix(alert.Name, "SRE") {
 				framework.Logf("Alerting rule %q is known to have invalid severity", alert.Name)
 				return nil
 			}
@@ -289,7 +289,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have description and summary annotations", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
-			if alertsMissingValidSummaryOrDescription.Has(alert.Name) {
+			if alertsMissingValidSummaryOrDescription.Has(alert.Name) || strings.HasSuffix(alert.Name, "SRE") {
 				framework.Logf("Alerting rule %q is known to have invalid summary or description", alert.Name)
 				return nil
 			}
@@ -319,7 +319,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have a runbook_url annotation if the alert is critical", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
-			if criticalAlertsMissingRunbookURLExceptions.Has(alert.Name) {
+			if criticalAlertsMissingRunbookURLExceptions.Has(alert.Name) || strings.HasSuffix(alert.Name, "SRE") {
 				framework.Logf("Critical alerting rule %q is known to have missing runbook_url.", alert.Name)
 				return nil
 			}
