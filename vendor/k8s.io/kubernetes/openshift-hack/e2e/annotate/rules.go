@@ -26,6 +26,8 @@ var (
 			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
 			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
+			`\[Feature:volumegroupsnapshot\]`, // disabled Beta
+
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -169,10 +171,6 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45214
-			// Even though this feature is not GA in k/k, it will be GA in OCP 4.19, so we should fix it and unskip this test
-			`\[Feature:volumegroupsnapshot\]`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-45273
 			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
 
@@ -185,9 +183,6 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-45359
 			`\[Feature:RecoverVolumeExpansionFailure\]`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-46477
-			`\[sig-storage\] In-tree Volumes \[Driver: azure-file\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {

@@ -599,8 +599,6 @@ github.com/openshift/client-go v0.0.0-20250131180035-f7ec47e2d87a h1:duO3JMrUOqV
 github.com/openshift/client-go v0.0.0-20250131180035-f7ec47e2d87a/go.mod h1:Qw3ThpzVZ0bfTILpBNYg4LGyjtNxfyCiGh/uDLOOTP8=
 github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb h1:Dr0dbSQTAU9UaoAvimGjR+fsvwx2twJ5KR0s/jyAz88=
 github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb/go.mod h1:LnhqxbWhAnhPwilJ4yX1/ly7wCMCYJKkaiSJQSh+Wjg=
-github.com/openshift/kubernetes v1.30.1-0.20250131233843-55625722a4b8 h1:iw1eJproBABuSVMzEhvANn/mjObdh2gp4Ls5WIIDde8=
-github.com/openshift/kubernetes v1.30.1-0.20250131233843-55625722a4b8/go.mod h1:4RS9VRpotH97uAid5TwHVizd4eCyQKUE/c0ufd6cATk=
 github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20250131233843-55625722a4b8 h1:i+jqeyuJMXTBmnZVgQZ6XMFaW97vPxAePfF0VHS4ThI=
 github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20250131233843-55625722a4b8/go.mod h1:PXATPrizf40XG7caGH9r9qdYgUAJBqDa/s6i2hDU1Us=
 github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250131233843-55625722a4b8 h1:dMHEPkVEPou/cNMH02F0Nqzm/itSNXN4NJ8Uk61wbU0=
