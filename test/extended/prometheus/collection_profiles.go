@@ -91,7 +91,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			}
 
 			return nil
-		}).Should(o.BeNil())
+		}, pollTimeout, pollInterval).Should(o.BeNil())
 		r.originalOperatorConfiguration = operatorConfiguration
 	})
 
@@ -139,7 +139,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
 		g.It("should expose default metrics", func() {
@@ -155,7 +155,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
 
@@ -176,7 +176,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 					}
 
 					return nil
-				}).Should(o.BeNil())
+				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
 		g.It("should have at least one implementation for each collection profile", func() {
@@ -194,7 +194,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 					}
 
 					return nil
-				}).Should(o.BeNil())
+				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
@@ -211,7 +211,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
 
@@ -231,7 +231,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
 		g.It("should hide default metrics", func() {
@@ -253,7 +253,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				kubeStateMetricsMonitor = monitors.Items[0]
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 
 			var kubeStateMetricsMainMetrics []string
 			kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
@@ -295,7 +295,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				wantCount := int(queryResponse.Data.Result[0].Value)
 
 				kubeStateMetricsMainMetricsString := strings.Join(kubeStateMetricsMainMetrics, "")
-				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */ ])
+				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */])
 				queryResponse, err = helper.RunQuery(tctx, r.pclient, kubeStateMetricsMainMetricsCountQuery)
 				if err != nil {
 					return err
@@ -310,7 +310,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
 })
