@@ -109,13 +109,13 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 func createWellKnownKubeAPIServerOperatorResource(ctx context.Context, resourceClient dynamic.ResourceInterface) *operatorv1.KubeAPIServer {
 	kasOperatorYaml := testdata.MustAsset("test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml")
 	unstructuredKasOperatorManifest := resourceread.ReadUnstructuredOrDie(kasOperatorYaml)
-	unstructuredKasOperator, err := resourceClient.Create(ctx, unstructuredKasOperatorManifest, metav1.CreateOptions{})
+    unstructuredKasOperator, err := resourceClient.Create(ctx, unstructuredKasOperatorManifest, metav1.CreateOptions{FieldManager: "origin-patchgo"})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	kasOperator := unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
 	kasOperatorFromManifest := unstructuredToKubeAPIServerOperator(unstructuredKasOperatorManifest.Object)
 	kasOperator.Status = kasOperatorFromManifest.Status
-	unstructuredKasOperator, err = resourceClient.ApplyStatus(ctx, kasOperator.Name, kubeAPIServerOperatorToUnstructured(kasOperator), metav1.ApplyOptions{})
+	unstructuredKasOperator, err = resourceClient.ApplyStatus(ctx, kasOperator.Name, kubeAPIServerOperatorToUnstructured(kasOperator), metav1.ApplyOptions{FieldManager: "origin-patchgo"})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	kasOperator = unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
 	o.Expect(kasOperator.Status.NodeStatuses).To(o.Equal([]operatorv1.NodeStatus{
