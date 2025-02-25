@@ -34,7 +34,9 @@ const (
 	// tcpdumpGeneveFilter can be used to filter out Geneve encapsulated packets destined to target node.
 	tcpdumpGeneveFilter = "udp port 6081 and src %s and dst %s"
 	// tcpdumpICMPFilter can be used to filter out icmp packets destined to target node.
-	tcpdumpICMPFilter            = "icmp and src %s and dst %s"
+	tcpdumpICMPFilter = "icmp and src %s and dst %s"
+	// tcpdumpNATTFilter can be used to filter out NAT-T encapsulated packets destined to target node.
+	tcpdumpNATTFilter            = "udp port 4500 and src %s and dst %s"
 	masterIPsecMachineConfigName = "80-ipsec-master-extensions"
 	workerIPSecMachineConfigName = "80-ipsec-worker-extensions"
 	ipsecRolloutWaitDuration     = 40 * time.Minute
@@ -95,27 +97,50 @@ var (
 
 type trafficType string
 
+type ipsecConfig struct {
+	mode  v1.IPsecMode
+	encap v1.Encapsulation
+}
+
 const (
 	esp    trafficType = "esp"
 	geneve trafficType = "geneve"
 	icmp   trafficType = "icmp"
+	natt   trafficType = "natt"
 )
 
-func getIPsecMode(oc *exutil.CLI) (v1.IPsecMode, error) {
+func getIPsecConfig(oc *exutil.CLI) (*ipsecConfig, error) {
 	network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		return v1.IPsecModeDisabled, err
+		return nil, err
 	}
 	conf := network.Spec.DefaultNetwork.OVNKubernetesConfig
+	mode := getIPsecMode(conf)
+	encap := getIPsecEncap(conf)
+	return &ipsecConfig{mode: mode,
+		encap: encap}, nil
+}
+
+func getIPsecMode(ovnkCfg *v1.OVNKubernetesConfig) v1.IPsecMode {
 	mode := v1.IPsecModeDisabled
-	if conf.IPsecConfig != nil {
-		if conf.IPsecConfig.Mode != "" {
-			mode = conf.IPsecConfig.Mode
+	if ovnkCfg.IPsecConfig != nil {
+		if ovnkCfg.IPsecConfig.Mode != "" {
+			mode = ovnkCfg.IPsecConfig.Mode
 		} else {
 			mode = v1.IPsecModeFull // Backward compatibility with existing configs
 		}
 	}
-	return mode, nil
+	return mode
+}
+
+func getIPsecEncap(ovnkCfg *v1.OVNKubernetesConfig) v1.Encapsulation {
+	encapType := v1.Encapsulation(v1.EncapsulationAuto)
+	if ovnkCfg.IPsecConfig != nil &&
+		ovnkCfg.IPsecConfig.Mode == v1.IPsecModeFull &&
+		ovnkCfg.IPsecConfig.Full != nil {
+		encapType = ovnkCfg.IPsecConfig.Full.Encapsulation
+	}
+	return encapType
 }
 
 // ensureIPsecFullEnabled this function ensure IPsec is enabled by making sure ovn-ipsec-host daemonset
@@ -237,7 +262,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			nodeIP     string
 		}
 		type testConfig struct {
-			ipsecMode     v1.IPsecMode
+			ipsecCfg      *ipsecConfig
 			srcNodeConfig *testNodeConfig
 			dstNodeConfig *testNodeConfig
 		}
@@ -261,6 +286,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			case icmp:
 				srcNodeTrafficFilter = fmt.Sprintf(tcpdumpICMPFilter, src.tcpdumpPod.Status.PodIP, dst.tcpdumpPod.Status.PodIP)
 				dstNodeTrafficFilter = fmt.Sprintf(tcpdumpICMPFilter, dst.tcpdumpPod.Status.PodIP, src.tcpdumpPod.Status.PodIP)
+			case natt:
+				srcNodeTrafficFilter = fmt.Sprintf(tcpdumpNATTFilter, src.tcpdumpPod.Status.PodIP, dst.tcpdumpPod.Status.PodIP)
+				dstNodeTrafficFilter = fmt.Sprintf(tcpdumpNATTFilter, dst.tcpdumpPod.Status.PodIP, src.tcpdumpPod.Status.PodIP)
 			}
 			checkSrcNodeTraffic := func(src *testNodeConfig) error {
 				_, err := oc.AsAdmin().Run("exec").Args(src.tcpdumpPod.Name, "-n", src.tcpdumpPod.Namespace, "--",
@@ -370,6 +398,8 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(err).To(o.HaveOccurred())
 			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
 			o.Expect(err).To(o.HaveOccurred())
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, natt)
+			o.Expect(err).To(o.HaveOccurred())
 			err = nil
 		}
 
@@ -388,13 +418,37 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, geneve)
 			o.Expect(err).To(o.HaveOccurred())
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, natt)
+			o.Expect(err).To(o.HaveOccurred())
 			err = nil
 		}
 
-		checkPodTraffic := func(mode v1.IPsecMode) {
+		checkForNATTOnlyPodTraffic := func(config *testConfig) {
 			g.GinkgoHelper()
-			if mode == v1.IPsecModeFull {
+			err := setupTestPods(config, false)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() {
+				// Don't cleanup test pods in error scenario.
+				if err != nil && !framework.TestContext.DeleteNamespaceOnFailure {
+					return
+				}
+				cleanupTestPods(config)
+			}()
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, natt)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, geneve)
+			o.Expect(err).To(o.HaveOccurred())
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, esp)
+			o.Expect(err).To(o.HaveOccurred())
+			err = nil
+		}
+
+		checkPodTraffic := func(ipsecCfg *ipsecConfig) {
+			g.GinkgoHelper()
+			if ipsecCfg.mode == v1.IPsecModeFull && ipsecCfg.encap == v1.EncapsulationAuto {
 				checkForESPOnlyPodTraffic(config)
+			} else if ipsecCfg.mode == v1.IPsecModeFull && ipsecCfg.encap == v1.EncapsulationAlways {
+				checkForNATTOnlyPodTraffic(config)
 			} else {
 				checkForGeneveOnlyPodTraffic(config)
 			}
@@ -427,12 +481,12 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		g.BeforeAll(func() {
 			// Set up the config object with existing IPsecConfig, setup testing config on
 			// the selected nodes.
-			ipsecMode, err := getIPsecMode(oc)
+			ipsecConfig, err := getIPsecConfig(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(ipsecMode).NotTo(o.Equal(v1.IPsecModeDisabled))
+			o.Expect(ipsecConfig.mode).NotTo(o.Equal(v1.IPsecModeDisabled))
 
 			srcNode, dstNode := &testNodeConfig{}, &testNodeConfig{}
-			config = &testConfig{ipsecMode: ipsecMode, srcNodeConfig: srcNode,
+			config = &testConfig{ipsecCfg: ipsecConfig, srcNodeConfig: srcNode,
 				dstNodeConfig: dstNode}
 
 			// Deploy nmstate handler which is used for rolling out IPsec config
@@ -472,7 +526,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				return areMachineConfigPoolsReadyWithMachineConfig(pools, nsCertMachineConfigName)
 			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
 			// Ensure IPsec mode is still correctly configured.
-			waitForIPsecConfigToComplete(oc, config.ipsecMode)
+			waitForIPsecConfigToComplete(oc, ipsecConfig.mode)
 		})
 
 		g.BeforeEach(func() {
@@ -503,10 +557,10 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		})
 
 		g.AfterEach(func() {
-			ipsecMode, err := getIPsecMode(oc)
+			ipsecConfig, err := getIPsecConfig(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if g.CurrentSpecReport().Failed() {
-				if ipsecMode == v1.IPsecModeFull {
+				if ipsecConfig.mode == v1.IPsecModeFull {
 					var ipsecPods []string
 					srcIPsecPod, err := findIPsecPodonNode(oc, config.srcNodeConfig.nodeName)
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -554,15 +608,16 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 		g.It("check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
 			o.Expect(config).NotTo(o.BeNil())
+			o.Expect(config.ipsecCfg).NotTo(o.BeNil())
 
 			g.By("validate traffic before changing IPsec configuration")
-			checkPodTraffic(config.ipsecMode)
+			checkPodTraffic(config.ipsecCfg)
 			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
 			checkNodeTraffic(v1.IPsecModeDisabled)
 
 			// TODO: remove this block when https://issues.redhat.com/browse/RHEL-67307 is fixed.
-			if config.ipsecMode == v1.IPsecModeFull {
-				g.By(fmt.Sprintf("skip testing IPsec NS configuration with %s mode due to nmstate bug RHEL-67307", config.ipsecMode))
+			if config.ipsecCfg.mode == v1.IPsecModeFull {
+				g.By(fmt.Sprintf("skip testing IPsec NS configuration with %s mode due to nmstate bug RHEL-67307", config.ipsecCfg.mode))
 				return
 			}
 
@@ -590,7 +645,8 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 			g.By("validate IPsec traffic between nodes")
 			// Pod traffic will be encrypted as a result N/S encryption being enabled between this two nodes
-			checkPodTraffic(v1.IPsecModeFull)
+			checkPodTraffic(&ipsecConfig{mode: v1.IPsecModeFull,
+				encap: v1.Encapsulation(v1.EncapsulationAuto)})
 			checkNodeTraffic(v1.IPsecModeExternal)
 		})
 	})
