@@ -961,6 +961,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli][Slow] can use rsync to upload files to pods [apigroup:template.openshift.io] using a watch should watch for changes and rsync them": "",
 
+	"[sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late] Cluster scoped load balancer healthcheck port and path should be 10256/healthz": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late] Deploy an external cloud provider [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": " [Suite:openshift/conformance/parallel]",
