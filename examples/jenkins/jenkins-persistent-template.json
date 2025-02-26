@@ -15,7 +15,7 @@
 			"tags": "instant-app,jenkins"
 		}
 	},
-	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/main/examples/jenkins/README.md contains more information about using this template.",
 	"objects": [
 		{
 			"apiVersion": "route.openshift.io/v1",

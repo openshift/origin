@@ -41,7 +41,7 @@ address, and then curl will show your new message:
     $ curl 10.1.0.2:8080
      Hello World!
 
-To test from external network, you need to create router. Please refer to [Running the router](https://github.com/openshift/origin/blob/master/docs/routing.md)
+To test from external network, you need to create router. Please refer to [Running the router](https://github.com/openshift/origin/blob/main/docs/routing.md)
 
 If you need to rebuild the image:
 

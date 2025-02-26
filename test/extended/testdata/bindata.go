@@ -13330,7 +13330,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
 			"tags": "instant-app,jenkins"
 		}
 	},
-	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/main/examples/jenkins/README.md contains more information about using this template.",
 	"objects": [
 		{
 			"apiVersion": "route.openshift.io/v1",
@@ -13707,7 +13707,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
 			"tags": "instant-app,jenkins"
 		}
 	},
-	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+	"message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/main/examples/jenkins/README.md contains more information about using this template.",
 	"objects": [
 		{
 			"apiVersion": "route.openshift.io/v1",
@@ -18454,7 +18454,7 @@ var _testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJson = []byte(`{
       "openshift.io/support-url": "https://access.redhat.com"
     }
   },
-  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/main/examples/jenkins/README.md contains more information about using this template.",
   "labels": {
     "app": "jenkins-ephemeral",
     "template": "jenkins-ephemeral-template"
@@ -37704,7 +37704,7 @@ var _testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson =
         "app": "jenkins-ephemeral",
         "template": "jenkins-ephemeral-template"
     },
-    "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+    "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/main/examples/jenkins/README.md contains more information about using this template.",
     "metadata": {
         "annotations": {
             "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
@@ -49263,7 +49263,7 @@ objects:
                           // Output the url of the currently selected cluster
                           echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
 
-                          template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/test/extended/testdata/multi-namespace-template.yaml').object()
+                          template = openshift.create('https://raw.githubusercontent.com/openshift/origin/main/test/extended/testdata/multi-namespace-template.yaml').object()
 
                           // Explore the Groovy object which models the OpenShift template as a Map
                           echo "Template contains ${template.parameters.size()} parameters"

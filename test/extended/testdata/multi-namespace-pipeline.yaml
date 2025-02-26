@@ -48,7 +48,7 @@ objects:
                           // Output the url of the currently selected cluster
                           echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
 
-                          template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/test/extended/testdata/multi-namespace-template.yaml').object()
+                          template = openshift.create('https://raw.githubusercontent.com/openshift/origin/main/test/extended/testdata/multi-namespace-template.yaml').object()
 
                           // Explore the Groovy object which models the OpenShift template as a Map
                           echo "Template contains ${template.parameters.size()} parameters"
