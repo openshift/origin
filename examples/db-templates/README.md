@@ -37,7 +37,7 @@ your current project. Instantiate a new database service with this command:
 Replace `/path/to/template.json` with an appropriate path, that can be either a
 local path or an URL. Example:
 
-    $ oc new-app https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mariadb-ephemeral-template.json
+    $ oc new-app https://raw.githubusercontent.com/openshift/origin/main/examples/db-templates/mariadb-ephemeral-template.json
 
 The parameters listed in the output above can be tweaked by specifying values in
 the command line with the `-p` option:
@@ -59,7 +59,7 @@ later. Create the template with this command:
 Replace `/path/to/template.json` with an appropriate path, that can be either a
 local path or an URL. Example:
 
-    $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mariadb-ephemeral-template.json
+    $ oc create -f https://raw.githubusercontent.com/openshift/origin/main/examples/db-templates/mariadb-ephemeral-template.json
     template "mariadb-ephemeral" created
 
 The new template is now available to use in the Web Console or with `oc

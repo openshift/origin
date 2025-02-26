@@ -18,14 +18,14 @@ We make use of https://github.com/spf13/cobra[Cobra] and https://github.com/spf1
 
 Commands are organized in the package structure as:
 
-* https://github.com/openshift/origin/tree/master/pkg/cmd[pkg/cmd]
-** https://github.com/openshift/origin/tree/master/pkg/cmd/openshift[pkg/cmd/openshift] - `openshift` or `origin` command.
-** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
-*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
+* https://github.com/openshift/origin/tree/main/pkg/cmd[pkg/cmd]
+** https://github.com/openshift/origin/tree/main/pkg/cmd/openshift[pkg/cmd/openshift] - `openshift` or `origin` command.
+** https://github.com/openshift/origin/tree/main/pkg/cmd/infra[pkg/cmd/infra]
+*** https://github.com/openshift/origin/tree/main/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
 
-* https://github.com/openshift/origin/tree/master/pkg/oc[pkg/oc]
-** https://github.com/openshift/origin/tree/master/pkg/oc/cli[pkg/oc/cli] - `oc` and `kubectl` commands.
-** https://github.com/openshift/origin/tree/master/pkg/oc/cli/experimental[pkg/oc/cli/experimental] - `oc ex` command.
+* https://github.com/openshift/origin/tree/main/pkg/oc[pkg/oc]
+** https://github.com/openshift/origin/tree/main/pkg/oc/cli[pkg/oc/cli] - `oc` and `kubectl` commands.
+** https://github.com/openshift/origin/tree/main/pkg/oc/cli/experimental[pkg/oc/cli/experimental] - `oc ex` command.
 
 === Command Structure
 

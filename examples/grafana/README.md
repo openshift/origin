@@ -9,7 +9,7 @@ It uses "OAuth" token to login openshift Prometheus.
 
 ## To run grafana and deploy dashboards
 Note: make sure to have openshift prometheus deployed (possibly, with node exporter).
-(https://github.com/openshift/origin/tree/master/examples/prometheus)
+(https://github.com/openshift/origin/tree/main/examples/prometheus)
 
 ### Run the deployment script
 ``` 
@@ -37,4 +37,4 @@ https://github.com/mrsiano/grafana-ocp
 
 #### Resources 
 - example video https://youtu.be/srCApR_J3Os
-- deploy openshift prometheus https://github.com/openshift/origin/tree/master/examples/prometheus 
+- deploy openshift prometheus https://github.com/openshift/origin/tree/main/examples/prometheus 

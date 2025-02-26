@@ -26,7 +26,7 @@ On your **Docker host** you will need to fetch some images. You can do so by
 running the pullimages.sh script like so:
 
     $ sh <(curl \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/pullimages.sh)
+    https://raw.githubusercontent.com/openshift/origin/main/examples/sample-app/pullimages.sh)
 
 This will fetch several container images that are used as part of the Sample
 Application.
@@ -52,7 +52,7 @@ bits that are used in the sample app.
     $ cd /var/lib/openshift
     $ mkdir -p examples/sample-app
     $ wget \
-    https://raw.githubusercontent.com/openshift/origin/master/examples/sample-app/application-template-stibuild.json \
+    https://raw.githubusercontent.com/openshift/origin/main/examples/sample-app/application-template-stibuild.json \
     -O examples/sample-app/application-template-stibuild.json
 
 ## Configure client security
@@ -60,7 +60,7 @@ bits that are used in the sample app.
     $ export CURL_CA_BUNDLE=`pwd`/openshift.local.config/master/ca.crt
 
 For more information on this step, see [Application Build, Deploy, and Update
-Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
+Flow](https://github.com/openshift/origin/blob/main/examples/sample-app/README.md#application-build-deploy-and-update-flow),
 step #3.
 
 ## Deploy the private container image registry
@@ -69,14 +69,14 @@ step #3.
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update
-Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
+Flow](https://github.com/openshift/origin/blob/main/examples/sample-app/README.md#application-build-deploy-and-update-flow),
 step #4.
 
 ## Continue With Sample Application
 At this point you can continue with the steps in the [Sample
-Application](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md),
+Application](https://github.com/openshift/origin/blob/main/examples/sample-app/README.md),
 starting from [Application Build, Deploy, and Update
-Flow](https://github.com/openshift/origin/blob/master/examples/sample-app/README.md#application-build-deploy-and-update-flow),
+Flow](https://github.com/openshift/origin/blob/main/examples/sample-app/README.md#application-build-deploy-and-update-flow),
 step #5.
 
 You can watch the OpenShift logs by issuing the following on your **Docker
