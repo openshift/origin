@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
 	"image/color"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 )
 
 type CountForSecond struct {
@@ -85,9 +86,9 @@ func (c *CountsForRun) countIndexesFromAuditTime(in *auditv1.Event) (int, int, i
 	if in.Stage != auditv1.StageResponseComplete {
 		return -1, -1, -1, false
 	}
-	if in.Verb == "watch" {
-		return -1, -1, -1, false
-	}
+	// if in.Verb == "watch" {
+	// 	return -1, -1, -1, false
+	// }
 	if !strings.HasPrefix(in.RequestURI, "/api/") && !strings.HasPrefix(in.RequestURI, "/apis/") {
 		return -1, -1, -1, false
 	}
