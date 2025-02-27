@@ -28,9 +28,11 @@ controllerconfigs.machineconfiguration.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - AWSClusterHostedDNS
   - BareMetalLoadBalancer
   - GCPClusterHostedDNS
   - GCPLabelsTags
+  - NutanixMultiSubnets
   - VSphereControlPlaneMachineSet
   - VSphereMultiNetworks
   - VSphereMultiVCenters

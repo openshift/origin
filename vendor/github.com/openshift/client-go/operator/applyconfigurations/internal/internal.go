@@ -2897,6 +2897,81 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: latestAvailableRevision
       type:
         scalar: numeric
+- name: com.github.openshift.api.operator.v1.OLM
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.openshift.api.operator.v1.OLMSpec
+      default: {}
+    - name: status
+      type:
+        namedType: com.github.openshift.api.operator.v1.OLMStatus
+      default: {}
+- name: com.github.openshift.api.operator.v1.OLMSpec
+  map:
+    fields:
+    - name: logLevel
+      type:
+        scalar: string
+    - name: managementState
+      type:
+        scalar: string
+      default: ""
+    - name: observedConfig
+      type:
+        namedType: __untyped_atomic_
+    - name: operatorLogLevel
+      type:
+        scalar: string
+    - name: unsupportedConfigOverrides
+      type:
+        namedType: __untyped_atomic_
+- name: com.github.openshift.api.operator.v1.OLMStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.OperatorCondition
+          elementRelationship: associative
+          keys:
+          - type
+    - name: generations
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.GenerationStatus
+          elementRelationship: associative
+          keys:
+          - group
+          - resource
+          - namespace
+          - name
+    - name: latestAvailableRevision
+      type:
+        scalar: numeric
+    - name: observedGeneration
+      type:
+        scalar: numeric
+    - name: readyReplicas
+      type:
+        scalar: numeric
+      default: 0
+    - name: version
+      type:
+        scalar: string
 - name: com.github.openshift.api.operator.v1.OVNKubernetesConfig
   map:
     fields:
@@ -3111,7 +3186,7 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.OpenStackLoadBalancerParameters
   map:
     fields:
-    - name: loadBalancerIP
+    - name: floatingIP
       type:
         scalar: string
 - name: com.github.openshift.api.operator.v1.OperatorCondition

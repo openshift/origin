@@ -2,6 +2,7 @@ package certgraphanalysis
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -12,6 +13,16 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/cert"
 )
+
+var caBundleKeys = []string{
+	"ca-bundle.crt",
+	"client-ca-file",
+	"client-ca.crt",
+	"metrics-ca-bundle.crt",
+	"requestheader-client-ca-file",
+	"image-registry.openshift-image-registry.svc..5000",
+	"image-registry.openshift-image-registry.svc.cluster.local..5000",
+}
 
 func InspectSecret(obj *corev1.Secret) ([]*certgraphapi.CertKeyPair, error) {
 	tlsCrt, isTLS := obj.Data["tls.crt"]
@@ -60,8 +71,18 @@ func InspectConfigMap(obj *corev1.ConfigMap) (*certgraphapi.CertificateAuthority
 		return details, nil
 	}
 
-	caBundle, ok := obj.Data["ca-bundle.crt"]
-	if !ok || len(caBundle) == 0 {
+	var caBundle string
+	for key := range obj.Data {
+		if !slices.Contains(caBundleKeys, key) {
+			continue
+		}
+		if value := obj.Data[key]; len(value) > 0 {
+			caBundle = value
+			break
+		}
+	}
+
+	if len(caBundle) == 0 {
 		return nil, nil
 	}
 
