@@ -33,10 +33,10 @@ var (
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and Arbiter node counts", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("")
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).To(o.BeNil(), "Failed to initialize infra during test setup")
+
 	g.BeforeEach(func() {
-		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
+		infraStatus := getInfraStatus(oc)
+		if infraStatus.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
 			g.Skip("Cluster is not in HighlyAvailableArbiterMode skipping test")
 		}
 	})
@@ -65,11 +65,15 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on the Arbiter node", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("")
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).To(o.BeNil(), "Failed to initialize infra during test setup")
+
+	var (
+		oc          = exutil.NewCLIWithoutNamespace("")
+		infraStatus v1.InfrastructureStatus
+	)
+
 	g.BeforeEach(func() {
-		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
+		infraStatus = getInfraStatus(oc)
+		if infraStatus.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
 			g.Skip("Cluster is not in HighlyAvailableArbiterMode skipping test")
 		}
 	})
@@ -77,7 +81,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 		g.By("inferring platform type")
 
 		// Default to baremetal count of 17 expected Pods, if platform type does not exist in map
-		if expectedCount, exists := expectedPodCountsPerPlatform[infra.Status.PlatformStatus.Type]; exists {
+		if expectedCount, exists := expectedPodCountsPerPlatform[infraStatus.PlatformStatus.Type]; exists {
 			defaultExpectedPodCount = expectedCount
 		}
 		g.By("Retrieving the Arbiter node name")
@@ -101,13 +105,10 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 
 var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on HighlyAvailableArbiterMode topology", func() {
 	defer g.GinkgoRecover()
+
 	oc := exutil.NewCLI("arbiter-pod-validation").SetManagedNamespace().AsAdmin()
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).To(o.BeNil(), "Failed to initialize infra during test setup")
 	g.BeforeEach(func() {
-		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("Cluster is not in HighlyAvailableArbiterMode skipping test")
-		}
+		skipNonArbiterCluster(oc)
 	})
 
 	g.It("should be created on arbiter nodes when arbiter node is selected", func() {
@@ -189,12 +190,9 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on Highly
 var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("daemonset-pod-validation").SetManagedNamespace().AsAdmin()
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).To(o.BeNil(), "Failed to initialize infra during test setup")
+
 	g.BeforeEach(func() {
-		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("Cluster is not in HighlyAvailableArbiterMode, skipping test")
-		}
+		skipNonArbiterCluster(oc)
 	})
 
 	g.It("should not create a DaemonSet on the Arbiter node", func() {
@@ -232,13 +230,10 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet pl
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health and quorum in HighlyAvailableArbiterMode", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("")
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).To(o.BeNil(), "Failed to initialize infra during test setup")
+	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
+
 	g.BeforeEach(func() {
-		if infra.Status.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("Cluster is not in HighlyAvailableArbiterMode, skipping test")
-		}
+		skipNonArbiterCluster(oc)
 	})
 
 	g.It("should have all etcd pods running and quorum met", func() {
@@ -434,4 +429,18 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 		}
 	}
 	return false
+}
+
+func skipNonArbiterCluster(oc *exutil.CLI) {
+	infraStatus := getInfraStatus(oc)
+	if infraStatus.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
+		g.Skip("Cluster is not in HighlyAvailableArbiterMode, skipping test")
+	}
+}
+
+func getInfraStatus(oc *exutil.CLI) v1.InfrastructureStatus {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
+		"cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return infra.Status
 }
