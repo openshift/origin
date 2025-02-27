@@ -434,7 +434,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(controller-manager|route-controller-manager)`),
 		},
 		messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
-		messageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ to [0-9]+`),
+		messageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ from [0-9]+ to [0-9]+`),
 	})
 
 	// Match pod sandbox errors as "interesting" so they get charted, but we do not ever allow them to repeat
