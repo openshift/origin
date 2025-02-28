@@ -9,6 +9,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -89,12 +90,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		if strings.HasPrefix(pod.Namespace, "openshift-must-gather") {
 			continue
 		}
-		// namespace does not show up consistently so we get
-		// 1 pass or flake out of 10 runs and fail due to not
-		// enough passes
-		if strings.HasPrefix(pod.Namespace, "openshift-infra") {
-			continue
-		}
 
 		if _, ok := failuresByNamespace[pod.Namespace]; !ok {
 			failuresByNamespace[pod.Namespace] = []string{}
@@ -138,8 +133,10 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		),
 	}
 
+	observedNamespace := map[string]bool{}
 	junits := []*junitapi.JUnitTestCase{}
 	for _, namespace := range sets.StringKeySet(failuresByNamespace).List() {
+		observedNamespace[namespace] = true
 		testName := fmt.Sprintf("[sig-arch] all containers in ns/%v must have terminationMessagePolicy=%v", namespace, corev1.TerminationMessageFallbackToLogsOnError)
 		failingContainers := sets.NewString(failuresByNamespace[namespace]...)
 		if len(failingContainers) == 0 {
@@ -212,6 +209,19 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			},
 		)
 
+	}
+
+	knownNamespaces := platformidentification.KnownNamespaces
+	for _, namespace := range sets.StringKeySet(knownNamespaces).List() {
+		// if we didn't observe this namespace then create the passing test to ensure the test is always created
+		if _, ok := observedNamespace[namespace]; !ok {
+			testName := fmt.Sprintf("[sig-arch] all containers in ns/%v must have terminationMessagePolicy=%v", namespace, corev1.TerminationMessageFallbackToLogsOnError)
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:      testName,
+				SystemOut: "",
+				SystemErr: "",
+			})
+		}
 	}
 
 	return nil, junits, nil
