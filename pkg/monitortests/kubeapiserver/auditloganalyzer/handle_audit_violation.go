@@ -41,7 +41,7 @@ func (v *auditViolations) HandleAuditLogEvent(auditEvent *auditv1.Event, beginni
 			violation: violation,
 			resource:  auditEvent.ObjectRef.Resource,
 			namespace: auditEvent.ObjectRef.Namespace,
-			name:      auditEvent.ObjectRef.Namespace,
+			name:      auditEvent.ObjectRef.Name,
 			username:  auditEvent.User.Username,
 		})
 	}

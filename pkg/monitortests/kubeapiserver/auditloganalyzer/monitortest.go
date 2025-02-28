@@ -31,6 +31,7 @@ type auditLogAnalyzer struct {
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
 	violationChecker              *auditViolations
+	latencyChecker                *auditLatencyRecords
 
 	countsForInstall *CountsForRun
 }
@@ -42,6 +43,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
+		latencyChecker:                CheckForLatency(),
 	}
 }
 
@@ -85,6 +87,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
 		w.violationChecker,
+		w.latencyChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -408,6 +411,11 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
 		return currErr
+	}
+
+	if w.latencyChecker != nil {
+		// ignore any error so we continue processing
+		_ = w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-high-latency-requests", timeSuffix)
 	}
 
 	if w.requestCountTracking != nil {
