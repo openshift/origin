@@ -69,6 +69,12 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 	// "apiserver.latency.k8s.io/total":"16.005122724s"
 	for _, latencyType := range latencyTypes {
 		if totalLatency, ok := auditEvent.Annotations[latencyType]; ok {
+
+			resourceType := "unknown"
+			if auditEvent.ObjectRef != nil && len(auditEvent.ObjectRef.Resource) > 0 {
+				resourceType = auditEvent.ObjectRef.Resource
+			}
+
 			var typeRecord map[string]*auditLatencySummaryRecord
 			var summaryRecord *auditLatencySummaryRecord
 			var latencyBucket *auditLatencyBucket
@@ -79,9 +85,9 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 				typeRecord = newTypeRecord
 			}
 
-			if summaryRecord, ok = typeRecord[auditEvent.ObjectRef.Resource]; !ok {
+			if summaryRecord, ok = typeRecord[resourceType]; !ok {
 				newSummaryRecord := &auditLatencySummaryRecord{buckets: make(map[float64]*auditLatencyBucket)}
-				typeRecord[auditEvent.ObjectRef.Resource] = newSummaryRecord
+				typeRecord[resourceType] = newSummaryRecord
 				summaryRecord = newSummaryRecord
 			}
 
@@ -91,14 +97,16 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 				seconds, err := strconv.ParseFloat(match[1], 64)
 				if err == nil {
 					if seconds > threshold {
-						v.records = append(v.records, auditLatencyRecord{
-							auditId:   string(auditEvent.AuditID),
-							latency:   seconds,
-							resource:  auditEvent.ObjectRef.Resource,
-							namespace: auditEvent.ObjectRef.Namespace,
-							name:      auditEvent.ObjectRef.Name,
-							username:  auditEvent.User.Username,
-						})
+						if auditEvent.ObjectRef != nil {
+							v.records = append(v.records, auditLatencyRecord{
+								auditId:   string(auditEvent.AuditID),
+								latency:   seconds,
+								resource:  auditEvent.ObjectRef.Resource,
+								namespace: auditEvent.ObjectRef.Namespace,
+								name:      auditEvent.ObjectRef.Name,
+								username:  auditEvent.User.Username,
+							})
+						}
 					}
 					for _, b := range buckets {
 						if seconds > b {
