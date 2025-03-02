@@ -415,7 +415,7 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 
 	if w.latencyChecker != nil {
 		// ignore any error so we continue processing
-		_ = w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-high-latency-requests", timeSuffix)
+		_ = w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-latency", timeSuffix)
 	}
 
 	if w.requestCountTracking != nil {
