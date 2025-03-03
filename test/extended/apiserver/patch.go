@@ -112,12 +112,13 @@ func createWellKnownKubeAPIServerOperatorResource(ctx context.Context, resourceC
 	unstructuredKasOperator, err := resourceClient.Create(ctx, unstructuredKasOperatorManifest, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	kasOperator := unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
-	kasOperatorFromManifest := unstructuredToKubeAPIServerOperator(unstructuredKasOperatorManifest.Object)
-	kasOperator.Status = kasOperatorFromManifest.Status
-	unstructuredKasOperator, err = resourceClient.UpdateStatus(ctx, kubeAPIServerOperatorToUnstructured(kasOperator), metav1.UpdateOptions{})
+	manifestStatus, _, err := unstructured.NestedMap(unstructuredKasOperatorManifest.Object, "status")
 	o.Expect(err).NotTo(o.HaveOccurred())
-	kasOperator = unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
+	err = unstructured.SetNestedMap(unstructuredKasOperator.Object, manifestStatus, "status")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	unstructuredKasOperator, err = resourceClient.UpdateStatus(ctx, unstructuredKasOperator, metav1.UpdateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	kasOperator := unstructuredToKubeAPIServerOperator(unstructuredKasOperator.Object)
 	o.Expect(kasOperator.Status.NodeStatuses).To(o.Equal([]operatorv1.NodeStatus{
 		{NodeName: "master-1"},
 		{NodeName: "master-2"},
@@ -198,12 +199,6 @@ func unstructuredToKubeAPIServerOperator(obj map[string]interface{}) *operatorv1
 	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj, ret)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return ret
-}
-
-func kubeAPIServerOperatorToUnstructured(kasOperator *operatorv1.KubeAPIServer) *unstructured.Unstructured {
-	raw, err := runtime.DefaultUnstructuredConverter.ToUnstructured(kasOperator)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return &unstructured.Unstructured{Object: raw}
 }
 
 func createResourceClient(cfg *rest.Config, gvr schema.GroupVersionResource) dynamic.ResourceInterface {
