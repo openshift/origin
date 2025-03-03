@@ -32,7 +32,6 @@ import (
 	_ "github.com/openshift/origin/test/extended/idling"
 	_ "github.com/openshift/origin/test/extended/image_ecosystem"
 	_ "github.com/openshift/origin/test/extended/imageapis"
-	_ "github.com/openshift/origin/test/extended/imagepolicy"
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/images/trigger"
 	_ "github.com/openshift/origin/test/extended/kernel"

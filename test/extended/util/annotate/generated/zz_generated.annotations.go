@@ -1165,16 +1165,6 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to \"\" [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should fail clusterimagepolicy signature validation root of trust does not match the identity in the signature": " [Suite:openshift/conformance/serial]",
-
-	"[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification": " [Suite:openshift/conformance/serial]",
-
-	"[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should fail imagepolicy signature validation in different namespaces root of trust does not match the identity in the signature": " [Suite:openshift/conformance/serial]",
-
-	"[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should pass clusterimagepolicy signature validation with signed image": " [Suite:openshift/conformance/serial]",
-
-	"[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should pass imagepolicy signature validation with signed image in namespaces": " [Suite:openshift/conformance/serial]",
-
 	"[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
 	"[sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
