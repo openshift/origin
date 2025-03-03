@@ -138,7 +138,7 @@ func (v *auditLatencyRecords) WriteAuditLogSummary(artifactDir, name, timeSuffix
 
 	rows := make([]map[string]string, 0)
 	for _, r := range v.records {
-		data := map[string]string{"User": r.username, "Resource": r.resource, "Namespace": r.namespace, "Name": r.name, "Id": r.auditId, "Latency": strconv.FormatFloat(r.latency, 'g', 3, 64)}
+		data := map[string]string{"User": r.username, "Resource": r.resource, "Namespace": r.namespace, "Name": r.name, "Id": r.auditId, "Latency": fmt.Sprintf("%.3f", r.latency)}
 		rows = append(rows, data)
 	}
 
@@ -157,7 +157,7 @@ func (v *auditLatencyRecords) WriteAuditLogSummary(artifactDir, name, timeSuffix
 	for latencyType, latencyRecords := range v.summary.resourceBuckets {
 		for resource, record := range latencyRecords {
 			for rk, rv := range record.buckets {
-				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": strconv.FormatFloat(rk, 'g', 1, 64), "Count": strconv.FormatInt(rv.totalCount, 10)}
+				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", rk), "Count": fmt.Sprintf("%d", rv.totalCount)}
 				rows = append(rows, data)
 			}
 		}
