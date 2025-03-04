@@ -26,6 +26,8 @@ var (
 			`\[Feature:RelaxedDNSSearchValidation\]`,
 			`\[Feature:PodLogsQuerySplitStreams\]`,
 			`\[Feature:PodLifecycleSleepActionAllowZero\]`,
+			`\[Feature:volumegroupsnapshot\]`, // disabled Beta
+
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -169,22 +171,12 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-17194
 			`\[sig-node\] ImageCredentialProvider \[Feature:KubeletCredentialProviders\] should be able to create pod with image credentials fetched from external credential provider`,
 
-			// https://issues.redhat.com/browse/OCPBUGS-45214
-			// Even though this feature is not GA in k/k, it will be GA in OCP 4.19, so we should fix it and unskip this test
-			`\[Feature:volumegroupsnapshot\]`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-45273
 			`\[sig-network\] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-45273
-			`\[sig-cli\] Kubectl Port forwarding Shutdown client connection while the remote stream is writing data to the port-forward connection port-forward should keep working after detect broken connection`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-45274
 			// https://github.com/kubernetes/kubernetes/issues/129056
 			`\[sig-node\] PodRejectionStatus Kubelet should reject pod when the node didn't have enough resource`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-45359
-			`\[Feature:RecoverVolumeExpansionFailure\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
