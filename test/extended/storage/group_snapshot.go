@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	g "github.com/onsi/ginkgo/v2"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -30,7 +31,8 @@ import (
 // only with the group snapshots enabled in its snapshotter sidecar.
 
 // Generates ginkgo testSuites for the csi-hospath-groupsnapshot test driver defined below
-var _ = utils.SIGDescribe("CSI Volumes: [FeatureGate:VolumeGroupSnapshot] [Suite:k8s]", func() {
+var _ = utils.SIGDescribe("[FeatureGate:VolumeGroupSnapshot] [OCPForceInclude]", func() {
+	defer g.GinkgoRecover()
 	driver := InitHostPathCSIDriver()
 	args := storageframework.GetDriverNameWithFeatureTags(driver)
 	args = append(args, func() {
