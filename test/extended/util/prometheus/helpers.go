@@ -440,7 +440,7 @@ func GetBearerTokenURLViaPod(oc *exutil.CLI, execPodName, url, bearer string) (s
 	auth := fmt.Sprintf("Authorization: Bearer %s", bearer)
 	stdout, stderr, err := oc.AsAdmin().Run("exec").Args(execPodName, "--", "curl", "-s", "-k", "-H", auth, url).Outputs()
 	if err != nil {
-		return "", fmt.Errorf("command failed: %v\nstderr: %s\nstdout:%s", err, stderr, stdout)
+		return "", fmt.Errorf("command failed: %v\nstderr: %s\nstdout:%s", exutil.RedactBearerToken(err.Error()), exutil.RedactBearerToken(stderr), exutil.RedactBearerToken(stdout))
 	}
 	// Terminate stdout with a newline to avoid an unexpected end of stream error.
 	if len(stdout) > 0 {
