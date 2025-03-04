@@ -1,6 +1,7 @@
 package auditloganalyzer
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/sirupsen/logrus"
@@ -20,10 +21,12 @@ var (
 )
 
 type auditLatencyRecords struct {
-	lock    sync.Mutex
-	matcher *regexp.Regexp
-	records []auditLatencyRecord
-	summary auditLatencySummary
+	lock           sync.Mutex
+	matcher        *regexp.Regexp
+	records        []auditLatencyRecord
+	summary        auditLatencySummary
+	persistRecords bool
+	persistJson    bool
 }
 
 type auditLatencyRecord struct {
@@ -33,6 +36,7 @@ type auditLatencyRecord struct {
 	name      string
 	username  string
 	latency   float64
+	json      []byte
 }
 
 type auditLatencyBucket struct {
@@ -47,7 +51,7 @@ type auditLatencySummary struct {
 	resourceBuckets map[string]map[string]*auditLatencySummaryRecord
 }
 
-func CheckForLatency() *auditLatencyRecords {
+func CheckForLatency(persistRecords, persistJson bool) *auditLatencyRecords {
 
 	decimalSeconds, err := regexp.Compile("([\\d\\.]+)s")
 	if err != nil {
@@ -55,7 +59,7 @@ func CheckForLatency() *auditLatencyRecords {
 	}
 
 	summary := auditLatencySummary{resourceBuckets: make(map[string]map[string]*auditLatencySummaryRecord)}
-	return &auditLatencyRecords{matcher: decimalSeconds, records: make([]auditLatencyRecord, 0), summary: summary}
+	return &auditLatencyRecords{matcher: decimalSeconds, records: make([]auditLatencyRecord, 0), summary: summary, persistRecords: persistRecords, persistJson: persistJson}
 }
 
 func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
@@ -96,8 +100,14 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 			if len(match) > 0 {
 				seconds, err := strconv.ParseFloat(match[1], 64)
 				if err == nil {
-					if seconds > threshold {
+					if v.persistRecords && seconds > threshold {
 						if auditEvent.ObjectRef != nil {
+							var bytes []byte
+							if v.persistJson {
+								// best attempt
+								bytes, _ = json.Marshal(auditEvent)
+							}
+
 							v.records = append(v.records, auditLatencyRecord{
 								auditId:   string(auditEvent.AuditID),
 								latency:   seconds,
@@ -105,6 +115,7 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 								namespace: auditEvent.ObjectRef.Namespace,
 								name:      auditEvent.ObjectRef.Name,
 								username:  auditEvent.User.Username,
+								json:      bytes,
 							})
 						}
 					}
@@ -135,29 +146,42 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 }
 
 func (v *auditLatencyRecords) WriteAuditLogSummary(artifactDir, name, timeSuffix string) error {
+	var dataFile dataloader.DataFile
+	var fileName string
+	var err error
+	var rows []map[string]string
 
-	rows := make([]map[string]string, 0)
-	for _, r := range v.records {
-		data := map[string]string{"User": r.username, "Resource": r.resource, "Namespace": r.namespace, "Name": r.name, "Id": r.auditId, "Latency": fmt.Sprintf("%.3f", r.latency)}
-		rows = append(rows, data)
-	}
+	if v.persistRecords {
+		rows := make([]map[string]string, 0)
+		for _, r := range v.records {
+			data := map[string]string{"User": r.username, "Resource": r.resource, "Namespace": r.namespace, "Name": r.name, "Id": r.auditId, "Latency": fmt.Sprintf("%.3f", r.latency)}
+			if v.persistJson && r.json != nil {
+				data["JSON"] = string(r.json)
+			}
+			rows = append(rows, data)
+		}
 
-	dataFile := dataloader.DataFile{
-		TableName: "high_audit_latency_requests",
-		Schema:    map[string]dataloader.DataType{"User": dataloader.DataTypeString, "Resource": dataloader.DataTypeString, "Namespace": dataloader.DataTypeString, "Name": dataloader.DataTypeString, "Id": dataloader.DataTypeString, "Latency": dataloader.DataTypeFloat64},
-		Rows:      rows,
-	}
-	fileName := filepath.Join(artifactDir, fmt.Sprintf("%s-high-requests%s-%s", name, timeSuffix, dataloader.AutoDataLoaderSuffix))
-	err := dataloader.WriteDataFile(fileName, dataFile)
-	if err != nil {
-		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+		dataFile = dataloader.DataFile{
+			TableName: "high_audit_latency_requests",
+			Schema:    map[string]dataloader.DataType{"User": dataloader.DataTypeString, "Resource": dataloader.DataTypeString, "Namespace": dataloader.DataTypeString, "Name": dataloader.DataTypeString, "Id": dataloader.DataTypeString, "Latency": dataloader.DataTypeFloat64, "JSON": dataloader.DataTypeJSON},
+			Rows:      rows,
+		}
+		fileName := filepath.Join(artifactDir, fmt.Sprintf("%s-high-requests%s-%s", name, timeSuffix, dataloader.AutoDataLoaderSuffix))
+		err := dataloader.WriteDataFile(fileName, dataFile)
+		if err != nil {
+			logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+		}
 	}
 
 	rows = make([]map[string]string, 0)
 	for latencyType, latencyRecords := range v.summary.resourceBuckets {
 		for resource, record := range latencyRecords {
-			for rk, rv := range record.buckets {
-				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", rk), "Count": fmt.Sprintf("%d", rv.totalCount)}
+			for _, bucket := range buckets {
+				var count int64 = 0
+				if rv, ok := record.buckets[bucket]; ok {
+					count = rv.totalCount
+				}
+				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
 				rows = append(rows, data)
 			}
 		}
@@ -168,7 +192,7 @@ func (v *auditLatencyRecords) WriteAuditLogSummary(artifactDir, name, timeSuffix
 		Schema:    map[string]dataloader.DataType{"LatencyType": dataloader.DataTypeString, "Resource": dataloader.DataTypeString, "Bucket": dataloader.DataTypeFloat64, "Count": dataloader.DataTypeInteger},
 		Rows:      rows,
 	}
-	fileName = filepath.Join(artifactDir, fmt.Sprintf("%ssummary-counts%s-%s", name, timeSuffix, dataloader.AutoDataLoaderSuffix))
+	fileName = filepath.Join(artifactDir, fmt.Sprintf("%s-summary-counts%s-%s", name, timeSuffix, dataloader.AutoDataLoaderSuffix))
 	err = dataloader.WriteDataFile(fileName, dataFile)
 	if err != nil {
 		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
