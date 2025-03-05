@@ -43,7 +43,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
-		latencyChecker:                CheckForLatency(true, true),
+		latencyChecker:                CheckForLatency(false, false),
 	}
 }
 
