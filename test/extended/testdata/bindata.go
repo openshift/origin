@@ -439,6 +439,7 @@
 // test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
+// test/extended/testdata/olmv1/catalog-server-load-test.yaml
 // test/extended/testdata/olmv1/install-catalog.yaml
 // test/extended/testdata/olmv1/install-operator.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
@@ -50053,6 +50054,118 @@ func testExtendedTestdataOlmSubscriptionYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1CatalogServerLoadTestYaml = []byte(`apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalog-server-load-test-all-endpoint
+  namespace: default
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      containers:
+      - name: wrk2-tester
+        image: registry.redhat.io/ubi8/ubi:latest
+        command: 
+        - /bin/bash
+        - -c
+        - |
+          set -ex
+          # Set test parameters
+          SERVICE_URL="https://catalogd-service.openshift-catalogd.svc/catalogs/openshift-community-operators/api/v1/all"
+          CONCURRENT_CONNECTIONS=10
+          TEST_DURATION_SECONDS=30
+          REQUEST_RATE=100
+          MAX_LATENCY_THRESHOLD_MS=20000
+          SUCCESS_RATE_THRESHOLD=100.0  
+          # Install required packages
+          dnf install -y git gcc openssl-devel zlib-devel make
+          # Clone and build wrk2
+          git clone https://github.com/giltene/wrk2.git
+          cd wrk2
+          make
+          # Create a final Lua script that directly prints results
+          cat > print_report.lua << 'EOL'
+          
+          function done(summary, latency, requests)
+              -- Print basic stats
+              io.write("\n\n=== LOAD TEST RESULTS ===\n")
+              io.write(string.format("Total requests: %d\n", summary.requests))
+              io.write(string.format("Socket errors: connect %d, read %d, write %d, timeout %d\n",
+                  summary.errors.connect, summary.errors.read, summary.errors.write, summary.errors.timeout))
+              io.write(string.format("HTTP errors: %d\n", summary.errors.status))
+              io.write(string.format("Request rate: %.2f requests/s\n", summary.requests / summary.duration * 1000000))
+              
+              -- Calculate success rate
+              local total_errors = summary.errors.status + summary.errors.connect + 
+                                  summary.errors.read + summary.errors.write + summary.errors.timeout
+              local success_count = summary.requests - total_errors
+              local success_rate = success_count / summary.requests * 100
+              io.write(string.format("Success rate: %.2f%%\n", success_rate))
+              
+              -- No direct latency reporting - we will read this from wrk2's standard output
+              
+              -- Check if we met our success rate threshold
+              local success_threshold = tonumber(os.getenv("SUCCESS_RATE_THRESHOLD") or 90)
+              io.write("\nThreshold checks:\n")
+              io.write(string.format("  Success rate: %.2f%% (threshold: %.2f%%)\n", 
+                       success_rate, success_threshold))
+              if success_rate < success_threshold then
+                  io.write(string.format("FAILED: Success rate (%.2f%%) below threshold (%.2f%%)\n", 
+                           success_rate, success_threshold))
+                  return
+              end
+              
+              io.write("\nSUCCESS: Success rate criteria met. Check latency in wrk2 output.\n")
+          end
+          EOL
+          # Export environment variables for Lua script
+          export MAX_LATENCY_THRESHOLD_MS=$MAX_LATENCY_THRESHOLD_MS
+          export SUCCESS_RATE_THRESHOLD=$SUCCESS_RATE_THRESHOLD
+          # Run the load test and save output
+          echo "Starting wrk2 load test..."
+          ./wrk -t$CONCURRENT_CONNECTIONS -c$CONCURRENT_CONNECTIONS -d${TEST_DURATION_SECONDS}s -R$REQUEST_RATE -s print_report.lua -L $SERVICE_URL
+          # Extract the 99% latency value from wrk2 output
+          echo ""
+          echo "Test completed. Checking latency threshold..."
+          LATENCY_MS=$(grep "99.000%" | awk '{print $2}')
+          if [ -n "$LATENCY_MS" ]; then
+            # Convert to milliseconds (divide by 1000)
+            P99_MS=$(echo "scale=2; $LATENCY_MS/1000" | bc -l 2>/dev/null || echo "$LATENCY_MS microseconds")
+            echo "P99 latency: $P99_MS ms (threshold: $MAX_LATENCY_THRESHOLD_MS ms)"
+            
+            # Manual check without bc
+            if [ -n "$(which bc)" ]; then
+              if [ "$(echo "$P99_MS > $MAX_LATENCY_THRESHOLD_MS" | bc -l)" -eq 1 ]; then
+                echo "FAILED: P99 latency exceeds threshold"
+              else
+                echo "SUCCESS: P99 latency within threshold"
+              fi
+            else
+              echo "Note: 'bc' command not available for precise comparison"
+            fi
+          else
+            echo "Could not extract P99 latency from output"
+          fi
+          
+          echo "Load test completed"
+      restartPolicy: Never`)
+
+func testExtendedTestdataOlmv1CatalogServerLoadTestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1CatalogServerLoadTestYaml, nil
+}
+
+func testExtendedTestdataOlmv1CatalogServerLoadTestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1CatalogServerLoadTestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/catalog-server-load-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmv1InstallCatalogYaml = []byte(`apiVersion: olm.operatorframework.io/v1
 kind: ClusterCatalog
 metadata:
@@ -55718,6 +55831,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                       testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
+	"test/extended/testdata/olmv1/catalog-server-load-test.yaml":                                             testExtendedTestdataOlmv1CatalogServerLoadTestYaml,
 	"test/extended/testdata/olmv1/install-catalog.yaml":                                                      testExtendedTestdataOlmv1InstallCatalogYaml,
 	"test/extended/testdata/olmv1/install-operator.yaml":                                                     testExtendedTestdataOlmv1InstallOperatorYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
@@ -56482,8 +56596,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
 				}},
 				"olmv1": {nil, map[string]*bintree{
-					"install-catalog.yaml":  {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
-					"install-operator.yaml": {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
+					"catalog-server-load-test.yaml": {testExtendedTestdataOlmv1CatalogServerLoadTestYaml, map[string]*bintree{}},
+					"install-catalog.yaml":          {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
+					"install-operator.yaml":         {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
 				}},
 				"poddisruptionbudgets": {nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
