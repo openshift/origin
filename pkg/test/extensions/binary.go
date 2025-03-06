@@ -90,9 +90,12 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	return b.info, nil
 }
 
-// ListTests takes a list of EnvironmentFlags to pass to the command so it can determine for itself which tests are relevant.
-// returns which tests this binary advertises.
-func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
+// ListTests returns a list of *relevant* tests provided by the extension. The word "environment" is overloaded here.
+// This function takes both environment variables and cluster environment flags. The environment variables pass
+// information from origin to kube, such as the TEST_PROVIDER configuration. This is a legacy way of passing data from
+// origin to an extension and should only be used by kube. Newer extensions should instead rely on the cluster environment
+// flags so it can determine for itself which tests are relevant and only return those.
+func (b *TestBinary) ListTests(ctx context.Context, osEnv []string, clusterEnvFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
 	var tests ExtensionTestSpecs
 	start := time.Now()
 	binName := filepath.Base(b.binaryPath)
@@ -100,10 +103,14 @@ func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (
 	binLogger := logrus.WithField("binary", binName)
 	binLogger.Info("Listing tests")
 	binLogger.Infof("OTE API version is: %s", b.info.APIVersion)
-	envFlags = b.filterToApplicableEnvironmentFlags(envFlags)
+	clusterEnvFlags = b.filterToApplicableEnvironmentFlags(clusterEnvFlags)
 	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
-	binLogger.Infof("adding the following applicable flags to the list command: %s", envFlags.String())
-	command.Args = append(command.Args, envFlags.ArgStrings()...)
+	if len(osEnv) > 0 {
+		command.Env = osEnv
+	}
+
+	binLogger.Infof("adding the following applicable flags to the list command: %s", clusterEnvFlags.String())
+	command.Args = append(command.Args, clusterEnvFlags.ArgStrings()...)
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, testList)
@@ -504,7 +511,7 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 
 // ListTests extracts the tests from all TestBinaries using the specified parallelism,
 // and passes the provided EnvironmentFlags for proper filtering of results.
-func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
+func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, osEnv []string, clusterEnvFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
 	var (
 		allTests ExtensionTestSpecs
 		mu       sync.Mutex
@@ -538,7 +545,7 @@ func (binaries TestBinaries) ListTests(ctx context.Context, parallelism int, env
 					if !ok {
 						return // Channel was closed
 					}
-					tests, err := binary.ListTests(ctx, envFlags)
+					tests, err := binary.ListTests(ctx, osEnv, clusterEnvFlags)
 					if err != nil {
 						errCh <- err
 					}
