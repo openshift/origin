@@ -25,7 +25,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -139,7 +139,8 @@ func NewCLIWithPodSecurityLevel(project string, level admissionapi.Level) *CLI {
 }
 
 // NewCLI initializes the CLI and Kube framework helpers with the provided
-// namespace. Should be called outside of a Ginkgo .It() function.
+// namespace. This may be called in a .Describe() (or equivalent) container's outermost
+// scope, but not from any child containers (such as .It()) as this calls a .BeforeEach() internally.
 // This will apply the `restricted` pod security level to the given underlying namespace.
 func NewCLI(project string) *CLI {
 	cli := NewCLIWithoutNamespace(project)
