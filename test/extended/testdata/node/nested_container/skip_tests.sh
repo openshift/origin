@@ -61,7 +61,6 @@ insert_skip 700-play.bats "podman kube play healthcheck should wait initialDelay
 # cgroup
 # cannot pause the container without a cgroup
 # https://github.com/containers/podman/issues/12782
-#rm $TEST_DIR/080-pause.bats
 insert_skip 200-pod.bats "podman pod cleans cgroup and keeps limits"
 # opening file `memory.max` for writing: Permission denied
 insert_skip 280-update.bats "podman update - test all options"

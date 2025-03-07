@@ -1737,9 +1737,131 @@ var Annotations = map[string]string{
 
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
-	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode (parallel)": " [Suite:openshift/conformance/parallel]",
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 001-basic.bats": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode (serial)": " [Suite:openshift/conformance/parallel]",
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 005-info.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 010-images.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 011-image.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 012-manifest.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 015-help.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 020-tag.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 030-run.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 032-sig-proxy.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 035-logs.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 037-runlabel.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 040-ps.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 045-start.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 050-stop.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 055-rm.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 060-mount.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 065-cp.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 070-build.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 075-exec.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 085-top.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 090-events.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 110-history.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 120-load.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 125-import.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 130-kill.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 140-diff.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 150-login.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 155-partial-pull.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 160-volumes.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 161-volume-quotas.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 170-run-userns.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 180-blkio.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 190-run-ipcns.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 195-run-namespaces.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 200-pod.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 220-healthcheck.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 260-sdnotify.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 271-tcp-cors-server.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 272-system-connection.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 280-update.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 300-cli-parsing.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 320-system-df.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 330-corrupt-images.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 331-system-check.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 400-unprivileged-access.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 410-selinux.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 420-cgroups.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 450-interactive.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 500-networking.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 505-networking-pasta.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 520-checkpoint.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 550-pause-process.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 600-completion.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 610-format.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 620-option-conflicts.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 700-play.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 710-kube.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 750-trust.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 760-system-renumber.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 800-config.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 850-compose.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 900-ssh.bats": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode Entry: 950-preexec-hooks.bats": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
