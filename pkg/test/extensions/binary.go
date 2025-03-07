@@ -55,6 +55,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "hyperkube",
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
+	{
+		imageTag:   "machine-api-operator",
+		binaryPath: "/machine-api-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
