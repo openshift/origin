@@ -5,27 +5,44 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/kustomize/kyaml/sets"
 )
 
-func TestMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func TestMultipleSingleSecondDisruptions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	// multipleFailuresTestPrefix is for tests that track a few single second disruptions
 	const multipleFailuresTestPrefix = "[sig-network] there should be nearly zero single second disruptions for "
 	// manyFailureTestPrefix is for tests that track a lot of single second disruptions (more severe than the above)
 	const manyFailureTestPrefix = "[sig-network] there should be reasonably few single second disruptions for "
 
+	platform := configv1.NonePlatformType
+	if clientConfig != nil {
+		if actualPlatform, err := getPlatformType(clientConfig); err == nil {
+			platform = actualPlatform
+		}
+	}
+
 	allServers := sets.String{}
-	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
+	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent).Filter(monitorapi.HasRealLoadBalancer)
 	logrus.Infof("filtered %d intervals down to %d disruption intervals", len(events), len(allDisruptionEventsIntervals))
 	for _, eventInterval := range allDisruptionEventsIntervals {
 		backend := eventInterval.Locator.Keys[monitorapi.LocatorBackendDisruptionNameKey]
+		loadbalancer := eventInterval.Locator.Keys[monitorapi.LocatorLoadBalancerKey]
+		connection := eventInterval.Locator.Keys[monitorapi.LocatorConnectionKey]
+
 		switch {
 		case strings.HasPrefix(backend, "ingress-"):
 			allServers.Insert(backend)
 		case strings.Contains(backend, "-api-"):
+			if loadbalancer == "internal-lb" && connection == "reused" && platform == configv1.AWSPlatformType {
+				// OCPBUGS-43483: ignore internal-lb disruptions on AWS
+				continue
+			}
 			allServers.Insert(backend)
 		}
 	}
