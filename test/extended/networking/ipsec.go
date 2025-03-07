@@ -12,15 +12,18 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -92,6 +95,8 @@ var (
 	rightServerCertName = "right_server"
 	// Expiration date for certificates.
 	certExpirationDate = time.Date(2034, time.April, 10, 0, 0, 0, 0, time.UTC)
+	// http endpoint port for the pod traffic test
+	port uint16 = 8080
 )
 
 type trafficType string
@@ -222,6 +227,22 @@ func ensureIPsecDisabled(oc *exutil.CLI) error {
 			}
 			return done, nil
 		})
+}
+
+func restartIPsecDaemonSet(oc *exutil.CLI) error {
+	ds, err := getDaemonSet(oc, ovnNamespace, ovnIPsecDsName)
+	if err != nil {
+		return err
+	}
+	if ds == nil {
+		return fmt.Errorf("ipsec daemonset %s/%s doesn't exist", ovnNamespace, ovnIPsecDsName)
+	}
+	err = deleteDaemonSet(oc.AdminKubeClient(), ovnNamespace, ovnIPsecDsName)
+	if err != nil {
+		return err
+	}
+	// wait until CNO to reconcile IPsec daemonset.
+	return ensureIPsecFullEnabled(oc)
 }
 
 var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
@@ -631,6 +652,117 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		)
 	})
 })
+
+var _ = g.Describe("[sig-network] IPsec resilience", g.Ordered, func() {
+	oc := exutil.NewCLIWithPodSecurityLevel("ipsec", admissionapi.LevelPrivileged)
+	f := oc.KubeFramework()
+	var ipsecMode v1.IPsecMode
+
+	InOVNKubernetesContext(func() {
+		g.BeforeAll(func() {
+			var err error
+			ipsecMode, err = getIPsecMode(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("check pod traffic are working across nodes", func() {
+			if ipsecMode != v1.IPsecModeFull {
+				e2eskipper.Skipf("cluster is configured with IPsec %s mode, so skipping the test", ipsecMode)
+			}
+			g.By("creating test pods")
+			pods := createWebServerPods(oc, f.Namespace.Name)
+			g.By("checking crossing connectivity over the pods")
+			checkPodCrossConnectivity(pods)
+		})
+
+		g.It("check pod traffic are working across nodes after ipsec daemonset restart", func() {
+			if ipsecMode != v1.IPsecModeFull {
+				e2eskipper.Skipf("cluster is configured with IPsec %s mode, so skipping the test", ipsecMode)
+			}
+			g.By("creating test pods")
+			pods := createWebServerPods(oc, f.Namespace.Name)
+			g.By("checking crossing connectivity over the pods")
+			checkPodCrossConnectivity(pods)
+			// Restart IPsec daemonset few times and check pod traffic is not impacted.
+			for i := 1; i <= 5; i++ {
+				g.By(fmt.Sprintf("attempt#%d restarting IPsec pods", i))
+				err := restartIPsecDaemonSet(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("checking crossing connectivity over the pods")
+				checkPodCrossConnectivity(pods)
+			}
+		})
+	})
+})
+
+func createWebServerPods(oc *exutil.CLI, namespace string) []corev1.Pod {
+	g.GinkgoHelper()
+	immediate := int64(0)
+	ds := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ipsec-webserver",
+			Namespace: namespace,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"apps": "ipsec-webserver",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"apps": "ipsec-webserver",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Tolerations: []corev1.Toleration{
+						{
+							Key:      "node-role.kubernetes.io/master",
+							Operator: corev1.TolerationOpExists,
+							Effect:   corev1.TaintEffectNoSchedule,
+						},
+					},
+					TerminationGracePeriodSeconds: &immediate,
+					Containers:                    []corev1.Container{e2epod.NewAgnhostContainer("agnhost-container", nil, nil, httpServerContainerCmd(port)...)},
+				},
+			},
+		},
+	}
+	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(namespace).Create(context.Background(), ds, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = wait.PollUntilContextTimeout(context.Background(), 1*time.Second,
+		180*time.Second, true, func(ctx context.Context) (bool, error) {
+			return isDaemonSetRunning(oc, namespace, ds.Name)
+		})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(),
+		metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	ds, err = getDaemonSet(oc, namespace, ds.Name)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(len(pods.Items)).To(o.Equal(int(ds.Status.NumberAvailable)), fmt.Sprintf("%#v", pods.Items))
+	return pods.Items
+}
+
+func checkPodCrossConnectivity(pods []corev1.Pod) {
+	g.GinkgoHelper()
+	var testFns []func() error
+	for _, sourcePod := range pods {
+		for _, targetPod := range pods {
+			if sourcePod.Name == targetPod.Name {
+				continue
+			}
+			testFns = append(testFns, func() error {
+				framework.Logf("Checking pod connectivity from node %s to node %s", sourcePod.Spec.NodeName, targetPod.Spec.NodeName)
+				return connectToServer(podConfiguration{namespace: sourcePod.Namespace, name: sourcePod.Name}, targetPod.Status.PodIP, int(port))
+			})
+		}
+	}
+	errs := ParallelTest(6, testFns)
+	o.Expect(errs).To(o.Equal([]error(nil)))
+}
 
 func waitForIPsecConfigToComplete(oc *exutil.CLI, ipsecMode v1.IPsecMode) {
 	g.GinkgoHelper()
