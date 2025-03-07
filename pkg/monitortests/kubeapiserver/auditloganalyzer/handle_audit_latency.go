@@ -16,7 +16,7 @@ import (
 var (
 	threshold    = 14.0
 	minBucket    = 0.0
-	buckets      = []float64{45.0, 30.0, 20.0, 10.0}
+	buckets      = []float64{45.0, 30.0, 20.0, 10.0, 5.0, 2.0, 1.0}
 	latencyTypes = []string{"apiserver.latency.k8s.io/total", "apiserver.latency.k8s.io/etcd"}
 )
 
@@ -180,9 +180,13 @@ func (v *auditLatencyRecords) WriteAuditLogSummary(artifactDir, name, timeSuffix
 				var count int64 = 0
 				if rv, ok := record.buckets[bucket]; ok {
 					count = rv.totalCount
+
+					// we want the default 0s eventually but for now only record entries we have seen
+					data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
+					rows = append(rows, data)
 				}
-				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
-				rows = append(rows, data)
+				//				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
+				//				rows = append(rows, data)
 			}
 		}
 	}

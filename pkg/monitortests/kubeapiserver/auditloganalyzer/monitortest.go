@@ -414,8 +414,11 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 	}
 
 	if w.latencyChecker != nil {
-		// ignore any error so we continue processing
-		_ = w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-latency", timeSuffix)
+		err := w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-latency", timeSuffix)
+		if err != nil {
+			// print any error and continue processing
+			fmt.Printf("unable to write audit log summary for %s - %v\n", "audit-latency", err)
+		}
 	}
 
 	if w.requestCountTracking != nil {
