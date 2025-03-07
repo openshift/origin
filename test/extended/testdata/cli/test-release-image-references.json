@@ -1392,23 +1392,6 @@
         }
       },
       {
-        "name": "csi-snapshot-validation-webhook",
-        "annotations": {
-          "io.openshift.build.commit.id": "e7114303c69b82fec51ab65ba15ec7b58be3b12f",
-          "io.openshift.build.commit.ref": "",
-          "io.openshift.build.source-location": "https://github.com/openshift/csi-external-snapshotter"
-        },
-        "from": {
-          "kind": "DockerImage",
-          "name": "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:e7a32310238d69d56d35be8f7de426bdbedf96ff73edcd198698ac174c6d3c34"
-        },
-        "generation": null,
-        "importPolicy": {},
-        "referencePolicy": {
-          "type": ""
-        }
-      },
-      {
         "name": "deployer",
         "annotations": {
           "io.openshift.build.commit.id": "eed143055ede731029931ad204b19cd2f565ef1a",
