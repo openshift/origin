@@ -33,6 +33,9 @@ const (
 	operatorName              = "cluster-monitoring-operator"
 	operatorNamespaceName     = "openshift-monitoring"
 	operatorConfigurationName = "cluster-monitoring-config"
+
+	pollTimeout  = 15 * time.Minute
+	pollInterval = 5 * time.Second
 )
 
 var (
@@ -52,11 +55,8 @@ type runner struct {
 // NOTE: The nested `Context` containers inside the following `Describe` container are used to group certain tests based on the environments they demand.
 // NOTE: When adding a test-case, ensure that the test-case is placed in the appropriate `Context` container.
 // NOTE: The containers themselves are guaranteed to run in the order in which they appear.
-var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
+var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
-
-	o.SetDefaultEventuallyTimeout(15 * time.Minute)
-	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	r := &runner{}
 	oc := exutil.NewCLI(projectName)
@@ -83,19 +83,20 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			if err != nil {
 				if errors.IsNotFound(err) {
 					g.By("initially, creating a configuration for the operator as it did not exist")
-					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+					operatorConfiguration = nil
+					return r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
-				if err != nil {
-					return err
-				}
+
+				return err
 			}
 
 			return nil
-		}).Should(o.BeNil())
+		}, pollTimeout, pollInterval).Should(o.BeNil())
 		r.originalOperatorConfiguration = operatorConfiguration
 	})
 
 	g.AfterAll(func() {
+		shouldDeleteConfiguration := false
 		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 		if r.originalOperatorConfiguration != nil {
@@ -103,10 +104,23 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			g.By("restoring the original configuration for the operator")
 			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
 		} else {
+			shouldDeleteConfiguration = true
 			g.By("cleaning up the configuration for the operator as it did not exist pre-job")
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
+
+		o.Eventually(func() error {
+			if shouldDeleteConfiguration {
+				_, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
+				if errors.IsNotFound(err) {
+					return nil
+				}
+				return fmt.Errorf("ConfigMap %q still exists after deletion attempt", operatorConfigurationName)
+			}
+
+			return nil
+		}, pollTimeout, pollInterval).Should(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
@@ -125,7 +139,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
 		g.It("should expose default metrics", func() {
@@ -141,7 +155,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
 
@@ -162,7 +176,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 					}
 
 					return nil
-				}).Should(o.BeNil())
+				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
 		g.It("should have at least one implementation for each collection profile", func() {
@@ -180,7 +194,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 					}
 
 					return nil
-				}).Should(o.BeNil())
+				}, pollTimeout, pollInterval).Should(o.BeNil())
 			}
 		})
 		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
@@ -197,7 +211,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
 
@@ -217,7 +231,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 
 		g.It("should hide default metrics", func() {
@@ -239,7 +253,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				kubeStateMetricsMonitor = monitors.Items[0]
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 
 			var kubeStateMetricsMainMetrics []string
 			kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
@@ -296,7 +310,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}
 
 				return nil
-			}).Should(o.BeNil())
+			}, pollTimeout, pollInterval).Should(o.BeNil())
 		})
 	})
 })
