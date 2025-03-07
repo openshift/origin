@@ -30,10 +30,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 			set -x
 
 			# display info about an image on quay.io
-			oc image info quay.io/coreos/etcd:latest
+			oc image info quay.io/openshift-release-dev/ocp-release:4.18.3-x86_64
 
 			# display info about an image in json format
-			oc image info quay.io/coreos/etcd:latest -o json
+			oc image info quay.io/openshift-release-dev/ocp-release:4.18.3-x86_64 -o json
 		`)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 	})
