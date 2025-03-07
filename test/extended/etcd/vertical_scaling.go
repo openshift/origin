@@ -32,10 +32,13 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 	})
 
 	// The following test covers a basic vertical scaling scenario.
-	// It starts by adding a new master machine to the cluster
-	// next it validates the size of etcd cluster and makes sure the new member is healthy.
-	// The test ends by removing the newly added machine and validating the size of the cluster
-	// and asserting the member was removed from the etcd cluster by contacting MemberList API.
+	// 1) Delete a machine
+	// 2) That should prompt the ControlPlaneMachineSetOperator(CPMSO) to create a replacement
+	//		machine and node for that machine index
+	// 3) The operator will first scale-up the new machine's member
+	// 4) Then scale-down the machine that is pending deletion by removing its member and deletion hook
+	// The test will validate the size of the etcd cluster and make sure the cluster membership
+	// changes with the new member added and the old one removed.
 	g.It("is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]", func() {
 		// set up
 		ctx := context.TODO()
@@ -65,42 +68,31 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 			framework.Logf("CPMS is active. Relying on CPMSO to replace the machine during vertical scaling")
 
 			// step 1: delete a running machine to trigger the CPMSO to create a new one to replace it
-			machineName, err := scalingtestinglibrary.DeleteSingleMachine(ctx, g.GinkgoT(), machineClient)
+			deletedMachineName, err := scalingtestinglibrary.DeleteSingleMachine(ctx, g.GinkgoT(), machineClient)
 			o.Expect(err).ToNot(o.HaveOccurred())
-			framework.Logf("Waiting for machine %q pending deletion to be replaced", machineName)
+			framework.Logf("Deleted machine %q", deletedMachineName)
 
-			memberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, machineName)
-			err = errors.Wrapf(err, "failed to get etcd member name for deleted machine: %v", machineName)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			// step 2: wait until the CPMSO scales-up by creating a new machine
-			// We need to check the cpms' status.readyReplicas because the phase of one machine will always be Deleting
-			// so we can't use EnsureMasterMachinesAndCount() since that counts for machines that aren't pending deletion
-			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 4, cpmsClient, nodeClient)
-			err = errors.Wrap(err, "scale-up: timed out waiting for CPMS to show 4 ready replicas")
-			o.Expect(err).ToNot(o.HaveOccurred())
-
+			// step 2: wait until we have 4 voting members which indicates a scale-up event
 			// We can't check for 4 members here as the clustermemberremoval controller will race to
 			// remove the old member (from the machine pending deletion) as soon as the new machine's member
 			// is promoted to a voting member.
-			// Instead we just wait until the CPMS shows 3 replicas again which indicates that the new member was added
-			// successfully
+			// In practice there is a period during the revision rollout due to the membership change
+			// where we will see 4 voting members, however our polling may miss that and cause the test to flake.
+			//
+			// We previously waited until the CPMS status.readyReplicas showed 4 however that doesn't happen in practice
+			// so we can't use that as a signal for scale-up
+			//
+			// TODO(haseeb): Add a new regression test that disables the CPMS and manually deletes and add a machine
+			// so we can validate that scale-up happens before scale-down.
 
-			// step 3: wait for automatic scale-down as the replica count goes back down to 3
-			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient, nodeClient)
-			err = errors.Wrap(err, "scale-down: timed out waiting for CPMS to show 3 ready replicas")
+			// step 3: wait for the machine pending deletion to have its member removed to indicate scale-down
+			framework.Logf("Waiting for etcd member %q to be removed", deletedMachineName)
+			deletedMemberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, deletedMachineName)
+			err = errors.Wrapf(err, "failed to get etcd member name for deleted machine: %v", deletedMachineName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
-			err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, memberName)
-			err = errors.Wrapf(err, "scale-down: timed out waiting for member (%v) to be removed", memberName)
-			o.Expect(err).ToNot(o.HaveOccurred())
-
-			err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
-			err = errors.Wrap(err, "scale-down: timed out waiting for only 3 Running master machines")
+			err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, deletedMemberName)
+			err = errors.Wrapf(err, "scale-down: timed out waiting for member (%v) to be removed", deletedMemberName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			// step 4: Wait for apiserver revision rollout to stabilize
@@ -109,6 +101,23 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 			err = errors.Wrap(err, "scale-up: timed out waiting for APIServer pods to stabilize on the same revision")
 			o.Expect(err).ToNot(o.HaveOccurred())
 
+			// step 5: verify member and machine counts go back down to 3
+			framework.Logf("Waiting for etcd membership to show 3 voting members")
+			err = scalingtestinglibrary.EnsureVotingMembersCount(ctx, g.GinkgoT(), etcdClientFactory, kubeClient, 3)
+			err = errors.Wrap(err, "scale-down: timed out waiting for 3 voting members in the etcd cluster and etcd-endpoints configmap")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			framework.Logf("Waiting for 3 ready replicas on CPMS")
+			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient, nodeClient)
+			err = errors.Wrap(err, "scale-down: timed out waiting for CPMS to show 3 ready replicas")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			framework.Logf("Waiting for 3 Running master machines")
+			err = scalingtestinglibrary.EnsureMasterMachinesAndCount(ctx, g.GinkgoT(), machineClient)
+			err = errors.Wrap(err, "scale-down: timed out waiting for only 3 Running master machines")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			framework.Logf("Waiting for CPMS replicas to converge")
 			err = scalingtestinglibrary.EnsureCPMSReplicasConverged(ctx, cpmsClient)
 			o.Expect(err).ToNot(o.HaveOccurred())
 

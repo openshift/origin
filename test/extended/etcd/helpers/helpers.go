@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -29,6 +28,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
 )
@@ -356,7 +356,8 @@ func EnsureVotingMembersCount(ctx context.Context, t TestingT, etcdClientFactory
 
 func EnsureMemberRemoved(t TestingT, etcdClientFactory EtcdClientCreator, memberName string) error {
 	waitPollInterval := 15 * time.Second
-	waitPollTimeout := 1 * time.Minute
+	// Waiting 30 mins since the test needs to wait for scale-up and scale-down at this point
+	waitPollTimeout := 30 * time.Minute
 	t.Logf("Waiting up to %s for %v member to be removed from the cluster", waitPollTimeout.String(), memberName)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
@@ -369,15 +370,23 @@ func EnsureMemberRemoved(t TestingT, etcdClientFactory EtcdClientCreator, member
 
 		ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Second)
 		defer cancel()
-		rsp, err := etcdClient.MemberList(ctx)
+		memberList, err := etcdClient.MemberList(ctx)
 		if err != nil {
 			t.Logf("failed to get member list, will retry, err: %v", err)
 			return false, nil
 		}
 
-		for _, member := range rsp.Members {
+		currentVotingMemberIPListSet := sets.NewString()
+		for _, member := range memberList.Members {
+			if !member.IsLearner {
+				currentVotingMemberIPListSet.Insert(member.PeerURLs[0])
+			}
+		}
+
+		for _, member := range memberList.Members {
 			if member.Name == memberName {
-				return false, fmt.Errorf("member %v hasn't been removed", spew.Sdump(member))
+				framework.Logf("member %v (%v) has not been removed, current voting members are: %v", member.Name, member.PeerURLs[0], currentVotingMemberIPListSet.List())
+				return false, nil
 			}
 		}
 		return true, nil
