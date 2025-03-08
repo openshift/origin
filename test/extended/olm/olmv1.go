@@ -7,12 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -72,7 +76,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 default Catalogs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
@@ -97,6 +101,83 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Serving", metav1.ConditionTrue)).To(o.BeTrue())
 		}
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs /v1/api/all endpoint", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC", func(ctx g.SpecContext) {
+		checkFeatureCapability(ctx, oc)
+
+		g.By("Testing /api/v1/all endpoint for catalog openshift-community-operators")
+		verifyAPIEndpoint(ctx, oc, oc.Namespace(), "openshift-community-operators", "all")
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 Catalogs /v1/api/metas endpoint", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+	g.It(" should serve the /v1/api/metas API endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(ctx, oc)
+
+		g.By("Testing api/v1/metas endpoint for catalog openshift-community-operators")
+		verifyAPIEndpoint(ctx, oc, oc.Namespace(), "openshift-community-operators", "metas?schema=olm.package")
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs /v1/api/all endpoint load test", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+	providedCatalogs, idx := []string{
+		"openshift-certified-operators",
+		"openshift-community-operators",
+		"openshift-redhat-marketplace",
+		"openshift-redhat-operators",
+	}, 0
+	g.It("should be able to access /v1/api/all API endpoints of all catalogs within a reasonable amount of time", func(ctx g.SpecContext) {
+		checkFeatureCapability(ctx, oc)
+
+		var wg sync.WaitGroup
+		for range 100 {
+			wg.Add(1)
+			go func(catalogIdx int) {
+				defer wg.Done()
+
+				g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %s", providedCatalogs[catalogIdx]))
+				verifyAPIEndpoint(ctx, oc, oc.Namespace(), providedCatalogs[catalogIdx], "all")
+			}(idx)
+			idx = (idx + 1) % len(providedCatalogs)
+		}
+		wg.Wait()
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 Catalogs /v1/api/metas endpoint load test", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+	providedCatalogs, idx := []string{
+		"openshift-certified-operators",
+		"openshift-community-operators",
+		"openshift-redhat-marketplace",
+		"openshift-redhat-operators",
+	}, 0
+	g.It("should be able to access /v1/api/metas API endpoints of all catalogs within a resonable amount of time", func(ctx g.SpecContext) {
+		checkFeatureCapability(ctx, oc)
+
+		var wg sync.WaitGroup
+		for range 100 {
+			wg.Add(1)
+			go func(catalogIdx int) {
+				defer wg.Done()
+
+				g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %s", providedCatalogs[catalogIdx]))
+				verifyAPIEndpoint(ctx, oc, oc.Namespace(), providedCatalogs[catalogIdx], "metas?schema=olm.package")
+			}(idx)
+			idx = (idx + 1) % len(providedCatalogs)
+		}
+		wg.Wait()
 	})
 })
 
@@ -416,4 +497,83 @@ func checkFeatureCapability(oc *exutil.CLI) {
 	if !cap {
 		g.Skip("Test only runs with OperatorLifecycleManagerV1 capability")
 	}
+}
+
+// verifyAPIEndpoint runs a job to validate the given service endpoint of a ClusterCatalog
+func verifyAPIEndpoint(ctx g.SpecContext, oc *exutil.CLI, namespace, catalogName, endpoint string) {
+	jobName := fmt.Sprintf("test-catalog-%s-%s-%s", catalogName, endpoint, rand.String(5))
+
+	baseURL, err := oc.AsAdmin().Run("get").Args(
+		"clustercatalogs.olm.operatorframework.io",
+		catalogName,
+		"-o=jsonpath={.status.urls.base}").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalogName))
+
+	serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
+	g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobName,
+			Namespace: namespace,
+		},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "api-tester",
+							Image: "registry.redhat.io/rhel8/httpd-24:latest",
+							Command: []string{
+								"/bin/bash",
+								"-c",
+								fmt.Sprintf(`
+set -ex
+response=$(curl -s -k "%s" || echo "ERROR: Failed to access endpoint")
+if [[ "$response" == ERROR* ]]; then
+  echo "$response"
+  exit 1
+fi
+echo "Successfully verified API endpoint"
+exit 0
+`, serviceURL),
+							},
+						},
+					},
+					RestartPolicy: corev1.RestartPolicyNever,
+				},
+			},
+		},
+	}
+
+	_, err = oc.AdminKubeClient().BatchV1().Jobs(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.TODO(), jobName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		if job.Status.Succeeded > 0 {
+			return true, nil
+		}
+		if job.Status.Failed > 0 {
+			return false, fmt.Errorf("job failed")
+		}
+
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("job-name=%s", jobName),
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(pods.Items).NotTo(o.BeEmpty())
+
+	logs, err := oc.AdminKubeClient().CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{}).DoRaw(context.TODO())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	g.GinkgoLogr.Info(fmt.Sprintf("Job logs for %s endpoint: %s", endpoint, string(logs)))
 }

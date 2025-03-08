@@ -381,9 +381,14 @@ spec:
     tests:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
-        should be installed'
+        /v1/api/all endpoint load test should be able to access /v1/api/all API endpoints
+        of all catalogs within a reasonable amount of time'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
+        /v1/api/all endpoint should serve FBC'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
         Catalog Install should fail to install if it has an invalid reference'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 default
+        Catalogs should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should block cluster upgrades if an incompatible operator is
         installed'
@@ -391,6 +396,14 @@ spec:
         installation should fail to install a non-existing cluster extension'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should install a cluster extension'
+  - featureGate: NewOLMCatalogdAPIV1Metas
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 Catalogs /v1/api/metas endpoint  should serve the /v1/api/metas API
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 Catalogs /v1/api/metas endpoint load test should be able to access /v1/api/metas
+        API endpoints of all catalogs within a resonable amount of time'
   - featureGate: PersistentIPsForVirtualization
     tests:
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
