@@ -72,14 +72,22 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
+	resourceType := "unknown"
+	if auditEvent.ObjectRef != nil && len(auditEvent.ObjectRef.Resource) > 0 {
+		resourceType = auditEvent.ObjectRef.Resource
+	}
+
+	// presuming there is always a verb we don't need the check...
+	verb := "default"
+	if len(auditEvent.Verb) > 0 {
+		verb = auditEvent.Verb
+	}
+
 	// "apiserver.latency.k8s.io/total":"16.005122724s"
 	for _, latencyType := range latencyTypes {
-		if totalLatency, ok := auditEvent.Annotations[latencyType]; ok {
-
-			resourceType := "unknown"
-			if auditEvent.ObjectRef != nil && len(auditEvent.ObjectRef.Resource) > 0 {
-				resourceType = auditEvent.ObjectRef.Resource
-			}
+		// https://github.com/openshift/kubernetes/blob/2b03f04ce589a57cf80b2153c7e5056c53c374d3/staging/src/k8s.io/apiserver/pkg/endpoints/filters/audit.go#L156
+		// we only annotate requests over 500ms so default missing apiserver.latency.k8s.io/total to the minBucket if it isn't present
+		if totalLatency, ok := auditEvent.Annotations[latencyType]; ok || latencyType == "apiserver.latency.k8s.io/total" {
 
 			var typeRecord map[string]*auditLatencySummaryRecord
 			var summaryRecord *auditLatencySummaryRecord
@@ -141,11 +149,6 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 					summaryRecord.buckets[minBucket] = newLatencyBucket
 					latencyBucket = newLatencyBucket
 				}
-			}
-
-			verb := "default"
-			if len(auditEvent.Verb) > 0 {
-				verb = auditEvent.Verb
 			}
 
 			latencyBucket.totalCounts[verb]++
