@@ -18,6 +18,7 @@ var (
 	minBucket    = 0.0
 	buckets      = []float64{45.0, 30.0, 20.0, 10.0, 5.0, 2.0, 1.0}
 	latencyTypes = []string{"apiserver.latency.k8s.io/total", "apiserver.latency.k8s.io/etcd"}
+	//	knownVerbs   = []string{"get", "list", "watch", "post", "patch", "update", "create", "delete"}
 )
 
 type auditLatencyRecords struct {
@@ -36,11 +37,12 @@ type auditLatencyRecord struct {
 	name      string
 	username  string
 	latency   float64
+	verb      string
 	json      []byte
 }
 
 type auditLatencyBucket struct {
-	totalCount int64
+	totalCounts map[string]int64
 }
 
 type auditLatencySummaryRecord struct {
@@ -115,6 +117,7 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 								namespace: auditEvent.ObjectRef.Namespace,
 								name:      auditEvent.ObjectRef.Name,
 								username:  auditEvent.User.Username,
+								verb:      auditEvent.Verb,
 								json:      bytes,
 							})
 						}
@@ -122,7 +125,7 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 					for _, b := range buckets {
 						if seconds > b {
 							if latencyBucket, ok = summaryRecord.buckets[b]; !ok {
-								newLatencyBucket := &auditLatencyBucket{}
+								newLatencyBucket := &auditLatencyBucket{make(map[string]int64)}
 								summaryRecord.buckets[b] = newLatencyBucket
 								latencyBucket = newLatencyBucket
 							}
@@ -134,13 +137,18 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 
 			if latencyBucket == nil {
 				if latencyBucket, ok = summaryRecord.buckets[minBucket]; !ok {
-					newLatencyBucket := &auditLatencyBucket{}
+					newLatencyBucket := &auditLatencyBucket{make(map[string]int64)}
 					summaryRecord.buckets[minBucket] = newLatencyBucket
 					latencyBucket = newLatencyBucket
 				}
 			}
 
-			latencyBucket.totalCount++
+			verb := "default"
+			if len(auditEvent.Verb) > 0 {
+				verb = auditEvent.Verb
+			}
+
+			latencyBucket.totalCounts[verb]++
 		}
 	}
 }
@@ -174,26 +182,42 @@ func (v *auditLatencyRecords) WriteAuditLogSummary(artifactDir, name, timeSuffix
 	}
 
 	rows = make([]map[string]string, 0)
+	reportBuckets := buckets
+	reportBuckets = append(reportBuckets, 0.0)
 	for latencyType, latencyRecords := range v.summary.resourceBuckets {
 		for resource, record := range latencyRecords {
-			for _, bucket := range buckets {
-				var count int64 = 0
-				if rv, ok := record.buckets[bucket]; ok {
-					count = rv.totalCount
+			for _, bucket := range reportBuckets {
 
-					// we want the default 0s eventually but for now only record entries we have seen
-					data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
-					rows = append(rows, data)
+				if rv, ok := record.buckets[bucket]; ok {
+					foundVerbs := make(map[string]bool)
+					for verb, count := range rv.totalCounts {
+						// we want the default 0s eventually but for now only record entries we have seen
+						data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Verb": verb, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
+						rows = append(rows, data)
+						foundVerbs[verb] = true
+					}
+
+					//for _,verb := range knownVerbs{
+					//	if !foundVerbs[verb] {
+					//		data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Verb": verb, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", 0)}
+					//		rows = append(rows, data)
+					//	}
+					//}
+
+				} else {
+					//for _,verb := range knownVerbs{
+					//				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Verb": verb, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", 0)}
+					//				rows = append(rows, data)
+					//}
 				}
-				//				data := map[string]string{"LatencyType": latencyType, "Resource": resource, "Bucket": fmt.Sprintf("%.0f", bucket), "Count": fmt.Sprintf("%d", count)}
-				//				rows = append(rows, data)
+
 			}
 		}
 	}
 
 	dataFile = dataloader.DataFile{
 		TableName: "audit_latency_counts",
-		Schema:    map[string]dataloader.DataType{"LatencyType": dataloader.DataTypeString, "Resource": dataloader.DataTypeString, "Bucket": dataloader.DataTypeFloat64, "Count": dataloader.DataTypeInteger},
+		Schema:    map[string]dataloader.DataType{"LatencyType": dataloader.DataTypeString, "Resource": dataloader.DataTypeString, "Verb": dataloader.DataTypeString, "Bucket": dataloader.DataTypeFloat64, "Count": dataloader.DataTypeInteger},
 		Rows:      rows,
 	}
 	fileName = filepath.Join(artifactDir, fmt.Sprintf("%s-summary-counts%s-%s", name, timeSuffix, dataloader.AutoDataLoaderSuffix))
