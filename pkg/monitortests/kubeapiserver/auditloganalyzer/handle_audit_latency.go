@@ -77,8 +77,8 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 		resourceType = auditEvent.ObjectRef.Resource
 	}
 
-	// presuming there is always a verb we don't need the check...
-	verb := "default"
+	// rare but not always there...
+	verb := "missing"
 	if len(auditEvent.Verb) > 0 {
 		verb = auditEvent.Verb
 	}
