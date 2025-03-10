@@ -146,8 +146,19 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 
 	extractedBinary := filepath.Join(provider.binPath, filepath.Base(binary))
 
+	// Verify that the extracted binary exists; "oc extract image" doesn't error when the path doesn't exist,
+	// so we check that the extraction was successful via its existence
+	_, err := os.Stat(extractedBinary)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("extracted binary at path %q does not exist. the src path %q doesn't exist in image %q. note the version of origin needs to match the version of the cluster under test",
+				extractedBinary, binary, image)
+		}
+		return nil, fmt.Errorf("failed to stat external binary to check for existence %q: %w", binary, err)
+	}
+
 	// Support gzipped external binaries (handle decompression).
-	extractedBinary, err := ungzipFile(extractedBinary)
+	extractedBinary, err = ungzipFile(extractedBinary)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress external binary %q: %w", binary, err)
 	}
