@@ -29,10 +29,12 @@ import (
 )
 
 const (
-	// SECRET_READER_ROLE is the name of the Role allowing access to the secret.
-	SECRET_READER_ROLE = "secret-reader-role"
-	// SECRET_READER_ROLE_BINDING is the name of the RoleBinding associating the Role with the router service account.
-	SECRET_READER_ROLE_BINDING = "secret-reader-role-binding"
+	// secretReaderRole is the name of the Role allowing access to the secret.
+	secretReaderRole = "secret-reader-role"
+	// secretReaderRoleBinding is the name of the RoleBinding associating the Role with the router service account.
+	secretReaderRoleBinding = "secret-reader-role-binding"
+	// helloOpenShiftResponse is the HTTP response from hello-openshift example pod.
+	helloOpenShiftResponse = "Hello OpenShift"
 )
 
 var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]", func() {
@@ -75,14 +77,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 		g.Describe("the router", func() {
 			g.It("should not support external certificate without proper permissions", func() {
-				g.By("Creating a secret with crt/key")
-				secret, _, err := createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
+				g.By("Creating a TLS certificate secret")
+				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Creating a route")
-				route := createRouteWithEC(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
+				route := generateRouteWithExternalCertificate(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(err.Error()).To(o.And(
@@ -98,13 +100,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				err := createNamespace(oc, differentNamespace)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				secret, _, err := createSecret(differentNamespace, "my-tls-secret", corev1.SecretTypeTLS, host)
+				g.By("Creating a TLS certificate secret in another namespace")
+				secret, _, err := generateTLSCertSecret(differentNamespace, "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = oc.AdminKubeClient().CoreV1().Secrets(differentNamespace).Create(context.Background(), secret, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Creating a route in other namespace")
-				route := createRouteWithEC(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
+				route := generateRouteWithExternalCertificate(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(err.Error()).To(o.ContainSubstring(`Not found: "secrets \"my-tls-secret\" not found"`))
@@ -112,41 +115,41 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 			g.It("should not support external certificate if the secret is not of type kubernetes.io/tls", func() {
 				g.By("Creating a secret with the WRONG type (Opaque)")
-				secret, _, err := createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeOpaque, host) // Incorrect type
+				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeOpaque, host) // Incorrect type
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Creating a route")
-				route := createRouteWithEC(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
+				route := generateRouteWithExternalCertificate(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(err.Error()).To(o.ContainSubstring(`Invalid value: "my-tls-secret": secret of type "kubernetes.io/tls" required`))
 			})
 
 			g.It("should not support external certificate if the route termination type is Passthrough", func() {
-				g.By("Creating a secret with crt/key")
-				secret, _, err := createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
+				g.By("Creating a TLS certificate secret")
+				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Creating a route with Passthrough termination")
-				passthroughRoute := createRouteWithEC(oc.Namespace(), "passthrough-route", secret.Name, helloPodSvc, host, routev1.TLSTerminationPassthrough)
+				passthroughRoute := generateRouteWithExternalCertificate(oc.Namespace(), "passthrough-route", secret.Name, helloPodSvc, host, routev1.TLSTerminationPassthrough)
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), passthroughRoute, metav1.CreateOptions{})
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(err.Error()).To(o.ContainSubstring(`Invalid value: "my-tls-secret": passthrough termination does not support`))
 			})
 
 			g.It("should not support external certificate if inline certificate is also present", func() {
-				g.By("Creating a secret with crt/key")
-				secret, _, err := createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
+				g.By("Creating a TLS certificate secret")
+				secret, _, err := generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, host)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Creating a route")
-				route := createRouteWithEC(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
+				route := generateRouteWithExternalCertificate(oc.Namespace(), "route", secret.Name, helloPodSvc, host, routev1.TLSTerminationEdge)
 				// Add inline certificate
 				route.Spec.TLS.Certificate = "my-crt"
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
@@ -165,31 +168,31 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 		)
 
 		g.BeforeEach(func() {
-			const N = 5
+			const numRoutes = 5
 			var routeNames []string
 
-			for i := 0; i < N; i++ {
+			for i := 0; i < numRoutes; i++ {
 				hosts = append(hosts, fmt.Sprintf("host-%d-%s.%s", i, oc.Namespace(), defaultDomain))
 				routeNames = append(routeNames, fmt.Sprintf("route-%d", i))
 			}
 
-			g.By("Creating a secret with crt/key")
-			secret, rootDerBytes, err = createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
+			g.By("Creating a TLS certificate secret")
+			secret, rootDerBytes, err = generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Providing router service account permissions to get,list,watch the secret")
 			_, err = oc.KubeClient().RbacV1().Roles(oc.Namespace()).Create(context.Background(),
-				createRole(oc.Namespace(), "my-tls-secret"), metav1.CreateOptions{})
+				generateSecretReaderRole(oc.Namespace(), "my-tls-secret"), metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			_, err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.Background(),
-				createRoleBinding(oc.Namespace()), metav1.CreateOptions{})
+				generateRouterRoleBinding(oc.Namespace()), metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Creating multiple routes referencing same external certificate")
-			for i := 0; i < N; i++ {
-				route := createRouteWithEC(oc.Namespace(), routeNames[i], secret.Name, helloPodSvc, hosts[i], routev1.TLSTerminationEdge)
+			for i := 0; i < numRoutes; i++ {
+				route := generateRouteWithExternalCertificate(oc.Namespace(), routeNames[i], secret.Name, helloPodSvc, hosts[i], routev1.TLSTerminationEdge)
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				routes = append(routes, route)
@@ -199,12 +202,12 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 		g.Describe("the router should support external certificate", func() {
 			g.It("and routes are reachable", func() {
 				g.By("Sending https request")
-				for i := 0; i < len(routes); i++ {
-					hostName, err := getHostnameForRoute(oc, routes[i].Name)
+				for _, route := range routes {
+					hostName, err := getHostnameForRoute(oc, route.Name)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					resp, err := httpsGetCall(hostName, rootDerBytes)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(resp).Should(o.ContainSubstring("Hello OpenShift"))
+					o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 				}
 			})
 
@@ -217,8 +220,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 				g.It("then routes are not reachable", func() {
 					g.By("Checking the route status")
-					for i := 0; i < len(routes); i++ {
-						checkRouteStatus(oc, routes[i].Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
+					for _, route := range routes {
+						checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
 					}
 				})
 
@@ -231,19 +234,20 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 					g.It("then routes are reachable", func() {
 						g.By("Sending https request")
-						for i := 0; i < len(routes); i++ {
-							hostName, err := getHostnameForRoute(oc, routes[i].Name)
+						for _, route := range routes {
+							hostName, err := getHostnameForRoute(oc, route.Name)
 							o.Expect(err).NotTo(o.HaveOccurred())
 							resp, err := httpsGetCall(hostName, rootDerBytes)
 							o.Expect(err).NotTo(o.HaveOccurred())
-							o.Expect(resp).Should(o.ContainSubstring("Hello OpenShift"))
+							o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 						}
 					})
 				})
+
 				g.Context("and re-created again but RBAC permissions are dropped", func() {
 					g.BeforeEach(func() {
 						g.By("Deleting RBAC permissions")
-						err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), SECRET_READER_ROLE_BINDING, metav1.DeleteOptions{})
+						err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), secretReaderRoleBinding, metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("Re-creating the deleted secret")
@@ -253,51 +257,55 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 					g.It("then routes are not reachable", func() {
 						g.By("Checking the route status")
-						for i := 0; i < len(routes); i++ {
-							checkRouteStatus(oc, routes[i].Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
+						for _, route := range routes {
+							checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
 						}
 					})
 				})
 			})
+
 			g.Context("and the secret is updated", func() {
 				g.BeforeEach(func() {
 					g.By("Updating the existing secret")
 					// build a new secret
-					secret, rootDerBytes, err = createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
+					secret, rootDerBytes, err = generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					// update the existing secret with the new secret
 					_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Update(context.Background(), secret, metav1.UpdateOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
+
 				g.It("then also routes are reachable", func() {
 					g.By("Sending https request")
-					for i := 0; i < len(routes); i++ {
-						hostName, err := getHostnameForRoute(oc, routes[i].Name)
+					for _, route := range routes {
+						hostName, err := getHostnameForRoute(oc, route.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						resp, err := httpsGetCall(hostName, rootDerBytes)
 						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(resp).Should(o.ContainSubstring("Hello OpenShift"))
+						o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 					}
 				})
 			})
+
 			g.Context("and the secret is updated but RBAC permissions are dropped", func() {
 				g.BeforeEach(func() {
 					g.By("Deleting RBAC permissions")
-					err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), SECRET_READER_ROLE_BINDING, metav1.DeleteOptions{})
+					err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), secretReaderRoleBinding, metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("Updating the existing secret")
 					// build a new secret
-					secret, rootDerBytes, err = createSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
+					secret, rootDerBytes, err = generateTLSCertSecret(oc.Namespace(), "my-tls-secret", corev1.SecretTypeTLS, hosts...)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					// update the existing secret with the new secret
 					_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Update(context.Background(), secret, metav1.UpdateOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 				})
+
 				g.It("then routes are not reachable", func() {
 					g.By("Checking the route status")
-					for i := 0; i < len(routes); i++ {
-						checkRouteStatus(oc, routes[i].Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
+					for _, route := range routes {
+						checkRouteStatus(oc, route.Name, corev1.ConditionFalse, "ExternalCertificateValidationFailed")
 					}
 				})
 			})
@@ -309,7 +317,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				)
 
 				g.BeforeEach(func() {
-					// These tests donot *explicity* need verification on multiple routes.
+					// These tests do not *explicitly* need verification on multiple routes.
 					// Hence taking only one route into account.
 					routeToTest = routes[0]
 				})
@@ -317,24 +325,17 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				g.Context("to use new external certificate", func() {
 					g.BeforeEach(func() {
 						g.By("Creating a new secret")
-						secret, rootDerBytes, err = createSecret(oc.Namespace(), newSecretName, corev1.SecretTypeTLS, hosts...)
+						secret, rootDerBytes, err = generateTLSCertSecret(oc.Namespace(), newSecretName, corev1.SecretTypeTLS, hosts...)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 
-						g.By("Updating the exisiting role to add RBAC permissions for the new secret")
-						newRule := fmt.Sprintf(`{"apiGroups": [""],"resources": ["secrets"],"resourceNames":["%s"],"verbs": ["get", "list", "watch"]}`, newSecretName)
-						rolePatch := fmt.Sprintf(`{"rules": [%s]}`, newRule)
-						_, err = oc.KubeClient().RbacV1().Roles(oc.Namespace()).Patch(
-							context.Background(), SECRET_READER_ROLE, types.MergePatchType, []byte(rolePatch), metav1.PatchOptions{},
-						)
+						g.By("Updating the existing role to add RBAC permissions for the new secret")
+						err := patchRoleWithSecretAccess(oc, newSecretName)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("Updating the route to use new external certificate")
-						routePatch := fmt.Sprintf(`{"spec":{"tls":{"externalCertificate":{"name":"%s"}}}}`, newSecretName)
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err = patchRouteWithExternalCertificate(oc, routeToTest.Name, newSecretName)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
 
@@ -344,24 +345,22 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						o.Expect(err).NotTo(o.HaveOccurred())
 						resp, err := httpsGetCall(hostName, rootDerBytes)
 						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(resp).Should(o.ContainSubstring("Hello OpenShift"))
+						o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 					})
 				})
 
 				g.Context("to use new external certificate, but RBAC permissions are not added", func() {
 					g.BeforeEach(func() {
 						g.By("Creating a new secret")
-						secret, _, err = createSecret(oc.Namespace(), newSecretName, corev1.SecretTypeTLS, hosts...)
+						secret, _, err = generateTLSCertSecret(oc.Namespace(), newSecretName, corev1.SecretTypeTLS, hosts...)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
-					g.It("route update is rejcted", func() {
+
+					g.It("route update is rejected", func() {
 						g.By("Updating the route to use new external certificate")
-						routePatch := fmt.Sprintf(`{"spec":{"tls":{"externalCertificate":{"name":"%s"}}}}`, newSecretName)
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err := patchRouteWithExternalCertificate(oc, routeToTest.Name, newSecretName)
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(err.Error()).To(o.And(
 							o.ContainSubstring("Forbidden: router serviceaccount does not have permission to get this secret"),
@@ -370,44 +369,39 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						)
 					})
 				})
+
 				g.Context("to use new external certificate, but secret is not of type kubernetes.io/tls", func() {
 					g.BeforeEach(func() {
 						g.By("Creating a secret with the WRONG type (Opaque)")
-						secret, _, err := createSecret(oc.Namespace(), newSecretName, corev1.SecretTypeOpaque, hosts...) // Incorrect type
+						secret, _, err := generateTLSCertSecret(oc.Namespace(), newSecretName, corev1.SecretTypeOpaque, hosts...) // Incorrect type
 						o.Expect(err).NotTo(o.HaveOccurred())
 						_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
-					g.It("route update is rejcted", func() {
+
+					g.It("route update is rejected", func() {
 						g.By("Updating the route to use new external certificate")
-						routePatch := fmt.Sprintf(`{"spec":{"tls":{"externalCertificate":{"name":"%s"}}}}`, newSecretName)
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err := patchRouteWithExternalCertificate(oc, routeToTest.Name, newSecretName)
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(err.Error()).To(o.ContainSubstring(fmt.Sprintf(`Invalid value: "%s": secret of type "kubernetes.io/tls" required`, newSecretName)))
 					})
 
 				})
+
 				g.Context("to use new external certificate, but secret does not exist", func() {
 					// do not create new secret
-					g.It("route update is rejcted", func() {
+					g.It("route update is rejected", func() {
 						g.By("Updating the route to use new external certificate")
-						routePatch := fmt.Sprintf(`{"spec":{"tls":{"externalCertificate":{"name":"%s"}}}}`, newSecretName)
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err := patchRouteWithExternalCertificate(oc, routeToTest.Name, newSecretName)
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(err.Error()).To(o.ContainSubstring(fmt.Sprintf(`Not found: "secrets \"%s\" not found"`, newSecretName)))
 					})
 				})
+
 				g.Context("to use same external certificate", func() {
 					g.BeforeEach(func() {
 						g.By("Adding some label to trigger route update")
-						routePatch := `{"metadata":{"labels":{"app":"myapp","key":"value"}}}`
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err := patchRouteWithLabel(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
 
@@ -417,23 +411,21 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						o.Expect(err).NotTo(o.HaveOccurred())
 						resp, err := httpsGetCall(hostName, rootDerBytes)
 						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(resp).Should(o.ContainSubstring("Hello OpenShift"))
+						o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 					})
 
 				})
+
 				g.Context("to use same external certificate, but RBAC permissions are dropped", func() {
 					g.BeforeEach(func() {
 						g.By("Deleting RBAC permissions")
-						err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), SECRET_READER_ROLE_BINDING, metav1.DeleteOptions{})
+						err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Delete(context.Background(), secretReaderRoleBinding, metav1.DeleteOptions{})
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
 
-					g.It("route update is rejcted", func() {
+					g.It("route update is rejected", func() {
 						g.By("Adding some label to trigger route update")
-						routePatch := `{"metadata":{"labels":{"app":"myapp","key":"value"}}}`
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err := patchRouteWithLabel(oc, routeToTest.Name)
 						o.Expect(err).To(o.HaveOccurred())
 						o.Expect(err.Error()).To(o.And(
 							o.ContainSubstring("Forbidden: router serviceaccount does not have permission to get this secret"),
@@ -442,20 +434,15 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						)
 					})
 				})
+
 				g.Context("to remove and again re-add the same external certificate", func() {
 					g.BeforeEach(func() {
 						g.By("Updating the route to remove the external certificate reference")
-						routePatch := `{"spec": {"tls": null}}`
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err := patchRouteToRemoveTLS(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("Updating the route to re-add the external certificate reference")
-						routePatch = fmt.Sprintf(`{"spec":{"tls":{"externalCertificate":{"name":"%s"}}}}`, secret.Name)
-						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-							context.Background(), routeToTest.Name, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
-						)
+						err = patchRouteWithExternalCertificate(oc, routeToTest.Name, secret.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
 
@@ -465,7 +452,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						o.Expect(err).NotTo(o.HaveOccurred())
 						resp, err := httpsGetCall(hostName, rootDerBytes)
 						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(resp).Should(o.ContainSubstring("Hello OpenShift"))
+						o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 					})
 				})
 			})
@@ -566,9 +553,9 @@ func checkRouteStatus(oc *exutil.CLI, routeName string, ingressConditionStatus c
 	})
 }
 
-// createSecret generates a TLS secret containing a certificate and key.
+// generateTLSCertSecret generates a TLS secret containing a certificate and key.
 // The certificate is valid for the provided hostnames.
-func createSecret(namespace, secretName string, secretType corev1.SecretType, hosts ...string) (*corev1.Secret, []byte, error) {
+func generateTLSCertSecret(namespace, secretName string, secretType corev1.SecretType, hosts ...string) (*corev1.Secret, []byte, error) {
 	// certificate start and end time are very
 	// lenient to avoid any clock drift between
 	// the test machine and the cluster under
@@ -605,8 +592,8 @@ func createSecret(namespace, secretName string, secretType corev1.SecretType, ho
 	}, rootDerBytes, nil
 }
 
-// createRouteWithEC creates a route with external certificate configuration.
-func createRouteWithEC(namespace, routeName, secretName, serviceName, host string, termination routev1.TLSTerminationType) *routev1.Route {
+// generateRouteWithExternalCertificate creates a route with external certificate configuration.
+func generateRouteWithExternalCertificate(namespace, routeName, secretName, serviceName, host string, termination routev1.TLSTerminationType) *routev1.Route {
 	return &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      routeName,
@@ -628,11 +615,11 @@ func createRouteWithEC(namespace, routeName, secretName, serviceName, host strin
 	}
 }
 
-// createRole creates a role that grants permissions to get, list, and watch the specified secret.
-func createRole(namespace, secretName string) *rbacv1.Role {
+// generateSecretReaderRole creates a role that grants permissions to get, list, and watch the specified secret.
+func generateSecretReaderRole(namespace, secretName string) *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SECRET_READER_ROLE,
+			Name:      secretReaderRole,
 			Namespace: namespace,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -646,11 +633,11 @@ func createRole(namespace, secretName string) *rbacv1.Role {
 	}
 }
 
-// createRoleBinding creates a roleBinding that binds the secret reader role to the router service account.
-func createRoleBinding(namespace string) *rbacv1.RoleBinding {
+// generateRouterRoleBinding creates a roleBinding that binds the secret reader role to the router service account.
+func generateRouterRoleBinding(namespace string) *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      SECRET_READER_ROLE_BINDING,
+			Name:      secretReaderRoleBinding,
 			Namespace: namespace,
 		},
 		Subjects: []rbacv1.Subject{
@@ -663,7 +650,7 @@ func createRoleBinding(namespace string) *rbacv1.RoleBinding {
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
 			Kind:     "Role",
-			Name:     SECRET_READER_ROLE,
+			Name:     secretReaderRole,
 		},
 	}
 }
@@ -678,5 +665,43 @@ func createNamespace(oc *exutil.CLI, name string) error {
 	_, err := oc.AdminKubeClient().CoreV1().
 		Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
 
+	return err
+}
+
+// patchRoleWithSecretAccess updates the "secretReaderRole" to grant access to the specified secret.
+func patchRoleWithSecretAccess(oc *exutil.CLI, secretName string) error {
+	newRule := fmt.Sprintf(`{"apiGroups": [""],"resources": ["secrets"],"resourceNames":["%s"],"verbs": ["get", "list", "watch"]}`, secretName)
+	rolePatch := fmt.Sprintf(`{"rules": [%s]}`, newRule)
+	_, err := oc.KubeClient().RbacV1().Roles(oc.Namespace()).Patch(
+		context.Background(), secretReaderRole, types.MergePatchType, []byte(rolePatch), metav1.PatchOptions{},
+	)
+	return err
+}
+
+// patchRouteWithExternalCertificate updates the given route to use the specified external certificate secret.
+func patchRouteWithExternalCertificate(oc *exutil.CLI, routeName, secretName string) error {
+	routePatch := fmt.Sprintf(`{"spec":{"tls":{"externalCertificate":{"name":"%s"}}}}`, secretName)
+	_, err := oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
+		context.Background(), routeName, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
+	)
+	return err
+}
+
+// patchRouteWithLabel updates the given route to add some labels. This is primarily used
+// to trigger route updates.
+func patchRouteWithLabel(oc *exutil.CLI, routeName string) error {
+	routePatch := `{"metadata":{"labels":{"app":"myapp","key":"value"}}}`
+	_, err := oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
+		context.Background(), routeName, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
+	)
+	return err
+}
+
+// patchRouteToRemoveTLS updates the given route to remove the TLS configuration.
+func patchRouteToRemoveTLS(oc *exutil.CLI, routeName string) error {
+	routePatch := `{"spec": {"tls": null}}`
+	_, err := oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
+		context.Background(), routeName, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
+	)
 	return err
 }
