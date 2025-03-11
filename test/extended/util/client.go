@@ -75,6 +75,7 @@ import (
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -691,6 +692,10 @@ func (c *CLI) RouteClient() routev1client.Interface {
 
 func (c *CLI) TemplateClient() templatev1client.Interface {
 	return templatev1client.NewForConfigOrDie(c.UserConfig())
+}
+
+func (c *CLI) AdminApiextensionsClient() apiextensionsclient.Interface {
+	return apiextensionsclient.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminAppsClient() appsv1client.Interface {
