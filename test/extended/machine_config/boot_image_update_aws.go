@@ -19,6 +19,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 		partialMachineSetFixture       = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-partial.yaml")
 		allMachineSetFixture           = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-all.yaml")
 		noneMachineSetFixture          = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-none.yaml")
+		emptyMachineSetFixture         = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-empty.yaml")
 		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
@@ -33,7 +34,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 
 	g.AfterEach(func() {
 		// Clear out boot image configuration between tests
-		err := oc.Run("apply").Args("-f", noneMachineSetFixture).Execute()
+		err := oc.Run("apply").Args("-f", emptyMachineSetFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
