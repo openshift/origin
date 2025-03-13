@@ -247,6 +247,8 @@ type EgressRouterStatusCondition struct {
 type EgressRouterStatus struct {
 	// Observed status of the egress router
 	// +required
+	// +listType=map
+	// +listMapKey=type
 	Conditions []EgressRouterStatusCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
 }
 

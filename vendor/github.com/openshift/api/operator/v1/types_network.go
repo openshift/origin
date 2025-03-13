@@ -79,9 +79,10 @@ type NetworkSpec struct {
 	// +listMapKey=name
 	AdditionalNetworks []AdditionalNetworkDefinition `json:"additionalNetworks,omitempty"`
 
-	// disableMultiNetwork specifies whether or not multiple pod network
-	// support should be disabled. If unset, this property defaults to
-	// 'false' and multiple network support is enabled.
+	// disableMultiNetwork defaults to 'false' and this setting enables the pod multi-networking capability.
+	// disableMultiNetwork when set to 'true' at cluster install time does not install the components, typically the Multus CNI and the network-attachment-definition CRD,
+	// that enable the pod multi-networking capability. Setting the parameter to 'true' might be useful when you need install third-party CNI plugins,
+	// but these plugins are not supported by Red Hat. Changing the parameter value as a postinstallation cluster task has no effect.
 	DisableMultiNetwork *bool `json:"disableMultiNetwork,omitempty"`
 
 	// useMultiNetworkPolicy enables a controller which allows for
@@ -440,7 +441,7 @@ type OVNKubernetesConfig struct {
 	// any other subnet being used by OpenShift or by the node network. The size of the
 	// subnet must be larger than the number of nodes. The value cannot be changed
 	// after installation.
-	// Default is fd98::/48
+	// Default is fd98::/64
 	// +optional
 	V6InternalSubnet string `json:"v6InternalSubnet,omitempty"`
 	// egressIPConfig holds the configuration for EgressIP options.
@@ -529,7 +530,7 @@ type IPv6OVNKubernetesConfig struct {
 	// subnet must be larger than the number of nodes. The value cannot be changed
 	// after installation.
 	// The subnet must be large enough to accomadate one IP per node in your cluster
-	// The current default value is fd98::/48
+	// The current default value is fd98::/64
 	// The value must be in proper IPV6 CIDR format
 	// Note that IPV6 dual addresses are not permitted
 	// +kubebuilder:validation:MaxLength=48
@@ -579,8 +580,6 @@ type Encapsulation string
 const (
 	// EncapsulationAlways always enable UDP encapsulation regardless of whether NAT is detected.
 	EncapsulationAlways = "Always"
-	// EncapsulationNever never enable UDP encapsulation even if NAT is present.
-	EncapsulationNever = "Never"
 	// EncapsulationAuto enable UDP encapsulation based on the detection of NAT.
 	EncapsulationAuto = "Auto"
 )
@@ -591,13 +590,12 @@ type IPsecFullModeConfig struct {
 	// encapsulation option to configure libreswan on how inter-pod traffic across nodes
 	// are encapsulated to handle NAT traversal. When configured it uses UDP port 4500
 	// for the encapsulation.
-	// Valid values are Always, Never, Auto and omitted.
+	// Valid values are Always, Auto and omitted.
 	// Always means enable UDP encapsulation regardless of whether NAT is detected.
-	// Disable means never enable UDP encapsulation even if NAT is present.
 	// Auto means enable UDP encapsulation based on the detection of NAT.
 	// When omitted, this means no opinion and the platform is left to choose a reasonable
 	// default, which is subject to change over time. The current default is Auto.
-	// +kubebuilder:validation:Enum:=Always;Never;Auto
+	// +kubebuilder:validation:Enum:=Always;Auto
 	// +optional
 	Encapsulation Encapsulation `json:"encapsulation,omitempty"`
 }

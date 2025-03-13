@@ -1,0 +1,9 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "worker"
+spec:
+  pinnedImages:
+   - name: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f

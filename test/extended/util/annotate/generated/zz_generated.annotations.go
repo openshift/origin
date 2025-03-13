@@ -1375,6 +1375,16 @@ var Annotations = map[string]string{
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": " [Disabled:Broken]",

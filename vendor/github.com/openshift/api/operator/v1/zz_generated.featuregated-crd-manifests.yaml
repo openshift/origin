@@ -70,6 +70,7 @@ clustercsidrivers.operator.openshift.io:
   Category: ""
   FeatureGates:
   - AWSEFSDriverVolumeMetrics
+  - VSphereConfigurableMaxAllowedBlockVolumesPerNode
   - VSphereDriverConfiguration
   FilenameOperatorName: csi-driver
   FilenameOperatorOrdering: "01"

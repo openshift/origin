@@ -5,7 +5,8 @@ apiservers.config.openshift.io:
   CRDName: apiservers.config.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates: []
+  FeatureGates:
+  - KMSEncryptionProvider
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"
@@ -313,7 +314,10 @@ infrastructures.config.openshift.io:
   FeatureGates:
   - AWSClusterHostedDNS
   - BareMetalLoadBalancer
+  - DualReplica
+  - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNS
+  - GCPCustomAPIEndpoints
   - GCPLabelsTags
   - HighlyAvailableArbiter
   - NutanixMultiSubnets

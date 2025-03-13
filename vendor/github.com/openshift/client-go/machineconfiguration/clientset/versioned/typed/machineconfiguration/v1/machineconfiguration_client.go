@@ -19,6 +19,7 @@ type MachineconfigurationV1Interface interface {
 	MachineConfigPoolsGetter
 	MachineOSBuildsGetter
 	MachineOSConfigsGetter
+	PinnedImageSetsGetter
 }
 
 // MachineconfigurationV1Client is used to interact with features provided by the machineconfiguration.openshift.io group.
@@ -52,6 +53,10 @@ func (c *MachineconfigurationV1Client) MachineOSBuilds() MachineOSBuildInterface
 
 func (c *MachineconfigurationV1Client) MachineOSConfigs() MachineOSConfigInterface {
 	return newMachineOSConfigs(c)
+}
+
+func (c *MachineconfigurationV1Client) PinnedImageSets() PinnedImageSetInterface {
+	return newPinnedImageSets(c)
 }
 
 // NewForConfig creates a new MachineconfigurationV1Client for the given config.

@@ -62,7 +62,7 @@ type ClusterVersionSpec struct {
 	//
 	// Some of the fields are inter-related with restrictions and meanings described here.
 	// 1. image is specified, version is specified, architecture is specified. API validation error.
-	// 2. image is specified, version is specified, architecture is not specified. You should not do this. version is silently ignored and image is used.
+	// 2. image is specified, version is specified, architecture is not specified. The version extracted from the referenced image must match the specified version.
 	// 3. image is specified, version is not specified, architecture is specified. API validation error.
 	// 4. image is specified, version is not specified, architecture is not specified. image is used.
 	// 5. image is not specified, version is specified, architecture is specified. version and desired architecture are used to select an image.
@@ -702,16 +702,16 @@ type Update struct {
 	Architecture ClusterVersionArchitecture `json:"architecture"`
 
 	// version is a semantic version identifying the update version.
-	// version is ignored if image is specified and required if
-	// architecture is specified.
+	// version is required if architecture is specified.
+	// If both version and image are set, the version extracted from the referenced image must match the specified version.
 	//
 	// +optional
 	Version string `json:"version"`
 
 	// image is a container image location that contains the update.
 	// image should be used when the desired version does not exist in availableUpdates or history.
-	// When image is set, version is ignored. When image is set, version should be empty.
 	// When image is set, architecture cannot be specified.
+	// If both version and image are set, the version extracted from the referenced image must match the specified version.
 	//
 	// +optional
 	Image string `json:"image"`
@@ -796,11 +796,10 @@ type ConditionalUpdate struct {
 	// conditions represents the observations of the conditional update's
 	// current status. Known types are:
 	// * Recommended, for whether the update is recommended for the current cluster.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ConditionalUpdateRisk represents a reason and cluster-state

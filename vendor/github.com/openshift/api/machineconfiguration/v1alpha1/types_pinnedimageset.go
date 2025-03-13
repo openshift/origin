@@ -36,11 +36,10 @@ type PinnedImageSet struct {
 // PinnedImageSetStatus describes the current state of a PinnedImageSet.
 type PinnedImageSetStatus struct {
 	// conditions represent the observations of a pinned image set's current state.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // PinnedImageSetSpec defines the desired state of a PinnedImageSet.
