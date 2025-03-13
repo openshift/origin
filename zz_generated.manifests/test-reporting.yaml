@@ -98,6 +98,13 @@ spec:
     - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
         ImageStream API import mode should be PreserveOriginal or Legacy depending
         on desired.architecture field in the CV [apigroup:image.openshift.io]'
+  - featureGate: MachineConfigNode
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNode][Serial]
+        All Nodes in the Custom Pool should have the PinnedImages specified in PIS
+        [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNode][Serial]
+        All Nodes in the Pool should have the PinnedImages specified in PIS [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ManagedBootImages
     tests:
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
@@ -456,6 +463,13 @@ spec:
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VMI attached to a secondary UDN is migrated between nodes'
+  - featureGate: PinnedImages
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNode][Serial]
+        All Nodes in the Custom Pool should have the PinnedImages specified in PIS
+        [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNode][Serial]
+        All Nodes in the Pool should have the PinnedImages specified in PIS [apigroup:machineconfiguration.openshift.io]'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
