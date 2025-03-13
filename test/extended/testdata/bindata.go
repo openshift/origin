@@ -419,6 +419,7 @@
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml
+// test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml
 // test/extended/testdata/marketplace/csc/02-csc.yaml
@@ -49006,6 +49007,31 @@ func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAll
 	return a, nil
 }
 
+var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  logLevel: Normal
+  operatorLogLevel: Normal
+`)
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml = []byte(`apiVersion: operator.openshift.io/v1
 kind: MachineConfiguration
 metadata:
@@ -49014,6 +49040,12 @@ metadata:
 spec:
   logLevel: Normal
   operatorLogLevel: Normal
+  managedBootImages:
+    machineManagers:
+      - resource: machinesets
+        apiGroup: machine.openshift.io
+        selection:
+          mode: None
 `)
 
 func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYamlBytes() ([]byte, error) {
@@ -55698,6 +55730,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/Dockerfile":                                                           testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json":                                                         testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml":                 testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml,
+	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml":               testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml":                testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml":             testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml,
 	"test/extended/testdata/marketplace/csc/02-csc.yaml":                                                     testExtendedTestdataMarketplaceCsc02CscYaml,
@@ -56443,6 +56476,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"machine_config": {nil, map[string]*bintree{
 					"machineconfigurations": {nil, map[string]*bintree{
 						"managedbootimages-all.yaml":     {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml, map[string]*bintree{}},
+						"managedbootimages-empty.yaml":   {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml, map[string]*bintree{}},
 						"managedbootimages-none.yaml":    {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml, map[string]*bintree{}},
 						"managedbootimages-partial.yaml": {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml, map[string]*bintree{}},
 					}},
