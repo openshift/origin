@@ -24,11 +24,14 @@ package kubevirt
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+
+	"k8s.io/client-go/util/retry"
 
 	"google.golang.org/grpc/codes"
 
@@ -189,69 +192,83 @@ func LoginToFedora(virtctlPath, vmiNamespace, vmiName, user, password string) er
 
 // LoginToFedora performs a console login to a Fedora base VM
 func LoginToFedoraWithHostname(virtctlPath, vmiNamespace, vmiName, user, password, hostname string) error {
-	expecter, _, err := newExpecter(virtctlPath, vmiNamespace, vmiName, consoleConnectionTimeout, expect.Verbose(true), expect.VerboseWriter(GinkgoWriter))
-	if err != nil {
-		return err
-	}
-	defer expecter.Close()
+	err := retry.OnError(retry.DefaultBackoff,
+		func(err error) bool {
+			return strings.Contains(err.Error(), "expect: Process not running")
+		},
+		func() error {
+			expecter, _, err := newExpecter(virtctlPath, vmiNamespace, vmiName, consoleConnectionTimeout,
+				expect.Verbose(true),
+				expect.VerboseWriter(GinkgoWriter),
+				expect.DebugCheck(log.New(GinkgoWriter, "expect: virtctl console check", 0 /* no flags */)),
+			)
+			if err != nil {
+				return err
+			}
+			defer expecter.Close()
 
-	err = expecter.Send("\n")
-	if err != nil {
-		return err
-	}
+			err = expecter.Send("\n")
+			if err != nil {
+				return err
+			}
 
-	// Do not login, if we already logged in
-	loggedInPromptRegex := fmt.Sprintf(
-		`(\[%s@%s ~\]\$ |\[root@%s %s\]\# )`, user, hostname, hostname, user,
-	)
-	b := []expect.Batcher{
-		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: loggedInPromptRegex},
-	}
-	_, err = expecter.ExpectBatch(b, promptTimeout)
-	if err == nil {
-		return nil
-	}
+			// Do not login, if we already logged in
+			loggedInPromptRegex := fmt.Sprintf(
+				`(\[%s@%s ~\]\$ |\[root@%s %s\]\# )`, user, hostname, hostname, user,
+			)
+			b := []expect.Batcher{
+				&expect.BSnd{S: "\n"},
+				&expect.BExp{R: loggedInPromptRegex},
+			}
+			_, err = expecter.ExpectBatch(b, promptTimeout)
+			if err == nil {
+				return nil
+			}
 
-	b = []expect.Batcher{
-		&expect.BSnd{S: "\n"},
-		&expect.BSnd{S: "\n"},
-		&expect.BCas{C: []expect.Caser{
-			&expect.Case{
-				// Using only "login: " would match things like "Last failed login: Tue Jun  9 22:25:30 UTC 2020 on ttyS0"
-				// and in case the VM's did not get hostname form DHCP server try the default hostname
-				R:  regexp.MustCompile(fmt.Sprintf(`%s login: `, hostname)),
-				S:  user + "\n",
-				T:  expect.Next(),
-				Rt: 10,
-			},
-			&expect.Case{
-				R:  regexp.MustCompile(`Password:`),
-				S:  password + "\n",
-				T:  expect.Next(),
-				Rt: 10,
-			},
-			&expect.Case{
-				R:  regexp.MustCompile(`Login incorrect`),
-				T:  expect.LogContinue("Failed to log in", expect.NewStatus(codes.PermissionDenied, "login failed")),
-				Rt: 10,
-			},
-			&expect.Case{
-				R: regexp.MustCompile(loggedInPromptRegex),
-				T: expect.OK(),
-			},
-		}},
-		&expect.BSnd{S: "sudo su\n"},
-		&expect.BExp{R: PromptExpression},
-	}
-	res, err := expecter.ExpectBatch(b, loginTimeout)
-	if err != nil {
-		return fmt.Errorf("Login failed: %+v: %v", res, err)
-	}
+			b = []expect.Batcher{
+				&expect.BSnd{S: "\n"},
+				&expect.BSnd{S: "\n"},
+				&expect.BCas{C: []expect.Caser{
+					&expect.Case{
+						// Using only "login: " would match things like "Last failed login: Tue Jun  9 22:25:30 UTC 2020 on ttyS0"
+						// and in case the VM's did not get hostname form DHCP server try the default hostname
+						R:  regexp.MustCompile(fmt.Sprintf(`%s login: `, hostname)),
+						S:  user + "\n",
+						T:  expect.Next(),
+						Rt: 10,
+					},
+					&expect.Case{
+						R:  regexp.MustCompile(`Password:`),
+						S:  password + "\n",
+						T:  expect.Next(),
+						Rt: 10,
+					},
+					&expect.Case{
+						R:  regexp.MustCompile(`Login incorrect`),
+						T:  expect.LogContinue("Failed to log in", expect.NewStatus(codes.PermissionDenied, "login failed")),
+						Rt: 10,
+					},
+					&expect.Case{
+						R: regexp.MustCompile(loggedInPromptRegex),
+						T: expect.OK(),
+					},
+				}},
+				&expect.BSnd{S: "sudo su\n"},
+				&expect.BExp{R: PromptExpression},
+			}
+			_, err = expecter.ExpectBatch(b, loginTimeout)
+			if err != nil {
+				return err
+			}
 
-	err = configureConsole(expecter, false)
+			err = configureConsole(expecter, false)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	if err != nil {
-		return err
+		return fmt.Errorf("Login failed: %v", err)
 	}
 	return nil
 }
