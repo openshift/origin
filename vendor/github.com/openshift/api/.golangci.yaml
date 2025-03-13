@@ -13,6 +13,7 @@ linters-settings:
           conditions:
             isFirstField: Warn
             useProtobuf: Ignore
+            usePatchStrategy: Ignore
 linters:
   disable-all: true
   enable:

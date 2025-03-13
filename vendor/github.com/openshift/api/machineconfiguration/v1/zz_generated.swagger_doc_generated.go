@@ -537,4 +537,42 @@ func (MachineOSImageBuilder) SwaggerDoc() map[string]string {
 	return map_MachineOSImageBuilder
 }
 
+var map_PinnedImageRef = map[string]string{
+	"":     "PinnedImageRef represents a reference to an OCI image",
+	"name": "name is an OCI Image referenced by digest. The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>, where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9. The length of the whole spec must be between 1 to 447 characters.",
+}
+
+func (PinnedImageRef) SwaggerDoc() map[string]string {
+	return map_PinnedImageRef
+}
+
+var map_PinnedImageSet = map[string]string{
+	"":         "PinnedImageSet describes a set of images that should be pinned by CRI-O and pulled to the nodes which are members of the declared MachineConfigPools.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object metadata.",
+	"spec":     "spec describes the configuration of this pinned image set.",
+}
+
+func (PinnedImageSet) SwaggerDoc() map[string]string {
+	return map_PinnedImageSet
+}
+
+var map_PinnedImageSetList = map[string]string{
+	"":         "PinnedImageSetList is a list of PinnedImageSet resources\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items contains a collection of PinnedImageSet resources.",
+}
+
+func (PinnedImageSetList) SwaggerDoc() map[string]string {
+	return map_PinnedImageSetList
+}
+
+var map_PinnedImageSetSpec = map[string]string{
+	"":             "PinnedImageSetSpec defines the desired state of a PinnedImageSet.",
+	"pinnedImages": "pinnedImages is a list of OCI Image referenced by digest that should be pinned and pre-loaded by the nodes of a MachineConfigPool. Translates into a new file inside the /etc/crio/crio.conf.d directory with content similar to this:\n\n     pinned_images = [\n             \"quay.io/openshift-release-dev/ocp-release@sha256:...\",\n             \"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:...\",\n             \"quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:...\",\n             ...\n     ]\n\nImage references must be by digest. A maximum of 500 images may be specified.",
+}
+
+func (PinnedImageSetSpec) SwaggerDoc() map[string]string {
+	return map_PinnedImageSetSpec
+}
+
 // AUTO-GENERATED FUNCTIONS END HERE

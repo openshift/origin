@@ -1,6 +1,6 @@
 machineconfignodes.machineconfiguration.openshift.io:
   Annotations: {}
-  ApprovedPRNumber: https://github.com/openshift/api/pull/1596
+  ApprovedPRNumber: https://github.com/openshift/api/pull/2256
   CRDName: machineconfignodes.machineconfiguration.openshift.io
   Capability: ""
   Category: ""
@@ -48,10 +48,6 @@ machineconfignodes.machineconfiguration.openshift.io:
     name: Resumed
     priority: 1
     type: string
-  - jsonPath: .status.conditions[?(@.type=="UpdateCompatible")].status
-    name: UpdateCompatible
-    priority: 1
-    type: string
   - jsonPath: .status.conditions[?(@.type=="AppliedFilesAndOS")].status
     name: UpdatedFilesAndOS
     priority: 1
@@ -66,10 +62,6 @@ machineconfignodes.machineconfiguration.openshift.io:
     type: string
   - jsonPath: .status.conditions[?(@.type=="RebootedNode")].status
     name: RebootedNode
-    priority: 1
-    type: string
-  - jsonPath: .status.conditions[?(@.type=="ReloadedCRIO")].status
-    name: ReloadedCRIO
     priority: 1
     type: string
   - jsonPath: .status.conditions[?(@.type=="Uncordoned")].status

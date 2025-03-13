@@ -170,12 +170,10 @@ type PowerVSMachineProviderStatus struct {
 
 	// conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// instanceId is the instance ID of the machine created in PowerVS
 	// instanceId uniquely identifies a Power VS server instance(VM) under a Power VS service.

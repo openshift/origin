@@ -164,6 +164,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.GCPResourceLabelApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPResourceTag"):
 		return &configv1.GCPResourceTagApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("GCPServiceEndpoint"):
+		return &configv1.GCPServiceEndpointApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GitHubIdentityProvider"):
 		return &configv1.GitHubIdentityProviderApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GitLabIdentityProvider"):
@@ -176,6 +178,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.HubSourceApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("HubSourceStatus"):
 		return &configv1.HubSourceStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("IBMCloudPlatformSpec"):
+		return &configv1.IBMCloudPlatformSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IBMCloudPlatformStatus"):
 		return &configv1.IBMCloudPlatformStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IBMCloudServiceEndpoint"):
@@ -440,6 +444,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.InsightsDataGatherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("InsightsDataGatherSpec"):
 		return &configv1alpha1.InsightsDataGatherSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PersistentVolumeClaimReference"):
+		return &configv1alpha1.PersistentVolumeClaimReferenceApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PersistentVolumeConfig"):
+		return &configv1alpha1.PersistentVolumeConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PKI"):
+		return &configv1alpha1.PKIApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("PKICertificateSubject"):
+		return &configv1alpha1.PKICertificateSubjectApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Policy"):
 		return &configv1alpha1.PolicyApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PolicyFulcioSubject"):
@@ -460,6 +472,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.RetentionPolicyApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RetentionSizeConfig"):
 		return &configv1alpha1.RetentionSizeConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Storage"):
+		return &configv1alpha1.StorageApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("UserDefinedMonitoring"):
 		return &configv1alpha1.UserDefinedMonitoringApplyConfiguration{}
 

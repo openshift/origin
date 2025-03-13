@@ -13,7 +13,7 @@ package v1alpha1
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_MCOObjectReference = map[string]string{
 	"":     "MCOObjectReference holds information about an object the MCO either owns or modifies in some way",
-	"name": "name is the object name. Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) It may consist of only alphanumeric characters, hyphens (-) and periods (.) and must be at most 253 characters in length.",
+	"name": "name is the name of the object being referenced. For example, this can represent a machine config pool or node name. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
 }
 
 func (MCOObjectReference) SwaggerDoc() map[string]string {
@@ -21,9 +21,10 @@ func (MCOObjectReference) SwaggerDoc() map[string]string {
 }
 
 var map_MachineConfigNode = map[string]string{
-	"":       "MachineConfigNode describes the health of the Machines on the system Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"spec":   "spec describes the configuration of the machine config node.",
-	"status": "status describes the last observed state of this machine config node.",
+	"":         "MachineConfigNode describes the health of the Machines on the system Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object metadata.",
+	"spec":     "spec describes the configuration of the machine config node.",
+	"status":   "status describes the last observed state of this machine config node.",
 }
 
 func (MachineConfigNode) SwaggerDoc() map[string]string {
@@ -31,7 +32,9 @@ func (MachineConfigNode) SwaggerDoc() map[string]string {
 }
 
 var map_MachineConfigNodeList = map[string]string{
-	"": "MachineConfigNodeList describes all of the MachinesStates on the system\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"":         "MachineConfigNodeList describes all of the MachinesStates on the system\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list metadata.",
+	"items":    "items contains a collection of MachineConfigNode resources.",
 }
 
 func (MachineConfigNodeList) SwaggerDoc() map[string]string {
@@ -39,11 +42,10 @@ func (MachineConfigNodeList) SwaggerDoc() map[string]string {
 }
 
 var map_MachineConfigNodeSpec = map[string]string{
-	"":                "MachineConfigNodeSpec describes the MachineConfigNode we are managing.",
-	"node":            "node contains a reference to the node for this machine config node.",
-	"pool":            "pool contains a reference to the machine config pool that this machine config node's referenced node belongs to.",
-	"configVersion":   "configVersion holds the desired config version for the node targeted by this machine config node resource. The desired version represents the machine config the node will attempt to update to. This gets set before the machine config operator validates the new machine config against the current machine config.",
-	"pinnedImageSets": "pinnedImageSets holds the desired pinned image sets that this node should pin and pull.",
+	"":              "MachineConfigNodeSpec describes the MachineConfigNode we are managing.",
+	"node":          "node contains a reference to the node for this machine config node.",
+	"pool":          "pool contains a reference to the machine config pool that this machine config node's referenced node belongs to.",
+	"configVersion": "configVersion holds the desired config version for the node targeted by this machine config node resource. The desired version represents the machine config the node will attempt to update to and gets set before the machine config operator validates the new machine config against the current machine config.",
 }
 
 func (MachineConfigNodeSpec) SwaggerDoc() map[string]string {
@@ -51,28 +53,20 @@ func (MachineConfigNodeSpec) SwaggerDoc() map[string]string {
 }
 
 var map_MachineConfigNodeSpecMachineConfigVersion = map[string]string{
-	"":        "MachineConfigNodeSpecMachineConfigVersion holds the desired config version for the current observed machine config node. When Current is not equal to Desired; the MachineConfigOperator is in an upgrade phase and the machine config node will take account of upgrade related events. Otherwise they will be ignored given that certain operations happen both during the MCO's upgrade mode and the daily operations mode.",
-	"desired": "desired is the name of the machine config that the the node should be upgraded to. This value is set when the machine config pool generates a new version of its rendered configuration. When this value is changed, the machine config daemon starts the node upgrade process. This value gets set in the machine config node spec once the machine config has been targeted for upgrade and before it is validated. Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) It may consist of only alphanumeric characters, hyphens (-) and periods (.) and must be at most 253 characters in length.",
+	"":        "MachineConfigNodeSpecMachineConfigVersion holds the desired config version for the current observed machine config node. When Current is not equal to Desired, the MachineConfigOperator is in an upgrade phase and the machine config node will take account of upgrade related events. Otherwise, they will be ignored given that certain operations happen both during the MCO's upgrade mode and the daily operations mode.",
+	"desired": "desired is the name of the machine config that the the node should be upgraded to. This value is set when the machine config pool generates a new version of its rendered configuration. When this value is changed, the machine config daemon starts the node upgrade process. This value gets set in the machine config node spec once the machine config has been targeted for upgrade and before it is validated. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
 }
 
 func (MachineConfigNodeSpecMachineConfigVersion) SwaggerDoc() map[string]string {
 	return map_MachineConfigNodeSpecMachineConfigVersion
 }
 
-var map_MachineConfigNodeSpecPinnedImageSet = map[string]string{
-	"name": "name is the name of the pinned image set. Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) It may consist of only alphanumeric characters, hyphens (-) and periods (.) and must be at most 253 characters in length.",
-}
-
-func (MachineConfigNodeSpecPinnedImageSet) SwaggerDoc() map[string]string {
-	return map_MachineConfigNodeSpecPinnedImageSet
-}
-
 var map_MachineConfigNodeStatus = map[string]string{
 	"":                   "MachineConfigNodeStatus holds the reported information on a particular machine config node.",
 	"conditions":         "conditions represent the observations of a machine config node's current state.",
-	"observedGeneration": "observedGeneration represents the generation observed by the controller. This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.",
-	"configVersion":      "configVersion describes the current and desired machine config for this node. The current version represents the current machine config for the node and is updated after a successful update. The desired version represents the machine config the node will attempt to update to. This desired machine config has been compared to the current machine config and has been validated by the machine config operator as one that is valid and that exists.",
-	"pinnedImageSets":    "pinnedImageSets describes the current and desired pinned image sets for this node. The current version is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node. The desired version is the generation of the pinned image set that is targeted to be pulled and pinned on this node.",
+	"observedGeneration": "observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller. This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.",
+	"configVersion":      "configVersion describes the current and desired machine config version for this node.",
+	"pinnedImageSets":    "pinnedImageSets describes the current and desired pinned image sets for this node.",
 }
 
 func (MachineConfigNodeStatus) SwaggerDoc() map[string]string {
@@ -80,9 +74,9 @@ func (MachineConfigNodeStatus) SwaggerDoc() map[string]string {
 }
 
 var map_MachineConfigNodeStatusMachineConfigVersion = map[string]string{
-	"":        "MachineConfigNodeStatusMachineConfigVersion holds the current and desired config versions as last updated in the MCN status. When the current and desired versions are not matched, the machine config pool is processing an upgrade and the machine config node will monitor the upgrade process. When the current and desired versions do not match, the machine config node will ignore these events given that certain operations happen both during the MCO's upgrade mode and the daily operations mode.",
-	"current": "current is the name of the machine config currently in use on the node. This value is updated once the machine config daemon has completed the update of the configuration for the node. This value should match the desired version unless an upgrade is in progress. Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) It may consist of only alphanumeric characters, hyphens (-) and periods (.) and must be at most 253 characters in length.",
-	"desired": "desired is the MachineConfig the node wants to upgrade to. This value gets set in the machine config node status once the machine config has been validated against the current machine config. Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) It may consist of only alphanumeric characters, hyphens (-) and periods (.) and must be at most 253 characters in length.",
+	"":        "MachineConfigNodeStatusMachineConfigVersion holds the current and desired config versions as last updated in the MCN status. When the current and desired versions do not match, the machine config pool is processing an upgrade and the machine config node will monitor the upgrade process. When the current and desired versions do match, the machine config node will ignore these events given that certain operations happen both during the MCO's upgrade mode and the daily operations mode.",
+	"current": "current is the name of the machine config currently in use on the node. This value is updated once the machine config daemon has completed the update of the configuration for the node. This value should match the desired version unless an upgrade is in progress. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
+	"desired": "desired is the MachineConfig the node wants to upgrade to. This value gets set in the machine config node status once the machine config has been validated against the current machine config. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
 }
 
 func (MachineConfigNodeStatusMachineConfigVersion) SwaggerDoc() map[string]string {
@@ -90,11 +84,12 @@ func (MachineConfigNodeStatusMachineConfigVersion) SwaggerDoc() map[string]strin
 }
 
 var map_MachineConfigNodeStatusPinnedImageSet = map[string]string{
-	"name":                       "name is the name of the pinned image set. Must be a lowercase RFC-1123 hostname (https://tools.ietf.org/html/rfc1123) It may consist of only alphanumeric characters, hyphens (-) and periods (.) and must be at most 253 characters in length.",
-	"currentGeneration":          "currentGeneration is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.",
-	"desiredGeneration":          "desiredGeneration version is the generation of the pinned image set that is targeted to be pulled and pinned on this node.",
-	"lastFailedGeneration":       "lastFailedGeneration is the generation of the most recent pinned image set that failed to be pulled and pinned on this node.",
-	"lastFailedGenerationErrors": "lastFailedGenerationErrors is a list of errors why the lastFailed generation failed to be pulled and pinned.",
+	"":                          "MachineConfigNodeStatusPinnedImageSet holds information about the current, desired, and failed pinned image sets for the observed machine config node.",
+	"name":                      "name is the name of the pinned image set. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
+	"currentGeneration":         "currentGeneration is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.",
+	"desiredGeneration":         "desiredGeneration is the generation of the pinned image set that is targeted to be pulled and pinned on this node.",
+	"lastFailedGeneration":      "lastFailedGeneration is the generation of the most recent pinned image set that failed to be pulled and pinned on this node.",
+	"lastFailedGenerationError": "lastFailedGenerationError is the error explaining why the desired images failed to be pulled and pinned. The error is an empty string if the image pull and pin is successful.",
 }
 
 func (MachineConfigNodeStatusPinnedImageSet) SwaggerDoc() map[string]string {
