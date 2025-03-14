@@ -47,7 +47,11 @@ func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 	// Label this machineset with the test=boot label
 	err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test=boot").Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-
+	defer func() {
+		// Unlabel the machineset at the end of test
+		err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test-").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}()
 	// Step through all machinesets and verify that only the opted in machineset's boot images are reconciled.
 	machineSets, err := machineClient.MachineV1beta1().MachineSets("openshift-machine-api").List(context.TODO(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -55,9 +59,6 @@ func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 		verifyMachineSetUpdate(oc, ms, machineSetUnderTest.Name == ms.Name)
 	}
 
-	// Unlabel the machineset
-	err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test-").Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func NoneMachineSetTest(oc *exutil.CLI, fixture string) {

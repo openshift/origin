@@ -98,7 +98,12 @@ func verifyMachineSetUpdate(oc *exutil.CLI, machineSet machinev1beta1.MachineSet
 	newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage := createFakeUpdatePatch(oc, machineSet)
 	err := oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, newProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-
+	defer func() {
+		// Restore machineSet to original boot image as the machineset may be used by other test variants, regardless of success/fail
+		err = oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, originalProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Restored build name in the machineset %s from \"%s\" to \"%s\"", machineSet.Name, newBootImage, originalBootImage)
+	}()
 	// Ensure boot image controller is not progressing
 	framework.Logf("Waiting until the boot image controller is not progressing...")
 	WaitForBootImageControllerToComplete(oc)
@@ -112,12 +117,6 @@ func verifyMachineSetUpdate(oc *exutil.CLI, machineSet machinev1beta1.MachineSet
 		o.Expect(providerSpecDisks).ShouldNot(o.ContainSubstring(newBootImage))
 	} else {
 		o.Expect(providerSpecDisks).Should(o.ContainSubstring(newBootImage))
-		// Restore machineSet to original boot image in this case, as the machineset may be used by other test variants
-
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, originalProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Restored build name in the machineset %s from \"%s\" to \"%s\"", machineSet.Name, originalBootImage, newBootImage)
 	}
 }
 
