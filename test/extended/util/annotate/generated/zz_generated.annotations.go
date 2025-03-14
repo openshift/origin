@@ -1379,6 +1379,10 @@ var Annotations = map[string]string{
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNode][Serial] All Nodes in the Custom Pool should have the PinnedImages specified in PIS [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNode][Serial] All Nodes in the Pool should have the PinnedImages specified in PIS [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": " [Disabled:Broken]",

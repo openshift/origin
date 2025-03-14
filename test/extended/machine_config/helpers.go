@@ -291,3 +291,15 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
 }
+
+func getNodesForPool(ctx context.Context, oc *exutil.CLI, pool *mcfgv1.MachineConfigPool) (*corev1.NodeList, error) {
+	selector, err := metav1.LabelSelectorAsSelector(pool.Spec.NodeSelector)
+	if err != nil {
+		return nil, fmt.Errorf("invalid label selector: %w", err)
+	}
+	nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, fmt.Errorf("couldnt get nodes for mcp: %w", err)
+	}
+	return nodes, nil
+}
