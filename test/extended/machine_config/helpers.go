@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/ptr"
@@ -287,6 +288,112 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 			return true
 		}
 		framework.Logf("Waiting for atleast one ready control-plane node")
+		return false
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
+	return nil
+}
+
+// Gets a random node from a given pool. Checks for whether the node is ready
+// and if no nodes are ready, it will poll for up to 5 minutes for a node to
+// become available.
+func GetRandomNode(oc *exutil.CLI, pool string) corev1.Node {
+	if node := getRandomNode(oc, pool); isNodeReady(node) {
+		return node
+	}
+
+	waitPeriod := time.Minute * 5
+	framework.Logf("No ready nodes found for pool %s, waiting up to %s for a ready node to become available", pool, waitPeriod)
+
+	var targetNode corev1.Node
+
+	o.Eventually(func() bool {
+		if node := getRandomNode(oc, pool); isNodeReady(node) {
+			targetNode = node
+			return true
+		}
+
+		return false
+	}, 5*time.Minute, 2*time.Second).Should(o.BeTrue())
+
+	return targetNode
+}
+
+// Gets a random node from a given pool.
+func getRandomNode(oc *exutil.CLI, pool string) corev1.Node {
+	nodes, err := GetNodesByRole(oc, pool)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(nodes).ShouldNot(o.BeEmpty())
+
+	// Disable gosec here to avoid throwing
+	// G404: Use of weak random number generator (math/rand instead of crypto/rand)
+	// #nosec
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return nodes[rnd.Intn(len(nodes))]
+}
+
+// GetNodesByRole gets all nodes labeled with role role
+func GetNodesByRole(oc *exutil.CLI, role string) ([]corev1.Node, error) {
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{fmt.Sprintf("node-role.kubernetes.io/%s", role): ""}).String(),
+	}
+	nodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.TODO(), listOptions)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return nodes.Items, nil
+}
+
+// Determines if a given node is ready.
+func isNodeReady(node corev1.Node) bool {
+	// If the node is cordoned, it is not ready.
+	if node.Spec.Unschedulable {
+		return false
+	}
+
+	// If the nodes' kubelet is not ready, it is not ready.
+	if !isNodeKubeletReady(node) {
+		return false
+	}
+
+	// If the nodes' MCD is not done, it is not ready.
+	if !isMCDDone(node) {
+		return false
+	}
+
+	return true
+}
+
+// Determines if a given node's kubelet is ready.
+func isNodeKubeletReady(node corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Reason == "KubeletReady" && condition.Status == "True" && condition.Type == "Ready" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Determines whether the MCD on a given node has reached the "Done" state.
+func isMCDDone(node corev1.Node) bool {
+	// TODO: Update to make use of generalized
+	state := node.Annotations["machineconfiguration.openshift.io/state"]
+	return state == "Done"
+}
+
+// WaitForMCPToBeReady waits for a pool to be in an updated state with more than one ready machine
+func WaitForMCPToBeReady(oc *exutil.CLI, poolName string) error {
+	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Eventually(func() bool {
+		mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), poolName, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Failed to grab machineconfigpool %v, error :%v", poolName, err)
+			return false
+		}
+		// Check if the pool is in an updated state with the correct number of ready machines
+		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount > 0 {
+			return true
+		}
+		framework.Logf("Waiting for %v MCP to be updated with ready machines.", poolName)
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil

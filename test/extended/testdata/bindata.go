@@ -419,6 +419,7 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/machine_config/machineconfigpool/infra-mcp.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml
@@ -49020,6 +49021,33 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: infra
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,infra]}
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/infra: ""`)
+
+func testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigpool/infra-mcp.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml = []byte(`apiVersion: operator.openshift.io/v1
 kind: MachineConfiguration
 metadata:
@@ -55774,6 +55802,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml":                                                    testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile":                                                           testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json":                                                         testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/machine_config/machineconfigpool/infra-mcp.yaml":                                 testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml":                 testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml":               testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml":                testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml,
@@ -56520,6 +56549,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"fixture.json": {testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
 				"machine_config": {nil, map[string]*bintree{
+					"machineconfigpool": {nil, map[string]*bintree{
+						"infra-mcp.yaml": {testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml, map[string]*bintree{}},
+					}},
 					"machineconfigurations": {nil, map[string]*bintree{
 						"managedbootimages-all.yaml":     {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml, map[string]*bintree{}},
 						"managedbootimages-empty.yaml":   {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml, map[string]*bintree{}},
