@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds in
 			// Run oc commands as per the openshift documentation
 			stdOut, _, err := oc.AsAdmin().Run("get").Args("secret", "etc-pki-entitlement", "-n", "openshift-config-managed", "-o=go-template-file", "--template", secretTemplate).Outputs()
 			o.Expect(err).NotTo(o.HaveOccurred(), "getting secret openshift-config-managed/etc-pki-entitlement")
-			err = oc.Run("apply").Args("-f", "-").InputString(stdOut).Execute()
+			err = oc.Run("create").Args("-f", "-").InputString(stdOut).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred(), "creating secret etc-pki-entitlement")
 
 			g.By("setting up build outputs")
