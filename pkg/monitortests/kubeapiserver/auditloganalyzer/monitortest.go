@@ -3,9 +3,13 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/sirupsen/logrus"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -32,7 +36,12 @@ type auditLogAnalyzer struct {
 	requestsDuringShutdownChecker *lateRequestTracking
 	violationChecker              *auditViolations
 
-	countsForInstall *CountsForRun
+	countsForInstall      *CountsForRun
+	installCompletionTime time.Time
+	updateBegin           time.Time
+	updateEnd             time.Time
+	runBegin              time.Time
+	runEnd                time.Time
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
@@ -106,10 +115,28 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		if err != nil {
 			return nil, nil, err
 		}
+		w.runBegin = beginning
+		w.runEnd = end
 		if len(clusterVersion.Status.History) > 0 {
 			installedLevel := clusterVersion.Status.History[len(clusterVersion.Status.History)-1]
 			if installedLevel.CompletionTime != nil {
+				w.installCompletionTime = installedLevel.CompletionTime.Time
 				w.countsForInstall = w.requestCountTracking.CountsForRun.SubsetDataAtTime(*installedLevel.CompletionTime)
+			}
+		}
+		if len(clusterVersion.Status.History) >= 2 {
+			firstUpdateLevel := clusterVersion.Status.History[1]
+
+			// be sure the update happened during the run so we don't double count stuff by accident
+			if firstUpdateLevel.StartedTime.Time.After(beginning) && firstUpdateLevel.StartedTime.Time.Before(end) {
+				w.updateBegin = firstUpdateLevel.StartedTime.Time
+
+				if firstUpdateLevel.CompletionTime != nil {
+					w.updateEnd = firstUpdateLevel.CompletionTime.Time
+				} else {
+					// if the update didn't end, use the end of the run to include as much data as possible
+					w.updateEnd = end
+				}
 			}
 		}
 
@@ -153,39 +180,139 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 	return retIntervals, nil, err
 }
 
-func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	ret := monitorapi.Intervals{}
+	if w.requestCountTracking != nil {
+		requestCountIntervals := func() monitorapi.Intervals {
+			w.requestCountTracking.lock.Lock()
+			defer w.requestCountTracking.lock.Unlock()
+
+			retIntervals := monitorapi.Intervals{}
+
+			lastSecondSawNoLeader := false
+			currTotalRequestsToEtcd := 0
+			currTotalRequestsWithNoLeader := 0
+			startOfNoLeaderInterval := time.Time{}
+			for second, counts := range w.requestCountTracking.CountsForRun.CountsForEachSecond {
+				switch {
+				case !lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader > 0:
+					lastSecondSawNoLeader = true
+					currTotalRequestsToEtcd += counts.NumberOfRequestsReceivedThatAccessedEtcd
+					currTotalRequestsWithNoLeader += counts.NumberOfRequestsReceivedSawNoLeader
+					startOfNoLeaderInterval = w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Second * time.Duration(second))
+
+				case lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader > 0:
+					// continuing to have no leader problems
+					currTotalRequestsToEtcd += counts.NumberOfRequestsReceivedThatAccessedEtcd
+					currTotalRequestsWithNoLeader += counts.NumberOfRequestsReceivedSawNoLeader
+
+				case !lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader == 0:
+					// continuing to be no leader problem-free, do nothing
+
+				case lastSecondSawNoLeader && counts.NumberOfRequestsReceivedSawNoLeader == 0:
+					endOfNoLeaderInterval := w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Second * time.Duration(second))
+					failurePercentage := int((float32(currTotalRequestsWithNoLeader) / float32(currTotalRequestsToEtcd)) * 100)
+					retIntervals = append(retIntervals,
+						monitorapi.NewInterval(monitorapi.SourceAuditLog, monitorapi.Error).
+							Locator(monitorapi.NewLocator().KubeAPIServerWithLB("any")).
+							Message(monitorapi.NewMessage().
+								Reason(monitorapi.ReasonKubeAPIServerNoLeader).
+								WithAnnotation(monitorapi.AnnotationCount, strconv.Itoa(currTotalRequestsWithNoLeader)).
+								WithAnnotation(monitorapi.AnnotationPercentage, strconv.Itoa(failurePercentage)).
+								HumanMessagef("%d requests made during this time failed with 'no leader' out of %d total", currTotalRequestsWithNoLeader, currTotalRequestsToEtcd),
+							).
+							Display().
+							Build(startOfNoLeaderInterval, endOfNoLeaderInterval))
+
+					lastSecondSawNoLeader = false
+					currTotalRequestsToEtcd = 0
+					currTotalRequestsWithNoLeader = 0
+					startOfNoLeaderInterval = time.Time{}
+				}
+			}
+
+			return retIntervals
+		}()
+		ret = append(ret, requestCountIntervals...)
+	}
+
+	return ret, nil
 }
 
 func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
-	fiveHundredsTestName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
-	apiserver500s := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
-	})
-	totalDurationOf500s := 0
-	fiveHundredsFailures := []string{}
-	for _, interval := range apiserver500s {
-		totalDurationOf500s += int(interval.To.Sub(interval.From).Seconds()) + 1
-		fiveHundredsFailures = append(fiveHundredsFailures, interval.String())
+	{
+		testName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
+		offendingIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
+		})
+		totalDurationOfOffense := 0
+		offenses := []string{}
+		for _, interval := range offendingIntervals {
+			totalDurationOfOffense += int(interval.To.Sub(interval.From).Seconds()) + 1
+			offenses = append(offenses, interval.String())
+		}
+		if totalDurationOfOffense > 60 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(offenses, "\n"),
+					Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOfOffense),
+				},
+			})
+			// flake for now
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
 	}
-	if totalDurationOf500s > 60 {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-			FailureOutput: &junitapi.FailureOutput{
-				Message: strings.Join(fiveHundredsFailures, "\n"),
-				Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOf500s),
-			},
+
+	{
+		testName := "[Jira:etcd] kube-apiserver should not have etcd no leader problems"
+		offendingIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServerNoLeader
 		})
-		// flake for now
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-		})
-	} else {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: fiveHundredsTestName,
-		})
+		totalDurationOfOffense := 0
+		offenses := []string{}
+		for _, interval := range offendingIntervals {
+			totalDurationOfOffense += int(interval.To.Sub(interval.From).Seconds()) + 1
+			offenses = append(offenses, interval.String())
+		}
+		if totalDurationOfOffense > 100 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(offenses, "\n"),
+					Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOfOffense),
+				},
+			})
+			// surely we don't have more than 100 seconds of no leader, start of failure?
+			//ret = append(ret, &junitapi.JUnitTestCase{
+			//	Name: testName,
+			//})
+		} else if totalDurationOfOffense > 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(offenses, "\n"),
+					Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOfOffense),
+				},
+			})
+			// flake for now
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
 	}
 
 	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
@@ -415,6 +542,8 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 		if err != nil {
 			return err
 		}
+
+		writeNoLeaderSeconds(storageDir, timeSuffix, w.requestCountTracking, w.installCompletionTime, w.updateBegin, w.updateEnd, w.runBegin, w.runEnd)
 	}
 	if w.countsForInstall != nil {
 		err := w.countsForInstall.WriteContentToStorage(storageDir, "request-counts-for-install", timeSuffix)
@@ -429,4 +558,81 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 func (*auditLogAnalyzer) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
+}
+
+type noLeaderRow struct {
+	timeRangeName                          string
+	requestsReceivedCount                  int
+	requestsReceivedWithEtcdCount          int
+	requestsReceivedWithoutEtcdCount       int
+	requestsReceivedWithNoLeaderErrorCount int
+}
+
+func (r *noLeaderRow) add(counts CountForSecond) {
+	r.requestsReceivedCount += counts.NumberOfRequestsReceived
+	r.requestsReceivedWithEtcdCount += counts.NumberOfRequestsReceivedThatAccessedEtcd
+	r.requestsReceivedWithoutEtcdCount += counts.NumberOfRequestsReceivedDidNotAccessEtcd
+	r.requestsReceivedWithNoLeaderErrorCount += counts.NumberOfRequestsReceivedSawNoLeader
+}
+func (r *noLeaderRow) toData() map[string]string {
+	return map[string]string{
+		"TimeRangeName":                          r.timeRangeName,
+		"RequestsReceivedCount":                  strconv.Itoa(r.requestsReceivedCount),
+		"RequestsReceivedWithEtcdCount":          strconv.Itoa(r.requestsReceivedWithEtcdCount),
+		"RequestsReceivedWithoutEtcdCount":       strconv.Itoa(r.requestsReceivedWithoutEtcdCount),
+		"RequestsReceivedWithNoLeaderErrorCount": strconv.Itoa(r.requestsReceivedWithNoLeaderErrorCount),
+	}
+}
+
+func writeNoLeaderSeconds(artifactDir, timeSuffix string, countTracking *countTracking, installCompletion, updateBegin, updateEnd, beginning, end time.Time) {
+	countTracking.lock.Lock()
+	defer countTracking.lock.Unlock()
+
+	hasUpdate := !updateBegin.IsZero()
+
+	installCompletionSecond := int(installCompletion.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	updateBeginSecond := int(updateBegin.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	updateEndSecond := int(updateEnd.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	beginningOfRunSecond := int(beginning.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+	endOfRunSecond := int(end.Sub(countTracking.CountsForRun.EstimatedStartOfCluster.Time).Seconds())
+
+	installCounts := &noLeaderRow{timeRangeName: "Install"}
+	updateCounts := &noLeaderRow{timeRangeName: "Update"}
+	allKnownCounts := &noLeaderRow{timeRangeName: "AllKnown"}
+	duringTests := &noLeaderRow{timeRangeName: "DuringTests"}
+	for secondOfRun, counts := range countTracking.CountsForRun.CountsForEachSecond {
+		allKnownCounts.add(counts)
+
+		if secondOfRun <= installCompletionSecond {
+			installCounts.add(counts)
+		}
+		if hasUpdate && secondOfRun >= updateBeginSecond && secondOfRun <= updateEndSecond {
+			updateCounts.add(counts)
+		}
+		if secondOfRun >= beginningOfRunSecond && secondOfRun <= endOfRunSecond {
+			duringTests.add(counts)
+		}
+	}
+
+	dataFile := dataloader.DataFile{
+		TableName: "audit_no_leader_seconds",
+		Schema: map[string]dataloader.DataType{
+			"TimeRangeName":                          dataloader.DataTypeString,
+			"RequestsReceivedCount":                  dataloader.DataTypeInteger,
+			"RequestsReceivedWithEtcdCount":          dataloader.DataTypeInteger,
+			"RequestsReceivedWithoutEtcdCount":       dataloader.DataTypeInteger,
+			"RequestsReceivedWithNoLeaderErrorCount": dataloader.DataTypeInteger,
+		},
+		Rows: []map[string]string{
+			installCounts.toData(),
+			updateCounts.toData(),
+			allKnownCounts.toData(),
+			duringTests.toData(),
+		},
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("audit-no-leader-seconds%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
 }
