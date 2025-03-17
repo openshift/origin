@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -35,6 +36,8 @@ const (
 	secretReaderRoleBinding = "secret-reader-role-binding"
 	// helloOpenShiftResponse is the HTTP response from hello-openshift example pod.
 	helloOpenShiftResponse = "Hello OpenShift"
+	// defaultCertificateCN is the CommonName of router default certificate.
+	defaultCertificateCN = "ingress-operator"
 )
 
 var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]", func() {
@@ -435,24 +438,37 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 					})
 				})
 
-				g.Context("to remove and again re-add the same external certificate", func() {
+				g.Context("to remove the external certificate", func() {
 					g.BeforeEach(func() {
 						g.By("Updating the route to remove the external certificate reference")
-						err := patchRouteToRemoveTLS(oc, routeToTest.Name)
-						o.Expect(err).NotTo(o.HaveOccurred())
-
-						g.By("Updating the route to re-add the external certificate reference")
-						err = patchRouteWithExternalCertificate(oc, routeToTest.Name, secret.Name)
+						err := patchRouteToRemoveExternalCertificate(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
 					})
 
-					g.It("then also the route is reachable", func() {
-						g.By("Sending https request")
+					g.It("then also the route is reachable and serves the default certificate", func() {
+						g.By("Sending in-secure https request")
 						hostName, err := getHostnameForRoute(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
-						resp, err := httpsGetCall(hostName, rootDerBytes)
+						resp, err := verifyRouteServesDefaultCert(hostName)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
+					})
+
+					g.Context("and again re-add the same external certificate", func() {
+						g.BeforeEach(func() {
+							g.By("Updating the route to re-add the external certificate reference")
+							err = patchRouteWithExternalCertificate(oc, routeToTest.Name, secret.Name)
+							o.Expect(err).NotTo(o.HaveOccurred())
+						})
+
+						g.It("then also the route is reachable", func() {
+							g.By("Sending https request")
+							hostName, err := getHostnameForRoute(oc, routeToTest.Name)
+							o.Expect(err).NotTo(o.HaveOccurred())
+							resp, err := httpsGetCall(hostName, rootDerBytes)
+							o.Expect(err).NotTo(o.HaveOccurred())
+							o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
+						})
 					})
 				})
 			})
@@ -486,17 +502,62 @@ func httpsGetCall(hostname string, rootDerBytes []byte) (string, error) {
 			},
 		},
 	}
-
 	url := fmt.Sprintf("https://%s", hostname)
+
+	_, body, err := sendHttpRequestWithRetry(url, client)
+	return body, err
+}
+
+// verifyRouteServesDefaultCert checks that the given hostname serves the default certificate.
+func verifyRouteServesDefaultCert(hostname string) (string, error) {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+	url := fmt.Sprintf("https://%s", hostname)
+
+	var body string
+	err := wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
+		var err error
+		var resp *http.Response
+		resp, body, err = sendHttpRequestWithRetry(url, client)
+		if err != nil {
+			return false, err
+		}
+
+		// check that the route is serving the default certificate.
+		for _, cert := range resp.TLS.PeerCertificates {
+			if !strings.Contains(cert.Issuer.CommonName, defaultCertificateCN) {
+				e2e.Logf("Unexpected Issuer CommonName: %v, retrying...", cert.Issuer.CommonName)
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to verify default certificate after retries: %w", err)
+	}
+
+	return body, nil
+}
+
+// sendHttpRequestWithRetry sends an HTTP request to the specified URL using the provided client with retries.
+func sendHttpRequestWithRetry(url string, client *http.Client) (*http.Response, string, error) {
+	var resp *http.Response
 	var body []byte
 
 	err := wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
+		e2e.Logf("Sending request to %q", url)
 		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 		if err != nil {
 			return false, err
 		}
 
-		resp, err := client.Do(req)
+		resp, err = client.Do(req)
 		if err != nil {
 			e2e.Logf("Error making HTTPS request: %s, %v, retrying...", url, err)
 			return false, nil
@@ -518,10 +579,10 @@ func httpsGetCall(hostname string, rootDerBytes []byte) (string, error) {
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("failed to make successful HTTPS request after retries: %w", err)
+		return nil, "", fmt.Errorf("failed to make successful HTTPS request after retries: %w", err)
 	}
 
-	return string(body), nil
+	return resp, string(body), nil
 }
 
 // checkRouteStatus polls the route status and verifies the ingress condition.
@@ -697,11 +758,12 @@ func patchRouteWithLabel(oc *exutil.CLI, routeName string) error {
 	return err
 }
 
-// patchRouteToRemoveTLS updates the given route to remove the TLS configuration.
-func patchRouteToRemoveTLS(oc *exutil.CLI, routeName string) error {
-	routePatch := `{"spec": {"tls": null}}`
+// patchRouteToRemoveExternalCertificate updates the given route to remove
+// the external certificate reference.
+func patchRouteToRemoveExternalCertificate(oc *exutil.CLI, routeName string) error {
+	routePatch := `[{"op": "remove", "path": "/spec/tls/externalCertificate"}]`
 	_, err := oc.RouteClient().RouteV1().Routes(oc.Namespace()).Patch(
-		context.Background(), routeName, types.MergePatchType, []byte(routePatch), metav1.PatchOptions{},
+		context.Background(), routeName, types.JSONPatchType, []byte(routePatch), metav1.PatchOptions{},
 	)
 	return err
 }
