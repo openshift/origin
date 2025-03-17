@@ -102,6 +102,8 @@ spec:
     tests:
     - testName: '[sig-mco][OCPFeatureGate:MachineConfigNode][Serial] Should have MCN
         properties matching associated node properties [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNode][Serial] Should properly
+        transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ManagedBootImages
     tests:
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade

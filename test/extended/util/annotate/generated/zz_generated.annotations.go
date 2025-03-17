@@ -1361,6 +1361,8 @@ var Annotations = map[string]string{
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNode][Serial] Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-mco][OCPFeatureGate:MachineConfigNode][Serial] Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",

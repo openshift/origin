@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -27,7 +28,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 	defer g.GinkgoRecover()
 	var (
 		MCOMachineConfigPoolBaseDir = exutil.FixturePath("testdata", "machine_config", "machineconfigpool")
+		MCOMachineConfigBaseDir     = exutil.FixturePath("testdata", "machine_config", "machineconfig")
 		infraMCPFixture             = filepath.Join(MCOMachineConfigPoolBaseDir, "infra-mcp.yaml")
+		testFileMCFixture           = filepath.Join(MCOMachineConfigBaseDir, "0-worker-mc.yaml")
 		oc                          = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
@@ -39,6 +42,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 
 	g.It("Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNProperties(oc, infraMCPFixture)
+	})
+
+	g.It("Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]", func() {
+		ValidateMCNConditionTransitions(oc, testFileMCFixture)
 	})
 })
 
@@ -122,6 +129,83 @@ func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 	framework.Logf("Checking node current and desired config versions match current and desired config versions in MCN status, custom MCP node.")
 	o.Expect(customNodeMCN.Status.ConfigVersion.Current).Should(o.Equal(customCurrentConfig))
 	o.Expect(customNodeMCN.Status.ConfigVersion.Desired).Should(o.Equal(customDesiredConfig))
+}
+
+// `ValidateMCNConditionTransitions` check that Conditions properly update on a node update
+func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
+	// Create client set for test
+	clientSet, clientErr := mcClient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(clientErr).NotTo(o.HaveOccurred())
+
+	// Apply MC targeting worker pool
+	mcErr := oc.Run("apply").Args("-f", fixture).Execute()
+	o.Expect(mcErr).NotTo(o.HaveOccurred())
+
+	// Delete MC on failure or test completion
+	defer func() {
+		deleteMCErr := oc.Run("delete").Args("machineconfig", "99-worker-testfile").Execute()
+		o.Expect(deleteMCErr).NotTo(o.HaveOccurred())
+	}()
+
+	// Get an updating worker node
+	updatingNodes := GetCordonedNodes(oc, worker)
+	o.Expect(len(updatingNodes) > 0, "No ready nodes found for MCP %v.", worker)
+	workerNode := updatingNodes[0]
+
+	// Validate transition through conditions for MCN
+	framework.Logf("Checking Updated=False")
+	err := waitForMCNConditionStatus(clientSet, workerNode.Name, "Updated", "False", 1*time.Minute, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking UpdatePrepared=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdatePrepared", "True", 1*time.Minute, 3*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking UpdateExecuted=Unknown")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdateExecuted", "Unknown", 1*time.Minute, 3*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking Cordoned=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Cordoned", "True", 30*time.Second, 3*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking Drained=Unknown")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Drained", "Unknown", 30*time.Second, 2*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	// Failing here!
+	framework.Logf("Checking Drained=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Drained", "True", 7*time.Minute, 10*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking AppliedFilesAndOS=Unknown")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "AppliedFilesAndOS", "Unknown", 1*time.Minute, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking AppliedFilesAndOS=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "AppliedFilesAndOS", "True", 3*time.Minute, 2*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking UpdateExecuted=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdateExecuted", "True", 20*time.Second, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking UpdatePostActionComplete=Unknown")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdatePostActionComplete", "Unknown", 30*time.Second, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking RebootedNode=Unknown")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "RebootedNode", "Unknown", 15*time.Second, 3*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking RebootedNode=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "RebootedNode", "True", 5*time.Minute, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking Resumed=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Resumed", "True", 15*time.Second, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking UpdateComplete=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdateComplete", "True", 10*time.Second, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking Uncordoned=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Uncordoned", "True", 10*time.Second, 2*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf("Checking Updated=True")
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Updated", "True", 1*time.Minute, 5*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// When an update is complete, all conditions other than `Updated` must be false
+	framework.Logf("Checking all conditions other than 'Updated' are False.")
+	o.Expect(confirmUpdatedMCNStatus(clientSet, workerNode.Name)).Should(o.BeTrue())
 }
 
 // TODO: test this cleanup works when running full test

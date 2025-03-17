@@ -10,6 +10,7 @@ import (
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
+	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	opv1 "github.com/openshift/api/operator/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -36,6 +37,8 @@ const (
 	mapiMasterMachineLabelSelector  = "machine.openshift.io/cluster-api-machine-role=master"
 	mapiMachineSetArchAnnotationKey = "capacity.cluster-autoscaler.kubernetes.io/labels"
 )
+
+// TODO: add error message returns for `.NotTo(o.HaveOccurred())` cases.
 
 // skipUnlessTargetPlatform skips the test if it is running on the target platform
 func skipUnlessTargetPlatform(oc *exutil.CLI, platformType osconfigv1.PlatformType) {
@@ -398,4 +401,112 @@ func WaitForMCPToBeReady(oc *exutil.CLI, poolName string) error {
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
+}
+
+// GetCordonedNodes get cordoned nodes (if maxUnavailable > 1 ) otherwise return the 1st cordoned node
+func GetCordonedNodes(oc *exutil.CLI, mcpName string) []corev1.Node {
+	// Wait for the MCP to start updating
+	o.Expect(waitForMCPConditionStatus(oc, mcpName, "Updating", "True")).NotTo(o.HaveOccurred(), "Waiting for 'Updating' status change failed.")
+
+	// Get updating node
+	var allUpdatingNodes []corev1.Node
+	o.Eventually(func() bool {
+		nodes, nodeErr := GetNodesByRole(oc, mcpName)
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting nodes from %v MCP.", mcpName)
+		o.Expect(nodes).ShouldNot(o.BeEmpty(), "No nodes found for %v MCP.", mcpName)
+
+		for _, node := range nodes {
+			unschedulable := node.Spec.Unschedulable
+			if unschedulable {
+				allUpdatingNodes = append(allUpdatingNodes, node)
+			}
+		}
+
+		return len(allUpdatingNodes) > 0
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
+
+	return allUpdatingNodes
+}
+
+// `waitForMCPConditionStatus` waits until the desired MCP condition matches the desired status (ex. wait until "Updating" is "True")
+func waitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcfgv1.MachineConfigPoolConditionType, status corev1.ConditionStatus) error {
+	framework.Logf("Waiting for MCP %s condition %s to be %s.", mcpName, conditionType, status)
+
+	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Eventually(func() bool {
+		// Get MCP
+		mcp, mcpErr := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), mcpName, metav1.GetOptions{})
+		if mcpErr != nil {
+			framework.Logf("Failed to grab MCP %v, error :%v", mcpName, err)
+			return false
+		}
+
+		// Loop through conditions to get check for desired condition type/status combonation
+		conditions := mcp.Status.Conditions
+		for _, condition := range conditions {
+			if condition.Type == conditionType {
+				framework.Logf("MCP %s condition %s status is %s", mcp.Name, conditionType, condition.Status)
+				return condition.Status == status
+			}
+		}
+
+		framework.Logf("Waiting for %v MCP's %v condition to be %v.", mcp.Name, conditionType, status)
+		return false
+	}, 5*time.Minute, 3*time.Second).Should(o.BeTrue())
+	return nil
+}
+
+// `waitForMCNConditionStatus` waits until the desired MCN condition matches the desired status (ex. wait until "Updated" is "False")
+func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType string, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
+	o.Eventually(func() bool {
+		// Get MCN & desried condition status
+		workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+		o.Expect(workerErr).NotTo(o.HaveOccurred())
+		conditionStatus := getMCNConditionStatus(workerNodeMCN, conditionType)
+		if conditionStatus == status {
+			return true
+		}
+
+		framework.Logf("Waiting for MCN %v %v condition to be %v.", mcnName, conditionType, status)
+		return false
+	}, timeout, interval).Should(o.BeTrue())
+	return nil
+}
+
+// `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
+func getMCNConditionStatus(mcn *v1alpha1.MachineConfigNode, conditionType string) metav1.ConditionStatus {
+	// Loop through conditions and return the status of the desired condition type
+	conditions := mcn.Status.Conditions
+	for _, condition := range conditions {
+		if condition.Type == conditionType {
+			framework.Logf("MCN %s condition %s status is %s", mcn.Name, conditionType, condition.Status)
+			return condition.Status
+		}
+	}
+	return ""
+}
+
+// `confirmUpdatedMCNStatus` confirms that an MCN is in a fully updated state, which requires:
+//  1. "Updated" = True
+//  2. All other conditions = False
+func confirmUpdatedMCNStatus(clientSet *machineconfigclient.Clientset, mcnName string) bool {
+	// Get MCN
+	workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+	o.Expect(workerErr).NotTo(o.HaveOccurred())
+
+	// Loop through conditions and return the status of the desired condition type
+	conditions := workerNodeMCN.Status.Conditions
+	for _, condition := range conditions {
+		if condition.Type == "Updated" && condition.Status != "True" {
+			framework.Logf("Node %s update is not complete; 'Updated' condition status is %v", mcnName, condition.Status)
+			return false
+		} else if condition.Type != "Updated" && condition.Status != "False" {
+			framework.Logf("Node %s is updated but MCN is invalid; '%v' codition status is %v", mcnName, condition.Type, condition.Status)
+			return false
+		}
+	}
+
+	framework.Logf("Node %s update is complete and MCN is valid.", mcnName)
+	return true
 }
