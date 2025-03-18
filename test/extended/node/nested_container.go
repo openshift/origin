@@ -13,8 +13,11 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var oc = exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
-var name = "baseline-nested-container"
+var (
+	oc          = exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
+	customImage = exutil.FixturePath("testdata", "node", "nested_container")
+	name        = "baseline-nested-container"
+)
 
 var _ = g.Describe("[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container", func() {
 	g.It("should pass podman localsystem test in baseline mode (serial)", func(ctx context.Context) {
@@ -34,7 +37,11 @@ var _ = g.Describe("[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamesp
 })
 
 func runNestedPod(ctx context.Context, command ...string) {
-	// Don't build the image but use the prebuilt image, because it takes a lot of time and causes interruption.
+	g.By("create custom builder image")
+	err := oc.Run("new-build").Args("--binary", "--strategy=docker", fmt.Sprintf("--name=%s", name)).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	br, _ := exutil.StartBuildAndWait(oc, name, fmt.Sprintf("--from-dir=%s", customImage))
+	br.AssertSuccess()
 	g.By("creating a pod with a nested container")
 	namespace := oc.Namespace()
 	pod := &corev1.Pod{
@@ -78,7 +85,7 @@ func runNestedPod(ctx context.Context, command ...string) {
 			},
 		},
 	}
-	_, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+	_, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("waiting for the pod to complete")
