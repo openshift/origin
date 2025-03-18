@@ -201,6 +201,27 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 	}
 
+	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
+	// begins to pass we can remove the annotation logic
+	var annotatedSkipped []string
+	for _, t := range externalTestCases {
+		if strings.Contains(t.name, "[Skipped") {
+			annotatedSkipped = append(annotatedSkipped, t.name)
+		}
+	}
+	var skippedAnnotationSyntheticTestResults []*junitapi.JUnitTestCase
+	skippedAnnotationSyntheticTestResult := junitapi.JUnitTestCase{
+		Name: "[sig-trt] Skipped annotations present",
+	}
+	if len(annotatedSkipped) > 0 {
+		skippedAnnotationSyntheticTestResult.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("Skipped Annotations present in tests: %s", strings.Join(annotatedSkipped, ", ")),
+		}
+	}
+	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &skippedAnnotationSyntheticTestResult)
+	// If this fails, this additional run will make it flake
+	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &junitapi.JUnitTestCase{Name: skippedAnnotationSyntheticTestResult.Name})
+
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
@@ -512,6 +533,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
+	syntheticTestResults = append(syntheticTestResults, skippedAnnotationSyntheticTestResults...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
