@@ -62,8 +62,5 @@ RUN mkdir -p /home/podman/go/src/github.com/containers && \
 	git clone --depth=1 --branch ${VERSION} https://github.com/containers/podman && \
 	cd podman && \
 	make bin/podman-testing bin/podman
-WORKDIR /home/podman/go/src/github.com/containers/podman
-COPY --chown=podman:podman --chmod=755 skip_tests.sh skip_tests.sh
-RUN ./skip_tests.sh
 ENTRYPOINT ["/usr/libexec/podman/catatonit", "--"]
 CMD [ "tail", "-f", "/dev/null" ]

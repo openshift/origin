@@ -432,8 +432,8 @@
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
-// test/extended/testdata/node/Dockerfile
-// test/extended/testdata/node/skip_tests.sh
+// test/extended/testdata/node/nested_container/Dockerfile
+// test/extended/testdata/node/nested_container/skip_tests.sh
 // test/extended/testdata/node_tuning/nto-stalld.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
@@ -49733,29 +49733,29 @@ func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml() (*asset, error)
 	return a, nil
 }
 
-var _testExtendedTestdataNodeDockerfile = []byte(`FROM quay.io/crio/nested-container:v5.4.0
+var _testExtendedTestdataNodeNested_containerDockerfile = []byte(`FROM quay.io/crio/nested-container:latest
 
 WORKDIR /home/podman/go/src/github.com/containers/podman
 COPY --chown=podman:podman --chmod=755 skip_tests.sh skip_tests.sh
 RUN ./skip_tests.sh
 `)
 
-func testExtendedTestdataNodeDockerfileBytes() ([]byte, error) {
-	return _testExtendedTestdataNodeDockerfile, nil
+func testExtendedTestdataNodeNested_containerDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeNested_containerDockerfile, nil
 }
 
-func testExtendedTestdataNodeDockerfile() (*asset, error) {
-	bytes, err := testExtendedTestdataNodeDockerfileBytes()
+func testExtendedTestdataNodeNested_containerDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeNested_containerDockerfileBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/node/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/node/nested_container/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _testExtendedTestdataNodeSkip_testsSh = []byte(`#!/usr/bin/env bash
+var _testExtendedTestdataNodeNested_containerSkip_testsSh = []byte(`#!/usr/bin/env bash
 set -e
 
 TEST_DIR=test/system
@@ -49818,7 +49818,7 @@ insert_skip 700-play.bats "podman kube play healthcheck should wait initialDelay
 # cgroup
 # cannot pause the container without a cgroup
 # https://github.com/containers/podman/issues/12782
-rm $TEST_DIR/080-pause.bats
+#rm $TEST_DIR/080-pause.bats
 insert_skip 200-pod.bats "podman pod cleans cgroup and keeps limits"
 # opening file ` + "`" + `memory.max` + "`" + ` for writing: Permission denied
 insert_skip 280-update.bats "podman update - test all options"
@@ -49826,11 +49826,11 @@ insert_skip 280-update.bats "podman update - resources on update are not changed
 insert_skip 600-completion.bats "podman shell completion test"
 
 # systemd
-rm $TEST_DIR/250-systemd.bats
-rm $TEST_DIR/251-system-service.bats
-rm $TEST_DIR/252-quadlet.bats
-rm $TEST_DIR/255-auto-update.bats
-rm $TEST_DIR/270-socket-activation.bats
+#rm $TEST_DIR/250-systemd.bats
+#rm $TEST_DIR/251-system-service.bats
+#rm $TEST_DIR/252-quadlet.bats
+#rm $TEST_DIR/255-auto-update.bats
+#rm $TEST_DIR/270-socket-activation.bats
 insert_skip 030-run.bats "podman run --log-driver" # FAIL: podman logs, with driver 'journald'
 insert_skip 035-logs.bats "podman logs - tail test, journald"
 insert_skip 035-logs.bats "podman logs - multi journald"
@@ -49848,17 +49848,17 @@ insert_skip 220-healthcheck.bats "podman healthcheck --health-log-destination jo
 insert_skip 420-cgroups.bats "podman run, preserves initial --cgroup-manager"
 `)
 
-func testExtendedTestdataNodeSkip_testsShBytes() ([]byte, error) {
-	return _testExtendedTestdataNodeSkip_testsSh, nil
+func testExtendedTestdataNodeNested_containerSkip_testsShBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeNested_containerSkip_testsSh, nil
 }
 
-func testExtendedTestdataNodeSkip_testsSh() (*asset, error) {
-	bytes, err := testExtendedTestdataNodeSkip_testsShBytes()
+func testExtendedTestdataNodeNested_containerSkip_testsSh() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeNested_containerSkip_testsShBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/node/skip_tests.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/node/nested_container/skip_tests.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55843,8 +55843,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
-	"test/extended/testdata/node/Dockerfile":                                                                 testExtendedTestdataNodeDockerfile,
-	"test/extended/testdata/node/skip_tests.sh":                                                              testExtendedTestdataNodeSkip_testsSh,
+	"test/extended/testdata/node/nested_container/Dockerfile":                                                testExtendedTestdataNodeNested_containerDockerfile,
+	"test/extended/testdata/node/nested_container/skip_tests.sh":                                             testExtendedTestdataNodeNested_containerSkip_testsSh,
 	"test/extended/testdata/node_tuning/nto-stalld.yaml":                                                     testExtendedTestdataNode_tuningNtoStalldYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
@@ -56603,8 +56603,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
 				}},
 				"node": {nil, map[string]*bintree{
-					"Dockerfile":    {testExtendedTestdataNodeDockerfile, map[string]*bintree{}},
-					"skip_tests.sh": {testExtendedTestdataNodeSkip_testsSh, map[string]*bintree{}},
+					"nested_container": {nil, map[string]*bintree{
+						"Dockerfile":    {testExtendedTestdataNodeNested_containerDockerfile, map[string]*bintree{}},
+						"skip_tests.sh": {testExtendedTestdataNodeNested_containerSkip_testsSh, map[string]*bintree{}},
+					}},
 				}},
 				"node_tuning": {nil, map[string]*bintree{
 					"nto-stalld.yaml": {testExtendedTestdataNode_tuningNtoStalldYaml, map[string]*bintree{}},

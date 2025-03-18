@@ -61,7 +61,7 @@ insert_skip 700-play.bats "podman kube play healthcheck should wait initialDelay
 # cgroup
 # cannot pause the container without a cgroup
 # https://github.com/containers/podman/issues/12782
-rm $TEST_DIR/080-pause.bats
+#rm $TEST_DIR/080-pause.bats
 insert_skip 200-pod.bats "podman pod cleans cgroup and keeps limits"
 # opening file `memory.max` for writing: Permission denied
 insert_skip 280-update.bats "podman update - test all options"
@@ -69,11 +69,11 @@ insert_skip 280-update.bats "podman update - resources on update are not changed
 insert_skip 600-completion.bats "podman shell completion test"
 
 # systemd
-rm $TEST_DIR/250-systemd.bats
-rm $TEST_DIR/251-system-service.bats
-rm $TEST_DIR/252-quadlet.bats
-rm $TEST_DIR/255-auto-update.bats
-rm $TEST_DIR/270-socket-activation.bats
+#rm $TEST_DIR/250-systemd.bats
+#rm $TEST_DIR/251-system-service.bats
+#rm $TEST_DIR/252-quadlet.bats
+#rm $TEST_DIR/255-auto-update.bats
+#rm $TEST_DIR/270-socket-activation.bats
 insert_skip 030-run.bats "podman run --log-driver" # FAIL: podman logs, with driver 'journald'
 insert_skip 035-logs.bats "podman logs - tail test, journald"
 insert_skip 035-logs.bats "podman logs - multi journald"
