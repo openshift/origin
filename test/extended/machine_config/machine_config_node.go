@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
+	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -34,12 +34,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 		oc                          = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
-	// TODO: Update to properly cleanup after tests
-	// g.AfterAll(func(ctx context.Context) {
-	// 	// clean up the created custom MCP
-	// 	CleanupCustomMCP(oc)
-	// })
-
 	g.It("Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNProperties(oc, infraMCPFixture)
 	})
@@ -52,7 +46,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 // `ValidateMCNProperties` checks that MCN properties match the corresponding node properties
 func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 	// Create client set for test
-	clientSet, clientErr := mcClient.NewForConfig(oc.KubeFramework().ClientConfig())
+	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred())
 
 	// Grab a random node from each default pool
@@ -99,8 +93,29 @@ func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 	labelErr := oc.Run("label").Args(fmt.Sprintf("node/%s", workerNode.Name), fmt.Sprintf("node-role.kubernetes.io/%s=", custom)).Execute()
 	o.Expect(labelErr).NotTo(o.HaveOccurred())
 
+	defer func() {
+		// Get starting state of default worker MCP
+		workerMcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		workerMcpReadyMachines := workerMcp.Status.ReadyMachineCount
+
+		// Unlabel node
+		framework.Logf("Removing label node-role.kubernetes.io/%v from node %v", custom, workerNode.Name)
+		unlabelErr := oc.Run("label").Args(fmt.Sprintf("node/%s", workerNode.Name), fmt.Sprintf("node-role.kubernetes.io/%s-", custom)).Execute()
+		o.Expect(unlabelErr).NotTo(o.HaveOccurred())
+
+		// Wait for infra pool to report no nodes & for worker MCP to be ready
+		WaitForMCPToBeReady(oc, clientSet, custom, 0)
+		WaitForMCPToBeReady(oc, clientSet, worker, workerMcpReadyMachines+1)
+
+		// Delete custom MCP
+		framework.Logf("Deleting MCP %v", custom)
+		deleteMCPErr := oc.Run("delete").Args("mcp", custom).Execute()
+		o.Expect(deleteMCPErr).NotTo(o.HaveOccurred())
+	}()
+
 	// Wait for the custom pool to be updated with the node ready
-	WaitForMCPToBeReady(oc, custom)
+	WaitForMCPToBeReady(oc, clientSet, custom, 1)
 
 	// Get node desired and current config versions
 	customNodes, customNodeErr := GetNodesByRole(oc, custom)
@@ -134,7 +149,7 @@ func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 // `ValidateMCNConditionTransitions` check that Conditions properly update on a node update
 func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	// Create client set for test
-	clientSet, clientErr := mcClient.NewForConfig(oc.KubeFramework().ClientConfig())
+	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred())
 
 	// Apply MC targeting worker pool
@@ -206,34 +221,4 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	// When an update is complete, all conditions other than `Updated` must be false
 	framework.Logf("Checking all conditions other than 'Updated' are False.")
 	o.Expect(confirmUpdatedMCNStatus(clientSet, workerNode.Name)).Should(o.BeTrue())
-}
-
-// TODO: test this cleanup works when running full test
-// `CleanupCustomMCP` deletes the custom MCP for the MCN tests
-func CleanupCustomMCP(oc *exutil.CLI) {
-	// TODO: add length check to see if any nodes are labeled with custom role
-	// TODO: add check if mcp exists before trying to delete it
-
-	// Remove custom role from nodes
-	customNodes, customNodeErr := GetNodesByRole(oc, custom)
-	o.Expect(customNodeErr).NotTo(o.HaveOccurred())
-	for _, node := range customNodes {
-		framework.Logf("Unlabeling node %v", node.Name)
-		unlabelErr := oc.Run("label").Args(fmt.Sprintf("node/%s", node.Name), fmt.Sprintf("node-role.kubernetes.io/%s-", custom)).Execute()
-		o.Expect(unlabelErr).NotTo(o.HaveOccurred())
-	}
-
-	// Wait for worker MCP to be updated
-	// TODO: fix this since it seemes to not wait long enough to actually catch the mcp needing an update and being updated
-	// TODO: maybe check the node annotations instead?
-	// TODO: Maybe update WaitForMCPToBeReady to take an int again but have it be a number representing the previous number of machines in the pool? so that the updated can also chek if ready machine count is greater than the previous count.
-	framework.Logf("Waiting for worker MCP to re-sync.")
-	WaitForMCPToBeReady(oc, worker)
-
-	// Delete custom MCP
-	framework.Logf("Deleting MCP %v", custom)
-	deleteMCPErr := oc.Run("delete").Args("mcp", custom).Execute()
-	o.Expect(deleteMCPErr).NotTo(o.HaveOccurred())
-
-	framework.Logf("Custom MCP %v has been cleaned up.", custom)
 }

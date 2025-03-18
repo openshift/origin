@@ -383,10 +383,8 @@ func isMCDDone(node corev1.Node) bool {
 	return state == "Done"
 }
 
-// WaitForMCPToBeReady waits for a pool to be in an updated state with more than one ready machine
-func WaitForMCPToBeReady(oc *exutil.CLI, poolName string) error {
-	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(err).NotTo(o.HaveOccurred())
+// `WaitForMCPToBeReady` waits for a pool to be in an updated state with a specified number of ready machines
+func WaitForMCPToBeReady(oc *exutil.CLI, machineConfigClient *machineconfigclient.Clientset, poolName string, readyMachineCount int32) error {
 	o.Eventually(func() bool {
 		mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), poolName, metav1.GetOptions{})
 		if err != nil {
@@ -394,10 +392,10 @@ func WaitForMCPToBeReady(oc *exutil.CLI, poolName string) error {
 			return false
 		}
 		// Check if the pool is in an updated state with the correct number of ready machines
-		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount > 0 {
+		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount == readyMachineCount {
 			return true
 		}
-		framework.Logf("Waiting for %v MCP to be updated with ready machines.", poolName)
+		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", poolName, readyMachineCount)
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
