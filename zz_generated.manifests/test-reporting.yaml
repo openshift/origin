@@ -459,7 +459,9 @@ spec:
   - featureGate: ProcMountType
     tests:
     - testName: '[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport]
-        nested container should pass podman localsystem test in baseline mode'
+        nested container should pass podman localsystem test in baseline mode (parallel)'
+    - testName: '[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport]
+        nested container should pass podman localsystem test in baseline mode (serial)'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
@@ -549,7 +551,9 @@ spec:
   - featureGate: UserNamespacesSupport
     tests:
     - testName: '[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport]
-        nested container should pass podman localsystem test in baseline mode'
+        nested container should pass podman localsystem test in baseline mode (parallel)'
+    - testName: '[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport]
+        nested container should pass podman localsystem test in baseline mode (serial)'
   - featureGate: VSphereDriverConfiguration
     tests:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]

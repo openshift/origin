@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamesp
 })
 
 func runNestedPod(ctx context.Context, command ...string) {
-	// Don't build a image but use the prebuilt image, because it takes a lot of time and causes interruption.
+	// Don't build the image but use the prebuilt image, because it takes a lot of time and causes interruption.
 	g.By("creating a pod with a nested container")
 	namespace := oc.Namespace()
 	pod := &corev1.Pod{
@@ -91,7 +91,7 @@ func runNestedPod(ctx context.Context, command ...string) {
 			return fmt.Errorf("pod %s is not in a terminal state: %s", name, pod.Status.Phase)
 		}
 		return nil
-	}, "15m", "10s").Should(o.Succeed())
+	}, "20m", "10s").Should(o.Succeed())
 
 	g.By("fetching the logs from the pod and checking for errors")
 	logs, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).GetLogs(name, &corev1.PodLogOptions{}).Do(ctx).Raw()

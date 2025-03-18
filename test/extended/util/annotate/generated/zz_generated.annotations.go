@@ -1737,7 +1737,9 @@ var Annotations = map[string]string{
 
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
-	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode": " [Suite:openshift/conformance/parallel]",
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode (parallel)": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode (serial)": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
