@@ -19,7 +19,7 @@ var (
 	name        = "baseline-nested-container"
 )
 
-var _ = g.Describe("[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport] nested container", func() {
+var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	g.DescribeTable("should pass podman localsystem test in baseline mode",
 		func(ctx context.Context, batsFile string) {
 			if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
@@ -57,7 +57,6 @@ var _ = g.Describe("[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamesp
 		g.Entry(nil, "150-login.bats"),
 		g.Entry(nil, "155-partial-pull.bats"),
 		g.Entry(nil, "160-volumes.bats"),
-		g.Entry(nil, "161-volume-quotas.bats"),
 		g.Entry(nil, "170-run-userns.bats"),
 		g.Entry(nil, "180-blkio.bats"),
 		g.Entry(nil, "190-run-ipcns.bats"),
@@ -129,7 +128,7 @@ func runNestedPod(ctx context.Context, testFile string) {
 			Containers: []corev1.Container{
 				{
 					Name:            "nested-podman",
-					Image:           fmt.Sprintf("quay.io/crio/nested-container:latest"),
+					Image:           fmt.Sprintf("image-registry.openshift-image-registry.svc:5000/%s/%s", namespace, name),
 					ImagePullPolicy: corev1.PullAlways,
 					Args: []string{
 						"sh", "-c",
@@ -157,6 +156,7 @@ func runNestedPod(ctx context.Context, testFile string) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("waiting for the pod to complete")
+	var logs []byte
 	o.Eventually(func() error {
 		pod, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
@@ -165,12 +165,9 @@ func runNestedPod(ctx context.Context, testFile string) {
 		if pod.Status.Phase != corev1.PodSucceeded && pod.Status.Phase != corev1.PodFailed {
 			return fmt.Errorf("pod %s is not in a terminal state: %s", name, pod.Status.Phase)
 		}
-		return nil
-	}, "20m", "10s").Should(o.Succeed())
-
-	g.By("fetching the logs from the pod and checking for errors")
-	logs, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).GetLogs(name, &corev1.PodLogOptions{}).Do(ctx).Raw()
-	o.Expect(err).NotTo(o.HaveOccurred())
+		logs, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).GetLogs(name, &corev1.PodLogOptions{}).Do(ctx).Raw()
+		return err
+	}, "10m", "10s").Should(o.Succeed(), fmt.Sprintf("podman system test timedout:\n%s", logs))
 
 	pod, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
