@@ -100,11 +100,11 @@ var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:Proc
 })
 
 func runNestedPod(ctx context.Context, testFile string) {
-	g.By("create custom builder image")
-	err := oc.Run("new-build").Args("--binary", "--strategy=docker", fmt.Sprintf("--name=%s", name)).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	br, _ := exutil.StartBuildAndWait(oc, name, fmt.Sprintf("--from-dir=%s", customImage))
-	br.AssertSuccess()
+	//g.By("create custom builder image")
+	//err := oc.Run("new-build").Args("--binary", "--strategy=docker", fmt.Sprintf("--name=%s", name)).Execute()
+	//o.Expect(err).NotTo(o.HaveOccurred())
+	//br, _ := exutil.StartBuildAndWait(oc, name, fmt.Sprintf("--from-dir=%s", customImage))
+	//br.AssertSuccess()
 	g.By("creating a pod with a nested container")
 	namespace := oc.Namespace()
 	pod := &corev1.Pod{
@@ -128,7 +128,7 @@ func runNestedPod(ctx context.Context, testFile string) {
 			Containers: []corev1.Container{
 				{
 					Name:            "nested-podman",
-					Image:           fmt.Sprintf("image-registry.openshift-image-registry.svc:5000/%s/%s", namespace, name),
+					Image:           "quay.io/crio/nested-container:v5.4.0",
 					ImagePullPolicy: corev1.PullAlways,
 					Args: []string{
 						"sh", "-c",
@@ -152,7 +152,7 @@ func runNestedPod(ctx context.Context, testFile string) {
 			},
 		},
 	}
-	_, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+	_, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("waiting for the pod to complete")
