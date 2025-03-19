@@ -12,6 +12,15 @@ function insert_skip {
 	skip 'not working in cri-o'" "$TEST_DIR/$file"
 }
 
+# cannot pause without cgroup, and no cgroup in rootless container
+rm $TEST_DIR/080-pause.bats
+# systemd
+rm $TEST_DIR/250-systemd.bats
+rm $TEST_DIR/251-system-service.bats
+rm $TEST_DIR/252-quadlet.bats
+rm $TEST_DIR/255-auto-update.bats
+rm $TEST_DIR/270-socket-activation.bats
+
 # Error: retrieving label for image "a6b6f7ac212ddfdb879e9b9c4df1655c9b07ead8b028110e657364485c577bff": you may need to remove the image to resolve the error: fallback error checking whether image is a manifest list: choosing image instance: no image found in manifest list for architecture "amd64", variant "", OS "linux": choosing image instance: no image found in manifest list for architecture "amd64", variant "", OS "linux"
 insert_skip 012-manifest.bats "podman images - bare manifest"
 # There is only one tty - /dev/tty
@@ -68,11 +77,6 @@ insert_skip 280-update.bats "podman update - resources on update are not changed
 insert_skip 600-completion.bats "podman shell completion test"
 
 # systemd
-#rm $TEST_DIR/250-systemd.bats
-#rm $TEST_DIR/251-system-service.bats
-#rm $TEST_DIR/252-quadlet.bats
-#rm $TEST_DIR/255-auto-update.bats
-#rm $TEST_DIR/270-socket-activation.bats
 insert_skip 030-run.bats "podman run --log-driver" # FAIL: podman logs, with driver 'journald'
 insert_skip 035-logs.bats "podman logs - tail test, journald"
 insert_skip 035-logs.bats "podman logs - multi journald"
