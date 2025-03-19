@@ -31,6 +31,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 		MCOMachineConfigBaseDir     = exutil.FixturePath("testdata", "machine_config", "machineconfig")
 		infraMCPFixture             = filepath.Join(MCOMachineConfigPoolBaseDir, "infra-mcp.yaml")
 		testFileMCFixture           = filepath.Join(MCOMachineConfigBaseDir, "0-worker-mc.yaml")
+		invalidMCFixture            = filepath.Join(MCOMachineConfigBaseDir, "1-worker-invalid-mc.yaml")
 		oc                          = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
@@ -40,6 +41,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 
 	g.It("Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNConditionTransitions(oc, testFileMCFixture)
+	})
+
+	g.It("Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", func() {
+		ValidateMCNConditionOnNodeDegrade(oc, invalidMCFixture)
 	})
 })
 
@@ -158,7 +163,7 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 
 	// Delete MC on failure or test completion
 	defer func() {
-		deleteMCErr := oc.Run("delete").Args("machineconfig", "99-worker-testfile").Execute()
+		deleteMCErr := oc.Run("delete").Args("machineconfig", "90-worker-testfile").Execute()
 		o.Expect(deleteMCErr).NotTo(o.HaveOccurred())
 	}()
 
@@ -168,6 +173,7 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	workerNode := updatingNodes[0]
 
 	// Validate transition through conditions for MCN
+	// TODO: make consts for the statuses
 	framework.Logf("Checking Updated=False")
 	err := waitForMCNConditionStatus(clientSet, workerNode.Name, "Updated", "False", 1*time.Minute, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -183,7 +189,6 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	framework.Logf("Checking Drained=Unknown")
 	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Drained", "Unknown", 30*time.Second, 2*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	// Failing here!
 	framework.Logf("Checking Drained=True")
 	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Drained", "True", 7*time.Minute, 10*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -221,4 +226,43 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	// When an update is complete, all conditions other than `Updated` must be false
 	framework.Logf("Checking all conditions other than 'Updated' are False.")
 	o.Expect(confirmUpdatedMCNStatus(clientSet, workerNode.Name)).Should(o.BeTrue())
+}
+
+// `ValidateMCNConditionOnNodeDegrade` check that Conditions properly update on a node update
+func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string) {
+	// Create client set for test
+	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(clientErr).NotTo(o.HaveOccurred())
+
+	// Apply invalid MC targeting worker pool
+	mcErr := oc.Run("apply").Args("-f", fixture).Execute()
+	o.Expect(mcErr).NotTo(o.HaveOccurred())
+
+	// Cleanup MC and fix node degradation on failure or test completion
+	defer func() {
+		// Delete the applied MC
+		deleteMCErr := oc.Run("delete").Args("machineconfig", "91-worker-testfile-invalid").Execute()
+		o.Expect(deleteMCErr).NotTo(o.HaveOccurred())
+
+		// Recover the degraded MCP
+		recoverErr := recoverFromDegraded(oc, worker)
+		o.Expect(recoverErr).NotTo(o.HaveOccurred())
+	}()
+
+	// Wait for worker MCP to be in a degraded state with one degraded machine
+	// TODO consolidate into helper func that doesn't require getting MCP more than required
+	o.Expect(waitForMCPConditionStatus(oc, worker, "Degraded", "True")).NotTo(o.HaveOccurred(), "Error waiting for %v MCP to be in a degraded state.")
+	workerMcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting %v MCP.", worker)
+	o.Expect(workerMcp.Status.DegradedMachineCount).To(o.BeNumerically("==", 1), "Degraded machine count is not 1.")
+
+	// Get degraded worker node
+	degradedNode, degradedNodeErr := GetDegradedNode(oc, worker)
+	o.Expect(degradedNodeErr).NotTo(o.HaveOccurred(), "Error getting degraded node for %v MCP.", worker)
+
+	// Validate MCN of degraded node
+	degradedNodeMCN, degradedErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), degradedNode.Name, metav1.GetOptions{})
+	o.Expect(degradedErr).NotTo(o.HaveOccurred())
+	o.Expect(checkMCNConditionStatus(degradedNodeMCN, "AppliedFilesAndOS", "Unknown"))
+	o.Expect(checkMCNConditionStatus(degradedNodeMCN, "UpdateExecuted", "Unknown"))
 }

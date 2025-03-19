@@ -3,7 +3,7 @@ kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: worker
-  name: 90-worker-testfile
+  name: 91-worker-testfile-invalid
 spec:
   config:
     ignition:
@@ -11,6 +11,9 @@ spec:
     storage:
       files:
       - contents:
-          source: data:,hello%20world%0A
+          source: data:text/plain;charset=utf-8;base64,dGVzdA==
         mode: 420
-        path: /home/core/test
+        path: /etc/wronguser-test-file.test
+        user:
+          name: wronguser
+

@@ -3,6 +3,7 @@ package machine_config
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
@@ -39,6 +40,7 @@ const (
 )
 
 // TODO: add error message returns for `.NotTo(o.HaveOccurred())` cases.
+// TODO: fix caplitalization of helper funcs
 
 // skipUnlessTargetPlatform skips the test if it is running on the target platform
 func skipUnlessTargetPlatform(oc *exutil.CLI, platformType osconfigv1.PlatformType) {
@@ -401,7 +403,7 @@ func WaitForMCPToBeReady(oc *exutil.CLI, machineConfigClient *machineconfigclien
 	return nil
 }
 
-// GetCordonedNodes get cordoned nodes (if maxUnavailable > 1 ) otherwise return the 1st cordoned node
+// `GetCordonedNodes` get cordoned nodes (if maxUnavailable > 1 ) otherwise return the 1st cordoned node
 func GetCordonedNodes(oc *exutil.CLI, mcpName string) []corev1.Node {
 	// Wait for the MCP to start updating
 	o.Expect(waitForMCPConditionStatus(oc, mcpName, "Updating", "True")).NotTo(o.HaveOccurred(), "Waiting for 'Updating' status change failed.")
@@ -413,6 +415,7 @@ func GetCordonedNodes(oc *exutil.CLI, mcpName string) []corev1.Node {
 		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting nodes from %v MCP.", mcpName)
 		o.Expect(nodes).ShouldNot(o.BeEmpty(), "No nodes found for %v MCP.", mcpName)
 
+		// TOOD: cleanup
 		for _, node := range nodes {
 			unschedulable := node.Spec.Unschedulable
 			if unschedulable {
@@ -451,25 +454,28 @@ func waitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 
 		framework.Logf("Waiting for %v MCP's %v condition to be %v.", mcp.Name, conditionType, status)
 		return false
-	}, 5*time.Minute, 3*time.Second).Should(o.BeTrue())
+	}, 2*time.Minute, 3*time.Second).Should(o.BeTrue())
 	return nil
 }
 
 // `waitForMCNConditionStatus` waits until the desired MCN condition matches the desired status (ex. wait until "Updated" is "False")
 func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType string, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
 	o.Eventually(func() bool {
-		// Get MCN & desried condition status
+		framework.Logf("Waiting for MCN %v %v condition to be %v.", mcnName, conditionType, status)
+
+		// Get MCN & check if the MCN condition status matches the desired status
 		workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
 		o.Expect(workerErr).NotTo(o.HaveOccurred())
-		conditionStatus := getMCNConditionStatus(workerNodeMCN, conditionType)
-		if conditionStatus == status {
-			return true
-		}
-
-		framework.Logf("Waiting for MCN %v %v condition to be %v.", mcnName, conditionType, status)
-		return false
+		return checkMCNConditionStatus(workerNodeMCN, conditionType, status)
 	}, timeout, interval).Should(o.BeTrue())
 	return nil
+}
+
+// `checkMCNConditionStatus` checks that an MCN condition matches the desired status (ex. confirm "Updated" is "False")
+func checkMCNConditionStatus(mcn *v1alpha1.MachineConfigNode, conditionType string, status metav1.ConditionStatus) bool {
+	conditionStatus := getMCNConditionStatus(mcn, conditionType)
+	framework.Logf("MCN %v %v condition is %v.", mcn.Name, conditionType, conditionStatus)
+	return conditionStatus == status
 }
 
 // `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
@@ -507,4 +513,71 @@ func confirmUpdatedMCNStatus(clientSet *machineconfigclient.Clientset, mcnName s
 
 	framework.Logf("Node %s update is complete and MCN is valid.", mcnName)
 	return true
+}
+
+// TODO: consolidate with similar functions
+func GetDegradedNode(oc *exutil.CLI, mcpName string) (corev1.Node, error) {
+	// Get nodes in desired pool
+	nodes, nodeErr := GetNodesByRole(oc, mcpName)
+	o.Expect(nodeErr).NotTo(o.HaveOccurred())
+	o.Expect(nodes).ShouldNot(o.BeEmpty())
+
+	// Get degraded node
+	for _, node := range nodes {
+		// TODO: create generalized get node state helper
+		state := node.Annotations["machineconfiguration.openshift.io/state"]
+		if state == "Degraded" {
+			return node, nil
+		}
+	}
+
+	return corev1.Node{}, errors.New("no degraded node found")
+}
+
+// `recoverFromDegraded` updates the current and desired machine configs so that the pool can recover from degraded state once the offending MC is deleted
+func recoverFromDegraded(oc *exutil.CLI, mcpName string) error {
+	framework.Logf("Recovering %s pool from degraded state", mcpName)
+
+	// Get nodes from degraded MCP & update the desired config of the degraded node to force a recovery update
+	nodes, nodeErr := GetNodesByRole(oc, mcpName)
+	o.Expect(nodeErr).NotTo(o.HaveOccurred())
+	o.Expect(nodes).ShouldNot(o.BeEmpty())
+	for _, node := range nodes {
+		framework.Logf("Restoring desired config for node: %s", node.Name)
+		state := node.Annotations["machineconfiguration.openshift.io/state"]
+		if state == "Done" {
+			framework.Logf("Node %s is updated and does not need to be recovered", node.Name)
+		} else {
+			err := restoreDesiredConfig(oc, node)
+			if err != nil {
+				return fmt.Errorf("error restoring desired config in node %s. Error: %s", node.Name, err)
+			}
+		}
+	}
+
+	// Wait for MCP to not be in degraded status
+	mcpErr := waitForMCPConditionStatus(oc, mcpName, "Degraded", "False")
+	o.Expect(mcpErr).NotTo(o.HaveOccurred(), fmt.Sprintf("could not recover %v MCP from the degraded status.", mcpName))
+	mcpErr = waitForMCPConditionStatus(oc, mcpName, "Updated", "True")
+	o.Expect(mcpErr).NotTo(o.HaveOccurred(), fmt.Sprintf("%v MCP could not reach an updated state.", mcpName))
+	return nil
+}
+
+// TODO: generalize with get node status to just pass in the general node annotation label
+func getCurrentMachineConfig(node corev1.Node) string {
+	return node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+}
+
+// `restoreDesiredConfig` updates the value of a node's desiredConfig annotation to be equal to the value of its currentConfig (desiredConfig=currentConfig)
+func restoreDesiredConfig(oc *exutil.CLI, node corev1.Node) error {
+	// Get current config
+	currentConfig := getCurrentMachineConfig(node)
+	if currentConfig == "" {
+		return fmt.Errorf("currentConfig annotation is empty for node %s", node.Name)
+	}
+
+	// Update desired config to be equal to current config
+	framework.Logf("Node: %s is restoring desiredConfig value to match currentConfig value: %s", node.Name, currentConfig)
+	configErr := oc.Run("patch").Args(fmt.Sprintf("node/%v", node.Name), "--patch", fmt.Sprintf(`{"metadata":{"annotations":{"machineconfiguration.openshift.io/desiredConfig":"%v"}}}`, currentConfig), "--type=merge").Execute()
+	return configErr
 }

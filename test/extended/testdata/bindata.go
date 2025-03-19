@@ -419,6 +419,7 @@
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
 // test/extended/testdata/machine_config/machineconfig/0-worker-mc.yaml
+// test/extended/testdata/machine_config/machineconfig/1-worker-invalid-mc.yaml
 // test/extended/testdata/machine_config/machineconfigpool/infra-mcp.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml
@@ -48982,7 +48983,7 @@ kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: worker
-  name: 99-worker-testfile
+  name: 90-worker-testfile
 spec:
   config:
     ignition:
@@ -49005,6 +49006,42 @@ func testExtendedTestdataMachine_configMachineconfig0WorkerMcYaml() (*asset, err
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfig/0-worker-mc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 91-worker-testfile-invalid
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,dGVzdA==
+        mode: 420
+        path: /etc/wronguser-test-file.test
+        user:
+          name: wronguser
+
+`)
+
+func testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfig/1-worker-invalid-mc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55759,6 +55796,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/long_names/Dockerfile":                                                           testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json":                                                         testExtendedTestdataLong_namesFixtureJson,
 	"test/extended/testdata/machine_config/machineconfig/0-worker-mc.yaml":                                   testExtendedTestdataMachine_configMachineconfig0WorkerMcYaml,
+	"test/extended/testdata/machine_config/machineconfig/1-worker-invalid-mc.yaml":                           testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYaml,
 	"test/extended/testdata/machine_config/machineconfigpool/infra-mcp.yaml":                                 testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml":                 testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml":                testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml,
@@ -56505,7 +56543,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"machine_config": {nil, map[string]*bintree{
 					"machineconfig": {nil, map[string]*bintree{
-						"0-worker-mc.yaml": {testExtendedTestdataMachine_configMachineconfig0WorkerMcYaml, map[string]*bintree{}},
+						"0-worker-mc.yaml":         {testExtendedTestdataMachine_configMachineconfig0WorkerMcYaml, map[string]*bintree{}},
+						"1-worker-invalid-mc.yaml": {testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYaml, map[string]*bintree{}},
 					}},
 					"machineconfigpool": {nil, map[string]*bintree{
 						"infra-mcp.yaml": {testExtendedTestdataMachine_configMachineconfigpoolInfraMcpYaml, map[string]*bintree{}},
