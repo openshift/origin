@@ -9,6 +9,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/library-go/test/library"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -17,13 +18,13 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const tlsTestDuration = 10 * time.Minute
+const tlsTestDuration = 45 * time.Minute
 const tlsWaitForCleanupDuration = 10 * time.Minute
 
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("apiserver")
+	oc := exutil.NewCLIWithoutNamespace("apiserver")
 
 	g.It("TestTLSModernProfile", func() {
 		ctx, ctxCancelFn := context.WithTimeout(context.Background(), tlsTestDuration)
@@ -32,7 +33,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 		t := g.GinkgoT()
 
 		configClient := oc.AdminConfigClient()
-		
+
 		operatorClient := oc.AdminOperatorClient()
 
 		defer func() {
@@ -40,17 +41,17 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 
 			cleanupCtx, cancelCleanup := context.WithTimeout(context.Background(), tlsWaitForCleanupDuration)
 			defer cancelCleanup()
-	
+
 			kasStatus, err := operatorClient.OperatorV1().KubeAPIServers().Get(cleanupCtx, "cluster", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-	
+
 			currentRevision := kasStatus.Status.LatestAvailableRevision
-	
+
 			removeModernProfilePatch := `[{"op":"remove","path":"/spec/tlsSecurityProfile"}]`
-	
+
 			_, err = configClient.ConfigV1().APIServers().Patch(cleanupCtx, "cluster", types.JSONPatchType, []byte(removeModernProfilePatch), metav1.PatchOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-	
+
 			_, err = waitForKASIncrementedRevision(cleanupCtx, operatorClient, "cluster", currentRevision)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
@@ -60,16 +61,22 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 		kasStatus, err := operatorClient.OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		currentRevision := kasStatus.Status.LatestAvailableRevision
+		currentKASRevision := kasStatus.Status.LatestAvailableRevision
 
 		addModernProfilePatch := `[{"op":"add","path":"/spec/tlsSecurityProfile","value":{"type":"Modern","modern":{}}}]`
 
 		_, err = configClient.ConfigV1().APIServers().Patch(ctx, "cluster", types.JSONPatchType, []byte(addModernProfilePatch), metav1.PatchOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("Waiting for etcd to stabilize")
+
+		podClient := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd")
+		err = library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 5, 24*time.Second, 5*time.Second, 30*time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.By("Dialing the API with a minimum TLS version of 1.3")
 
-		_, err = waitForKASIncrementedRevision(ctx, operatorClient, "cluster", currentRevision)
+		_, err = waitForKASIncrementedRevision(ctx, operatorClient, "cluster", currentKASRevision)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		config := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
@@ -143,11 +150,11 @@ func waitForKASIncrementedRevision(ctx context.Context, operatorClient operatorv
 	for {
 		kasStatus, _ := operatorClient.OperatorV1().KubeAPIServers().Get(context.Background(), name, metav1.GetOptions{})
 		// Intentionally don't return if this errors, as the API server is most likely still coming online, which is what we're waiting for.
-		
+
 		if ctx.Err() != nil {
 			return 0, fmt.Errorf("timed out waiting for KubeAPIServer to increment revision")
 		}
-		
+
 		if kasStatus.Status.LatestAvailableRevision > currentRevision {
 			return kasStatus.Status.LatestAvailableRevision, nil
 		}
