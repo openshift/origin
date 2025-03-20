@@ -21,16 +21,16 @@ var (
 
 var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	g.It("should pass podman localsystem test in baseline mode",
-		func(ctx context.Context, batsFile string) {
+		func(ctx context.Context) {
 			if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
 				g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
 			}
-			runNestedPod(ctx, batsFile)
+			runNestedPod(ctx)
 		},
 	)
 })
 
-func runNestedPod(ctx context.Context, testFile string) {
+func runNestedPod(ctx context.Context) {
 	g.By("creating a pod with a nested container")
 	namespace := oc.Namespace()
 	pod := &corev1.Pod{
@@ -54,12 +54,10 @@ func runNestedPod(ctx context.Context, testFile string) {
 			Containers: []corev1.Container{
 				{
 					Name:            "nested-podman",
-					Image:           "quay.io/crio/nested-container:v5.4.0",
+					Image:           "quay.io/rh-ee-atokubi/nested-podman",
 					ImagePullPolicy: corev1.PullAlways,
 					Args: []string{
-						"sh", "-c",
-						fmt.Sprintf("PODMAN=$(pwd)/bin/podman bats -T --filter-tags '!ci:parallel' test/system/%s && PODMAN=$(pwd)/bin/podman bats -T --filter-tags 'ci:parallel' -j $(nproc) test/system/%s",
-							testFile, testFile),
+						"./run_tests.sh",
 					},
 					SecurityContext: &corev1.SecurityContext{
 						RunAsUser: pointer.Int64(1000),
