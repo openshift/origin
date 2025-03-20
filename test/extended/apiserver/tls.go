@@ -74,13 +74,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 		err = library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 5, 24*time.Second, 5*time.Second, 30*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Dialing the API with a minimum TLS version of 1.3")
+		g.By("Waiting for the API server to stabilize")
 
 		_, err = waitForKASIncrementedRevision(ctx, operatorClient, "cluster", currentKASRevision)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("Dialing the API with a minimum TLS version of 1.3")
+
 		config := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 
+		// We're going to be dialing TCP directly, not connecting over HTTP as usual, so we don't want the protocol on the host.
 		host := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
 
 		conn, err := tls.Dial("tcp4", host, config)
@@ -105,6 +108,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			expectSuccess := tlsVersion >= crypto.DefaultTLSVersion()
 			config := &tls.Config{MinVersion: tlsVersion, MaxVersion: tlsVersion, InsecureSkipVerify: true}
 
+			// We're going to be dialing TCP directly, not connecting over HTTP as usual, so we don't want the protocol on the host.
 			host := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
 
 			{
