@@ -447,6 +447,6 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:openshift/usernamespace")
 		},
-		TestTimeout: 30 * time.Minute,
+		TestTimeout: 60 * time.Minute,
 	},
 }

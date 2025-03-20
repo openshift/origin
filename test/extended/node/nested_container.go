@@ -3,6 +3,8 @@ package node
 import (
 	"context"
 	"fmt"
+	"os"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -11,12 +13,12 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
-	"os"
 )
 
 var (
-	oc   = exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
-	name = "baseline-nested-container"
+	oc          = exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
+	name        = "baseline-nested-container"
+	customImage = exutil.FixturePath("testdata", "node", "nested_container")
 )
 
 var _ = g.Describe("[sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
@@ -31,6 +33,12 @@ var _ = g.Describe("[sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserName
 })
 
 func runNestedPod(ctx context.Context) {
+	g.By("creating custom builder image")
+	err := oc.Run("new-build").Args("--binary", "--strategy=docker", fmt.Sprintf("--name=%s", name)).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	br, _ := exutil.StartBuildAndWait(oc, name, fmt.Sprintf("--from-dir=%s", customImage))
+	br.AssertSuccess()
+
 	g.By("creating a pod with a nested container")
 	namespace := oc.Namespace()
 	pod := &corev1.Pod{
@@ -54,7 +62,7 @@ func runNestedPod(ctx context.Context) {
 			Containers: []corev1.Container{
 				{
 					Name:            "nested-podman",
-					Image:           "quay.io/rh-ee-atokubi/nested-podman",
+					Image:           fmt.Sprintf("image-registry.openshift-image-registry.svc:5000/%s/%s", namespace, name),
 					ImagePullPolicy: corev1.PullAlways,
 					Args: []string{
 						"./run_tests.sh",
@@ -76,7 +84,7 @@ func runNestedPod(ctx context.Context) {
 			},
 		},
 	}
-	_, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
+	_, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By("waiting for the pod to complete")
@@ -87,18 +95,26 @@ func runNestedPod(ctx context.Context) {
 		}
 		return nil
 	}, "30m", "10s").Should(o.Succeed())
+
+	// To upload test results from podman system test, use ARTIFACT_DIR env var.
+	// It's not a smart way, but there's no other way to pass the artifact directory
+	// to each test case.
+	g.By("uploading results from podman system test")
+	artifact := os.Getenv("ARTIFACT_DIR")
+	_, err = oc.AsAdmin().Run("cp").Args(
+		fmt.Sprintf("%s:serial-junit/report.xml", pod.Name),
+		fmt.Sprintf("%s/junit/serial-report.xml", artifact),
+	).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	_, err = oc.AsAdmin().Run("cp").Args(
+		fmt.Sprintf("%s:parallel-junit/report.xml", pod.Name),
+		fmt.Sprintf("%s/junit/parallel-report.xml", artifact),
+	).Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	artifact := os.Getenv("ARTIFACT_DIR")
-	g.By(fmt.Sprintf("Fetching artifact to %s", artifact))
-	_, err = oc.AsAdmin().Run("cp").Args(
-		fmt.Sprintf("%s:junit/serial-nested-container.xml", pod.Name),
-		fmt.Sprintf("%s/junit/serial-nested-container.xml", artifact),
-	).Output()
+	logs, err := oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).Do(ctx).Raw()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	_, err = oc.AsAdmin().Run("cp").Args(
-		fmt.Sprintf("%s:junit/parallel-nested-container.xml", pod.Name),
-		fmt.Sprintf("%s/junit/parallel-nested-container.xml", artifact),
-	).Output()
-	o.Expect(err).NotTo(o.HaveOccurred())
+
+	_, err = oc.AsAdmin().Run("exec").Args(pod.Name, "--", "[", "!", "-f", "fail", "]").Output()
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("more than one of the podman system tests failed:\n%s", logs))
 }
