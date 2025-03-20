@@ -41,6 +41,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/machine_config"
 	_ "github.com/openshift/origin/test/extended/machines"
 	_ "github.com/openshift/origin/test/extended/networking"
+	_ "github.com/openshift/origin/test/extended/node"
 	_ "github.com/openshift/origin/test/extended/node_tuning"
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/olm"
