@@ -717,9 +717,20 @@ func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
 			return nil, err
 		}
 	case bytes.HasPrefix(value, cborPrefix):
-		if err := cbor.Unmarshal(value, metaObj); err != nil {
+		var result map[string]any
+		if err := cbor.Unmarshal(value, &result); err != nil {
 			return nil, err
 		}
+		// TODO: we need to do this manual conversion because cbor's Unmarshal currently uses
+		// strict decoding, so metaObj would need to contain all fields of the object.
+		metadata, ok := result["metadata"].(map[string]any)
+		if !ok {
+			metadata = map[string]any{}
+		}
+		metaObj.Kind, _ = result["kind"].(string)
+		metaObj.APIVersion, _ = result["apiVersion"].(string)
+		metaObj.Metadata.Name, _ = metadata["name"].(string)
+		metaObj.Metadata.Namespace, _ = metadata["namespace"].(string)
 	default:
 		// TODO handle encrypted data
 		return nil, fmt.Errorf("unknown data format at path /%s: %s", path, string(value))
