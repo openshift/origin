@@ -11,6 +11,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
+	"os"
 )
 
 var (
@@ -81,13 +82,17 @@ func runNestedPod(ctx context.Context) {
 
 	g.By("waiting for the pod to complete")
 	o.Eventually(func() error {
-		_, err := oc.AsAdmin().Run("exec").Args(pod.Name, "--", "[ -f done ]").Output()
+		_, err := oc.AsAdmin().Run("exec").Args(pod.Name, "--", "[", "-f", "done", "]").Output()
 		if err != nil {
 			return err
 		}
 		return nil
 	}, "30m", "10s").Should(o.Succeed())
-	junit, err := exutil.GetSuiteJUnitDir("openshift/usernamespace")
 	o.Expect(err).NotTo(o.HaveOccurred())
-	_, err = oc.AsAdmin().Run("cp").Args("junit", fmt.Sprintf("%s:%s", pod.Name, junit)).Output()
+
+	artifact := os.Getenv("ARTIFACT_DIR")
+	_, err = oc.AsAdmin().Run("cp").Args("serial-nested-container.xml", fmt.Sprintf("%s:%s/junit", pod.Name, artifact)).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	_, err = oc.AsAdmin().Run("cp").Args("parallel-nested-container.xml", fmt.Sprintf("%s:%s/junit", pod.Name, artifact)).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
 }
