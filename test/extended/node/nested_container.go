@@ -90,8 +90,15 @@ func runNestedPod(ctx context.Context) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	artifact := os.Getenv("ARTIFACT_DIR")
-	_, err = oc.AsAdmin().Run("cp").Args("serial-nested-container.xml", fmt.Sprintf("%s:%s/junit", pod.Name, artifact)).Output()
+	g.By(fmt.Sprintf("Fetching artifact to %s", artifact))
+	_, err = oc.AsAdmin().Run("cp").Args(
+		fmt.Sprintf("%s:junit/serial-nested-container.xml", pod.Name),
+		fmt.Sprintf("%s/junit/serial-nested-container.xml", artifact),
+	).Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	_, err = oc.AsAdmin().Run("cp").Args("parallel-nested-container.xml", fmt.Sprintf("%s:%s/junit", pod.Name, artifact)).Output()
+	_, err = oc.AsAdmin().Run("cp").Args(
+		fmt.Sprintf("%s:junit/parallel-nested-container.xml", pod.Name),
+		fmt.Sprintf("%s/junit/parallel-nested-container.xml", artifact),
+	).Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
