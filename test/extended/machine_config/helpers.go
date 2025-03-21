@@ -3,13 +3,19 @@ package machine_config
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 	"math/rand"
+	"os"
+	"os/exec"
 	"time"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
+	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	opv1 "github.com/openshift/api/operator/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -21,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/ptr"
@@ -35,6 +42,9 @@ const (
 	mapiMasterMachineLabelSelector  = "machine.openshift.io/cluster-api-machine-role=master"
 	mapiMachineSetArchAnnotationKey = "capacity.cluster-autoscaler.kubernetes.io/labels"
 )
+
+// TODO: add error message returns for `.NotTo(o.HaveOccurred())` cases.
+// TODO: fix caplitalization of helper funcs
 
 // skipUnlessTargetPlatform skips the test if it is running on the target platform
 func skipUnlessTargetPlatform(oc *exutil.CLI, platformType osconfigv1.PlatformType) {
@@ -290,4 +300,366 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
+}
+
+// Gets a random node from a given pool. Checks for whether the node is ready
+// and if no nodes are ready, it will poll for up to 5 minutes for a node to
+// become available.
+func GetRandomNode(oc *exutil.CLI, pool string) corev1.Node {
+	if node := getRandomNode(oc, pool); isNodeReady(node) {
+		return node
+	}
+
+	waitPeriod := time.Minute * 5
+	framework.Logf("No ready nodes found for pool %s, waiting up to %s for a ready node to become available", pool, waitPeriod)
+
+	var targetNode corev1.Node
+
+	o.Eventually(func() bool {
+		if node := getRandomNode(oc, pool); isNodeReady(node) {
+			targetNode = node
+			return true
+		}
+
+		return false
+	}, 5*time.Minute, 2*time.Second).Should(o.BeTrue())
+
+	return targetNode
+}
+
+// Gets a random node from a given pool.
+func getRandomNode(oc *exutil.CLI, pool string) corev1.Node {
+	nodes, err := GetNodesByRole(oc, pool)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(nodes).ShouldNot(o.BeEmpty())
+
+	// Disable gosec here to avoid throwing
+	// G404: Use of weak random number generator (math/rand instead of crypto/rand)
+	// #nosec
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return nodes[rnd.Intn(len(nodes))]
+}
+
+// GetNodesByRole gets all nodes labeled with role role
+func GetNodesByRole(oc *exutil.CLI, role string) ([]corev1.Node, error) {
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{fmt.Sprintf("node-role.kubernetes.io/%s", role): ""}).String(),
+	}
+	nodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.TODO(), listOptions)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return nodes.Items, nil
+}
+
+// Determines if a given node is ready.
+func isNodeReady(node corev1.Node) bool {
+	// If the node is cordoned, it is not ready.
+	if node.Spec.Unschedulable {
+		return false
+	}
+
+	// If the nodes' kubelet is not ready, it is not ready.
+	if !isNodeKubeletReady(node) {
+		return false
+	}
+
+	// If the nodes' MCD is not done, it is not ready.
+	if !isMCDDone(node) {
+		return false
+	}
+
+	return true
+}
+
+// Determines if a given node's kubelet is ready.
+func isNodeKubeletReady(node corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Reason == "KubeletReady" && condition.Status == "True" && condition.Type == "Ready" {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Determines whether the MCD on a given node has reached the "Done" state.
+func isMCDDone(node corev1.Node) bool {
+	// TODO: Update to make use of generalized
+	state := node.Annotations["machineconfiguration.openshift.io/state"]
+	return state == "Done"
+}
+
+// `WaitForMCPToBeReady` waits for a pool to be in an updated state with a specified number of ready machines
+func WaitForMCPToBeReady(oc *exutil.CLI, machineConfigClient *machineconfigclient.Clientset, poolName string, readyMachineCount int32) error {
+	o.Eventually(func() bool {
+		mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), poolName, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Failed to grab machineconfigpool %v, error :%v", poolName, err)
+			return false
+		}
+		// Check if the pool is in an updated state with the correct number of ready machines
+		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount == readyMachineCount {
+			return true
+		}
+		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", poolName, readyMachineCount)
+		return false
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
+	return nil
+}
+
+// `GetCordonedNodes` get cordoned nodes (if maxUnavailable > 1 ) otherwise return the 1st cordoned node
+func GetCordonedNodes(oc *exutil.CLI, mcpName string) []corev1.Node {
+	// Wait for the MCP to start updating
+	o.Expect(waitForMCPConditionStatus(oc, mcpName, "Updating", "True")).NotTo(o.HaveOccurred(), "Waiting for 'Updating' status change failed.")
+
+	// Get updating node
+	var allUpdatingNodes []corev1.Node
+	o.Eventually(func() bool {
+		nodes, nodeErr := GetNodesByRole(oc, mcpName)
+		o.Expect(nodeErr).NotTo(o.HaveOccurred(), "Error getting nodes from %v MCP.", mcpName)
+		o.Expect(nodes).ShouldNot(o.BeEmpty(), "No nodes found for %v MCP.", mcpName)
+
+		// TOOD: cleanup
+		for _, node := range nodes {
+			unschedulable := node.Spec.Unschedulable
+			if unschedulable {
+				allUpdatingNodes = append(allUpdatingNodes, node)
+			}
+		}
+
+		return len(allUpdatingNodes) > 0
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
+
+	return allUpdatingNodes
+}
+
+// `waitForMCPConditionStatus` waits until the desired MCP condition matches the desired status (ex. wait until "Updating" is "True")
+func waitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcfgv1.MachineConfigPoolConditionType, status corev1.ConditionStatus) error {
+	framework.Logf("Waiting for MCP %s condition %s to be %s.", mcpName, conditionType, status)
+
+	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Eventually(func() bool {
+		// Get MCP
+		mcp, mcpErr := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), mcpName, metav1.GetOptions{})
+		if mcpErr != nil {
+			framework.Logf("Failed to grab MCP %v, error :%v", mcpName, err)
+			return false
+		}
+
+		// Loop through conditions to get check for desired condition type/status combonation
+		conditions := mcp.Status.Conditions
+		for _, condition := range conditions {
+			if condition.Type == conditionType {
+				framework.Logf("MCP %s condition %s status is %s", mcp.Name, conditionType, condition.Status)
+				return condition.Status == status
+			}
+		}
+
+		framework.Logf("Waiting for %v MCP's %v condition to be %v.", mcp.Name, conditionType, status)
+		return false
+	}, 2*time.Minute, 3*time.Second).Should(o.BeTrue())
+	return nil
+}
+
+// `waitForMCNConditionStatus` waits until the desired MCN condition matches the desired status (ex. wait until "Updated" is "False")
+func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType string, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
+	o.Eventually(func() bool {
+		framework.Logf("Waiting for MCN %v %v condition to be %v.", mcnName, conditionType, status)
+
+		// Get MCN & check if the MCN condition status matches the desired status
+		workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+		o.Expect(workerErr).NotTo(o.HaveOccurred())
+		return checkMCNConditionStatus(workerNodeMCN, conditionType, status)
+	}, timeout, interval).Should(o.BeTrue())
+	return nil
+}
+
+// `checkMCNConditionStatus` checks that an MCN condition matches the desired status (ex. confirm "Updated" is "False")
+func checkMCNConditionStatus(mcn *v1alpha1.MachineConfigNode, conditionType string, status metav1.ConditionStatus) bool {
+	conditionStatus := getMCNConditionStatus(mcn, conditionType)
+	framework.Logf("MCN %v %v condition is %v.", mcn.Name, conditionType, conditionStatus)
+	return conditionStatus == status
+}
+
+// `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
+func getMCNConditionStatus(mcn *v1alpha1.MachineConfigNode, conditionType string) metav1.ConditionStatus {
+	// Loop through conditions and return the status of the desired condition type
+	conditions := mcn.Status.Conditions
+	for _, condition := range conditions {
+		if condition.Type == conditionType {
+			framework.Logf("MCN %s condition %s status is %s", mcn.Name, conditionType, condition.Status)
+			return condition.Status
+		}
+	}
+	return ""
+}
+
+// `confirmUpdatedMCNStatus` confirms that an MCN is in a fully updated state, which requires:
+//  1. "Updated" = True
+//  2. All other conditions = False
+func confirmUpdatedMCNStatus(clientSet *machineconfigclient.Clientset, mcnName string) bool {
+	// Get MCN
+	workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+	o.Expect(workerErr).NotTo(o.HaveOccurred())
+
+	// Loop through conditions and return the status of the desired condition type
+	conditions := workerNodeMCN.Status.Conditions
+	for _, condition := range conditions {
+		if condition.Type == "Updated" && condition.Status != "True" {
+			framework.Logf("Node %s update is not complete; 'Updated' condition status is %v", mcnName, condition.Status)
+			return false
+		} else if condition.Type != "Updated" && condition.Status != "False" {
+			framework.Logf("Node %s is updated but MCN is invalid; '%v' codition status is %v", mcnName, condition.Type, condition.Status)
+			return false
+		}
+	}
+
+	framework.Logf("Node %s update is complete and MCN is valid.", mcnName)
+	return true
+}
+
+// TODO: consolidate with similar functions
+func GetDegradedNode(oc *exutil.CLI, mcpName string) (corev1.Node, error) {
+	// Get nodes in desired pool
+	nodes, nodeErr := GetNodesByRole(oc, mcpName)
+	o.Expect(nodeErr).NotTo(o.HaveOccurred())
+	o.Expect(nodes).ShouldNot(o.BeEmpty())
+
+	// Get degraded node
+	for _, node := range nodes {
+		// TODO: create generalized get node state helper
+		state := node.Annotations["machineconfiguration.openshift.io/state"]
+		if state == "Degraded" {
+			return node, nil
+		}
+	}
+
+	return corev1.Node{}, errors.New("no degraded node found")
+}
+
+// `recoverFromDegraded` updates the current and desired machine configs so that the pool can recover from degraded state once the offending MC is deleted
+func recoverFromDegraded(oc *exutil.CLI, mcpName string) error {
+	framework.Logf("Recovering %s pool from degraded state", mcpName)
+
+	// Get nodes from degraded MCP & update the desired config of the degraded node to force a recovery update
+	nodes, nodeErr := GetNodesByRole(oc, mcpName)
+	o.Expect(nodeErr).NotTo(o.HaveOccurred())
+	o.Expect(nodes).ShouldNot(o.BeEmpty())
+	for _, node := range nodes {
+		framework.Logf("Restoring desired config for node: %s", node.Name)
+		state := node.Annotations["machineconfiguration.openshift.io/state"]
+		if state == "Done" {
+			framework.Logf("Node %s is updated and does not need to be recovered", node.Name)
+		} else {
+			err := restoreDesiredConfig(oc, node)
+			if err != nil {
+				return fmt.Errorf("error restoring desired config in node %s. Error: %s", node.Name, err)
+			}
+		}
+	}
+
+	// Wait for MCP to not be in degraded status
+	mcpErr := waitForMCPConditionStatus(oc, mcpName, "Degraded", "False")
+	o.Expect(mcpErr).NotTo(o.HaveOccurred(), fmt.Sprintf("could not recover %v MCP from the degraded status.", mcpName))
+	mcpErr = waitForMCPConditionStatus(oc, mcpName, "Updated", "True")
+	o.Expect(mcpErr).NotTo(o.HaveOccurred(), fmt.Sprintf("%v MCP could not reach an updated state.", mcpName))
+	return nil
+}
+
+// TODO: generalize with get node status to just pass in the general node annotation label
+func getCurrentMachineConfig(node corev1.Node) string {
+	return node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+}
+
+// `restoreDesiredConfig` updates the value of a node's desiredConfig annotation to be equal to the value of its currentConfig (desiredConfig=currentConfig)
+func restoreDesiredConfig(oc *exutil.CLI, node corev1.Node) error {
+	// Get current config
+	currentConfig := getCurrentMachineConfig(node)
+	if currentConfig == "" {
+		return fmt.Errorf("currentConfig annotation is empty for node %s", node.Name)
+	}
+
+	// Update desired config to be equal to current config
+	framework.Logf("Node: %s is restoring desiredConfig value to match currentConfig value: %s", node.Name, currentConfig)
+	configErr := oc.Run("patch").Args(fmt.Sprintf("node/%v", node.Name), "--patch", fmt.Sprintf(`{"metadata":{"annotations":{"machineconfiguration.openshift.io/desiredConfig":"%v"}}}`, currentConfig), "--type=merge").Execute()
+	return configErr
+}
+
+// ExecCmdOnNodeWithError behaves like ExecCmdOnNode, with the exception that
+// any errors are returned to the caller for inspection. This allows one to
+// execute a command that is expected to fail; e.g., stat /nonexistant/file.
+func ExecCmdOnNodeWithError(oc *exutil.CLI, node corev1.Node, subArgs ...string) (string, error) {
+	cmd, err := execCmdOnNode(oc, node, subArgs...)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// ExecCmdOnNode finds a node's mcd, and oc rsh's into it to execute a command on the node
+// all commands should use /rootfs as root
+func ExecCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) string {
+	cmd, err := execCmdOnNode(oc, node, subArgs...)
+	o.Expect(err).NotTo(o.HaveOccurred(), "could not prepare to exec cmd %v on node %s: %s", subArgs, node.Name, err)
+	cmd.Stderr = os.Stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		// common err is that the mcd went down mid cmd. Re-try for good measure
+		cmd, err = execCmdOnNode(oc, node, subArgs...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "could not prepare to exec cmd %v on node %s: %s", subArgs, node.Name, err)
+		out, err = cmd.Output()
+
+	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to exec cmd %v on node %s: %s", subArgs, node.Name, string(out))
+	return string(out)
+}
+
+// ExecCmdOnNode finds a node's mcd, and oc rsh's into it to execute a command on the node
+// all commands should use /rootfs as root
+func execCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) (*exec.Cmd, error) {
+	// Check for an oc binary in $PATH.
+	path, err := exec.LookPath("oc")
+	if err != nil {
+		return nil, fmt.Errorf("could not locate oc command: %w", err)
+	}
+
+	mcd, err := mcdForNode(oc.AsAdmin().KubeClient(), &node)
+	if err != nil {
+		return nil, fmt.Errorf("could not get MCD for node %s: %w", node.Name, err)
+	}
+
+	mcdName := mcd.ObjectMeta.Name
+
+	entryPoint := path
+	args := []string{"rsh",
+		"-n", "openshift-machine-config-operator",
+		"-c", "machine-config-daemon",
+		mcdName}
+	args = append(args, subArgs...)
+
+	cmd := exec.Command(entryPoint, args...)
+	return cmd, nil
+}
+
+func mcdForNode(client kubernetes.Interface, node *corev1.Node) (*corev1.Pod, error) {
+	// find the MCD pod that has spec.nodeNAME = node.Name and get its name:
+	listOptions := metav1.ListOptions{
+		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
+	}
+	listOptions.LabelSelector = labels.SelectorFromSet(labels.Set{"k8s-app": "machine-config-daemon"}).String()
+
+	mcdList, err := client.CoreV1().Pods("openshift-machine-config-operator").List(context.TODO(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+	if len(mcdList.Items) != 1 {
+		if len(mcdList.Items) == 0 {
+			return nil, fmt.Errorf("failed to find MCD for node %s", node.Name)
+		}
+		return nil, fmt.Errorf("too many (%d) MCDs for node %s", len(mcdList.Items), node.Name)
+	}
+	return &mcdList.Items[0], nil
 }
