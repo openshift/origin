@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -13,6 +14,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -178,52 +180,52 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	// Validate transition through conditions for MCN
 	// TODO: make consts for the statuses
 	framework.Logf("Checking Updated=False")
-	err := waitForMCNConditionStatus(clientSet, workerNode.Name, "Updated", "False", 1*time.Minute, 5*time.Second)
+	err := waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdated, metav1.ConditionFalse, 1*time.Minute, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking UpdatePrepared=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdatePrepared", "True", 1*time.Minute, 3*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdatePrepared, metav1.ConditionTrue, 1*time.Minute, 3*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking UpdateExecuted=Unknown")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdateExecuted", "Unknown", 1*time.Minute, 3*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown, 1*time.Minute, 3*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking Cordoned=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Cordoned", "True", 30*time.Second, 3*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateCordoned, metav1.ConditionTrue, 30*time.Second, 3*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking Drained=Unknown")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Drained", "Unknown", 30*time.Second, 2*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionUnknown, 30*time.Second, 2*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking Drained=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Drained", "True", 7*time.Minute, 10*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionTrue, 7*time.Minute, 10*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking AppliedFilesAndOS=Unknown")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "AppliedFilesAndOS", "Unknown", 1*time.Minute, 1*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown, 1*time.Minute, 1*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking AppliedFilesAndOS=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "AppliedFilesAndOS", "True", 3*time.Minute, 2*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionTrue, 3*time.Minute, 2*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking UpdateExecuted=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdateExecuted", "True", 20*time.Second, 5*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionTrue, 20*time.Second, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking UpdatePostActionComplete=Unknown")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdatePostActionComplete", "Unknown", 30*time.Second, 5*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdatePostActionComplete, metav1.ConditionUnknown, 30*time.Second, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking RebootedNode=Unknown")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "RebootedNode", "Unknown", 15*time.Second, 3*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateRebooted, metav1.ConditionUnknown, 15*time.Second, 3*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking RebootedNode=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "RebootedNode", "True", 5*time.Minute, 5*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateRebooted, metav1.ConditionTrue, 5*time.Minute, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking Resumed=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Resumed", "True", 15*time.Second, 5*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeResumed, metav1.ConditionTrue, 15*time.Second, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking UpdateComplete=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "UpdateComplete", "True", 10*time.Second, 5*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateComplete, metav1.ConditionTrue, 10*time.Second, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking Uncordoned=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Uncordoned", "True", 10*time.Second, 2*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateUncordoned, metav1.ConditionTrue, 10*time.Second, 2*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Checking Updated=True")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, "Updated", "True", 1*time.Minute, 5*time.Second)
+	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdated, metav1.ConditionTrue, 1*time.Minute, 5*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// When an update is complete, all conditions other than `Updated` must be false
@@ -254,7 +256,7 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string) {
 
 	// Wait for worker MCP to be in a degraded state with one degraded machine
 	// TODO consolidate into helper func that doesn't require getting MCP more than required
-	o.Expect(waitForMCPConditionStatus(oc, worker, "Degraded", "True")).NotTo(o.HaveOccurred(), "Error waiting for %v MCP to be in a degraded state.")
+	o.Expect(waitForMCPConditionStatus(oc, worker, "Degraded", corev1.ConditionTrue)).NotTo(o.HaveOccurred(), "Error waiting for %v MCP to be in a degraded state.")
 	workerMcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting %v MCP.", worker)
 	o.Expect(workerMcp.Status.DegradedMachineCount).To(o.BeNumerically("==", 1), "Degraded machine count is not 1.")
@@ -266,8 +268,8 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string) {
 	// Validate MCN of degraded node
 	degradedNodeMCN, degradedErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), degradedNode.Name, metav1.GetOptions{})
 	o.Expect(degradedErr).NotTo(o.HaveOccurred())
-	o.Expect(checkMCNConditionStatus(degradedNodeMCN, "AppliedFilesAndOS", "Unknown"))
-	o.Expect(checkMCNConditionStatus(degradedNodeMCN, "UpdateExecuted", "Unknown"))
+	o.Expect(checkMCNConditionStatus(degradedNodeMCN, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown))
+	o.Expect(checkMCNConditionStatus(degradedNodeMCN, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown))
 }
 
 // `ValidateMCNProperties` checks that MCNs with correct properties are created on node creation

@@ -12,7 +12,7 @@ import (
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
-	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	opv1 "github.com/openshift/api/operator/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -460,7 +460,7 @@ func waitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 }
 
 // `waitForMCNConditionStatus` waits until the desired MCN condition matches the desired status (ex. wait until "Updated" is "False")
-func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType string, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
+func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
 	o.Eventually(func() bool {
 		framework.Logf("Waiting for MCN %v %v condition to be %v.", mcnName, conditionType, status)
 
@@ -473,18 +473,18 @@ func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName
 }
 
 // `checkMCNConditionStatus` checks that an MCN condition matches the desired status (ex. confirm "Updated" is "False")
-func checkMCNConditionStatus(mcn *v1alpha1.MachineConfigNode, conditionType string, status metav1.ConditionStatus) bool {
+func checkMCNConditionStatus(mcn *mcfgv1alpha1.MachineConfigNode, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus) bool {
 	conditionStatus := getMCNConditionStatus(mcn, conditionType)
 	framework.Logf("MCN %v %v condition is %v.", mcn.Name, conditionType, conditionStatus)
 	return conditionStatus == status
 }
 
 // `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
-func getMCNConditionStatus(mcn *v1alpha1.MachineConfigNode, conditionType string) metav1.ConditionStatus {
+func getMCNConditionStatus(mcn *mcfgv1alpha1.MachineConfigNode, conditionType mcfgv1alpha1.StateProgress) metav1.ConditionStatus {
 	// Loop through conditions and return the status of the desired condition type
 	conditions := mcn.Status.Conditions
 	for _, condition := range conditions {
-		if condition.Type == conditionType {
+		if condition.Type == string(conditionType) {
 			framework.Logf("MCN %s condition %s status is %s", mcn.Name, conditionType, condition.Status)
 			return condition.Status
 		}
