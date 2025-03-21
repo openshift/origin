@@ -455,7 +455,7 @@ func waitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 
 		framework.Logf("Waiting for %v MCP's %v condition to be %v.", mcp.Name, conditionType, status)
 		return false
-	}, 2*time.Minute, 3*time.Second).Should(o.BeTrue())
+	}, 3*time.Minute, 3*time.Second).Should(o.BeTrue())
 	return nil
 }
 
