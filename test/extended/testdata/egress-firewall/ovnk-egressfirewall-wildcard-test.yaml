@@ -6,7 +6,7 @@ spec:
   egress:
   - type: Allow
     to:
-      dnsName: docs.redhat.com
+      dnsName: redhat.com
   - type: Allow
     to:
       dnsName: "*.google.com"
