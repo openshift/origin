@@ -77,6 +77,9 @@ var (
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mariadb\]\[Slow\] openshift mariadb image Creating from a template should instantiate the template`,
 
+			// https://issues.redhat.com/browse/OCPBUGS-37799
+			`\[sig-builds\]\[Feature:Builds\]\[Slow\] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token \[apigroup:build.openshift.io\]`,
+
 			// https://github.com/openshift/kubernetes/pull/1465
 			`\[sig-node\] Security Context when if the container's primary UID belongs to some groups in the image \[LinuxOnly\] should add pod.Spec.SecurityContext.SupplementalGroups to them \[LinuxOnly\] in resultant supplementary groups for the container processes`,
 
