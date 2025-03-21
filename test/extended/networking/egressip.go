@@ -742,35 +742,40 @@ func applyEgressIPObject(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Inte
 	_, err := runOcWithRetry(oc.AsAdmin(), "apply", "-f", egressIPYamlPath)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
-	var exists bool
-	var isAssigned bool
-	o.Eventually(func() bool {
-		for eip := range egressIPSet {
-			exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if !exists {
-				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
-				return false
+	if cloudNetworkClientset != nil {
+		framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
+		var exists bool
+		var isAssigned bool
+		o.Eventually(func() bool {
+			for eip := range egressIPSet {
+				exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if !exists {
+					framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
+					return false
+				}
+				if !isAssigned {
+					framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
+					return false
+				}
 			}
-			if !isAssigned {
-				framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
-				return false
-			}
-		}
-		framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
-		return true
-	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
+			framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
+			return true
+		}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
+	}
 
 	framework.Logf(fmt.Sprintf("Waiting for EgressIP addresses inside status of EgressIP CR %s for a maximum of %d seconds", egressIPObjectName, timeout))
 	var hasIP bool
+	var nodeName string
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			hasIP, err = egressIPStatusHasIP(oc, egressIPObjectName, eip)
+			hasIP, nodeName, err = egressIPStatusHasIP(oc, egressIPObjectName, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !hasIP {
 				framework.Logf("EgressIP object %s does not have IP %s in its status field.", egressIPObjectName, eip)
 				return false
+			} else {
+				egressIPSet[eip] = nodeName
 			}
 		}
 		framework.Logf("Egress IP object %s does have all IPs for %v.", egressIPObjectName, egressIPSet)

@@ -415,7 +415,9 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 
 		// Check if NumberReady == DesiredNumberScheduled.
 		// In that case, simply return as all went well.
-		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled {
+		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
+			ds.Status.CurrentNumberScheduled == ds.Status.DesiredNumberScheduled &&
+			ds.Status.DesiredNumberScheduled > 0 {
 			return ds, nil
 		}
 		// If no port conflict error was found, simply sleep for pollInterval and then
@@ -1276,7 +1278,7 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 		i := i
 		// Randomize the start time a little bit per go routine.
 		// Max of 250 ms * current iteration counter
-		n := rand.Intn(250) * i
+		n := rand.Intn(250) * (i + 1)
 		framework.Logf("Sleeping for %d ms for iteration %d", n, i)
 		wg.Add(1)
 		go func() {
@@ -1729,21 +1731,21 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwo
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
-func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, error) {
+func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, string, error) {
 	eip, err := getEgressIP(oc, egressIPObjectName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return false, nil
+			return false, "", nil
 		}
-		return false, fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
+		return false, "", fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
 	}
 	for _, egressIPStatusItem := range eip.Status.Items {
 		if egressIPStatusItem.EgressIP == ip {
-			return true, nil
+			return true, egressIPStatusItem.Node, nil
 		}
 	}
 
-	return false, nil
+	return false, "", nil
 }
 
 // sdnNamespaceAddEgressIP adds EgressIP <egressip> to netnamespace <namespace>.
