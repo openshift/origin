@@ -1,8 +1,10 @@
 package machine_config
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -50,6 +52,18 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode]", func() {
 
 	g.It("[Serial][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNOnNodeCreationAndDeletion(oc)
+	})
+
+	g.It("Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]", func() {
+		ValidateMCNScopeSadPathTest(oc)
+	})
+
+	g.It("Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]", func() {
+		ValidateMCNScopeImpersonationPathTest(oc)
+	})
+
+	g.It("Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
+		ValidateMCNScopeHappyPathTest(oc)
 	})
 })
 
@@ -341,4 +355,44 @@ func ValidateMCNOnNodeCreationAndDeletion(oc *exutil.CLI) {
 	// Check that node & MCN are removed
 	o.Expect(WaitForNodeToBeDeleted(oc, deletingNode.Name))
 	o.Expect(WaitForMCNToBeDeleted(clientSet, deletingNode.Name))
+}
+
+func ValidateMCNScopeSadPathTest(oc *exutil.CLI) {
+	// Grab two random nodes from different pools, so we don't end up testing and targeting the same node.
+	nodeUnderTest := GetRandomNode(oc, "worker")
+	targetNode := GetRandomNode(oc, "master")
+
+	// Attempt to patch the MCN owned by targetNode from nodeUnderTest's MCD. This should fail.
+	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
+	cmdOutput, _ := ExecCmdOnNodeWithError(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", targetNode.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
+
+	// TODO
+	//o.Expect(err).NotTo(o.HaveOccurred(), "No errors found during failure path :%v", err)
+	o.Expect(cmdOutput).To(o.ContainSubstring("updates to MCN " + targetNode.Name + " can only be done from the MCN's owner node"))
+}
+
+func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
+	// Grab a random node from the worker pool
+	nodeUnderTest := GetRandomNode(oc, "worker")
+
+	var errb bytes.Buffer
+	// Attempt to patch the MCN owned by nodeUnderTest by impersonating the MCD SA. This should fail.
+	cmd := exec.Command("oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}", "--as=system:serviceaccount:openshift-machine-config-operator:machine-config-daemon")
+	cmd.Stderr = &errb
+	_ = cmd.Run()
+
+	// TODO
+	//require.Error(t, err, "No errors found during impersonation path :%v", err)
+	o.Expect(errb.String()).To(o.ContainSubstring("this user must have a \"authentication.kubernetes.io/node-name\" claim"))
+
+}
+
+func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
+
+	// Grab a random node from the worker pool
+	nodeUnderTest := GetRandomNode(oc, "worker")
+
+	// Attempt to patch the MCN owned by nodeUnderTest from nodeUnderTest's MCD. This should succeed.
+	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
+	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
 }

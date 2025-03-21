@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 	"math/rand"
-	"strings"
+	"os"
+	"os/exec"
 	"time"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
@@ -585,77 +588,83 @@ func restoreDesiredConfig(oc *exutil.CLI, node corev1.Node) error {
 	return configErr
 }
 
-// `workersCanBeScaled` checks whether the worker nodes in a cluster can be scaled.
-// Cases where scaling worker nodes is not possible include:
-//   - Baremetal platform
-//   - MachineAPI is disabled
-//   - Error getting list of MachineSets / no MachineSets exist
-//   - All MachineSets have 0 worker nodes
-func workersCanBeScaled(oc *exutil.CLI, machineClient *machineclient.Clientset) (bool, error) {
-	framework.Logf("Checking if worker nodes can be scaled using machinesets.")
-
-	// Check if platform is baremetal
-	framework.Logf("Checking if cluster platform is baremetal.")
-	if checkPlatform(oc) == "baremetal" {
-		framework.Logf("Cluster platform is baremetal. Nodes cannot be scaled in baremetal test environments.")
-		return false, nil
+// ExecCmdOnNodeWithError behaves like ExecCmdOnNode, with the exception that
+// any errors are returned to the caller for inspection. This allows one to
+// execute a command that is expected to fail; e.g., stat /nonexistant/file.
+func ExecCmdOnNodeWithError(oc *exutil.CLI, node corev1.Node, subArgs ...string) (string, error) {
+	cmd, err := execCmdOnNode(oc, node, subArgs...)
+	if err != nil {
+		return "", err
 	}
 
-	// Check if MachineAPI is enabled
-	framework.Logf("Checking if MachineAPI is enabled.")
-	if !isCapabilityEnabled(oc, "MachineAPI") {
-		framework.Logf("MachineAPI capability is not enabled. Nodes cannot be scaled.")
-		return false, nil
-	}
-
-	// Get MachineSets
-	framework.Logf("Getting MachineSets.")
-	machineSets, machineSetErr := machineClient.MachineV1beta1().MachineSets("openshift-machine-api").List(context.TODO(), metav1.ListOptions{})
-	if machineSetErr != nil {
-		framework.Logf("Error getting list of MachineSets.")
-		return false, machineSetErr
-	} else if len(machineSets.Items) == 0 {
-		framework.Logf("No MachineSets configured. Nodes cannot be scaled.")
-		return false, nil
-	}
-
-	// Check if all MachineSets have 0 replicas
-	// Per openshift-tests-private repo:
-	// "In some UPI/SNO/Compact clusters machineset resources exist, but they are all configured with 0 replicas
-	// If all machinesets have 0 replicas, then it means that we need to skip the test case"
-	machineSetsWithReplicas := 0
-	for _, machineSet := range machineSets.Items {
-		replicas := machineSet.Spec.Replicas
-		machineSetsWithReplicas += int(*replicas)
-	}
-	if machineSetsWithReplicas == 0 {
-		framework.Logf("All machinesets have 0 worker nodes. Nodes cannot be scaled.")
-		return false, nil
-	}
-
-	return true, nil
+	out, err := cmd.CombinedOutput()
+	return string(out), err
 }
 
-// `checkPlatform` returns the cluster's platform
-func checkPlatform(oc *exutil.CLI) string {
-	output, err := oc.AsAdmin().Run("get").Args("infrastructure", "cluster", "-o=jsonpath={.status.platformStatus.type}").Output()
-	o.Expect(err).NotTo(o.HaveOccurred(), "Failed determining cluster infrastructure.")
-	return strings.ToLower(output)
+// ExecCmdOnNode finds a node's mcd, and oc rsh's into it to execute a command on the node
+// all commands should use /rootfs as root
+func ExecCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) string {
+	cmd, err := execCmdOnNode(oc, node, subArgs...)
+	o.Expect(err).NotTo(o.HaveOccurred(), "could not prepare to exec cmd %v on node %s: %s", subArgs, node.Name, err)
+	cmd.Stderr = os.Stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		// common err is that the mcd went down mid cmd. Re-try for good measure
+		cmd, err = execCmdOnNode(oc, node, subArgs...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "could not prepare to exec cmd %v on node %s: %s", subArgs, node.Name, err)
+		out, err = cmd.Output()
+
+	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to exec cmd %v on node %s: %s", subArgs, node.Name, string(out))
+	return string(out)
 }
 
-// `isCapabilityEnabled` checks whether a capability is in the cluster's enabledCapabilities list
-func isCapabilityEnabled(oc *exutil.CLI, desiredCapability osconfigv1.ClusterVersionCapability) bool {
-	enabledCapabilities := getEnabledCapabilities(oc)
-	enabled := false
-	for _, enabledCapability := range enabledCapabilities {
-		if enabledCapability == desiredCapability {
-			enabled = true
-			break
+// ExecCmdOnNode finds a node's mcd, and oc rsh's into it to execute a command on the node
+// all commands should use /rootfs as root
+func execCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) (*exec.Cmd, error) {
+	// Check for an oc binary in $PATH.
+	path, err := exec.LookPath("oc")
+	if err != nil {
+		return nil, fmt.Errorf("could not locate oc command: %w", err)
+	}
+
+	mcd, err := mcdForNode(oc.AsAdmin().KubeClient(), &node)
+	if err != nil {
+		return nil, fmt.Errorf("could not get MCD for node %s: %w", node.Name, err)
+	}
+
+	mcdName := mcd.ObjectMeta.Name
+
+	entryPoint := path
+	args := []string{"rsh",
+		"-n", "openshift-machine-config-operator",
+		"-c", "machine-config-daemon",
+		mcdName}
+	args = append(args, subArgs...)
+
+	cmd := exec.Command(entryPoint, args...)
+	return cmd, nil
+}
+
+func mcdForNode(client kubernetes.Interface, node *corev1.Node) (*corev1.Pod, error) {
+	// find the MCD pod that has spec.nodeNAME = node.Name and get its name:
+	listOptions := metav1.ListOptions{
+		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
+	}
+	listOptions.LabelSelector = labels.SelectorFromSet(labels.Set{"k8s-app": "machine-config-daemon"}).String()
+
+	mcdList, err := client.CoreV1().Pods("openshift-machine-config-operator").List(context.TODO(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+	if len(mcdList.Items) != 1 {
+		if len(mcdList.Items) == 0 {
+			return nil, fmt.Errorf("failed to find MCD for node %s", node.Name)
 		}
+		return nil, fmt.Errorf("too many (%d) MCDs for node %s", len(mcdList.Items), node.Name)
 	}
-	framework.Logf("Capability [%s] is enabled: %v", desiredCapability, enabled)
-
-	return enabled
+	return &mcdList.Items[0], nil
 }
 
 // `getEnabledCapabilities` gets a cluster's enabled capability list
