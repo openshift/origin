@@ -456,6 +456,10 @@ spec:
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VMI attached to a secondary UDN is migrated between nodes'
+  - featureGate: ProcMountType
+    tests:
+    - testName: '[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport]
+        nested container should pass podman localsystem test in baseline mode'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
@@ -542,6 +546,10 @@ spec:
         [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with
         the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+  - featureGate: UserNamespacesSupport
+    tests:
+    - testName: '[sig-node][FeatureGate:ProcMountType][FeatureGate:UserNamespacesSupport]
+        nested container should pass podman localsystem test in baseline mode'
   - featureGate: VSphereDriverConfiguration
     tests:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
