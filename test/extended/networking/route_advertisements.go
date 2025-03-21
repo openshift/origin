@@ -67,6 +67,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			workerNodesOrdered      []corev1.Node
 			workerNodesOrderedNames []string
 			advertisedPodsNodes     []string
+			egressIPNodes			[]string
 			externalNodeName        string
 			targetNamespace         string
 			snifferNamespace        string
@@ -148,6 +149,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			o.Expect(len(workerNodesOrderedNames)).Should(o.BeNumerically(">", 1))
 			externalNodeName = workerNodesOrderedNames[0]
 			advertisedPodsNodes = workerNodesOrderedNames[1:]
+			egressIPNodes = workerNodesOrderedNames[1:]
 
 			g.By("Creating a project for the prober pod")
 			// Create a target project and assign source and target namespace
@@ -329,6 +331,183 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				for podIP := range v6PodIPSet {
 					checkExternalResponse(oc, proberPod, podIP, v6ExternalIP, serverPort, packetSnifferDaemonSet, targetProtocol)
 				}
+			})
+		})
+
+		g.Context("[EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+			g.JustBeforeEach(func() {
+				var err error
+				g.By("Setup packet sniffer at nodes")
+				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, advertisedPodsNodes, networkPlugin)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Setting the EgressIP nodes as EgressIP assignable")
+				for _, node := range egressIPNodes {
+					_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+
+				g.By("Turn on the BGP advertisement of EgressIPs")
+				_, err = runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["EgressIP","PodNetwork"]}}`)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Ensure the RouteAdvertisements is accepted")
+				waitForRouteAdvertisements(oc, "default")
+
+				g.By("Makes sure the FRR configuration is generated for each node")
+				for _, nodeName := range workerNodesOrderedNames {
+					frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(frr).NotTo(o.BeNil())
+				}
+
+				g.By("Deploy the test pods")
+				deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
+			})
+
+			g.AfterEach(func() {
+				g.By("Deleting the EgressIP object if it exists for OVN Kubernetes")
+				egressIPYamlPath := tmpDirBGP + "/" + egressIPYaml
+				if _, err := os.Stat(egressIPYamlPath); err == nil {
+					_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirBGP+"/"+egressIPYaml)
+				}
+
+				g.By("Removing the EgressIP assignable annotation for OVN Kubernetes")
+				for _, nodeName := range egressIPNodes {
+					_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+				}
+
+				g.By("Turn off the BGP advertisement of EgressIPs")
+				_, err := runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["PodNetwork"]}}`)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
+
+			g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [apigroup:route.openshift.io]", func() {
+				var err error
+				g.By("Choosing the EgressIPs to be assigned, one per node")
+				egressIPSet := make(map[string]string)
+				// With BGP, we can assign arbitrary EgressIPs to nodes.
+				for i := 0; i < len(egressIPNodes); i++ {
+					eip := fmt.Sprintf("192.168.111.%d", i+30)
+					egressIPSet[eip] = egressIPNodes[i]
+				}
+
+				numberOfRequestsToSend := 10
+				// The baremetal environment is built by dev-scripts, which runs a redfish http server at 192.168.111.1:8000. Use this as the external target host.
+				targetHost := "192.168.111.1"
+				egressIPYamlPath := tmpDirBGP + "/" + egressIPYaml
+				egressIPObjectName := targetNamespace
+				// Run this twice to make sure that repeated EgressIP creation and deletion works.
+				for i := 0; i < 2; i++ {
+					g.By("Creating the EgressIP object")
+					ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+
+					g.By("Applying the EgressIP object")
+					applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
+
+					g.By("Makes sure the EgressIP is advertised by FRR")
+					for eip, nodeName := range egressIPSet {
+						o.Eventually(func() bool {
+							frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
+							if err != nil {
+								return false
+							}
+							for _, prefix := range frr.Spec.BGP.Routers[0].Prefixes {
+								if prefix == fmt.Sprintf("%s/32", eip) {
+									return true
+								}
+							}
+							return false
+						}).WithTimeout(30 * time.Second).WithPolling(5 * time.Second).Should(o.BeTrue())
+					}
+
+					g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, targetHost, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+					g.By("Deleting the EgressIP object")
+					// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
+					_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("Makes sure the EgressIP is not advertised by FRR")
+					for eip, nodeName := range egressIPSet {
+						o.Eventually(func() bool {
+							frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
+							if err != nil {
+								return true
+							}
+							for _, prefix := range frr.Spec.BGP.Routers[0].Prefixes {
+								if prefix == fmt.Sprintf("%s/32", eip) {
+									return true
+								}
+							}
+							return false
+						}).WithTimeout(30 * time.Second).WithPolling(5 * time.Second).Should(o.BeFalse())
+					}
+
+					g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, egressIPSet))
+					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, targetHost, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
+				}
+			})
+
+			g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", func() {
+				g.By("Selecting a single EgressIP node, and a single start node for the pod")
+				// requires a total of 3 worker nodes
+				o.Expect(len(egressIPNodes)).Should(o.BeNumerically(">", 1))
+				leftNode := egressIPNodes[0:1]
+				rightNode := egressIPNodes[1:2]
+
+				g.By(fmt.Sprintf("Creating the EgressIP test source deployment on node %s", rightNode[0]))
+				ingressDomain, err := getIngressDomain(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				deploymentName, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, targetNamespace, "", ingressDomain, len(rightNode), rightNode)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Choosing the EgressIPs to be assigned, one per node")
+				egressIPSet := make(map[string]string)
+				// With BGP, we can assign arbitrary EgressIPs to nodes.
+				for i := 0; i < len(egressIPNodes); i++ {
+					eip := fmt.Sprintf("192.168.111.%d", i+30)
+					egressIPSet[eip] = egressIPNodes[i]
+				}
+
+				g.By("Creating the EgressIP object for OVN Kubernetes")
+				egressIPYamlPath := tmpDirBGP + "/" + egressIPYaml
+				egressIPObjectName := targetNamespace
+				ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+
+				g.By("Applying the EgressIP object for OVN Kubernetes")
+				applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
+
+				g.By("Makes sure the EgressIP is advertised by FRR")
+				for eip, nodeName := range egressIPSet {
+					o.Eventually(func() bool {
+						frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
+						if err != nil {
+							return false
+						}
+						for _, prefix := range frr.Spec.BGP.Routers[0].Prefixes {
+							if prefix == fmt.Sprintf("%s/32", eip) {
+								return true
+							}
+						}
+						return false
+					}).WithTimeout(30 * time.Second).WithPolling(5 * time.Second).Should(o.BeTrue())
+				}
+
+				numberOfRequestsToSend := 10
+				targetHost := "192.168.111.1"
+				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+				spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, targetHost, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+				g.By("Updating the source deployment's Affinity and moving it to the other source node")
+				err = updateDeploymentAffinity(oc, targetNamespace, deploymentName, leftNode)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+				spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, targetHost, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 			})
 		})
 	})
