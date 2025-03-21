@@ -1729,21 +1729,21 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwo
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
-func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, error) {
+func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, string, error) {
 	eip, err := getEgressIP(oc, egressIPObjectName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return false, nil
+			return false, "", nil
 		}
-		return false, fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
+		return false, "", fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
 	}
 	for _, egressIPStatusItem := range eip.Status.Items {
 		if egressIPStatusItem.EgressIP == ip {
-			return true, nil
+			return true, egressIPStatusItem.Node, nil
 		}
 	}
 
-	return false, nil
+	return false, "", nil
 }
 
 // sdnNamespaceAddEgressIP adds EgressIP <egressip> to netnamespace <namespace>.

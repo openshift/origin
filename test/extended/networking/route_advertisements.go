@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -71,6 +72,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			workerNodesOrdered      []corev1.Node
 			workerNodesOrderedNames []string
 			advertisedPodsNodes     []string
+			egressIPNodes           []string
 			externalNodeName        string
 			targetNamespace         string
 			snifferNamespace        string
@@ -153,6 +155,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			o.Expect(len(workerNodesOrderedNames)).Should(o.BeNumerically(">", 1))
 			externalNodeName = workerNodesOrderedNames[0]
 			advertisedPodsNodes = workerNodesOrderedNames[1:]
+			egressIPNodes = workerNodesOrderedNames[1:]
 
 			g.By("Creating a project for the prober pod")
 			// Create a target project and assign source and target namespace
@@ -208,9 +211,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, v4ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v4PodIPSet)
 				}
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv6 {
-					// [TODO] enable IPv6 test once OCPBUGS-52194 is fixed
-					// g.By("sending to IPv6 external host")
-					// spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, v6ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v6PodIPSet)
+					g.By("sending to IPv6 external host")
+					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, v6ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v6PodIPSet)
 				}
 			})
 
@@ -229,10 +231,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv6 {
 					// [TODO] enable IPv6 test once OCPBUGS-52194 is fixed
-					// g.By("checking the external host to pod traffic works for IPv6")
-					// for podIP := range v6PodIPSet {
-					// 	checkExternalResponse(oc, proberPod, podIP, v6ExternalIP, serverPort, packetSnifferDaemonSet, targetProtocol)
-					// }
+					g.By("checking the external host to pod traffic works for IPv6")
+					for podIP := range v6PodIPSet {
+						checkExternalResponse(oc, proberPod, podIP, v6ExternalIP, serverPort, packetSnifferDaemonSet, targetProtocol)
+					}
 				}
 			})
 		})
@@ -349,8 +351,312 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				}
 			})
 		})
+
+		g.Context("[EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+			var err error
+			var egressIPYamlPath, egressIPObjectName string
+
+			g.BeforeEach(func() {
+				egressIPYamlPath = tmpDirBGP + "/" + egressIPYaml
+
+				g.By("Setup packet sniffer at nodes")
+				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, egressIPNodes, networkPlugin)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Setting the EgressIP nodes as EgressIP assignable")
+				for _, node := range egressIPNodes {
+					_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+			})
+
+			g.AfterEach(func() {
+				g.By("Deleting the EgressIP object if it exists for OVN Kubernetes")
+				if _, err := os.Stat(egressIPYamlPath); err == nil {
+					_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirBGP+"/"+egressIPYaml)
+				}
+
+				g.By("Removing the EgressIP assignable annotation for OVN Kubernetes")
+				for _, nodeName := range egressIPNodes {
+					_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
+				}
+			})
+
+			g.Context("Advertising egressIP for default network", func() {
+				g.BeforeEach(func() {
+					egressIPObjectName = targetNamespace
+
+					g.By("Turn on the BGP advertisement of EgressIPs")
+					_, err = runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["EgressIP","PodNetwork"]}}`)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("Ensure the RouteAdvertisements is accepted")
+					waitForRouteAdvertisements(oc, "default")
+
+					g.By("Makes sure the FRR configuration is generated for each node")
+					for _, nodeName := range workerNodesOrderedNames {
+						frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, "default")
+						o.Expect(err).NotTo(o.HaveOccurred())
+						o.Expect(frr).NotTo(o.BeNil())
+					}
+				})
+
+				g.AfterEach(func() {
+					g.By("Turn off the BGP advertisement of EgressIPs")
+					_, err := runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["PodNetwork"]}}`)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				})
+
+				g.DescribeTable("pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
+					func(ipFamily IPFamily, externalIP string) {
+						if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
+							skipper.Skipf("Skipping test for IPFamily: %s", ipFamily)
+							return
+						}
+						g.By("Selecte EgressIP set for the test")
+						egressIPSet, newEgressIPSet := getEgressIPSet(ipFamily, egressIPNodes)
+
+						g.By("Deploy the test pods")
+						deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
+
+						numberOfRequestsToSend := 10
+						// Run this twice to make sure that repeated EgressIP creation, update and deletion works.
+						for i := 0; i < 2; i++ {
+							g.By("Creating the EgressIP object")
+							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+
+							g.By("Applying the EgressIP object")
+							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
+
+							g.By("Makes sure the EgressIP is advertised by FRR")
+							for eip, nodeName := range egressIPSet {
+								o.Expect(nodeName).ShouldNot(o.BeEmpty())
+								o.Eventually(func() bool {
+									return isRouteToEgressIPPresent(oc, eip, "default", nodeName)
+								}).WithTimeout(timeOut).WithPolling(interval).Should(o.BeTrue())
+							}
+
+							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+							g.By("Updating the EgressIP object")
+							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
+
+							g.By("Applying the updated EgressIP object")
+							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, newEgressIPSet, egressUpdateTimeout)
+
+							g.By("Makes sure the updated EgressIP is advertised by FRR ")
+							for eip, nodeName := range newEgressIPSet {
+								o.Expect(nodeName).ShouldNot(o.BeEmpty())
+								o.Eventually(func() bool {
+									return isRouteToEgressIPPresent(oc, eip, "default", nodeName)
+								}).WithTimeout(timeOut).WithPolling(interval).Should(o.BeTrue())
+							}
+
+							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and updated EgressIPs %v were seen", numberOfRequestsToSend, newEgressIPSet))
+							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, newEgressIPSet)
+
+							g.By("Deleting the EgressIP object")
+							// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
+							_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+							o.Expect(err).NotTo(o.HaveOccurred())
+
+							g.By("Makes sure the EgressIP is not advertised by FRR")
+							for eip, nodeName := range newEgressIPSet {
+								o.Eventually(func() bool {
+									return isRouteToEgressIPPresent(oc, eip, "default", nodeName)
+								}).WithTimeout(timeOut).WithPolling(interval).Should(o.BeFalse())
+							}
+
+							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, newEgressIPSet))
+							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
+						}
+					},
+					g.Entry("IPv4", IPv4, v4ExternalIP),
+					g.Entry("IPv6", IPv6, v6ExternalIP),
+				)
+			})
+
+			g.Context("Advertising egressIP for user defined network", func() {
+				g.BeforeEach(func() {
+					g.By("Create a namespace with UDPN")
+					ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+						"e2e-framework":           f.BaseName,
+						RequiredUDNNamespaceLabel: "",
+					})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = udnWaitForOpenShift(oc, ns.Name)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					targetNamespace = ns.Name
+					f.Namespace = ns
+					egressIPObjectName = targetNamespace
+
+					g.By("Creating a cluster user defined network")
+					nc := &networkAttachmentConfigParams{
+						name:      cudnName,
+						topology:  "layer3",
+						role:      "primary",
+						namespace: targetNamespace,
+					}
+					nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+					cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
+					cleanup, err := createManifest(targetNamespace, cudnManifest)
+
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), cudnName), 60*time.Second, time.Second).Should(o.Succeed())
+					g.By("Labeling the UDN for advertisement")
+					_, err = runOcWithRetry(oc.AsAdmin(), "label", "clusteruserdefinednetworks", "-n", targetNamespace, cudnName, "advertise=true")
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("Create the route advertisement for UDN")
+					raManifest := newRouteAdvertisementsManifest(cudnName, true, true)
+					err = applyManifest(targetNamespace, raManifest)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					g.By("Ensure the RouteAdvertisements is accepted")
+					waitForRouteAdvertisements(oc, cudnName)
+
+					g.DeferCleanup(func() {
+						runOcWithRetry(oc.AsAdmin(), "delete", "deploy", deployName)
+						runOcWithRetry(oc.AsAdmin(), "delete", "ra", cudnName)
+						runOcWithRetry(oc.AsAdmin(), "delete", "pod", "--all")
+						runOcWithRetry(oc.AsAdmin(), "delete", "clusteruserdefinednetwork", cudnName)
+						cleanup()
+					})
+				})
+
+				g.AfterEach(func() {
+				})
+
+				g.DescribeTable("UDN pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
+					func(ipFamily IPFamily, externalIP string) {
+						if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
+							skipper.Skipf("Skipping test for IPFamily: %s", ipFamily)
+							return
+						}
+
+						g.By("Selecte EgressIP set for the test")
+						egressIPSet, newEgressIPSet := getEgressIPSet(ipFamily, egressIPNodes)
+
+						g.By("Deploy the test pods")
+						deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
+
+						numberOfRequestsToSend := 10
+						// Run this twice to make sure that repeated EgressIP creation and deletion works.
+						for i := 0; i < 2; i++ {
+							g.By("Creating the EgressIP object")
+							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+
+							g.By("Applying the EgressIP object")
+							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
+
+							g.By("Makes sure the EgressIP is advertised by FRR")
+							for eip, nodeName := range egressIPSet {
+								o.Expect(nodeName).ShouldNot(o.BeEmpty())
+								o.Eventually(func() bool {
+									return isRouteToEgressIPPresent(oc, eip, cudnName, nodeName)
+								}).WithTimeout(timeOut).WithPolling(interval).Should(o.BeTrue())
+							}
+
+							svcUrl := fmt.Sprintf("%s-0-service:%d", targetNamespace, serverPort)
+							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+							spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+							g.By("Updating the EgressIP object")
+							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
+
+							g.By("Applying the updated EgressIP object")
+							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, newEgressIPSet, egressUpdateTimeout)
+
+							g.By("Makes sure the updated EgressIP is advertised by FRR ")
+							for eip, nodeName := range newEgressIPSet {
+								o.Expect(nodeName).ShouldNot(o.BeEmpty())
+								o.Eventually(func() bool {
+									return isRouteToEgressIPPresent(oc, eip, cudnName, nodeName)
+								}).WithTimeout(timeOut).WithPolling(interval).Should(o.BeTrue())
+							}
+
+							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and updated EgressIPs %v were seen", numberOfRequestsToSend, newEgressIPSet))
+							spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, newEgressIPSet)
+
+							g.By("Deleting the EgressIP object")
+							// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
+							_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+							o.Expect(err).NotTo(o.HaveOccurred())
+
+							g.By("Makes sure the EgressIP is not advertised by FRR")
+							for eip, nodeName := range newEgressIPSet {
+								o.Eventually(func() bool {
+									return isRouteToEgressIPPresent(oc, eip, cudnName, nodeName)
+								}).WithTimeout(timeOut).WithPolling(interval).Should(o.BeFalse())
+							}
+
+							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, newEgressIPSet))
+							spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
+						}
+					},
+					g.Entry("IPv4", IPv4, v4ExternalIP),
+					g.Entry("IPv6", IPv6, v6ExternalIP),
+				)
+			})
+		})
 	})
 })
+
+func getEgressIPSet(ipFamily IPFamily, eipNodes []string) (map[string]string, map[string]string) {
+	egressIPSet := make(map[string]string)
+	newEgressIPSet := make(map[string]string)
+	for i := range eipNodes {
+		switch ipFamily {
+		case IPv4:
+			eip := fmt.Sprintf("192.168.111.%d", i+30)
+			egressIPSet[eip] = ""
+			neip := fmt.Sprintf("192.168.111.%d", i+40)
+			newEgressIPSet[neip] = ""
+		case IPv6:
+			eip := fmt.Sprintf("fd2e:6f44:5dd8:c956::%d", i+30)
+			egressIPSet[eip] = ""
+			neip := fmt.Sprintf("fd2e:6f44:5dd8:c956::%d", i+40)
+			newEgressIPSet[neip] = ""
+		default:
+			o.Expect(false).To(o.BeTrue())
+		}
+	}
+	return egressIPSet, newEgressIPSet
+}
+
+// isRouteToEgressIPPresent checks that routes to the egress IPs are being advertised by FRR.
+func isRouteToEgressIPPresent(oc *exutil.CLI, eip, netName, nodeName string) bool {
+	advertised := false
+	frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, netName)
+	if err != nil && err.Error() == "FRR configuration for node "+nodeName+" not found" {
+		return advertised
+	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if len(frr.Spec.BGP.Routers) == 0 {
+		return advertised
+	}
+
+	// Parse IP to determine if it's IPv4 or IPv6
+	ip := net.ParseIP(eip)
+	o.Expect(ip).NotTo(o.BeNil())
+
+	var prefix string
+	if ip.To4() != nil {
+		prefix = fmt.Sprintf("%s/32", eip)
+	} else {
+		prefix = fmt.Sprintf("%s/128", eip)
+	}
+
+	if slices.Contains(frr.Spec.BGP.Routers[0].Prefixes, prefix) {
+		advertised = true
+	}
+	return advertised
+}
 
 // getRouteAdvertisements uses the dynamic admin client to return a pointer to
 // an existing RouteAdvertisements, or error.
