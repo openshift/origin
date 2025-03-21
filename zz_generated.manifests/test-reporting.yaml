@@ -580,12 +580,32 @@ spec:
   - featureGate: RouteAdvertisements
     tests:
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        Advertising egressIP for default network pods should have the assigned EgressIPs
+        and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]
+        IPv4'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        Advertising egressIP for default network pods should have the assigned EgressIPs
+        and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]
+        IPv6'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        Advertising egressIP for user defined network UDN pods should have the assigned
+        EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]
+        IPv4'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        Advertising egressIP for user defined network UDN pods should have the assigned
+        EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]
+        IPv6'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
-        defined network [Serial][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
         External host should be able to query route advertised pods by the pod IP'
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
-        defined network [Serial][apigroup:user.openshift.io][apigroup:security.openshift.io]
+        defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
         pods should communicate with external host without being SNATed'
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising the default network
