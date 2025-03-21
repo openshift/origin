@@ -20,7 +20,7 @@ var (
 	name        = "baseline-nested-container"
 )
 
-var _ = g.Describe("[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
+var _ = g.Describe("[sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
 	g.It("should pass podman localsystem test in baseline mode",
 		func(ctx context.Context) {
 			if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
