@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 
@@ -45,6 +46,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 
 	g.It("Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNConditionOnNodeDegrade(oc, invalidMCFixture)
+	})
+
+	g.It("Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", func() {
+		ValidateMCNOnNodeCreationAndDeletion(oc)
 	})
 })
 
@@ -151,7 +156,7 @@ func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 	o.Expect(customNodeMCN.Status.ConfigVersion.Desired).Should(o.Equal(customDesiredConfig))
 }
 
-// `ValidateMCNConditionTransitions` check that Conditions properly update on a node update
+// `ValidateMCNConditionTransitions` checks that Conditions properly update on a node update
 func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	// Create client set for test
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -228,7 +233,7 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	o.Expect(confirmUpdatedMCNStatus(clientSet, workerNode.Name)).Should(o.BeTrue())
 }
 
-// `ValidateMCNConditionOnNodeDegrade` check that Conditions properly update on a node update
+// `ValidateMCNConditionOnNodeDegrade` checks that Conditions properly update on a node update
 func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string) {
 	// Create client set for test
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -265,4 +270,78 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string) {
 	o.Expect(degradedErr).NotTo(o.HaveOccurred())
 	o.Expect(checkMCNConditionStatus(degradedNodeMCN, "AppliedFilesAndOS", "Unknown"))
 	o.Expect(checkMCNConditionStatus(degradedNodeMCN, "UpdateExecuted", "Unknown"))
+}
+
+// `ValidateMCNProperties` checks that MCNs with correct properties are created on node creation
+// and deleted on node deletion
+// TODO: figure out if this needs to be a long test due to the time it takes to provision a machine & create a node
+func ValidateMCNOnNodeCreationAndDeletion(oc *exutil.CLI) {
+	// Create machine client for test
+	machineClient, machineErr := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(machineErr).NotTo(o.HaveOccurred())
+
+	// Create client set for test
+	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(clientErr).NotTo(o.HaveOccurred())
+
+	// Skip test if worker nodes cannot be scaled
+	canBeScaled, canScaleErr := workersCanBeScaled(oc, machineClient)
+	o.Expect(canScaleErr).NotTo(o.HaveOccurred(), "Error deciding if worker nodes can be scaled using MachineSets.")
+	if !canBeScaled {
+		g.Skip("Worker nodes cannot be scaled using MachineSets. This test cannot be execute if workers cannot be scaled via MachineSets.")
+	}
+
+	// Get MachineSet for test
+	framework.Logf("Getting MachineSet for testing.")
+	machineSet := getRandomMachineSet(machineClient)
+	framework.Logf("MachineSet %s will be used for testing", machineSet.Name)
+	originalReplica := int(*machineSet.Spec.Replicas)
+
+	// Rollback replica in test MachineSet on test failure or completion
+	// defer func() {
+	// 	scaleErr := ScaleMachineSet(oc, machineSet.Name, fmt.Sprintf("%d", originalReplica))
+	// 	o.Expect(scaleErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error rolling back MachineSet %v to vale replica value %v.", machineSet.Name, string(originalReplica)))
+	// }()
+
+	// Create node by scaling MachineSet
+	framework.Logf("Scaling up MachineSet to create node.")
+	updatedReplica := originalReplica + 1
+	scaleErr := ScaleMachineSet(oc, machineSet.Name, fmt.Sprintf("%d", updatedReplica))
+	o.Expect(scaleErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error provisioning node by scaling MachineSet %v to replica value %v.", machineSet.Name, string(updatedReplica)))
+
+	// Get the newly created node
+	framework.Logf("Getting the new machine.")
+	provisioningMachine, provisioningMachineErr := GetMachinesByPhase(machineClient, machineSet.Name, "Provisioning")
+	o.Expect(provisioningMachineErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Cannot find provisioning machine in MachineSet %v", machineSet.Name))
+	newMachineName := provisioningMachine.Name
+	framework.Logf("Waiting for new machine %v to be ready.", newMachineName)
+	WaitForMachineInState(machineClient, newMachineName, "Running")
+	framework.Logf("Getting new node in machine %v.", newMachineName)
+	node, nodeErr := getNewReadyNodeInMachine(oc, newMachineName)
+	o.Expect(nodeErr).NotTo(o.HaveOccurred())
+	framework.Logf("Got new node: %v.", node.Name)
+
+	// Validate new MCN
+	validMCNErr := WaitForValidMCNProperties(clientSet, node)
+	o.Expect(validMCNErr).NotTo(o.HaveOccurred())
+
+	// Scale down the MachineSet to delete the created node
+	framework.Logf("Scaling down MachineSet to delete node.")
+	scaleErr = ScaleMachineSet(oc, machineSet.Name, fmt.Sprintf("%d", originalReplica))
+	o.Expect(scaleErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deleting node by scaling MachineSet %v to replica value %v.", machineSet.Name, string(originalReplica)))
+
+	// Get the deleting node
+	framework.Logf("Getting the deleting machine.")
+	deletingMachine, deletingMachineErr := GetMachinesByPhase(machineClient, machineSet.Name, "Deleting")
+	o.Expect(deletingMachineErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Cannot find deleting machine in MachineSet %v", machineSet.Name))
+	deletingMachineName := deletingMachine.Name
+	framework.Logf("Machine %v is being deleted.", deletingMachineName)
+	framework.Logf("Getting node in deleting machine %v.", deletingMachineName)
+	deletingNode, deletingNodeErr := getNodeInMachine(oc, deletingMachineName)
+	o.Expect(deletingNodeErr).NotTo(o.HaveOccurred())
+	framework.Logf("Node being deleted: %v.", deletingNode.Name)
+
+	// Check that node & MCN are removed
+	o.Expect(WaitForNodeToBeDeleted(oc, deletingNode.Name))
+	o.Expect(WaitForMCNToBeDeleted(clientSet, deletingNode.Name))
 }
