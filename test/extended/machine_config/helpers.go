@@ -5,7 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 	"math/rand"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -1067,4 +1071,83 @@ func WaitForMachineToBeDeleted(machineClient *machineclient.Clientset, machineNa
 		return false
 	}, 10*time.Minute, 5*time.Second).Should(o.BeTrue())
 	return nil
+}
+
+// ExecCmdOnNodeWithError behaves like ExecCmdOnNode, with the exception that
+// any errors are returned to the caller for inspection. This allows one to
+// execute a command that is expected to fail; e.g., stat /nonexistant/file.
+func ExecCmdOnNodeWithError(oc *exutil.CLI, node corev1.Node, subArgs ...string) (string, error) {
+	cmd, err := execCmdOnNode(oc, node, subArgs...)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+// ExecCmdOnNode finds a node's mcd, and oc rsh's into it to execute a command on the node
+// all commands should use /rootfs as root
+func ExecCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) string {
+	cmd, err := execCmdOnNode(oc, node, subArgs...)
+	o.Expect(err).NotTo(o.HaveOccurred(), "could not prepare to exec cmd %v on node %s: %s", subArgs, node.Name, err)
+	cmd.Stderr = os.Stderr
+
+	out, err := cmd.Output()
+	if err != nil {
+		// common err is that the mcd went down mid cmd. Re-try for good measure
+		cmd, err = execCmdOnNode(oc, node, subArgs...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "could not prepare to exec cmd %v on node %s: %s", subArgs, node.Name, err)
+		out, err = cmd.Output()
+
+	}
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to exec cmd %v on node %s: %s", subArgs, node.Name, string(out))
+	return string(out)
+}
+
+// ExecCmdOnNode finds a node's mcd, and oc rsh's into it to execute a command on the node
+// all commands should use /rootfs as root
+func execCmdOnNode(oc *exutil.CLI, node corev1.Node, subArgs ...string) (*exec.Cmd, error) {
+	// Check for an oc binary in $PATH.
+	path, err := exec.LookPath("oc")
+	if err != nil {
+		return nil, fmt.Errorf("could not locate oc command: %w", err)
+	}
+
+	mcd, err := mcdForNode(oc.AsAdmin().KubeClient(), &node)
+	if err != nil {
+		return nil, fmt.Errorf("could not get MCD for node %s: %w", node.Name, err)
+	}
+
+	mcdName := mcd.ObjectMeta.Name
+
+	entryPoint := path
+	args := []string{"rsh",
+		"-n", "openshift-machine-config-operator",
+		"-c", "machine-config-daemon",
+		mcdName}
+	args = append(args, subArgs...)
+
+	cmd := exec.Command(entryPoint, args...)
+	return cmd, nil
+}
+
+func mcdForNode(client kubernetes.Interface, node *corev1.Node) (*corev1.Pod, error) {
+	// find the MCD pod that has spec.nodeNAME = node.Name and get its name:
+	listOptions := metav1.ListOptions{
+		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
+	}
+	listOptions.LabelSelector = labels.SelectorFromSet(labels.Set{"k8s-app": "machine-config-daemon"}).String()
+
+	mcdList, err := client.CoreV1().Pods("openshift-machine-config-operator").List(context.TODO(), listOptions)
+	if err != nil {
+		return nil, err
+	}
+	if len(mcdList.Items) != 1 {
+		if len(mcdList.Items) == 0 {
+			return nil, fmt.Errorf("failed to find MCD for node %s", node.Name)
+		}
+		return nil, fmt.Errorf("too many (%d) MCDs for node %s", len(mcdList.Items), node.Name)
+	}
+	return &mcdList.Items[0], nil
 }
