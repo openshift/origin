@@ -15,9 +15,8 @@ import (
 )
 
 var (
-	oc          = exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
-	customImage = exutil.FixturePath("testdata", "node", "nested_container")
-	name        = "baseline-nested-container"
+	oc   = exutil.NewCLIWithPodSecurityLevel("nested-podman", admissionapi.LevelBaseline)
+	name = "baseline-nested-container"
 )
 
 var _ = g.Describe("[sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container", func() {
