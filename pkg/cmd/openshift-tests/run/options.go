@@ -17,8 +17,6 @@ import (
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
-var suiteOptions = make(map[string]RunSuiteOptions)
-
 // TODO collapse this with cmd_runsuite
 type RunSuiteOptions struct {
 	GinkgoRunSuiteOptions *testginkgo.GinkgoRunSuiteOptions
@@ -92,15 +90,10 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
 
-	suiteOptions[o.Suite.Name] = *o
 	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
 
 	return exitErr
-}
-
-func GetSuiteOptions(suiteName string) map[string]RunSuiteOptions {
-	return suiteOptions
 }
