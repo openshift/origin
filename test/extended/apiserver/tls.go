@@ -56,6 +56,22 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
 
+		g.By("Checking if TLS 1.2 is usable before the modern TLS profile is applied")
+
+		// We're going to be dialing TCP directly, not connecting over HTTP as usual, so we don't want the protocol on the host.
+		tlsHost := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
+
+		config := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+
+		conn, err := tls.Dial("tcp4", tlsHost, config)
+		if err != nil {
+			t.Fatalf("Expected success with TLS 1.2 using default profile, got %v", err)
+		} else {
+			t.Log("TLS 1.2 is usable")
+		}
+
+		conn.Close()
+
 		g.By("Applying a JSON Patch to use the modern TLS profile")
 
 		kasStatus, err := operatorClient.OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
@@ -79,19 +95,31 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 		_, err = waitForKASIncrementedRevision(ctx, operatorClient, "cluster", currentKASRevision)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Dialing the API with a minimum TLS version of 1.3")
+		g.By("Dialing the API with a minimum TLS version of 1.3 and expecting success")
 
-		config := &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
+		config = &tls.Config{MinVersion: tls.VersionTLS13, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 
-		// We're going to be dialing TCP directly, not connecting over HTTP as usual, so we don't want the protocol on the host.
-		host := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
-
-		conn, err := tls.Dial("tcp4", host, config)
+		conn, err = tls.Dial("tcp4", tlsHost, config)
 		if err != nil {
 			t.Fatalf("Expected success with TLS 1.3, got %v", err)
+		} else {
+			t.Log("TLS 1.3 is usable")
 		}
 
 		conn.Close()
+
+		g.By("Dialing the API with a minimum TLS version of 1.2 and expecting failure")
+
+		config = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+
+		conn, err = tls.Dial("tcp4", tlsHost, config)
+		if err == nil {
+			t.Fatalf("Expected failure with TLS 1.2, got success")
+			conn.Close()
+		} else {
+			t.Log("TLS 1.2 is not usable")
+		}
+
 	})
 })
 
