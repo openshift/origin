@@ -23,9 +23,7 @@ const (
 	custom = "infra"
 )
 
-// TODO: decide if this needs to be run as `Serial` or not
-// This test is [Serial] because it modifies the cluster/machineconfigurations.operator.openshift.io object in each test.
-var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func() {
+var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode]", func() {
 	defer g.GinkgoRecover()
 	var (
 		MCOMachineConfigPoolBaseDir = exutil.FixturePath("testdata", "machine_config", "machineconfigpool")
@@ -36,19 +34,19 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNode][Serial]", func()
 		oc                          = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
-	g.It("Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNProperties(oc, infraMCPFixture)
 	})
 
-	g.It("Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNConditionTransitions(oc, testFileMCFixture)
 	})
 
-	g.It("Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNConditionOnNodeDegrade(oc, invalidMCFixture)
 	})
 
-	g.It("Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNOnNodeCreationAndDeletion(oc)
 	})
 })
