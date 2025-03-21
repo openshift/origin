@@ -341,6 +341,13 @@ func (b *LocatorBuilder) LocateDisruptionCheck(backendDisruptionName, thisInstan
 		Build()
 }
 
+func (b *LocatorBuilder) LocateCluster() Locator {
+	b.targetType = LocatorTypeClusterVersion
+	b.annotations[LocatorClusterVersionKey] = "version"
+
+	return b.Build()
+}
+
 func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName string) Locator {
 	return b.
 		withServer(serverName).
