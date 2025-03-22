@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/terminationmessagepolicy"
+	"github.com/openshift/origin/pkg/monitortests/etcd/etcddiskfsync"
 	"github.com/openshift/origin/pkg/monitortests/etcd/etcdloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
@@ -133,6 +134,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie(apiunreachablefromclientmetrics.MonitorName, "kube-apiserver", apiunreachablefromclientmetrics.NewMonitorTest())
+	monitorTestRegistry.AddMonitorTestOrDie(etcddiskfsync.MonitorName, "etcd", etcddiskfsync.NewMonitorTest())
 	monitorTestRegistry.AddMonitorTestOrDie(faultyloadbalancer.MonitorName, "kube-apiserver", faultyloadbalancer.NewMonitorTest())
 	monitorTestRegistry.AddMonitorTestOrDie(staticpodinstall.MonitorName, "kube-apiserver", staticpodinstall.NewStaticPodInstallMonitorTest())
 
