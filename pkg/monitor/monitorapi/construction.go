@@ -389,6 +389,13 @@ func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, servi
 	return b.Build()
 }
 
+func (b *LocatorBuilder) WithEtcdDiskFsyncMetric(metric model.Metric) Locator {
+	pod := string(metric["pod"])
+	b.targetType = LocatorTypePod
+	b.withPodName(pod)
+	return b.Build()
+}
+
 // TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
 func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 
