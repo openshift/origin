@@ -29,6 +29,13 @@ type monitorTesttItem struct {
 	monitorTest MonitorTest
 }
 
+func (it *monitorTesttItem) Logger() logrus.FieldLogger {
+	return logrus.WithFields(logrus.Fields{
+		"jiraComponent": it.jiraComponent,
+		"monitorTest":   it.name,
+	})
+}
+
 func NewMonitorTestRegistry() MonitorTestRegistry {
 	return &monitorTestRegistry{
 		monitorTests: map[string]*monitorTesttItem{},
@@ -89,12 +96,13 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 			defer wg.Done()
 
 			testName := fmt.Sprintf("[Jira:%q] monitor test %v setup", invariant.jiraComponent, invariant.name)
-			logrus.Infof("  Starting %v for %v", invariant.name, invariant.jiraComponent)
+			invariant.Logger().Infof("began StartCollection")
 
 			start := time.Now()
 			err := startCollectionWithPanicProtection(ctx, invariant.monitorTest, adminRESTConfig, recorder)
 			end := time.Now()
 			duration := end.Sub(start)
+			invariant.Logger().Infof("finished StartCollection after %s", duration)
 			if err != nil {
 				var nsErr *NotSupportedError
 				if errors.As(err, &nsErr) {
@@ -160,12 +168,13 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 			testName := fmt.Sprintf("[Jira:%q] monitor test %v collection", monitorTest.jiraComponent, monitorTest.name)
 
 			start := time.Now()
-			logrus.Infof("  Starting CollectData for %s", testName)
+			monitorTest.Logger().Infof("began CollectData")
 			localIntervals, localJunits, err := collectDataWithPanicProtection(ctx, monitorTest.monitorTest, storageDir, beginning, end)
 			intervalsCh <- localIntervals
 			junitCh <- localJunits
 			end := time.Now()
 			duration := end.Sub(start)
+			monitorTest.Logger().Infof("finished CollectData after %s", duration)
 			if err != nil {
 				var nsErr *NotSupportedError
 				if errors.As(err, &nsErr) {
@@ -239,10 +248,12 @@ func (r *monitorTestRegistry) ConstructComputedIntervals(ctx context.Context, st
 		testName := fmt.Sprintf("[Jira:%q] monitor test %v interval construction", monitorTest.jiraComponent, monitorTest.name)
 
 		start := time.Now()
+		monitorTest.Logger().Infof("began ConstructComputedIntervals")
 		localIntervals, err := constructComputedIntervalsWithPanicProtection(ctx, monitorTest.monitorTest, startingIntervals, recordedResources, beginning, end)
 		intervals = append(intervals, localIntervals...)
 		end := time.Now()
 		duration := end.Sub(start)
+		monitorTest.Logger().Infof("finished ConstructComputedIntervals after %s", duration)
 		if err != nil {
 			var nsErr *NotSupportedError
 			if errors.As(err, &nsErr) {
@@ -288,10 +299,12 @@ func (r *monitorTestRegistry) EvaluateTestsFromConstructedIntervals(ctx context.
 		testName := fmt.Sprintf("[Jira:%q] monitor test %v test evaluation", monitorTest.jiraComponent, monitorTest.name)
 
 		start := time.Now()
+		monitorTest.Logger().Infof("began EvaluateTestsFromConstructedIntervals")
 		localJunits, err := evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx, monitorTest.monitorTest, finalIntervals)
 		junits = append(junits, localJunits...)
 		end := time.Now()
 		duration := end.Sub(start)
+		monitorTest.Logger().Infof("finished EvaluateTestsFromConstructedIntervals after %s", duration)
 		if err != nil {
 			var nsErr *NotSupportedError
 			if errors.As(err, &nsErr) {
@@ -346,9 +359,11 @@ func (r *monitorTestRegistry) WriteContentToStorage(ctx context.Context, storage
 			fmt.Fprintf(os.Stderr, "  last interval time: From = %s; To = %s\n", finalIntervals[finalIntervalLength-1].From, finalIntervals[finalIntervalLength-1].To)
 		}
 
+		monitorTest.Logger().Infof("began WriteContentToStorage")
 		err := writeContentToStorageWithPanicProtection(ctx, monitorTest.monitorTest, storageDir, timeSuffix, finalIntervals, finalResourceState)
 		end := time.Now()
 		duration := end.Sub(start)
+		monitorTest.Logger().Infof("finished WriteContentToStorage after %s", duration)
 		if err != nil {
 			var nsErr *NotSupportedError
 			if errors.As(err, &nsErr) {
@@ -392,13 +407,13 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 
 	for _, monitorTest := range r.monitorTests {
 		testName := fmt.Sprintf("[Jira:%q] monitor test %v cleanup", monitorTest.jiraComponent, monitorTest.name)
-		log := logrus.WithField("monitorTest", monitorTest.name)
 
 		start := time.Now()
-		log.Info("beginning cleanup")
+		monitorTest.Logger().Infof("began Cleanup")
 		err := cleanupWithPanicProtection(ctx, monitorTest.monitorTest)
 		end := time.Now()
 		duration := end.Sub(start)
+		monitorTest.Logger().Infof("finished Cleanup after %s", duration)
 		if err != nil {
 			var nsErr *NotSupportedError
 			if errors.As(err, &nsErr) {
@@ -412,7 +427,7 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 				continue
 			}
 
-			log.WithError(err).Error("failed during cleanup")
+			monitorTest.Logger().WithError(err).Error("failed during cleanup")
 			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
