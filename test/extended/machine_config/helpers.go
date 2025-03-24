@@ -464,8 +464,6 @@ func waitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 // `waitForMCNConditionStatus` waits until the desired MCN condition matches the desired status (ex. wait until "Updated" is "False")
 func waitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
 	o.Eventually(func() bool {
-		framework.Logf("Waiting for MCN %v %v condition to be %v.", mcnName, conditionType, status)
-
 		// Get MCN & check if the MCN condition status matches the desired status
 		workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
 		o.Expect(workerErr).NotTo(o.HaveOccurred())
