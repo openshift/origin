@@ -49023,12 +49023,9 @@ spec:
     storage:
       files:
       - contents:
-          source: data:text/plain;charset=utf-8;base64,dGVzdA==
+          source: data:,hello%20world%0A
         mode: 420
-        path: /etc/wronguser-test-file.test
-        user:
-          name: wronguser
-
+        path: /home/core
 `)
 
 func testExtendedTestdataMachine_configMachineconfig1WorkerInvalidMcYamlBytes() ([]byte, error) {
