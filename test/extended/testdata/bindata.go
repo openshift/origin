@@ -53543,7 +53543,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>EVENT_INTERVAL_TITLE_GOES_HERE</title>
-    <script src="https://unpkg.com/timelines-chart"></script>
+    <script src="https://cdn.jsdelivr.net/npm/timelines-chart"></script>
     <script src="https://d3js.org/d3-array.v1.min.js"></script>
     <script src="https://d3js.org/d3-collection.v1.min.js"></script>
     <script src="https://d3js.org/d3-color.v1.min.js"></script>
@@ -54173,7 +54173,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>EVENT_INTERVAL_TITLE_GOES_HERE</title>
-    <script src="https://unpkg.com/timelines-chart"></script>
+    <script src="https://cdn.jsdelivr.net/npm/timelines-chart"></script>
     <script src="https://d3js.org/d3-array.v1.min.js"></script>
     <script src="https://d3js.org/d3-collection.v1.min.js"></script>
     <script src="https://d3js.org/d3-color.v1.min.js"></script>
