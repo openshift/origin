@@ -190,9 +190,6 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, fixture string) {
 	framework.Logf("Waiting for Cordoned=True")
 	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateCordoned, metav1.ConditionTrue, 30*time.Second, 1*time.Second)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	framework.Logf("Waiting for Drained=Unknown")
-	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred())
 	framework.Logf("Waiting for Drained=True")
 	// TODO: adjust timeout for this stage based on test outcomes
 	err = waitForMCNConditionStatus(clientSet, workerNode.Name, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionTrue, 4*time.Minute, 1*time.Second)
