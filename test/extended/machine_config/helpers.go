@@ -38,6 +38,9 @@ const (
 	cmName                          = "coreos-bootimages"
 	mapiMasterMachineLabelSelector  = "machine.openshift.io/cluster-api-machine-role=master"
 	mapiMachineSetArchAnnotationKey = "capacity.cluster-autoscaler.kubernetes.io/labels"
+	currentConfigAnnotationKey      = "machineconfiguration.openshift.io/currentConfig"
+	desiredConfigAnnotationKey      = "machineconfiguration.openshift.io/desiredConfig"
+	stateAnnotationKey              = "machineconfiguration.openshift.io/state"
 )
 
 // TODO: add error message returns for `.NotTo(o.HaveOccurred())` cases.
@@ -300,9 +303,8 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 	return nil
 }
 
-// Gets a random node from a given pool. Checks for whether the node is ready
-// and if no nodes are ready, it will poll for up to 5 minutes for a node to
-// become available.
+// `GetRandomNode` gets a random node from a given MCP and checks whether the node is ready. If no
+// nodes are ready, it will poll for up to 5 minutes for a node to become available.
 func GetRandomNode(oc *exutil.CLI, pool string) corev1.Node {
 	if node := getRandomNode(oc, pool); isNodeReady(node) {
 		return node
@@ -382,7 +384,7 @@ func isNodeKubeletReady(node corev1.Node) bool {
 // Determines whether the MCD on a given node has reached the "Done" state.
 func isMCDDone(node corev1.Node) bool {
 	// TODO: Update to make use of generalized
-	state := node.Annotations["machineconfiguration.openshift.io/state"]
+	state := node.Annotations[stateAnnotationKey]
 	return state == "Done"
 }
 
@@ -526,7 +528,7 @@ func GetDegradedNode(oc *exutil.CLI, mcpName string) (corev1.Node, error) {
 	// Get degraded node
 	for _, node := range nodes {
 		// TODO: create generalized get node state helper
-		state := node.Annotations["machineconfiguration.openshift.io/state"]
+		state := node.Annotations[stateAnnotationKey]
 		if state == "Degraded" {
 			return node, nil
 		}
@@ -545,7 +547,8 @@ func recoverFromDegraded(oc *exutil.CLI, mcpName string) error {
 	o.Expect(nodes).ShouldNot(o.BeEmpty())
 	for _, node := range nodes {
 		framework.Logf("Restoring desired config for node: %s", node.Name)
-		state := node.Annotations["machineconfiguration.openshift.io/state"]
+		// TODO: probably use `isMCDDone`
+		state := node.Annotations[stateAnnotationKey]
 		if state == "Done" {
 			framework.Logf("Node %s is updated and does not need to be recovered", node.Name)
 		} else {
@@ -566,7 +569,7 @@ func recoverFromDegraded(oc *exutil.CLI, mcpName string) error {
 
 // TODO: generalize with get node status to just pass in the general node annotation label
 func getCurrentMachineConfig(node corev1.Node) string {
-	return node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+	return node.Annotations[currentConfigAnnotationKey]
 }
 
 // `restoreDesiredConfig` updates the value of a node's desiredConfig annotation to be equal to the value of its currentConfig (desiredConfig=currentConfig)
@@ -765,8 +768,8 @@ func getNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, 
 //   - Current config version of node matches current config version in MCN status
 //   - Desired config version of node matches desired config version in MCN status
 func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node corev1.Node) error {
-	nodeDesiredConfig := node.Annotations["machineconfiguration.openshift.io/desiredConfig"]
-	nodeCurrentConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+	nodeDesiredConfig := node.Annotations[desiredConfigAnnotationKey]
+	nodeCurrentConfig := node.Annotations[currentConfigAnnotationKey]
 
 	// Check MCN exists and that its name and node name match
 	framework.Logf("Checking MCN exists and name matches node name.")
