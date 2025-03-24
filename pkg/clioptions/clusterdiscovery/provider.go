@@ -135,7 +135,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		}
 		fallthrough
 
-	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud":
+	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud", "external":
 		if clusterState == nil {
 			clientConfig, err := e2e.LoadConfig(true)
 			if err != nil {
