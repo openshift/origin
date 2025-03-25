@@ -21,7 +21,7 @@ import (
 const tlsTestDuration = 45 * time.Minute
 const tlsWaitForCleanupDuration = 10 * time.Minute
 
-var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial][Slow]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("apiserver")
