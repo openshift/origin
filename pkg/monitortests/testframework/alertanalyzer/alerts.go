@@ -303,6 +303,7 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 			}
 			alertIntervalTemplate :=
 				monitorapi.NewInterval(monitorapi.SourceAlert, level).
+					Display().
 					Locator(lb).
 					Message(msg)
 
