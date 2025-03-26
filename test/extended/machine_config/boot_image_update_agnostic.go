@@ -38,6 +38,9 @@ func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 	err := oc.Run("apply").Args("-f", fixture).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	// Ensure status accounts for the fixture that was applied
+	WaitForMachineConfigurationStatusUpdate(oc)
+
 	// Pick a random machineset to test
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -66,6 +69,9 @@ func NoneMachineSetTest(oc *exutil.CLI, fixture string) {
 	err := oc.Run("apply").Args("-f", fixture).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	// Ensure status accounts for the fixture that was applied
+	WaitForMachineConfigurationStatusUpdate(oc)
+
 	// Step through all machinesets and verify boot images are reconciled correctly.
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -82,6 +88,9 @@ func DegradeOnOwnerRefTest(oc *exutil.CLI, fixture string) {
 	// This fixture applies a boot image update configuration that opts in all machinesets
 	err := oc.Run("apply").Args("-f", fixture).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Ensure status accounts for the fixture that was applied
+	WaitForMachineConfigurationStatusUpdate(oc)
 
 	// Pick a random machineset to test
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
