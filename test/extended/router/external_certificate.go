@@ -141,7 +141,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				passthroughRoute := generateRouteWithExternalCertificate(oc.Namespace(), "passthrough-route", secret.Name, helloPodSvc, host, routev1.TLSTerminationPassthrough)
 				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), passthroughRoute, metav1.CreateOptions{})
 				o.Expect(err).To(o.HaveOccurred())
-				o.Expect(err.Error()).To(o.ContainSubstring(`Invalid value: "my-tls-secret": passthrough termination does not support`))
+				o.Expect(err.Error()).To(o.ContainSubstring(`Invalid value: "my-tls-secret": passthrough termination does not support certificates`))
 			})
 
 			g.It("should not support external certificate if inline certificate is also present", func() {
@@ -171,7 +171,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 		)
 
 		g.BeforeEach(func() {
-			const numRoutes = 5
+			const numRoutes = 6
 			var routeNames []string
 
 			for i := 0; i < numRoutes; i++ {
