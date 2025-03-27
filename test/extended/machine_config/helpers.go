@@ -307,3 +307,13 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
 }
+
+// Applies a boot image fixture and waits for the MCO to reconcile the status
+func ApplyBootImageFixture(oc *exutil.CLI, fixture string) {
+	err := oc.Run("apply").Args("-f", fixture).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Ensure status accounts for the fixture that was applied
+	WaitForMachineConfigurationStatusUpdate(oc)
+
+}
