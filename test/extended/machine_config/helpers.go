@@ -220,6 +220,22 @@ func WaitForBootImageControllerToComplete(oc *exutil.CLI) {
 	}, 3*time.Minute, 5*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
 }
 
+// WaitForMachineConfigurationStatus waits until the MCO syncs the operator status to the latest spec
+func WaitForMachineConfigurationStatusUpdate(oc *exutil.CLI) {
+	machineConfigurationClient, err := mcopclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	// This has a MustPassRepeatedly(3) to ensure there isn't a false positive by checking the
+	// status too quickly after applying the fixture.
+	o.Eventually(func() bool {
+		mcop, err := machineConfigurationClient.OperatorV1().MachineConfigurations().Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Failed to grab machineconfiguration object, error :%v", err)
+			return false
+		}
+		return mcop.Generation == mcop.Status.ObservedGeneration
+	}, 3*time.Minute, 1*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
+}
+
 // IsMachineConfigPoolConditionTrue returns true when the conditionType is present and set to `ConditionTrue`
 func IsMachineConfigPoolConditionTrue(conditions []mcfgv1.MachineConfigPoolCondition, conditionType mcfgv1.MachineConfigPoolConditionType) bool {
 	for _, condition := range conditions {

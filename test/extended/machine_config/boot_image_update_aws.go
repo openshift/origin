@@ -36,6 +36,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 		// Clear out boot image configuration between tests
 		err := oc.Run("apply").Args("-f", emptyMachineSetFixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Ensure status accounts for the fixture that was applied
+		WaitForMachineConfigurationStatusUpdate(oc)
 	})
 
 	g.It("Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]", func() {
