@@ -381,9 +381,20 @@ spec:
     tests:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
-        should be installed'
+        API Load Test all endpoint should handle concurrent load with acceptable performance
+        on api/v1/all endpoint'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
         Catalog Install should fail to install if it has an invalid reference'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 default
+        Catalogs should be installed'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should block cluster upgrades if an incompatible operator is
         installed'
@@ -391,6 +402,23 @@ spec:
         installation should fail to install a non-existing cluster extension'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should install a cluster extension'
+  - featureGate: NewOLMCatalogdAPIV1Metas
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 Catalogs API Load Test metas endpoint should handle concurrent load
+        with acceptable performance on api/v1/metas endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
   - featureGate: PersistentIPsForVirtualization
     tests:
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]

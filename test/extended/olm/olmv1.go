@@ -13,6 +13,7 @@ import (
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -72,7 +73,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 default Catalogs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
@@ -97,6 +98,238 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Serving", metav1.ConditionTrue)).To(o.BeTrue())
 		}
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-community-operators"
+		endpoint := "all"
+
+		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-certified-operators"
+		endpoint := "all"
+
+		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-redhat-marketplace"
+		endpoint := "all"
+
+		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-redhat-operators"
+		endpoint := "all"
+
+		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-community-operators"
+		endpoint := "metas"
+		query := "schema=olm.package"
+
+		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-certified-operators Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-certified-operators"
+		endpoint := "metas"
+		query := "schema=olm.package"
+
+		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-redhat-marketplace"
+		endpoint := "metas"
+		query := "schema=olm.package"
+
+		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		catalog := "openshift-redhat-operators"
+		endpoint := "metas"
+		query := "schema=olm.package"
+
+		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
+		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"clustercatalogs.olm.operatorframework.io",
+			catalog,
+			"-o=jsonpath={.status.urls.base}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
+
+		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
+		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+		verifyAPIEndpoint(ctx, oc, serviceURL)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs API Load Test all endpoint", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should handle concurrent load with acceptable performance on api/v1/all endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		// Parameters for the load test
+		maxLatencyThreshold := 16000000 // Maximum acceptable P99 latency in μs (16 seconds)
+
+		runCatalogLoadTest(ctx, oc, "openshift-community-operators", "all", "", maxLatencyThreshold)
+	})
+})
+
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 Catalogs API Load Test metas endpoint", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.It("should handle concurrent load with acceptable performance on api/v1/metas endpoint", func(ctx g.SpecContext) {
+		checkFeatureCapability(oc)
+
+		// Parameters for the load test
+		maxLatencyThreshold := 300000 // Maximum acceptable P99 latency in μs (0.3 seconds)
+
+		runCatalogLoadTest(ctx, oc, "openshift-community-operators", "metas", "schema=olm.package", maxLatencyThreshold)
 	})
 })
 
@@ -416,4 +649,288 @@ func checkFeatureCapability(oc *exutil.CLI) {
 	if !cap {
 		g.Skip("Test only runs with OperatorLifecycleManagerV1 capability")
 	}
+}
+
+// verifyAPIEndpoint runs a job to validate the given service endpoint of a ClusterCatalog
+func verifyAPIEndpoint(ctx g.SpecContext, oc *exutil.CLI, serviceURL string) {
+	jobName := fmt.Sprintf("test-catalog-endpoint-%s", rand.String(5))
+
+	tempFile, err := os.CreateTemp("", "api-test-job-*.yaml")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	defer os.Remove(tempFile.Name())
+
+	jobYAML := fmt.Sprintf(`
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  template:
+    spec:
+      containers:
+      - name: api-tester
+        image: registry.redhat.io/rhel8/httpd-24:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -ex
+          response=$(curl -s -k "%s" || echo "ERROR: Failed to access endpoint")
+          if [[ "$response" == ERROR* ]]; then
+            echo "$response"
+            exit 1
+          fi
+          echo "Successfully verified API endpoint"
+          exit 0
+      restartPolicy: Never
+  backoffLimit: 2
+`, jobName, "default", serviceURL)
+
+	_, err = tempFile.WriteString(jobYAML)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = tempFile.Close()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", tempFile.Name()).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Wait for job completion
+	var lastErr error
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+			"job", jobName, "-n", "default", "-o=jsonpath={.status}").Output()
+		if err != nil {
+			lastErr = err
+			g.GinkgoLogr.Info(fmt.Sprintf("error getting job status: %v (will retry)", err))
+			return false, nil
+		}
+
+		if output == "" {
+			return false, nil // Job status not available yet
+		}
+
+		// Parse job status
+		var status struct {
+			Succeeded int `json:"succeeded"`
+			Failed    int `json:"failed"`
+		}
+
+		if err := json.Unmarshal([]byte(output), &status); err != nil {
+			g.GinkgoLogr.Info(fmt.Sprintf("Error parsing job status: %v", err))
+			return false, nil
+		}
+
+		if status.Succeeded > 0 {
+			return true, nil
+		}
+
+		if status.Failed > 0 {
+			return false, fmt.Errorf("job failed")
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		if lastErr != nil {
+			g.GinkgoLogr.Error(nil, fmt.Sprintf("Last error encountered while polling: %v", lastErr))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Job failed or timed out")
+	}
+}
+
+// runCatalogLoadTest creates and runs a load test job for a specific Catalog API endpoint
+func runCatalogLoadTest(ctx g.SpecContext, oc *exutil.CLI, catalog, endpoint, query string, maxLatencyThreshold int) {
+	jobName := fmt.Sprintf("catalog-server-load-test-%s", rand.String(5))
+	namespace := "default"
+
+	baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
+		"clustercatalogs.olm.operatorframework.io",
+		catalog,
+		"-o=jsonpath={.status.urls.base}").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("base URL not found for catalog %s", catalog))
+
+	var serviceURL string
+	if query != "" {
+		serviceURL = fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
+	} else {
+		serviceURL = fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
+	}
+	g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
+
+	g.By(fmt.Sprintf("Load testing /api/v1/%s endpoint for %s", endpoint, catalog))
+
+	jobYAML := fmt.Sprintf(`
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      containers:
+      - name: wrk2-tester
+        image: registry.redhat.io/ubi8/ubi:latest
+        command: 
+        - /bin/bash
+        - -c
+        - |
+          set -ex
+          # Set test parameters
+          SERVICE_URL="%s"
+          CONCURRENT_CONNECTIONS=10
+          TEST_DURATION_SECONDS=30
+          REQUEST_RATE=100
+          MAX_LATENCY_THRESHOLD=%d
+          # Install required packages
+          dnf install -y git gcc openssl-devel zlib-devel make
+          # Clone and build wrk2
+          git clone https://github.com/giltene/wrk2.git
+          cd wrk2
+          make
+          # Create a Lua script processing results
+          cat > verify.lua << 'EOL'
+          
+          function done(summary, latency, requests)
+              -- Print basic stats
+              io.write("\n\n=== LOAD TEST RESULTS ===\n")
+              io.write(string.format("Total requests: %%d\n", summary.requests))
+              io.write(string.format("Socket errors: connect %%d, read %%d, write %%d, timeout %%d\n",
+                  summary.errors.connect, summary.errors.read, summary.errors.write, summary.errors.timeout))
+              io.write(string.format("HTTP errors: %%d\n", summary.errors.status))
+              io.write(string.format("Request rate: %%.2f requests/s\n", summary.requests / summary.duration * 1000000))
+              
+              -- Calculate success rate
+              local total_errors = summary.errors.status + summary.errors.connect + 
+                                  summary.errors.read + summary.errors.write + summary.errors.timeout
+              local success_count = summary.requests - total_errors
+              local success_rate = success_count / summary.requests * 100
+              
+              local test_failed = false
+              io.write("\nThreshold checks:\n")
+
+              -- Check for 100 percent success rate
+              io.write(string.format("Success rate: %%.2f%%%%\n", success_rate))
+              if total_errors > 0 then
+                  io.write(string.format("FAILED: %%d errors detected. Expected 100 percent success rate.\n", total_errors))
+                  test_failed = true
+              else
+                  io.write("SUCCESS: All requests were successful (100 percent)\n")
+              end
+
+              -- Check P99 latency threshold
+              local p99_latency = latency:percentile(99.0) 
+              local latency_threshold = tonumber(os.getenv("MAX_LATENCY_THRESHOLD") or 20000000)
+              io.write(string.format("  P99 latency: %%d μs (threshold: %%d μs)\n", 
+                       p99_latency, latency_threshold))
+              if p99_latency > latency_threshold then
+                  io.write(string.format("FAILED: P99 latency (%%d μs) exceeds threshold (%%d μs)\n", 
+                           p99_latency, latency_threshold))
+                  test_failed = true
+              else
+                  io.write("SUCCESS: P99 latency within threshold\n")
+              end
+
+              -- Exit with appropriate code based on test results
+              if test_failed then
+                  io.write("\nOVERALL RESULT: FAILED - Performance thresholds not met\n")
+                  os.exit(1)
+              else
+                  io.write("\nOVERALL RESULT: SUCCESS - All performance thresholds met\n")
+              end
+          end			  
+          EOL
+          # Export environment variables for Lua script
+          export MAX_LATENCY_THRESHOLD=$MAX_LATENCY_THRESHOLD
+          # Run the load test 
+          echo "Starting wrk2 load test..."
+          ./wrk -t$CONCURRENT_CONNECTIONS -c$CONCURRENT_CONNECTIONS -d${TEST_DURATION_SECONDS}s -R$REQUEST_RATE -s verify.lua -L $SERVICE_URL 
+          TEST_EXIT_CODE=$?
+          
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "wrk2 load test failed with exit code $TEST_EXIT_CODE"
+            exit $TEST_EXIT_CODE
+          fi
+
+          echo "Load test completed"
+      restartPolicy: Never
+`, jobName, namespace, serviceURL, maxLatencyThreshold)
+
+	err = oc.AsAdmin().WithoutNamespace().
+		Run("apply").
+		InputString(jobYAML).
+		Args("-f", "-").
+		Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Wait for the job to complete
+	var lastErr error
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 10*time.Minute, true, func(ctx context.Context) (bool, error) {
+		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("job", jobName, "-o=jsonpath={.status}").Output()
+		if err != nil {
+			lastErr = err
+			g.GinkgoLogr.Info(fmt.Sprintf("error getting job status: %v", err))
+			return false, nil // Continue polling
+		}
+
+		// Parse job status
+		var status struct {
+			Succeeded int `json:"succeeded"`
+			Failed    int `json:"failed"`
+		}
+
+		if err := json.Unmarshal([]byte(output), &status); err != nil {
+			g.GinkgoLogr.Info(fmt.Sprintf("error parsing job status: %v", err))
+			return false, nil
+		}
+
+		if status.Succeeded > 0 {
+			g.GinkgoLogr.Info("Load test job completed successfully")
+			return true, nil
+		}
+
+		if status.Failed > 0 {
+			// Get logs to see why it failed
+			podsOutput, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-l", fmt.Sprintf("job-name=%s", jobName), "-o=jsonpath={.items[0].metadata.name}").Output()
+			if err != nil {
+				g.GinkgoLogr.Error(nil, fmt.Sprintf("error finding job pods: %v", err))
+				return false, fmt.Errorf("load test job failed and couldn't retrieve logs")
+			}
+
+			if podsOutput != "" {
+				logs, err := oc.AsAdmin().WithoutNamespace().Run("logs").Args(podsOutput).Output()
+				if err == nil {
+					g.GinkgoLogr.Error(nil, fmt.Sprintf("Load test job failed. Logs: %s", logs))
+				}
+			}
+			return false, fmt.Errorf("load test job failed, thresholds not met")
+		}
+
+		g.GinkgoLogr.Info(fmt.Sprintf("Job status: %s", output))
+		return false, nil
+	})
+
+	if err != nil {
+		if lastErr != nil {
+			g.GinkgoLogr.Error(nil, fmt.Sprintf("last error encountered while polling: %v", lastErr))
+		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Load test failed or timed out")
+	}
+
+	// Log the final job details
+	podsOutput, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("pods", "-l", fmt.Sprintf("job-name=%s", jobName), "-o=jsonpath={.items[0].metadata.name}").Output()
+	if err == nil && podsOutput != "" {
+		logs, err := oc.AsAdmin().WithoutNamespace().Run("logs").Args(podsOutput).Output()
+		if err == nil {
+			g.GinkgoLogr.Info(fmt.Sprintf("Load test logs:\n%s", logs))
+		}
+	} else {
+		g.GinkgoLogr.Info(fmt.Sprintf("Could not retrieve logs for job pod: %s", podsOutput))
+	}
+
+	g.By("Successfully completed load test with acceptable performance")
 }
