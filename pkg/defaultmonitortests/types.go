@@ -17,7 +17,8 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiunreachablefromclientmetrics"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
-	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionexternalapiserver"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptioninclusterapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/faultyloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/generationanalyzer"
@@ -46,6 +47,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
+
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
@@ -113,8 +115,9 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 
-	monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
-	monitorTestRegistry.AddMonitorTestOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("apiserver-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("apiserver-external-availability", "kube-apiserver", disruptionexternalapiserver.NewExternalDisruptionInvariant(info))
+	monitorTestRegistry.AddMonitorTestOrDie("apiserver-incluster-availability", "kube-apiserver", disruptioninclusterapiserver.NewInvariantInClusterDisruption(info))
 
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
