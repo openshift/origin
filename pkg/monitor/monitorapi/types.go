@@ -242,6 +242,8 @@ const (
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
 
+	InstallStartedReason IntervalReason = "InstallStarted"
+
 	UpgradeStartedReason  IntervalReason = "UpgradeStarted"
 	UpgradeVersionReason  IntervalReason = "UpgradeVersion"
 	UpgradeRollbackReason IntervalReason = "UpgradeRollback"
@@ -354,6 +356,8 @@ const (
 	APIServerGracefulShutdown       IntervalSource = "APIServerGracefulShutdown"
 	APIServerClusterOperatorWatcher IntervalSource = "APIServerClusterOperatorWatcher"
 	SourceAuditLog                  IntervalSource = "AuditLog"
+	ClusterInstallOverall           IntervalSource = "ClusterInstallOverall"
+	ClusterInstallBootstrap         IntervalSource = "ClusterInstallBootstrap"
 
 	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
 	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
