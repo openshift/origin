@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	cbor "k8s.io/apimachinery/pkg/runtime/serializer/cbor/direct"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -678,7 +679,10 @@ func JSONToUnstructured(stub, namespace string, mapping *meta.RESTMapping, dynam
 	return dynamicClient.Resource(mapping.Resource).Namespace(namespace), &unstructured.Unstructured{Object: typeMetaAdder}, nil
 }
 
-var protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
+var (
+	protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
+	cborPrefix          = []byte{0xd9, 0xd9, 0xf7}
+)
 
 func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
 	response, err := kv.Get(context.Background(), "/"+path)
@@ -712,6 +716,21 @@ func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
 		if err := json.Unmarshal(value, metaObj); err != nil {
 			return nil, err
 		}
+	case bytes.HasPrefix(value, cborPrefix):
+		var result map[string]any
+		if err := cbor.Unmarshal(value, &result); err != nil {
+			return nil, err
+		}
+		// TODO: we need to do this manual conversion because cbor's Unmarshal currently uses
+		// strict decoding, so metaObj would need to contain all fields of the object.
+		metadata, ok := result["metadata"].(map[string]any)
+		if !ok {
+			metadata = map[string]any{}
+		}
+		metaObj.Kind, _ = result["kind"].(string)
+		metaObj.APIVersion, _ = result["apiVersion"].(string)
+		metaObj.Metadata.Name, _ = metadata["name"].(string)
+		metaObj.Metadata.Namespace, _ = metadata["namespace"].(string)
 	default:
 		// TODO handle encrypted data
 		return nil, fmt.Errorf("unknown data format at path /%s: %s", path, string(value))

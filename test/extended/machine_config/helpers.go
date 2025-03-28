@@ -98,7 +98,12 @@ func verifyMachineSetUpdate(oc *exutil.CLI, machineSet machinev1beta1.MachineSet
 	newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage := createFakeUpdatePatch(oc, machineSet)
 	err := oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, newProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-
+	defer func() {
+		// Restore machineSet to original boot image as the machineset may be used by other test variants, regardless of success/fail
+		err = oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, originalProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		framework.Logf("Restored build name in the machineset %s from \"%s\" to \"%s\"", machineSet.Name, newBootImage, originalBootImage)
+	}()
 	// Ensure boot image controller is not progressing
 	framework.Logf("Waiting until the boot image controller is not progressing...")
 	WaitForBootImageControllerToComplete(oc)
@@ -112,12 +117,6 @@ func verifyMachineSetUpdate(oc *exutil.CLI, machineSet machinev1beta1.MachineSet
 		o.Expect(providerSpecDisks).ShouldNot(o.ContainSubstring(newBootImage))
 	} else {
 		o.Expect(providerSpecDisks).Should(o.ContainSubstring(newBootImage))
-		// Restore machineSet to original boot image in this case, as the machineset may be used by other test variants
-
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("patch").Args(mapiMachinesetQualifiedName, machineSet.Name, "-p", fmt.Sprintf(`{"spec":{"template":{"spec":{"providerSpec":{"value":%s}}}}}`, originalProviderSpecPatch), "-n", mapiNamespace, "--type=merge").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Restored build name in the machineset %s from \"%s\" to \"%s\"", machineSet.Name, originalBootImage, newBootImage)
 	}
 }
 
@@ -221,6 +220,22 @@ func WaitForBootImageControllerToComplete(oc *exutil.CLI) {
 	}, 3*time.Minute, 5*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
 }
 
+// WaitForMachineConfigurationStatus waits until the MCO syncs the operator status to the latest spec
+func WaitForMachineConfigurationStatusUpdate(oc *exutil.CLI) {
+	machineConfigurationClient, err := mcopclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	// This has a MustPassRepeatedly(3) to ensure there isn't a false positive by checking the
+	// status too quickly after applying the fixture.
+	o.Eventually(func() bool {
+		mcop, err := machineConfigurationClient.OperatorV1().MachineConfigurations().Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Failed to grab machineconfiguration object, error :%v", err)
+			return false
+		}
+		return mcop.Generation == mcop.Status.ObservedGeneration
+	}, 3*time.Minute, 1*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
+}
+
 // IsMachineConfigPoolConditionTrue returns true when the conditionType is present and set to `ConditionTrue`
 func IsMachineConfigPoolConditionTrue(conditions []mcfgv1.MachineConfigPoolCondition, conditionType mcfgv1.MachineConfigPoolConditionType) bool {
 	for _, condition := range conditions {
@@ -291,4 +306,14 @@ func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
+}
+
+// Applies a boot image fixture and waits for the MCO to reconcile the status
+func ApplyBootImageFixture(oc *exutil.CLI, fixture string) {
+	err := oc.Run("apply").Args("-f", fixture).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Ensure status accounts for the fixture that was applied
+	WaitForMachineConfigurationStatusUpdate(oc)
+
 }

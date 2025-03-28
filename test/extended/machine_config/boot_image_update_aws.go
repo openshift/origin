@@ -7,7 +7,6 @@ import (
 	osconfigv1 "github.com/openshift/api/config/v1"
 
 	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -19,6 +18,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 		partialMachineSetFixture       = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-partial.yaml")
 		allMachineSetFixture           = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-all.yaml")
 		noneMachineSetFixture          = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-none.yaml")
+		emptyMachineSetFixture         = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-empty.yaml")
 		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
@@ -32,9 +32,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 	})
 
 	g.AfterEach(func() {
-		// Clear out boot image configuration between tests
-		err := oc.Run("apply").Args("-f", noneMachineSetFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		ApplyBootImageFixture(oc, emptyMachineSetFixture)
 	})
 
 	g.It("Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]", func() {

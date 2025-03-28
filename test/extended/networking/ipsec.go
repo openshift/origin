@@ -10,6 +10,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
+	mg "github.com/openshift/origin/test/extended/machine_config"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
@@ -17,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
@@ -40,7 +40,6 @@ const (
 	ipsecRolloutWaitDuration     = 40 * time.Minute
 	ipsecRolloutWaitInterval     = 1 * time.Minute
 	nmstateConfigureManifestFile = "nmstate.yaml"
-	nsCertMachineConfigFile      = "ipsec-nsconfig-machine-config.yaml"
 	nsCertMachineConfigName      = "99-worker-north-south-ipsec-config"
 	leftNodeIPsecPolicyName      = "left-node-ipsec-policy"
 	rightNodeIPsecPolicyName     = "right-node-ipsec-policy"
@@ -101,27 +100,6 @@ const (
 	geneve trafficType = "geneve"
 	icmp   trafficType = "icmp"
 )
-
-// configureIPsecMode helps to rollout specified IPsec Mode on the cluster. If the cluster is already
-// configured with specified mode, then this is almost like no-op for the cluster.
-func configureIPsecMode(oc *exutil.CLI, ipsecMode v1.IPsecMode) error {
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		if network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig == nil {
-			network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig = &v1.IPsecConfig{Mode: ipsecMode}
-		} else if network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig.Mode != ipsecMode {
-			network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig.Mode = ipsecMode
-		} else {
-			// No changes to existing mode, return without updating networks.
-			return nil
-		}
-		_, err = oc.AdminOperatorClient().OperatorV1().Networks().Update(context.Background(), network, metav1.UpdateOptions{})
-		return err
-	})
-}
 
 func getIPsecMode(oc *exutil.CLI) (v1.IPsecMode, error) {
 	network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -451,7 +429,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			// the selected nodes.
 			ipsecMode, err := getIPsecMode(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(ipsecMode).To(o.Equal(v1.IPsecModeFull))
+			o.Expect(ipsecMode).NotTo(o.Equal(v1.IPsecModeDisabled))
 
 			srcNode, dstNode := &testNodeConfig{}, &testNodeConfig{}
 			config = &testConfig{ipsecMode: ipsecMode, srcNodeConfig: srcNode,
@@ -462,6 +440,39 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			g.By("deploy nmstate handler")
 			err = deployNmstateHandler(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Update cluster machine configuration object with few more nodeDisruptionPolicy defined
+			// in test/extended/testdata/ipsec/nsconfig-reboot-none-policy.yaml file so that worker
+			// nodes don't go for a reboot while rolling out `99-worker-north-south-ipsec-config`
+			// machine config which configures certificates for testing IPsec north south traffic.
+			g.By("deploy machine configuration policy")
+			err = oc.AsAdmin().Run("apply").Args("-f", nsNodeRebootNoneFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			mg.WaitForBootImageControllerToComplete(oc)
+
+			g.By("configure IPsec certs on the worker nodes")
+			// The certificates for configuring NS IPsec between two worker nodes are deployed through machine config
+			// `99-worker-north-south-ipsec-config` which is in the test/extended/testdata/ipsec/nsconfig-machine-config.yaml file.
+			// This is a butane generated file via a butane config file available with commit:
+			// https://github.com/openshift/origin/pull/28658/commits/7399006f3750c530cfef51fa1044e941ccb85087
+			// The machine config mounts cert files into node's /etc/pki/certs directory and runs ipsec-addcert.sh script
+			// to import those certs into Libreswan nss db and will be used by Libreswan for IPsec north south connection
+			// configured via NodeNetworkConfigurationPolicy on the node.
+			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
+			// so proceed with test if system date is before April 10, 2034. Otherwise fail the test.
+			if !time.Now().Before(certExpirationDate) {
+				framework.Failf("certficates in the Machine Config are expired, Please consider recreating those certificates")
+			}
+			nsCertMachineConfig, err := createIPsecCertsMachineConfig(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(nsCertMachineConfig).NotTo(o.BeNil())
+			o.Eventually(func(g o.Gomega) bool {
+				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
+				g.Expect(err).NotTo(o.HaveOccurred())
+				return areMachineConfigPoolsReadyWithMachineConfig(pools, nsCertMachineConfigName)
+			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
+			// Ensure IPsec mode is still correctly configured.
+			waitForIPsecConfigToComplete(oc, config.ipsecMode)
 		})
 
 		g.BeforeEach(func() {
@@ -489,23 +500,6 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 			}
 			o.Expect(config.dstNodeConfig.nodeIP).NotTo(o.BeEmpty())
-
-			g.By("configure IPsec certs on the worker nodes")
-			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
-			// so proceed with test if system date is before April 10, 2034. Otherwise fail the test.
-			if !time.Now().Before(certExpirationDate) {
-				framework.Failf("certficates in the Machine Config are expired, Please consider recreating those certificates")
-			}
-			nsCertMachineConfig, err := createIPsecCertsMachineConfig(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(nsCertMachineConfig).NotTo(o.BeNil())
-			o.Eventually(func(g o.Gomega) bool {
-				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
-				g.Expect(err).NotTo(o.HaveOccurred())
-				return areMachineConfigPoolsReadyWithMachineConfig(pools, nsCertMachineConfigName)
-			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
-			// wait for ovn-ipsec-host pod to get rolled out after certs installation.
-			waitForIPsecConfigToComplete(oc, config.ipsecMode)
 		})
 
 		g.AfterEach(func() {
@@ -556,26 +550,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				g.Expect(err).NotTo(o.HaveOccurred())
 				return false
 			}).Should(o.Equal(true))
-
-			// Removal of IPsec certs are needed otherwise worker nodes still keeping
-			// stale ip xfrm state and policy entries created for north south traffic.
-			g.By("removing IPsec certs from worker nodes")
-			err = deleteNSCertMachineConfig(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Eventually(func(g o.Gomega) bool {
-				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
-				g.Expect(err).NotTo(o.HaveOccurred())
-				return areMachineConfigPoolsReadyWithoutMachineConfig(pools, nsCertMachineConfigName)
-			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
-
-			// Restore the cluster back into original state after running each test.
-			g.By("restoring ipsec config into original state")
-			err = configureIPsecMode(oc, config.ipsecMode)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			waitForIPsecConfigToComplete(oc, config.ipsecMode)
 		})
 
-		g.DescribeTable("check traffic [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
+		g.It("check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
 			o.Expect(config).NotTo(o.BeNil())
 
 			g.By("validate traffic before changing IPsec configuration")
@@ -583,23 +560,14 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
 			checkNodeTraffic(v1.IPsecModeDisabled)
 
-			g.By(fmt.Sprintf("configure IPsec in %s mode and validate traffic", mode))
-			// Change IPsec mode to given mode and do packet capture on the node's interface
-			err := configureIPsecMode(oc, mode)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			waitForIPsecConfigToComplete(oc, mode)
-			checkPodTraffic(mode)
-			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
-			checkNodeTraffic(v1.IPsecModeDisabled)
-
 			// TODO: remove this block when https://issues.redhat.com/browse/RHEL-67307 is fixed.
-			if mode == v1.IPsecModeFull {
-				g.By(fmt.Sprintf("skip testing IPsec NS configuration with %s mode due to nmstate bug RHEL-67307", mode))
+			if config.ipsecMode == v1.IPsecModeFull {
+				g.By(fmt.Sprintf("skip testing IPsec NS configuration with %s mode due to nmstate bug RHEL-67307", config.ipsecMode))
 				return
 			}
 
 			g.By("rollout IPsec configuration via nmstate")
-			err = ensureNmstateHandlerRunning(oc)
+			err := ensureNmstateHandlerRunning(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			leftConfig := fmt.Sprintf(nodeIPsecConfigManifest, leftNodeIPsecPolicyName, config.srcNodeConfig.nodeName,
 				config.srcNodeConfig.nodeIP, leftServerCertName, config.dstNodeConfig.nodeIP)
@@ -623,12 +591,8 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			g.By("validate IPsec traffic between nodes")
 			// Pod traffic will be encrypted as a result N/S encryption being enabled between this two nodes
 			checkPodTraffic(v1.IPsecModeFull)
-			checkNodeTraffic(mode)
-		},
-			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
-			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
-			// TODO add test for v1.IPsecModeDisabled mode once IPsec tests stabilized in CI.
-		)
+			checkNodeTraffic(v1.IPsecModeExternal)
+		})
 	})
 })
 

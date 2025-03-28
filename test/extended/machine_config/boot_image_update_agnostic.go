@@ -13,12 +13,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 func AllMachineSetTest(oc *exutil.CLI, fixture string) {
 	// This fixture applies a boot image update configuration that opts in all machinesets
-	err := oc.Run("apply").Args("-f", fixture).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
+	ApplyBootImageFixture(oc, fixture)
 
 	// Step through all machinesets and verify boot images are reconciled correctly.
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -34,8 +34,7 @@ func AllMachineSetTest(oc *exutil.CLI, fixture string) {
 func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 
 	// This fixture applies a boot image update configuration that opts in any machineset with the label test=boot
-	err := oc.Run("apply").Args("-f", fixture).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
+	ApplyBootImageFixture(oc, fixture)
 
 	// Pick a random machineset to test
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -46,7 +45,11 @@ func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 	// Label this machineset with the test=boot label
 	err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test=boot").Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-
+	defer func() {
+		// Unlabel the machineset at the end of test
+		err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test-").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}()
 	// Step through all machinesets and verify that only the opted in machineset's boot images are reconciled.
 	machineSets, err := machineClient.MachineV1beta1().MachineSets("openshift-machine-api").List(context.TODO(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -54,15 +57,11 @@ func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 		verifyMachineSetUpdate(oc, ms, machineSetUnderTest.Name == ms.Name)
 	}
 
-	// Unlabel the machineset
-	err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test-").Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func NoneMachineSetTest(oc *exutil.CLI, fixture string) {
 	// This fixture applies a boot image update configuration that opts in no machinesets, i.e. feature is disabled.
-	err := oc.Run("apply").Args("-f", fixture).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
+	ApplyBootImageFixture(oc, fixture)
 
 	// Step through all machinesets and verify boot images are reconciled correctly.
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -76,9 +75,9 @@ func NoneMachineSetTest(oc *exutil.CLI, fixture string) {
 }
 
 func DegradeOnOwnerRefTest(oc *exutil.CLI, fixture string) {
+	e2eskipper.Skipf("This test is temporarily disabled until boot image skew enforcement is implemented")
 	// This fixture applies a boot image update configuration that opts in all machinesets
-	err := oc.Run("apply").Args("-f", fixture).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
+	ApplyBootImageFixture(oc, fixture)
 
 	// Pick a random machineset to test
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())

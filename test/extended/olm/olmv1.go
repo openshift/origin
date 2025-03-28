@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -34,7 +35,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		checkFeatureCapability(ctx, oc)
+		checkFeatureCapability(oc)
 
 		providedAPIs := []struct {
 			group   string
@@ -76,7 +77,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		checkFeatureCapability(ctx, oc)
+		checkFeatureCapability(oc)
 
 		providedCatalogs := []string{
 			"openshift-certified-operators",
@@ -123,7 +124,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should fail to install if it has an invalid reference", func(ctx g.SpecContext) {
-		checkFeatureCapability(ctx, oc)
+		checkFeatureCapability(oc)
 
 		g.By("applying the necessary resources")
 		err := oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", catFile).Execute()
@@ -165,7 +166,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
-		checkFeatureCapability(ctx, oc)
+		checkFeatureCapability(oc)
 
 		const (
 			packageName = "quay-operator"
@@ -191,7 +192,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should fail to install a non-existing cluster extension", func(ctx g.SpecContext) {
-		checkFeatureCapability(ctx, oc)
+		checkFeatureCapability(oc)
 
 		const (
 			packageName = "does-not-exist"
@@ -217,7 +218,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
-		checkFeatureCapability(ctx, oc)
+		checkFeatureCapability(oc)
 
 		const (
 			packageName = "elasticsearch-operator"
@@ -409,11 +410,8 @@ func waitForCatalogFailure(oc *exutil.CLI, name string) (bool, error, string) {
 	return true, nil, ""
 }
 
-func checkFeatureCapability(ctx context.Context, oc *exutil.CLI) {
-	// Hardcoded until openshift/api is updated:
-	// import (	configv1 "github.com/openshift/api/config/v1" )
-	// configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1
-	cap, err := exutil.IsCapabilityEnabled(oc, "OperatorLifecycleManagerV1")
+func checkFeatureCapability(oc *exutil.CLI) {
+	cap, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if !cap {
 		g.Skip("Test only runs with OperatorLifecycleManagerV1 capability")
