@@ -48,8 +48,13 @@ func CheckForLatency() *auditLatencyRecords {
 	return &auditLatencyRecords{matcher: decimalSeconds, summary: summary}
 }
 
+// HandleAuditLogEvent looks for latency annotations and increments counter for all latency buckets that are below
+// the latency value.  e.g a 4s latency will increment the 2,1 & 0 bucket count values.  0 is the min and will effectively be
+// all requests.  Data is collected to analyze over time for increases in latency completing requests
 func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
-	if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) {
+
+	// we only want to count the response complete events
+	if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) || auditEvent.Stage != auditv1.StageResponseComplete {
 		return
 	}
 
@@ -95,26 +100,26 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 				seconds, err := strconv.ParseFloat(match[1], 64)
 				if err == nil {
 					for _, b := range buckets {
+						// for any bucket that the parsed seconds exceeds we increment the latency count
+						// indicating the request took more than the bucketed value of time
 						if seconds > b {
 							if latencyBucket, ok = summaryRecord.buckets[b]; !ok {
 								newLatencyBucket := &auditLatencyBucket{make(map[string]int64)}
 								summaryRecord.buckets[b] = newLatencyBucket
 								latencyBucket = newLatencyBucket
 							}
-							break
+							latencyBucket.totalCounts[verb]++
 						}
 					}
 				}
 			}
 
-			if latencyBucket == nil {
-				if latencyBucket, ok = summaryRecord.buckets[minBucket]; !ok {
-					newLatencyBucket := &auditLatencyBucket{make(map[string]int64)}
-					summaryRecord.buckets[minBucket] = newLatencyBucket
-					latencyBucket = newLatencyBucket
-				}
+			// every request updates the minBucket
+			if latencyBucket, ok = summaryRecord.buckets[minBucket]; !ok {
+				newLatencyBucket := &auditLatencyBucket{make(map[string]int64)}
+				summaryRecord.buckets[minBucket] = newLatencyBucket
+				latencyBucket = newLatencyBucket
 			}
-
 			latencyBucket.totalCounts[verb]++
 		}
 	}
