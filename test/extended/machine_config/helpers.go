@@ -960,7 +960,8 @@ func WaitForNodeToBeDeleted(oc *exutil.CLI, nodeName string) error {
 		if apierrors.IsNotFound(nodeErr) {
 			framework.Logf("Node '%v' has been deleted.", nodeName)
 			return true
-		} else if nodeErr != nil {
+		}
+		if nodeErr != nil {
 			framework.Logf("Error trying to get node: %v.", nodeErr)
 			return false
 		}
@@ -981,7 +982,8 @@ func WaitForMCNToBeDeleted(clientSet *machineconfigclient.Clientset, mcnName str
 		if apierrors.IsNotFound(mcnErr) {
 			framework.Logf("MCN '%v' has been deleted.", mcnName)
 			return true
-		} else if mcnErr != nil {
+		}
+		if mcnErr != nil {
 			framework.Logf("Error trying to get MCN: '%v'.", mcnErr)
 			return false
 		}
@@ -1065,7 +1067,8 @@ func WaitForMachineToBeDeleted(machineClient *machineclient.Clientset, machineNa
 		if apierrors.IsNotFound(machineErr) {
 			framework.Logf("Machine '%v' has been deleted.", machineName)
 			return true
-		} else if machineErr != nil {
+		}
+		if machineErr != nil {
 			framework.Logf("Error trying to get machine: %v.", machineErr)
 			return false
 		}
