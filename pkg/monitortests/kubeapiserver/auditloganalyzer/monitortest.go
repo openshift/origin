@@ -31,6 +31,7 @@ type auditLogAnalyzer struct {
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
 	violationChecker              *auditViolations
+	watchCountChecker             *watchCountChecker
 
 	countsForInstall *CountsForRun
 }
@@ -42,6 +43,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
+		watchCountChecker:             NewWatchCountChecker(),
 	}
 }
 
@@ -85,6 +87,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
 		w.violationChecker,
+		w.watchCountChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -408,6 +411,14 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
 		return currErr
+	}
+
+	if w.watchCountChecker != nil {
+		err := w.watchCountChecker.WriteAuditLogSummary(ctx, storageDir, "watch-requests", timeSuffix)
+		if err != nil {
+			// print any error and continue processing
+			fmt.Printf("unable to write audit log summary for %s - %v\n", "watch-requests", err)
+		}
 	}
 
 	if w.requestCountTracking != nil {

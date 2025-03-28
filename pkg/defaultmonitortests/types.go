@@ -59,7 +59,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
-	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
 )
 
@@ -202,7 +201,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
 
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
-	monitorTestRegistry.AddMonitorTestOrDie("watch-request-counts-collector", "Test Framework", watchrequestcountscollector.NewWatchRequestCountSerializer())
+	// monitorTestRegistry.AddMonitorTestOrDie("watch-request-counts-collector", "Test Framework", watchrequestcountscollector.NewWatchRequestCountSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 
 	return monitorTestRegistry
