@@ -77,9 +77,7 @@ var (
 
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
-	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("managed-cluster-node", psapi.LevelPrivileged).AsAdmin()
-	)
+	oc := exutil.NewCLIWithPodSecurityLevel("managed-cluster-node", psapi.LevelPrivileged).AsAdmin()
 
 	var staticNodeNames []string
 	g.It("record the number of nodes at the beginning of the tests [Early]", func() {
@@ -202,14 +200,14 @@ func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nod
 	if err != nil {
 		return nil, nil, nodeLogs.String(), fmt.Errorf("failed reading pod/logs for list-boots container: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err)
 	}
-	e2e.Logf("node/%v list-boots %v", nodeName, containerListBootsLogs)
+	fmt.Fprintf(nodeLogs, "node/%v list-boots %v\n", nodeName, containerListBootsLogs)
 
 	// Fetch container logs with list of recorded reboots
 	containerRebootsLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "reboots")
 	if err != nil {
 		return nil, nil, nodeLogs.String(), fmt.Errorf("failed reading pod/logs for reboots container: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err)
 	}
-	e2e.Logf("node/%v reboot-requests %v", nodeName, containerRebootsLogs)
+	fmt.Fprintf(nodeLogs, "node/%v reboot-requests %v", nodeName, containerRebootsLogs)
 
 	bootInstances, err := parseBootInstances(containerListBootsLogs)
 	if err != nil {
