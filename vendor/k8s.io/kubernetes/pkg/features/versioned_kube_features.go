@@ -311,7 +311,7 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 	},
 
 	genericfeatures.ResilientWatchCacheInitialization: {
-		{Version: version.MustParse("1.31"), Default: false, PreRelease: featuregate.Beta},
+		{Version: version.MustParse("1.31"), Default: true, PreRelease: featuregate.Beta},
 	},
 
 	genericfeatures.RetryGenerateName: {
@@ -554,6 +554,10 @@ var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate
 		{Version: version.MustParse("1.22"), Default: false, PreRelease: featuregate.Alpha},
 		{Version: version.MustParse("1.28"), Default: false, PreRelease: featuregate.Beta},
 		{Version: version.MustParse("1.30"), Default: true, PreRelease: featuregate.Beta},
+	},
+
+	OrderedNamespaceDeletion: {
+		{Version: version.MustParse("1.30"), Default: false, PreRelease: featuregate.Beta},
 	},
 
 	PDBUnhealthyPodEvictionPolicy: {
