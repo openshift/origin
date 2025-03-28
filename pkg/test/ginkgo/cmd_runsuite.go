@@ -19,6 +19,15 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"golang.org/x/mod/semver"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
@@ -28,14 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
-	"golang.org/x/mod/semver"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -170,13 +171,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer listContextCancel()
 
-		envFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
+		osEnv := updateEnvVars(o.AsEnv())
+
+		clusterEnvFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
 		if err != nil {
 			return fmt.Errorf("could not determine environment flags: %w", err)
 		}
-		logrus.WithField("flags", envFlags.String()).Infof("Determined all potential environment flags")
+		logrus.WithField("flags", clusterEnvFlags.String()).Infof("Determined all potential environment flags")
 
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
+		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, osEnv, clusterEnvFlags)
 		if err != nil {
 			return err
 		}
