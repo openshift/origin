@@ -689,9 +689,7 @@ func getIngressDomain(oc *exutil.CLI) (string, error) {
 	return ic.Status.Domain, nil
 }
 
-// createAgnhostDeploymentAndIngressRoute creates the route, service and deployment that will be used as
-// a source for EgressIP tests. Returns the route name that can be queried to run queries against the source pods.
-func createAgnhostDeploymentAndIngressRoute(oc *exutil.CLI, namespace, alias, ingressDomain string, replicas int, scheduleOnHosts []string) (string, string, error) {
+func createAgnhostDeployment(oc *exutil.CLI, namespace, alias string, replicas int, scheduleOnHosts []string) (string, string, error) {
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
@@ -700,11 +698,8 @@ func createAgnhostDeploymentAndIngressRoute(oc *exutil.CLI, namespace, alias, in
 		alias = "0"
 	}
 	namespaceAlias := fmt.Sprintf("%s-%s", namespace, alias)
-	routeName := fmt.Sprintf("%s-route", namespaceAlias)
-	routeHost := fmt.Sprintf("%s.%s", namespaceAlias, ingressDomain)
 	serviceName := fmt.Sprintf("%s-service", namespaceAlias)
 	deploymentName := fmt.Sprintf("%s-deployment", namespaceAlias)
-	weight := int32(100)
 	podLabels := map[string]string{
 		"app": deploymentName,
 	}
@@ -720,30 +715,6 @@ func createAgnhostDeploymentAndIngressRoute(oc *exutil.CLI, namespace, alias, in
 		fmt.Sprintf("%d", targetPort),
 	}
 	replicaCount := int32(replicas)
-
-	// create route
-	routeDefinition := routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      routeName,
-			Namespace: namespace,
-		},
-		Spec: routev1.RouteSpec{
-			Host: routeHost,
-			Port: &routev1.RoutePort{
-				TargetPort: intstr.FromInt(targetPort),
-			},
-			To: routev1.RouteTargetReference{
-				Kind:   "Service",
-				Name:   serviceName,
-				Weight: &weight,
-			},
-		},
-	}
-	// we need to run this as admin because we manage several namespaces
-	_, err := oc.AdminRouteClient().RouteV1().Routes(namespace).Create(context.TODO(), &routeDefinition, metav1.CreateOptions{})
-	if err != nil {
-		return "", "", err
-	}
 
 	// create service
 	service := &corev1.Service{
@@ -762,13 +733,33 @@ func createAgnhostDeploymentAndIngressRoute(oc *exutil.CLI, namespace, alias, in
 			},
 		},
 	}
-	_, err = clientset.CoreV1().Services(namespace).Create(
+	_, err := clientset.CoreV1().Services(namespace).Create(
 		context.Background(),
 		service,
 		metav1.CreateOptions{})
 	if err != nil {
 		return "", "", err
 	}
+
+	// block until we find a cluster IP
+	wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+		framework.Logf("Verifying service %s cluster IPs ...", serviceName)
+		s, err := clientset.CoreV1().Services(namespace).Get(context.Background(), serviceName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return len(s.Spec.ClusterIPs) > 0, nil
+	})
+
+	s, err := clientset.CoreV1().Services(namespace).Get(context.Background(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	target := s.Spec.ClusterIPs[0]
+	if isIpv6([]string{target}) {
+		target = fmt.Sprintf("[%s]", target)
+	}
+	target = fmt.Sprintf("%s:%d", target, targetPort)
 
 	// create deployment
 	nodeAffinity := v1.Affinity{
@@ -832,7 +823,55 @@ func createAgnhostDeploymentAndIngressRoute(oc *exutil.CLI, namespace, alias, in
 		return d.Status.AvailableReplicas == *d.Spec.Replicas, nil
 	})
 
-	return deploymentName, routeHost, nil
+	return deploymentName, target, nil
+}
+
+func createIngressRoute(oc *exutil.CLI, namespace, alias, ingressDomain string) (string, error) {
+	targetPort := 8000
+	namespaceAlias := fmt.Sprintf("%s", namespace)
+	routeName := fmt.Sprintf("%s-route", namespaceAlias)
+	routeHost := fmt.Sprintf("%s.%s", namespaceAlias, ingressDomain)
+	serviceName := fmt.Sprintf("%s-service", namespaceAlias)
+	weight := int32(100)
+	// create route
+	routeDefinition := routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      routeName,
+			Namespace: namespace,
+		},
+		Spec: routev1.RouteSpec{
+			Host: routeHost,
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.FromInt(targetPort),
+			},
+			To: routev1.RouteTargetReference{
+				Kind:   "Service",
+				Name:   serviceName,
+				Weight: &weight,
+			},
+		},
+	}
+	// we need to run this as admin because we manage several namespaces
+	_, err := oc.AdminRouteClient().RouteV1().Routes(namespace).Create(context.TODO(), &routeDefinition, metav1.CreateOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	return routeHost, nil
+}
+
+// createAgnhostDeploymentAndIngressRoute creates the route, service and deployment that will be used as
+// a source for EgressIP tests. Returns the route name that can be queried to run queries against the source pods.
+func createAgnhostDeploymentAndIngressRoute(oc *exutil.CLI, namespace, alias, ingressDomain string, replicas int, scheduleOnHosts []string) (string, string, string, error) {
+	deploymentName, clusterIP, err := createAgnhostDeployment(oc, namespace, alias, replicas, scheduleOnHosts)
+	if err != nil {
+		return "", "", "", err
+	}
+	routeHost, err := createIngressRoute(oc, namespace, alias, ingressDomain)
+	if err != nil {
+		return "", "", "", err
+	}
+	return deploymentName, routeHost, clusterIP, nil
 }
 
 // updateDeploymentAffinity updates the deployment's Affinity to match the scheduleOnHosts parameter and
@@ -1199,12 +1238,12 @@ func destroyProberPod(oc *exutil.CLI, proberPod *v1.Pod) error {
 // egressIPSet: Those are the EgressIPs that we are looking for. The sum of log hits for seach EgressIP must be == expectedHits
 // logScanMaxTries: Needed do deal with log propagation delay. Rescan logs every second for logScanMaxTries if expectedHits != probeCount
 func sendEgressIPProbesAndCheckPacketSnifferLogs(
-	oc *exutil.CLI, proberPod *corev1.Pod, routeName, targetProtocol, targetHost string, targetPort,
+	oc *exutil.CLI, proberPod *corev1.Pod, url, targetProtocol, targetHost string, targetPort,
 	probeCount, expectedHits int, packetSnifferDaemonSet *appsv1.DaemonSet, egressIPSet map[string]string, logScanMaxTries int) (bool, error) {
 
 	// Send requests.
 	framework.Logf("Sending requests with a unique search string from prober pod %s/%s", proberPod.Namespace, proberPod.Name)
-	searchString, err := sendProbesToHostPort(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, probeCount)
+	searchString, err := sendProbesToHostPort(oc, proberPod, url, targetProtocol, targetHost, targetPort, probeCount)
 	if err != nil {
 		return false, err
 	}
@@ -1616,7 +1655,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 
 	clientIpSet := make(map[string]struct{})
 
-	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
+	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {
 		// pod.ObjectMeta.Annotations = annotation
 	})
 	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)
