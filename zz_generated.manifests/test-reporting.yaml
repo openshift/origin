@@ -65,6 +65,20 @@ spec:
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
         when enabled'
+  - featureGate: GatewayAPI
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API CRDs and ensure CRD of experimental group can not be created'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API CRDs and ensure CRD of experimental group is not installed'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API CRDs and ensure CRD of standard group can not be created'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API CRDs and ensure existing CRDs can not be deleted'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API CRDs and ensure existing CRDs can not be updated'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API CRDs and ensure required CRDs should already be installed'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
