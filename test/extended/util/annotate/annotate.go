@@ -12,6 +12,9 @@ import (
 
 func main() {
 	annotate.Run(testMaps, func(name string) bool {
+		if strings.Contains(name, "[OCPForceInclude]") {
+			return false
+		}
 		return strings.Contains(name, "[Suite:k8s]")
 	})
 }
