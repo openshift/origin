@@ -20,14 +20,14 @@ import (
 // https://github.com/openshift/origin/blob/35b3c221634bcaef9a5148477334c27d166b7838/pkg/monitortests/testframework/watchrequestcountscollector/monitortest.go#L111
 // attempt to recreate via audit events
 
-type watchCountChecker struct {
+type watchCountTracking struct {
 	lock                  sync.Mutex
 	startTime             time.Time
 	watchRequestCountsMap map[OperatorKey]*RequestCount
 }
 
-func NewWatchCountChecker() *watchCountChecker {
-	return &watchCountChecker{startTime: time.Now(), watchRequestCountsMap: map[OperatorKey]*RequestCount{}}
+func NewWatchCountTracking() *watchCountTracking {
+	return &watchCountTracking{startTime: time.Now(), watchRequestCountsMap: map[OperatorKey]*RequestCount{}}
 }
 
 type OperatorKey struct {
@@ -43,7 +43,7 @@ type RequestCount struct {
 	Hour     int
 }
 
-func (s *watchCountChecker) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
+func (s *watchCountTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
 	if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) {
 		return
 	}
@@ -69,15 +69,7 @@ func (s *watchCountChecker) HandleAuditLogEvent(auditEvent *auditv1.Event, begin
 
 }
 
-func (s *watchCountChecker) WriteAuditLogSummary(ctx context.Context, artifactDir, name, timeSuffix string) error {
-	oc := exutil.NewCLIWithoutNamespace(name)
-
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		logrus.WithError(err).Warn("unable to get cluster infrastructure")
-		return nil
-	}
-
+func (s *watchCountTracking) SummarizeWatchCountRequests() []*RequestCount {
 	// take maximum from all hours through all nodes
 	watchRequestCountsMapMax := map[OperatorKey]*RequestCount{}
 	for _, requestCount := range s.watchRequestCountsMap {
@@ -104,6 +96,20 @@ func (s *watchCountChecker) WriteAuditLogSummary(ctx context.Context, artifactDi
 	sort.Slice(watchRequestCounts, func(i int, j int) bool {
 		return watchRequestCounts[i].Count > watchRequestCounts[j].Count
 	})
+
+	return watchRequestCounts
+}
+
+func (s *watchCountTracking) WriteAuditLogSummary(ctx context.Context, artifactDir, name, timeSuffix string) error {
+	oc := exutil.NewCLIWithoutNamespace(name)
+
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		logrus.WithError(err).Warn("unable to get cluster infrastructure")
+		return nil
+	}
+
+	watchRequestCounts := s.SummarizeWatchCountRequests()
 
 	// infra.Status.ControlPlaneTopology, infra.Spec.PlatformSpec.Type, operator, value
 	rows := make([]map[string]string, 0)
