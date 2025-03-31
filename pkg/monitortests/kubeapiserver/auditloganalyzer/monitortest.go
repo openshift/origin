@@ -404,8 +404,11 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	}
 
 	ret = append(ret, w.violationChecker.CreateJunits()...)
-
-	return ret, nil
+	junits, err := w.watchCountTracking.CreateJunits()
+	if err == nil {
+		ret = append(ret, junits...)
+	}
+	return ret, err
 }
 
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
