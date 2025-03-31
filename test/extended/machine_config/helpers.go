@@ -192,7 +192,7 @@ func generateGCPProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string,
 
 	// Modify the boot image to a "fake" value
 	originalBootImage := providerSpec.Disks[0].Image
-	newBootImage := originalBootImage + "-fake-update"
+	newBootImage := "projects/centos-cloud/global/images/family/centos-stream-9"
 	newProviderSpec := providerSpec.DeepCopy()
 	for idx := range newProviderSpec.Disks {
 		newProviderSpec.Disks[idx].Image = newBootImage
