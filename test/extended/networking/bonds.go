@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -36,15 +38,23 @@ var _ = g.Describe("[sig-network][Feature:bond]", func() {
 		)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create macvlan network-attachment-definition")
 
-		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "unable to get network config")
+		var mtu int
+		if mtuEnv := os.Getenv("NETWORKING_E2E_BOND_MTU"); mtuEnv != "" {
+			mtu, err = strconv.Atoi(mtuEnv)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		} else {
+			networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().
+				Get(context.Background(), "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "unable to get network config")
+			mtu = networkConfig.Status.ClusterNetworkMTU
+		}
 
 		err = createBondNAD(
 			oc.AdminConfig(),
 			namespace,
 			bondnad1,
 			"192.0.2.10/24",
-			networkConfig.Status.ClusterNetworkMTU,
+			mtu,
 			"net1",
 			"net2",
 		)
@@ -55,7 +65,7 @@ var _ = g.Describe("[sig-network][Feature:bond]", func() {
 			namespace,
 			bondnad2,
 			"192.0.2.11/24",
-			networkConfig.Status.ClusterNetworkMTU,
+			mtu,
 			"net1",
 			"net2",
 		)
