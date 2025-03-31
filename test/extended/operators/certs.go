@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	promtime "github.com/prometheus/common/model"
+
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
@@ -280,6 +282,37 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			// TODO: uncomment when test no longer fails and enhancement is merged
 			//g.Fail(strings.Join(messages, "\n"))
 			testresult.Flakef(strings.Join(messages, "\n"))
+		}
+	})
+
+	g.It("[OCPFeatureGate:ShortCertRotation] all certificates should expire in no more than 8 hours", func() {
+		var errs []error
+		for _, certKeyPair := range actualPKIContent.CertKeyPairs.Items {
+			if certKeyPair.Spec.CertMetadata.ValidityDuration == "" {
+				// Skip certificates with no duration set (proxy ca, key without certificate etc.)
+				continue
+			}
+			if certKeyPair.Spec.CertMetadata.ValidityDuration == "10y" {
+				// Skip "forever" certificates
+				continue
+			}
+			if strings.Contains(certKeyPair.Name, "ingress") ||
+				strings.Contains(certKeyPair.Spec.CertMetadata.CertIdentifier.Issuer.CommonName, "ingress") {
+				// Skip router certificates (both certificate and signer)
+				continue
+			}
+			// Use ParseDuration from prometheus as it can handle days/month/years durations
+			duration, err := promtime.ParseDuration(certKeyPair.Spec.CertMetadata.ValidityDuration)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to parse validity duration for certificate %q: %v", certKeyPair.Name, err))
+				continue
+			}
+			if time.Duration(duration) > time.Hour*8 {
+				errs = append(errs, fmt.Errorf("certificate %q expires too soon: expected up to 8h, but was %s", certKeyPair.Name, duration))
+			}
+		}
+		if len(errs) > 0 {
+			testresult.Flakef("Errors found: %s", utilerrors.NewAggregate(errs).Error())
 		}
 	})
 
