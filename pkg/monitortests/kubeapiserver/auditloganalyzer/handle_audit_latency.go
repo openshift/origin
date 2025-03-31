@@ -76,7 +76,7 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 	for _, latencyType := range latencyTypes {
 		// https://github.com/openshift/kubernetes/blob/2b03f04ce589a57cf80b2153c7e5056c53c374d3/staging/src/k8s.io/apiserver/pkg/endpoints/filters/audit.go#L156
 		// we only annotate requests over 500ms so default missing apiserver.latency.k8s.io/total to the minBucket if it isn't present
-		if totalLatency, ok := auditEvent.Annotations[latencyType]; ok || latencyType == "apiserver.latency.k8s.io/total" {
+		if latency, ok := auditEvent.Annotations[latencyType]; ok || latencyType == "apiserver.latency.k8s.io/total" {
 
 			var typeRecord map[string]*auditLatencySummaryRecord
 			var summaryRecord *auditLatencySummaryRecord
@@ -95,7 +95,7 @@ func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 			}
 
 			// match regex
-			match := v.matcher.FindStringSubmatch(totalLatency)
+			match := v.matcher.FindStringSubmatch(latency)
 			if len(match) > 0 {
 				seconds, err := strconv.ParseFloat(match[1], 64)
 				if err == nil {
