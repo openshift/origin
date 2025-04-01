@@ -21,6 +21,10 @@ func NewTimelineSerializer() monitortestframework.MonitorTest {
 	return &timelineSerializer{}
 }
 
+func (w *timelineSerializer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *timelineSerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

@@ -23,6 +23,10 @@ func NewDisruptionSummarySerializer() monitortestframework.MonitorTest {
 	return &disruptionSummarySerializer{}
 }
 
+func (w *disruptionSummarySerializer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *disruptionSummarySerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

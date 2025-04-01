@@ -49,6 +49,10 @@ type monitorTest struct {
 	monitor *faultyLBMonitor
 }
 
+func (test *monitorTest) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (test *monitorTest) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	test.monitor = &faultyLBMonitor{}
 	framework.Logf("monitor[%s]: initialized", MonitorName)
