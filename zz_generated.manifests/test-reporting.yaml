@@ -306,6 +306,11 @@ spec:
         installation should fail to install a non-existing cluster extension'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should install a cluster extension'
+  - featureGate: OrderedNamespaceDeletion
+    tests:
+    - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
+        delete pod first [Feature:OrderedNamespaceDeletion] [FeatureGate:OrderedNamespaceDeletion]
+        [Beta]'
   - featureGate: PersistentIPsForVirtualization
     tests:
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
