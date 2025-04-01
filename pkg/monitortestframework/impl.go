@@ -83,7 +83,16 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 	junitCh := make(chan *junitapi.JUnitTestCase, 2*len(r.monitorTests))
 	errCh := make(chan error, len(r.monitorTests))
 
+	testCount := 0
 	for i := range r.monitorTests {
+
+		// throttle the startup
+		// startCollection is blocking
+		// we could request a signal when initialization is complete
+		if testCount > 0 && testCount%3 == 0 {
+			time.Sleep(30 * time.Second)
+		}
+		testCount++
 		wg.Add(1)
 		go func(ctx context.Context, invariant *monitorTesttItem) {
 			defer wg.Done()
