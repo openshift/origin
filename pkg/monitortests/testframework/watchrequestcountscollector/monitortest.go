@@ -28,6 +28,10 @@ func NewWatchRequestCountSerializer() monitortestframework.MonitorTest {
 	return &watchRequestCountSerializer{}
 }
 
+func (w *watchRequestCountSerializer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *watchRequestCountSerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.monitorStartTime = time.Now()
 	w.adminRESTConfig = adminRESTConfig

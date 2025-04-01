@@ -90,6 +90,10 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &requiredSCCAnnotationChecker{}
 }
 
+func (w *requiredSCCAnnotationChecker) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *requiredSCCAnnotationChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)

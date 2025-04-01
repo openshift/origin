@@ -103,7 +103,7 @@ func updateDeploymentENVs(deployment *appsv1.Deployment, deploymentID, serviceCl
 	return deployment
 }
 
-func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	deploymentID := uuid.New().String()
 
 	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec, nil)
@@ -204,6 +204,10 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		}
 	}
 
+	return nil
+}
+
+func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
 
