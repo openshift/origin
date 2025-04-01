@@ -23,6 +23,10 @@ func NewPodWatcher() monitortestframework.MonitorTest {
 	return &podWatcher{}
 }
 
+func (w *podWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *podWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)

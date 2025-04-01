@@ -39,7 +39,13 @@ type MonitorTestInitializationInfo struct {
 type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)
 
 type MonitorTest interface {
-	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
+	// PrepareCollection is responsible for setting up all resources required for collection of data on the cluster
+	// and returning when preparation is complete.
+	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
+	// This allows us to know when setups fail.
+	PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error
+
+	// StartCollection is responsible for collection of data on the cluster and may block for the until the context is cancelled.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
 	// This allows us to know when setups fail.
 	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error
@@ -87,6 +93,12 @@ type MonitorTestRegistry interface {
 
 	GetRegistryFor(names ...string) (MonitorTestRegistry, error)
 	ListMonitorTests() sets.String
+
+	// PrepareCollection is responsible for setting up all resources required for collection of data on the cluster
+	// and returning when preparation is complete.
+	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
+	// This allows us to know when setups fail.
+	PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error)
 
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.

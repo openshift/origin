@@ -13,6 +13,19 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
+func prepareCollectionWithPanicProtection(ctx context.Context, monitortest MonitorTest, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
+		}
+	}()
+
+	err = monitortest.PrepareCollection(ctx, adminRESTConfig, recorder)
+	return
+}
+
 func startCollectionWithPanicProtection(ctx context.Context, monitortest MonitorTest, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) (err error) {
 	defer func() {
 		if r := recover(); r != nil {

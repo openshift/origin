@@ -78,21 +78,59 @@ func (r *monitorTestRegistry) ListMonitorTests() sets.String {
 	return sets.StringKeySet(r.monitorTests)
 }
 
+func (r *monitorTestRegistry) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
+	junits := []*junitapi.JUnitTestCase{}
+	errs := []error{}
+
+	for _, invariant := range r.monitorTests {
+		testName := fmt.Sprintf("[Jira:%q] monitor test %v preparation", invariant.jiraComponent, invariant.name)
+		logrus.Infof("  Preparing %v for %v", invariant.name, invariant.jiraComponent)
+
+		start := time.Now()
+		err := prepareCollectionWithPanicProtection(ctx, invariant.monitorTest, adminRESTConfig, recorder)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			var nsErr *NotSupportedError
+			if errors.As(err, &nsErr) {
+				junits = append(junits, &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					SkipMessage: &junitapi.SkipMessage{
+						Message: nsErr.Reason,
+					},
+				})
+				continue
+			}
+			errs = append(errs, err)
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:     testName,
+				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during preparation\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during preparation\n%v", err),
+			})
+			var flakeErr *FlakeError
+			if !errors.As(err, &flakeErr) {
+				continue
+			}
+		}
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
+	return junits, utilerrors.NewAggregate(errs)
+}
+
 func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
 	wg := sync.WaitGroup{}
 	junitCh := make(chan *junitapi.JUnitTestCase, 2*len(r.monitorTests))
 	errCh := make(chan error, len(r.monitorTests))
 
-	testCount := 0
 	for i := range r.monitorTests {
-
-		// throttle the startup
-		// startCollection is blocking
-		// we could request a signal when initialization is complete
-		if testCount > 0 && testCount%3 == 0 {
-			time.Sleep(30 * time.Second)
-		}
-		testCount++
 		wg.Add(1)
 		go func(ctx context.Context, invariant *monitorTesttItem) {
 			defer wg.Done()

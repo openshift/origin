@@ -24,6 +24,10 @@ func NewKubeletLogCollector() monitortestframework.MonitorTest {
 	return &kubeletLogCollector{}
 }
 
+func (w *kubeletLogCollector) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *kubeletLogCollector) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	w.startedAt = time.Now()

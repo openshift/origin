@@ -18,6 +18,10 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &e2eTestAnalyzer{}
 }
 
+func (w *e2eTestAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *e2eTestAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

@@ -21,6 +21,10 @@ func NewNodeWatcher() monitortestframework.MonitorTest {
 	return &nodeWatcher{}
 }
 
+func (w *nodeWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *nodeWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {

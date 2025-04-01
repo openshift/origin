@@ -46,7 +46,7 @@ func NewResourceGrowthTests() monitortestframework.MonitorTest {
 	}
 }
 
-func (w *resourceGrowthTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (w *resourceGrowthTests) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
@@ -66,6 +66,10 @@ func (w *resourceGrowthTests) StartCollection(ctx context.Context, adminRESTConf
 		return err
 	}
 	w.preUpgradeResourceCounts["configmaps"] = len(configMaps.Items)
+	return nil
+}
+
+func (w *resourceGrowthTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
 
