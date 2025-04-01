@@ -18,6 +18,10 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &operatorStateChecker{}
 }
 
+func (w *operatorStateChecker) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *operatorStateChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

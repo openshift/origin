@@ -38,6 +38,10 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &terminationMessagePolicyChecker{}
 }
 
+func (w *terminationMessagePolicyChecker) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *terminationMessagePolicyChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)

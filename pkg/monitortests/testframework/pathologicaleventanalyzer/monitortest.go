@@ -20,6 +20,10 @@ func NewAnalyzer() monitortestframework.MonitorTest {
 	return &pathologicalEventAnalyzer{}
 }
 
+func (w *pathologicalEventAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *pathologicalEventAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

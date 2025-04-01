@@ -39,6 +39,10 @@ func NewNamespaceWatcher() monitortestframework.MonitorTest {
 	return &namespaceTracker{}
 }
 
+func (w *namespaceTracker) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *namespaceTracker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {

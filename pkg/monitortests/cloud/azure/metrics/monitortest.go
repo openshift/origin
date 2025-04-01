@@ -47,6 +47,10 @@ func NewAzureMetricsCollector() monitortestframework.MonitorTest {
 	return &azureMetricsCollector{}
 }
 
+func (w *azureMetricsCollector) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *azureMetricsCollector) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
