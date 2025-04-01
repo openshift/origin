@@ -98,6 +98,16 @@ spec:
     - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
         ImageStream API import mode should be PreserveOriginal or Legacy depending
         on desired.architecture field in the CV [apigroup:image.openshift.io]'
+  - featureGate: MachineConfigNodes
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should have
+        MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly
+        transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should
+        properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should
+        properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ManagedBootImages
     tests:
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
