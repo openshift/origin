@@ -19,6 +19,10 @@ func NewAlertSummarySerializer() monitortestframework.MonitorTest {
 	return &alertSummarySerializer{}
 }
 
+func (w *alertSummarySerializer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *alertSummarySerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	return nil

@@ -42,6 +42,10 @@ func NewStatefulsetsChecker() monitortestframework.MonitorTest {
 	}
 }
 
+func (sc *statefulsetsChecker) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (sc *statefulsetsChecker) StartCollection(
 	ctx context.Context,
 	adminRESTConfig *rest.Config,
