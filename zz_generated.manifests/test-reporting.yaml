@@ -65,6 +65,29 @@ spec:
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
         when enabled'
+  - featureGate: GatewayAPI
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        The Gateway API CRDs should already be installed'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        The Gateway API CRDs should not be created'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        The Gateway API CRDs should not be deleted'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
+        The Gateway API CRDs should not be updated'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Serial][Feature:Router][apigroup:gateway.networking.k8s.io]
+        The Gateway API CRDs can be deleted once VAP is removed'
+  - featureGate: GatewayAPIController
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller resources are created and ensure OSSM related
+        resources are created'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller resources are created and ensure custom gatewayclass
+        can be accepted'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller resources are created and ensure defualt gateway
+        objects is created'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to

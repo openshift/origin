@@ -1587,6 +1587,22 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall with wildcard dns rules is created": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller resources are created and ensure OSSM related resources are created": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller resources are created and ensure custom gatewayclass can be accepted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller resources are created and ensure defualt gateway objects is created": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] The Gateway API CRDs should already be installed": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] The Gateway API CRDs should not be created": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] The Gateway API CRDs should not be deleted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] The Gateway API CRDs should not be updated": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPI][Serial][Feature:Router][apigroup:gateway.networking.k8s.io] The Gateway API CRDs can be deleted once VAP is removed": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should be enabled by default": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should function without any target pods": " [Suite:openshift/conformance/serial]",

@@ -43,7 +43,7 @@ const (
 	DeviceInfoTypeVHostUser = "vhost-user"
 	DeviceInfoTypeMemif     = "memif"
 	DeviceInfoTypeVDPA      = "vdpa"
-	DeviceInfoVersion       = "1.0.0"
+	DeviceInfoVersion       = "1.1.0"
 )
 
 // DeviceInfo contains the information of the device associated
@@ -58,18 +58,20 @@ type DeviceInfo struct {
 }
 
 type PciDevice struct {
-	PciAddress   string `json:"pci-address,omitempty"`
-	Vhostnet     string `json:"vhost-net,omitempty"`
-	RdmaDevice   string `json:"rdma-device,omitempty"`
-	PfPciAddress string `json:"pf-pci-address,omitempty"`
+	PciAddress        string `json:"pci-address,omitempty"`
+	Vhostnet          string `json:"vhost-net,omitempty"`
+	RdmaDevice        string `json:"rdma-device,omitempty"`
+	PfPciAddress      string `json:"pf-pci-address,omitempty"`
+	RepresentorDevice string `json:"representor-device,omitempty"`
 }
 
 type VdpaDevice struct {
-	ParentDevice string `json:"parent-device,omitempty"`
-	Driver       string `json:"driver,omitempty"`
-	Path         string `json:"path,omitempty"`
-	PciAddress   string `json:"pci-address,omitempty"`
-	PfPciAddress string `json:"pf-pci-address,omitempty"`
+	ParentDevice      string `json:"parent-device,omitempty"`
+	Driver            string `json:"driver,omitempty"`
+	Path              string `json:"path,omitempty"`
+	PciAddress        string `json:"pci-address,omitempty"`
+	PfPciAddress      string `json:"pf-pci-address,omitempty"`
+	RepresentorDevice string `json:"representor-device,omitempty"`
 }
 
 const (
@@ -106,6 +108,7 @@ type NetworkStatus struct {
 	Default    bool        `json:"default,omitempty"`
 	DNS        DNS         `json:"dns,omitempty"`
 	DeviceInfo *DeviceInfo `json:"device-info,omitempty"`
+	Gateway    []string    `json:"gateway,omitempty"`
 }
 
 // PortMapEntry for CNI PortMapEntry
