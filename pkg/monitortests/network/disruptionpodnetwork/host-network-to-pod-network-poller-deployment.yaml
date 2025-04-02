@@ -61,6 +61,10 @@ spec:
         - key: "node-role.kubernetes.io/edge"
           operator: "Exists"
           effect: "NoSchedule"
+        # Ensure pod can be scheduled on arbiter nodes
+        - key: "node-role.kubernetes.io/arbiter"
+          operator: "Exists"
+          effect: "NoSchedule"
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
