@@ -853,19 +853,19 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc help works as expected": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": " [Disabled:Broken]",
 
-	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by label": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by label": " [Disabled:Broken]",
 
-	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name": " [Disabled:Broken]",
 
-	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": " [Disabled:Broken]",
 
-	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by checking previous scale": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by checking previous scale": " [Disabled:Broken]",
 
-	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by label": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by label": " [Disabled:Broken]",
 
-	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name": " [Disabled:Broken]",
 
 	"[sig-cli] oc label pod": " [Suite:openshift/conformance/parallel]",
 

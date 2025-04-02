@@ -57,6 +57,9 @@ var (
 
 			// https://issues.redhat.com/browse/OCPBUGS-37799
 			`\[sig-builds\]\[Feature:Builds\]\[Slow\] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token \[apigroup:build.openshift.io\]`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-54495
+			`\[sig-cli\] oc idle`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
