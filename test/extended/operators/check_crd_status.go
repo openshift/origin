@@ -98,6 +98,7 @@ func checkStatusInSchema(crdItemList []apiextensionsv1.CustomResourceDefinition)
 		"imagecontentpolicies.config.openshift.io",
 		"imagecontentsourcepolicies.operator.openshift.io",
 		"machineconfigs.machineconfiguration.openshift.io",
+		"pinnedimagesets.machineconfiguration.openshift.io",
 		"netnamespaces.network.openshift.io",
 		"rangeallocations.security.internal.openshift.io",
 		"rolebindingrestrictions.authorization.openshift.io",
