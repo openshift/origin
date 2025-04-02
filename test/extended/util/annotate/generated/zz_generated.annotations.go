@@ -245,8 +245,6 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Early] APIs for openshift.io must have stable versions": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-arch][Early] CRDs for openshift.io should have subresource.status": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Early] Managed cluster should [apigroup:config.openshift.io] start all core operators": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
