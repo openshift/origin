@@ -90,7 +90,7 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 		// startCollection is blocking
 		// we could request a signal when initialization is complete
 		if testCount > 0 && testCount%3 == 0 {
-			time.Sleep(30 * time.Second)
+			time.Sleep(10 * time.Second)
 		}
 		testCount++
 		wg.Add(1)
