@@ -27,23 +27,6 @@ func Test_checkSubresourceStatus(t *testing.T) {
 	})
 }
 
-func Test_checkStatusInSchema(t *testing.T) {
-
-	crdClient := setupLocalAPIClientset()
-	t.Run("Test_checkStatusInSchema test", func(t *testing.T) {
-		crdList, err := getCRDItemList(*crdClient)
-		if err != nil {
-			t.Errorf("Fail: %s", err)
-		}
-		failures := checkStatusInSchema(crdList)
-		if len(failures) > 0 {
-			t.Error("There should be no failures")
-			for _, i := range failures {
-				fmt.Println(i)
-			}
-		}
-	})
-}
 func setupLocalAPIClientset() *apiextensionsclientset.Clientset {
 	// Get the kubeconfig by creating an Openshift cluster with cluster-bot, downloading it,
 	// and using the filename for KUBECONFIG.

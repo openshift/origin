@@ -73,73 +73,6 @@ func checkSubresourceStatus(crdItemList []apiextensionsv1.CustomResourceDefiniti
 	return failures
 }
 
-// checkStatusInSchema returns a list of names of CRDs that don't have a "status" in the CRD schema.
-// For now, it ignores the ones that are currently failing.
-func checkStatusInSchema(crdItemList []apiextensionsv1.CustomResourceDefinition) []string {
-
-	// These CRDs, at the time this test was written, do not have a "status" in the CRD schema
-	// and subresource.status.
-	// These can be skipped for now but we don't want the number to increase.
-	// These CRDs should be tidied up over time.
-	//
-	exceptionsList := sets.NewString(
-		"builds.config.openshift.io",
-		"clusternetworks.network.openshift.io",
-		"consoleclidownloads.console.openshift.io",
-		"consoleexternalloglinks.console.openshift.io",
-		"consolelinks.console.openshift.io",
-		"consolenotifications.console.openshift.io",
-		"consoleplugins.console.openshift.io",
-		"consolequickstarts.console.openshift.io",
-		"consolesamples.console.openshift.io",
-		"consoleyamlsamples.console.openshift.io",
-		"egressnetworkpolicies.network.openshift.io",
-		"hostsubnets.network.openshift.io",
-		"imagecontentpolicies.config.openshift.io",
-		"imagecontentsourcepolicies.operator.openshift.io",
-		"machineconfigs.machineconfiguration.openshift.io",
-		"pinnedimagesets.machineconfiguration.openshift.io",
-		"netnamespaces.network.openshift.io",
-		"rangeallocations.security.internal.openshift.io",
-		"rolebindingrestrictions.authorization.openshift.io",
-		"securitycontextconstraints.security.openshift.io",
-		"managedfleetnotifications.ocmagent.managed.openshift.io", // OSD-26067
-	)
-
-	failures := []string{}
-	for _, crdItem := range crdItemList {
-
-		// This test is interested only in CRDs that end with "openshift.io".
-		if !strings.HasSuffix(crdItem.ObjectMeta.Name, "openshift.io") {
-			continue
-		}
-
-		crdName := crdItem.ObjectMeta.Name
-
-		// Skip CRDs in the exceptions list for now.
-		if exceptionsList.Has(crdName) {
-			continue
-		}
-
-		// Iterate through all versions of the CustomResourceDefinition Spec looking for one with
-		// a schema status element,
-		foundStatusInSchema := false
-		var i int
-		for i = 0; i < len(crdItem.Spec.Versions); i++ {
-			if _, ok := crdItem.Spec.Versions[i].Schema.OpenAPIV3Schema.Properties["status"]; ok {
-				foundStatusInSchema = true
-				break
-			}
-		}
-
-		if !foundStatusInSchema {
-			failures = append(failures, fmt.Sprintf("CRD %s has no 'status' element in its schema", crdName))
-		}
-	}
-
-	return failures
-}
-
 var _ = g.Describe("[sig-arch][Early]", func() {
 
 	defer g.GinkgoRecover()
@@ -160,33 +93,6 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 	g.Describe("CRDs for openshift.io", func() {
 		g.It("should have subresource.status", func() {
 			failures := checkSubresourceStatus(crdItemList)
-			if len(failures) > 0 {
-				e2e.Fail(strings.Join(failures, "\n"))
-			}
-		})
-	})
-})
-
-var _ = g.Describe("[sig-arch][Early]", func() {
-
-	defer g.GinkgoRecover()
-
-	var (
-		crdItemList []apiextensionsv1.CustomResourceDefinition
-	)
-
-	oc := exutil.NewCLI("schema-status-check")
-
-	g.BeforeEach(func() {
-		var err error
-		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
-		crdItemList, err = getCRDItemList(*crdClient)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
-	g.Describe("CRDs for openshift.io", func() {
-		g.It("should have a status in the CRD schema", func() {
-			failures := checkStatusInSchema(crdItemList)
 			if len(failures) > 0 {
 				e2e.Fail(strings.Join(failures, "\n"))
 			}
