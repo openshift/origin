@@ -67,6 +67,10 @@ func (w *etcdLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig
 	go kubeInformers.Start(ctx.Done())
 	go podStreamer.Run(ctx, w.finishedCollecting)
 
+	// is this startup impacting etcd disk?
+	// pause the prepare step to give it initialization time
+	time.Sleep(25 * time.Second)
+
 	return nil
 }
 
