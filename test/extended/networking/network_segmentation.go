@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
@@ -230,6 +231,19 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						Expect(err).NotTo(HaveOccurred())
 
 						udnPodConfig.namespace = f.Namespace.Name
+
+						// make sure we don't have cgroupv1 nodes in the cluster
+						events, err := cs.CoreV1().Events("default").List(context.Background(), metav1.ListOptions{})
+						Expect(err).NotTo(HaveOccurred())
+						cgroupv1Nodes := map[string]bool{}
+						for _, event := range events.Items {
+							if event.Reason == "UDNKubeletProbesNotSupported" {
+								cgroupv1Nodes[event.InvolvedObject.Name] = true
+							}
+						}
+						if len(cgroupv1Nodes) > 0 {
+							e2eskipper.Skipf("cgroupv1 nodes are found: %+v, kubelet probes won't work\n", cgroupv1Nodes)
+						}
 
 						udnPod := runUDNPod(cs, f.Namespace.Name, udnPodConfig, func(pod *v1.Pod) {
 							pod.Spec.Containers[0].ReadinessProbe = &v1.Probe{
