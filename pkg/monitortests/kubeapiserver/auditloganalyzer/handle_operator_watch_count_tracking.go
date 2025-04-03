@@ -378,7 +378,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	var upperBound platformUpperBound
 	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
 		if _, exists := upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]; !exists {
-			return []*junitapi.JUnitTestCase{&junitapi.JUnitTestCase{
+			return []*junitapi.JUnitTestCase{{
 				Name:        testName,
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
 			}}, nil
@@ -387,7 +387,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
 	} else {
 		if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
-			return []*junitapi.JUnitTestCase{&junitapi.JUnitTestCase{
+			return []*junitapi.JUnitTestCase{{
 				Name:        testName,
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported platform type: %v", infra.Spec.PlatformSpec.Type)},
 			}}, nil
