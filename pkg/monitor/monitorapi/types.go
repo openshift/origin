@@ -255,8 +255,6 @@ const (
 	// client metrics show error connecting to the kube-apiserver
 	APIUnreachableFromClientMetrics IntervalReason = "APIUnreachableFromClientMetrics"
 
-	EtcdHighDiskFsyncReason IntervalReason = "EtcdHighDiskFsync"
-
 	LeaseAcquiring        IntervalReason = "Acquiring"
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
@@ -367,7 +365,6 @@ const (
 	SourceCloudMetrics                           = "CloudMetrics"
 
 	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
-	SourceEtcdDiskFsyncMonitor     IntervalSource = "EtcdDiskFsyncMonitor"
 	SourceMachine                  IntervalSource = "MachineMonitor"
 
 	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
