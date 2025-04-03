@@ -56,9 +56,10 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		err = oc.Run("describe").Args("deploymentconfigs", deploymentConfigName).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		ctx := context.Background()
 		g.By("wait until idling-echo endpoint is ready")
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
-			err = oc.Run("describe").Args("endpoints", "idling-echo").Execute()
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			err = oc.Run("describe").Args("endpointslices", "-l", "kubernetes.io/service-name=idling-echo").Execute()
 			if err != nil {
 				return false, nil
 			}
@@ -68,7 +69,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("wait until replicationcontroller is ready")
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			err = oc.Run("get").Args("replicationcontroller", fmt.Sprintf("%s-1", deploymentConfigName)).Execute()
 			if err != nil {
 				return false, nil
@@ -83,7 +84,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("wait until pod is scaled to %s", scaledReplicaCount))
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			out, err := oc.Run("get").Args("pods", "-l", "app=idling-echo", "--template={{ len .items }}", "--output=go-template").Output()
 			if err != nil {
 				return false, err
@@ -98,8 +99,8 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("wait until endpoint addresses are scaled to %s", scaledReplicaCount))
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
-			out, err := oc.Run("get").Args("endpoints", "idling-echo", "--template={{ len (index .subsets 0).addresses }}", "--output=go-template").Output()
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			out, err := oc.Run("get").Args("endpointslices", "-l", "kubernetes.io/service-name=idling-echo", "--template={{ len (index .items 0).endpoints }}", "--output=go-template").Output()
 			if err != nil || out != scaledReplicaCount {
 				return false, nil
 			}
@@ -190,9 +191,10 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		err = oc.Run("describe").Args("deployments", deploymentName).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		ctx := context.Background()
 		g.By("wait until idling-echo endpoint is ready")
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
-			err = oc.Run("describe").Args("endpoints", "idling-echo").Execute()
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			err = oc.Run("describe").Args("endpointslices", "-l", "kubernetes.io/service-name=idling-echo").Execute()
 			if err != nil {
 				return false, nil
 			}
@@ -203,7 +205,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 
 		g.By("wait until replicaset is ready")
 		var rsName string
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			rsList, err := oc.AdminKubeClient().AppsV1().ReplicaSets(projectName).List(context.TODO(), metav1.ListOptions{LabelSelector: "app=idling-echo,deployment=idling-echo"})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if len(rsList.Items) != 1 {
@@ -225,7 +227,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("wait until pod is scaled to %s", scaledReplicaCount))
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			out, err := oc.Run("get").Args("pods", "-l", "app=idling-echo", "--template={{ len .items }}", "--output=go-template").Output()
 			if err != nil {
 				return false, err
@@ -240,8 +242,8 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("wait until endpoint addresses are scaled to %s", scaledReplicaCount))
-		err = wait.PollImmediate(time.Second, 60*time.Second, func() (done bool, err error) {
-			out, err := oc.Run("get").Args("endpoints", "idling-echo", "--template={{ len (index .subsets 0).addresses }}", "--output=go-template").Output()
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			out, err := oc.Run("get").Args("endpointslices", "-l", "kubernetes.io/service-name=idling-echo", "--template={{ len (index .items 0).endpoints }}", "--output=go-template").Output()
 			if err != nil || out != scaledReplicaCount {
 				return false, nil
 			}
