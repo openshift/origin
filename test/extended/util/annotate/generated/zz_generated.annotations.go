@@ -1587,9 +1587,15 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall with wildcard dns rules is created": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller resources are created and ensure OSSM related resources are created": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure HTTPRoute object is created": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller resources are created and ensure custom gatewayclass can be accepted": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure OSSM and OLM related resources are created after creating GatewayClass": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure custom gatewayclass can be accepted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure default gatewayclass is accepted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure defualt gateway objects is created": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API CRDs and ensure CRD of experimental group can not be created": " [Suite:openshift/conformance/parallel]",
 
