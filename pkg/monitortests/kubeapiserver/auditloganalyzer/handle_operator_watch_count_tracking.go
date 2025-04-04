@@ -140,7 +140,7 @@ func (s *watchCountTracking) WriteAuditLogSummary(ctx context.Context, artifactD
 func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
-	testName := "[sig-arch][Late] operators should not create watch channels very often [apigroup:apiserver.openshift.io]"
+	testName := "[sig-arch][Late] operators should not create watch channels very often"
 	oc := exutil.NewCLIWithoutNamespace("operator-watch")
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
