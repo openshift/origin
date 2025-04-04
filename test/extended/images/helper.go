@@ -225,7 +225,7 @@ func BuildAndPushImageOfSizeWithBuilder(
 
 	if !shouldSucceed {
 		if logsErr != nil {
-			return fmt.Errorf("Failed to show log of build config %s: %v", name, err)
+			return fmt.Errorf("Failed to show log of build config %s: %v", name, logsErr)
 		}
 		if !reExpectedDeniedError.MatchString(buildLog) {
 			return fmt.Errorf("Failed to match expected %q in: %q", reExpectedDeniedError.String(), buildLog)
