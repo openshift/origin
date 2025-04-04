@@ -81,17 +81,17 @@ spec:
         Verify Gateway API CRDs and ensure required CRDs should already be installed'
   - featureGate: GatewayAPIController
     tests:
-    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure HTTPRoute object is created'
-    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure OSSM and OLM related resources are
         created after creating GatewayClass'
-    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure custom gatewayclass can be accepted'
-    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller and ensure default gateway objects is created'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure default gatewayclass is accepted'
-    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
-        Verify Gateway API controller and ensure defualt gateway objects is created'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to

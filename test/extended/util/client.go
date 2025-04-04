@@ -674,6 +674,10 @@ func (c *CLI) BuildClient() buildv1client.Interface {
 	return buildv1client.NewForConfigOrDie(c.UserConfig())
 }
 
+func (c *CLI) CoreClient() kubernetes.Interface {
+	return kubernetes.NewForConfigOrDie(c.UserConfig())
+}
+
 func (c *CLI) ImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.UserConfig())
 }
