@@ -79,6 +79,14 @@ spec:
         Verify Gateway API CRDs and ensure existing CRDs can not be updated'
     - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API CRDs and ensure required CRDs should already be installed'
+  - featureGate: GatewayAPIController
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller resources are created and ensure OSSM related
+        resources are created'
+    - testName: '[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller resources are created and ensure custom gatewayclass
+        can be accepted'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
