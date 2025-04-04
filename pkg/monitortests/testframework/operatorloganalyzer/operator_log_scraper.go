@@ -29,6 +29,10 @@ func InitialAndFinalOperatorLogScraper() monitortestframework.MonitorTest {
 	return &operatorLogAnalyzer{}
 }
 
+func (w *operatorLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)

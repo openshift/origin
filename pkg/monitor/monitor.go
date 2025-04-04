@@ -64,7 +64,13 @@ func (m *Monitor) Start(ctx context.Context) error {
 	ctx, m.stopFn = context.WithCancel(ctx)
 	m.startTime = time.Now()
 
-	localJunits, err := m.monitorTestRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
+	localJunits, err := m.monitorTestRegistry.PrepareCollection(ctx, m.adminKubeConfig, m.recorder)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error preparing for data collection, continuing, junit will reflect this. %v\n", err)
+	}
+	m.junits = append(m.junits, localJunits...)
+
+	localJunits, err = m.monitorTestRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting data collection, continuing, junit will reflect this. %v\n", err)
 	}
