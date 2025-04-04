@@ -20,6 +20,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/test/extended/router/certgen"
 	exutil "github.com/openshift/origin/test/extended/util"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -52,6 +54,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 	)
 
 	g.BeforeEach(func() {
+		jobType, err := platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Skip metal jobs
+		if jobType.Platform == "metal" {
+			e2eskipper.Skipf("Not running in bare metal platform")
+		}
+
 		defaultDomain, err = getDefaultIngressClusterDomainName(oc, time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
 
