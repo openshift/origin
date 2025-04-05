@@ -32,6 +32,7 @@ const (
 	namespaceMachineConfigOperator = "openshift-machine-config-operator"
 	nodeWorkerLabel                = "node-role.kubernetes.io/worker"
 	nodeMasterLabel                = "node-role.kubernetes.io/master"
+	nodeArbiterLabel               = "node-role.kubernetes.io/arbiter"
 
 	milliCPUToCPU = 1000
 	// 100000 microseconds is equivalent to 100ms

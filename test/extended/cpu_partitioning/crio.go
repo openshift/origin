@@ -98,8 +98,9 @@ type crioCPUResource struct {
 
 // Container struct for master and worker node CPUSets
 type nodeCPUSets struct {
-	Master cpuset.CPUSet
-	Worker cpuset.CPUSet
+	Master  cpuset.CPUSet
+	Arbiter cpuset.CPUSet
+	Worker  cpuset.CPUSet
 }
 
 // getAnnotationCPUShare Looks through the annotations to find the workload partitioning annotation and
@@ -194,6 +195,8 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 
 			if _, isMaster := node.Labels[nodeMasterLabel]; isMaster {
 				expectedCPUSet = nodeRoleCPUSet.Master
+			} else if _, isArbiter := node.Labels[nodeArbiterLabel]; isArbiter {
+				expectedCPUSet = nodeRoleCPUSet.Arbiter
 			} else if _, isWorker := node.Labels[nodeWorkerLabel]; isWorker {
 				expectedCPUSet = nodeRoleCPUSet.Worker
 			}
@@ -234,8 +237,9 @@ func getExpectedCPUSetConstraints(ctx context.Context, oc *exutil.CLI, isCluster
 	// Default behavior is that CPUSets are empty, which means wide open to the host.
 	// There should be no CPUSet constraint if no PerformanceProfile is present.
 	nodeRoleCPUSet := &nodeCPUSets{
-		Master: cpuset.New(),
-		Worker: cpuset.New(),
+		Master:  cpuset.New(),
+		Arbiter: cpuset.New(),
+		Worker:  cpuset.New(),
 	}
 
 	if !isClusterPartitioned {
@@ -283,6 +287,8 @@ func getExpectedCPUSetConstraints(ctx context.Context, oc *exutil.CLI, isCluster
 		// labels are present.
 		if _, ok := selector[nodeMasterLabel]; ok {
 			nodeRoleCPUSet.Master = parsedReservedCPUSet
+		} else if _, ok := selector[nodeArbiterLabel]; ok {
+			nodeRoleCPUSet.Arbiter = parsedReservedCPUSet
 		} else if _, ok := selector[nodeWorkerLabel]; ok {
 			nodeRoleCPUSet.Worker = parsedReservedCPUSet
 		}
