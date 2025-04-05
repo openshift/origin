@@ -1415,6 +1415,16 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure HTTPRoute object is created": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure OSSM and OLM related resources are created after creating GatewayClass": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure custom gatewayclass can be accepted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure default gateway objects is created": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure default gatewayclass is accepted": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] external gateway address when using openshift ovn-kubernetes should match the address family of the pod": " [Suite:openshift/conformance/parallel]",

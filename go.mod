@@ -58,7 +58,7 @@ require (
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/sync v0.10.0
 	gonum.org/v1/plot v0.14.0
-	google.golang.org/grpc v1.65.0
+	google.golang.org/grpc v1.66.2
 	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -79,6 +79,7 @@ require (
 	k8s.io/pod-security-admission v0.32.3
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
 	sigs.k8s.io/cloud-provider-azure v1.30.4
+	sigs.k8s.io/gateway-api v1.2.1
 	sigs.k8s.io/kustomize/kyaml v0.18.1
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2
 	sigs.k8s.io/yaml v1.4.0
@@ -176,7 +177,7 @@ require (
 	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
