@@ -30,7 +30,10 @@ controllerconfigs.machineconfiguration.openshift.io:
   FeatureGates:
   - AWSClusterHostedDNS
   - BareMetalLoadBalancer
+  - DualReplica
+  - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNS
+  - GCPCustomAPIEndpoints
   - GCPLabelsTags
   - HighlyAvailableArbiter
   - NutanixMultiSubnets
