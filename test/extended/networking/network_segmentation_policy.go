@@ -63,14 +63,11 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 			namespaceBlue := getNamespaceName(f, namespaceBlueSuffix)
 			for _, namespace := range []string{namespaceYellow, namespaceBlue} {
 				ginkgo.By("Creating namespace " + namespace)
-				ns, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   namespace,
-						Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
-					},
-				}, metav1.CreateOptions{})
+				l := map[string]string{RequiredUDNNamespaceLabel: ""}
+				_, err := f.CreateNamespace(context.TODO(), namespace, l)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				f.AddNamespacesToDelete(ns)
+				err = udnWaitForOpenShift(oc, namespace)
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
 		})
 
