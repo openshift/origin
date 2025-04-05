@@ -69,6 +69,8 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery][Feature:APIServer][Serial][Slow] TestTLSModernProfile": "",
+
 	"[sig-api-machinery][Feature:Audit] Basic audit should audit API calls": " [Disabled:SpecialConfig]",
 
 	"[sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
