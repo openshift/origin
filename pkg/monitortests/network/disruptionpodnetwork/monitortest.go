@@ -189,6 +189,10 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 		}
 	}
 
+	// allow time to initialize
+	// though we do that above as well...
+	time.Sleep(30 * time.Second)
+
 	return nil
 }
 
