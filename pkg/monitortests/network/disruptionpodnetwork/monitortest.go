@@ -85,6 +85,7 @@ type podNetworkAvalibility struct {
 	kubeClient           kubernetes.Interface
 }
 
+// cause of early disruption / etcd issues at startup?
 func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &podNetworkAvalibility{
 		payloadImagePullSpec: info.UpgradeTargetPayloadImagePullSpec,
