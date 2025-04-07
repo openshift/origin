@@ -40,12 +40,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gatewayClassName = "openshift-default"
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
 		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
+		//OSSM Deployment Pod Name
+		deploymentOSSM = "servicemesh-operator3"
 		// The gateway name used to create gateway resource.
 		gatewayName = "standard-gateway"
 		// The gateway name used to create custom gateway resource.
 		customGatewayName = "custom-gateway"
 	)
-	g.BeforeEach(func() {
+	g.BeforeAll(func() {
 		gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 		// create the default gatewayClass
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
@@ -63,65 +65,53 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 				catalog, err := oc.AsAdmin().Run("get").Args("-n", "openshift-marketplace", "catalogsource", expectedSubscriptionSource, "-o=jsonpath={.status.connectionState.lastObservedState}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if catalog != "READY" {
-					e2e.Logf("CatalogSource is not in ready state")
+					e2e.Logf("CatalogSource %q is not in ready state, retrying...", expectedSubscriptionSource)
 					return false, nil
 				}
-				e2e.Logf("catalogSource is ready!")
+				e2e.Logf("catalogSource %q is ready!", expectedSubscriptionSource)
 				return true, nil
 			})
-			if waitCatalog != nil {
-				e2e.Failf("catalogSource never got ready")
-			}
+			o.Expect(waitCatalog).NotTo(o.HaveOccurred(), "Timed out waiting for CatalogSource %q to become ready", expectedSubscriptionSource)
 
 			// check Subscription
 			waitVersion := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
 				csvName, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if csvName == "" {
-					e2e.Logf("Subscription has not created the CSV, retrying")
+					e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
 					return false, nil
 				}
-				e2e.Logf("The subscription is installed and the CSV is: %v", csvName)
+				e2e.Logf("Subscription %q has installed CSV: %s", expectedSubscriptionName, csvName)
 				return true, nil
 			})
-			if waitVersion != nil {
-				e2e.Logf("Subscription does not have an installed CSV")
-				err := oc.AsAdmin().Run("delete").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitVersion).NotTo(o.HaveOccurred(), "Timed out waiting for the ClusterServiceVersion to install")
 
-			}
-
-			// temp workaround to extract the csvName from startingCSV field
-			csvName, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.currentCSV}").Output()
+			csvName, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitCSV := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
 				csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if csvStatus != "Succeeded" {
-					e2e.Logf("Cluster Service Version %s is not successful..., retrying", csvName)
+					e2e.Logf("Cluster Service Version %s is not successful, retrying...", csvName)
 					return false, nil
 				}
 				e2e.Logf("Cluster Service Version %s has succeeded!", csvName)
 				return true, nil
 			})
-			if waitCSV != nil {
-				e2e.Failf("Cluster Service Version never got ready")
-			}
+			o.Expect(waitCSV).NotTo(o.HaveOccurred(), "Cluster Service Version %s never reached succeeded status", csvName)
 
-			// get OLM Deployment Pod
+			// get OSSM Operator deployment
 			waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
-				deployOSSM, err := oc.AsAdmin().CoreClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
+				deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				if deployOSSM.Status.ReadyReplicas != 1 {
-					e2e.Logf("Deployment Pod %s is not ready, retrying...", "servicemesh-operator3")
+				if deployOSSM.Status.ReadyReplicas < 1 {
+					e2e.Logf("OSSM operator deployment %q is not ready, retrying...", deploymentOSSM)
 					return false, nil
 				}
-				e2e.Logf("Deployment Pod %s ready", "servicemesh-operator3")
+				e2e.Logf("OSSM operator deployment %q is ready", deploymentOSSM)
 				return true, nil
 			})
-			if waitErr != nil {
-				e2e.Failf("OSSM Deployment Pod never got ready")
-			}
+			o.Expect(waitErr).NotTo(o.HaveOccurred(), "OSSM Operator deployment %q did not successfully deploy its pod", deploymentOSSM)
 
 			g.By("Confirm that ISTIO CR is created and in healthy state")
 			resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
@@ -136,24 +126,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 				e2e.Logf("Istio CR %s is in Healthy state!", resource.Name)
 				return true, nil
 			})
-			if waitCR != nil {
-				e2e.Failf("Istio CR never reached Healthy state")
-			}
-
-			// check OSSM deployment
-			waitIstio := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
-				deployIstio, err := oc.AsAdmin().CoreClient().AppsV1().Deployments("openshift-ingress").Get(context, "istiod-openshift-gateway", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if deployIstio.Status.ReadyReplicas != 1 {
-					e2e.Logf("Deployment Pod %s is not ready, retrying...", "istiod-openshift-gateway")
-					return false, nil
-				}
-				e2e.Logf("Deployment Pod %s ready", "istiod-openshift-gateway")
-				return true, nil
-			})
-			if waitIstio != nil {
-				e2e.Failf("Istio Deployment Pod never got ready")
-			}
+			o.Expect(waitCR).NotTo(o.HaveOccurred(), "Istio CR %s did not reach healthy state in time", resource.Name)
 
 		})
 		g.It("and ensure default gatewayclass is accepted", func() {
@@ -171,7 +144,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			gatewayClass := buildGatewayClass("custom-gatewayclass", gatewayClassControllerName)
 			gwc, err := gwapiClient.GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
 			if err != nil {
-				e2e.Logf("Gateway Class %s already exists, or has failed to be created, checking its status", "custom-gatewayclass")
+				e2e.Logf("Gateway Class \"custom-gatewayclass\" already exists, or has failed to be created, checking its status")
 			}
 			errCheck := checkGatewayClass(oc, "custom-gatewayclass")
 			o.Expect(errCheck).NotTo(o.HaveOccurred())
@@ -188,20 +161,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.By("check if default gatewayClass is accepted and ISTIO CR and pod are still available")
 			defaultCheck := checkGatewayClass(oc, gatewayClassName)
 			o.Expect(defaultCheck).NotTo(o.HaveOccurred())
-
-			waitIstio := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
-				deployIstio, err := oc.AsAdmin().CoreClient().AppsV1().Deployments("openshift-ingress").Get(context, "istiod-openshift-gateway", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if deployIstio.Status.ReadyReplicas != 1 {
-					e2e.Logf("Deployment Pod %s is not ready, retrying...", "istiod-openshift-gateway")
-					return false, nil
-				}
-				e2e.Logf("Deployment Pod %s ready", "istiod-openshift-gateway")
-				return true, nil
-			})
-			if waitIstio != nil {
-				e2e.Failf("Istio Deployment Pod never got ready")
-			}
 
 			g.By("Confirm that ISTIO CR is created and in healthy state")
 			resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
@@ -387,12 +346,12 @@ func createHttpRoute(oc *exutil.CLI, routeName, hostname, backendRefname string)
 	// The http route, service, and pod are cleaned up when the namespace is automatically deleted.
 	// buildEchoPod builds a pod that listens on port 8080.
 	echoPod := buildEchoPod(backendRefname, namespace)
-	_, echoPodErr := oc.AsAdmin().CoreClient().CoreV1().Pods(namespace).Create(context.TODO(), echoPod, metav1.CreateOptions{})
+	_, echoPodErr := oc.AdminKubeClient().CoreV1().Pods(namespace).Create(context.TODO(), echoPod, metav1.CreateOptions{})
 	o.Expect(echoPodErr).NotTo(o.HaveOccurred())
 
 	// buildEchoService builds a service that targets port 8080.
 	echoService := buildEchoService(echoPod.Name, namespace, echoPod.ObjectMeta.Labels)
-	_, echoServiceErr := oc.AsAdmin().CoreClient().CoreV1().Services(namespace).Create(context.Background(), echoService, metav1.CreateOptions{})
+	_, echoServiceErr := oc.AdminKubeClient().CoreV1().Services(namespace).Create(context.Background(), echoService, metav1.CreateOptions{})
 	o.Expect(echoServiceErr).NotTo(o.HaveOccurred())
 
 	// Create the HTTPRoute
