@@ -14,11 +14,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial][Slow]", func() {
+var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("apiserver")
@@ -34,6 +36,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial][Slow]", func(
 
 		initialConfigState, err := configClient.ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		oauthRoute, err := oc.AdminRouteClient().RouteV1().Routes("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		oauthRouteString := fmt.Sprintf("%s:443", oauthRoute.Status.Ingress[0].Host)
 
 		var applyPatch, removePatch string
 
@@ -60,7 +67,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial][Slow]", func(
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.By("Checking if TLS 1.2 is usable before the modern TLS profile is applied")
+		g.By("Checking if TLS 1.2 is usable in the Kube API server before the modern TLS profile is applied")
 
 		// We're going to be dialing TCP directly, not connecting over HTTP as usual, so we don't want the protocol on the host.
 		tlsHost := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
@@ -68,6 +75,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial][Slow]", func(
 		config := &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 
 		conn, err := tls.Dial("tcp4", tlsHost, config)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		conn.Close()
+
+		g.By("Checking if TLS 1.2 is usable in the OAuth server before the modern TLS profile is applied")
+
+		conn, err = tls.Dial("tcp4", oauthRouteString, config)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		conn.Close()
@@ -96,12 +110,56 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Serial][Slow]", func(
 
 		conn.Close()
 
+		g.By("Dialing the OAuth server with a minimum TLS version of 1.3 and expecting success")
+
+		conn, err = tls.Dial("tcp4", oauthRouteString, config)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		conn.Close()
+
 		g.By("Dialing the API with a minimum TLS version of 1.2 and expecting failure")
 
 		config = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
 
 		_, err = tls.Dial("tcp4", tlsHost, config)
 		o.Expect(err).To(o.HaveOccurred())
+
+		g.By("Dialing the OAuth server with a minimum TLS version of 1.2 and expecting failure")
+
+		_, err = tls.Dial("tcp4", oauthRouteString, config)
+		o.Expect(err).To(o.HaveOccurred())
+
+		g.By("Checking that a request requiring aggregation to the OCP API server is functional")
+
+		_, err = oc.AdminProjectClient().ProjectV1().Projects().List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Checking the reported status of reconfigured operators")
+
+		kubeControllerManager, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "kube-controller-manager", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(v1helpers.IsStatusConditionTrue(kubeControllerManager.Status.Conditions, configv1.OperatorProgressing)).To(o.BeFalse())
+		o.Expect(v1helpers.IsStatusConditionTrue(kubeControllerManager.Status.Conditions, configv1.OperatorDegraded)).To(o.BeFalse())
+
+		kubeScheduler, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "kube-scheduler", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(v1helpers.IsStatusConditionTrue(kubeScheduler.Status.Conditions, configv1.OperatorProgressing)).To(o.BeFalse())
+		o.Expect(v1helpers.IsStatusConditionTrue(kubeScheduler.Status.Conditions, configv1.OperatorDegraded)).To(o.BeFalse())
+
+		ocpAPIServer, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "openshift-apiserver", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(v1helpers.IsStatusConditionTrue(ocpAPIServer.Status.Conditions, configv1.OperatorProgressing)).To(o.BeFalse())
+		o.Expect(v1helpers.IsStatusConditionTrue(ocpAPIServer.Status.Conditions, configv1.OperatorDegraded)).To(o.BeFalse())
+
+		machineConfig, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "machine-config", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(v1helpers.IsStatusConditionTrue(machineConfig.Status.Conditions, configv1.OperatorProgressing)).To(o.BeFalse())
+		o.Expect(v1helpers.IsStatusConditionTrue(machineConfig.Status.Conditions, configv1.OperatorDegraded)).To(o.BeFalse())
+
+		authentication, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "authentication", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(v1helpers.IsStatusConditionTrue(authentication.Status.Conditions, configv1.OperatorProgressing)).To(o.BeFalse())
+		o.Expect(v1helpers.IsStatusConditionTrue(authentication.Status.Conditions, configv1.OperatorDegraded)).To(o.BeFalse())
 	})
 })
 

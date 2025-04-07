@@ -69,7 +69,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer][Late] kubelet terminates kube-apiserver gracefully": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-api-machinery][Feature:APIServer][Serial][Slow] TestTLSModernProfile": "",
+	"[sig-api-machinery][Feature:APIServer][Serial] TestTLSModernProfile": " [Suite:openshift/conformance/serial]",
 
 	"[sig-api-machinery][Feature:Audit] Basic audit should audit API calls": " [Disabled:SpecialConfig]",
 
