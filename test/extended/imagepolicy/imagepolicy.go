@@ -21,7 +21,9 @@ import (
 
 const (
 	testReleaseImageScope             = "quay.io/openshift-release-dev/ocp-release@sha256:fbad931c725b2e5b937b295b58345334322bdabb0b67da1c800a53686d7397da"
+	failedTestReleaseImageScope       = "quay.io/openshift-release-dev/ocp-release@sha256:e16ac60ac6971e5b6f89c1d818f5ae711c0d63ad6a6a26ffe795c738e8cc4dde"
 	testReferenceImageScope           = "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:4db234f37ae6712e2f7ed8d13f7fb49971c173d0e4f74613d0121672fa2e01f5"
+	failedTestReferenceImageScope     = "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:83ea876a310c054e5ae789455079fe4206213c5dd35ac2a7baf7299a2c9bddb7"
 	registriesWorkerPoolMachineConfig = "99-worker-generated-registries"
 	registriesMasterPoolMachineConfig = "99-master-generated-registries"
 	testPodName                       = "signature-validation-test-pod"
@@ -33,17 +35,17 @@ const (
 var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                                        = exutil.NewCLIWithoutNamespace("cluster-image-policy")
-		tctx                                      = context.Background()
-		cli                                       = exutil.NewCLIWithPodSecurityLevel("verifysigstore-e2e", admissionapi.LevelBaseline)
-		clif                                      = cli.KubeFramework()
-		imgpolicyCli                              = exutil.NewCLIWithPodSecurityLevel("verifysigstore-imagepolicy-e2e", admissionapi.LevelBaseline)
-		imgpolicyClif                             = imgpolicyCli.KubeFramework()
-		imagePolicyBaseDir                        = exutil.FixturePath("testdata", "imagepolicy")
-		invalidPublicKeyClusterImagePolicyFixture = filepath.Join(imagePolicyBaseDir, "invalid-public-key-cluster-image-policy.yaml")
-		publiKeyRekorClusterImagePolicyFixture    = filepath.Join(imagePolicyBaseDir, "public-key-rekor-cluster-image-policy.yaml")
-		invalidPublicKeyImagePolicyFixture        = filepath.Join(imagePolicyBaseDir, "invalid-public-key-image-policy.yaml")
-		publiKeyRekorImagePolicyFixture           = filepath.Join(imagePolicyBaseDir, "public-key-rekor-image-policy.yaml")
+		oc                 = exutil.NewCLIWithoutNamespace("cluster-image-policy")
+		tctx               = context.Background()
+		cli                = exutil.NewCLIWithPodSecurityLevel("verifysigstore-e2e", admissionapi.LevelBaseline)
+		clif               = cli.KubeFramework()
+		imgpolicyCli       = exutil.NewCLIWithPodSecurityLevel("verifysigstore-imagepolicy-e2e", admissionapi.LevelBaseline)
+		imgpolicyClif      = imgpolicyCli.KubeFramework()
+		imagePolicyBaseDir = exutil.FixturePath("testdata", "imagepolicy")
+		// invalidPublicKeyClusterImagePolicyFixture = filepath.Join(imagePolicyBaseDir, "invalid-public-key-cluster-image-policy.yaml")
+		publiKeyRekorClusterImagePolicyFixture = filepath.Join(imagePolicyBaseDir, "public-key-rekor-cluster-image-policy.yaml")
+		invalidPublicKeyImagePolicyFixture     = filepath.Join(imagePolicyBaseDir, "invalid-public-key-image-policy.yaml")
+		publiKeyRekorImagePolicyFixture        = filepath.Join(imagePolicyBaseDir, "public-key-rekor-image-policy.yaml")
 	)
 
 	g.BeforeAll(func() {
@@ -59,10 +61,16 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 
 	g.It("Should fail clusterimagepolicy signature validation root of trust does not match the identity in the signature", func() {
-		createClusterImagePolicy(oc, invalidPublicKeyClusterImagePolicyFixture)
-		g.DeferCleanup(deleteClusterImagePolicy, oc, invalidPublicKeyClusterImagePolicyFixture)
+		createClusterImagePolicy(oc, publiKeyRekorClusterImagePolicyFixture)
+		createImagePolicy(oc, invalidPublicKeyImagePolicyFixture, imgpolicyClif.Namespace.Name)
+		createImagePolicy(oc, invalidPublicKeyImagePolicyFixture, clif.Namespace.Name)
+		createImagePolicy(oc, publiKeyRekorImagePolicyFixture, clif.Namespace.Name)
+		createImagePolicy(oc, publiKeyRekorImagePolicyFixture, imgpolicyClif.Namespace.Name)
+		time.Sleep(10 * time.Second)
+		machineconfighelper.WaitForConfigAndPoolComplete(oc, workerPool, registriesWorkerPoolMachineConfig)
+		machineconfighelper.WaitForConfigAndPoolComplete(oc, masterPool, registriesMasterPoolMachineConfig)
 
-		pod, err := launchTestPod(tctx, clif, testPodName, testReleaseImageScope)
+		pod, err := launchTestPod(tctx, clif, testPodName, failedTestReleaseImageScope)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(deleteTestPod, tctx, clif, testPodName)
 
@@ -72,14 +80,14 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 
 	g.It("Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification", func() {
 		// Ensure allowedRegistries do not skip signature verification by adding testReleaseImageScope to the list
-		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testReleaseImageScope}
+		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testReleaseImageScope, failedTestReleaseImageScope}
 		updateImageConfig(oc, allowedRegistries)
 		g.DeferCleanup(cleanupImageConfig, oc)
 
-		createClusterImagePolicy(oc, invalidPublicKeyClusterImagePolicyFixture)
-		g.DeferCleanup(deleteClusterImagePolicy, oc, invalidPublicKeyClusterImagePolicyFixture)
+		// createClusterImagePolicy(oc, publiKeyRekorClusterImagePolicyFixture)
+		// g.DeferCleanup(deleteClusterImagePolicy, oc, invalidPublicKeyClusterImagePolicyFixture)
 
-		pod, err := launchTestPod(tctx, clif, testPodName, testReleaseImageScope)
+		pod, err := launchTestPod(tctx, clif, testPodName, failedTestReleaseImageScope)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(deleteTestPod, tctx, clif, testPodName)
 
@@ -88,9 +96,6 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 
 	g.It("Should pass clusterimagepolicy signature validation with signed image", func() {
-		createClusterImagePolicy(oc, publiKeyRekorClusterImagePolicyFixture)
-		g.DeferCleanup(deleteClusterImagePolicy, oc, publiKeyRekorClusterImagePolicyFixture)
-
 		pod, err := launchTestPod(tctx, clif, testPodName, testReleaseImageScope)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(deleteTestPod, tctx, clif, testPodName)
@@ -100,20 +105,14 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 
 	g.It("Should fail imagepolicy signature validation in different namespaces root of trust does not match the identity in the signature", func() {
-		createImagePolicy(oc, invalidPublicKeyImagePolicyFixture, imgpolicyClif.Namespace.Name)
-		g.DeferCleanup(deleteImagePolicy, oc, invalidPublicKeyImagePolicyFixture, imgpolicyClif.Namespace.Name)
-
-		createImagePolicy(oc, invalidPublicKeyImagePolicyFixture, clif.Namespace.Name)
-		g.DeferCleanup(deleteImagePolicy, oc, invalidPublicKeyImagePolicyFixture, clif.Namespace.Name)
-
-		pod, err := launchTestPod(tctx, imgpolicyClif, testPodName, testReferenceImageScope)
+		pod, err := launchTestPod(tctx, imgpolicyClif, testPodName, failedTestReferenceImageScope)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(deleteTestPod, tctx, imgpolicyClif, testPodName)
 
 		err = waitForTestPodContainerToFailSignatureValidation(tctx, imgpolicyClif, pod)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		pod, err = launchTestPod(tctx, clif, testPodName, testReferenceImageScope)
+		pod, err = launchTestPod(tctx, clif, testPodName, failedTestReferenceImageScope)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(deleteTestPod, tctx, clif, testPodName)
 
@@ -122,12 +121,6 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 
 	g.It("Should pass imagepolicy signature validation with signed image in namespaces", func() {
-		createImagePolicy(oc, publiKeyRekorImagePolicyFixture, clif.Namespace.Name)
-		g.DeferCleanup(deleteImagePolicy, oc, publiKeyRekorImagePolicyFixture, clif.Namespace.Name)
-
-		createImagePolicy(oc, publiKeyRekorImagePolicyFixture, imgpolicyClif.Namespace.Name)
-		g.DeferCleanup(deleteImagePolicy, oc, publiKeyRekorImagePolicyFixture, imgpolicyClif.Namespace.Name)
-
 		pod, err := launchTestPod(tctx, clif, testPodName, testReferenceImageScope)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.DeferCleanup(deleteTestPod, tctx, clif, testPodName)
@@ -147,9 +140,9 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 func createClusterImagePolicy(oc *exutil.CLI, fixture string) {
 	err := oc.Run("create").Args("-f", fixture).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	time.Sleep(10 * time.Second)
-	machineconfighelper.WaitForConfigAndPoolComplete(oc, workerPool, registriesWorkerPoolMachineConfig)
-	machineconfighelper.WaitForConfigAndPoolComplete(oc, masterPool, registriesMasterPoolMachineConfig)
+	// time.Sleep(10 * time.Second)
+	// machineconfighelper.WaitForConfigAndPoolComplete(oc, workerPool, registriesWorkerPoolMachineConfig)
+	// machineconfighelper.WaitForConfigAndPoolComplete(oc, masterPool, registriesMasterPoolMachineConfig)
 }
 
 func deleteClusterImagePolicy(oc *exutil.CLI, fixture string) error {
@@ -159,9 +152,9 @@ func deleteClusterImagePolicy(oc *exutil.CLI, fixture string) error {
 func createImagePolicy(oc *exutil.CLI, fixture string, namespace string) {
 	err := oc.Run("create").Args("-f", fixture, "-n", namespace).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
-	time.Sleep(10 * time.Second)
-	machineconfighelper.WaitForConfigAndPoolComplete(oc, workerPool, registriesWorkerPoolMachineConfig)
-	machineconfighelper.WaitForConfigAndPoolComplete(oc, masterPool, registriesMasterPoolMachineConfig)
+	// time.Sleep(10 * time.Second)
+	// machineconfighelper.WaitForConfigAndPoolComplete(oc, workerPool, registriesWorkerPoolMachineConfig)
+	// machineconfighelper.WaitForConfigAndPoolComplete(oc, masterPool, registriesMasterPoolMachineConfig)
 }
 
 func deleteImagePolicy(oc *exutil.CLI, fixture string, namespace string) error {

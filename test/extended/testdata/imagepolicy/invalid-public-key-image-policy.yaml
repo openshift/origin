@@ -4,7 +4,7 @@ metadata:
   name: invalid-public-key-image-policy
 spec:
   scopes:
-    - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:4db234f37ae6712e2f7ed8d13f7fb49971c173d0e4f74613d0121672fa2e01f5
+    - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:83ea876a310c054e5ae789455079fe4206213c5dd35ac2a7baf7299a2c9bddb7
   policy:
     rootOfTrust:
       policyType: PublicKey
