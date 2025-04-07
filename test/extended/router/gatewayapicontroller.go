@@ -27,7 +27,9 @@ import (
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
+		oc      = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
+		csvName string
+		err     error
 	)
 	const (
 		// The expected OSSM subscription name.
@@ -53,8 +55,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
 		gwc, err := gwapiClient.GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
 		if err != nil {
-			e2e.Logf("Gateway Class %s already exists, or has failed to be created", gwc.Name)
+			e2e.Logf("Gateway Class %s already exists, or has failed to be created, checking if it exists", gwc.Name)
 		}
+		gwc, err = gwapiClient.GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "GatewayClass %q does not exist", gatewayClassName)
+
 	})
 
 	g.Describe("Verify Gateway API controller", func() {
@@ -75,7 +80,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 			// check Subscription
 			waitVersion := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
-				csvName, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
+				csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if csvName == "" {
 					e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
@@ -86,8 +91,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			})
 			o.Expect(waitVersion).NotTo(o.HaveOccurred(), "Timed out waiting for the ClusterServiceVersion to install")
 
-			csvName, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
 			waitCSV := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
 				csvStatus, err := oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "clusterserviceversion", csvName, "-o=jsonpath={.status.phase}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -123,7 +126,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 					e2e.Logf("Istio CR %s is not healthy, retrying...", resource.Name)
 					return false, nil
 				}
-				e2e.Logf("Istio CR %s is in Healthy state!", resource.Name)
+				e2e.Logf("Istio CR %q is healthy", resource.Name)
 				return true, nil
 			})
 			o.Expect(waitCR).NotTo(o.HaveOccurred(), "Istio CR %s did not reach healthy state in time", resource.Name)
