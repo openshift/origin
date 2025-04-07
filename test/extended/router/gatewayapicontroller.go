@@ -211,7 +211,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			o.Expect(istioStatus).To(o.Equal(`Healthy`))
 		})
 
-		g.It("and negative tests for OSSM related resources", func() {
+		g.It("and ensure OSSM subscription and istio get recreated after deleting them", func() {
 			const (
 				operatorNamespace      = "openshift-operators"
 				ingressNamespace       = "openshift-ingress"
