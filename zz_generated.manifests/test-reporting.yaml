@@ -85,11 +85,15 @@ spec:
         Verify Gateway API controller and ensure OSSM and OLM related resources are
         created after creating GatewayClass'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Verify Gateway API controller and ensure OSSM subscription and istio get recreated
+        after deleting them'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure custom gatewayclass can be accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure default gatewayclass is accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
-        Verify Gateway API controller and negative tests for OSSM related resources'
+        Verify Gateway API controller and ensure gateway loadbalancer service and
+        gateway dnsrecords get recreated after deleting them'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to

@@ -1425,11 +1425,13 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure OSSM and OLM related resources are created after creating GatewayClass": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure OSSM subscription and istio get recreated after deleting them": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure custom gatewayclass can be accepted": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure default gatewayclass is accepted": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and negative tests for OSSM related resources": " [Suite:openshift/conformance/parallel]",
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure gateway loadbalancer service and gateway dnsrecords get recreated after deleting them": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 

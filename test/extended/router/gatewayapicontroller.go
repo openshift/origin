@@ -3,6 +3,8 @@ package router
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -11,15 +13,16 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	// clientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	//clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/apimachinery/pkg/api/errors"
+	clientset "k8s.io/client-go/kubernetes"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gatewayapiclientset "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
@@ -269,6 +272,117 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 				e2e.Logf("wait the ready replicas to be 1, and got %s", readyReplicas)
 				return readyReplicas
 			}, 5*time.Minute, time.Second).Should(o.Equal("1"))
+		})
+
+		g.It("and ensure gateway loadbalancer service and gateway dnsrecords get recreated after deleting them", func() {
+			const (
+				operatorNamespace = "openshift-operators"
+				ingressNamespace  = "openshift-ingress"
+				gatewayDeployment = "gateway-openshift-default"
+				gatewayLbService  = "gateway-openshift-default"
+				gatewayName       = "gateway"
+			)
+
+			// ensure default gateway objects is created
+			coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
+			g.By("Getting the default domain")
+			defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+			defaultDomain := strings.Split(defaultIngressDomain, "apps.")[1]
+
+			g.By("create the default API Gateway")
+			createGateway(oc, gatewayName, gatewayClassName, defaultDomain)
+
+			g.By("Ensure the gateway's LoadBalancer service and DNSRecords are available")
+			gwlbIP, err := ensureLbServiceRetrieveLbIP(oc, ingressNamespace, gatewayLbService)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			gwwAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("The gateway Aaddress is: %v", gwwAddress)
+			o.Expect(gwlbIP).To(o.Equal(gwwAddress))
+
+			// get the dnsrecord name
+			dnsRecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", "-l", "gateway.networking.k8s.io/gateway-name="+gatewayName, "-o=jsonpath={.items[*].metadata.name}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("The gateway API dnsrecord name is: %v", dnsRecordName)
+			// check whether status of dns reccord is True
+			dnsRecordstatus, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", dnsRecordName, `-o=jsonpath={.status.zones[0].conditions[0].status}`).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dnsRecordstatus).To(o.Equal("True"))
+
+			// deleted the gateway loadbalancer service and then checked if it was restored
+			g.By(fmt.Sprintf("try to delete the gateway lb service %s", gatewayLbService))
+			err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
+			isReleased := false
+			o.Eventually(func() bool {
+				lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+				if err != nil {
+					if errors.IsNotFound(err) {
+						return false
+					}
+					e2e.Logf("Error getting the gateway lb service %s: %v, try next round", gatewayLbService, err)
+					return false
+				}
+
+				lb := lbService.Status.LoadBalancer
+				searchInfo := regexp.MustCompile("IP:([0-9\\.a-fA-F:]+)").FindStringSubmatch(lb.String())
+				if len(searchInfo) > 0 {
+					if isReleased {
+						e2e.Logf("new load balancer ip %s is available", searchInfo[1])
+						return true
+					}
+				} else {
+					isReleased = true
+				}
+				e2e.Logf("Failed to get the new IP of the gateway lb service %s, try next round", gatewayLbService)
+				return false
+			}, 5*time.Minute, 3*time.Second).Should(o.Equal(true))
+
+			// deleted the gateway dnsrecords then checked if it was restored
+			g.By(fmt.Sprintf("get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
+			dnsrecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords", "-o=jsonpath={.items[0].metadata.name}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			createdTime1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			targetsIP1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By(fmt.Sprintf("wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
+			o.Eventually(func() bool {
+				createdTime2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
+				if err != nil {
+					if errors.IsNotFound(err) {
+						return false
+					}
+					e2e.Logf("Error getting the gateway dnsrecords: %v, try next round", err)
+					return false
+				}
+				if createdTime2 == createdTime1 {
+					e2e.Logf("the gateway dnsrecords is not deleted yet, try next round")
+					return false
+				}
+
+				targetsIP2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if targetsIP2 != targetsIP1 {
+					e2e.Logf("the gateway dnsrecords has not a targetsIP or a different one %s with %s, try next round", targetsIP2, targetsIP1)
+					return false
+				}
+
+				status, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName, "-o=jsonpath={.status.zones[0].conditions[0].status}{.status.zones[0].conditions[0].reason}").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if status == "TrueProviderSuccess" {
+					return true
+				}
+				e2e.Logf("the status of the gateway dnsrecords does not become normal, try next round")
+				return false
+			}, 3*time.Minute, 3*time.Second).Should(o.Equal(true))
 		})
 	})
 })
@@ -558,15 +672,16 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, name string) (*gatewayapiv1.HTTPR
 // used to delete a deployment and wait for it is automatically recreated again
 func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns string) {
 	g.By(fmt.Sprintf("try to delete the deployment %s in %s namespace", deploymentName, ns))
-	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+	client := clientset.NewForConfigOrDie(oc.AdminConfig())
+	deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	createdTime1 := deployment.ObjectMeta.CreationTimestamp
-	err = oc.AdminKubeClient().AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
+	err = client.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
 	err = wait.Poll(3*time.Second, 180*time.Second, func() (bool, error) {
-		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -581,11 +696,40 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 			return false, nil
 		}
 
-		if deployment.Status.ReadyReplicas != 1 {
+		readyReplicas := deployment.Status.ReadyReplicas
+		e2e.Logf("the ready replicas is %v", readyReplicas)
+		if readyReplicas != 1 {
 			e2e.Logf("the deployment %s in %s namespace is not ready, retrying", deploymentName, ns)
 			return false, nil
 		}
 		return true, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
+	var gwlbIP string
+	coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			e2e.Logf("Error getting the gateway lb service %s: %v, try next round", gatewayLbService, err)
+			return false, nil
+		}
+
+		lb := lbService.Status.LoadBalancer
+		searchInfo := regexp.MustCompile("IP:([0-9\\.a-fA-F:]+)").FindStringSubmatch(lb.String())
+		if len(searchInfo) > 0 {
+			gwlbIP = searchInfo[1]
+			e2e.Logf("new load balancer ip %s is available", gwlbIP)
+			return true, nil
+		} else {
+			e2e.Logf("failed to get a new load balancer ip, retrying")
+			return false, nil
+		}
+	})
+	return gwlbIP, err
 }
