@@ -21,10 +21,14 @@ func TestAPIUnreachableMonitor(t *testing.T) {
 	}
 
 	test := monitorTest{
-		monitor: &apiUnreachableMonitor{
-			query:    byteQuery(bytes),
-			analyzer: metrics.RateSeriesAnalyzer{},
-			callback: &apiUnreachableCallback{
+		queryAnalyzers: []queryAnalyzer{
+			{
+				query:    byteQuery(bytes),
+				analyzer: metrics.RateSeriesAnalyzer{},
+			},
+		},
+		callback: &apiUnreachableCallback{
+			resolver: &clusterInfoResolver{
 				serviceNetworkIP: "172.30.0.1",
 			},
 		},
