@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/kubernetes"
 	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
+
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
@@ -93,11 +95,34 @@ func skipOnSingleNodeTopology(oc *exutil.CLI) {
 	}
 }
 
-// `IsSingleNode` returns true if the cluster is using single-node topology and false otherwise
+// `SkipOnConnectionError`skips the test if there are errors connecting to the testing cluster
+func SkipOnConnectionError(oc *exutil.CLI) {
+	if !canConnectToCluster(oc) {
+		e2eskipper.Skipf("Skipping this test because a connection cannot be made to the cluster.")
+	}
+}
+
+// `IsSingleNode` returns `true` if the cluster is using single-node topology and `false` otherwise
 func IsSingleNode(oc *exutil.CLI) bool {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "Error determining cluster infrastructure.")
 	return infra.Status.ControlPlaneTopology == osconfigv1.SingleReplicaTopologyMode
+}
+
+// `isConnectionError` returns `true` when the provided error is a connection error and `false` if
+// the error is of another type. This distinction is especially helpful in more unstable SNO
+// environments.
+func isConnectionError(err error) bool {
+	return errors.Is(err, syscall.ECONNREFUSED)
+}
+
+// `canConnectToCluster` returns `true` if a successful connection can be made to the single-node
+// cluster and `false` otherwise. If a connection cannot be made, the cluster is unstable and
+// running our tests will fail.
+func canConnectToCluster(oc *exutil.CLI) bool {
+	// Test connection by getting cluster's "clusterversion"
+	_, err := oc.AsAdmin().AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	return err == nil || !isConnectionError(err)
 }
 
 // getRandomMachineSet picks a random machineset present on the cluster
