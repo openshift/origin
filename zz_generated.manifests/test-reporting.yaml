@@ -505,12 +505,18 @@ spec:
     tests:
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
-        defined network [Serial][apigroup:user.openshift.io][apigroup:security.openshift.io]
-        External host should be able to query route advertised pods by the pod IP'
+        defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
+        On a VRF-Lite configuration pods should be able to communicate'
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
-        defined network [Serial][apigroup:user.openshift.io][apigroup:security.openshift.io]
-        pods should communicate with external host without being SNATed'
+        defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
+        On the default VRF External host should be able to query route advertised
+        pods by the pod IP'
+    - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
+        when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
+        defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
+        On the default VRF pods should communicate with external host without being
+        SNATed'
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising the default network
         [apigroup:user.openshift.io][apigroup:security.openshift.io] External host

@@ -1607,6 +1607,28 @@ func getDaemonSetPodIPs(clientset kubernetes.Interface, namespace, daemonsetName
 // for the specified number of iterations and returns a set of the clientIP addresses that were returned.
 // At the end of the test, the prober pod is deleted again.
 func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]struct{}, error) {
+	responseSet, err := probeForRequest(oc, proberPodNamespace, proberPodName, url, targetIP, "clientip", targetPort, iterations, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	clientIpSet := make(map[string]struct{}, len(responseSet))
+	for response := range responseSet {
+		clientIpPort := strings.Split(response, ":")
+		if len(clientIpPort) != 2 {
+			continue
+		}
+		clientIp := clientIpPort[0]
+		clientIpSet[clientIp] = struct{}{}
+	}
+
+	return clientIpSet, nil
+}
+
+// probeForRequest spawns a prober pod inside the prober namespace. It then runs curl against http://%s/dial?host=%s&port=%d&request=%s
+// for the specified number of iterations and returns a set of the responses that were returned.
+// At the end of the test, the prober pod is deleted again.
+func probeForRequest(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP, request string, targetPort, iterations int, tweak func(*v1.Pod)) (map[string]struct{}, error) {
 	if oc == nil {
 		return nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
 	}
@@ -1614,12 +1636,10 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	clientIpSet := make(map[string]struct{})
+	responseSet := make(map[string]struct{})
 
-	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
-		// pod.ObjectMeta.Annotations = annotation
-	})
-	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)
+	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, probePodName, tweak)
+	request = fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/%s", url, targetIP, targetPort, request)
 	maxTimeouts := 3
 	for i := 0; i < iterations; i++ {
 		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "--", "curl", "-s", request)
@@ -1643,12 +1663,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 		if len(dialResponse.Responses) != 1 {
 			continue
 		}
-		clientIpPort := strings.Split(dialResponse.Responses[0], ":")
-		if len(clientIpPort) != 2 {
-			continue
-		}
-		clientIp := clientIpPort[0]
-		clientIpSet[clientIp] = struct{}{}
+		responseSet[dialResponse.Responses[0]] = struct{}{}
 	}
 
 	// delete the exec pod again - in foreground, so that it blocks
@@ -1659,7 +1674,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 		return nil, err
 	}
 
-	return clientIpSet, nil
+	return responseSet, nil
 }
 
 // getTargetProtocolHostPort gets targetProtocol, targetHost, targetPort.
