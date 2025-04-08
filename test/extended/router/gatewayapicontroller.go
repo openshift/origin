@@ -710,6 +710,7 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
 	var gwlbIP string
 	coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
+	debugCount := 0
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		if err != nil {
@@ -721,6 +722,11 @@ func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbServ
 		}
 
 		lb := lbService.Status.LoadBalancer
+		if debugCount % 10 == 0 {
+			e2e.Logf("lbService.Status.LoadBalancer is:\n%s", lb.String())
+		}
+		debugCount++
+
 		searchInfo := regexp.MustCompile("IP:([0-9\\.a-fA-F:]+)").FindStringSubmatch(lb.String())
 		if len(searchInfo) > 0 {
 			gwlbIP = searchInfo[1]
