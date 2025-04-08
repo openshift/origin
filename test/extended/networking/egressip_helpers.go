@@ -630,26 +630,15 @@ func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, tar
 
 	matchedIPs := make(map[string]int)
 	for _, pod := range pods.Items {
-		logOptions := corev1.PodLogOptions{}
-		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
-		logs, err := req.Stream(context.TODO())
+		buf, err := getLogsAsBuffer(clientset, &pod)
 		if err != nil {
-			return nil, fmt.Errorf("Error in opening log stream: %v", err)
+			return nil, err
 		}
-		defer logs.Close()
-
-		buf := new(bytes.Buffer)
-		_, err = io.Copy(buf, logs)
-		if err != nil {
-			return nil, fmt.Errorf("Error in copying info from pod logs to buffer")
-		}
-		_ = buf.String()
 
 		var ip string
 		scanner := bufio.NewScanner(buf)
 		for scanner.Scan() {
 			logLine := scanner.Text()
-
 			if !strings.HasPrefix(logLine, "Parsed") || !strings.Contains(logLine, searchString) {
 				continue
 			}
@@ -1548,6 +1537,51 @@ func createHostNetworkedDaemonSetAndProbe(clientset kubernetes.Interface, namesp
 	return ds, fmt.Errorf("Daemonset still not ready after %d tries", retries)
 }
 
+func getLogsAsBuffer(clientset kubernetes.Interface, pod *v1.Pod) (*bytes.Buffer, error) {
+	logOptions := corev1.PodLogOptions{}
+	req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
+	logs, err := req.Stream(context.TODO())
+	if err != nil {
+		return nil, fmt.Errorf("Error in opening log stream")
+	}
+	defer logs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, logs)
+	if err != nil {
+		return nil, fmt.Errorf("Error in copying info from pod logs to buffer")
+	}
+	_ = buf.String()
+	return buf, nil
+}
+
+func getLogs(clientset kubernetes.Interface, pod *v1.Pod) (string, error) {
+	b, err := getLogsAsBuffer(clientset, pod)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
+func getDaemonSetLogs(clientset kubernetes.Interface, ds *appsv1.DaemonSet) (map[string]string, error) {
+	pods, err := clientset.CoreV1().Pods(ds.Namespace).List(
+		context.TODO(),
+		metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
+	if err != nil {
+		return nil, err
+	}
+
+	logs := make(map[string]string, len(pods.Items))
+	for _, pod := range pods.Items {
+		log, err := getLogs(clientset, &pod)
+		if err != nil {
+			return nil, err
+		}
+		logs[pod.Spec.NodeName] = log
+	}
+	return logs, nil
+}
+
 // podHasPortConflict scans the pod for a port conflict message and also scans the
 // pod's logs for error messages that might indicate such a conflict.
 func podHasPortConflict(clientset kubernetes.Interface, pod v1.Pod) (bool, error) {
@@ -1561,20 +1595,10 @@ func podHasPortConflict(clientset kubernetes.Interface, pod v1.Pod) (bool, error
 
 		}
 	} else if pod.Status.Phase == v1.PodRunning {
-		logOptions := corev1.PodLogOptions{}
-		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
-		logs, err := req.Stream(context.TODO())
+		logStr, err := getLogs(clientset, &pod)
 		if err != nil {
-			return false, fmt.Errorf("Error in opening log stream")
+			return false, err
 		}
-		defer logs.Close()
-
-		buf := new(bytes.Buffer)
-		_, err = io.Copy(buf, logs)
-		if err != nil {
-			return false, fmt.Errorf("Error in copying info from pod logs to buffer")
-		}
-		logStr := buf.String()
 		if strings.Contains(logStr, "address already in use") {
 			return true, nil
 		}
@@ -1609,6 +1633,28 @@ func getDaemonSetPodIPs(clientset kubernetes.Interface, namespace, daemonsetName
 // for the specified number of iterations and returns a set of the clientIP addresses that were returned.
 // At the end of the test, the prober pod is deleted again.
 func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int) (map[string]struct{}, error) {
+	responseSet, err := probeForRequest(oc, proberPodNamespace, proberPodName, url, targetIP, "clientip", targetPort, iterations, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	clientIpSet := make(map[string]struct{}, len(responseSet))
+	for response := range responseSet {
+		clientIpPort := strings.Split(response, ":")
+		if len(clientIpPort) != 2 {
+			continue
+		}
+		clientIp := clientIpPort[0]
+		clientIpSet[clientIp] = struct{}{}
+	}
+
+	return clientIpSet, nil
+}
+
+// probeForRequest spawns a prober pod inside the prober namespace. It then runs curl against http://%s/dial?host=%s&port=%d&request=%s
+// for the specified number of iterations and returns a set of the responses that were returned.
+// At the end of the test, the prober pod is deleted again.
+func probeForRequest(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP, request string, targetPort, iterations int, tweak func(*v1.Pod)) (map[string]struct{}, error) {
 	if oc == nil {
 		return nil, fmt.Errorf("Nil pointer to exutil.CLI oc was provided in SendProbesToHostPort.")
 	}
@@ -1616,15 +1662,13 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	clientIpSet := make(map[string]struct{})
+	responseSet := make(map[string]struct{})
 
-	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
-		// pod.ObjectMeta.Annotations = annotation
-	})
-	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)
+	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, probePodName, tweak)
+	request = fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/%s", url, targetIP, targetPort, request)
 	maxTimeouts := 3
 	for i := 0; i < iterations; i++ {
-		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "--", "curl", "-s", request)
+		output, err := runOcWithRetry(oc.AsAdmin(), "exec", "-n", proberPod.Namespace, proberPod.Name, "--", "curl", "-s", request)
 		if err != nil {
 			// if we hit an i/o timeout, retry
 			if timeoutError, _ := regexp.Match("^Unable to connect to the server: dial tcp.*i/o timeout$", []byte(output)); timeoutError && maxTimeouts > 0 {
@@ -1645,12 +1689,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 		if len(dialResponse.Responses) != 1 {
 			continue
 		}
-		clientIpPort := strings.Split(dialResponse.Responses[0], ":")
-		if len(clientIpPort) != 2 {
-			continue
-		}
-		clientIp := clientIpPort[0]
-		clientIpSet[clientIp] = struct{}{}
+		responseSet[dialResponse.Responses[0]] = struct{}{}
 	}
 
 	// delete the exec pod again - in foreground, so that it blocks
@@ -1661,7 +1700,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 		return nil, err
 	}
 
-	return clientIpSet, nil
+	return responseSet, nil
 }
 
 // getTargetProtocolHostPort gets targetProtocol, targetHost, targetPort.
