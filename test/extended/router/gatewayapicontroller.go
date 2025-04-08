@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
 		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
 		//OSSM Deployment Pod Name
-		deploymentOSSM = "servicemesh-operator3"
+		deploymentOSSMName = "servicemesh-operator3"
 		// The gateway name used to create gateway resource.
 		gatewayName = "standard-gateway"
 		// The gateway name used to create custom gateway resource.
@@ -53,12 +53,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 		// create the default gatewayClass
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
-		gwc, err := gwapiClient.GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
-		if err != nil {
-			e2e.Logf("Gateway Class %s already exists, or has failed to be created, checking if it exists", gwc.Name)
-		}
-		gwc, err = gwapiClient.GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred(), "GatewayClass %q does not exist", gatewayClassName)
+		_, err := gwapiClient.GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to create GatewayClass %q", gatewayClassName)
 
 	})
 
@@ -107,14 +103,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
 			if err != nil {
 				if deployOSSM.Status.ReadyReplicas < 1 {
-					e2e.Logf("OSSM operator deployment %q is not ready, retrying...", deploymentOSSM)
+					e2e.Logf("OSSM operator deployment %q is not ready, retrying...", deploymentOSSMName)
 					return false, nil
 				}
 			}
-			e2e.Logf("OSSM operator deployment %q is ready", deploymentOSSM)
+			e2e.Logf("OSSM operator deployment %q is ready", deploymentOSSMName)
 			return true, nil
 		})
-		o.Expect(waitErr).NotTo(o.HaveOccurred(), "OSSM Operator deployment %q did not successfully deploy its pod", deploymentOSSM)
+		o.Expect(waitErr).NotTo(o.HaveOccurred(), "OSSM Operator deployment %q did not successfully deploy its pod", deploymentOSSMName)
 
 		g.By("Confirm that Istio CR is created and in healthy state")
 		resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
@@ -262,20 +258,18 @@ func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (*gatewayapiv1.Gateway, error) {
 	gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 	ingressNameSpace := "openshift-ingress"
-	gateway := &gatewayapiv1.Gateway{}
 
 	// Build the gateway object
 	gatewaybuild := buildGateway(gwname, ingressNameSpace, gwclassname, "All", domain)
 
 	// Create the gateway object
-	gateway, errGwObj := gwapiClient.GatewayV1().Gateways(ingressNameSpace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
+	_, errGwObj := gwapiClient.GatewayV1().Gateways(ingressNameSpace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
 	if errGwObj != nil {
 		return nil, errGwObj
 	}
 
 	// Confirm the gateway is up and running
-	gateway, gwerr := checkGatewayStatus(oc, gwname, ingressNameSpace)
-	return gateway, gwerr
+	return checkGatewayStatus(oc, gwname, ingressNameSpace)
 }
 
 func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
@@ -302,12 +296,10 @@ func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatew
 	})
 
 	if waitErr != nil {
-		e2e.Failf("The gateway is still not up and running and here is error %v", waitErr)
-		return nil, waitErr
-	} else {
-		e2e.Logf("Gateway %s successfully installed and accepted!", gateway.Name)
-		return gateway, nil
+		return nil, fmt.Errorf("timed out waiting for gateway %q to become programmed: %w", gateway.Name, waitErr)
 	}
+	e2e.Logf("Gateway %q successfully programmed!", gateway.Name)
+	return gateway, nil
 
 }
 
