@@ -291,16 +291,17 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			defaultDomain := strings.Split(defaultIngressDomain, "apps.")[1]
 
 			g.By("Create the default API Gateway")
-			createGateway(oc, gatewayName, gatewayClassName, defaultDomain)
+			_, gwerr := createAndCheckGateway(oc, gatewayName, gatewayClassName, defaultDomain)
+			o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
 
 			g.By("Ensure the gateway's LoadBalancer service and DNSRecords are available")
-			gwlbIP, err := ensureLbServiceRetrieveLbIPOrFqdn(oc, ingressNamespace, gatewayLbService)
+			gwlbAddress, err := ensureLbServiceRetrieveLbAddress(oc, ingressNamespace, gatewayLbService)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			gwwAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
+			gatewayAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.Logf("The gateway Aaddress is: %v", gwwAddress)
-			o.Expect(gwlbIP).To(o.Equal(gwwAddress))
+			e2e.Logf("The gateway address is: %v", gatewayAddress)
+			o.Expect(gwlbAddress).To(o.Equal(gatewayAddress))
 
 			// get the dnsrecord name
 			dnsRecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", "-l", "gateway.networking.k8s.io/gateway-name="+gatewayName, "-o=jsonpath={.items[*].metadata.name}").Output()
@@ -355,8 +356,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
 			dnsrecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords", "-o=jsonpath={.items[0].metadata.name}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			dnsrecordsCreatedTime1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
 			targetsIP1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName).Execute()
@@ -364,7 +363,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 			g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
 			o.Eventually(func() bool {
-				dnsrecordsCreatedTime2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
+				targetsIP2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
 				if err != nil {
 					if errors.IsNotFound(err) {
 						return false
@@ -372,13 +371,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 					e2e.Logf("Error getting the gateway dnsrecords: %v, retrying...", err)
 					return false
 				}
-				if dnsrecordsCreatedTime2 == dnsrecordsCreatedTime1 {
-					e2e.Logf("The gateway dnsrecords is not deleted yet, retrying...")
-					return false
-				}
 
-				targetsIP2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
-				o.Expect(err).NotTo(o.HaveOccurred())
 				if targetsIP2 != targetsIP1 {
 					e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", targetsIP2, targetsIP1)
 					return false
@@ -433,31 +426,22 @@ func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 	}
 }
 
-// createGateway build and creates the Gateway.
-func createGateway(oc *exutil.CLI, gwname, gwclassname, domain string) *gatewayapiv1.Gateway {
+// createAndCheckGateway build and creates the Gateway.
+func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (*gatewayapiv1.Gateway, error) {
 	gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 	ingressNameSpace := "openshift-ingress"
-	gateway := &gatewayapiv1.Gateway{}
-
-	// Get getway class details to create gateway
-	gatewayClass, errGwClass := gwapiClient.GatewayV1().GatewayClasses().Get(context.TODO(), gwclassname, metav1.GetOptions{})
-	if errGwClass != nil {
-		e2e.Failf("Expected gateway class object but not found, the error is %v", errGwClass)
-	}
 
 	// Build the gateway object
-	gatewaybuild := buildGateway(gwname, ingressNameSpace, gatewayClass.Name, "All", domain)
+	gatewaybuild := buildGateway(gwname, ingressNameSpace, gwclassname, "All", domain)
 
 	// Create the gateway object
 	_, errGwObj := gwapiClient.GatewayV1().Gateways(ingressNameSpace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
 	if errGwObj != nil {
-		e2e.Logf("Gateway already exists, or has failed to be created, checking its status")
+		return nil, errGwObj
 	}
+
 	// Confirm the gateway is up and running
-	gateway, gwerr := checkGatewayStatus(oc, gwname, ingressNameSpace)
-	o.Expect(gwerr).NotTo(o.HaveOccurred())
-	e2e.Logf("Gateway %s successfully installed and accepted!", gateway.Name)
-	return gateway
+	return checkGatewayStatus(oc, gwname, ingressNameSpace)
 }
 
 func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
@@ -682,10 +666,7 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, name string) (*gatewayapiv1.HTTPR
 func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns string) {
 	g.By(fmt.Sprintf("Try to delete the deployment %s in %s namespace", deploymentName, ns))
 	client := clientset.NewForConfigOrDie(oc.AdminConfig())
-	deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	createdTime1 := deployment.ObjectMeta.CreationTimestamp
-	err = client.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
+	err := client.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("Wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
@@ -696,12 +677,6 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 				return false, nil
 			}
 			e2e.Logf("Error getting %s deployment: %v, retrying", deploymentName, err)
-			return false, nil
-		}
-
-		// in case the deployment isn't deleted in time
-		createdTime2 := deployment.ObjectMeta.CreationTimestamp
-		if createdTime2 == createdTime1 {
 			return false, nil
 		}
 
@@ -716,7 +691,7 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func ensureLbServiceRetrieveLbIPOrFqdn(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
+func ensureLbServiceRetrieveLbAddress(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
 	var gwlb string
 	coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
 	logCount := 0
@@ -746,7 +721,6 @@ func ensureLbServiceRetrieveLbIPOrFqdn(oc *exutil.CLI, ingressNamespace, gateway
 				e2e.Logf("New load balancer hostname %s is available", gwlb)
 				return true, nil
 			}
-
 		} else {
 			e2e.Logf("Failed to get a new load balancer ip or hostname, retrying")
 		}
