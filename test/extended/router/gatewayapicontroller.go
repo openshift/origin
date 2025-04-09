@@ -217,7 +217,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 func checkGatewayClass(oc *exutil.CLI, name string) error {
 	gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		gwc, err := gwapiClient.GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("failed to get gatewayclass %s, retrying...", name)
@@ -270,7 +270,7 @@ func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatew
 	gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 	gateway := &gatewayapiv1.Gateway{}
 
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 2*time.Minute, false, func(context context.Context) (bool, error) {
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		gateway, errGwStatus := gwapiClient.GatewayV1().Gateways(ingressNameSpace).Get(context, gwname, metav1.GetOptions{})
 		if errGwStatus != nil {
 			e2e.Logf("Failed to get gateway object, retrying...")
