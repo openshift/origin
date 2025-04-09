@@ -561,8 +561,8 @@ github.com/google/shlex
 github.com/google/uuid
 # github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00
 ## explicit
-# github.com/gorilla/websocket v1.5.0
-## explicit; go 1.12
+# github.com/gorilla/websocket v1.5.1
+## explicit; go 1.20
 github.com/gorilla/websocket
 # github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 ## explicit
@@ -1610,7 +1610,7 @@ google.golang.org/genproto/googleapis/api/httpbody
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.65.0
+# google.golang.org/grpc v1.66.2
 ## explicit; go 1.21
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -1629,7 +1629,9 @@ google.golang.org/grpc/credentials/insecure
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/gzip
 google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/experimental/stats
 google.golang.org/grpc/grpclog
+google.golang.org/grpc/grpclog/internal
 google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/internal
@@ -1653,6 +1655,7 @@ google.golang.org/grpc/internal/resolver/dns/internal
 google.golang.org/grpc/internal/resolver/passthrough
 google.golang.org/grpc/internal/resolver/unix
 google.golang.org/grpc/internal/serviceconfig
+google.golang.org/grpc/internal/stats
 google.golang.org/grpc/internal/status
 google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/internal/transport
@@ -1660,6 +1663,7 @@ google.golang.org/grpc/internal/transport/networktype
 google.golang.org/grpc/interop/grpc_testing
 google.golang.org/grpc/interop/grpc_testing/core
 google.golang.org/grpc/keepalive
+google.golang.org/grpc/mem
 google.golang.org/grpc/metadata
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
@@ -3749,6 +3753,23 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader
 ## explicit; go 1.22.0
 sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/scheme
+# sigs.k8s.io/gateway-api v1.2.1
+## explicit; go 1.22.0
+sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1
+sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1alpha2
+sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1alpha3
+sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1beta1
+sigs.k8s.io/gateway-api/apis/applyconfiguration/internal
+sigs.k8s.io/gateway-api/apis/v1
+sigs.k8s.io/gateway-api/apis/v1alpha2
+sigs.k8s.io/gateway-api/apis/v1alpha3
+sigs.k8s.io/gateway-api/apis/v1beta1
+sigs.k8s.io/gateway-api/pkg/client/clientset/versioned
+sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme
+sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1
+sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1alpha2
+sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1alpha3
+sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1beta1
 # sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8
 ## explicit; go 1.23
 sigs.k8s.io/json
