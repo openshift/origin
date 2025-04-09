@@ -3744,6 +3744,7 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader
 # sigs.k8s.io/controller-runtime v0.18.4
 ## explicit; go 1.22.0
 sigs.k8s.io/controller-runtime/pkg/conversion
+sigs.k8s.io/controller-runtime/pkg/scheme
 # sigs.k8s.io/gateway-api v1.2.1
 ## explicit; go 1.22.0
 sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1

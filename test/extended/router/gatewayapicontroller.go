@@ -46,8 +46,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		deploymentOSSMName = "servicemesh-operator3"
 		// The gateway name used to create gateway resource.
 		gatewayName = "standard-gateway"
-		// The gateway name used to create custom gateway resource.
-		customGatewayName = "custom-gateway"
 	)
 	g.BeforeAll(func() {
 		gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
@@ -131,8 +129,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Check if default GatewayClass is accepted after OLM resources are successful")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
-		o.Expect(errCheck).NotTo(o.HaveOccurred())
-		e2e.Logf("GatewayClass %s successfully installed and accepted!", gatewayClassName)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
 	})
 	g.It("Ensure custom gatewayclass can be accepted", func() {
@@ -145,8 +142,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			e2e.Logf("Gateway Class \"custom-gatewayclass\" already exists, or has failed to be created, checking its status")
 		}
 		errCheck := checkGatewayClass(oc, "custom-gatewayclass")
-		o.Expect(errCheck).NotTo(o.HaveOccurred())
-		e2e.Logf("GatewayClass %s successfully installed and accepted!", gwc.Name)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gwc.Name)
 
 		g.By("Deleting Custom GatewayClass and confirming that it is no longer there")
 		err = gwapiClient.GatewayV1().GatewayClasses().Delete(context.Background(), "custom-gatewayclass", metav1.DeleteOptions{})
@@ -167,7 +163,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(istioStatus).To(o.Equal(`Healthy`))
 	})
 
-	g.It("Ensure default gateway objects is created", func() {
+	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
 		g.By("Getting the default domain")
 		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
@@ -180,13 +176,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Verify the gateway's LoadBalancer service and DNSRecords")
 		// check LB service
 		lbExternalIP, lberr := oc.AdminKubeClient().CoreV1().Services("openshift-ingress").Get(context.Background(), gatewayName+"-openshift-default", metav1.GetOptions{})
-		o.Expect(lberr).NotTo(o.HaveOccurred())
 		e2e.Logf("The load balancer external IP is: %v", lbExternalIP.Status.LoadBalancer.Ingress[0].Hostname)
+		o.Expect(lberr).NotTo(o.HaveOccurred())
 
-		gwwAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf("The gateway Aaddress is: %v", gwwAddress)
-		o.Expect(lbExternalIP.Status.LoadBalancer.Ingress[0].Hostname).To(o.Equal(gwwAddress))
+		gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
+		gwlist, haerr := gwapiClient.GatewayV1().Gateways("openshift-ingress").Get(context.Background(), gatewayName, metav1.GetOptions{})
+		e2e.Logf("The gateway hostname address is %v ", gwlist.Status.Addresses[0].Value)
+		o.Expect(haerr).NotTo(o.HaveOccurred())
+		o.Expect(lbExternalIP.Status.LoadBalancer.Ingress[0].Hostname).To(o.Equal(gwlist.Status.Addresses[0].Value))
 
 		// get the dnsrecord name
 		dnsRecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", "-l", "gateway.networking.k8s.io/gateway-name="+gatewayName, "-o=jsonpath={.items[0].metadata.name}").Output()
@@ -237,10 +234,7 @@ func checkGatewayClass(oc *exutil.CLI, name string) error {
 		return false, nil
 	})
 
-	if waitErr != nil {
-		return fmt.Errorf("Gatewayclass %s is not accepted", name)
-	}
-	e2e.Logf("Gateway Class %s is created and accepted", name)
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "Gatewayclass %s is not accepted", name)
 	return nil
 }
 
