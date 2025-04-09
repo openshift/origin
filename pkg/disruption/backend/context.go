@@ -55,6 +55,9 @@ type RequestContextAssociatedData struct {
 	// ShutdownResponseHeaderParseErr is set if there was an error parsing the
 	// 'X-OpenShift-Disruption' response header
 	ShutdownResponseHeaderParseErr error
+
+	// Source contains pod name if incluster monitor is used
+	Source string
 }
 
 // GotConnInfo similar to net/http GotConnInfo without the connection object

@@ -123,6 +123,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		if strings.Contains(event.Locator.Keys[monitorapi.LocatorPodKey], "simpletest-rc-to-be-deleted") &&
 			(strings.Contains(event.Message.HumanMessage, "not found") ||
 				strings.Contains(event.Message.HumanMessage, "pod was already deleted") ||
+				strings.Contains(event.Message.HumanMessage, "failed to create pod network sandbox") ||
 				strings.Contains(event.Message.HumanMessage, "error adding container to network")) {
 			// This FailedCreatePodSandBox might happen because of an upstream Garbage Collector test. This test creates at least 10 pods controlled
 			// by a ReplicationController. Then proceeds to create a second ReplicationController and sets half of the pods owned by both RCs. Tries

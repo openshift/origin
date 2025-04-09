@@ -2,88 +2,90 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/disruption/backend"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/disruption/backend"
 	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
-	"k8s.io/client-go/rest"
+	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func StartAPIMonitoringUsingNewBackend(ctx context.Context, recorder monitorapi.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
-	factory := disruptionci.NewDisruptionTestFactory(clusterConfig)
-	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, recorder, factory, lb); err != nil {
-		return err
-	}
-	if err := startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx, recorder, factory, lb); err != nil {
-		return err
-	}
-	if err := startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx, recorder, factory, lb); err != nil {
-		return err
-	}
-	if err := startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx, recorder, factory, lb); err != nil {
-		return err
-	}
-	if err := startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx, recorder, factory, lb); err != nil {
-		return err
-	}
-	if err := startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx, recorder, factory, lb); err != nil {
-		return err
-	}
-	return nil
-}
+func StartAPIMonitoringUsingNewBackend(
+	ctx context.Context,
+	recorder monitorapi.Recorder,
+	clusterConfig *rest.Config,
+	kubeClient kubernetes.Interface,
+	lb backend.LoadBalancerType,
+	source string) ([]disruptionci.Sampler, error) {
 
-func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
-	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
+	samplers := []disruptionci.Sampler{}
+	errs := []error{}
+	factory := disruptionci.NewDisruptionTestFactory(clusterConfig, kubeClient)
+
+	ns, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), "default", metav1.GetOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
-}
+	path := fmt.Sprintf("/api/v1/namespaces/default?resourceVersion=%s", ns.ResourceVersion)
 
-func startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
-	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
+	sampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb, path, source)
+	samplers = append(samplers, sampler)
+	errs = append(errs, err)
+
+	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb, path, source)
+	samplers = append(samplers, sampler)
+	errs = append(errs, err)
+
+	sampler, err = createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb, path, source)
+	samplers = append(samplers, sampler)
+	errs = append(errs, err)
+
+	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb, path, source)
+	samplers = append(samplers, sampler)
+	errs = append(errs, err)
+
+	client, err := imagev1.NewForConfig(clusterConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
-}
-
-func startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
-	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb)
+	streams, err := client.ImageStreams("openshift").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	if len(streams.Items) == 0 {
+		return nil, fmt.Errorf("no imagestreams found")
+	}
+	stream := streams.Items[0]
+	path = fmt.Sprintf("/apis/image.openshift.io/v1/namespaces/openshift/imagestreams/%s?resourceVersion=%s", stream.Name, stream.ResourceVersion)
+
+	sampler, err = createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb, path, source)
+	samplers = append(samplers, sampler)
+	errs = append(errs, err)
+
+	sampler, err = createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb, path, source)
+	samplers = append(samplers, sampler)
+	errs = append(errs, err)
+
+	if combinedErr := utilerrors.NewAggregate(errs); combinedErr != nil {
+		return nil, combinedErr
+	}
+
+	for _, currSampler := range samplers {
+		localErr := currSampler.StartEndpointMonitoring(ctx, recorder, nil)
+		errs = append(errs, localErr)
+	}
+
+	return samplers, utilerrors.NewAggregate(errs)
 }
 
-func startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
-	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb)
-	if err != nil {
-		return err
-	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
-}
-
-func startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
-	backendSampler, err := createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
-	if err != nil {
-		return err
-	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
-}
-
-func startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
-	backendSampler, err := createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
-	if err != nil {
-		return err
-	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
-}
-
-func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -91,14 +93,15 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory
 			ConnectionType:   monitorapi.NewConnectionType,
 			Protocol:         backend.ProtocolHTTP2,
 		},
-		Path:                         "/api/v1/namespaces/default",
+		Path:                         path,
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -106,14 +109,15 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factor
 			ConnectionType:   monitorapi.ReusedConnectionType,
 			Protocol:         backend.ProtocolHTTP2,
 		},
-		Path:                         "/api/v1/namespaces/default",
+		Path:                         path,
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -121,14 +125,15 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory
 			ConnectionType:   monitorapi.NewConnectionType,
 			Protocol:         backend.ProtocolHTTP1,
 		},
-		Path:                         "/api/v1/namespaces/default",
+		Path:                         path,
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -136,14 +141,15 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factor
 			ConnectionType:   monitorapi.ReusedConnectionType,
 			Protocol:         backend.ProtocolHTTP1,
 		},
-		Path:                         "/api/v1/namespaces/default",
+		Path:                         path,
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
+func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
@@ -151,14 +157,15 @@ func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Fa
 			ConnectionType:   monitorapi.NewConnectionType,
 			Protocol:         backend.ProtocolHTTP2,
 		},
-		Path:                         "/apis/image.openshift.io/v1/namespaces/default/imagestreams",
+		Path:                         path,
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
+func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
@@ -166,9 +173,10 @@ func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.F
 			ConnectionType:   monitorapi.ReusedConnectionType,
 			Protocol:         backend.ProtocolHTTP2,
 		},
-		Path:                         "/apis/image.openshift.io/v1/namespaces/default/imagestreams",
+		Path:                         path,
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }

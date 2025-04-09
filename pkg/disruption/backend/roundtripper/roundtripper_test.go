@@ -26,7 +26,7 @@ func TestWrapClient(t *testing.T) {
 	transport.DisableKeepAlives = false
 
 	agent := "my-client"
-	client := WrapClient(ts.Client(), 0, agent, false, nil)
+	client := WrapClient(ts.Client(), 0, agent, false, nil, "")
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/echo", nil)
 	if err != nil {

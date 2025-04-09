@@ -131,6 +131,7 @@ const (
 	LocatorStatefulSetKey     LocatorKey = "statefulset"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorMachineKey         LocatorKey = "machine"
+	LocatorNodeRoleKey        LocatorKey = "node-role"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
@@ -156,6 +157,7 @@ const (
 	LocatorMetricKey                LocatorKey = "metric"
 
 	LocatorAPIUnreachableHostKey                  LocatorKey = "host"
+	LocatorAPIUnreachableComponentKey             LocatorKey = "component"
 	LocatorOnPremKubeapiUnreachableFromHaproxyKey LocatorKey = "onprem-haproxy"
 
 	LocatorTypeKubeletSyncLoopProbeType LocatorKey = "probe"
