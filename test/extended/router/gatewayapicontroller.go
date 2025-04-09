@@ -226,31 +226,31 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			)
 
 			// deleted the OSSM subscription and then checked if it was restored
-			g.By(fmt.Sprintf("try to delete the subscription %s", ossmSubscriptionName))
+			g.By(fmt.Sprintf("Try to delete the subscription %s", ossmSubscriptionName))
 			_, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", operatorNamespace, "subscription/"+ossmSubscriptionName).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("wait untill the the OSSM subscription %s is automatically created successfully", ossmSubscriptionName))
+			g.By(fmt.Sprintf("Wait untill the the OSSM subscription %s is automatically created successfully", ossmSubscriptionName))
 			var unhealthy string
 			o.Eventually(func() string {
 				var err error
 				unhealthy, err = oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", operatorNamespace, "subscription", ossmSubscriptionName, `-o=jsonpath={.status.conditions[?(@.type=="CatalogSourcesUnhealthy")].status}`).Output()
 				if err != nil {
-					e2e.Logf("Failed to check %s, error: %v, try next round", ossmSubscriptionName, err)
+					e2e.Logf("Failed to check %s, error: %v, retrying...", ossmSubscriptionName, err)
 				}
-				e2e.Logf("wait CatalogSourcesUnhealthy status to be False, and got %s", unhealthy)
+				e2e.Logf("Wait CatalogSourcesUnhealthy status to be False, and got %s", unhealthy)
 				return unhealthy
 			}, 5*time.Minute, time.Second).Should(o.Equal("False"))
 
-			g.By(fmt.Sprintf("wait untill the the OSSM csv %s is automatically created successfully", csvName))
+			g.By(fmt.Sprintf("Wait untill the the OSSM csv %s is automatically created successfully", csvName))
 			var phase string
 			o.Eventually(func() string {
 				var err error
 				phase, err = oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", operatorNamespace, "csv", csvName, `-o=jsonpath={.status.phase}`).Output()
 				if err != nil {
-					e2e.Logf("Failed to check %s, error: %v, try next round", csvName, err)
+					e2e.Logf("Failed to check %s, error: %v, retrying...", csvName, err)
 				}
-				e2e.Logf(fmt.Sprintf(" wait phase to be Succeeded, and got %s", phase))
+				e2e.Logf(fmt.Sprintf("Wait for phase to be Succeeded, and got %s", phase))
 				return phase
 			}, 5*time.Minute, time.Second).Should(o.Equal("Succeeded"))
 
@@ -258,23 +258,23 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			deleteDeploymentAndWaitAvailableAgain(oc, istiodDeployment, ingressNamespace)
 
 			// deleted the istio and check if it was restored
-			g.By(fmt.Sprintf("try to delete the istio %s", istioName))
+			g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
 			output, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ingressNamespace, "istio/"+istioName).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(output).To(o.ContainSubstring("deleted"))
 
-			g.By(fmt.Sprintf("wait untill the the istiod %s is automatically created successfully", istioName))
+			g.By(fmt.Sprintf("Wait untill the the istiod %s is automatically created successfully", istioName))
 			o.Eventually(func() string {
 				readyReplicas, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.status.revisions.ready}`).Output()
 				if err != nil {
-					e2e.Logf("Failed to check istio %s, error: %v, try next round", istioName, err)
+					e2e.Logf("Failed to check istio %s, error: %v, retrying...", istioName, err)
 				}
-				e2e.Logf("wait the ready replicas to be 1, and got %s", readyReplicas)
+				e2e.Logf("Wait for the ready replicas to be 1, and got %s", readyReplicas)
 				return readyReplicas
 			}, 5*time.Minute, time.Second).Should(o.Equal("1"))
 		})
 
-		g.It("and ensure gateway loadbalancer service and gateway dnsrecords get recreated after deleting them", func() {
+		g.It("and ensure gateway loadbalancer service and dnsrecords get recreated after deleting them", func() {
 			const (
 				operatorNamespace = "openshift-operators"
 				ingressNamespace  = "openshift-ingress"
@@ -290,11 +290,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
 			defaultDomain := strings.Split(defaultIngressDomain, "apps.")[1]
 
-			g.By("create the default API Gateway")
+			g.By("Create the default API Gateway")
 			createGateway(oc, gatewayName, gatewayClassName, defaultDomain)
 
 			g.By("Ensure the gateway's LoadBalancer service and DNSRecords are available")
-			gwlbIP, err := ensureLbServiceRetrieveLbIP(oc, ingressNamespace, gatewayLbService)
+			gwlbIP, err := ensureLbServiceRetrieveLbIPOrFqdn(oc, ingressNamespace, gatewayLbService)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			gwwAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
@@ -312,21 +312,21 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			o.Expect(dnsRecordstatus).To(o.Equal("True"))
 
 			// deleted the gateway loadbalancer service and then checked if it was restored
-			g.By(fmt.Sprintf("try to delete the gateway lb service %s", gatewayLbService))
+			g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
 			lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			createdTime1 := lbService.ObjectMeta.CreationTimestamp
 			err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
+			g.By(fmt.Sprintf("Wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
 			o.Eventually(func() bool {
 				lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 				if err != nil {
 					if errors.IsNotFound(err) {
 						return false
 					}
-					e2e.Logf("Error getting the gateway lb service %s: %v, try next round", gatewayLbService, err)
+					e2e.Logf("Error getting the gateway lb service %s: %v, retrying...", gatewayLbService, err)
 					return false
 				}
 
@@ -339,20 +339,20 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 				searchInfo := regexp.MustCompile("(IP:([0-9\\.a-fA-F:]+))|(Hostname:([0-9\\.\\-a-zA-Z]+))").FindStringSubmatch(lb.String())
 				if len(searchInfo) > 0 {
 					if gwlb := searchInfo[2]; len(gwlb) > 0 {
-						e2e.Logf("new load balancer ip %s is available", gwlb)
+						e2e.Logf("New load balancer ip %s is available", gwlb)
 						return true
 					}
 					if gwlb := searchInfo[4]; len(gwlb) > 0 {
-						e2e.Logf("new load balancer hostname %s is available", gwlb)
+						e2e.Logf("New load balancer hostname %s is available", gwlb)
 						return true
 					}
 				}
-				e2e.Logf("Failed to get the new IP or hostname of the gateway lb service %s, try next round", gatewayLbService)
+				e2e.Logf("Failed to get the new IP or hostname of the gateway lb service %s, retrying...", gatewayLbService)
 				return false
 			}, 5*time.Minute, 3*time.Second).Should(o.Equal(true))
 
 			// deleted the gateway dnsrecords then checked if it was restored
-			g.By(fmt.Sprintf("get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
+			g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
 			dnsrecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords", "-o=jsonpath={.items[0].metadata.name}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			dnsrecordsCreatedTime1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
@@ -362,25 +362,25 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
+			g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
 			o.Eventually(func() bool {
 				dnsrecordsCreatedTime2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
 				if err != nil {
 					if errors.IsNotFound(err) {
 						return false
 					}
-					e2e.Logf("Error getting the gateway dnsrecords: %v, try next round", err)
+					e2e.Logf("Error getting the gateway dnsrecords: %v, retrying...", err)
 					return false
 				}
 				if dnsrecordsCreatedTime2 == dnsrecordsCreatedTime1 {
-					e2e.Logf("the gateway dnsrecords is not deleted yet, try next round")
+					e2e.Logf("The gateway dnsrecords is not deleted yet, retrying...")
 					return false
 				}
 
 				targetsIP2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				if targetsIP2 != targetsIP1 {
-					e2e.Logf("the gateway dnsrecords has not a targetsIP or a different one %s with %s, try next round", targetsIP2, targetsIP1)
+					e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", targetsIP2, targetsIP1)
 					return false
 				}
 
@@ -389,7 +389,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 				if status == "TrueProviderSuccess" {
 					return true
 				}
-				e2e.Logf("the status of the gateway dnsrecords does not become normal, try next round")
+				e2e.Logf("The status of the gateway dnsrecords does not become normal, retrying...")
 				return false
 			}, 3*time.Minute, 3*time.Second).Should(o.Equal(true))
 		})
@@ -680,7 +680,7 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, name string) (*gatewayapiv1.HTTPR
 
 // used to delete a deployment and wait for it is automatically recreated again
 func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns string) {
-	g.By(fmt.Sprintf("try to delete the deployment %s in %s namespace", deploymentName, ns))
+	g.By(fmt.Sprintf("Try to delete the deployment %s in %s namespace", deploymentName, ns))
 	client := clientset.NewForConfigOrDie(oc.AdminConfig())
 	deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -688,7 +688,7 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 	err = client.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By(fmt.Sprintf("wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
+	g.By(fmt.Sprintf("Wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
 	err = wait.Poll(3*time.Second, 180*time.Second, func() (bool, error) {
 		deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
@@ -706,9 +706,9 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 		}
 
 		readyReplicas := deployment.Status.ReadyReplicas
-		e2e.Logf("the ready replicas is %v", readyReplicas)
+		e2e.Logf("The ready replicas is %v", readyReplicas)
 		if readyReplicas != 1 {
-			e2e.Logf("the deployment %s in %s namespace is not ready, retrying", deploymentName, ns)
+			e2e.Logf("The deployment %s in %s namespace is not ready, retrying", deploymentName, ns)
 			return false, nil
 		}
 		return true, nil
@@ -716,7 +716,7 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
+func ensureLbServiceRetrieveLbIPOrFqdn(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
 	var gwlb string
 	coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
 	logCount := 0
@@ -726,29 +726,29 @@ func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbServ
 			if errors.IsNotFound(err) {
 				return false, nil
 			}
-			e2e.Logf("Error getting the gateway lb service %s: %v, try next round", gatewayLbService, err)
+			e2e.Logf("Error getting the gateway lb service %s: %v, retrying...", gatewayLbService, err)
 			return false, nil
 		}
 
 		lb := lbService.Status.LoadBalancer
 		if logCount%10 == 0 {
-			e2e.Logf("lbService.Status.LoadBalancer is:\n%s", lb.String())
+			e2e.Logf("The lbService.Status.LoadBalancer is:\n%s", lb.String())
 		}
 		logCount++
 
 		searchInfo := regexp.MustCompile("(IP:([0-9\\.a-fA-F:]+))|(Hostname:([0-9\\.\\-a-zA-Z]+))").FindStringSubmatch(lb.String())
 		if len(searchInfo) > 0 {
 			if gwlb = searchInfo[2]; len(gwlb) > 0 {
-				e2e.Logf("new load balancer ip %s is available", gwlb)
+				e2e.Logf("New load balancer ip %s is available", gwlb)
 				return true, nil
 			}
 			if gwlb = searchInfo[4]; len(gwlb) > 0 {
-				e2e.Logf("new load balancer hostname %s is available", gwlb)
+				e2e.Logf("New load balancer hostname %s is available", gwlb)
 				return true, nil
 			}
 
 		} else {
-			e2e.Logf("failed to get a new load balancer ip or hostname, retrying")
+			e2e.Logf("Failed to get a new load balancer ip or hostname, retrying")
 		}
 		return false, nil
 	})
