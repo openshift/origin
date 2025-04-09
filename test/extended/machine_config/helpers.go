@@ -116,9 +116,9 @@ func isConnectionError(err error) bool {
 	return errors.Is(err, syscall.ECONNREFUSED)
 }
 
-// `canConnectToCluster` returns `true` if a successful connection can be made to the single-node
-// cluster and `false` otherwise. If a connection cannot be made, the cluster is unstable and
-// running our tests will fail.
+// `canConnectToCluster` returns `true` if a successful connection can be made to the cluster
+// and `false` otherwise. If a connection cannot be made, the cluster is unstable and running
+// tests will fail.
 func canConnectToCluster(oc *exutil.CLI) bool {
 	// Test connection by getting cluster's "clusterversion"
 	_, err := oc.AsAdmin().AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
