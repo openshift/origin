@@ -313,11 +313,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 			// deleted the gateway loadbalancer service and then checked if it was restored
 			g.By(fmt.Sprintf("try to delete the gateway lb service %s", gatewayLbService))
+			lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			createdTime1 := lbService.ObjectMeta.CreationTimestamp
 			err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
-			isReleased := false
 			o.Eventually(func() bool {
 				lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 				if err != nil {
@@ -328,17 +330,24 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 					return false
 				}
 
+				createdTime2 := lbService.ObjectMeta.CreationTimestamp
+				if createdTime2 == createdTime1 {
+					return false
+				}
+
 				lb := lbService.Status.LoadBalancer
-				searchInfo := regexp.MustCompile("IP:([0-9\\.a-fA-F:]+)").FindStringSubmatch(lb.String())
+				searchInfo := regexp.MustCompile("(IP:([0-9\\.a-fA-F:]+))|(Hostname:([0-9\\.\\-a-zA-Z]+))").FindStringSubmatch(lb.String())
 				if len(searchInfo) > 0 {
-					if isReleased {
-						e2e.Logf("new load balancer ip %s is available", searchInfo[1])
+					if gwlb := searchInfo[2]; len(gwlb) > 0 {
+						e2e.Logf("new load balancer ip %s is available", gwlb)
 						return true
 					}
-				} else {
-					isReleased = true
+					if gwlb := searchInfo[4]; len(gwlb) > 0 {
+						e2e.Logf("new load balancer hostname %s is available", gwlb)
+						return true
+					}
 				}
-				e2e.Logf("Failed to get the new IP of the gateway lb service %s, try next round", gatewayLbService)
+				e2e.Logf("Failed to get the new IP or hostname of the gateway lb service %s, try next round", gatewayLbService)
 				return false
 			}, 5*time.Minute, 3*time.Second).Should(o.Equal(true))
 
@@ -346,7 +355,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.By(fmt.Sprintf("get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
 			dnsrecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords", "-o=jsonpath={.items[0].metadata.name}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			createdTime1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
+			dnsrecordsCreatedTime1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			targetsIP1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -355,7 +364,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 			g.By(fmt.Sprintf("wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
 			o.Eventually(func() bool {
-				createdTime2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
+				dnsrecordsCreatedTime2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.metadata.creationTimestamp}").Output()
 				if err != nil {
 					if errors.IsNotFound(err) {
 						return false
@@ -363,7 +372,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 					e2e.Logf("Error getting the gateway dnsrecords: %v, try next round", err)
 					return false
 				}
-				if createdTime2 == createdTime1 {
+				if dnsrecordsCreatedTime2 == dnsrecordsCreatedTime1 {
 					e2e.Logf("the gateway dnsrecords is not deleted yet, try next round")
 					return false
 				}
@@ -708,9 +717,9 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 }
 
 func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbService string) (string, error) {
-	var gwlbIP string
+	var gwlb string
 	coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
-	debugCount := 0
+	logCount := 0
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		if err != nil {
@@ -722,20 +731,26 @@ func ensureLbServiceRetrieveLbIP(oc *exutil.CLI, ingressNamespace, gatewayLbServ
 		}
 
 		lb := lbService.Status.LoadBalancer
-		if debugCount % 10 == 0 {
+		if logCount%10 == 0 {
 			e2e.Logf("lbService.Status.LoadBalancer is:\n%s", lb.String())
 		}
-		debugCount++
+		logCount++
 
-		searchInfo := regexp.MustCompile("IP:([0-9\\.a-fA-F:]+)").FindStringSubmatch(lb.String())
+		searchInfo := regexp.MustCompile("(IP:([0-9\\.a-fA-F:]+))|(Hostname:([0-9\\.\\-a-zA-Z]+))").FindStringSubmatch(lb.String())
 		if len(searchInfo) > 0 {
-			gwlbIP = searchInfo[1]
-			e2e.Logf("new load balancer ip %s is available", gwlbIP)
-			return true, nil
+			if gwlb = searchInfo[2]; len(gwlb) > 0 {
+				e2e.Logf("new load balancer ip %s is available", gwlb)
+				return true, nil
+			}
+			if gwlb = searchInfo[4]; len(gwlb) > 0 {
+				e2e.Logf("new load balancer hostname %s is available", gwlb)
+				return true, nil
+			}
+
 		} else {
-			e2e.Logf("failed to get a new load balancer ip, retrying")
-			return false, nil
+			e2e.Logf("failed to get a new load balancer ip or hostname, retrying")
 		}
+		return false, nil
 	})
-	return gwlbIP, err
+	return gwlb, err
 }
