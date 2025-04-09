@@ -99,7 +99,7 @@ type InfrastructureStatus struct {
 	// its components are not visible within the cluster.
 	// +kubebuilder:default=HighlyAvailable
 	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter;DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
 	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology"`
 
 	// infrastructureTopology expresses the expectations for infrastructure services that do not run on control
@@ -141,6 +141,9 @@ const (
 
 	// "SingleReplica" is for operators to avoid spending resources for high-availability purpose.
 	SingleReplicaTopologyMode TopologyMode = "SingleReplica"
+
+	// "DualReplica" is for operators to configure for two node topology.
+	DualReplicaTopologyMode TopologyMode = "DualReplica"
 
 	// "External" indicates that the component is running externally to the cluster. When specified
 	// as the control plane topology, operators should avoid scheduling workloads to masters or assume
@@ -528,18 +531,22 @@ type AWSPlatformStatus struct {
 
 // AWSResourceTag is a tag to apply to AWS resources created for the cluster.
 type AWSResourceTag struct {
-	// key is the key of the tag
+	// key sets the key of the AWS resource tag key-value pair. Key is required when defining an AWS resource tag.
+	// Key should consist of between 1 and 128 characters, and may
+	// contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', and '@'.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.:/=+-@]+$`
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^[0-9A-Za-z_.:/=+-@ ]+$')`,message="invalid AWS resource tag key. The string can contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', '@'"
 	// +required
 	Key string `json:"key"`
-	// value is the value of the tag.
+	// value sets the value of the AWS resource tag key-value pair. Value is required when defining an AWS resource tag.
+	// Value should consist of between 1 and 256 characters, and may
+	// contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', and '@'.
 	// Some AWS service do not support empty values. Since tags are added to resources in many services, the
 	// length of the tag value must meet the requirements of all services.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.:/=+-@]+$`
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^[0-9A-Za-z_.:/=+-@ ]+$')`,message="invalid AWS resource tag value. The string can contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', '@'"
 	// +required
 	Value string `json:"value"`
 }
@@ -620,6 +627,69 @@ const (
 	AzureStackCloud AzureCloudEnvironment = "AzureStackCloud"
 )
 
+// GCPServiceEndpointName is the name of the GCP Service Endpoint.
+// +kubebuilder:validation:Enum=Compute;Container;CloudResourceManager;DNS;File;IAM;ServiceUsage;Storage;TagManager
+type GCPServiceEndpointName string
+
+const (
+	// GCPServiceEndpointNameCompute is the name used for the GCP Compute Service endpoint.
+	GCPServiceEndpointNameCompute GCPServiceEndpointName = "Compute"
+
+	// GCPServiceEndpointNameContainer is the name used for the GCP Container Service endpoint.
+	GCPServiceEndpointNameContainer GCPServiceEndpointName = "Container"
+
+	// GCPServiceEndpointNameCloudResource is the name used for the GCP Resource Manager Service endpoint.
+	GCPServiceEndpointNameCloudResource GCPServiceEndpointName = "CloudResourceManager"
+
+	// GCPServiceEndpointNameDNS is the name used for the GCP DNS Service endpoint.
+	GCPServiceEndpointNameDNS GCPServiceEndpointName = "DNS"
+
+	// GCPServiceEndpointNameFile is the name used for the GCP File Service endpoint.
+	GCPServiceEndpointNameFile GCPServiceEndpointName = "File"
+
+	// GCPServiceEndpointNameIAM is the name used for the GCP IAM Service endpoint.
+	GCPServiceEndpointNameIAM GCPServiceEndpointName = "IAM"
+
+	// GCPServiceEndpointNameServiceUsage is the name used for the GCP Service Usage Service endpoint.
+	GCPServiceEndpointNameServiceUsage GCPServiceEndpointName = "ServiceUsage"
+
+	// GCPServiceEndpointNameStorage is the name used for the GCP Storage Service endpoint.
+	GCPServiceEndpointNameStorage GCPServiceEndpointName = "Storage"
+
+	// GCPServiceEndpointNameTagManager is the name used for the GCP Tag Manager Service endpoint.
+	GCPServiceEndpointNameTagManager GCPServiceEndpointName = "TagManager"
+)
+
+// GCPServiceEndpoint store the configuration of a custom url to
+// override existing defaults of GCP Services.
+type GCPServiceEndpoint struct {
+	// name is the name of the GCP service whose endpoint is being overridden.
+	// This must be provided and cannot be empty.
+	//
+	// Allowed values are Compute, Container, CloudResourceManager, DNS, File, IAM, ServiceUsage,
+	// Storage, and TagManager.
+	//
+	// As an example, when setting the name to Compute all requests made by the caller to the GCP Compute
+	// Service will be directed to the endpoint specified in the url field.
+	//
+	// +required
+	Name GCPServiceEndpointName `json:"name"`
+
+	// url is a fully qualified URI that overrides the default endpoint for a client using the GCP service specified
+	// in the name field.
+	// url is required, must use the scheme https, must not be more than 253 characters in length,
+	// and must be a valid URL according to Go's net/url package (https://pkg.go.dev/net/url#URL)
+	//
+	// An example of a valid endpoint that overrides the Compute Service: "https://compute-myendpoint1.p.googleapis.com"
+	//
+	// +required
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="must be a valid URL"
+	// +kubebuilder:validation:XValidation:rule="isURL(self) ? (url(self).getScheme() == \"https\") : true",message="scheme must be https"
+	// +kubebuilder:validation:XValidation:rule="url(self).getEscapedPath() == \"\" || url(self).getEscapedPath() == \"/\"",message="url must consist only of a scheme and domain. The url path must be empty."
+	URL string `json:"url"`
+}
+
 // GCPPlatformSpec holds the desired state of the Google Cloud Platform infrastructure provider.
 // This only includes fields that can be modified in the cluster.
 type GCPPlatformSpec struct{}
@@ -675,6 +745,19 @@ type GCPPlatformStatus struct {
 	// +optional
 	// +nullable
 	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
+
+	// serviceEndpoints specifies endpoints that override the default endpoints
+	// used when creating clients to interact with GCP services.
+	// When not specified, the default endpoint for the GCP region will be used.
+	// Only 1 endpoint override is permitted for each GCP service.
+	// The maximum number of endpoint overrides allowed is 9.
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=9
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="only 1 endpoint override is permitted per GCP service name"
+	// +optional
+	// +openshift:enable:FeatureGate=GCPCustomAPIEndpoints
+	ServiceEndpoints []GCPServiceEndpoint `json:"serviceEndpoints,omitempty"`
 }
 
 // GCPResourceLabel is a label to apply to GCP resources created for the cluster.
@@ -1615,17 +1698,35 @@ type IBMCloudServiceEndpoint struct {
 
 	// url is fully qualified URI with scheme https, that overrides the default generated
 	// endpoint for a client.
-	// This must be provided and cannot be empty.
+	// This must be provided and cannot be empty. The path must follow the pattern
+	// /v[0,9]+ or /api/v[0,9]+
 	//
 	// +required
 	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:MaxLength=300
 	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="url must be a valid absolute URL"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=DyanmicServiceEndpointIBMCloud,rule="url(self).getScheme() == \"https\"",message="url must use https scheme"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=DyanmicServiceEndpointIBMCloud,rule=`matches((url(self).getEscapedPath()), '^/(api/)?v[0-9]+/{0,1}$')`,message="url path must match /v[0,9]+ or /api/v[0,9]+"
 	URL string `json:"url"`
 }
 
 // IBMCloudPlatformSpec holds the desired state of the IBMCloud infrastructure provider.
 // This only includes fields that can be modified in the cluster.
-type IBMCloudPlatformSpec struct{}
+type IBMCloudPlatformSpec struct {
+	// serviceEndpoints is a list of custom endpoints which will override the default
+	// service endpoints of an IBM service. These endpoints are used by components
+	// within the cluster when trying to reach the IBM Cloud Services that have been
+	// overriden. The CCCMO reads in the IBMCloudPlatformSpec and validates each
+	// endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus
+	// are updated to reflect the same custom endpoints.
+	// A maximum of 13 service endpoints overrides are supported.
+	// +kubebuilder:validation:MaxItems=13
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	// +openshift:enable:FeatureGate=DyanmicServiceEndpointIBMCloud
+	ServiceEndpoints []IBMCloudServiceEndpoint `json:"serviceEndpoints,omitempty"`
+}
 
 // IBMCloudPlatformStatus holds the current status of the IBMCloud infrastructure provider.
 type IBMCloudPlatformStatus struct {
@@ -1647,8 +1748,12 @@ type IBMCloudPlatformStatus struct {
 	DNSInstanceCRN string `json:"dnsInstanceCRN,omitempty"`
 
 	// serviceEndpoints is a list of custom endpoints which will override the default
-	// service endpoints of an IBM Cloud service. These endpoints are consumed by
-	// components within the cluster to reach the respective IBM Cloud Services.
+	// service endpoints of an IBM service. These endpoints are used by components
+	// within the cluster when trying to reach the IBM Cloud Services that have been
+	// overriden. The CCCMO reads in the IBMCloudPlatformSpec and validates each
+	// endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus
+	// are updated to reflect the same custom endpoints.
+	// +openshift:validation:FeatureGateAwareMaxItems:featureGate=DyanmicServiceEndpointIBMCloud,maxItems=13
 	// +listType=map
 	// +listMapKey=name
 	// +optional
