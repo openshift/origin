@@ -75,6 +75,14 @@ var (
 	displayRebootsPod     = resourceread.ReadPodV1OrDie(displayRebootsPodYaml)
 )
 
+func formatTimeline(timeline []bootTimelineEntry) string {
+	var parts []string
+	for _, entry := range timeline {
+		parts = append(parts, entry.String())
+	}
+	return "[" + strings.Join(parts, ", ") + "]"
+}
+
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
 	var (
@@ -137,37 +145,40 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 			allTimelineEvents := []bootTimelineEntry{}
 			allTimelineEvents = append(allTimelineEvents, nodeBoots...)
 			allTimelineEvents = append(allTimelineEvents, nodeReboots...)
+
+			e2e.Logf("timeline events for %q\n%v", node.Name, formatTimeline(allTimelineEvents))
+
 			sort.Sort(sort.Reverse(byTime(allTimelineEvents)))
 			bootTimelinesByNode[node.Name] = allTimelineEvents
 
-			e2e.Logf("timeline events for %q\n%v", node.Name, allTimelineEvents)
 		}
 		for nodeName, timelineEvents := range bootTimelinesByNode {
 			// every reboot (except maybe the first), should have a rebootRequest before it.
 			// we reversed the sort so we can step backwards in time like this
 			for i, timelineEvent := range timelineEvents {
-				// boots should be the events, reboots should be the odds
-				expectedReboot := (i % 2) == 1
-				expectedBoot := !expectedReboot
+				// boots should be the evens, reboots should be the odds
+				expectReboot := (i % 2) == 1
+				expectBoot := !expectReboot
+
 				isActualBoot := timelineEvent.action == "Boot"
 				isActualReboot := timelineEvent.action == "RebootRequest"
 
 				switch {
-				case expectedBoot && !isActualBoot:
-					errs = append(errs, fmt.Errorf("expected boot for node/%v, got %v", nodeName, timelineEvents))
-				case expectedBoot && isActualBoot:
-				case !expectedBoot && !isActualBoot:
-				case !expectedBoot && isActualBoot:
-					errs = append(errs, fmt.Errorf("unexpected boot for node/%v, got %v", nodeName, timelineEvents))
+				case expectBoot && !isActualBoot:
+					errs = append(errs, fmt.Errorf("expected boot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
+				case expectBoot && isActualBoot:
+				case !expectBoot && !isActualBoot:
+				case !expectBoot && isActualBoot:
+					errs = append(errs, fmt.Errorf("unexpected boot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
 				}
 
 				switch {
-				case expectedReboot && !isActualReboot:
-					errs = append(errs, fmt.Errorf("expected reboot for node/%v, got %v", nodeName, timelineEvents))
-				case expectedReboot && isActualReboot:
-				case !expectedReboot && !isActualReboot:
-				case !expectedReboot && isActualReboot:
-					errs = append(errs, fmt.Errorf("unexpected reboot for node/%v, got %v", nodeName, timelineEvents))
+				case expectReboot && !isActualReboot:
+					errs = append(errs, fmt.Errorf("expected reboot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
+				case expectReboot && isActualReboot:
+				case !expectReboot && !isActualReboot:
+				case !expectReboot && isActualReboot:
+					errs = append(errs, fmt.Errorf("unexpected reboot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
 				}
 			}
 		}
