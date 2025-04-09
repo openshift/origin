@@ -6,7 +6,7 @@ spec:
   egress:
   - type: Allow
     to:
-      dnsName: docs.openshift.com
+      dnsName: docs.redhat.com
   - type: Deny
     to:
       dnsName: www.google.com
