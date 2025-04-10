@@ -30,6 +30,13 @@ var excludedPriorityClassPods = map[string][]string{
 		"configure-alertmanager-operator",
 		"osd-cluster-ready",
 	},
+
+	// OLM does not provide an option to set priority class on pods created
+	// by subscription.  https://issues.redhat.com/browse/OCPBUGS-54879
+	// tracks removing this exclusion.
+	"openshift-operators": {
+		"servicemesh-operator3-",
+	},
 }
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {
