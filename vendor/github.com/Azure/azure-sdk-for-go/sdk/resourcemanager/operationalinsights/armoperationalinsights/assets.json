@@ -1,0 +1,6 @@
+{
+  "AssetsRepo": "Azure/azure-sdk-assets",
+  "AssetsRepoPrefixPath": "go",
+  "TagPrefix": "go/resourcemanager/operationalinsights/armoperationalinsights",
+  "Tag": "go/resourcemanager/operationalinsights/armoperationalinsights_13213d36f9"
+}
