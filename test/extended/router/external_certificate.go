@@ -37,7 +37,8 @@ const (
 	// secretReaderRoleBinding is the name of the RoleBinding associating the Role with the router service account.
 	secretReaderRoleBinding = "secret-reader-role-binding"
 	// helloOpenShiftResponse is the HTTP response from hello-openshift example pod.
-	helloOpenShiftResponse = "Hello OpenShift"
+	// https://github.com/kubernetes/kubernetes/blob/88dfcb225d41326113990e87b11137641c121a32/test/images/agnhost/netexec/netexec.go#L266-L269
+	helloOpenShiftResponse = "NOW:"
 	// defaultCertificateCN is the CommonName of router default certificate.
 	defaultCertificateCN = "ingress-operator"
 )
@@ -46,7 +47,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 	defer g.GinkgoRecover()
 	var (
 		oc            = exutil.NewCLIWithPodSecurityLevel("router-external-certificate", admissionapi.LevelBaseline)
-		helloPodPath  = exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
+		helloPodPath  = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "hello-openshift", "hello-pod.json")
 		helloPodName  = "hello-openshift"
 		helloPodSvc   = "hello-openshift"
 		defaultDomain string
