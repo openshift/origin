@@ -82,8 +82,6 @@ type MachineOSBuildStatus struct {
 	// conditions are state related conditions for the build. Valid types are:
 	// Prepared, Building, Failed, Interrupted, and Succeeded.
 	// Once a Build is marked as Failed, Interrupted or Succeeded, no future conditions can be set.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=8
@@ -91,7 +89,7 @@ type MachineOSBuildStatus struct {
 	// +kubebuilder:validation:XValidation:rule="oldSelf.exists(x, x.type=='Interrupted' && x.status=='True') ? self==oldSelf : true",message="once an Interrupted condition is set, conditions are immutable"
 	// +kubebuilder:validation:XValidation:rule="oldSelf.exists(x, x.type=='Succeeded' && x.status=='True') ? self==oldSelf : true",message="once an Succeeded condition is set, conditions are immutable"
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// builder describes the image builder backend used for this build.
 	// +optional
 	Builder *MachineOSBuilderReference `json:"builder,omitempty"`

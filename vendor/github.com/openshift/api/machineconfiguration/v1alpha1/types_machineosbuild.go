@@ -82,12 +82,10 @@ type MachineOSBuildStatus struct {
 	// conditions are state related conditions for the build. Valid types are:
 	// Prepared, Building, Failed, Interrupted, and Succeeded
 	// once a Build is marked as Failed, no future conditions can be set. This is enforced by the MCO.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// ImageBuilderType describes the image builder set in the MachineOSConfig
 	// +optional
 	BuilderReference *MachineOSBuilderReference `json:"builderReference"`

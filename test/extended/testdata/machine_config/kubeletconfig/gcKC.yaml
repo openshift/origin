@@ -1,0 +1,12 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: custom-gc-config
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/custom: ""
+  kubeletConfig:
+    imageMinimumGCAge: 0s
+    imageGCHighThresholdPercent: 2
+    imageGCLowThresholdPercent: 1

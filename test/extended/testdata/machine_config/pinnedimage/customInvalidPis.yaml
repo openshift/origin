@@ -1,0 +1,9 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "custom"
+spec:
+  pinnedImages:
+   - name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:86d26e7ebcccd6f07a75db5b1e56283b25c2ee1c6a755d6ffc5a4d59beb9cdef

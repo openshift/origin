@@ -419,10 +419,17 @@
 // test/extended/testdata/ldap/ldapserver-service.yaml
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/machine_config/kubeletconfig/gcKC.yaml
+// test/extended/testdata/machine_config/machineconfigpool/customMCP.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml
 // test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml
+// test/extended/testdata/machine_config/pinnedimage/customGCMCPpis.yaml
+// test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml
+// test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml
+// test/extended/testdata/machine_config/pinnedimage/invalidPis.yaml
+// test/extended/testdata/machine_config/pinnedimage/pis.yaml
 // test/extended/testdata/marketplace/csc/02-csc.yaml
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
 // test/extended/testdata/mixed-api-versions.yaml
@@ -49020,6 +49027,65 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMachine_configKubeletconfigGckcYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: custom-gc-config
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/custom: ""
+  kubeletConfig:
+    imageMinimumGCAge: 0s
+    imageGCHighThresholdPercent: 2
+    imageGCLowThresholdPercent: 1
+`)
+
+func testExtendedTestdataMachine_configKubeletconfigGckcYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configKubeletconfigGckcYaml, nil
+}
+
+func testExtendedTestdataMachine_configKubeletconfigGckcYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configKubeletconfigGckcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/kubeletconfig/gcKC.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configMachineconfigpoolCustommcpYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: custom
+  labels:
+    pools.operator.machineconfiguration.openshift.io/custom: ""
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,custom]}
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/custom: ""
+`)
+
+func testExtendedTestdataMachine_configMachineconfigpoolCustommcpYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configMachineconfigpoolCustommcpYaml, nil
+}
+
+func testExtendedTestdataMachine_configMachineconfigpoolCustommcpYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configMachineconfigpoolCustommcpYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigpool/customMCP.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml = []byte(`apiVersion: operator.openshift.io/v1
 kind: MachineConfiguration
 metadata:
@@ -49138,6 +49204,136 @@ func testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPar
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "custom"
+spec:
+  pinnedImages:
+   - name: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f 
+`)
+
+func testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/customGCMCPpis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "custom"
+spec:
+  pinnedImages:
+   - name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:86d26e7ebcccd6f07a75db5b1e56283b25c2ee1c6a755d6ffc5a4d59beb9cdef
+`)
+
+func testExtendedTestdataMachine_configPinnedimageCustominvalidpisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimageCustominvalidpisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configPinnedimageCustommcppisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "custom"
+spec:
+  pinnedImages:
+   - name: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f 
+`)
+
+func testExtendedTestdataMachine_configPinnedimageCustommcppisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimageCustommcppisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimageCustommcppisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimageCustommcppisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configPinnedimageInvalidpisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "worker"
+spec:
+  pinnedImages:
+   - name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:86d26e7ebcccd6f07a75db5b1e56283b25c2ee1c6a755d6ffc5a4d59beb9cdef
+`)
+
+func testExtendedTestdataMachine_configPinnedimageInvalidpisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimageInvalidpisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimageInvalidpisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimageInvalidpisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/invalidPis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configPinnedimagePisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "worker"
+spec:
+  pinnedImages:
+   - name: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+`)
+
+func testExtendedTestdataMachine_configPinnedimagePisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimagePisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimagePisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimagePisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/pis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55774,10 +55970,17 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.yaml":                                                    testExtendedTestdataLdapLdapserverServiceYaml,
 	"test/extended/testdata/long_names/Dockerfile":                                                           testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json":                                                         testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/machine_config/kubeletconfig/gcKC.yaml":                                          testExtendedTestdataMachine_configKubeletconfigGckcYaml,
+	"test/extended/testdata/machine_config/machineconfigpool/customMCP.yaml":                                 testExtendedTestdataMachine_configMachineconfigpoolCustommcpYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-all.yaml":                 testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-empty.yaml":               testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-none.yaml":                testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml,
 	"test/extended/testdata/machine_config/machineconfigurations/managedbootimages-partial.yaml":             testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml,
+	"test/extended/testdata/machine_config/pinnedimage/customGCMCPpis.yaml":                                  testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml,
+	"test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml":                                testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml,
+	"test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml":                                    testExtendedTestdataMachine_configPinnedimageCustommcppisYaml,
+	"test/extended/testdata/machine_config/pinnedimage/invalidPis.yaml":                                      testExtendedTestdataMachine_configPinnedimageInvalidpisYaml,
+	"test/extended/testdata/machine_config/pinnedimage/pis.yaml":                                             testExtendedTestdataMachine_configPinnedimagePisYaml,
 	"test/extended/testdata/marketplace/csc/02-csc.yaml":                                                     testExtendedTestdataMarketplaceCsc02CscYaml,
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml":                                                 testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
 	"test/extended/testdata/mixed-api-versions.yaml":                                                         testExtendedTestdataMixedApiVersionsYaml,
@@ -56520,11 +56723,24 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"fixture.json": {testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
 				"machine_config": {nil, map[string]*bintree{
+					"kubeletconfig": {nil, map[string]*bintree{
+						"gcKC.yaml": {testExtendedTestdataMachine_configKubeletconfigGckcYaml, map[string]*bintree{}},
+					}},
+					"machineconfigpool": {nil, map[string]*bintree{
+						"customMCP.yaml": {testExtendedTestdataMachine_configMachineconfigpoolCustommcpYaml, map[string]*bintree{}},
+					}},
 					"machineconfigurations": {nil, map[string]*bintree{
 						"managedbootimages-all.yaml":     {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesAllYaml, map[string]*bintree{}},
 						"managedbootimages-empty.yaml":   {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesEmptyYaml, map[string]*bintree{}},
 						"managedbootimages-none.yaml":    {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesNoneYaml, map[string]*bintree{}},
 						"managedbootimages-partial.yaml": {testExtendedTestdataMachine_configMachineconfigurationsManagedbootimagesPartialYaml, map[string]*bintree{}},
+					}},
+					"pinnedimage": {nil, map[string]*bintree{
+						"customGCMCPpis.yaml":   {testExtendedTestdataMachine_configPinnedimageCustomgcmcppisYaml, map[string]*bintree{}},
+						"customInvalidPis.yaml": {testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml, map[string]*bintree{}},
+						"customMCPpis.yaml":     {testExtendedTestdataMachine_configPinnedimageCustommcppisYaml, map[string]*bintree{}},
+						"invalidPis.yaml":       {testExtendedTestdataMachine_configPinnedimageInvalidpisYaml, map[string]*bintree{}},
+						"pis.yaml":              {testExtendedTestdataMachine_configPinnedimagePisYaml, map[string]*bintree{}},
 					}},
 				}},
 				"marketplace": {nil, map[string]*bintree{

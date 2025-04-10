@@ -112,12 +112,10 @@ type NetworkStatus struct {
 	// conditions represents the observations of a network.config current state.
 	// Known .status.conditions.type are: "NetworkDiagnosticsAvailable"
 	// +optional
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +openshift:enable:FeatureGate=NetworkDiagnosticsConfig
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ClusterNetworkEntry is a contiguous block of IP addresses from which pod IPs

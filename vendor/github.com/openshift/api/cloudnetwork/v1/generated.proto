@@ -79,6 +79,10 @@ message CloudPrivateIPConfigStatus {
 
   // condition is the assignment condition of the private IP and its status
   // +required
+  // +listType=map
+  // +listMapKey=type
+  // +patchMergeKey=type
+  // +patchStrategy=merge
   repeated .k8s.io.apimachinery.pkg.apis.meta.v1.Condition conditions = 2;
 }
 
