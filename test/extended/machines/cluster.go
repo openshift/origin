@@ -167,6 +167,8 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 				case expectBoot && !isActualBoot:
 					errs = append(errs, fmt.Errorf("expected boot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
 				case expectBoot && isActualBoot:
+					// TODO force failure to see output, remove this:
+					errs = append(errs, fmt.Errorf("unexpected boot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
 				case !expectBoot && !isActualBoot:
 				case !expectBoot && isActualBoot:
 					errs = append(errs, fmt.Errorf("unexpected boot for node/%v, got %v", nodeName, formatTimeline(timelineEvents)))
