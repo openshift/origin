@@ -1431,7 +1431,7 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure default gatewayclass is accepted": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure gateway loadbalancer service and gateway dnsrecords get recreated after deleting them": " [Suite:openshift/conformance/parallel]",
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure gateway loadbalancer service and dnsrecords get recreated after deleting them": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 

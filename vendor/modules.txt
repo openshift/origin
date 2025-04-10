@@ -3753,8 +3753,6 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader
 ## explicit; go 1.22.0
 sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/scheme
-# sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8
-## explicit; go 1.23
 # sigs.k8s.io/gateway-api v1.2.1
 ## explicit; go 1.22.0
 sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1
@@ -3772,8 +3770,8 @@ sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1
 sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1alpha2
 sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1alpha3
 sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/typed/apis/v1beta1
-# sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3
-## explicit; go 1.21
+# sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8
+## explicit; go 1.23
 sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
 # sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96

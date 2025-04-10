@@ -93,7 +93,7 @@ spec:
         Verify Gateway API controller and ensure default gatewayclass is accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Verify Gateway API controller and ensure gateway loadbalancer service and
-        gateway dnsrecords get recreated after deleting them'
+        dnsrecords get recreated after deleting them'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
