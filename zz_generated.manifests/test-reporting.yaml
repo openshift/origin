@@ -521,68 +521,68 @@ spec:
         with external host without being SNATed'
   - featureGate: RouteExternalCertificate
     tests:
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with invalid setup the router should not support external certificate if inline
         certificate is also present'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with invalid setup the router should not support external certificate if the
         route termination type is Passthrough'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with invalid setup the router should not support external certificate if the
         secret is in a different namespace'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with invalid setup the router should not support external certificate if the
         secret is not of type kubernetes.io/tls'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with invalid setup the router should not support external certificate without
         proper permissions'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and routes
         are reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to remove the external certificate and again re-add the same external
         certificate then also the route is reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to remove the external certificate then also the route is reachable
         and serves the default certificate'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate then also the route is reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate, but RBAC permissions are not added
         route update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate, but secret does not exist route
         update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate, but secret is not of type kubernetes.io/tls
         route update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to use same external certificate then also the route is reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the route
         is updated to use same external certificate, but RBAC permissions are dropped
         route update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the secret
         is deleted and re-created again but RBAC permissions are dropped then routes
         are not reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the secret
         is deleted and re-created again then routes are reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the secret
         is deleted then routes are not reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the secret
         is updated but RBAC permissions are dropped then routes are not reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
         with valid setup the router should support external certificate and the secret
         is updated then also routes are reachable'
   - featureGate: SELinuxMount

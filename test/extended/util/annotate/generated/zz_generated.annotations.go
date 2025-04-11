@@ -1741,43 +1741,43 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io] when using openshift ovn-kubernetes [PodNetwork] Advertising the default network [apigroup:user.openshift.io][apigroup:security.openshift.io] pods should communicate with external host without being SNATed": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate if inline certificate is also present": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with invalid setup the router should not support external certificate if inline certificate is also present": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate if the route termination type is Passthrough": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with invalid setup the router should not support external certificate if the route termination type is Passthrough": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate if the secret is in a different namespace": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with invalid setup the router should not support external certificate if the secret is in a different namespace": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate if the secret is not of type kubernetes.io/tls": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with invalid setup the router should not support external certificate if the secret is not of type kubernetes.io/tls": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate without proper permissions": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with invalid setup the router should not support external certificate without proper permissions": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and routes are reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and routes are reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to remove the external certificate and again re-add the same external certificate then also the route is reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to remove the external certificate and again re-add the same external certificate then also the route is reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to remove the external certificate then also the route is reachable and serves the default certificate": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to remove the external certificate then also the route is reachable and serves the default certificate": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to use new external certificate then also the route is reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to use new external certificate then also the route is reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to use new external certificate, but RBAC permissions are not added route update is rejected": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to use new external certificate, but RBAC permissions are not added route update is rejected": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to use new external certificate, but secret does not exist route update is rejected": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to use new external certificate, but secret does not exist route update is rejected": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to use new external certificate, but secret is not of type kubernetes.io/tls route update is rejected": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to use new external certificate, but secret is not of type kubernetes.io/tls route update is rejected": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to use same external certificate then also the route is reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to use same external certificate then also the route is reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the route is updated to use same external certificate, but RBAC permissions are dropped route update is rejected": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the route is updated to use same external certificate, but RBAC permissions are dropped route update is rejected": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the secret is deleted and re-created again but RBAC permissions are dropped then routes are not reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the secret is deleted and re-created again but RBAC permissions are dropped then routes are not reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the secret is deleted and re-created again then routes are reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the secret is deleted and re-created again then routes are reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the secret is deleted then routes are not reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the secret is deleted then routes are not reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the secret is updated but RBAC permissions are dropped then routes are not reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the secret is updated but RBAC permissions are dropped then routes are not reachable": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with valid setup the router should support external certificate and the secret is updated then also routes are reachable": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected] with valid setup the router should support external certificate and the secret is updated then also routes are reachable": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
