@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -284,15 +285,20 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			)
 
 			// ensure default gateway objects is created
+			gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 			coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
 			g.By("Getting the default domain")
 			defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
 			defaultDomain := strings.Split(defaultIngressDomain, "apps.")[1]
 
-			g.By("Create the default API Gateway")
-			_, gwerr := createAndCheckGateway(oc, gatewayName, gatewayClassName, defaultDomain)
-			o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
+			g.By("Create the default API Gateway if it is not created")
+			_, errGwStatus := gwapiClient.GatewayV1().Gateways(ingressNamespace).Get(context.Background(), gatewayName, metav1.GetOptions{})
+			if errGwStatus != nil {
+				e2e.Logf("Failed to get gateway object, so create the gateway for the following test")
+				_, err := createAndCheckGateway(oc, gatewayName, gatewayClassName, defaultDomain)
+				o.Expect(err).NotTo(o.HaveOccurred(), "failed to create Gateway")
+			}
 
 			g.By("Ensure the gateway's LoadBalancer service and DNSRecords are available")
 			gwlbAddress, err := ensureLbServiceRetrieveLbAddress(oc, ingressNamespace, gatewayLbService)
@@ -356,14 +362,15 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
 			dnsrecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords", "-o=jsonpath={.items[0].metadata.name}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			targetsIP1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
+			targetsIPList1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[*]}").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
+			targetsIPList1 = getSortedString(targetsIPList1)
 			err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
 			o.Eventually(func() bool {
-				targetsIP2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[0]}").Output()
+				targetsIPList2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[*]}").Output()
 				if err != nil {
 					if errors.IsNotFound(err) {
 						return false
@@ -372,14 +379,16 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 					return false
 				}
 
-				if targetsIP2 != targetsIP1 {
-					e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", targetsIP2, targetsIP1)
+				if getSortedString(targetsIPList2) != targetsIPList1 {
+					e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", getSortedString(targetsIPList2), targetsIPList1)
 					return false
 				}
 
-				status, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName, "-o=jsonpath={.status.zones[0].conditions[0].status}{.status.zones[0].conditions[0].reason}").Output()
+				status, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName, "-o=jsonpath={.status.zones[*].conditions[0].status}").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				if status == "TrueProviderSuccess" {
+				reason, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName, "-o=jsonpath={.status.zones[*].conditions[0].reason}").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if strings.Count(status, "True") == len(strings.Split(status, " ")) && strings.Count(reason, "ProviderSuccess") == len(strings.Split(reason, " ")) {
 					return true
 				}
 				e2e.Logf("The status of the gateway dnsrecords does not become normal, retrying...")
@@ -727,4 +736,19 @@ func ensureLbServiceRetrieveLbAddress(oc *exutil.CLI, ingressNamespace, gatewayL
 		return false, nil
 	})
 	return gwlb, err
+}
+
+// used to sort string type of slice or string which can be transformed to the slice
+func getSortedString(obj interface{}) string {
+	objList := []string{}
+	str, ok := obj.(string)
+	if ok {
+		objList = strings.Split(str, " ")
+	}
+	strList, ok := obj.([]string)
+	if ok {
+		objList = strList
+	}
+	sort.Strings(objList)
+	return strings.Join(objList, " ")
 }
