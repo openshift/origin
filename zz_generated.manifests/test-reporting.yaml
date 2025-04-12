@@ -114,6 +114,20 @@ spec:
         on desired.architecture field in the CV [apigroup:image.openshift.io]'
   - featureGate: MachineConfigNodes
     tests:
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block
+        MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block
+        MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly update
+        the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should have
+        MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly
+        transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should
+        properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should
+        properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
