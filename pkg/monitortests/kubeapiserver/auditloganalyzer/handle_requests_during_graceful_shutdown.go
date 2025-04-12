@@ -17,7 +17,7 @@ func CheckForRequestsDuringShutdown() *lateRequestTracking {
 	return &lateRequestTracking{}
 }
 
-func (l *lateRequestTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
+func (l *lateRequestTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
