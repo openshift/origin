@@ -3,6 +3,7 @@ package arbiter_topology
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -97,7 +98,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 				FieldSelector: "spec.nodeName=" + node.Name + ",status.phase=Running",
 			})
 			o.Expect(err).To(o.BeNil(), "Expected to retrieve pods without error")
-			podCount = len(pods.Items) + podCount
+			for _, pod := range pods.Items {
+				if !strings.HasPrefix(pod.Namespace, "openshift-e2e-") {
+					podCount += 1
+				}
+			}
 		}
 		o.Expect(podCount).To(o.Equal(defaultExpectedPodCount), "Expected the correct number of running pods on the Arbiter node")
 	})
