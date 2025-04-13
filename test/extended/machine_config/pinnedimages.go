@@ -48,6 +48,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 	// Ensure each test pins a separate image, since we are not deleting them after each
 
 	g.It("All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {
+		// skip this test on single node platforms
+		skipOnSingleNodeTopology(oc)
+
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
@@ -70,6 +73,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 	})
 
 	g.It("All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]", func() {
+		// skip this test on single node platforms
+		skipOnSingleNodeTopology(oc)
+
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
@@ -106,6 +112,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 	})
 
 	g.It("Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]", func() {
+		// skip this test on single node platforms
+		skipOnSingleNodeTopology(oc)
+
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
