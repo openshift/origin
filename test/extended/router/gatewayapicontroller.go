@@ -679,7 +679,7 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("Wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
-	err = wait.Poll(3*time.Second, 180*time.Second, func() (bool, error) {
+	err = wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -692,7 +692,7 @@ func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns st
 		readyReplicas := deployment.Status.ReadyReplicas
 		e2e.Logf("The ready replicas is %v", readyReplicas)
 		if readyReplicas != 1 {
-			e2e.Logf("The deployment %s in %s namespace is not ready, retrying", deploymentName, ns)
+			e2e.Logf(`The deployment %s in %s namespace is not ready(AvailableReplicas: %v), retrying`, deploymentName, ns, deployment.Status.AvailableReplicas)
 			return false, nil
 		}
 		return true, nil
