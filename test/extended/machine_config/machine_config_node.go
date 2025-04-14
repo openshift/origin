@@ -41,6 +41,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	)
 
 	g.It("[Serial]Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]", func() {
+		// Skip test when there are errors connecting to the cluster
+		SkipOnConnectionError(oc)
+
 		if IsSingleNode(oc) { //handle SNO clusters
 			ValidateMCNPropertiesSNO(oc, infraMCPFixture)
 		} else { //handle standard, non-SNO, clusters
@@ -49,6 +52,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	g.It("[Serial]Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]", func() {
+		// Skip test when there are errors connecting to the cluster
+		SkipOnConnectionError(oc)
+
 		if IsSingleNode(oc) {
 			ValidateMCNConditionTransitionsSNO(oc, masterMCFixture)
 		} else {
@@ -57,6 +63,9 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	g.It("[Serial][Slow]Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]", func() {
+		// Skip test when there are errors connecting to the cluster
+		SkipOnConnectionError(oc)
+
 		if IsSingleNode(oc) { //handle SNO clusters
 			ValidateMCNConditionOnNodeDegrade(oc, invalidMasterMCFixture, true)
 		} else { //handle standard, non-SNO, clusters
