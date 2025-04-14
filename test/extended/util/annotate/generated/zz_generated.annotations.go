@@ -1355,15 +1355,17 @@ var Annotations = map[string]string{
 
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow direct connections to pods from guest cluster pod in pod network across different guest nodes": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-mco][OCPFeatureGate:MachineConfigNodes] Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]": "",
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
@@ -554,19 +555,25 @@ func WaitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 }
 
 // `WaitForMCNConditionStatus` waits up to a specified timeout for the desired MCN condition to match the desired status (ex. wait until "Updated" is "False")
-func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus, timeout time.Duration, interval time.Duration) error {
-	o.Eventually(func() bool {
+func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus,
+	timeout time.Duration, interval time.Duration) (bool, error) {
+	var err error = nil
+	var conditionMet bool = false
+	wait.PollUntilContextTimeout(context.TODO(), interval, timeout, true, func(_ context.Context) (bool, error) {
 		framework.Logf("Waiting for MCN '%v' %v condition to be %v.", mcnName, conditionType, status)
 
 		// Get MCN & check if the MCN condition status matches the desired status
 		workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
 		if workerErr != nil {
 			framework.Logf("Error getting MCN for node '%v': %v", mcnName, workerErr)
-			return false
+			err = workerErr
+			return false, err
 		}
-		return CheckMCNConditionStatus(workerNodeMCN, conditionType, status)
-	}, timeout, interval).Should(o.BeTrue())
-	return nil
+
+		conditionMet = CheckMCNConditionStatus(workerNodeMCN, conditionType, status)
+		return conditionMet, nil
+	})
+	return conditionMet, err
 }
 
 // `CheckMCNConditionStatus` checks that an MCN condition matches the desired status (ex. confirm "Updated" is "False")
