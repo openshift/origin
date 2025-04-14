@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImages][Serial]", func()
 
 	g.AfterEach(func() {
 		// Clear out boot image configuration between tests
-		ApplyBootImageFixture(oc, emptyMachineSetFixture)
+		ApplyMachineConfigurationFixture(oc, emptyMachineSetFixture)
 	})
 
 	g.It("Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]", func() {

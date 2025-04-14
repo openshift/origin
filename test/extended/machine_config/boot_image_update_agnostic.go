@@ -18,7 +18,7 @@ import (
 
 func AllMachineSetTest(oc *exutil.CLI, fixture string) {
 	// This fixture applies a boot image update configuration that opts in all machinesets
-	ApplyBootImageFixture(oc, fixture)
+	ApplyMachineConfigurationFixture(oc, fixture)
 
 	// Step through all machinesets and verify boot images are reconciled correctly.
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -34,7 +34,7 @@ func AllMachineSetTest(oc *exutil.CLI, fixture string) {
 func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 
 	// This fixture applies a boot image update configuration that opts in any machineset with the label test=boot
-	ApplyBootImageFixture(oc, fixture)
+	ApplyMachineConfigurationFixture(oc, fixture)
 
 	// Pick a random machineset to test
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -61,7 +61,7 @@ func PartialMachineSetTest(oc *exutil.CLI, fixture string) {
 
 func NoneMachineSetTest(oc *exutil.CLI, fixture string) {
 	// This fixture applies a boot image update configuration that opts in no machinesets, i.e. feature is disabled.
-	ApplyBootImageFixture(oc, fixture)
+	ApplyMachineConfigurationFixture(oc, fixture)
 
 	// Step through all machinesets and verify boot images are reconciled correctly.
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -77,7 +77,7 @@ func NoneMachineSetTest(oc *exutil.CLI, fixture string) {
 func DegradeOnOwnerRefTest(oc *exutil.CLI, fixture string) {
 	e2eskipper.Skipf("This test is temporarily disabled until boot image skew enforcement is implemented")
 	// This fixture applies a boot image update configuration that opts in all machinesets
-	ApplyBootImageFixture(oc, fixture)
+	ApplyMachineConfigurationFixture(oc, fixture)
 
 	// Pick a random machineset to test
 	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())

@@ -30,29 +30,37 @@ const (
 var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	defer g.GinkgoRecover()
 	var (
-		MCOMachineConfigPoolBaseDir = exutil.FixturePath("testdata", "machine_config", "machineconfigpool")
-		MCOMachineConfigBaseDir     = exutil.FixturePath("testdata", "machine_config", "machineconfig")
-		infraMCPFixture             = filepath.Join(MCOMachineConfigPoolBaseDir, "infra-mcp.yaml")
-		customMCFixture             = filepath.Join(MCOMachineConfigBaseDir, "0-infra-mc.yaml")
-		masterMCFixture             = filepath.Join(MCOMachineConfigBaseDir, "0-master-mc.yaml")
-		invalidWorkerMCFixture      = filepath.Join(MCOMachineConfigBaseDir, "1-worker-invalid-mc.yaml")
-		invalidMasterMCFixture      = filepath.Join(MCOMachineConfigBaseDir, "1-master-invalid-mc.yaml")
-		oc                          = exutil.NewCLIWithoutNamespace("machine-config")
+		MCOMachineConfigPoolBaseDir    = exutil.FixturePath("testdata", "machine_config", "machineconfigpool")
+		MCOMachineConfigurationBaseDir = exutil.FixturePath("testdata", "machine_config", "machineconfigurations")
+		MCOMachineConfigBaseDir        = exutil.FixturePath("testdata", "machine_config", "machineconfig")
+		infraMCPFixture                = filepath.Join(MCOMachineConfigPoolBaseDir, "infra-mcp.yaml")
+		nodeDisruptionFixture          = filepath.Join(MCOMachineConfigurationBaseDir, "nodedisruptionpolicy-rebootless-path.yaml")
+		nodeDisruptionEmptyFixture     = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-empty.yaml")
+		customMCFixture                = filepath.Join(MCOMachineConfigBaseDir, "0-infra-mc.yaml")
+		masterMCFixture                = filepath.Join(MCOMachineConfigBaseDir, "0-master-mc.yaml")
+		invalidWorkerMCFixture         = filepath.Join(MCOMachineConfigBaseDir, "1-worker-invalid-mc.yaml")
+		invalidMasterMCFixture         = filepath.Join(MCOMachineConfigBaseDir, "1-master-invalid-mc.yaml")
+		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
-	g.It("[Serial]Should have MCN properties matching associated node properties [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) { //handle SNO clusters
-			ValidateMCNPropertiesSNO(oc, infraMCPFixture)
+			ValidateMCNPropertiesSNO(oc)
 		} else { //handle standard, non-SNO, clusters
-			ValidateMCNProperties(oc, infraMCPFixture)
+			ValidateMCNPropertiesDefaultMCP(oc)
 		}
 	})
 
-	g.It("[Serial]Should properly transition through MCN conditions on node update [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+		skipOnSingleNodeTopology(oc) //skip this test for SNO
+		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
+	})
+
+	g.It("[Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) {
-			ValidateMCNConditionTransitionsSNO(oc, masterMCFixture)
+			ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
 		} else {
-			ValidateMCNConditionTransitions(oc, customMCFixture, infraMCPFixture)
+			ValidateMCNConditionTransitionsOnRebootlessUpdate(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, customMCFixture, infraMCPFixture)
 		}
 	})
 
@@ -85,11 +93,12 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 })
 
-// `ValidateMCNProperties` checks that MCN properties match the corresponding node properties
+// `ValidateMCNPropertiesDefaultMCP` checks that MCN properties match the corresponding node
+// properties for nodes in the default (worker & master) MCPs.
 // Note: This test case does not work for SNO clusters due to the cluster's one node assuming
 // both the worker and master role since `GetRandomNode` selects nodes using node roles. Role
 // matching is not necessarily synonymous with MCP association in edge cases, such as in SNO.
-func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
+func ValidateMCNPropertiesDefaultMCP(oc *exutil.CLI) {
 	// Create client set for test
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
@@ -109,6 +118,17 @@ func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 	framework.Logf("Validating MCN properties for node in default '%v' pool.", master)
 	mcnErr = ValidateMCNForNodeInPool(oc, clientSet, masterNode, master)
 	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties node in default pool '%v'.", master))
+}
+
+// `ValidateMCNPropertiesCustomMCP` checks that MCN properties match the corresponding node properties
+func ValidateMCNPropertiesCustomMCP(oc *exutil.CLI, fixture string) {
+	// Create client set for test
+	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
+
+	// Grab a random node from each default pool
+	workerNode := GetRandomNode(oc, worker)
+	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
 
 	// Cleanup custom MCP on test completion or failure
 	defer func() {
@@ -151,14 +171,14 @@ func ValidateMCNProperties(oc *exutil.CLI, fixture string) {
 
 	// Validate MCN for node in custom pool
 	framework.Logf("Validating MCN properties for node in custom '%v' pool.", custom)
-	mcnErr = ValidateMCNForNodeInPool(oc, clientSet, customNode, custom)
+	mcnErr := ValidateMCNForNodeInPool(oc, clientSet, customNode, custom)
 	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties node in custom pool '%v'.", custom))
 }
 
 // `ValidateMCNPropertiesSNO` checks that MCN properties match the corresponding node properties
 // specifically for SNO clusters. Note that this test does not include creating a custom MCP, as
 // the default SNO node remains part of the master pool.
-func ValidateMCNPropertiesSNO(oc *exutil.CLI, fixture string) {
+func ValidateMCNPropertiesSNO(oc *exutil.CLI) {
 	// Create client set for test
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
@@ -176,7 +196,7 @@ func ValidateMCNPropertiesSNO(oc *exutil.CLI, fixture string) {
 // `ValidateMCNConditionTransitions` checks that Conditions properly update on a node update
 // Note that a custom MCP is created for this test to limit the number of upgrading nodes &
 // decrease cleanup time.
-func ValidateMCNConditionTransitions(oc *exutil.CLI, mcFixture string, mcpFixture string) {
+func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, nodeDisruptionFixture string, nodeDisruptionEmptyFixture string, mcFixture string, mcpFixture string) {
 	poolName := custom
 	mcName := fmt.Sprintf("90-%v-testfile", poolName)
 
@@ -188,7 +208,17 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, mcFixture string, mcpFixtur
 	workerNode := GetRandomNode(oc, worker)
 	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
 
-	// Cleanup custom MCP and delete MC on failure or test completion
+	// Remove node disruption policy on test completion or failure
+	defer func() {
+		// Apply empty MachineConfiguration fixture to remove previously set NodeDisruptionPolicy
+		framework.Logf("Removing node disruption policy.")
+		ApplyMachineConfigurationFixture(oc, nodeDisruptionEmptyFixture)
+	}()
+
+	// Apply a node disruption policy to allow for rebootless update
+	ApplyMachineConfigurationFixture(oc, nodeDisruptionFixture)
+
+	// Cleanup custom MCP, and delete MC on test completion or failure
 	defer func() {
 		// Get starting state of default worker MCP
 		workerMcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
@@ -230,7 +260,7 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, mcFixture string, mcpFixtur
 	updatingNodeName := workerNode.Name
 
 	// Validate transition through conditions for MCN
-	validateTransitionThroughConditions(clientSet, updatingNodeName)
+	validateTransitionThroughConditions(clientSet, updatingNodeName, true)
 
 	// When an update is complete, all conditions other than `Updated` must be false
 	framework.Logf("Checking all conditions other than 'Updated' are False.")
@@ -239,7 +269,7 @@ func ValidateMCNConditionTransitions(oc *exutil.CLI, mcFixture string, mcpFixtur
 
 // `ValidateMCNConditionTransitionsSNO` checks that Conditions properly update on a node update
 // in Single Node Openshift
-func ValidateMCNConditionTransitionsSNO(oc *exutil.CLI, mcFixture string) {
+func ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc *exutil.CLI, nodeDisruptionFixture string, nodeDisruptionEmptyFixture string, mcFixture string) {
 	poolName := master
 	mcName := fmt.Sprintf("90-%v-testfile", poolName)
 
@@ -247,23 +277,39 @@ func ValidateMCNConditionTransitionsSNO(oc *exutil.CLI, mcFixture string) {
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
-	// Delete MC on failure or test completion
+	// Remove node disruption policy on test completion or failure
 	defer func() {
+		// Apply empty MachineConfiguration fixture to remove previously set NodeDisruptionPolicy
+		framework.Logf("Removing node disruption policy.")
+		ApplyMachineConfigurationFixture(oc, nodeDisruptionEmptyFixture)
+	}()
+
+	// Apply a node disruption policy to allow for rebootless update
+	ApplyMachineConfigurationFixture(oc, nodeDisruptionFixture)
+
+	// Delete applied MC on test completion or failure
+	defer func() {
+		// Delete applied MC
+		framework.Logf("Deleting MC '%v'.", mcName)
 		deleteMCErr := oc.Run("delete").Args("machineconfig", mcName).Execute()
 		o.Expect(deleteMCErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Could not delete MachineConfig '%v'.", mcName))
+
+		// Wait for master MCP to be ready
+		time.Sleep(15 * time.Second) //wait to not catch the updated state before the deleted mc triggers an update
+		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", poolName, 1)
+		WaitForMCPToBeReady(oc, clientSet, poolName, 1)
 	}()
 
 	// Apply MC targeting worker node
 	mcErr := oc.Run("apply").Args("-f", mcFixture).Execute()
 	o.Expect(mcErr).NotTo(o.HaveOccurred(), "Could not apply MachineConfig.")
 
-	// Get the first updating node
-	updatingNodes := GetCordonedNodes(oc, poolName)
-	o.Expect(len(updatingNodes) > 0).Should(o.BeTrue(), fmt.Sprintf("No ready nodes found for MCP '%v'.", poolName))
-	updatingNode := updatingNodes[0]
+	// Get the updating node
+	updatingNode := GetUpdatingNodeSNO(oc, poolName)
+	framework.Logf("Node '%v' is updating.", updatingNode.Name)
 
 	// Validate transition through conditions for MCN
-	validateTransitionThroughConditions(clientSet, updatingNode.Name)
+	validateTransitionThroughConditions(clientSet, updatingNode.Name, true)
 
 	// When an update is complete, all conditions other than `Updated` must be false
 	framework.Logf("Checking all conditions other than 'Updated' are False.")
@@ -271,63 +317,102 @@ func ValidateMCNConditionTransitionsSNO(oc *exutil.CLI, mcFixture string) {
 }
 
 // `validateTransitionThroughConditions` validates the condition trasnitions in the MCN during a node update
-func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientset, updatingNodeName string) {
+func validateTransitionThroughConditions(clientSet *machineconfigclient.Clientset, updatingNodeName string, isRebootless bool) {
 	// Note that some conditions are passed through quickly in a node update, so the test can
 	// "miss" catching the phases. For test stability, if we fail to catch an "Unknown" status,
 	// a warning will be logged instead of erroring out the test.
 	framework.Logf("Waiting for Updated=False")
-	err := WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdated, metav1.ConditionFalse, 1*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect Updated=False.")
+	conditionMet, err := WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdated, metav1.ConditionFalse, 1*time.Minute, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Updated=False: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Updated=False.")
+
 	framework.Logf("Waiting for UpdatePrepared=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdatePrepared, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect UpdatePrepared=True.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdatePrepared, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdatePrepared=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdatePrepared=True.")
+
 	framework.Logf("Waiting for UpdateExecuted=Unknown")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
-	if err != nil {
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateExecuted=Unknown: %v", err))
+	if !conditionMet {
 		framework.Logf("Warning, could not detect UpdateExecuted=Unknown.")
 	}
-	framework.Logf("Waiting for Cordoned=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateCordoned, metav1.ConditionTrue, 30*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect Cordoned=True.")
-	framework.Logf("Waiting for Drained=Unknown")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
-	if err != nil {
-		framework.Logf("Warning, could not detect Drained=Unknown.")
+
+	// On standard, non-rebootless, update, check that node transitions through "Cordoned" and "Drained" phases
+	if !isRebootless {
+		framework.Logf("Waiting for Cordoned=True")
+		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateCordoned, metav1.ConditionTrue, 30*time.Second, 1*time.Second)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Cordoned=True: %v", err))
+		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Cordoned=True.")
+
+		framework.Logf("Waiting for Drained=Unknown")
+		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Drained=Unknown: %v", err))
+		if !conditionMet {
+			framework.Logf("Warning, could not detect Drained=Unknown.")
+		}
+
+		framework.Logf("Waiting for Drained=True")
+		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionTrue, 4*time.Minute, 1*time.Second)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Drained=True: %v", err))
+		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Drained=True.")
 	}
-	framework.Logf("Waiting for Drained=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateDrained, metav1.ConditionTrue, 4*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect Drained=True.")
+
 	framework.Logf("Waiting for AppliedFilesAndOS=Unknown")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
-	if err != nil {
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown, 30*time.Second, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for AppliedFilesAndOS=Unknown: %v", err))
+	if !conditionMet {
 		framework.Logf("Warning, could not detect AppliedFilesAndOS=Unknown.")
 	}
+
 	framework.Logf("Waiting for AppliedFilesAndOS=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionTrue, 3*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect AppliedFilesAndOS=True.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionTrue, 3*time.Minute, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for AppliedFilesAndOS=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect AppliedFilesAndOS=True.")
+
 	framework.Logf("Waiting for UpdateExecuted=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionTrue, 20*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect UpdateExecuted=True.")
-	framework.Logf("Waiting for RebootedNode=Unknown")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateRebooted, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
-	if err != nil {
-		framework.Logf("Warning, could not detect RebootedNode=Unknown.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateExecuted, metav1.ConditionTrue, 20*time.Second, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateExecuted=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateExecuted=True.")
+
+	// On rebootless update, check that node transitions through "UpdatePostActionComplete" phase
+	if isRebootless {
+		framework.Logf("Waiting for UpdatePostActionComplete=True")
+		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdatePostActionComplete, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdatePostActionComplete=True: %v", err))
+		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdatePostActionComplete=True.")
+	} else { // On standard, non-rebootless, update, check that node transitions through "RebootedNode" phase
+		framework.Logf("Waiting for RebootedNode=Unknown")
+		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateRebooted, metav1.ConditionUnknown, 15*time.Second, 1*time.Second)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for RebootedNode=Unknown: %v", err))
+		if !conditionMet {
+			framework.Logf("Warning, could not detect RebootedNode=Unknown.")
+		}
+
+		framework.Logf("Waiting for RebootedNode=True")
+		conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateRebooted, metav1.ConditionTrue, 6*time.Minute, 1*time.Second)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for RebootedNode=True: %v", err))
+		o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect RebootedNode=True.")
 	}
-	framework.Logf("Waiting for RebootedNode=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateRebooted, metav1.ConditionTrue, 6*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect RebootedNode=True.")
 	framework.Logf("Waiting for Resumed=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeResumed, metav1.ConditionTrue, 15*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect Resumed=True.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeResumed, metav1.ConditionTrue, 15*time.Second, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Resumed=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Resumed=True.")
+
 	framework.Logf("Waiting for UpdateComplete=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateComplete, metav1.ConditionTrue, 10*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect UpdateComplete=True.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateComplete, metav1.ConditionTrue, 10*time.Second, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateComplete=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateComplete=True.")
+
 	framework.Logf("Waiting for Uncordoned=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateUncordoned, metav1.ConditionTrue, 10*time.Second, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect Uncordoned=True.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdateUncordoned, metav1.ConditionTrue, 10*time.Second, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for UpdateComplete=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect UpdateComplete=True.")
+
 	framework.Logf("Waiting for Updated=True")
-	err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdated, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
-	o.Expect(err).NotTo(o.HaveOccurred(), "Error, could not detect Updated=True.")
+	conditionMet, err = WaitForMCNConditionStatus(clientSet, updatingNodeName, mcfgv1alpha1.MachineConfigNodeUpdated, metav1.ConditionTrue, 1*time.Minute, 1*time.Second)
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Error occured while waiting for Updated=True: %v", err))
+	o.Expect(conditionMet).To(o.BeTrue(), "Error, could not detect Updated=True.")
 }
 
 // `ValidateMCNConditionOnNodeDegrade` checks that Conditions properly update on a node failure (MCP degrade)
