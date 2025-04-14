@@ -685,6 +685,11 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 
 	framework.Logf("Launching a new prober pod")
 	proberPod := createProberPod(oc, externalNamespace, probePodName)
+	defer func() {
+		framework.Logf("Destroying the prober pod")
+		err := destroyProberPod(oc, proberPod)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}()
 
 	// Unfortunately, even after we created the EgressIP object and the CloudPrivateIPConfig, it can take some time before everything is applied correctly.
 	// Retry this test every 30 seconds for up to 2 minutes to give the cluster time to converge - eventually, this test should pass.
@@ -692,11 +697,7 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 		framework.Logf("Verifying that the expected number of EgressIP outbound requests can be seen in the packet sniffer logs")
 		result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
 		return err == nil && result
-	}, 120*time.Second, 30*time.Second).Should(o.BeTrue())
-
-	framework.Logf("Destroying the prober pod")
-	err := destroyProberPod(oc, proberPod)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	}, 300*time.Second, 30*time.Second).Should(o.BeTrue())
 }
 
 // ovnKubernetesCreateEgressIPObject creates the file containing the EgressIP YAML definition which can

@@ -21,6 +21,7 @@ import (
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -199,6 +200,17 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 		g.AfterEach(func() {
 			g.By("Removing the temp directory")
 			os.RemoveAll(tmpDirBGP)
+			if g.CurrentSpecReport().Failed() && packetSnifferDaemonSet != nil {
+				g.By("Gathering packet sniffer logs")
+				logs, err := getDaemonSetLogs(f.ClientSet, packetSnifferDaemonSet)
+				if err != nil {
+					framework.Logf("failed to gather packet sniffer losg: %v", err)
+					return
+				}
+				for node, log := range logs {
+					framework.Logf("packet sniffer logs for node %s:\n%s", node, log)
+				}
+			}
 		})
 
 		g.Context("[PodNetwork] Advertising the default network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
@@ -279,10 +291,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 			ipv4Start := 203
 			ipv6Start := 2014
-			getUserDefineNetworkSubnets := func() (string, string) {
-				ipv4 := ipv4Start + g.GinkgoParallelProcess()
-				ipv6 := ipv6Start + g.GinkgoParallelProcess()
-				return fmt.Sprintf("%d.203.0.0/16", ipv4), fmt.Sprintf("%d:100:200::0/60", ipv6)
+			getRandomUserDefineNetworkSubnets := func() (string, string) {
+				ipv4 := fmt.Sprintf("%d.%d.0.0/16", ipv4Start+rand.Intn(30), ipv4Start+rand.Intn(30))
+				ipv6 := fmt.Sprintf("%d:%d:200::0/60", ipv6Start+rand.Intn(30), ipv6Start+rand.Intn(30))
+				return ipv4, ipv6
 			}
 
 			toExternalCheck := func() {
@@ -374,7 +386,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					role:      "primary",
 					namespace: targetNamespace,
 				}
-				userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet := getUserDefineNetworkSubnets()
+				userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet := getRandomUserDefineNetworkSubnets()
 				nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 				cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
 				cleanup, err := createManifest("", cudnManifest)
