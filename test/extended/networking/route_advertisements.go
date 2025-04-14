@@ -866,16 +866,39 @@ func newRouteAdvertisementsManifest(name string, podNetwork, egressip bool) stri
 	if egressip {
 		advertisements = append(advertisements, "EgressIP")
 	}
+	if name == "default" {
+		return fmt.Sprintf(`
+apiVersion: k8s.ovn.org/v1
+kind: RouteAdvertisements
+metadata:
+  name: %s
+spec:
+  nodeSelector: {}
+  frrConfigurationSelector:
+    matchLabels:
+      network: default
+  advertisements: [%s]
+  networkSelectors:
+  - networkSelectionType: DefaultNetwork
+`, name, strings.Join(advertisements, ","))
+	}
 	return fmt.Sprintf(`
 apiVersion: k8s.ovn.org/v1
 kind: RouteAdvertisements
 metadata:
   name: %s
 spec:
-  advertisements: [%s]
-  networkSelector:
+  nodeSelector: {}
+  frrConfigurationSelector:
     matchLabels:
-      advertise: "%s"
+      network: default
+  advertisements: [%s]
+  networkSelectors:
+  - networkSelectionType: ClusterUserDefinedNetworks
+    clusterUserDefinedNetworkSelector:
+      networkSelector:
+        matchLabels:
+          advertise: "%s"
 `, name, strings.Join(advertisements, ","), name)
 }
 
