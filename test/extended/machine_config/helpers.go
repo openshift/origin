@@ -515,6 +515,7 @@ func WaitForMCPToBeReady(oc *exutil.CLI, machineConfigClient *machineconfigclien
 		}
 		// Check if the pool is in an updated state with the correct number of ready machines
 		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount == readyMachineCount {
+			framework.Logf("MCP '%v' is 'Updated' with %v ready machines.", poolName, mcp.Status.UpdatedMachineCount)
 			return true
 		}
 		framework.Logf("MCP '%v' has %v ready machines. Waiting for the desired ready machine count of %v.", poolName, mcp.Status.UpdatedMachineCount, readyMachineCount)
