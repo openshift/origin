@@ -42554,7 +42554,7 @@ spec:
   egress:
   - type: Allow
     to:
-      dnsName: docs.openshift.com
+      dnsName: redhat.com
   - type: Deny
     to:
       dnsName: www.google.com
@@ -42597,7 +42597,7 @@ spec:
   egress:
   - type: Allow
     to:
-      dnsName: docs.openshift.com
+      dnsName: redhat.com
   - type: Allow
     to:
       cidrSelector: 8.8.8.8/32
