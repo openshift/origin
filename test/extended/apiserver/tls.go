@@ -26,6 +26,11 @@ import (
 	"k8s.io/client-go/transport/spdy"
 )
 
+// This test only checks whether components are serving the proper TLS version based
+// on the expected version set in the TLS profile config. It is a part of the 
+// openshift/conformance/parallel test suite, and it is expected that there are jobs
+// which run that entire conformance suite against clusters running any TLS profiles
+// that there is a desire to test.
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
