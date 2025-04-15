@@ -209,7 +209,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 				numberOfRequestsToSend := 10
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and PodIP %v were seen", numberOfRequestsToSend, v4PodIPSet))
-
+				svcUrl := fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("sending to IPv4 external host")
 					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, v4ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v4PodIPSet)
@@ -242,12 +242,29 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			})
 		})
 
-		g.Context("[PodNetwork] Advertising a cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+		verifyUdnRaFunc := func(udnTopology string) {
 			var cleanup func()
 			g.BeforeEach(func() {
 				var err error
+				var snifferPodsNodes []string
+				// Check if the cluster is in local gateway mode
+				network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.TODO(), "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig != nil && network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig.RoutingViaHost && udnTopology == "layer2" {
+					skipper.Skipf("Skipping Layer2 UDN advertisements test for local gateway mode")
+				}
+				if udnTopology == "layer2" {
+					// Running the packet sniffer on all nodes in the cluster for Layer2 UDN
+					nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					for _, node := range nodes.Items {
+						snifferPodsNodes = append(snifferPodsNodes, node.Name)
+					}
+				} else {
+					snifferPodsNodes = advertisedPodsNodes
+				}
 				g.By("Setup packet sniffer at nodes")
-				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, advertisedPodsNodes, networkPlugin)
+				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, snifferPodsNodes, networkPlugin)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Create a namespace with UDPN")
@@ -261,12 +278,12 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				targetNamespace = ns.Name
 				f.Namespace = ns
 				// use a long cudn (longer than 15 characters) name to work around OCPBUGS-54659
-				cudnName = "clusteruserdefinenetwork" + ns.Name
+				cudnName = "clusteruserdefinenetwork-" + ns.Name
 
 				g.By("Creating a cluster user defined network")
 				nc := &networkAttachmentConfigParams{
 					name:      cudnName,
-					topology:  "layer3",
+					topology:  udnTopology,
 					role:      "primary",
 					namespace: targetNamespace,
 				}
@@ -356,6 +373,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					}
 				}
 			})
+		}
+
+		g.Context("[PodNetwork] Advertising a Layer 3 cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+			verifyUdnRaFunc("layer3")
+		})
+
+		g.Context("[PodNetwork] Advertising a Layer 2 cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+			verifyUdnRaFunc("layer2")
 		})
 
 		g.Context("[EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
@@ -500,7 +525,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				)
 			})
 
-			g.Context("Advertising egressIP for user defined network", func() {
+			verifyEIPForUDN := func(udnTopology string) {
 				var cleanup func()
 				g.BeforeEach(func() {
 					g.By("Create a namespace with UDPN")
@@ -519,7 +544,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					g.By("Creating a cluster user defined network")
 					nc := &networkAttachmentConfigParams{
 						name:      cudnName,
-						topology:  "layer3",
+						topology:  udnTopology,
 						role:      "primary",
 						namespace: targetNamespace,
 					}
@@ -628,7 +653,13 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					g.Entry("IPv4", IPv4, v4ExternalIP),
 					g.Entry("IPv6", IPv6, v6ExternalIP),
 				)
+			}
+
+			g.Context("Advertising egressIP for layer 3 user defined network", func() {
+				verifyEIPForUDN("layer3")
 			})
+
+			// [TODO] Add test for layer 2 UDN once OCPBUGS-55157 is fixed.
 		})
 	})
 })
@@ -999,6 +1030,7 @@ func checkExternalResponse(oc *exutil.CLI, proberPod *corev1.Pod, podIP, Externa
 			lastErr = fmt.Errorf("no responses received")
 			return false
 		}
+		framework.Logf("resp: %s prober IP: %s", resp.Responses[0], ExternalIP)
 
 		if !strings.Contains(resp.Responses[0], ExternalIP) {
 			lastErr = fmt.Errorf("response does not contain external IP %s", ExternalIP)
