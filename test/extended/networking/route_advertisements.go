@@ -3,10 +3,9 @@ package networking
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	"math/rand"
 	"net"
 	"os"
 	"regexp"
@@ -76,7 +75,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			snifferNamespace        string
 			cloudType               configv1.PlatformType
 			deployName              string
-			routeName               string
+			svcUrl                  string
 			cudnName                string
 			packetSnifferDaemonSet  *v1.DaemonSet
 			podList                 *corev1.PodList
@@ -193,9 +192,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				}
 
 				g.By("Deploy the test pods")
-				deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
+				deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
+				svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
 
 				g.By("Extract test pod IPs")
 				v4PodIPSet, v6PodIPSet = extractPodIPs(podList)
@@ -212,7 +212,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("sending to IPv4 external host")
-					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, v4ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v4PodIPSet)
+					spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, v4ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v4PodIPSet)
 				}
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv6 {
 					g.By("sending to IPv6 external host")
@@ -300,9 +300,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				}
 
 				g.By("Deploy the test pods")
-				deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
+				deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
+				svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
 
 				g.By("Extract test pod UDN IPs")
 				v4PodIPSet, v6PodIPSet = extractPodUdnIPs(podList, nc, targetNamespace, clientset)
@@ -325,7 +326,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				numberOfRequestsToSend := 10
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and PodIP %v were seen", numberOfRequestsToSend, v4PodIPSet))
 
-				svcUrl := fmt.Sprintf("%s-0-service:%d", targetNamespace, serverPort)
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("sending to IPv4 external host")
 					spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, v4ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v4PodIPSet)
@@ -365,6 +365,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			g.BeforeEach(func() {
 				egressIPYamlPath = tmpDirBGP + "/" + egressIPYaml
 				g.By("Setting the EgressIP nodes as EgressIP assignable")
+				_, err = runOcWithRetry(oc.AsAdmin(), "create", "configmap", "egressip-test")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				_, err = runOcWithRetry(oc.AsAdmin(), "label", "configmap", "egressip-test", "app=egressip-test")
+				o.Expect(err).NotTo(o.HaveOccurred())
 				for _, node := range egressIPNodes {
 					_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -380,9 +384,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirBGP+"/"+egressIPYaml)
 				}
 				output, _ := runOcWithRetry(oc.AsAdmin(), "get", "egressip", "--no-headers")
-
-				if output != "No resources found" {
+				if strings.TrimSpace(output) != "No resources found" {
 					framework.Logf("don't unlabel the nodes if there are still EgressIP objects: %s", output)
+					return
+				}
+				runOcWithRetry(oc.AsAdmin(), "delete", "configmap", "egressip-test")
+				output, _ = runOcWithRetry(oc.AsAdmin(), "get", "configmap", "--no-headers", "-A", "-l", "app=egressip-test")
+				if !strings.Contains(output, "NotFound") {
+					framework.Logf("don't unlabel the nodes if other egress ip test is running: %s", output)
 					return
 				}
 
@@ -428,9 +437,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 						framework.Logf("egressIPSet: %v", egressIPSet)
 
 						g.By("Deploy the test pods")
-						deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
+						deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(len(podList.Items)).To(o.Equal(len(egressIPNodes)))
+						svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
 
 						numberOfRequestsToSend := 10
 						// Run this twice to make sure that repeated EgressIP creation, update and deletion works.
@@ -450,7 +460,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							}
 
 							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 							g.By("Updating the EgressIP object")
 							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
@@ -467,7 +477,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							}
 
 							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and updated EgressIPs %v were seen", numberOfRequestsToSend, newEgressIPSet))
-							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, newEgressIPSet)
+							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, newEgressIPSet)
 
 							g.By("Deleting the EgressIP object")
 							// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
@@ -482,7 +492,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							}
 
 							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, newEgressIPSet))
-							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, routeName, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
+							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
 						}
 					},
 					g.Entry("IPv4", IPv4, v4ExternalIP),
@@ -556,9 +566,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 						framework.Logf("egressIPSet: %v", egressIPSet)
 
 						g.By("Deploy the test pods")
-						deployName, routeName, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
+						deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
 						o.Expect(err).NotTo(o.HaveOccurred())
 						o.Expect(len(podList.Items)).To(o.Equal(len(egressIPNodes)))
+						svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
 
 						numberOfRequestsToSend := 10
 						// Run this twice to make sure that repeated EgressIP creation and deletion works.
@@ -623,10 +634,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 })
 
 func IntnRange(min, max int) int {
-	rangeSize := big.NewInt(int64(max - min + 1))
-	n, err := rand.Int(rand.Reader, rangeSize)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return min + int(n.Int64())
+	return rand.Intn(max-min+1) + min
 }
 
 func generateRandomSubnet(ipFamily IPFamily) string {
@@ -1150,13 +1158,19 @@ func gatherDebugInfo(oc *exutil.CLI, snifferNamespace, targetNamespace string, w
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "eip", "-o", "yaml"); err == nil {
 		framework.Logf("EgressIPs:\n%s", out)
 	}
+	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "node", "-l", "k8s.ovn.org/egress-assignable="); err == nil {
+		framework.Logf("EgressIP assignable nodes:\n%s", out)
+	}
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "clusteruserdefinednetwork", "-o", "yaml"); err == nil {
 		framework.Logf("ClusterUserDefinedNetworks:\n%s", out)
 	}
-	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", targetNamespace, "-o", "wide"); err == nil {
+	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", targetNamespace, "-o", "yaml"); err == nil {
 		framework.Logf(" %s:\n%s", targetNamespace, out)
 	}
-	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", snifferNamespace, "-o", "wide"); err == nil {
+	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "ds", "-n", snifferNamespace, "-o", "yaml"); err == nil {
+		framework.Logf("DaemonSets in namespace %s:\n%s", snifferNamespace, out)
+	}
+	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", snifferNamespace, "-o", "yaml"); err == nil {
 		framework.Logf("Pods in namespace %s:\n%s", snifferNamespace, out)
 	}
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "frrconfiguration", "-n", "openshift-frr-k8s", "-o", "yaml"); err == nil {
