@@ -57,6 +57,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[cpu]":                                    "https://issues.redhat.com/browse/OSD-21708",
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[memory]":                                 "https://issues.redhat.com/browse/OSD-21708",
 
+			// Istio pods
+			"apps/v1/Deployment/openshift-ingress/gateway/container/istio-proxy/limit[cpu]":    "https://issues.redhat.com/browse/OCPBUGS-55050",
+			"apps/v1/Deployment/openshift-ingress/gateway/container/istio-proxy/limit[memory]": "https://issues.redhat.com/browse/OCPBUGS-55050",
+
 			// ovn pods
 			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[cpu]":    "https://issues.redhat.com/browse/TRT-1871",
 			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[memory]": "https://issues.redhat.com/browse/TRT-1871",
@@ -135,6 +139,13 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 							}
 						} else {
 							ref.Name = deploy.Name
+							if pod.Namespace == "openshift-ingress" && strings.HasPrefix(ref.Name, "gateway-") {
+								// The gateway deployment's name contains a hash, which
+								// must be removed in order to be able to define an
+								// exception.  Remove this if block when the
+								// corresponding exception is removed.
+								ref.Name = "gateway"
+							}
 							ref.Kind = "Deployment"
 							ref.APIVersion = "apps/v1"
 						}
