@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
@@ -32,6 +33,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	g.It("TestTLSMinimumVersions", func() {
 		ctx := context.TODO()
+
+		coreClient, err := e2e.LoadClientset(true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if isMicroShift {
+			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
+		}
 
 		configClient := oc.AdminConfigClient()
 
