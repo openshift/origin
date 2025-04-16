@@ -27,7 +27,7 @@ import (
 )
 
 // This test only checks whether components are serving the proper TLS version based
-// on the expected version set in the TLS profile config. It is a part of the 
+// on the expected version set in the TLS profile config. It is a part of the
 // openshift/conformance/parallel test suite, and it is expected that there are jobs
 // which run that entire conformance suite against clusters running any TLS profiles
 // that there is a desire to test.
@@ -349,6 +349,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	g.It("TestTLSDefaults", func() {
 		t := g.GinkgoT()
+
+		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if config.Spec.TLSSecurityProfile != nil && config.Spec.TLSSecurityProfile.Type != configv1.TLSProfileIntermediateType {
+			g.Skip("the cluster's tls profile is in a non-default state, not testing cipher defaults")
+		}
+
 		// Verify we fail with TLS versions less than the default, and work with TLS versions >= the default
 		for _, tlsVersionName := range crypto.ValidTLSVersions() {
 			tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
