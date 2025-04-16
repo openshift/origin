@@ -1593,6 +1593,14 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall with wildcard dns rules is created": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][Serial][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and HTTPRoute can be created and accepted": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][Serial][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure OSSM related resources are created when default gatewayclass is accepted": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][Serial][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure custom gatewayclass can be accepted": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:GatewayAPIController][Feature:Router][Serial][apigroup:gateway.networking.k8s.io] Verify Gateway API controller and ensure default gatewayclass is accepted": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API CRDs and ensure CRD of experimental group can not be created": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io] Verify Gateway API CRDs and ensure CRD of experimental group is not installed": " [Suite:openshift/conformance/parallel]",
