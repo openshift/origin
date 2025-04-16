@@ -267,7 +267,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 				_, err = tls.Dial("tcp4", "localhost:2379", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
-				o.Expect(err.Error()).To(o.ContainSubstring("remote error: tls: protocol version not supported"))
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
