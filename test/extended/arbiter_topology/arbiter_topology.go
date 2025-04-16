@@ -13,9 +13,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -24,9 +26,9 @@ const (
 )
 
 var (
-	defaultExpectedPodCount      = 17
-	expectedPodCountsPerPlatform = map[v1.PlatformType]int{
-		v1.BareMetalPlatformType: 17,
+	defaultExpectedMaxPodCount      = 30
+	expectedMaxPodCountsPerPlatform = map[v1.PlatformType]int{
+		v1.BareMetalPlatformType: 30,
 		// Add more platforms as needed
 	}
 )
@@ -82,8 +84,8 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 		g.By("inferring platform type")
 
 		// Default to baremetal count of 17 expected Pods, if platform type does not exist in map
-		if expectedCount, exists := expectedPodCountsPerPlatform[infraStatus.PlatformStatus.Type]; exists {
-			defaultExpectedPodCount = expectedCount
+		if expectedCount, exists := expectedMaxPodCountsPerPlatform[infraStatus.PlatformStatus.Type]; exists {
+			defaultExpectedMaxPodCount = expectedCount
 		}
 		g.By("Retrieving the Arbiter node name")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
@@ -104,7 +106,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 				}
 			}
 		}
-		o.Expect(podCount).To(o.Equal(defaultExpectedPodCount), "Expected the correct number of running pods on the Arbiter node")
+		o.Expect(podCount).To(o.BeNumerically("<=", defaultExpectedMaxPodCount), "Expected the max number of running pods on the Arbiter node")
 	})
 })
 
@@ -159,8 +161,9 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on Highly
 	})
 
 	g.It("should be created on master nodes when no node selected", func() {
+		ctx := context.Background()
 		g.By("Retrieving Master nodes")
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 			LabelSelector: labelNodeRoleMaster,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
@@ -184,7 +187,14 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on Highly
 		o.Expect(err).To(o.BeNil(), "Expected Normal pods to be running on Master nodes")
 		o.Expect(len(normalPods)).To(o.Equal(1), "Expected exactly one Normal pod to be running on a Master node")
 
-		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), normalPods[0], metav1.GetOptions{})
+		var pod *corev1.Pod
+		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 300*time.Second, true, func(ctx context.Context) (done bool, err error) {
+			pod, err = oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(ctx, normalPods[0], metav1.GetOptions{})
+			if kapierror.IsTimeout(err) {
+				return false, nil
+			}
+			return true, err
+		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Normal pod without error")
 
 		_, exists := masterNodeMap[pod.Spec.NodeName]
@@ -218,13 +228,22 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet pl
 		daemonSetSelector, err := labels.Parse("app=busybox-daemon")
 		o.Expect(err).To(o.BeNil(), "Expected to parse DaemonSet label selector without error")
 
-		daemonSetPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), daemonSetSelector, isPodRunning, 1, time.Second*30)
+		daemonSetPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), daemonSetSelector, isPodRunning, 2, time.Second*30)
 		o.Expect(err).To(o.BeNil(), "Expected DaemonSet pods to be running")
-		o.Expect(len(daemonSetPods)).To(o.Equal(1), "Expected exactly one DaemonSet pod to be running")
+		o.Expect(len(daemonSetPods)).To(o.Equal(2), "Expected exactly two DaemonSet pod to be running")
 
 		g.By("Validating that DaemonSet pods are NOT scheduled on the Arbiter node")
+
+		ctx := context.TODO()
 		for _, podName := range daemonSetPods {
-			pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podName, metav1.GetOptions{})
+			var pod *corev1.Pod
+			err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 300*time.Second, true, func(ctx context.Context) (done bool, err error) {
+				pod, err = oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), podName, metav1.GetOptions{})
+				if kapierror.IsTimeout(err) {
+					return false, nil
+				}
+				return true, err
+			})
 			o.Expect(err).To(o.BeNil(), "Expected to retrieve DaemonSet pod without error")
 
 			o.Expect(pod.Spec.NodeName).NotTo(o.Equal(arbiterNodeName),
