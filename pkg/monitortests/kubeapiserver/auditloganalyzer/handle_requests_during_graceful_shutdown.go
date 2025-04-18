@@ -33,6 +33,12 @@ func (l *lateRequestTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beg
 		if value_slice[0] == "loopback=true" {
 			return
 		}
+
+		//userAgent":"openshift-external-backend-sampler-new-openshift-api
+		if strings.HasPrefix(auditEvent.UserAgent, "openshift-external-backend-sampler") {
+			return
+		}
+
 		l.auditIDs = append(l.auditIDs, string(auditEvent.AuditID))
 	}
 }
