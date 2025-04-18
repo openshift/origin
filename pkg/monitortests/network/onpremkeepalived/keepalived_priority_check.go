@@ -84,7 +84,10 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 	constructedIntervals := monitorapi.Intervals{}
 	vipMoves := map[string][]monitorapi.Interval{}
 	for _, interval := range startingIntervals {
-		if interval.Message.Reason == monitorapi.OnPremLBTookVIP || interval.Message.Reason == monitorapi.OnPremLBLostVIP {
+		// Collect messages about VIP movements. Ignore any where both the
+		// start and end fall before or after the time range. Include any that
+		// partially overlap the time range. We'll adjust them to fit later.
+		if interval.Message.Reason == monitorapi.OnPremLBTookVIP || interval.Message.Reason == monitorapi.OnPremLBLostVIP && (!(interval.To.Before(beginning) && interval.From.Before(beginning)) || !(interval.To.After(end) && interval.From.After(end))) {
 			nodeName := fmt.Sprintf("%s_%s", interval.Locator.Keys[monitorapi.LocatorNodeKey], interval.Message.Annotations[monitorapi.AnnotationVIP])
 			vipMoves[nodeName] = append(vipMoves[nodeName], interval)
 		}
@@ -121,6 +124,15 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 			}
 		}
 		constructedIntervals = append(constructedIntervals, localIntervals...)
+	}
+	// Clamp all intervals to the selected range so we don't blow out the timeline
+	for interval := range contructedIntervals {
+		if interval.From.Before(beginning) {
+			interval.From = beginning
+		}
+		if interval.To.After(end) {
+			interval.To = end
+		}
 	}
 	return constructedIntervals, nil
 }
