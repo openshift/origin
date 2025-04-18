@@ -8,6 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -123,7 +124,16 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 				case "ReplicaSet":
 					if i := strings.LastIndex(ref.Name, "-"); i != -1 {
 						name := ref.Name[0:i]
-						if deploy, err := oc.KubeFramework().ClientSet.AppsV1().Deployments(pod.Namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
+						if deploy, err := oc.KubeFramework().ClientSet.AppsV1().Deployments(pod.Namespace).Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+							if apierrors.IsNotFound(err) {
+								e2e.Logf("ignoring replicaset %s because no owning deployment %s exists", ref.Name, name)
+								// Ignore this pod entirely because it most likely
+								// belongs to an orphaned replicaset.
+								continue podLoop
+							} else {
+								e2e.Failf("unable to get deployment %s for replicaset %s: %v", name, ref.Name, err)
+							}
+						} else {
 							ref.Name = deploy.Name
 							ref.Kind = "Deployment"
 							ref.APIVersion = "apps/v1"
