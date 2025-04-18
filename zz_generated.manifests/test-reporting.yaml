@@ -91,6 +91,11 @@ spec:
         Ensure custom gatewayclass can be accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure default gatewayclass is accepted'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        and ensure OSSM subscription and istio get recreated after deleting them'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        and ensure gateway loadbalancer service and dnsrecords get recreated after
+        deleting them'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
