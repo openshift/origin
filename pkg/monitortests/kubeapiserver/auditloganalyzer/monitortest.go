@@ -32,6 +32,7 @@ type auditLogAnalyzer struct {
 	requestsDuringShutdownChecker *lateRequestTracking
 	violationChecker              *auditViolations
 	watchCountTracking            *watchCountTracking
+	latencyChecker                *auditLatencyRecords
 
 	countsForInstall *CountsForRun
 }
@@ -44,6 +45,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
 		watchCountTracking:            NewWatchCountTracking(),
+		latencyChecker:                CheckForLatency(),
 	}
 }
 
@@ -88,6 +90,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.requestsDuringShutdownChecker,
 		w.violationChecker,
 		w.watchCountTracking,
+		w.latencyChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -421,6 +424,14 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 		if err != nil {
 			// print any error and continue processing
 			fmt.Printf("unable to write audit log summary for %s - %v\n", "watch-requests", err)
+		}
+	}
+
+	if w.latencyChecker != nil {
+		err := w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-latency", timeSuffix)
+		if err != nil {
+			// print any error and continue processing
+			fmt.Printf("unable to write audit log summary for %s - %v\n", "audit-latency", err)
 		}
 	}
 
