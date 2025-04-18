@@ -93,7 +93,7 @@ func NewRecordAvailabilityOnly() monitortestframework.MonitorTest {
 	}
 }
 
-func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
@@ -266,7 +266,10 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if err := w.disruptionChecker.StartCollection(ctx, adminRESTConfig, recorder); err != nil {
 		return err
 	}
+	return nil
+}
 
+func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
 

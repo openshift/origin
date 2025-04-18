@@ -3,9 +3,9 @@ package watchmachines
 import (
 	"context"
 	"fmt"
+	machineClient "github.com/openshift/client-go/machine/clientset/versioned"
 	"time"
 
-	machineClient "github.com/openshift/client-go/machine/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -20,14 +20,17 @@ func NewMachineWatcher() monitortestframework.MonitorTest {
 	return &machineWatcher{}
 }
 
-func (w *machineWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	machineClient, err := machineClient.NewForConfig(adminRESTConfig)
+func (w *machineWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	machineMonitoringClient, err := machineClient.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
 
-	startMachineMonitoring(ctx, recorder, machineClient)
+	startMachineMonitoring(ctx, recorder, machineMonitoringClient)
+	return nil
+}
 
+func (w *machineWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
 
