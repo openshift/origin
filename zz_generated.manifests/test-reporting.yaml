@@ -440,6 +440,14 @@ spec:
         should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
         Catalog Install should fail to install if it has an invalid reference'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should block cluster upgrades if an incompatible operator is
         installed'
@@ -447,6 +455,20 @@ spec:
         installation should fail to install a non-existing cluster extension'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should install a cluster extension'
+  - featureGate: NewOLMCatalogdAPIV1Metas
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
   - featureGate: OrderedNamespaceDeletion
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
