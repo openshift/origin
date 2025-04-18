@@ -187,7 +187,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 			}
 		}
 		g.recorder.AddIntervals(
-			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
+			monitorapi.NewInterval(monitorapi.SourceKeepalivedMonitor, monitorapi.Info).
 				Locator(logLine.Locator).
 				Message(monitorapi.NewMessage().
 					Reason(monitorapi.OnPremLBPriorityChange).
@@ -199,7 +199,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 		)
 	case masterRe.MatchString(logLine.Line):
 		g.recorder.AddIntervals(
-			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
+			monitorapi.NewInterval(monitorapi.SourceKeepalivedMonitor, monitorapi.Info).
 				Locator(logLine.Locator).
 				Message(monitorapi.NewMessage().
 					Reason(monitorapi.OnPremLBTookVIP).
@@ -210,7 +210,7 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 		)
 	case backupRe.MatchString(logLine.Line):
 		g.recorder.AddIntervals(
-			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
+			monitorapi.NewInterval(monitorapi.SourceKeepalivedMonitor, monitorapi.Info).
 				Locator(logLine.Locator).
 				Message(monitorapi.NewMessage().
 					Reason(monitorapi.OnPremLBLostVIP).
@@ -241,6 +241,12 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 	}
 
 	ret := []*junitapi.JUnitTestCase{}
+	if len(priorityIntervals) == 0 {
+		// If we found no priority messages then keepalived wasn't running.
+		// Either this is not an on-prem IPI job or something went catastrophically
+		// wrong. In either case, we don't need this test.
+		return ret, nil
+	}
 	if achievedPriority {
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: testName,
