@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openshift/origin/pkg/monitor"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,12 +71,7 @@ func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, l
 }
 
 func (w *operatorLogAnalyzer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	localRecorder := monitor.NewRecorder()
-	if err := scanAllOperatorPods(ctx, w.kubeClient, newOperatorLogHandlerAfterTime(localRecorder, beginning)); err != nil {
-		return nil, nil, fmt.Errorf("unable to scan operator logs: %w", err)
-	}
-
-	return localRecorder.Intervals(time.Time{}, time.Time{}), nil, nil
+	return nil, nil, nil
 }
 
 func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -126,7 +120,7 @@ func (*operatorLogAnalyzer) ConstructComputedIntervals(ctx context.Context, star
 		constructedIntervals = append(constructedIntervals, localIntervals...)
 	}
 	// Clamp all intervals to the selected range so we don't blow out the timeline
-	for interval := range contructedIntervals {
+	for _, interval := range constructedIntervals {
 		if interval.From.Before(beginning) {
 			interval.From = beginning
 		}
