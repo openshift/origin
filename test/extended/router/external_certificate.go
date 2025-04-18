@@ -29,6 +29,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -56,6 +57,22 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 	)
 
 	g.BeforeEach(func() {
+		// The RouteExternalCertificate feature must be enabled by featuregate.
+		// Otherwise, skip this test.
+		g.By("Verifying that the RouteExternalCertificate feature is enabled by featuregate")
+		isEnabled := false
+		featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, feature := range featureGate.Status.FeatureGates[0].Enabled {
+			if feature.Name == "RouteExternalCertificate" {
+				isEnabled = true
+				break
+			}
+		}
+		if !isEnabled {
+			e2eskipper.Skipf("The RouteExternalCertificate feature is not enabled by featuregate")
+		}
+
 		ip, err := exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		routerURL = fmt.Sprintf("https://%s", exutil.IPUrl(ip))
@@ -210,7 +227,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 			g.By("Creating multiple routes referencing same external certificate")
 			for i := 0; i < numRoutes; i++ {
 				route := generateRouteWithExternalCertificate(oc.Namespace(), routeNames[i], secret.Name, helloPodSvc, hosts[i], routev1.TLSTerminationEdge)
-				_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
+				createdRoute, err := oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
+				e2e.Logf("Created route: %v", createdRoute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				routes = append(routes, route)
 			}
