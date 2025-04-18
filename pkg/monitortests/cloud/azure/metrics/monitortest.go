@@ -29,6 +29,7 @@ const (
 	// If the metric average is over the threshold, an interval will be created. This can be adjusted
 	// based on value collected in real test environment.
 	avgOSDiskQueueDepthThreshold = 3.0
+	lbAvailabilityThreshold      = 99
 )
 
 type azureMetricsCollector struct {
@@ -39,8 +40,9 @@ type azureMetricsCollector struct {
 
 // metricTest is used to group test data such as azure metrics query params and threshold
 type metricTest struct {
-	interval     string
-	avgThreshold float64
+	interval       string
+	upperThreshold float64
+	lowerThreshold float64
 }
 
 func NewAzureMetricsCollector() monitortestframework.MonitorTest {
@@ -110,8 +112,8 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 	// It also includes thresholds that will be compared with the time series instances.
 	metricsMap := map[string]metricTest{
 		"OS Disk Queue Depth": {
-			interval:     "PT1M",
-			avgThreshold: avgOSDiskQueueDepthThreshold,
+			interval:       "PT1M",
+			upperThreshold: avgOSDiskQueueDepthThreshold,
 		},
 	}
 
@@ -134,8 +136,8 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 			for _, value := range resp.Value {
 				for _, ts := range value.Timeseries {
 					for _, d := range ts.Data {
-						if d.Average != nil && *d.Average > test.avgThreshold {
-							message := fmt.Sprintf("Average value of %.2f for metric %s is over the threshold of %.2f", *d.Average, metric, test.avgThreshold)
+						if d.Average != nil && *d.Average > test.upperThreshold {
+							message := fmt.Sprintf("Average value of %.2f for metric %s is over the threshold of %.2f", *d.Average, metric, test.upperThreshold)
 							ret = append(ret, monitorapi.NewInterval(monitorapi.SourceCloudMetrics, monitorapi.Warning).
 								Locator(monitorapi.NewLocator().CloudNodeMetric(machineName, metric)).
 								Message(monitorapi.NewMessage().Reason(monitorapi.CloudMetricsExtrenuous).HumanMessage(message)).
@@ -143,6 +145,55 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 								Build(d.TimeStamp.Add(-1*time.Minute), *d.TimeStamp),
 							)
 						}
+					}
+				}
+			}
+		}
+	}
+	return ret, nil
+}
+
+func fetchLBMetrics(ctx context.Context, client *armmonitor.MetricsClient, subscriptionID, resourceGroup, lbName string, startTime time.Time) ([]monitorapi.Interval, error) {
+	ret := monitorapi.Intervals{}
+	// metricsMap maps a metric name to test parameters. It includes query parameter such as metric intervals.
+	// It also includes thresholds that will be compared with the time series instances.
+	metricsMap := map[string]metricTest{
+		"VipAvailability": {
+			interval:       "PT1M",
+			lowerThreshold: lbAvailabilityThreshold,
+		},
+		"DipAvailability": {
+			interval:       "PT1M",
+			lowerThreshold: lbAvailabilityThreshold,
+		},
+	}
+
+	logrus.Infof("Fetching load balancer metrics")
+	for metric, test := range metricsMap {
+		resourceID := fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/loadBalancers/%s", subscriptionID, resourceGroup, lbName)
+		// Specify the time range and interval to query
+		timeRange := fmt.Sprintf("PT%dH", int(time.Now().Sub(startTime).Hours())+3)
+		resp, err := client.List(ctx, resourceID, &armmonitor.MetricsClientListOptions{
+			Timespan:        &timeRange,
+			Interval:        &test.interval,
+			Metricnames:     &metric,
+			Metricnamespace: nil,
+		})
+		if err != nil {
+			logrus.WithError(err).Error("error getting load balancer metrics")
+			return nil, err
+		}
+		for _, value := range resp.Value {
+			for _, ts := range value.Timeseries {
+				for _, d := range ts.Data {
+					if d.Average != nil && *d.Average < test.lowerThreshold {
+						message := fmt.Sprintf("Average value of %.2f for metric %s is under the threshold of %.2f", *d.Average, metric, test.lowerThreshold)
+						ret = append(ret, monitorapi.NewInterval(monitorapi.SourceCloudMetrics, monitorapi.Warning).
+							Locator(monitorapi.NewLocator().CloudNodeMetric(lbName, metric)).
+							Message(monitorapi.NewMessage().Reason(monitorapi.CloudMetricsLBAvailability).HumanMessage(message)).
+							Display().
+							Build(d.TimeStamp.Add(-1*time.Minute), *d.TimeStamp),
+						)
 					}
 				}
 			}
@@ -206,6 +257,16 @@ func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir stri
 	intervals, err := fetchExtrenuousVMMetrics(ctx, oc, client, subscriptionID, resourceGroup, beginning)
 	if err != nil {
 		logrus.WithError(err).Error("failed to fetch azure metrics")
+		w.flakeErr = &monitortestframework.FlakeError{Err: err}
+		return nil, nil, w.flakeErr
+	}
+	ret = append(ret, intervals...)
+
+	// get LB Name
+	lbName := fmt.Sprintf("%s-internal", infra.Status.InfrastructureName)
+	intervals, err = fetchLBMetrics(ctx, client, subscriptionID, resourceGroup, lbName, beginning)
+	if err != nil {
+		logrus.WithError(err).Error("failed to fetch azure load balancer metrics")
 		w.flakeErr = &monitortestframework.FlakeError{Err: err}
 		return nil, nil, w.flakeErr
 	}
