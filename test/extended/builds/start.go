@@ -31,14 +31,14 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture       = exutil.FixturePath("testdata", "builds", "test-build.yaml")
-		bcWithPRRef        = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
-		exampleGemfile     = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
-		exampleBuild       = exutil.FixturePath("testdata", "builds", "test-build-app")
-		symlinkFixture     = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
-		exampleGemfileURL  = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
-		exampleArchiveURL  = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
-		oc                 = exutil.NewCLIWithPodSecurityLevel("cli-start-build", admissionapi.LevelBaseline)
+		buildFixture      = exutil.FixturePath("testdata", "builds", "test-build.yaml")
+		bcWithPRRef       = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
+		exampleGemfile    = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
+		exampleBuild      = exutil.FixturePath("testdata", "builds", "test-build-app")
+		symlinkFixture    = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
+		exampleGemfileURL = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
+		exampleArchiveURL = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
+		oc                = exutil.NewCLIWithPodSecurityLevel("cli-start-build", admissionapi.LevelBaseline)
 		verifyBuildPod    = func(oc *exutil.CLI, name string) {
 			// Check the build ran on a linux node
 			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), name+"-build", metav1.GetOptions{})
@@ -54,8 +54,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					continue
 				}
 				o.Expect(initContainer.SecurityContext).NotTo(o.BeNil(), "git-clone container should have a security context")
-				o.Expect(initContainer.SecurityContext.Privileged).To(o.Or(o.BeNil(), o.BeEquivalentTo(false)), "git-clone container should not be privileged")
-				o.Expect(initContainer.SecurityContext.SeccompProfile).To(o.Or(o.BeNil(), o.BeEquivalentTo(corev1.SeccompProfileRuntimeDefault)),
+				o.Expect(*initContainer.SecurityContext.Privileged).To(o.Or(o.BeNil(), o.BeEquivalentTo(false)), "git-clone container should not be privileged")
+				o.Expect(initContainer.SecurityContext.SeccompProfile.Type).To(o.Or(o.BeNil(), o.BeEquivalentTo(corev1.SeccompProfileTypeRuntimeDefault)),
 					"git-clone container should have the runtime default seccomp profile")
 				capabilities := initContainer.SecurityContext.Capabilities
 				o.Expect(capabilities).NotTo(o.BeNil(), "git-clone container should have capabilities defined")
@@ -73,7 +73,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 
 		}
 	)
-	
+
 	g.Context("", func() {
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
