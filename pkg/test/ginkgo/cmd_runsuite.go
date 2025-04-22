@@ -356,12 +356,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
 	})
+	logrus.Infof("Found %d early tests", len(early))
 
 	late, primaryTests := splitTests(notEarly, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Late]")
 	})
+	logrus.Infof("Found %d late tests", len(late))
 
-	// Sharding always runs early and late tests in every invocation. TODO: does that make sense?
+	// Sharding always runs early and late tests in every invocation. I think this
+	// makes sense, because these tests may collect invariant data we want to know about
+	// every run.
 	primaryTests, err = sharder.Shard(primaryTests, o.ShardCount, o.ShardID)
 	if err != nil {
 		return err
@@ -378,6 +382,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
+
+	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	logrus.Infof("Found %d kube tests", len(kubeTests))
+	logrus.Infof("Found %d storage tests", len(storageTests))
+	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)

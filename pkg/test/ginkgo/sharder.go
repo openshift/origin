@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -22,6 +23,14 @@ type HashSharder struct{}
 func (h *HashSharder) Shard(allTests []*testCase, shardCount, shardID int) ([]*testCase, error) {
 	var selected []*testCase
 
+	start := time.Now()
+
+	log := logrus.WithField("sharder", h.Name()).
+		WithField("shardCount", shardCount).
+		WithField("shardID", shardID)
+
+	log.Infof("Determining sharding of %d tests", len(allTests))
+
 	if shardID > shardCount {
 		return nil, fmt.Errorf("shard %d is greater than %d", shardID, shardCount)
 	}
@@ -39,6 +48,9 @@ func (h *HashSharder) Shard(allTests []*testCase, shardCount, shardID int) ([]*t
 			selected = append(selected, test)
 		}
 	}
+
+	log.Infof("Completed sharding in %+v, this instance will run %d tests", time.Since(start), len(selected))
+
 	return selected, nil
 }
 
