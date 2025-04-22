@@ -346,14 +346,6 @@ var (
 					enableIn(configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
 					mustRegister()
 
-	FeatureGateVSphereControlPlaneMachineset = newFeatureGate("VSphereControlPlaneMachineSet").
-							reportProblemsToJiraComponent("splat").
-							contactPerson("rvanderp3").
-							productScope(ocpSpecific).
-							enhancementPR(legacyFeatureGateWithoutEnhancement).
-							enableIn(configv1.Default, configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
-							mustRegister()
-
 	FeatureGateMachineConfigNodes = newFeatureGate("MachineConfigNodes").
 					reportProblemsToJiraComponent("MachineConfigOperator").
 					contactPerson("cdoern").
@@ -537,6 +529,14 @@ var (
 						enhancementPR("https://github.com/openshift/enhancements/pull/1749").
 						enableForClusterProfile(SelfManaged, configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
 						mustRegister()
+
+	FeatureGateNewOLMPreflightPermissionChecks = newFeatureGate("NewOLMPreflightPermissionChecks").
+							reportProblemsToJiraComponent("olm").
+							contactPerson("tshort").
+							productScope(ocpSpecific).
+							enhancementPR("https://github.com/openshift/enhancements/pull/1768").
+							enableForClusterProfile(SelfManaged, configv1.DevPreviewNoUpgrade, configv1.TechPreviewNoUpgrade).
+							mustRegister()
 
 	FeatureGateInsightsOnDemandDataGather = newFeatureGate("InsightsOnDemandDataGather").
 						reportProblemsToJiraComponent("insights").

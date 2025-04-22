@@ -63,6 +63,16 @@ var schemaYAML = typed.YAMLObject(`types:
     elementType:
       namedType: __untyped_deduced_
     elementRelationship: separable
+- name: com.github.openshift.api.machineconfiguration.v1.MachineConfigNode
+  scalar: untyped
+  list:
+    elementType:
+      namedType: __untyped_atomic_
+    elementRelationship: atomic
+  map:
+    elementType:
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: com.github.openshift.api.machineconfiguration.v1.MachineConfigPool
   scalar: untyped
   list:
@@ -195,14 +205,6 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.machineconfiguration.v1alpha1.MCOObjectReference
       default: {}
-    - name: pinnedImageSets
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.machineconfiguration.v1alpha1.MachineConfigNodeSpecPinnedImageSet
-          elementRelationship: associative
-          keys:
-          - name
     - name: pool
       type:
         namedType: com.github.openshift.api.machineconfiguration.v1alpha1.MCOObjectReference
@@ -211,13 +213,6 @@ var schemaYAML = typed.YAMLObject(`types:
   map:
     fields:
     - name: desired
-      type:
-        scalar: string
-      default: ""
-- name: com.github.openshift.api.machineconfiguration.v1alpha1.MachineConfigNodeSpecPinnedImageSet
-  map:
-    fields:
-    - name: name
       type:
         scalar: string
       default: ""
@@ -270,12 +265,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: lastFailedGeneration
       type:
         scalar: numeric
-    - name: lastFailedGenerationErrors
+    - name: lastFailedGenerationError
       type:
-        list:
-          elementType:
-            scalar: string
-          elementRelationship: atomic
+        scalar: string
     - name: name
       type:
         scalar: string
