@@ -354,5 +354,7 @@ replace (
 // This can be removed once it's no longer used in o/k
 replace github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
 
-// This replace statement is for staging the version bump needed to pull in the V1 MCN API
+// This following two replace statements are for staging the version bump needed to pull in the V1 MCN API
 replace github.com/openshift/api => github.com/isabella-janssen/openshift-api v0.0.0-20250411191959-5fafc7d5a3cb
+
+replace github.com/openshift/client-go => github.com/isabella-janssen/openshift-client-go v0.0.0-20250418153859-41642085d9aa
