@@ -574,7 +574,7 @@ func ValidateMCNScopeSadPathTest(oc *exutil.CLI) {
 	o.Expect(cmdOutput).To(o.ContainSubstring("updates to MCN " + targetNode.Name + " can only be done from the MCN's owner node"))
 }
 
-// `ValidateMCNScopeSadPathTest` checks that MCN updates by impersonation of the MCD SA are blocked
+// `ValidateMCNScopeImpersonationPathTest` checks that MCN updates by impersonation of the MCD SA are blocked
 func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
 	// Grab a random node from the worker pool
 	nodeUnderTest := GetRandomNode(oc, "worker")
@@ -587,16 +587,21 @@ func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
 
 	o.Expect(err).To(o.HaveOccurred())
 	o.Expect(errb.String()).To(o.ContainSubstring("this user must have a \"authentication.kubernetes.io/node-name\" claim"))
-
 }
 
-// `ValidateMCNScopeSadPathTest` checks that MCN updates from the associated MCD are allowed
+// `ValidateMCNScopeHappyPathTest` checks that MCN updates from the associated MCD are allowed
 func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
 
 	// Grab a random node from the worker pool
 	nodeUnderTest := GetRandomNode(oc, "worker")
 
+	// Get node's starting desired version
+	nodeDesiredConfig := nodeUnderTest.Annotations[desiredConfigAnnotationKey]
+
 	// Attempt to patch the MCN owned by nodeUnderTest from nodeUnderTest's MCD. This should succeed.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
 	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
+
+	// Cleanup by updating the MCN desired config back to the original value.
+	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", fmt.Sprintf("{\"spec\":{\"configVersion\":{\"desired\":\"%v\"}}}", nodeDesiredConfig))
 }
