@@ -39,8 +39,10 @@ const (
 	// helloOpenShiftResponse is the HTTP response from hello-openshift example pod.
 	// https://github.com/kubernetes/kubernetes/blob/88dfcb225d41326113990e87b11137641c121a32/test/images/agnhost/netexec/netexec.go#L266-L269
 	helloOpenShiftResponse = "NOW:"
-	// defaultCertificateCN is the CommonName of router default certificate.
-	defaultCertificateCN = "ingress-operator"
+	// selfManagedDefaultCertificateCN is the CommonName of router default certificate for SelfManaged cluster profile.
+	selfManagedDefaultCertificateCN = "ingress-operator"
+	// hypershiftDefaultCertificateCN is the CommonName of router default certificate for HyperShift cluster profile.
+	hypershiftDefaultCertificateCN = "root-ca"
 )
 
 var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]", func() {
@@ -459,7 +461,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 							err = waitForRouterOKResponseExec(oc.Namespace(), execPod.Name, routerURL, hostName, changeTimeoutSeconds)
 							o.Expect(err).NotTo(o.HaveOccurred())
 						} else {
-							resp, err := verifyRouteServesDefaultCert(hostName)
+							resp, err := verifyRouteServesDefaultCert(oc, hostName)
 							o.Expect(err).NotTo(o.HaveOccurred())
 							o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 						}
@@ -624,7 +626,18 @@ func httpsGetCallWithExecPod(oc *exutil.CLI, url string, rootCertPEM []byte) (st
 }
 
 // verifyRouteServesDefaultCert checks that the given hostname serves the default certificate.
-func verifyRouteServesDefaultCert(hostname string) (string, error) {
+func verifyRouteServesDefaultCert(oc *exutil.CLI, hostname string) (string, error) {
+	defaultCertificateCN := selfManagedDefaultCertificateCN
+
+	// change the expected defaultCertificateCN if it's a HyperShift cluster.
+	isHypershift, err := exutil.IsHypershift(context.Background(), oc.AdminConfigClient())
+	if err != nil {
+		return "", fmt.Errorf("failed to verify HyperShift cluster: %w", err)
+	}
+	if isHypershift {
+		defaultCertificateCN = hypershiftDefaultCertificateCN
+	}
+
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -635,7 +648,7 @@ func verifyRouteServesDefaultCert(hostname string) (string, error) {
 	url := fmt.Sprintf("https://%s", hostname)
 
 	var body string
-	err := wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
 		var err error
 		var resp *http.Response
 		resp, body, err = sendHttpRequestWithRetry(url, client)
@@ -646,7 +659,7 @@ func verifyRouteServesDefaultCert(hostname string) (string, error) {
 		// check that the route is serving the default certificate.
 		for _, cert := range resp.TLS.PeerCertificates {
 			if !strings.Contains(cert.Issuer.CommonName, defaultCertificateCN) {
-				e2e.Logf("Unexpected Issuer CommonName: %v, retrying...", cert.Issuer.CommonName)
+				e2e.Logf("Unexpected Issuer CommonName: expected %v, but got %v, retrying...", defaultCertificateCN, cert.Issuer.CommonName)
 				return false, nil
 			}
 		}
