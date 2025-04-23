@@ -1390,7 +1390,6 @@ type VSpherePlatformTopology struct {
 	// VSpherePlatformFailureDomainSpec.
 	// For example, for zone=zonea, region=region1, and infrastructure name=test,
 	// the template path would be calculated as /<datacenter>/vm/test-rhcos-region1-zonea.
-	// +openshift:enable:FeatureGate=VSphereControlPlaneMachineSet
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
 	// +kubebuilder:validation:Pattern=`^/.*?/vm/.*?`
