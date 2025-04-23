@@ -51,7 +51,7 @@ func CheckForLatency() *auditLatencyRecords {
 // HandleAuditLogEvent looks for latency annotations and increments counter for all latency buckets that are below
 // the latency value.  e.g a 4s latency will increment the 2,1 & 0 bucket count values.  0 is the min and will effectively be
 // all requests.  Data is collected to analyze over time for increases in latency completing requests
-func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
+func (v *auditLatencyRecords) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
 
 	// we only want to count the response complete events
 	if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) || auditEvent.Stage != auditv1.StageResponseComplete {
