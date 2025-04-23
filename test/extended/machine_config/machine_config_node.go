@@ -87,7 +87,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 		ValidateMCNScopeImpersonationPathTest(oc)
 	})
 
-	g.It("Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		ValidateMCNScopeHappyPathTest(oc)
 	})

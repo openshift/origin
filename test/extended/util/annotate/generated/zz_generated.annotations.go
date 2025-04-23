@@ -1361,11 +1361,11 @@ var Annotations = map[string]string{
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]": "",
 
