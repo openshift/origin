@@ -603,8 +603,8 @@ github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce h1:
 github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce/go.mod h1:kkSwH4osgejnRIyHfsfkv0V0xfmgH4Yk/VDObaJukHU=
 github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c h1:6XcszPFZpan4qll5XbdLll7n1So3IsPn28aw2j1obMo=
 github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c/go.mod h1:8jcm8UPtg2mCAsxfqKil1xrmRMI3a+XU2TZ9fF8A7TE=
-github.com/openshift/client-go v0.0.0-20250324153519-f0faeb0f2f2e h1:OfOI0eTTUdwqaUHgm0YsinRYtOj4OGO+ioauVNPuDeQ=
-github.com/openshift/client-go v0.0.0-20250324153519-f0faeb0f2f2e/go.mod h1:MWRA5YlclrxlrDIOni+AaeOrHchTslLvLTs9pIWuCiw=
+github.com/openshift/client-go v0.0.0-20250416201115-ab7eedf8c1f2 h1:+zRv3Nmq7EIL0SHMNxJcq06aZ4LCgp5Z0U14sHO2fgw=
+github.com/openshift/client-go v0.0.0-20250416201115-ab7eedf8c1f2/go.mod h1:dT1cJyVTperQ53GvVRa+GZ27r02fDZy2k5j+9QoQsCo=
 github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb h1:Dr0dbSQTAU9UaoAvimGjR+fsvwx2twJ5KR0s/jyAz88=
 github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb/go.mod h1:LnhqxbWhAnhPwilJ4yX1/ly7wCMCYJKkaiSJQSh+Wjg=
 github.com/openshift/kubernetes v1.30.1-0.20250320083338-1601b9e27d85 h1:GGa1y6SWhlKjw9Utv+Q5bNH4dEk5ArVFRwaqlYsNS2Q=

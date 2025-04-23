@@ -10,6 +10,7 @@ import (
 // ConsoleCustomizationApplyConfiguration represents a declarative configuration of the ConsoleCustomization type for use
 // with apply.
 type ConsoleCustomizationApplyConfiguration struct {
+	Logos                []LogoApplyConfiguration                                `json:"logos,omitempty"`
 	Capabilities         []CapabilityApplyConfiguration                          `json:"capabilities,omitempty"`
 	Brand                *operatorv1.Brand                                       `json:"brand,omitempty"`
 	DocumentationBaseURL *string                                                 `json:"documentationBaseURL,omitempty"`
@@ -26,6 +27,19 @@ type ConsoleCustomizationApplyConfiguration struct {
 // apply.
 func ConsoleCustomization() *ConsoleCustomizationApplyConfiguration {
 	return &ConsoleCustomizationApplyConfiguration{}
+}
+
+// WithLogos adds the given value to the Logos field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Logos field.
+func (b *ConsoleCustomizationApplyConfiguration) WithLogos(values ...*LogoApplyConfiguration) *ConsoleCustomizationApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithLogos")
+		}
+		b.Logos = append(b.Logos, *values[i])
+	}
+	return b
 }
 
 // WithCapabilities adds the given value to the Capabilities field in the declarative configuration

@@ -5,11 +5,11 @@ package v1alpha1
 // MachineConfigNodeStatusPinnedImageSetApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use
 // with apply.
 type MachineConfigNodeStatusPinnedImageSetApplyConfiguration struct {
-	Name                       *string  `json:"name,omitempty"`
-	CurrentGeneration          *int32   `json:"currentGeneration,omitempty"`
-	DesiredGeneration          *int32   `json:"desiredGeneration,omitempty"`
-	LastFailedGeneration       *int32   `json:"lastFailedGeneration,omitempty"`
-	LastFailedGenerationErrors []string `json:"lastFailedGenerationErrors,omitempty"`
+	Name                      *string `json:"name,omitempty"`
+	CurrentGeneration         *int32  `json:"currentGeneration,omitempty"`
+	DesiredGeneration         *int32  `json:"desiredGeneration,omitempty"`
+	LastFailedGeneration      *int32  `json:"lastFailedGeneration,omitempty"`
+	LastFailedGenerationError *string `json:"lastFailedGenerationError,omitempty"`
 }
 
 // MachineConfigNodeStatusPinnedImageSetApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use with
@@ -50,12 +50,10 @@ func (b *MachineConfigNodeStatusPinnedImageSetApplyConfiguration) WithLastFailed
 	return b
 }
 
-// WithLastFailedGenerationErrors adds the given value to the LastFailedGenerationErrors field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the LastFailedGenerationErrors field.
-func (b *MachineConfigNodeStatusPinnedImageSetApplyConfiguration) WithLastFailedGenerationErrors(values ...string) *MachineConfigNodeStatusPinnedImageSetApplyConfiguration {
-	for i := range values {
-		b.LastFailedGenerationErrors = append(b.LastFailedGenerationErrors, values[i])
-	}
+// WithLastFailedGenerationError sets the LastFailedGenerationError field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LastFailedGenerationError field is set to the value of the last call.
+func (b *MachineConfigNodeStatusPinnedImageSetApplyConfiguration) WithLastFailedGenerationError(value string) *MachineConfigNodeStatusPinnedImageSetApplyConfiguration {
+	b.LastFailedGenerationError = &value
 	return b
 }

@@ -869,6 +869,7 @@ github.com/openshift/api/operator/v1
 github.com/openshift/api/operator/v1alpha1
 github.com/openshift/api/operatorcontrolplane
 github.com/openshift/api/operatorcontrolplane/v1alpha1
+github.com/openshift/api/operatoringress/v1
 github.com/openshift/api/osin
 github.com/openshift/api/osin/v1
 github.com/openshift/api/pkg/serialization
@@ -922,7 +923,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20250324153519-f0faeb0f2f2e
+# github.com/openshift/client-go v0.0.0-20250416201115-ab7eedf8c1f2
 ## explicit; go 1.23.0
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -1011,6 +1012,11 @@ github.com/openshift/client-go/operator/clientset/versioned
 github.com/openshift/client-go/operator/clientset/versioned/scheme
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1
+github.com/openshift/client-go/operatoringress/applyconfigurations/internal
+github.com/openshift/client-go/operatoringress/applyconfigurations/operatoringress/v1
+github.com/openshift/client-go/operatoringress/clientset/versioned
+github.com/openshift/client-go/operatoringress/clientset/versioned/scheme
+github.com/openshift/client-go/operatoringress/clientset/versioned/typed/operatoringress/v1
 github.com/openshift/client-go/project/applyconfigurations/internal
 github.com/openshift/client-go/project/applyconfigurations/project/v1
 github.com/openshift/client-go/project/clientset/versioned
