@@ -68,7 +68,7 @@ import (
 	mcv1client "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
-	dnsrecordclientset "github.com/openshift/client-go/operatoringress/clientset/versioned"
+	ingressv1client "github.com/openshift/client-go/operatoringress/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
 	quotav1client "github.com/openshift/client-go/quota/clientset/versioned"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
@@ -675,10 +675,6 @@ func (c *CLI) BuildClient() buildv1client.Interface {
 	return buildv1client.NewForConfigOrDie(c.UserConfig())
 }
 
-func (c *CLI) DnsRecordClient() dnsrecordclientset.Interface {
-	return dnsrecordclientset.NewForConfigOrDie(c.AdminConfig())
-}
-
 func (c *CLI) ImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.UserConfig())
 }
@@ -724,6 +720,10 @@ func (c *CLI) AdminConfigClient() configv1client.Interface {
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) AdminIngressClient() ingressv1client.Interface {
+	return ingressv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminOAuthClient() oauthv1client.Interface {

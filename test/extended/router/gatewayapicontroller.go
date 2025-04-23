@@ -381,8 +381,9 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName, domain, lbAddress string
 
 	// find the DNS Record and confirm its zone status is True
 	gatewayDNSRecord := &operatoringressv1.DNSRecord{}
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
-		gatewayDNSRecords, errDNSStatus := oc.DnsRecordClient().IngressV1().DNSRecords("openshift-ingress").List(context, metav1.ListOptions{})
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 1*time.Minute, false, func(context context.Context) (bool, error) {
+		// waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+		gatewayDNSRecords, errDNSStatus := oc.AdminIngressClient().IngressV1().DNSRecords("openshift-ingress").List(context, metav1.ListOptions{})
 		if errDNSStatus != nil {
 			e2e.Logf("Failed to get gateway DNS records, retrying...")
 			return false, nil
@@ -402,18 +403,20 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName, domain, lbAddress string
 		}
 
 		// checking the gateway DNS record status
+		flag := true
 		for _, zones := range gatewayDNSRecord.Status.Zones {
 			for _, condition := range zones.Conditions {
-				if condition.Type == "Published" {
-					if condition.Status == "True" {
-						e2e.Logf("The gateway DNS records created and ready to use")
-						return true, nil
-					}
+				if condition.Type != "Published" || condition.Status != "True" {
+					flag = false
+					break
 				}
 			}
 		}
-		e2e.Logf("Gateway DNS records is not ready, retrying...")
-		return false, nil
+
+		if flag {
+			e2e.Logf("The gateway DNS records created and ready to use")
+		}
+		return flag, nil
 	})
 	o.Expect(waitErr).NotTo(o.HaveOccurred(), "The GatewayDNSRecord %s is not ready", gatewayDNSRecord.Name)
 	return nil
