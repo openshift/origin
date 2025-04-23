@@ -12,7 +12,7 @@ func Test_auditLogEventHandler(t *testing.T) {
 	handler := CheckForLatency()
 	mTime := metav1.NewMicroTime(time.Now())
 
-	//only one event over 15 seconds
+	// only one event over 15 seconds
 	handler.HandleAuditLogEvent(&auditv1.Event{
 		AuditID:                  "audit-id",
 		Stage:                    auditv1.StageResponseComplete,
@@ -20,7 +20,7 @@ func Test_auditLogEventHandler(t *testing.T) {
 		ObjectRef:                &auditv1.ObjectReference{Name: "testName", Resource: "testResource", Namespace: "testNamespace"},
 		RequestReceivedTimestamp: mTime,
 		Annotations:              map[string]string{"apiserver.latency.k8s.io/etcd": "15.999592078s", "apiserver.latency.k8s.io/response-write": "780ns", "apiserver.latency.k8s.io/serialize-response-object": "3.746852ms", "apiserver.latency.k8s.io/total": "16.005122724s"},
-	}, &mTime, nil)
+	}, &mTime, nil, "testNode")
 
 	// all sub second so default only
 	handler.HandleAuditLogEvent(&auditv1.Event{
@@ -30,7 +30,7 @@ func Test_auditLogEventHandler(t *testing.T) {
 		Verb:                     "list",
 		RequestReceivedTimestamp: mTime,
 		Annotations:              map[string]string{"apiserver.latency.k8s.io/etcd": "5.999592078ms", "apiserver.latency.k8s.io/response-write": "780ns", "apiserver.latency.k8s.io/serialize-response-object": "0.746852ms", "apiserver.latency.k8s.io/total": "6.005122724ms"},
-	}, &mTime, nil)
+	}, &mTime, nil, "testNode")
 
 	// total is over 2s but etcd is under
 	handler.HandleAuditLogEvent(&auditv1.Event{
@@ -40,7 +40,7 @@ func Test_auditLogEventHandler(t *testing.T) {
 		ObjectRef:                &auditv1.ObjectReference{Name: "testName", Resource: "testResource", Namespace: "testNamespace"},
 		RequestReceivedTimestamp: mTime,
 		Annotations:              map[string]string{"apiserver.latency.k8s.io/etcd": "1.999592078s", "apiserver.latency.k8s.io/response-write": "780ns", "apiserver.latency.k8s.io/serialize-response-object": "0.746852ms", "apiserver.latency.k8s.io/total": "2.005122724s"},
-	}, &mTime, nil)
+	}, &mTime, nil, "testNode")
 
 	// no annotations so only default (0) total is incremented
 	handler.HandleAuditLogEvent(&auditv1.Event{
@@ -50,7 +50,7 @@ func Test_auditLogEventHandler(t *testing.T) {
 		ObjectRef:                &auditv1.ObjectReference{Name: "testName", Resource: "testResource", Namespace: "testNamespace"},
 		RequestReceivedTimestamp: mTime,
 		Annotations:              map[string]string{},
-	}, &mTime, nil)
+	}, &mTime, nil, "testNode")
 
 	assert.NotNil(t, handler.summary.resourceBuckets)
 
