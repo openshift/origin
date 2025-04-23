@@ -19,6 +19,15 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"golang.org/x/mod/semver"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
@@ -28,14 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
-	"golang.org/x/mod/semver"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -55,6 +56,16 @@ type GinkgoRunSuiteOptions struct {
 	FailFast    bool
 	Timeout     time.Duration
 	JUnitDir    string
+
+	// ShardCount is the total number of partitions the test suite is divided into.
+	// Each executor runs one of these partitions.
+	ShardCount int
+
+	// ShardStrategy is which strategy we'll use for dividing tests.
+	ShardStrategy string
+
+	// ShardID is the 1-based index of the shard this instance is responsible for running.
+	ShardID int
 
 	// SyntheticEventTests allows the caller to translate events or outside
 	// context into a failure.
@@ -78,7 +89,8 @@ type GinkgoRunSuiteOptions struct {
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		IOStreams: streams,
+		IOStreams:     streams,
+		ShardStrategy: "hash",
 	}
 }
 
@@ -98,6 +110,10 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&o.ExactMonitorTests, "monitor", o.ExactMonitorTests,
 		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
 	flags.StringSliceVar(&o.DisableMonitorTests, "disable-monitor", o.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
+
+	flags.IntVar(&o.ShardID, "shard-id", o.ShardID, "When tests are sharded across instances, which instance we are")
+	flags.IntVar(&o.ShardCount, "shard-count", o.ShardCount, "Number of shards used to run tests across multiple instances")
+	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -134,6 +150,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	tests, err := testsForSuite()
 	if err != nil {
 		return fmt.Errorf("failed reading origin test suites: %w", err)
+	}
+
+	var sharder Sharder
+	switch o.ShardStrategy {
+	default:
+		sharder = &HashSharder{}
 	}
 
 	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary", len(tests))
@@ -355,10 +377,20 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
 	})
+	logrus.Infof("Found %d early tests", len(early))
 
 	late, primaryTests := splitTests(notEarly, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Late]")
 	})
+	logrus.Infof("Found %d late tests", len(late))
+
+	// Sharding always runs early and late tests in every invocation. I think this
+	// makes sense, because these tests may collect invariant data we want to know about
+	// every run.
+	primaryTests, err = sharder.Shard(primaryTests, o.ShardCount, o.ShardID)
+	if err != nil {
+		return err
+	}
 
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Suite:k8s]")
@@ -371,6 +403,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
+
+	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	logrus.Infof("Found %d kube tests", len(kubeTests))
+	logrus.Infof("Found %d storage tests", len(storageTests))
+	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
