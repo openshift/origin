@@ -118,7 +118,7 @@ var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func(
 		g.By("expecting the image to have unverified signature")
 		out, err = oc.Run("describe").Args("istag", "signed:latest").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf(out)
+		e2e.Logf("%s", out)
 		o.Expect(out).To(o.ContainSubstring("Unverified"))
 
 		out, err = pod.Exec(strings.Join([]string{

@@ -293,7 +293,7 @@ var _ = g.Describe("[sig-network][Feature:CNIMigration]", g.Ordered, func() {
 			}
 		}
 		if len(errMsgs) > 0 {
-			combinedErr := fmt.Errorf(strings.Join(errMsgs, "; "))
+			combinedErr := fmt.Errorf("%s", strings.Join(errMsgs, "; "))
 			framework.ExpectNoError(combinedErr)
 		}
 	})
