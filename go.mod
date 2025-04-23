@@ -353,3 +353,6 @@ replace (
 // The cadvisor version used in k8s v1.32.1 (v0.51.0) relies on code present on this version
 // This can be removed once it's no longer used in o/k
 replace github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
+
+// The following replace commands are in place to allow the simultaneous merge of the API (PR #2255) & origin for making use of the V1 MCN API
+replace github.com/openshift/api => github.com/isabella-janssen/openshift-api v0.0.0-20250423163652-3d76f1835b2c
