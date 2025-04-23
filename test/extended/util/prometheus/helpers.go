@@ -220,7 +220,7 @@ func RunQueries(ctx context.Context, prometheusClient prometheusv1.API, promQuer
 				if prev, ok := queryErrors[query]; ok && prev.Error() != msg {
 					framework.Logf("%s", prev.Error())
 				}
-				queryErrors[query] = fmt.Errorf(msg)
+				queryErrors[query] = fmt.Errorf("%s", msg)
 				continue
 			}
 
@@ -358,11 +358,11 @@ func ValidateURL(rawURL string) error {
 
 	if u.Scheme != "http" && u.Scheme != "https" {
 		errstr := fmt.Sprintf("%q: URL scheme is invalid, it should be 'http' or 'https'", rawURL)
-		return fmt.Errorf(errstr)
+		return fmt.Errorf("%s", errstr)
 	}
 	if u.Host == "" {
 		errstr := fmt.Sprintf("%q: host should not be empty", rawURL)
-		return fmt.Errorf(errstr)
+		return fmt.Errorf("%s", errstr)
 	}
 	return nil
 }
