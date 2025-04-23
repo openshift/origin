@@ -19,14 +19,14 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1"
-	v1 "sigs.k8s.io/gateway-api/apis/v1"
+	apisv1 "sigs.k8s.io/gateway-api/apis/v1"
+	applyconfigurationapisv1 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,36 +38,37 @@ type HTTPRoutesGetter interface {
 
 // HTTPRouteInterface has methods to work with HTTPRoute resources.
 type HTTPRouteInterface interface {
-	Create(ctx context.Context, hTTPRoute *v1.HTTPRoute, opts metav1.CreateOptions) (*v1.HTTPRoute, error)
-	Update(ctx context.Context, hTTPRoute *v1.HTTPRoute, opts metav1.UpdateOptions) (*v1.HTTPRoute, error)
+	Create(ctx context.Context, hTTPRoute *apisv1.HTTPRoute, opts metav1.CreateOptions) (*apisv1.HTTPRoute, error)
+	Update(ctx context.Context, hTTPRoute *apisv1.HTTPRoute, opts metav1.UpdateOptions) (*apisv1.HTTPRoute, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, hTTPRoute *v1.HTTPRoute, opts metav1.UpdateOptions) (*v1.HTTPRoute, error)
+	UpdateStatus(ctx context.Context, hTTPRoute *apisv1.HTTPRoute, opts metav1.UpdateOptions) (*apisv1.HTTPRoute, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.HTTPRoute, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.HTTPRouteList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*apisv1.HTTPRoute, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*apisv1.HTTPRouteList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.HTTPRoute, err error)
-	Apply(ctx context.Context, hTTPRoute *apisv1.HTTPRouteApplyConfiguration, opts metav1.ApplyOptions) (result *v1.HTTPRoute, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *apisv1.HTTPRoute, err error)
+	Apply(ctx context.Context, hTTPRoute *applyconfigurationapisv1.HTTPRouteApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.HTTPRoute, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, hTTPRoute *apisv1.HTTPRouteApplyConfiguration, opts metav1.ApplyOptions) (result *v1.HTTPRoute, err error)
+	ApplyStatus(ctx context.Context, hTTPRoute *applyconfigurationapisv1.HTTPRouteApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.HTTPRoute, err error)
 	HTTPRouteExpansion
 }
 
 // hTTPRoutes implements HTTPRouteInterface
 type hTTPRoutes struct {
-	*gentype.ClientWithListAndApply[*v1.HTTPRoute, *v1.HTTPRouteList, *apisv1.HTTPRouteApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1.HTTPRoute, *apisv1.HTTPRouteList, *applyconfigurationapisv1.HTTPRouteApplyConfiguration]
 }
 
 // newHTTPRoutes returns a HTTPRoutes
 func newHTTPRoutes(c *GatewayV1Client, namespace string) *hTTPRoutes {
 	return &hTTPRoutes{
-		gentype.NewClientWithListAndApply[*v1.HTTPRoute, *v1.HTTPRouteList, *apisv1.HTTPRouteApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1.HTTPRoute, *apisv1.HTTPRouteList, *applyconfigurationapisv1.HTTPRouteApplyConfiguration](
 			"httproutes",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1.HTTPRoute { return &v1.HTTPRoute{} },
-			func() *v1.HTTPRouteList { return &v1.HTTPRouteList{} }),
+			func() *apisv1.HTTPRoute { return &apisv1.HTTPRoute{} },
+			func() *apisv1.HTTPRouteList { return &apisv1.HTTPRouteList{} },
+		),
 	}
 }

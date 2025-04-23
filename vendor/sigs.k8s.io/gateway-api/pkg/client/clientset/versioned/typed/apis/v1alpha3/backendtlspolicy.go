@@ -19,14 +19,14 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"context"
+	context "context"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1alpha3 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1alpha3"
-	v1alpha3 "sigs.k8s.io/gateway-api/apis/v1alpha3"
+	apisv1alpha3 "sigs.k8s.io/gateway-api/apis/v1alpha3"
+	applyconfigurationapisv1alpha3 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1alpha3"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,36 +38,37 @@ type BackendTLSPoliciesGetter interface {
 
 // BackendTLSPolicyInterface has methods to work with BackendTLSPolicy resources.
 type BackendTLSPolicyInterface interface {
-	Create(ctx context.Context, backendTLSPolicy *v1alpha3.BackendTLSPolicy, opts v1.CreateOptions) (*v1alpha3.BackendTLSPolicy, error)
-	Update(ctx context.Context, backendTLSPolicy *v1alpha3.BackendTLSPolicy, opts v1.UpdateOptions) (*v1alpha3.BackendTLSPolicy, error)
+	Create(ctx context.Context, backendTLSPolicy *apisv1alpha3.BackendTLSPolicy, opts v1.CreateOptions) (*apisv1alpha3.BackendTLSPolicy, error)
+	Update(ctx context.Context, backendTLSPolicy *apisv1alpha3.BackendTLSPolicy, opts v1.UpdateOptions) (*apisv1alpha3.BackendTLSPolicy, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, backendTLSPolicy *v1alpha3.BackendTLSPolicy, opts v1.UpdateOptions) (*v1alpha3.BackendTLSPolicy, error)
+	UpdateStatus(ctx context.Context, backendTLSPolicy *apisv1alpha3.BackendTLSPolicy, opts v1.UpdateOptions) (*apisv1alpha3.BackendTLSPolicy, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha3.BackendTLSPolicy, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha3.BackendTLSPolicyList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*apisv1alpha3.BackendTLSPolicy, error)
+	List(ctx context.Context, opts v1.ListOptions) (*apisv1alpha3.BackendTLSPolicyList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha3.BackendTLSPolicy, err error)
-	Apply(ctx context.Context, backendTLSPolicy *apisv1alpha3.BackendTLSPolicyApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha3.BackendTLSPolicy, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *apisv1alpha3.BackendTLSPolicy, err error)
+	Apply(ctx context.Context, backendTLSPolicy *applyconfigurationapisv1alpha3.BackendTLSPolicyApplyConfiguration, opts v1.ApplyOptions) (result *apisv1alpha3.BackendTLSPolicy, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, backendTLSPolicy *apisv1alpha3.BackendTLSPolicyApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha3.BackendTLSPolicy, err error)
+	ApplyStatus(ctx context.Context, backendTLSPolicy *applyconfigurationapisv1alpha3.BackendTLSPolicyApplyConfiguration, opts v1.ApplyOptions) (result *apisv1alpha3.BackendTLSPolicy, err error)
 	BackendTLSPolicyExpansion
 }
 
 // backendTLSPolicies implements BackendTLSPolicyInterface
 type backendTLSPolicies struct {
-	*gentype.ClientWithListAndApply[*v1alpha3.BackendTLSPolicy, *v1alpha3.BackendTLSPolicyList, *apisv1alpha3.BackendTLSPolicyApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1alpha3.BackendTLSPolicy, *apisv1alpha3.BackendTLSPolicyList, *applyconfigurationapisv1alpha3.BackendTLSPolicyApplyConfiguration]
 }
 
 // newBackendTLSPolicies returns a BackendTLSPolicies
 func newBackendTLSPolicies(c *GatewayV1alpha3Client, namespace string) *backendTLSPolicies {
 	return &backendTLSPolicies{
-		gentype.NewClientWithListAndApply[*v1alpha3.BackendTLSPolicy, *v1alpha3.BackendTLSPolicyList, *apisv1alpha3.BackendTLSPolicyApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1alpha3.BackendTLSPolicy, *apisv1alpha3.BackendTLSPolicyList, *applyconfigurationapisv1alpha3.BackendTLSPolicyApplyConfiguration](
 			"backendtlspolicies",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha3.BackendTLSPolicy { return &v1alpha3.BackendTLSPolicy{} },
-			func() *v1alpha3.BackendTLSPolicyList { return &v1alpha3.BackendTLSPolicyList{} }),
+			func() *apisv1alpha3.BackendTLSPolicy { return &apisv1alpha3.BackendTLSPolicy{} },
+			func() *apisv1alpha3.BackendTLSPolicyList { return &apisv1alpha3.BackendTLSPolicyList{} },
+		),
 	}
 }

@@ -68,6 +68,7 @@ import (
 	mcv1client "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	ingressv1client "github.com/openshift/client-go/operatoringress/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
 	quotav1client "github.com/openshift/client-go/quota/clientset/versioned"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
@@ -76,6 +77,7 @@ import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	gatewayapiv1client "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -674,8 +676,18 @@ func (c *CLI) BuildClient() buildv1client.Interface {
 	return buildv1client.NewForConfigOrDie(c.UserConfig())
 }
 
+// GatewayApiClient provides a GatewayAPI client for the current namespace user.
+func (c *CLI) GatewayApiClient() gatewayapiv1client.Interface {
+	return gatewayapiv1client.NewForConfigOrDie(c.UserConfig())
+}
+
 func (c *CLI) ImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.UserConfig())
+}
+
+// AdminGatewayApiClient provides a GatewayAPI client for the cluster admin user.
+func (c *CLI) AdminGatewayApiClient() gatewayapiv1client.Interface {
+	return gatewayapiv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) ProjectClient() projectv1client.Interface {
@@ -719,6 +731,10 @@ func (c *CLI) AdminConfigClient() configv1client.Interface {
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {
 	return imagev1client.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) AdminIngressClient() ingressv1client.Interface {
+	return ingressv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 func (c *CLI) AdminOAuthClient() oauthv1client.Interface {

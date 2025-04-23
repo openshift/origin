@@ -19,14 +19,14 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1"
-	v1 "sigs.k8s.io/gateway-api/apis/v1"
+	apisv1 "sigs.k8s.io/gateway-api/apis/v1"
+	applyconfigurationapisv1 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,36 +38,37 @@ type GatewaysGetter interface {
 
 // GatewayInterface has methods to work with Gateway resources.
 type GatewayInterface interface {
-	Create(ctx context.Context, gateway *v1.Gateway, opts metav1.CreateOptions) (*v1.Gateway, error)
-	Update(ctx context.Context, gateway *v1.Gateway, opts metav1.UpdateOptions) (*v1.Gateway, error)
+	Create(ctx context.Context, gateway *apisv1.Gateway, opts metav1.CreateOptions) (*apisv1.Gateway, error)
+	Update(ctx context.Context, gateway *apisv1.Gateway, opts metav1.UpdateOptions) (*apisv1.Gateway, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, gateway *v1.Gateway, opts metav1.UpdateOptions) (*v1.Gateway, error)
+	UpdateStatus(ctx context.Context, gateway *apisv1.Gateway, opts metav1.UpdateOptions) (*apisv1.Gateway, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Gateway, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.GatewayList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*apisv1.Gateway, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*apisv1.GatewayList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Gateway, err error)
-	Apply(ctx context.Context, gateway *apisv1.GatewayApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Gateway, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *apisv1.Gateway, err error)
+	Apply(ctx context.Context, gateway *applyconfigurationapisv1.GatewayApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.Gateway, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, gateway *apisv1.GatewayApplyConfiguration, opts metav1.ApplyOptions) (result *v1.Gateway, err error)
+	ApplyStatus(ctx context.Context, gateway *applyconfigurationapisv1.GatewayApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.Gateway, err error)
 	GatewayExpansion
 }
 
 // gateways implements GatewayInterface
 type gateways struct {
-	*gentype.ClientWithListAndApply[*v1.Gateway, *v1.GatewayList, *apisv1.GatewayApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1.Gateway, *apisv1.GatewayList, *applyconfigurationapisv1.GatewayApplyConfiguration]
 }
 
 // newGateways returns a Gateways
 func newGateways(c *GatewayV1Client, namespace string) *gateways {
 	return &gateways{
-		gentype.NewClientWithListAndApply[*v1.Gateway, *v1.GatewayList, *apisv1.GatewayApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1.Gateway, *apisv1.GatewayList, *applyconfigurationapisv1.GatewayApplyConfiguration](
 			"gateways",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1.Gateway { return &v1.Gateway{} },
-			func() *v1.GatewayList { return &v1.GatewayList{} }),
+			func() *apisv1.Gateway { return &apisv1.Gateway{} },
+			func() *apisv1.GatewayList { return &apisv1.GatewayList{} },
+		),
 	}
 }
