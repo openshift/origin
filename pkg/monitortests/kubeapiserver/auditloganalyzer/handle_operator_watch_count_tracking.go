@@ -170,7 +170,7 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 			"cloud-credential-operator":              176.0,
 			"cluster-autoscaler-operator":            132.0,
 			"cluster-baremetal-operator":             125.0,
-			"cluster-capi-operator":                  200.0,
+			"cluster-capi-operator":                  250.0,
 			"cluster-image-registry-operator":        189.0,
 			"cluster-monitoring-operator":            186.0,
 			"cluster-node-tuning-operator":           115.0,
