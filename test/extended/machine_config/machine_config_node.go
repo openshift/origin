@@ -591,17 +591,24 @@ func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
 
 // `ValidateMCNScopeHappyPathTest` checks that MCN updates from the associated MCD are allowed
 func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
+	// Create client set for test
+	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
 	// Grab a random node from the worker pool
 	nodeUnderTest := GetRandomNode(oc, "worker")
 
-	// Get node's starting desired version
-	nodeDesiredConfig := nodeUnderTest.Annotations[desiredConfigAnnotationKey]
+	// Get MCN of test node
+	mcn, mcnErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), nodeUnderTest.Name, metav1.GetOptions{})
+	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Could not get MCN for node '%v'. Error: %v", nodeUnderTest.Name, mcnErr))
+
+	// Get mcn's starting observed generation
+	startingObservedGeneration := mcn.Status.ObservedGeneration
 
 	// Attempt to patch the MCN owned by nodeUnderTest from nodeUnderTest's MCD. This should succeed.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
-	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
+	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", fmt.Sprintf("{\"status\":{\"observedGeneration\":%v}}", startingObservedGeneration+1))
 
 	// Cleanup by updating the MCN desired config back to the original value.
-	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", fmt.Sprintf("{\"spec\":{\"configVersion\":{\"desired\":\"%v\"}}}", nodeDesiredConfig))
+	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", fmt.Sprintf("{\"status\":{\"observedGeneration\":%v}}", startingObservedGeneration))
 }
