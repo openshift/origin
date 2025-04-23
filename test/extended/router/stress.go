@@ -670,7 +670,7 @@ func verifyCommandEquivalent(c clientset.Interface, rs *appsv1.ReplicaSet, cmd s
 	})
 	for name, stdout := range values {
 		stdout = strings.TrimSuffix(stdout, "\n")
-		e2e.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
+		e2e.Logf("%s: %s", name, strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 	}
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
