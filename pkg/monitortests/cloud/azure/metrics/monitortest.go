@@ -174,7 +174,11 @@ func (w *azureMetricsCollector) StartCollection(ctx context.Context, adminRESTCo
 		return err
 	}
 	if infra.Spec.PlatformSpec.Type != configv1.AzurePlatformType {
-		return nil
+		reason := fmt.Sprintf("platform %s not supported", infra.Spec.PlatformSpec.Type)
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: reason,
+		}
+		return w.notSupportedReason
 	}
 	// get resource group
 	w.resourceGroup = infra.Status.PlatformStatus.Azure.ResourceGroupName
@@ -509,5 +513,8 @@ func (*azureMetricsCollector) WriteContentToStorage(ctx context.Context, storage
 }
 
 func (w *azureMetricsCollector) Cleanup(ctx context.Context) error {
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
+	}
 	return deleteLogAnalyticsWorkspace(ctx, w.credential, w.subscriptionID, w.resourceGroup, w.workspaceName)
 }
