@@ -45,6 +45,14 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 
 		busyboxImage = "quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f"
 	)
+
+	g.BeforeEach(func(ctx context.Context) {
+		//skip these tests on hypershift platforms
+		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+			g.Skip("MachineConfigNodes is not supported on hypershift. Skipping tests.")
+		}
+	})
+
 	// Ensure each test pins a separate image, since we are not deleting them after each
 
 	g.It("All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {

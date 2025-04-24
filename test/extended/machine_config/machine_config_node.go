@@ -43,6 +43,13 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
 
+	g.BeforeEach(func(ctx context.Context) {
+		//skip these tests on hypershift platforms
+		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+			g.Skip("PinnedImages is not supported on hypershift. Skipping tests.")
+		}
+	})
+
 	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) { //handle SNO clusters
 			ValidateMCNPropertiesSNO(oc)
