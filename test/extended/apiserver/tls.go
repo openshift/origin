@@ -349,6 +349,16 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	g.It("TestTLSDefaults", func() {
 		t := g.GinkgoT()
 
+		coreClient, err := e2e.LoadClientset(true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if isMicroShift {
+			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
+		}
+
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
