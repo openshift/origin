@@ -457,6 +457,10 @@
 // test/extended/testdata/node/nested_container/containers.conf
 // test/extended/testdata/node/nested_container/run_tests.sh
 // test/extended/testdata/node/nested_container/skip_tests.sh
+// test/extended/testdata/node/zstd-chunked/Dockerfile
+// test/extended/testdata/node/zstd-chunked/Dockerfile.sample
+// test/extended/testdata/node/zstd-chunked/build.sh
+// test/extended/testdata/node/zstd-chunked/test-custom-build.yaml
 // test/extended/testdata/node_tuning/nto-stalld.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
@@ -50650,6 +50654,137 @@ func testExtendedTestdataNodeNested_containerSkip_testsSh() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataNodeZstdChunkedDockerfile = []byte(`FROM registry.redhat.io/rhel8/buildah:latest
+# For simplicity, /tmp/build contains the inputs we’ll be building when we
+# run this custom builder image. Normally the custom builder image would
+# fetch this content from some location at build time. (e.g. via git clone).
+ADD Dockerfile.sample /tmp/input/Dockerfile
+ADD build.sh /usr/bin
+RUN chmod a+x /usr/bin/build.sh
+# /usr/build/build.sh contains the actual custom build logic that will be executed when
+# this custom builder image is executed.
+ENTRYPOINT ["/usr/bin/build.sh"]
+`)
+
+func testExtendedTestdataNodeZstdChunkedDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeZstdChunkedDockerfile, nil
+}
+
+func testExtendedTestdataNodeZstdChunkedDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeZstdChunkedDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/zstd-chunked/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeZstdChunkedDockerfileSample = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+CMD ["date"]
+`)
+
+func testExtendedTestdataNodeZstdChunkedDockerfileSampleBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeZstdChunkedDockerfileSample, nil
+}
+
+func testExtendedTestdataNodeZstdChunkedDockerfileSample() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeZstdChunkedDockerfileSampleBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/zstd-chunked/Dockerfile.sample", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeZstdChunkedBuildSh = []byte(`#!/bin/sh
+
+set -euo pipefail
+
+# Note that in this case the build inputs are part of the custom builder image, but normally this
+# would be retrieved from an external source.
+cd /tmp/input
+# OUTPUT_REGISTRY and OUTPUT_IMAGE are env variables provided by the custom
+# build framework
+TAG="${OUTPUT_REGISTRY}/${OUTPUT_IMAGE}"
+
+cp -R /var/run/configs/openshift.io/certs/certs.d/* /etc/containers/certs.d/
+
+# buildah requires a slight modification to the push secret provided by the service account in order to use it for pushing the image
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/pull/.dockercfg)}" > /tmp/.pull
+echo "{ \"auths\": $(cat /var/run/secrets/openshift.io/push/.dockercfg)}" > /tmp/.push
+
+# performs the build of the new image defined by Dockerfile.sample
+buildah --authfile /tmp/.pull --storage-driver vfs bud --isolation chroot -t ${TAG} .
+# push the new image to the target for the build
+buildah --authfile /tmp/.push --storage-driver vfs push --compression-format zstd:chunked ${TAG}
+`)
+
+func testExtendedTestdataNodeZstdChunkedBuildShBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeZstdChunkedBuildSh, nil
+}
+
+func testExtendedTestdataNodeZstdChunkedBuildSh() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeZstdChunkedBuildShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/zstd-chunked/build.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeZstdChunkedTestCustomBuildYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: sample-custom
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: sample-custom-build
+    labels:
+      name: sample-custom-build
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Custom
+      customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: custom-builder-image:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sample-custom:latest
+`)
+
+func testExtendedTestdataNodeZstdChunkedTestCustomBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeZstdChunkedTestCustomBuildYaml, nil
+}
+
+func testExtendedTestdataNodeZstdChunkedTestCustomBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeZstdChunkedTestCustomBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/zstd-chunked/test-custom-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNode_tuningNtoStalldYaml = []byte(`apiVersion: tuned.openshift.io/v1
 kind: Tuned
 metadata:
@@ -59144,6 +59279,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/node/nested_container/containers.conf":                                           testExtendedTestdataNodeNested_containerContainersConf,
 	"test/extended/testdata/node/nested_container/run_tests.sh":                                              testExtendedTestdataNodeNested_containerRun_testsSh,
 	"test/extended/testdata/node/nested_container/skip_tests.sh":                                             testExtendedTestdataNodeNested_containerSkip_testsSh,
+	"test/extended/testdata/node/zstd-chunked/Dockerfile":                                                    testExtendedTestdataNodeZstdChunkedDockerfile,
+	"test/extended/testdata/node/zstd-chunked/Dockerfile.sample":                                             testExtendedTestdataNodeZstdChunkedDockerfileSample,
+	"test/extended/testdata/node/zstd-chunked/build.sh":                                                      testExtendedTestdataNodeZstdChunkedBuildSh,
+	"test/extended/testdata/node/zstd-chunked/test-custom-build.yaml":                                        testExtendedTestdataNodeZstdChunkedTestCustomBuildYaml,
 	"test/extended/testdata/node_tuning/nto-stalld.yaml":                                                     testExtendedTestdataNode_tuningNtoStalldYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
@@ -59946,6 +60085,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"containers.conf": {testExtendedTestdataNodeNested_containerContainersConf, map[string]*bintree{}},
 						"run_tests.sh":    {testExtendedTestdataNodeNested_containerRun_testsSh, map[string]*bintree{}},
 						"skip_tests.sh":   {testExtendedTestdataNodeNested_containerSkip_testsSh, map[string]*bintree{}},
+					}},
+					"zstd-chunked": {nil, map[string]*bintree{
+						"Dockerfile":             {testExtendedTestdataNodeZstdChunkedDockerfile, map[string]*bintree{}},
+						"Dockerfile.sample":      {testExtendedTestdataNodeZstdChunkedDockerfileSample, map[string]*bintree{}},
+						"build.sh":               {testExtendedTestdataNodeZstdChunkedBuildSh, map[string]*bintree{}},
+						"test-custom-build.yaml": {testExtendedTestdataNodeZstdChunkedTestCustomBuildYaml, map[string]*bintree{}},
 					}},
 				}},
 				"node_tuning": {nil, map[string]*bintree{
