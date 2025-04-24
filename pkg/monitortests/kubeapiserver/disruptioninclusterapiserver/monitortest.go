@@ -114,10 +114,13 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 	return nil
 }
 
-func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost string) error {
+func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost, apiIntPort string) error {
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
 	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
+	if apiIntPort != "" {
+		deploymentObj.Spec.Template.Spec.Containers[0].Env[1].Value = apiIntPort
+	}
 	// set amount of deployment replicas to make sure it runs on all nodes
 	deploymentObj.Spec.Replicas = &i.replicas
 	// we need to use the openshift-tests image of the destination during an upgrade.
@@ -363,6 +366,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return fmt.Errorf("error parsing api int url: %v", err)
 	}
 	apiIntHost := internalAPI.Hostname()
+	apiIntPort := internalAPI.Port()
 
 	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -418,7 +422,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating localhost: %v", err)
 	}
-	err = i.createInternalLBDeployment(ctx, apiIntHost)
+	err = i.createInternalLBDeployment(ctx, apiIntHost, apiIntPort)
 	if err != nil {
 		return fmt.Errorf("error creating internal LB: %v", err)
 	}
