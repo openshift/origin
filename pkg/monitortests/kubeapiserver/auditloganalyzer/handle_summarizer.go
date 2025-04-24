@@ -17,7 +17,7 @@ func NewAuditLogSummarizer() *summarizer {
 	}
 }
 
-func (s *summarizer) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
+func (s *summarizer) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
 	if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) {
 		return
 	}
