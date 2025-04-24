@@ -107,6 +107,9 @@ func TestImageConfigImageStreamImportModeLegacy(t g.GinkgoTInterface, oc *exutil
 	if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
 		g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
 	}
+	if isSNO, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient()); err == nil && isSNO {
+		g.Skip("skipping this test for SNO as it involves an openshift-apiserver disruption")
+	}
 
 	clusterAdminConfigClient := oc.AdminConfigClient().ConfigV1()
 	imageConfig, err := clusterAdminConfigClient.Images().Get(ctx, "cluster", metav1.GetOptions{})
@@ -150,6 +153,9 @@ func TestImageConfigImageStreamImportModePreserveOriginal(t g.GinkgoTInterface, 
 	ctx := context.Background()
 	if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
 		g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
+	}
+	if isSNO, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient()); err == nil && isSNO {
+		g.Skip("skipping this test for SNO as it involves an openshift-apiserver disruption")
 	}
 
 	clusterAdminConfigClient := oc.AdminConfigClient().ConfigV1()
