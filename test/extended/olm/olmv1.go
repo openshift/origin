@@ -27,6 +27,7 @@ const (
 
 	typeInstalled   = "Installed"
 	typeProgressing = "Progressing"
+	typeServing     = "Serving"
 
 	reasonRetrying = "Retrying"
 )
@@ -79,31 +80,17 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 
 	g.It("should be installed", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
-
-		providedCatalogs := []string{
-			"openshift-certified-operators",
-			"openshift-community-operators",
-			"openshift-redhat-marketplace",
-			"openshift-redhat-operators",
-		}
-		for _, cat := range providedCatalogs {
-			g.By(fmt.Sprintf("checking that %q exists", cat))
-			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clustercatalogs.olm.operatorframework.io", cat, "-o=jsonpath={.status.conditions}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(output).NotTo(o.BeEmpty())
-
-			g.By(fmt.Sprintf("checking that %q is serving", cat))
-			var conditions []metav1.Condition
-			err = json.Unmarshal([]byte(output), &conditions)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Serving", metav1.ConditionTrue)).To(o.BeTrue())
-		}
+		waitForDefaultCatalogs(ctx, oc)
 	})
 })
 
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
 
 	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
@@ -130,6 +117,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
+
 	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
 
@@ -154,6 +145,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
 
 	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
@@ -180,6 +175,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
+
 	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
 
@@ -204,6 +203,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
 
 	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
@@ -231,6 +234,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
+
 	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
 
@@ -257,6 +264,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
+
 	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
 
@@ -282,6 +293,10 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
+
+	g.BeforeEach(func() {
+		waitForDefaultCatalogs(context.TODO(), oc)
+	})
 
 	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
 		checkFeatureCapability(oc)
@@ -712,5 +727,40 @@ spec:
 			g.GinkgoLogr.Error(nil, fmt.Sprintf("Last error encountered while polling: %v", lastErr))
 		}
 		o.Expect(err).NotTo(o.HaveOccurred(), "Job failed or timed out")
+	}
+}
+
+func waitForDefaultCatalogs(ctx context.Context, oc *exutil.CLI) {
+	var defaultCatalogs = []string{
+		"openshift-certified-operators",
+		"openshift-community-operators",
+		"openshift-redhat-marketplace",
+		"openshift-redhat-operators",
+	}
+	for _, cat := range defaultCatalogs {
+		g.By(fmt.Sprintf("checking that %q is exists and is serving content", cat))
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clustercatalogs.olm.operatorframework.io", cat, "-o=jsonpath={.status.conditions}").Output()
+			if err != nil {
+				g.GinkgoLogr.Info(fmt.Sprintf("error getting catalog: %v, retrying..", err))
+				return false, err
+			}
+			if output == "" {
+				g.GinkgoLogr.Info(fmt.Sprintf("catalog %q not found, retrying..", cat))
+				return false, nil
+			}
+			var conditions []metav1.Condition
+			err = json.Unmarshal([]byte(output), &conditions)
+			if err != nil {
+				g.GinkgoLogr.Info(fmt.Sprintf("error getting catalog status: %v, retrying..", err))
+				return false, err
+			}
+			if !meta.IsStatusConditionPresentAndEqual(conditions, typeServing, metav1.ConditionTrue) {
+				g.GinkgoLogr.Info(fmt.Sprintf("catalog %q not serving, retrying..", cat))
+				return false, nil
+			}
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Catalog %q not found or not serving", cat))
 	}
 }
