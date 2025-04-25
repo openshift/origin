@@ -33,7 +33,7 @@ require (
 	github.com/openshift/api v0.0.0-20250425163235-9b80d67473bc
 	github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce
 	github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c
-	github.com/openshift/client-go v0.0.0-20250324153519-f0faeb0f2f2e
+	github.com/openshift/client-go v0.0.0-20250425165505-5f55ff6979a1
 	github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
 	github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
@@ -353,6 +353,3 @@ replace (
 // The cadvisor version used in k8s v1.32.1 (v0.51.0) relies on code present on this version
 // This can be removed once it's no longer used in o/k
 replace github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
-
-// The following replace commands are in place to allow the simultaneous merge of the API (PR #2255) & origin for making use of the V1 MCN API
-replace github.com/openshift/client-go => github.com/isabella-janssen/openshift-client-go v0.0.0-20250423165717-b84d4e80502c
