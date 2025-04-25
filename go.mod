@@ -30,7 +30,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20250405052455-aa882942241d
+	github.com/openshift/api v0.0.0-20250425163235-9b80d67473bc
 	github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce
 	github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c
 	github.com/openshift/client-go v0.0.0-20250324153519-f0faeb0f2f2e
@@ -355,6 +355,4 @@ replace (
 replace github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
 
 // The following replace commands are in place to allow the simultaneous merge of the API (PR #2255) & origin for making use of the V1 MCN API
-replace github.com/openshift/api => github.com/isabella-janssen/openshift-api v0.0.0-20250423163652-3d76f1835b2c
-
 replace github.com/openshift/client-go => github.com/isabella-janssen/openshift-client-go v0.0.0-20250423165717-b84d4e80502c
