@@ -50,6 +50,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
 			g.Skip("PinnedImages is not supported on hypershift. Skipping tests.")
 		}
+
+		// TODO (ijanssen/rsaini): re-enable PIS tests on metal after fixing OCPBUGS-55394
+		// (temporarily) skip these tests on metal platforms
+		skipOnMetal(oc)
 	})
 
 	// Ensure each test pins a separate image, since we are not deleting them after each
@@ -105,6 +109,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 	})
 
 	g.It("All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]", func() {
+		// TODO (ijanssen/rsaini): re-enable this test on SNO after fixing OCPBUGS-55384
+		// (temporarily) skip these tests on SNO
+		skipOnSingleNodeTopology(oc)
+
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
