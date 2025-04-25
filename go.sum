@@ -460,8 +460,6 @@ github.com/ianlancetaylor/demangle v0.0.0-20210905161508-09a460cdf81d/go.mod h1:
 github.com/ianlancetaylor/demangle v0.0.0-20230524184225-eabc099b10ab/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/isabella-janssen/openshift-api v0.0.0-20250423163652-3d76f1835b2c h1:ZXr+C67yjbTVngH2A0aJF+/TkRA0bMxz9xuOWoQE8p8=
-github.com/isabella-janssen/openshift-api v0.0.0-20250423163652-3d76f1835b2c/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
 github.com/isabella-janssen/openshift-client-go v0.0.0-20250423165717-b84d4e80502c h1:2zTo28G79Fs9TfhlRJimpsZRj4TZag/i03fzzTdnR8E=
 github.com/isabella-janssen/openshift-client-go v0.0.0-20250423165717-b84d4e80502c/go.mod h1:Ee2bsd/VaaRLMVFFn2qWZ3Cl9jwAeUjzCiPvMTnGkGI=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
@@ -601,6 +599,8 @@ github.com/opencontainers/runtime-spec v1.2.0 h1:z97+pHb3uELt/yiAWD691HNHQIF07bE
 github.com/opencontainers/runtime-spec v1.2.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/selinux v1.11.1 h1:nHFvthhM0qY8/m+vfhJylliSshm8G1jJ2jDMcgULaH8=
 github.com/opencontainers/selinux v1.11.1/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
+github.com/openshift/api v0.0.0-20250425163235-9b80d67473bc h1:BGKjHtYzBweOSu1UwTnNqtPbJZ4VzOTqVFlUDpP+6U8=
+github.com/openshift/api v0.0.0-20250425163235-9b80d67473bc/go.mod h1:yk60tHAmHhtVpJQo3TwVYq2zpuP70iJIFDCmeKMIzPw=
 github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce h1:w0Up6YV1APcn20v/1h5IfuToz96o2pVqZyjzbw0yotU=
 github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce/go.mod h1:kkSwH4osgejnRIyHfsfkv0V0xfmgH4Yk/VDObaJukHU=
 github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c h1:6XcszPFZpan4qll5XbdLll7n1So3IsPn28aw2j1obMo=
