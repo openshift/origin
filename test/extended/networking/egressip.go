@@ -742,7 +742,7 @@ func applyEgressIPObject(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Inte
 	_, err := runOcWithRetry(oc.AsAdmin(), "apply", "-f", egressIPYamlPath)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
+	framework.Logf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout)
 	var exists bool
 	var isAssigned bool
 	o.Eventually(func() bool {
@@ -762,7 +762,7 @@ func applyEgressIPObject(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Inte
 		return true
 	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
 
-	framework.Logf(fmt.Sprintf("Waiting for EgressIP addresses inside status of EgressIP CR %s for a maximum of %d seconds", egressIPObjectName, timeout))
+	framework.Logf("Waiting for EgressIP addresses inside status of EgressIP CR %s for a maximum of %d seconds", egressIPObjectName, timeout)
 	var hasIP bool
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
@@ -810,7 +810,7 @@ func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, cloudNetworkClientset c
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
-	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
+	framework.Logf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout)
 	var exists bool
 	var isAssigned bool
 	o.Eventually(func() bool {

@@ -46,6 +46,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.AWSDNSSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AWSIngressSpec"):
 		return &configv1.AWSIngressSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("AWSKMSConfig"):
+		return &configv1.AWSKMSConfigApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AWSPlatformSpec"):
 		return &configv1.AWSPlatformSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AWSPlatformStatus"):
@@ -228,6 +230,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.IngressStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KeystoneIdentityProvider"):
 		return &configv1.KeystoneIdentityProviderApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("KMSConfig"):
+		return &configv1.KMSConfigApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KubevirtPlatformStatus"):
 		return &configv1.KubevirtPlatformStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("LDAPAttributeMapping"):
