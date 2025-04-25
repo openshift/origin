@@ -30,6 +30,7 @@ authentications.config.openshift.io:
   Category: ""
   FeatureGates:
   - ExternalOIDC
+  - ExternalOIDCWithUIDAndExtraClaimMappings
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"
@@ -320,6 +321,7 @@ infrastructures.config.openshift.io:
   - GCPCustomAPIEndpoints
   - GCPLabelsTags
   - HighlyAvailableArbiter
+  - HighlyAvailableArbiter+DualReplica
   - NutanixMultiSubnets
   - VSphereHostVMGroupZonal
   - VSphereMultiNetworks

@@ -148,6 +148,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.ExternalPlatformSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("ExternalPlatformStatus"):
 		return &configv1.ExternalPlatformStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("ExtraMapping"):
+		return &configv1.ExtraMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FeatureGate"):
 		return &configv1.FeatureGateApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FeatureGateAttributes"):
@@ -376,6 +378,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.TokenClaimMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenClaimMappings"):
 		return &configv1.TokenClaimMappingsApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("TokenClaimOrExpressionMapping"):
+		return &configv1.TokenClaimOrExpressionMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenClaimValidationRule"):
 		return &configv1.TokenClaimValidationRuleApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenConfig"):

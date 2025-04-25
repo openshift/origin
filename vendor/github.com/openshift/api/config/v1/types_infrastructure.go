@@ -99,7 +99,9 @@ type InfrastructureStatus struct {
 	// its components are not visible within the cluster.
 	// +kubebuilder:default=HighlyAvailable
 	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter;DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate=DualReplica,enum=HighlyAvailable;SingleReplica;DualReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=HighlyAvailableArbiter;DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
 	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology"`
 
 	// infrastructureTopology expresses the expectations for infrastructure services that do not run on control
