@@ -815,7 +815,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/api v0.0.0-20250405052455-aa882942241d => github.com/isabella-janssen/openshift-api v0.0.0-20250423163652-3d76f1835b2c
+# github.com/openshift/api v0.0.0-20250425163235-9b80d67473bc
 ## explicit; go 1.23.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -922,7 +922,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20250324153519-f0faeb0f2f2e => github.com/isabella-janssen/openshift-client-go v0.0.0-20250423165717-b84d4e80502c
+# github.com/openshift/client-go v0.0.0-20250425165505-5f55ff6979a1
 ## explicit; go 1.23.0
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -3903,5 +3903,3 @@ sigs.k8s.io/yaml/goyaml.v3
 # k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250320083338-1601b9e27d85
 # k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250320083338-1601b9e27d85
 # github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
-# github.com/openshift/api => github.com/isabella-janssen/openshift-api v0.0.0-20250423163652-3d76f1835b2c
-# github.com/openshift/client-go => github.com/isabella-janssen/openshift-client-go v0.0.0-20250423165717-b84d4e80502c

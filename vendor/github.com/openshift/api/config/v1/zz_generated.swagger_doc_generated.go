@@ -396,6 +396,16 @@ func (DeprecatedWebhookTokenAuthenticator) SwaggerDoc() map[string]string {
 	return map_DeprecatedWebhookTokenAuthenticator
 }
 
+var map_ExtraMapping = map[string]string{
+	"":                "ExtraMapping allows specifying a key and CEL expression to evaluate the keys' value. It is used to create additional mappings and attributes added to a cluster identity from a provided authentication token.",
+	"key":             "key is a required field that specifies the string to use as the extra attribute key.\n\nkey must be a domain-prefix path (e.g 'example.org/foo'). key must not exceed 510 characters in length. key must contain the '/' character, separating the domain and path characters. key must not be empty.\n\nThe domain portion of the key (string of characters prior to the '/') must be a valid RFC1123 subdomain. It must not exceed 253 characters in length. It must start and end with an alphanumeric character. It must only contain lower case alphanumeric characters and '-' or '.'. It must not use the reserved domains, or be subdomains of, \"kubernetes.io\", \"k8s.io\", and \"openshift.io\".\n\nThe path portion of the key (string of characters after the '/') must not be empty and must consist of at least one alphanumeric character, percent-encoded octets, '-', '.', '_', '~', '!', '$', '&', ''', '(', ')', '*', '+', ',', ';', '=', and ':'. It must not exceed 256 characters in length.",
+	"valueExpression": "valueExpression is a required field to specify the CEL expression to extract the extra attribute value from a JWT token's claims. valueExpression must produce a string or string array value. \"\", [], and null are treated as the extra mapping not being present. Empty string values within an array are filtered out.\n\nCEL expressions have access to the token claims through a CEL variable, 'claims'. 'claims' is a map of claim names to claim values. For example, the 'sub' claim value can be accessed as 'claims.sub'. Nested claims can be accessed using dot notation ('claims.foo.bar').\n\nvalueExpression must not exceed 4096 characters in length. valueExpression must not be empty.",
+}
+
+func (ExtraMapping) SwaggerDoc() map[string]string {
+	return map_ExtraMapping
+}
+
 var map_OIDCClientConfig = map[string]string{
 	"componentName":      "componentName is the name of the component that is supposed to consume this client configuration",
 	"componentNamespace": "componentNamespace is the namespace of the component that is supposed to consume this client configuration",
@@ -461,10 +471,22 @@ func (TokenClaimMapping) SwaggerDoc() map[string]string {
 var map_TokenClaimMappings = map[string]string{
 	"username": "username is a name of the claim that should be used to construct usernames for the cluster identity.\n\nDefault value: \"sub\"",
 	"groups":   "groups is a name of the claim that should be used to construct groups for the cluster identity. The referenced claim must use array of strings values.",
+	"uid":      "uid is an optional field for configuring the claim mapping used to construct the uid for the cluster identity.\n\nWhen using uid.claim to specify the claim it must be a single string value. When using uid.expression the expression must result in a single string value.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose a default, which is subject to change over time. The current default is to use the 'sub' claim.",
+	"extra":    "extra is an optional field for configuring the mappings used to construct the extra attribute for the cluster identity. When omitted, no extra attributes will be present on the cluster identity. key values for extra mappings must be unique. A maximum of 64 extra attribute mappings may be provided.",
 }
 
 func (TokenClaimMappings) SwaggerDoc() map[string]string {
 	return map_TokenClaimMappings
+}
+
+var map_TokenClaimOrExpressionMapping = map[string]string{
+	"":           "TokenClaimOrExpressionMapping allows specifying either a JWT token claim or CEL expression to be used when mapping claims from an authentication token to cluster identities.",
+	"claim":      "claim is an optional field for specifying the JWT token claim that is used in the mapping. The value of this claim will be assigned to the field in which this mapping is associated.\n\nPrecisely one of claim or expression must be set. claim must not be specified when expression is set. When specified, claim must be at least 1 character in length and must not exceed 256 characters in length.",
+	"expression": "expression is an optional field for specifying a CEL expression that produces a string value from JWT token claims.\n\nCEL expressions have access to the token claims through a CEL variable, 'claims'. 'claims' is a map of claim names to claim values. For example, the 'sub' claim value can be accessed as 'claims.sub'. Nested claims can be accessed using dot notation ('claims.foo.bar').\n\nPrecisely one of claim or expression must be set. expression must not be specified when claim is set. When specified, expression must be at least 1 character in length and must not exceed 4096 characters in length.",
+}
+
+func (TokenClaimOrExpressionMapping) SwaggerDoc() map[string]string {
+	return map_TokenClaimOrExpressionMapping
 }
 
 var map_TokenClaimValidationRule = map[string]string{
