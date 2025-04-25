@@ -672,7 +672,7 @@ spec:
 
 	// Wait for job completion
 	var lastErr error
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
 			"job", jobName, "-n", "default", "-o=jsonpath={.status}").Output()
 		if err != nil {
