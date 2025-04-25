@@ -18,7 +18,6 @@ import (
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
-	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	opv1 "github.com/openshift/api/operator/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
@@ -353,7 +352,7 @@ func ValidateMCNForNodeInPool(oc *exutil.CLI, clientSet *machineconfigclient.Cli
 
 	// Get node MCN
 	framework.Logf("Getting MCN for node '%v'.", node.Name)
-	mcn, mcnErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+	mcn, mcnErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 	if mcnErr != nil {
 		framework.Logf("Could not get MCN for node '%v'.", node.Name)
 		return mcnErr
@@ -542,16 +541,16 @@ func WaitForMCPConditionStatus(oc *exutil.CLI, mcpName string, conditionType mcf
 }
 
 // `WaitForMCNConditionStatus` waits up to a specified timeout for the desired MCN condition to match the desired status (ex. wait until "Updated" is "False")
-func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus,
+func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName string, conditionType mcfgv1.StateProgress, status metav1.ConditionStatus,
 	timeout time.Duration, interval time.Duration) (bool, error) {
 
 	conditionMet := false
 	var conditionErr error
-	var workerNodeMCN *mcfgv1alpha1.MachineConfigNode
+	var workerNodeMCN *mcfgv1.MachineConfigNode
 	if err := wait.PollUntilContextTimeout(context.TODO(), interval, timeout, true, func(_ context.Context) (bool, error) {
 		framework.Logf("Waiting for MCN '%v' %v condition to be %v.", mcnName, conditionType, status)
 
-		workerNodeMCN, conditionErr = clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+		workerNodeMCN, conditionErr = clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
 		// Record if an error occurs when getting the MCN resource
 		if conditionErr != nil {
 			framework.Logf("Error getting MCN for node '%v': %v", mcnName, conditionErr)
@@ -577,13 +576,13 @@ func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName
 }
 
 // `CheckMCNConditionStatus` checks that an MCN condition matches the desired status (ex. confirm "Updated" is "False")
-func CheckMCNConditionStatus(mcn *mcfgv1alpha1.MachineConfigNode, conditionType mcfgv1alpha1.StateProgress, status metav1.ConditionStatus) bool {
+func CheckMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress, status metav1.ConditionStatus) bool {
 	conditionStatus := getMCNConditionStatus(mcn, conditionType)
 	return conditionStatus == status
 }
 
 // `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
-func getMCNConditionStatus(mcn *mcfgv1alpha1.MachineConfigNode, conditionType mcfgv1alpha1.StateProgress) metav1.ConditionStatus {
+func getMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) metav1.ConditionStatus {
 	// Loop through conditions and return the status of the desired condition type
 	conditions := mcn.Status.Conditions
 	for _, condition := range conditions {
@@ -600,16 +599,16 @@ func getMCNConditionStatus(mcn *mcfgv1alpha1.MachineConfigNode, conditionType mc
 //  2. All other conditions = False
 func ConfirmUpdatedMCNStatus(clientSet *machineconfigclient.Clientset, mcnName string) bool {
 	// Get MCN
-	workerNodeMCN, workerErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+	workerNodeMCN, workerErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
 	o.Expect(workerErr).NotTo(o.HaveOccurred())
 
 	// Loop through conditions and return the status of the desired condition type
 	conditions := workerNodeMCN.Status.Conditions
 	for _, condition := range conditions {
-		if condition.Type == string(mcfgv1alpha1.MachineConfigNodeUpdated) && condition.Status != metav1.ConditionTrue {
+		if condition.Type == string(mcfgv1.MachineConfigNodeUpdated) && condition.Status != metav1.ConditionTrue {
 			framework.Logf("Node '%s' update is not complete; 'Updated' condition status is '%v'", mcnName, condition.Status)
 			return false
-		} else if condition.Type != string(mcfgv1alpha1.MachineConfigNodeUpdated) && condition.Status != metav1.ConditionFalse {
+		} else if condition.Type != string(mcfgv1.MachineConfigNodeUpdated) && condition.Status != metav1.ConditionFalse {
 			framework.Logf("Node '%s' is updated but MCN is invalid; '%v' codition status is '%v'", mcnName, condition.Type, condition.Status)
 			return false
 		}
@@ -878,7 +877,7 @@ func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node co
 	framework.Logf("Checking MCN exists and name matches node name '%v'.", node.Name)
 	o.Eventually(func() bool {
 		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if newMCNErr != nil {
 			framework.Logf("Failed getting MCN '%v'.", node.Name)
 			return false
@@ -901,7 +900,7 @@ func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node co
 	}
 	o.Eventually(func() bool {
 		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if newMCNErr != nil {
 			framework.Logf("Failed getting MCN '%v'.", node.Name)
 			return false
@@ -916,7 +915,7 @@ func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node co
 	framework.Logf("Waiting for node desired config version to match desired config version in MCN '%v' spec.", node.Name)
 	o.Eventually(func() bool {
 		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if newMCNErr != nil {
 			framework.Logf("Failed getting MCN '%v'.", node.Name)
 			return false
@@ -931,7 +930,7 @@ func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node co
 	framework.Logf("Waiting for node current config version to match current config version in MCN '%v' status.", node.Name)
 	o.Eventually(func() bool {
 		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if newMCNErr != nil {
 			framework.Logf("Failed getting MCN '%v'.", node.Name)
 			return false
@@ -946,7 +945,7 @@ func WaitForValidMCNProperties(clientSet *machineconfigclient.Clientset, node co
 	framework.Logf("Waiting for node desired config version to match desired config version in MCN '%v' status.", node.Name)
 	o.Eventually(func() bool {
 		// Get the desired MCN
-		newMCN, newMCNErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+		newMCN, newMCNErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
 		if newMCNErr != nil {
 			framework.Logf("Failed getting MCN '%v'.", node.Name)
 			return false
@@ -1046,7 +1045,7 @@ func WaitForMCNToBeDeleted(clientSet *machineconfigclient.Clientset, mcnName str
 		framework.Logf("Check if MCN '%v' is deleted.", mcnName)
 
 		// Check if MCN still exists
-		_, mcnErr := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
+		_, mcnErr := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), mcnName, metav1.GetOptions{})
 		if apierrors.IsNotFound(mcnErr) {
 			framework.Logf("MCN '%v' has been deleted.", mcnName)
 			return true

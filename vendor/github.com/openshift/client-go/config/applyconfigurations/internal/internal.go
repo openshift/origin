@@ -47,9 +47,17 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.config.v1.APIServerEncryption
   map:
     fields:
+    - name: kms
+      type:
+        namedType: com.github.openshift.api.config.v1.KMSConfig
     - name: type
       type:
         scalar: string
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: kms
+        discriminatorValue: KMS
 - name: com.github.openshift.api.config.v1.APIServerNamedServingCert
   map:
     fields:
@@ -127,6 +135,17 @@ var schemaYAML = typed.YAMLObject(`types:
         scalar: string
     unions:
     - discriminator: type
+- name: com.github.openshift.api.config.v1.AWSKMSConfig
+  map:
+    fields:
+    - name: keyARN
+      type:
+        scalar: string
+      default: ""
+    - name: region
+      type:
+        scalar: string
+      default: ""
 - name: com.github.openshift.api.config.v1.AWSPlatformSpec
   map:
     fields:
@@ -1885,6 +1904,21 @@ var schemaYAML = typed.YAMLObject(`types:
         elementType:
           namedType: __untyped_deduced_
         elementRelationship: separable
+- name: com.github.openshift.api.config.v1.KMSConfig
+  map:
+    fields:
+    - name: aws
+      type:
+        namedType: com.github.openshift.api.config.v1.AWSKMSConfig
+    - name: type
+      type:
+        scalar: string
+      default: ""
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: aws
+        discriminatorValue: AWS
 - name: com.github.openshift.api.config.v1.KeystoneIdentityProvider
   map:
     fields:
