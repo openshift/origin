@@ -134,7 +134,6 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	time.Sleep(30 * time.Second)
 	klog.Infof("Starting deployment: %s", podNetworkToHostNetworkPollerDeployment.Name)
 	podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
@@ -142,7 +141,6 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	time.Sleep(30 * time.Second)
 	klog.Infof("Starting deployment: %s", hostNetworkToPodNetworkPollerDeployment.Name)
 	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
@@ -150,7 +148,6 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	time.Sleep(30 * time.Second)
 	klog.Infof("Starting deployment: %s", hostNetworkToHostNetworkPollerDeployment.Name)
 	hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
@@ -158,7 +155,6 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	time.Sleep(30 * time.Second)
 	klog.Infof("Starting deployment: %s", podNetworkTargetDeployment.Name)
 	// force the image to use the "normal" global mapping.
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
@@ -172,7 +168,6 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 		return err
 	}
 	pna.targetService = service
-	time.Sleep(30 * time.Second)
 	klog.Infof("Starting deployment: %s", hostNetworkTargetDeployment.Name)
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
 	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
@@ -199,10 +194,6 @@ func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRE
 			return err
 		}
 	}
-
-	// allow time to initialize
-	// though we do that above as well...
-	time.Sleep(30 * time.Second)
 
 	return nil
 }
