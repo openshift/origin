@@ -71,7 +71,7 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 }
 
 type AuditEventHandler interface {
-	HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string)
+	HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime)
 }
 
 func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string, beginning, end *metav1.MicroTime, auditLogHandlers []AuditEventHandler) error {
@@ -99,7 +99,7 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 		}
 
 		wg.Add(1)
-		go func(ctx context.Context, auditLogFilename, nodeName string) {
+		go func(ctx context.Context, auditLogFilename string) {
 			defer wg.Done()
 
 			auditStream, err := nodeaccess.StreamNodeLogFile(ctx, client, nodeName, filepath.Join(apiserver, auditLogFilename))
@@ -125,11 +125,11 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 				}
 
 				for _, auditLogHandler := range auditLogHandlers {
-					auditLogHandler.HandleAuditLogEvent(auditEvent, beginning, end, nodeName)
+					auditLogHandler.HandleAuditLogEvent(auditEvent, beginning, end)
 				}
 			}
 
-		}(ctx, auditLogFilename, nodeName)
+		}(ctx, auditLogFilename)
 	}
 	wg.Wait()
 	close(errCh)
