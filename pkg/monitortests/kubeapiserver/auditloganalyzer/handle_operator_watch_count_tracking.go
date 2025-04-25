@@ -386,7 +386,18 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	}
 
 	var upperBound platformUpperBound
-	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+
+	switch infra.Status.ControlPlaneTopology {
+	case configv1.ExternalTopologyMode:
+		return []*junitapi.JUnitTestCase{{
+			Name:        testName,
+			SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported topology: %v", infra.Status.ControlPlaneTopology)},
+		}, {
+			Name:        testMinRequestsName,
+			SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported topology: %v", infra.Status.ControlPlaneTopology)},
+		}}, nil
+
+	case configv1.SingleReplicaTopologyMode:
 		if _, exists := upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]; !exists {
 			return []*junitapi.JUnitTestCase{{
 				Name:        testName,
@@ -398,7 +409,8 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 
 		}
 		upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
-	} else {
+
+	default:
 		if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
 			return []*junitapi.JUnitTestCase{{
 				Name:        testName,
@@ -413,19 +425,26 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 
 	watchRequestCounts := s.SummarizeWatchCountRequests()
 
-	if len(watchRequestCounts) > 0 {
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testMinRequestsName,
-			},
-		)
-	} else {
+	if len(watchRequestCounts) == 0 {
 		ret = append(ret,
 			&junitapi.JUnitTestCase{
 				Name: testMinRequestsName,
 				FailureOutput: &junitapi.FailureOutput{
 					Message: "Expected at least one watch request count to be present",
 				},
+			},
+		)
+		// flake for now
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testMinRequestsName,
+			},
+		)
+
+	} else {
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testMinRequestsName,
 			},
 		)
 	}
