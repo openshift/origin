@@ -378,8 +378,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			version     = "3.13.0"
 		)
 
-		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
-		ceName := "install-test-ce-" + unique
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
@@ -405,8 +404,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			version     = "99.99.99"
 		)
 
-		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
-		ceName := "install-test-ce-" + unique
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to report failure")
@@ -432,8 +430,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			version     = "5.8.13"
 		)
 
-		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
-		ceName := "install-test-ce-" + unique
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
@@ -466,35 +463,28 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 })
 
-// Use the supplied |unique| value if provided, otherwise generate a unique string. The unique string is returned.
-// |unique| is used to combine common test elements and to avoid duplicate names, which can occur if, for instance,
-// the packageName is used.
-// If this is called multiple times, pass the unique value from the first invocation to subsequent invocations.
-func applyResourceFile(oc *exutil.CLI, packageName, version, unique, ceFile string) (func(), string) {
+func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) (func(), string) {
 	ns := oc.Namespace()
-	if unique == "" {
-		unique = rand.String(8)
-	}
 	g.By(fmt.Sprintf("updating the namespace to: %q", ns))
-	newCeFile := ceFile + "." + unique
+	ceName := "install-test-ce-" + packageName
+	newCeFile := ceFile + "." + packageName
 	b, err := os.ReadFile(ceFile)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	s := string(b)
 	s = strings.ReplaceAll(s, "{NAMESPACE}", ns)
 	s = strings.ReplaceAll(s, "{PACKAGENAME}", packageName)
 	s = strings.ReplaceAll(s, "{VERSION}", version)
-	s = strings.ReplaceAll(s, "{UNIQUE}", unique)
 	err = os.WriteFile(newCeFile, []byte(s), 0666)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By(fmt.Sprintf("applying the necessary %q resources", unique))
+	g.By("applying the necessary resources")
 	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return func() {
-		g.By(fmt.Sprintf("cleaning the necessary %q resources", unique))
+		g.By("cleaning the necessary resources")
 		err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-	}, unique
+	}, ceName
 }
 
 func waitForClusterExtensionReady(oc *exutil.CLI, ceName string) (bool, error, string) {

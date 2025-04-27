@@ -1865,18 +1865,6 @@ var Annotations = map[string]string{
 
 	"[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas endpoint": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {ClusterRoleBindings} are not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {ConfigMap:resourceNames} are not all specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {clusterextension/finalizer} is not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {create} verb is not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {escalate, bind} is not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {services} are not specified": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs should be installed": " [Suite:openshift/conformance/parallel]",
