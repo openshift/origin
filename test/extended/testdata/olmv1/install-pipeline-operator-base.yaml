@@ -11,7 +11,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: install-test-cr-{UNIQUE}
 subjects:
 - kind: ServiceAccount
   name: install-test-sa-{UNIQUE}
@@ -27,8 +27,8 @@ spec:
     name: install-test-sa-{UNIQUE}
   source:
     catalog:
-      packageName: {PACKAGENAME}
-      version: {VERSION}
+      packageName: "openshift-pipelines-operator-rh"
+      version: "1.18.0"
       selector: {}
       upgradeConstraintPolicy: CatalogProvided
     sourceType: Catalog
