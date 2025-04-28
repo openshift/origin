@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	worker = "worker"
-	master = "master"
-	custom = "infra"
+	worker  = "worker"
+	master  = "master"
+	custom  = "infra"
+	arbiter = "arbiter"
 )
 
 var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
@@ -51,15 +52,23 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
-		if IsSingleNode(oc) { //handle SNO clusters
-			ValidateMCNPropertiesSNO(oc)
-		} else { //handle standard, non-SNO, clusters
-			ValidateMCNPropertiesDefaultMCP(oc)
+		if IsSingleNode(oc) || IsTwoNode(oc) { //handle SNO & two-node clusters
+			// In SNO and standard two-node openshift clusters, the nodes have both worker and master roles, but are a part
+			// of the master MCP. Thus, the tests for these clusters will be limited to checking master MCP association.
+			ValidateMCNPropertiesByMCPs(oc, []string{master})
+		} else if IsTwoNodeArbiter(oc) { //handle two-node arbiter clusters
+			// In two-node arbiter openshift clusters, there are two nodes have both worker and master roles, but are a part
+			// of the master MCP. There is also a third "arbiter" node. Thus, these clusters should be tests for both master
+			// and arbiter MCP association.
+			ValidateMCNPropertiesByMCPs(oc, []string{master, arbiter})
+		} else { //handle standard clusters
+			ValidateMCNPropertiesByMCPs(oc, []string{master, worker})
 		}
 	})
 
 	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
+		skipOnTwoNodeTopology(oc)    //skip this test for two-node openshift
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
@@ -100,31 +109,28 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 })
 
-// `ValidateMCNPropertiesDefaultMCP` checks that MCN properties match the corresponding node
-// properties for nodes in the default (worker & master) MCPs.
-// Note: This test case does not work for SNO clusters due to the cluster's one node assuming
-// both the worker and master role since `GetRandomNode` selects nodes using node roles. Role
-// matching is not necessarily synonymous with MCP association in edge cases, such as in SNO.
-func ValidateMCNPropertiesDefaultMCP(oc *exutil.CLI) {
+// `ValidateMCNPropertiesByMCPs` checks that MCN properties match the corresponding node properties
+// for a random node in each of the desired MCPs.
+func ValidateMCNPropertiesByMCPs(oc *exutil.CLI, poolNames []string) {
+	framework.Logf("Validating MCN properties for node(s) in pool(s) '%v'.", poolNames)
+
 	// Create client set for test
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
-	// Grab a random node from each default pool
-	workerNode := GetRandomNode(oc, worker)
-	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
-	masterNode := GetRandomNode(oc, master)
-	o.Expect(masterNode.Name).NotTo(o.Equal(""), "Could not get a master node.")
+	// Validate MCN associated with node in each desired MCP
+	for _, poolName := range poolNames {
+		framework.Logf("Validating MCN properties for %v node.", poolName)
 
-	// Validate MCN for node in default `worker` pool
-	framework.Logf("Validating MCN properties for node in default '%v' pool.", worker)
-	mcnErr := ValidateMCNForNodeInPool(oc, clientSet, workerNode, worker)
-	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties node in default pool '%v'.", worker))
+		// Grab a node in the desired MCP
+		node := GetRandomNode(oc, poolName)
+		o.Expect(node.Name).NotTo(o.Equal(""), fmt.Sprintf("Could not get a %v node.", poolName))
 
-	// Validate MCN for node in default `master` pool
-	framework.Logf("Validating MCN properties for node in default '%v' pool.", master)
-	mcnErr = ValidateMCNForNodeInPool(oc, clientSet, masterNode, master)
-	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties node in default pool '%v'.", master))
+		// Validate MCN for the cluster's node
+		framework.Logf("Validating MCN properties for the node '%v'.", node.Name)
+		mcnErr := ValidateMCNForNodeInPool(oc, clientSet, node, poolName)
+		o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties for the node in pool '%v'.", poolName))
+	}
 }
 
 // `ValidateMCNPropertiesCustomMCP` checks that MCN properties match the corresponding node properties
@@ -180,24 +186,6 @@ func ValidateMCNPropertiesCustomMCP(oc *exutil.CLI, fixture string) {
 	framework.Logf("Validating MCN properties for node in custom '%v' pool.", custom)
 	mcnErr := ValidateMCNForNodeInPool(oc, clientSet, customNode, custom)
 	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties node in custom pool '%v'.", custom))
-}
-
-// `ValidateMCNPropertiesSNO` checks that MCN properties match the corresponding node properties
-// specifically for SNO clusters. Note that this test does not include creating a custom MCP, as
-// the default SNO node remains part of the master pool.
-func ValidateMCNPropertiesSNO(oc *exutil.CLI) {
-	// Create client set for test
-	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
-	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
-
-	// Grab the cluster's node
-	node := GetRandomNode(oc, master)
-	o.Expect(node.Name).NotTo(o.Equal(""), "Could not get a worker node.")
-
-	// Validate MCN for the cluster's node
-	framework.Logf("Validating MCN properties for the node in pool '%v'.", master)
-	mcnErr := ValidateMCNForNodeInPool(oc, clientSet, node, master)
-	o.Expect(mcnErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error validating MCN properties for the node in pool '%v'.", master))
 }
 
 // `ValidateMCNConditionTransitions` checks that Conditions properly update on a node update
@@ -571,20 +559,25 @@ func ValidateMCNOnNodeCreationAndDeletion(oc *exutil.CLI) {
 func ValidateMCNScopeSadPathTest(oc *exutil.CLI) {
 	// Grab two random nodes from different pools, so we don't end up testing and targeting the same node.
 	nodeUnderTest := GetRandomNode(oc, "worker")
+	framework.Logf("Testing with worker node '%v'.", nodeUnderTest)
 	targetNode := GetRandomNode(oc, "master")
+	framework.Logf("Testing with mater node '%v'.", targetNode)
 
 	// Attempt to patch the MCN owned by targetNode from nodeUnderTest's MCD. This should fail.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
 	cmdOutput, err := ExecCmdOnNodeWithError(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", targetNode.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
 
 	o.Expect(err).To(o.HaveOccurred())
+	framework.Logf("MCN patch was successfully blocked.")
 	o.Expect(cmdOutput).To(o.ContainSubstring("updates to MCN " + targetNode.Name + " can only be done from the MCN's owner node"))
+	framework.Logf("Error string contains desired substring.")
 }
 
 // `ValidateMCNScopeImpersonationPathTest` checks that MCN updates by impersonation of the MCD SA are blocked
 func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
 	// Grab a random node from the worker pool
 	nodeUnderTest := GetRandomNode(oc, "worker")
+	framework.Logf("Testing with node '%v'.", nodeUnderTest)
 
 	var errb bytes.Buffer
 	// Attempt to patch the MCN owned by nodeUnderTest by impersonating the MCD SA. This should fail.
@@ -593,14 +586,16 @@ func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
 	err := cmd.Run()
 
 	o.Expect(err).To(o.HaveOccurred())
+	framework.Logf("MCN patch was successfully blocked.")
 	o.Expect(errb.String()).To(o.ContainSubstring("this user must have a \"authentication.kubernetes.io/node-name\" claim"))
+	framework.Logf("Error string contains desired substring.")
 }
 
 // `ValidateMCNScopeHappyPathTest` checks that MCN updates from the associated MCD are allowed
 func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
-
 	// Grab a random node from the worker pool
 	nodeUnderTest := GetRandomNode(oc, "worker")
+	framework.Logf("Testing with node '%v'.", nodeUnderTest)
 
 	// Get node's starting desired version
 	nodeDesiredConfig := nodeUnderTest.Annotations[desiredConfigAnnotationKey]
@@ -608,7 +603,10 @@ func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
 	// Attempt to patch the MCN owned by nodeUnderTest from nodeUnderTest's MCD. This should succeed.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
 	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
+	framework.Logf("MCN '%v' patched successfully.", nodeUnderTest)
 
 	// Cleanup by updating the MCN desired config back to the original value.
+	framework.Logf("Cleaning up patched MCN's desired config value.")
 	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", fmt.Sprintf("{\"spec\":{\"configVersion\":{\"desired\":\"%v\"}}}", nodeDesiredConfig))
+	framework.Logf("MCN successfully cleaned up.")
 }
