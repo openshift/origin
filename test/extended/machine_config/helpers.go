@@ -101,6 +101,31 @@ func IsSingleNode(oc *exutil.CLI) bool {
 	return infra.Status.ControlPlaneTopology == osconfigv1.SingleReplicaTopologyMode
 }
 
+// `skipOnTwoNodeTopology` skips the test if the cluster is using two-node topology, including
+// both standard and arbiter cases.
+func skipOnTwoNodeTopology(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if infra.Status.ControlPlaneTopology == osconfigv1.DualReplicaTopologyMode || infra.Status.ControlPlaneTopology == osconfigv1.HighlyAvailableArbiterMode {
+		e2eskipper.Skipf("This test does not apply to two-node topologies")
+	}
+}
+
+// `IsTwoNode` returns true if the cluster is using two-node topology and false otherwise
+func IsTwoNode(oc *exutil.CLI) bool {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error determining cluster infrastructure.")
+	return infra.Status.ControlPlaneTopology == osconfigv1.DualReplicaTopologyMode
+}
+
+// `IsTwoNodeArbiter` returns true if the cluster is using two-node arbiter topology and false otherwise
+func IsTwoNodeArbiter(oc *exutil.CLI) bool {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error determining cluster infrastructure.")
+	return infra.Status.ControlPlaneTopology == osconfigv1.HighlyAvailableArbiterMode &&
+		infra.Status.InfrastructureTopology == osconfigv1.HighlyAvailableTopologyMode
+}
+
 // skipOnMetal skips the test if the cluster is using Metal PLatform
 func skipOnMetal(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
