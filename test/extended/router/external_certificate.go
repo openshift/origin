@@ -43,6 +43,8 @@ const (
 	selfManagedDefaultCertificateCN = "ingress-operator"
 	// hypershiftDefaultCertificateCN is the CommonName of router default certificate for HyperShift cluster profile.
 	hypershiftDefaultCertificateCN = "root-ca"
+	// managedServiceDefaultCertificateCN is the CommonName of router default certificate for Managed Service cluster (e.g. ROSA classic).
+	managedServiceDefaultCertificateCN = "R11"
 )
 
 var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]", func() {
@@ -636,6 +638,15 @@ func verifyRouteServesDefaultCert(oc *exutil.CLI, hostname string) (string, erro
 	}
 	if isHypershift {
 		defaultCertificateCN = hypershiftDefaultCertificateCN
+	}
+
+	// change the expected defaultCertificateCN if it's a Managed Service cluster.
+	isManagedServiceCluster, err := exutil.IsManagedServiceCluster(context.Background(), oc.AdminKubeClient())
+	if err != nil {
+		return "", fmt.Errorf("failed to verify Managed Serive cluster: %w", err)
+	}
+	if isManagedServiceCluster {
+		defaultCertificateCN = managedServiceDefaultCertificateCN
 	}
 
 	client := &http.Client{
