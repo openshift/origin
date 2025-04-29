@@ -2,6 +2,7 @@ package machine_config
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -158,4 +159,92 @@ func EnsureConfigMapStampTest(oc *exutil.CLI, fixture string) {
 		return true
 	}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
 	framework.Logf("Succesfully verified that the configmap has been correctly stamped")
+}
+
+func ScaleUpMachineSetTest(oc *exutil.CLI, fixture string) {
+
+	// This fixture applies a boot image update configuration that opts in any machineset with the label test=boot
+	ApplyMachineConfigurationFixture(oc, fixture)
+
+	// Pick a random machineset to test
+	machineClient, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	machineSetUnderTest := getRandomMachineSet(machineClient)
+	framework.Logf("MachineSet under test: %s", machineSetUnderTest.Name)
+
+	// Label this machineset with the test=boot label
+	err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test=boot").Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	defer func() {
+		// Unlabel the machineset at the end of test
+		err = oc.Run("label").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, "test-").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}()
+
+	mcdPods, err := getMCDPodSet(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Scale-up this machineset to an extra replica
+	err = oc.Run("scale").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, fmt.Sprintf("--replicas=%d", *machineSetUnderTest.Spec.Replicas+1)).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	defer func() {
+		// Scale-down the machineset at the end of test
+		err = oc.Run("scale").Args(mapiMachinesetQualifiedName, machineSetUnderTest.Name, "-n", mapiNamespace, fmt.Sprintf("--replicas=%d", *machineSetUnderTest.Spec.Replicas)).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}()
+
+	// TODO:Verify that the new machine from the scaled up machineset was booted from the latest bootimage
+	o.Eventually(func() bool {
+		updatedMcdPods, err := getMCDPodSet(oc)
+		if err != nil {
+			return false
+
+		}
+		newPods := diffNewPods(mcdPods, updatedMcdPods)
+		if len(newPods) == 0 {
+			return false
+		}
+		for _, pod := range newPods {
+			logs, err := oc.Run("|").Args("sh", "-c", fmt.Sprintf("oc logs -n openshift-machine-config-operator %s | head -n 50", pod)).Output()
+			if err != nil {
+				continue
+			}
+			if strings.Contains(logs, "expectedRHCOSVersion") {
+				return true
+			}
+		}
+		return false
+	}, 15*time.Minute, 10*time.Second).Should(o.BeTrue())
+}
+
+func diffNewPods(before, after map[string]struct{}) []string {
+	var newPods []string
+	for pod := range after {
+		if _, found := before[pod]; !found {
+			newPods = append(newPods, pod)
+		}
+	}
+	return newPods
+}
+
+func getMCDPodSet(oc *exutil.CLI) (map[string]struct{}, error) {
+	out, err := oc.Run("get").Args(
+		"pods",
+		"-n", "openshift-machine-config-operator",
+		"-l", "k8s-app=machine-config-daemon",
+		"-o", "go-template={{range .items}}{{.metadata.name}}{{\"\\n\"}}{{end}}",
+	).Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pods: %v", err)
+	}
+
+	podSet := make(map[string]struct{})
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		name := strings.TrimSpace(line)
+		if name != "" {
+			podSet[name] = struct{}{}
+		}
+	}
+	return podSet, nil
 }
