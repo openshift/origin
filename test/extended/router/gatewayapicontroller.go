@@ -12,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatoringressclientset "github.com/openshift/client-go/operatoringress/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -328,43 +329,42 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			gatewayName       = "gateway"
 		)
 
-                // ensure default gateway objects is created
-                gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
-                coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
-                g.By("Getting the default domain")
-                defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-                o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
-                defaultDomain := strings.Split(defaultIngressDomain, "apps.")[1]
+		// ensure default gateway objects is created
+		gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
+		coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
+		g.By("Getting the default domain")
+		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+		defaultDomain := strings.Split(defaultIngressDomain, "apps.")[1]
 
-                g.By("Create the default API Gateway if it is not created")
-                _, errGwStatus := gwapiClient.GatewayV1().Gateways(ingressNamespace).Get(context.Background(), gatewayName, metav1.GetOptions{})
-                if errGwStatus != nil {
-                        e2e.Logf("Failed to get gateway object, so create the gateway for the following test")
-                        _, err := createAndCheckGateway(oc, gatewayName, gatewayClassName, defaultDomain)
-                        o.Expect(err).NotTo(o.HaveOccurred(), "failed to create Gateway")
-                }
+		g.By("Create the default API Gateway if it is not created")
+		_, errGwStatus := gwapiClient.GatewayV1().Gateways(ingressNamespace).Get(context.Background(), gatewayName, metav1.GetOptions{})
+		if errGwStatus != nil {
+			e2e.Logf("Failed to get gateway object, so create the gateway for the following test")
+			_, err := createAndCheckGateway(oc, gatewayName, gatewayClassName, defaultDomain)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to create Gateway")
+		}
 
-                g.By("Ensure the gateway's LoadBalancer service and DNSRecords are available")
-                gwlbAddress, err := ensureLbServiceRetrieveLbAddress(oc, ingressNamespace, gatewayLbService)
-                o.Expect(err).NotTo(o.HaveOccurred())
+		g.By("Ensure the gateway's LoadBalancer service and DNSRecords are available")
+		gwlbAddress, err := ensureLbServiceRetrieveLbAddress(oc, ingressNamespace, gatewayLbService)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-                gatewayAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
-                o.Expect(err).NotTo(o.HaveOccurred())
-                e2e.Logf("The gateway address is: %v", gatewayAddress)
-                o.Expect(gwlbAddress).To(o.Equal(gatewayAddress))
+		gatewayAddress, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "gateway", gatewayName, "-o=jsonpath={.status.addresses[0].value}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("The gateway address is: %v", gatewayAddress)
+		o.Expect(gwlbAddress).To(o.Equal(gatewayAddress))
 
-                // get the dnsrecord name
-                dnsRecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", "-l", "gateway.networking.k8s.io/gateway-name="+gatewayName, "-o=jsonpath={.items[*].metadata.name}").Output()
-                o.Expect(err).NotTo(o.HaveOccurred())
-                e2e.Logf("The gateway API dnsrecord name is: %v", dnsRecordName)
-                // check whether status of dns reccord is True
-                dnsRecordstatus, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", dnsRecordName, `-o=jsonpath={.status.zones[0].conditions[0].status}`).Output()
-                o.Expect(err).NotTo(o.HaveOccurred())
-                o.Expect(dnsRecordstatus).To(o.Equal("True"))
+		// get the dnsrecord name
+		dnsRecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", "-l", "gateway.networking.k8s.io/gateway-name="+gatewayName, "-o=jsonpath={.items[*].metadata.name}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("The gateway API dnsrecord name is: %v", dnsRecordName)
+		// check whether status of dns reccord is True
+		dnsRecordstatus, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecord", dnsRecordName, `-o=jsonpath={.status.zones[0].conditions[0].status}`).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dnsRecordstatus).To(o.Equal("True"))
 
 		// deleted the gateway loadbalancer service and then checked if it was restored
 		g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
-		// coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
 		lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		createdTime1 := lbService.ObjectMeta.CreationTimestamp
@@ -405,39 +405,38 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		// deleted the gateway dnsrecords then checked if it was restored
 		g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
-		dnsrecordName, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords", "-o=jsonpath={.items[0].metadata.name}").Output()
+		ingressclient := operatoringressclientset.NewForConfigOrDie(oc.AdminConfig())
+		dnsrecordList, err := ingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		targetsIPList1, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[*]}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		targetsIPList1 = getSortedString(targetsIPList1)
-		err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName).Execute()
+		dnsrecordName := dnsrecordList.Items[0].ObjectMeta.Name
+		targets := dnsrecordList.Items[0].Spec.Targets
+		targetsList1 := getSortedString(targets)
+		e2e.Logf("gwapi dnsrecords targetsList1 is %v", targetsList1)
+
+		err = ingressclient.IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecordName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
 		o.Eventually(func() bool {
-			targetsIPList2, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "dnsrecords/"+dnsrecordName, "-o=jsonpath={.spec.targets[*]}").Output()
-			if err != nil {
-				if errors.IsNotFound(err) {
-					return false
+			dnsrecordList, _ := ingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+			targetsList2 := getSortedString(dnsrecordList.Items[0].Spec.Targets)
+
+			if targetsList2 != targetsList1 {
+				e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", getSortedString(targetsList2), targetsList1)
+				return false
+			}
+
+			e2e.Logf("gwapi dnsrecords targetsList2 is %v", targetsList2)
+
+			for _, zone := range dnsrecordList.Items[0].Status.Zones {
+				for _, condition := range zone.Conditions {
+					if condition.Status != "True" || condition.Reason != "ProviderSuccess" {
+						return false
+					}
 				}
-				e2e.Logf("Error getting the gateway dnsrecords: %v, retrying...", err)
-				return false
-			}
 
-			if getSortedString(targetsIPList2) != targetsIPList1 {
-				e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", getSortedString(targetsIPList2), targetsIPList1)
-				return false
 			}
-
-			status, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName, "-o=jsonpath={.status.zones[*].conditions[0].status}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			reason, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", "openshift-ingress", "dnsrecords/"+dnsrecordName, "-o=jsonpath={.status.zones[*].conditions[0].reason}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if strings.Count(status, "True") == len(strings.Split(status, " ")) && strings.Count(reason, "ProviderSuccess") == len(strings.Split(reason, " ")) {
-				return true
-			}
-			e2e.Logf("The status of the gateway dnsrecords does not become normal, retrying...")
-			return false
+			return true
 		}, 3*time.Minute, 3*time.Second).Should(o.Equal(true))
 	})
 })
