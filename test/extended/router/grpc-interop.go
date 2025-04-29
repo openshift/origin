@@ -178,7 +178,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			notAfter := time.Now().Add(24 * time.Hour)
 
 			// Generate crt/key for routes that need them.
-			_, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(notBefore, notAfter)
+			_, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair("Root CA", notBefore, notAfter)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			derKey, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey)
