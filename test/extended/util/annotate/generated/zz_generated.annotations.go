@@ -1391,6 +1391,16 @@ var Annotations = map[string]string{
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial] All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
