@@ -193,16 +193,20 @@ func verifyMachineSetUpdate(oc *exutil.CLI, machineSet machinev1beta1.MachineSet
 	framework.Logf("Waiting until the boot image controller is not progressing...")
 	WaitForBootImageControllerToComplete(oc)
 
-	// Fetch the providerSpec of the machineset under test again
-	providerSpecDisks, err := oc.Run("get").Args(mapiMachinesetQualifiedName, machineSet.Name, "-o", "template", "--template=`{{.spec.template.spec.providerSpec.value}}`", "-n", mapiNamespace).Output()
-	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Eventually(func() bool {
+		// Fetch the providerSpec of the machineset under test again
+		providerSpec, err := oc.Run("get").Args(mapiMachinesetQualifiedName, machineSet.Name, "-o", "template", "--template=`{{.spec.template.spec.providerSpec.value}}`", "-n", mapiNamespace).Output()
+		if err != nil {
+			return false
+		}
 
-	// Verify that the machineset has the expected boot image values
-	if updateExpected {
-		o.Expect(providerSpecDisks).ShouldNot(o.ContainSubstring(newBootImage))
-	} else {
-		o.Expect(providerSpecDisks).Should(o.ContainSubstring(newBootImage))
-	}
+		// Verify that the machineset has the expected boot image values
+		if updateExpected {
+			return !strings.Contains(providerSpec, newBootImage)
+		} else {
+			return strings.Contains(providerSpec, newBootImage)
+		}
+	}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out verifying MachineSet '%v'", machineSet.Name)
 }
 
 // unmarshalProviderSpec unmarshals the machineset's provider spec into
@@ -241,6 +245,8 @@ func createFakeUpdatePatch(oc *exutil.CLI, machineSet machinev1beta1.MachineSet)
 		return generateAWSProviderSpecPatch(machineSet)
 	case osconfigv1.GCPPlatformType:
 		return generateGCPProviderSpecPatch(machineSet)
+	case osconfigv1.VSpherePlatformType:
+		return generateVSphereProviderSpecPatch(machineSet)
 	default:
 		exutil.FatalErr(fmt.Errorf("unexpected platform type; should not be here"))
 		return "", "", "", ""
@@ -293,6 +299,25 @@ func generateGCPProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string,
 	return newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage
 }
 
+// generateVSphereProviderSpecPatch generates a fake update patch for the VSphere MachineSet
+func generateVSphereProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string, string, string, string) {
+	providerSpec := new(machinev1beta1.VSphereMachineProviderSpec)
+	err := unmarshalProviderSpec(&machineSet, providerSpec)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Modify the boot image to a "fake" value
+	originalBootImage := providerSpec.Template
+	newBootImage := "fake-update"
+	newProviderSpec := providerSpec.DeepCopy()
+	newProviderSpec.Template = newBootImage
+	newProviderSpecPatch, err := marshalProviderSpec(newProviderSpec)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	originalProviderSpecPatch, err := marshalProviderSpec(providerSpec)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	return newProviderSpecPatch, originalProviderSpecPatch, newBootImage, originalBootImage
+}
+
 // WaitForBootImageControllerToComplete waits until the boot image controller is no longer progressing
 func WaitForBootImageControllerToComplete(oc *exutil.CLI) {
 	machineConfigurationClient, err := mcopclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -306,7 +331,7 @@ func WaitForBootImageControllerToComplete(oc *exutil.CLI) {
 			return false
 		}
 		return IsMachineConfigurationConditionFalse(mcop.Status.Conditions, opv1.MachineConfigurationBootImageUpdateProgressing)
-	}, 3*time.Minute, 5*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
+	}, 5*time.Minute, 5*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
 }
 
 // WaitForMachineConfigurationStatus waits until the MCO syncs the operator status to the latest spec

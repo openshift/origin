@@ -291,6 +291,10 @@ github.com/coreos/go-semver/semver
 github.com/coreos/go-systemd/v22/daemon
 github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/journal
+# github.com/coreos/stream-metadata-go v0.4.9
+## explicit; go 1.18
+github.com/coreos/stream-metadata-go/stream
+github.com/coreos/stream-metadata-go/stream/rhcos
 # github.com/cyphar/filepath-securejoin v0.4.1
 ## explicit; go 1.18
 github.com/cyphar/filepath-securejoin
