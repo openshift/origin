@@ -39,12 +39,7 @@ const (
 	// helloOpenShiftResponse is the HTTP response from hello-openshift example pod.
 	// https://github.com/kubernetes/kubernetes/blob/88dfcb225d41326113990e87b11137641c121a32/test/images/agnhost/netexec/netexec.go#L266-L269
 	helloOpenShiftResponse = "NOW:"
-	// selfManagedDefaultCertificateCN is the CommonName of router default certificate for SelfManaged cluster profile.
-	selfManagedDefaultCertificateCN = "ingress-operator"
-	// hypershiftDefaultCertificateCN is the CommonName of router default certificate for HyperShift cluster profile.
-	hypershiftDefaultCertificateCN = "root-ca"
-	// managedServiceDefaultCertificateCN is the CommonName of router default certificate for Managed Service cluster (e.g. ROSA classic).
-	managedServiceDefaultCertificateCN = "R11"
+	rootCertIssuerCN       = "RouteExternalCertificate Root CA"
 )
 
 var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]", func() {
@@ -629,26 +624,6 @@ func httpsGetCallWithExecPod(oc *exutil.CLI, url string, rootCertPEM []byte) (st
 
 // verifyRouteServesDefaultCert checks that the given hostname serves the default certificate.
 func verifyRouteServesDefaultCert(oc *exutil.CLI, hostname string) (string, error) {
-	defaultCertificateCN := selfManagedDefaultCertificateCN
-
-	// change the expected defaultCertificateCN if it's a HyperShift cluster.
-	isHypershift, err := exutil.IsHypershift(context.Background(), oc.AdminConfigClient())
-	if err != nil {
-		return "", fmt.Errorf("failed to verify HyperShift cluster: %w", err)
-	}
-	if isHypershift {
-		defaultCertificateCN = hypershiftDefaultCertificateCN
-	}
-
-	// change the expected defaultCertificateCN if it's a Managed Service cluster.
-	isManagedServiceCluster, err := exutil.IsManagedServiceCluster(context.Background(), oc.AdminKubeClient())
-	if err != nil {
-		return "", fmt.Errorf("failed to verify Managed Serive cluster: %w", err)
-	}
-	if isManagedServiceCluster {
-		defaultCertificateCN = managedServiceDefaultCertificateCN
-	}
-
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -659,7 +634,7 @@ func verifyRouteServesDefaultCert(oc *exutil.CLI, hostname string) (string, erro
 	url := fmt.Sprintf("https://%s", hostname)
 
 	var body string
-	err = wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
 		var err error
 		var resp *http.Response
 		resp, body, err = sendHttpRequestWithRetry(url, client)
@@ -667,13 +642,14 @@ func verifyRouteServesDefaultCert(oc *exutil.CLI, hostname string) (string, erro
 			return false, err
 		}
 
-		// check that the route is serving the default certificate.
+		// check that the route is serving the default certificate and not the external certificate.
 		for _, cert := range resp.TLS.PeerCertificates {
-			if !strings.Contains(cert.Issuer.CommonName, defaultCertificateCN) {
-				e2e.Logf("Unexpected Issuer CommonName: expected %v, but got %v, retrying...", defaultCertificateCN, cert.Issuer.CommonName)
+			if strings.Contains(cert.Issuer.CommonName, rootCertIssuerCN) {
+				e2e.Logf("Still serving external certificate: found Issuer CN=%q (expected NOT to match with %q), retrying...", cert.Issuer.CommonName, rootCertIssuerCN)
 				return false, nil
 			}
 		}
+		e2e.Logf("None of the PeerCertificates have Issuer CN matching %q", rootCertIssuerCN)
 		return true, nil
 	})
 
@@ -764,7 +740,7 @@ func generateTLSCertSecret(namespace, secretName string, secretType corev1.Secre
 	notAfter := time.Now().Add(24 * time.Hour)
 
 	// Generate crt/key for secret
-	rootDerBytes, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(notBefore, notAfter, hosts...)
+	rootDerBytes, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(rootCertIssuerCN, notBefore, notAfter, hosts...)
 	if err != nil {
 		return nil, nil, err
 	}
