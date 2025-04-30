@@ -90,12 +90,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		tlsHost := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
 
-		conn, err := tls.Dial("tcp4", tlsHost, tlsShouldWork)
+		conn, err := tls.Dial("tcp", tlsHost, tlsShouldWork)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		conn.Close()
 
-		_, err = tls.Dial("tcp4", tlsHost, tlsShouldNotWork)
+		_, err = tls.Dial("tcp", tlsHost, tlsShouldNotWork)
 		o.Expect(err).To(o.HaveOccurred())
 
 		//////
@@ -107,12 +107,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		oauthRouteString := fmt.Sprintf("%s:443", oauthRoute.Status.Ingress[0].Host)
 
-		conn, err = tls.Dial("tcp4", oauthRouteString, tlsShouldWork)
+		conn, err = tls.Dial("tcp", oauthRouteString, tlsShouldWork)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		conn.Close()
 
-		_, err = tls.Dial("tcp4", oauthRouteString, tlsShouldNotWork)
+		_, err = tls.Dial("tcp", oauthRouteString, tlsShouldNotWork)
 		o.Expect(err).To(o.HaveOccurred())
 
 		//////
@@ -129,12 +129,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"10357"},
 			func() {
-				conn, err = tls.Dial("tcp4", "localhost:10357", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:10357", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp4", "localhost:10357", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:10357", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -154,12 +154,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"10259"},
 			func() {
-				conn, err = tls.Dial("tcp4", "localhost:10259", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:10259", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp4", "localhost:10259", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:10259", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -179,12 +179,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"8443"},
 			func() {
-				conn, err = tls.Dial("tcp4", "localhost:8443", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:8443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp4", "localhost:8443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:8443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -204,12 +204,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"8443"},
 			func() {
-				conn, err = tls.Dial("tcp4", "localhost:8443", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:8443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp4", "localhost:8443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:8443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -229,12 +229,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"9001"},
 			func() {
-				conn, err = tls.Dial("tcp4", "localhost:9001", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:9001", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp4", "localhost:9001", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:9001", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -258,14 +258,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 				// with it - just checking TLS protocol versions. So, if it throws a "bad certificate"
 				// error, we're past the version check and consider it a success for this test.
 
-				conn, err = tls.Dial("tcp4", "localhost:2379", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:2379", tlsShouldWork)
 				if err != nil {
 					o.Expect(err.Error()).To(o.ContainSubstring("remote error: tls: bad certificate"))
 				} else {
 					conn.Close()
 				}
 
-				_, err = tls.Dial("tcp4", "localhost:2379", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:2379", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -376,7 +376,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			host := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
 
 			{
-				conn, err := tls.Dial("tcp4", host, config)
+				conn, err := tls.Dial("tcp", host, config)
 				if err == nil {
 					conn.Close()
 				}
@@ -401,7 +401,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			config := &tls.Config{CipherSuites: []uint16{cipher}, InsecureSkipVerify: true}
 
 			{
-				conn, err := tls.Dial("tcp4", oc.AdminConfig().Host, config)
+				conn, err := tls.Dial("tcp", oc.AdminConfig().Host, config)
 				if err == nil {
 					conn.Close()
 					if expectFailure {
