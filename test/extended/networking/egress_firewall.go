@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			_, err = noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 			expectNoError(err)
 		}
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://docs.openshift.com").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://redhat.com").Output()
 		expectNoError(err)
 
 		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
@@ -121,10 +121,10 @@ func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string) error {
 		_, err = oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 		expectError(err)
 	}
-	// Test curl to docs.openshift.com should pass
-	// because we have allow dns rule for docs.openshift.com
+	// Test curl to redhat.com should pass
+	// because we have allow dns rule for redhat.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://docs.openshift.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://redhat.com").Output()
 	expectNoError(err)
 
 	// Test curl to www.google.com:80 should fail
