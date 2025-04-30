@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -94,7 +95,6 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	g.It("Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]", func() {
-		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		ValidateMCNScopeSadPathTest(oc)
 	})
 
@@ -555,18 +555,27 @@ func ValidateMCNOnNodeCreationAndDeletion(oc *exutil.CLI) {
 	cleanupCompleted = true
 }
 
-// `ValidateMCNScopeSadPathTest` checks that MCN updates from a MCD that is not the associated one are blocked
+// `ValidateMCNScopeSadPathTest` checks that MCN updates from a MCD that is not the associated one are
+// blocked. This test skips on SNO clusters.
 func ValidateMCNScopeSadPathTest(oc *exutil.CLI) {
-	// Grab two random nodes from different pools, so we don't end up testing and targeting the same node.
-	nodeUnderTest := GetRandomNode(oc, "worker")
-	framework.Logf("Testing with worker node '%v'.", nodeUnderTest)
-	targetNode := GetRandomNode(oc, "master")
-	framework.Logf("Testing with mater node '%v'.", targetNode)
+	// Get all nodes from the cluster
+	nodes, nodesErr := GetAllNodes(oc)
+	o.Expect(nodesErr).NotTo(o.HaveOccurred(), "Error getting nodes from cluster: %v", nodesErr)
+	o.Expect(len(nodes)).To(o.BeNumerically(">", 0), "Got 0 nodes from cluster.")
+
+	// If cluster is SNO (has only one node), skip this test
+	if len(nodes) == 1 {
+		e2eskipper.Skipf("This test does not apply to single-node topologies")
+	}
+
+	// Grab two different nodes, so we don't end up testing and targeting the same node.
+	nodeUnderTest := nodes[0]
+	targetNode := nodes[1]
+	framework.Logf("Testing with nodes '%v' and '%v'.", nodeUnderTest, targetNode)
 
 	// Attempt to patch the MCN owned by targetNode from nodeUnderTest's MCD. This should fail.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
 	cmdOutput, err := ExecCmdOnNodeWithError(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", targetNode.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
-
 	o.Expect(err).To(o.HaveOccurred())
 	framework.Logf("MCN patch was successfully blocked.")
 	o.Expect(cmdOutput).To(o.ContainSubstring("updates to MCN " + targetNode.Name + " can only be done from the MCN's owner node"))
