@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	osconfigv1 "github.com/openshift/api/config/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
@@ -192,6 +195,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		c      *kubernetes.Clientset
 		dc     dynamic.Interface
 		helper *bmhelper.BaremetalTestHelper
+		oc     = exutil.NewCLI("machinesets")
 	)
 
 	g.BeforeEach(func() {
@@ -222,6 +226,16 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	// and deleting it. The extra timeout amount should be enough to cover future slower execution
 	// environments.
 	g.It("grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]", func() {
+
+		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.PlatformStatus.Type == osconfigv1.BareMetalPlatformType {
+			isTechPreview := exutil.IsTechPreviewNoUpgrade(context.TODO(), oc.AdminConfigClient())
+			if isTechPreview {
+				e2eskipper.Skipf("skipping machinesets test in tech-preview mode")
+			}
+		}
+
 		// expect new nodes to come up for machineSet
 		verifyNodeScalingFunc := func(c *kubernetes.Clientset, dc dynamic.Interface, expectedScaleOut int, machineSet objx.Map) bool {
 			nodes, err := getNodesFromMachineSet(c, dc, machineName(machineSet))
