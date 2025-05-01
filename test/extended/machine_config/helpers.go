@@ -478,6 +478,15 @@ func GetNodesByRole(oc *exutil.CLI, role string) ([]corev1.Node, error) {
 	return nodes.Items, nil
 }
 
+// `GetAllNodes` gets all nodes from a cluster
+func GetAllNodes(oc *exutil.CLI) ([]corev1.Node, error) {
+	nodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return nodes.Items, nil
+}
+
 // `isNodeReady` determines if a given node is ready
 func isNodeReady(node corev1.Node) bool {
 	// If the node is cordoned, it is not ready.
