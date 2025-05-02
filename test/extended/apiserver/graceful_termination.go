@@ -96,7 +96,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			}
 		}
 		if len(finalMessageBuilder.String()) > 0 {
-			g.GinkgoT().Errorf("The following API Servers weren't gracefully terminated: %v", finalMessageBuilder.String())
+			result.Flakef("The following API Servers weren't gracefully terminated. Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%s", finalMessageBuilder.String())
 		}
 	})
 
