@@ -399,6 +399,38 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("the cluster's tls profile is in a non-default state, not testing cipher defaults")
 		}
 
+		net.DefaultResolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				if network == "udp" || network == "tcp" {
+					// Attempt IPv6 first
+					ipv6Network := network + "6"
+					dialer := &net.Dialer{Timeout: 2 * time.Second}
+
+					conn, err := dialer.DialContext(ctx, ipv6Network, address)
+					if err == nil {
+						// IPv6 succeeded
+						return conn, nil
+					}
+
+					// Fall back to IPv4 if IPv6 failed
+					ipv4Network := network + "4"
+					return dialer.DialContext(ctx, ipv4Network, address)
+				}
+
+				// For any other network types, use as is
+				return (&net.Dialer{}).DialContext(ctx, network, address)
+			},
+		}
+
+		dialer := &net.Dialer{
+			Timeout:       30 * time.Second,
+			KeepAlive:     30 * time.Second,
+			DualStack:     true,
+			FallbackDelay: 500 * time.Millisecond,
+			Resolver:      net.DefaultResolver,
+		}
+
 		// Verify we fail with TLS versions less than the default, and work with TLS versions >= the default
 		for _, tlsVersionName := range crypto.ValidTLSVersions() {
 			tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
