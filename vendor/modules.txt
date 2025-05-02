@@ -869,6 +869,7 @@ github.com/openshift/api/operator/v1
 github.com/openshift/api/operator/v1alpha1
 github.com/openshift/api/operatorcontrolplane
 github.com/openshift/api/operatorcontrolplane/v1alpha1
+github.com/openshift/api/operatoringress/v1
 github.com/openshift/api/osin
 github.com/openshift/api/osin/v1
 github.com/openshift/api/pkg/serialization
@@ -1011,6 +1012,11 @@ github.com/openshift/client-go/operator/clientset/versioned
 github.com/openshift/client-go/operator/clientset/versioned/scheme
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1
+github.com/openshift/client-go/operatoringress/applyconfigurations/internal
+github.com/openshift/client-go/operatoringress/applyconfigurations/operatoringress/v1
+github.com/openshift/client-go/operatoringress/clientset/versioned
+github.com/openshift/client-go/operatoringress/clientset/versioned/scheme
+github.com/openshift/client-go/operatoringress/clientset/versioned/typed/operatoringress/v1
 github.com/openshift/client-go/project/applyconfigurations/internal
 github.com/openshift/client-go/project/applyconfigurations/project/v1
 github.com/openshift/client-go/project/clientset/versioned
@@ -2167,7 +2173,7 @@ k8s.io/cli-runtime/pkg/genericclioptions
 k8s.io/cli-runtime/pkg/genericiooptions
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.32.3 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20250320083338-1601b9e27d85
+# k8s.io/client-go v1.5.2 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20250320083338-1601b9e27d85
 ## explicit; go 1.23.0
 k8s.io/client-go/applyconfigurations
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
