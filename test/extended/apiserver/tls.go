@@ -18,6 +18,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
+	ocpv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -49,6 +50,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		if isMicroShift {
 			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
 		}
+
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		configClient := oc.AdminConfigClient()
 
@@ -130,6 +134,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		_, err = tls.DialWithDialer(dialer, "tcp", tlsHost, tlsShouldNotWork)
 		o.Expect(err).To(o.HaveOccurred())
+
+		//////
+
+		// Tests below this are not relevant in external control plane topology mode
+		if *controlPlaneTopology == ocpv1.ExternalTopologyMode {
+			return
+		}
 
 		//////
 
