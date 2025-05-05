@@ -9,6 +9,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	grpcinteropcredentials "github.com/openshift/origin/test/extended/router/grpc-interop/credentials"
 )
 
 type DialParams struct {
@@ -39,7 +41,7 @@ func Dial(cfg DialParams) (*grpc.ClientConn, error) {
 			}
 			tlsConfig.RootCAs = rootCAs
 		}
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+		opts = append(opts, grpc.WithTransportCredentials(grpcinteropcredentials.NewTLS(tlsConfig, credentials.NewTLS(tlsConfig))))
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
