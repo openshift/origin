@@ -2,8 +2,11 @@ package operators
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -635,85 +638,48 @@ func checkFeatureCapability(oc *exutil.CLI) {
 
 // verifyAPIEndpoint runs a job to validate the given service endpoint of a ClusterCatalog
 func verifyAPIEndpoint(ctx g.SpecContext, oc *exutil.CLI, serviceURL string) {
-	jobName := fmt.Sprintf("test-catalog-endpoint-%s", rand.String(5))
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 
-	jobYAML := fmt.Sprintf(`
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  template:
-    spec:
-      containers:
-      - name: api-tester
-        image: registry.redhat.io/rhel8/httpd-24:latest
-        resources:
-          requests:
-            cpu: "10m"
-            memory: "50Mi"
-        command:
-        - /bin/bash
-        - -c
-        - |
-          set -ex
-          curl -v -k "%s" 
-          if [ $? -ne 0 ]; then
-            echo "Failed to access endpoint"
-            exit 1
-          fi
-          echo "Successfully verified API endpoint"
-          exit 0
-      restartPolicy: Never
-  backoffLimit: 2
-`, jobName, "default", serviceURL)
+	backoff := wait.Backoff{
+		Duration: 5 * time.Second,
+		Factor:   1.5,
+		Jitter:   0.1,
+		Steps:    10,
+		Cap:      30 * time.Second,
+	}
 
-	tempFile, err := os.CreateTemp("", "api-test-job-*.yaml")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	tempFile.Close()
-	defer os.Remove(tempFile.Name())
-
-	err = os.WriteFile(tempFile.Name(), []byte(jobYAML), 0644)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", tempFile.Name()).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	// Wait for job completion
 	var lastErr error
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"job", jobName, "-n", "default", "-o=jsonpath={.status}").Output()
+	err := wait.ExponentialBackoffWithContext(ctx, backoff, func(ctx context.Context) (bool, error) {
+		req, err := http.NewRequestWithContext(ctx, "GET", serviceURL, nil)
 		if err != nil {
 			lastErr = err
-			g.GinkgoLogr.Info(fmt.Sprintf("error getting job status: %v (will retry)", err))
 			return false, nil
 		}
 
-		if output == "" {
-			return false, nil // Job status not available yet
-		}
-
-		// Parse job status
-		var status struct {
-			Succeeded int `json:"succeeded"`
-			Failed    int `json:"failed"`
-		}
-
-		if err := json.Unmarshal([]byte(output), &status); err != nil {
-			g.GinkgoLogr.Info(fmt.Sprintf("Error parsing job status: %v", err))
+		g.GinkgoLogr.Info(fmt.Sprintf("Attempting to access %s", serviceURL))
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			g.GinkgoLogr.Info(fmt.Sprintf("Request failed: %v (will retry)", err))
 			return false, nil
 		}
+		defer resp.Body.Close()
 
-		if status.Succeeded > 0 {
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			g.GinkgoLogr.Info(fmt.Sprintf("Successfully verified API endpoint. Status: %d, Response: %s",
+				resp.StatusCode, string(bodyBytes)[:100]+"..."))
 			return true, nil
 		}
 
-		if status.Failed > 0 {
-			return false, fmt.Errorf("job failed")
-		}
-
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		lastErr = fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(bodyBytes))
+		g.GinkgoLogr.Info(fmt.Sprintf("Request returned non-success status: %v (will retry)", lastErr))
 		return false, nil
 	})
 
@@ -721,6 +687,6 @@ spec:
 		if lastErr != nil {
 			g.GinkgoLogr.Error(nil, fmt.Sprintf("Last error encountered while polling: %v", lastErr))
 		}
-		o.Expect(err).NotTo(o.HaveOccurred(), "Job failed or timed out")
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("API endpoint verification failed or timed out with erro %s", err))
 	}
 }
