@@ -440,6 +440,14 @@ spec:
         should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
         Catalog Install should fail to install if it has an invalid reference'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace
+        Catalog should serve FBC via the /v1/api/all endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators
+        Catalog should serve FBC via the /v1/api/all endpoint'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should block cluster upgrades if an incompatible operator is
         installed'
@@ -447,6 +455,40 @@ spec:
         installation should fail to install a non-existing cluster extension'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
         installation should install a cluster extension'
+  - featureGate: NewOLMCatalogdAPIV1Metas
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
+        OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas
+        endpoint'
+  - featureGate: NewOLMPreflightPermissionChecks
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
+        OLMv1 operator preflight checks should report error when {ClusterRoleBindings}
+        are not specified'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
+        OLMv1 operator preflight checks should report error when {ConfigMap:resourceNames}
+        are not all specified'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
+        OLMv1 operator preflight checks should report error when {clusterextension/finalizer}
+        is not specified'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
+        OLMv1 operator preflight checks should report error when {create} verb is
+        not specified'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
+        OLMv1 operator preflight checks should report error when {escalate, bind}
+        is not specified'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
+        OLMv1 operator preflight checks should report error when {services} are not
+        specified'
   - featureGate: OrderedNamespaceDeletion
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
@@ -550,68 +592,68 @@ spec:
         with external host without being SNATed'
   - featureGate: RouteExternalCertificate
     tests:
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with invalid setup the router should not support external certificate if inline
         certificate is also present'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with invalid setup the router should not support external certificate if the
         route termination type is Passthrough'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with invalid setup the router should not support external certificate if the
         secret is in a different namespace'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with invalid setup the router should not support external certificate if the
         secret is not of type kubernetes.io/tls'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with invalid setup the router should not support external certificate without
         proper permissions'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and routes
         are reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to remove the external certificate and again re-add the same external
         certificate then also the route is reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to remove the external certificate then also the route is reachable
         and serves the default certificate'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate then also the route is reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate, but RBAC permissions are not added
         route update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate, but secret does not exist route
         update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to use new external certificate, but secret is not of type kubernetes.io/tls
         route update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to use same external certificate then also the route is reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the route
         is updated to use same external certificate, but RBAC permissions are dropped
         route update is rejected'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the secret
         is deleted and re-created again but RBAC permissions are dropped then routes
         are not reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the secret
         is deleted and re-created again then routes are reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the secret
         is deleted then routes are not reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the secret
         is updated but RBAC permissions are dropped then routes are not reachable'
-    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the secret
         is updated then also routes are reachable'
   - featureGate: SELinuxMount

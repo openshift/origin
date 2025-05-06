@@ -8,6 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -55,6 +56,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/request[memory]":                                         "https://issues.redhat.com/browse/OSD-21708",
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[cpu]":                                    "https://issues.redhat.com/browse/OSD-21708",
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[memory]":                                 "https://issues.redhat.com/browse/OSD-21708",
+
+			// Istio pods
+			"apps/v1/Deployment/openshift-ingress/gateway/container/istio-proxy/limit[cpu]":    "https://issues.redhat.com/browse/OCPBUGS-55050",
+			"apps/v1/Deployment/openshift-ingress/gateway/container/istio-proxy/limit[memory]": "https://issues.redhat.com/browse/OCPBUGS-55050",
 
 			// ovn pods
 			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[cpu]":    "https://issues.redhat.com/browse/TRT-1871",
@@ -123,8 +128,24 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 				case "ReplicaSet":
 					if i := strings.LastIndex(ref.Name, "-"); i != -1 {
 						name := ref.Name[0:i]
-						if deploy, err := oc.KubeFramework().ClientSet.AppsV1().Deployments(pod.Namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
+						if deploy, err := oc.KubeFramework().ClientSet.AppsV1().Deployments(pod.Namespace).Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+							if apierrors.IsNotFound(err) {
+								e2e.Logf("ignoring replicaset %s because no owning deployment %s exists", ref.Name, name)
+								// Ignore this pod entirely because it most likely
+								// belongs to an orphaned replicaset.
+								continue podLoop
+							} else {
+								e2e.Failf("unable to get deployment %s for replicaset %s: %v", name, ref.Name, err)
+							}
+						} else {
 							ref.Name = deploy.Name
+							if pod.Namespace == "openshift-ingress" && strings.HasPrefix(ref.Name, "gateway-") {
+								// The gateway deployment's name contains a hash, which
+								// must be removed in order to be able to define an
+								// exception.  Remove this if block when the
+								// corresponding exception is removed.
+								ref.Name = "gateway"
+							}
 							ref.Kind = "Deployment"
 							ref.APIVersion = "apps/v1"
 						}

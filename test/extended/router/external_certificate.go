@@ -39,11 +39,10 @@ const (
 	// helloOpenShiftResponse is the HTTP response from hello-openshift example pod.
 	// https://github.com/kubernetes/kubernetes/blob/88dfcb225d41326113990e87b11137641c121a32/test/images/agnhost/netexec/netexec.go#L266-L269
 	helloOpenShiftResponse = "NOW:"
-	// defaultCertificateCN is the CommonName of router default certificate.
-	defaultCertificateCN = "ingress-operator"
+	rootCertIssuerCN       = "RouteExternalCertificate Root CA"
 )
 
-var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io][Skipped:Disconnected]", func() {
+var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc            = exutil.NewCLIWithPodSecurityLevel("router-external-certificate", admissionapi.LevelBaseline)
@@ -459,7 +458,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 							err = waitForRouterOKResponseExec(oc.Namespace(), execPod.Name, routerURL, hostName, changeTimeoutSeconds)
 							o.Expect(err).NotTo(o.HaveOccurred())
 						} else {
-							resp, err := verifyRouteServesDefaultCert(hostName)
+							resp, err := verifyRouteServesDefaultCert(oc, hostName)
 							o.Expect(err).NotTo(o.HaveOccurred())
 							o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
 						}
@@ -624,7 +623,7 @@ func httpsGetCallWithExecPod(oc *exutil.CLI, url string, rootCertPEM []byte) (st
 }
 
 // verifyRouteServesDefaultCert checks that the given hostname serves the default certificate.
-func verifyRouteServesDefaultCert(hostname string) (string, error) {
+func verifyRouteServesDefaultCert(oc *exutil.CLI, hostname string) (string, error) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -643,13 +642,14 @@ func verifyRouteServesDefaultCert(hostname string) (string, error) {
 			return false, err
 		}
 
-		// check that the route is serving the default certificate.
+		// check that the route is serving the default certificate and not the external certificate.
 		for _, cert := range resp.TLS.PeerCertificates {
-			if !strings.Contains(cert.Issuer.CommonName, defaultCertificateCN) {
-				e2e.Logf("Unexpected Issuer CommonName: %v, retrying...", cert.Issuer.CommonName)
+			if strings.Contains(cert.Issuer.CommonName, rootCertIssuerCN) {
+				e2e.Logf("Still serving external certificate: found Issuer CN=%q (expected NOT to match with %q), retrying...", cert.Issuer.CommonName, rootCertIssuerCN)
 				return false, nil
 			}
 		}
+		e2e.Logf("None of the PeerCertificates have Issuer CN matching %q", rootCertIssuerCN)
 		return true, nil
 	})
 
@@ -740,7 +740,7 @@ func generateTLSCertSecret(namespace, secretName string, secretType corev1.Secre
 	notAfter := time.Now().Add(24 * time.Hour)
 
 	// Generate crt/key for secret
-	rootDerBytes, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(notBefore, notAfter, hosts...)
+	rootDerBytes, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(rootCertIssuerCN, notBefore, notAfter, hosts...)
 	if err != nil {
 		return nil, nil, err
 	}

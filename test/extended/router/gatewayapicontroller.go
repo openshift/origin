@@ -62,6 +62,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		deploymentOSSMName = "servicemesh-operator3"
 	)
 	g.BeforeAll(func() {
+		isokd, err := isOKD(oc)
+		if err != nil {
+			e2e.Failf("Failed to get clusterversion to determine if release is OKD: %v", err)
+		}
+		if isokd {
+			g.Skip("Skipping on OKD cluster as OSSM is not available as a community operator")
+		}
+
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(infra).NotTo(o.BeNil())
@@ -657,4 +665,16 @@ func getHttpResponse(client *http.Client, hostname string) (int, error) {
 	defer response.Body.Close()
 
 	return response.StatusCode, nil
+}
+
+// Check for the existence of the okd-scos string in the version name to determine if it is OKD
+func isOKD(oc *exutil.CLI) (bool, error) {
+	current, err := exutil.GetCurrentVersion(context.TODO(), oc.AdminConfig())
+	if err != nil {
+		return false, err
+	}
+	if strings.Contains(current, "okd-scos") {
+		return true, nil
+	}
+	return false, nil
 }

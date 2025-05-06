@@ -12,7 +12,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
-	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -45,6 +44,18 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 
 		busyboxImage = "quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f"
 	)
+
+	g.BeforeEach(func(ctx context.Context) {
+		//skip these tests on hypershift platforms
+		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+			g.Skip("PinnedImages is not supported on hypershift. Skipping tests.")
+		}
+
+		// TODO (ijanssen/rsaini): re-enable PIS tests on metal after fixing OCPBUGS-55394
+		// (temporarily) skip these tests on metal platforms
+		skipOnMetal(oc)
+	})
+
 	// Ensure each test pins a separate image, since we are not deleting them after each
 
 	g.It("All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {
@@ -98,6 +109,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 	})
 
 	g.It("All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]", func() {
+		// TODO (ijanssen/rsaini): re-enable this test on SNO after fixing OCPBUGS-55384
+		// (temporarily) skip these tests on SNO
+		skipOnSingleNodeTopology(oc)
+
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
@@ -189,14 +204,14 @@ func SimplePISTest(oc *exutil.CLI, kubeClient *kubernetes.Clientset, fixture str
 	o.Expect(err).NotTo(o.HaveOccurred(), "Checking status of PIS")
 }
 
-func detectXCondition(oc *exutil.CLI, node corev1.Node, mcn *mcfgv1alpha1.MachineConfigNode, appliedPIS *mcfgv1.PinnedImageSet, detectingSuccess bool) (bool, bool, error) {
+func detectXCondition(oc *exutil.CLI, node corev1.Node, mcn *mcfgv1.MachineConfigNode, appliedPIS *mcfgv1.PinnedImageSet, detectingSuccess bool) (bool, bool, error) {
 	if detectingSuccess {
 		for _, cond := range mcn.Status.Conditions {
-			if mcfgv1alpha1.StateProgress(cond.Type) == mcfgv1alpha1.MachineConfigNodePinnedImageSetsDegraded && cond.Status == "True" {
+			if mcfgv1.StateProgress(cond.Type) == mcfgv1.MachineConfigNodePinnedImageSetsDegraded && cond.Status == "True" {
 				return false, true, fmt.Errorf("PIS degraded for MCN %s with reason: %s and message: %s", mcn.Name, cond.Reason, cond.Message)
 			}
 
-			if mcfgv1alpha1.StateProgress(cond.Type) == mcfgv1alpha1.MachineConfigNodePinnedImageSetsProgressing && cond.Status == "True" {
+			if mcfgv1.StateProgress(cond.Type) == mcfgv1.MachineConfigNodePinnedImageSetsProgressing && cond.Status == "True" {
 				return false, false, nil
 			}
 		}
@@ -212,10 +227,10 @@ func detectXCondition(oc *exutil.CLI, node corev1.Node, mcn *mcfgv1alpha1.Machin
 		return true, false, nil
 	} else {
 		for _, cond := range mcn.Status.Conditions {
-			if mcfgv1alpha1.StateProgress(cond.Type) == mcfgv1alpha1.MachineConfigNodePinnedImageSetsDegraded && cond.Status == "True" {
+			if mcfgv1.StateProgress(cond.Type) == mcfgv1.MachineConfigNodePinnedImageSetsDegraded && cond.Status == "True" {
 				continue
 			}
-			if mcfgv1alpha1.StateProgress(cond.Type) == mcfgv1alpha1.MachineConfigNodePinnedImageSetsProgressing && cond.Status == "True" {
+			if mcfgv1.StateProgress(cond.Type) == mcfgv1.MachineConfigNodePinnedImageSetsProgressing && cond.Status == "True" {
 				return false, false, nil
 			}
 		}
@@ -243,7 +258,7 @@ func waitForPISStatusX(ctx context.Context, oc *exutil.CLI, kubeClient *kubernet
 
 		doneNodes := 0
 		for _, node := range nodes.Items {
-			mcn, err := clientSet.MachineconfigurationV1alpha1().MachineConfigNodes().Get(ctx, node.Name, metav1.GetOptions{})
+			mcn, err := clientSet.MachineconfigurationV1().MachineConfigNodes().Get(ctx, node.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, fmt.Errorf("failed to get mcn: %w", err)
 			}
