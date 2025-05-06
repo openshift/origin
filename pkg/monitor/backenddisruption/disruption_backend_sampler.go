@@ -140,6 +140,8 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 		return nil, err
 	}
 
+	// Kube-apiserver allows 34s timeout for api requests. We want to match it here.
+	timeout := 34 * time.Second
 	ret := &BackendSampler{
 		connectionType:      connectionType,
 		locator:             monitorapi.NewLocator().LocateDisruptionCheck(historicalBackendDisruptionDataName, OpenshiftTestsSource, connectionType),
@@ -149,6 +151,7 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 		bearerToken:         kubeTransportConfig.BearerToken,
 		bearerTokenFile:     kubeTransportConfig.BearerTokenFile,
 		consumptionFinished: make(chan struct{}),
+		timeout:             &timeout,
 	}
 
 	// TODO return error?  This is programmer error
