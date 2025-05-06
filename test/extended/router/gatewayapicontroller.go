@@ -31,6 +31,13 @@ import (
 	gatewayapiclientset "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
+const (
+	// Max time duration for the DNS resolution
+	dnsResolutionTimeout = 10 * time.Minute
+	// Max time duration for the Load balancer address
+	LoadBalancerReadyTimeout = 10 * time.Minute
+)
+
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
 	defer g.GinkgoRecover()
 	var (
@@ -207,7 +214,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
 
 		g.By("Verify the gateway's LoadBalancer service and DNSRecords")
-		waitForLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
 
 		// check the dns record is created and status of the published dnsrecord of all zones are True
 		assertDNSRecordStatus(oc, gw)
@@ -360,34 +367,49 @@ func buildGateway(name, namespace, gcname, fromNs, domain string) *gatewayapiv1.
 	}
 }
 
-func waitForLoadbalancerReady(oc *exutil.CLI, gw, gwServiceName string) {
+// assertGatewayLoadbalancerReady verifies that the given gateway has the service's load balancer address assigned.
+func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string) {
 	// check gateway LB service, note that External-IP might be hostname (AWS) or IP (Azure/GCP)
 	var lbAddress string
 	gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
-	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, LoadBalancerReadyTimeout, false, func(context context.Context) (bool, error) {
 		lbService, err := oc.AdminKubeClient().CoreV1().Services("openshift-ingress").Get(context, gwServiceName, metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Failed to get service %q, retrying...", gwServiceName)
+			return false, nil
+		}
 		if lbService.Status.LoadBalancer.Ingress[0].Hostname != "" {
 			lbAddress = lbService.Status.LoadBalancer.Ingress[0].Hostname
 		} else {
 			lbAddress = lbService.Status.LoadBalancer.Ingress[0].IP
 		}
-		e2e.Logf("The load balancer External-IP is: %v", lbAddress)
+		if lbAddress == "" {
+			e2e.Logf("No load balancer address for service %q, retrying", gwServiceName)
+			return false, nil
+		}
+		e2e.Logf("Got load balancer address for service %q: %v", gwServiceName, lbAddress)
 
-		gwlist, haerr := gwapiClient.GatewayV1().Gateways("openshift-ingress").Get(context, gw, metav1.GetOptions{})
-		e2e.Logf("The gateway hostname address is %v ", gwlist.Status.Addresses[0].Value)
-		o.Expect(haerr).NotTo(o.HaveOccurred())
-		o.Expect(lbAddress).To(o.Equal(gwlist.Status.Addresses[0].Value))
+		gw, err := gwapiClient.GatewayV1().Gateways("openshift-ingress").Get(context, gwName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get gateway %q, retrying...", gwName)
+		}
+		for _, gwAddr := range gw.Status.Addresses {
+			if gwAddr.Value == lbAddress {
+				return true, nil
+			}
+		}
+
+		e2e.Logf("Gateway %q does not have service load balancer address, retrying...", gwName)
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "The LB service is not either up nor same with the gateway hostname address")
+	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for gateway %q to get load balancer address of service %q", gwName, gwServiceName)
 }
 
 // assertDNSRecordStatus polls until the DNSRecord's status in the default operand namespace is True.
 func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 	// find the DNS Record and confirm its zone status is True
-	gatewayDNSRecord := &operatoringressv1.DNSRecord{}
 	err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+		gatewayDNSRecord := &operatoringressv1.DNSRecord{}
 		gatewayDNSRecords, err := oc.AdminIngressClient().IngressV1().DNSRecords("openshift-ingress").List(context, metav1.ListOptions{})
 		if err != nil {
 			e2e.Logf("Failed to list DNS records for gateway %q, retrying...", gatewayName)
@@ -413,7 +435,7 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 		e2e.Logf("DNS record %q is not ready, retrying...", gatewayDNSRecord.Name)
 		return false, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for DNSRecord %q to become ready", gatewayDNSRecord.Name)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for gateway %q DNSRecord to become ready", gatewayName)
 }
 
 // createHttpRoute checks if the HTTPRoute can be created.
@@ -597,21 +619,18 @@ func assertHttpRouteConnection(hostname string) {
 		},
 	}
 
-	// Wait and check that the dns name resolves first. Takes a long time, so
-	dnsResolutionTimeout := 10 * time.Minute
-	if err := wait.PollUntilContextTimeout(context.Background(), 20*time.Second, dnsResolutionTimeout, false, func(context context.Context) (bool, error) {
+	err := wait.PollUntilContextTimeout(context.Background(), 20*time.Second, dnsResolutionTimeout, false, func(context context.Context) (bool, error) {
 		_, err := net.LookupHost(hostname)
 		if err != nil {
-			e2e.Logf("%v waiting for HTTP route's hostname %q to resolve: %v", time.Now(), hostname, err)
+			e2e.Logf("[%v] Failed to resolve HTTP route's hostname %q: %v, retrying...", time.Now(), hostname, err)
 			return false, nil
 		}
 		return true, nil
-	}); err != nil {
-		e2e.Failf("Timed out waiting for HTTP route's hostname %q to be resolved: %v", hostname, err)
-	}
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Timed out waiting for HTTP route's hostname %q to be resolved: %v", hostname, err)
 
 	// Wait for http route to respond, and when it does, check for the status code.
-	if err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+	httpGeterr := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
 		statusCode, err := getHttpResponse(client, hostname)
 		if err != nil {
 			e2e.Logf("HTTP GET request to %q failed: %v, retrying...", hostname, err)
@@ -623,9 +642,8 @@ func assertHttpRouteConnection(hostname string) {
 		}
 		return true, nil
 
-	}); err != nil {
-		e2e.Failf("Timed out waiting for successful HTTP GET response from %q: %v", hostname, err)
-	}
+	})
+	o.Expect(httpGeterr).NotTo(o.HaveOccurred(), "Timed out waiting for successful HTTP GET response from %q: %v", hostname, err)
 }
 
 func getHttpResponse(client *http.Client, hostname string) (int, error) {
