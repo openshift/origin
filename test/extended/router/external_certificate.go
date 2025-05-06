@@ -518,6 +518,8 @@ func httpsGetCall(oc *exutil.CLI, hostname string, rootDerBytes []byte) (string,
 	}
 	client := &http.Client{
 		Transport: &http.Transport{
+			// Use the HTTP proxy configured in the environment variables.
+			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
 				RootCAs: certPool,
 			},
