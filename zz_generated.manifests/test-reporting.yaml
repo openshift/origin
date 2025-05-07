@@ -742,6 +742,21 @@ spec:
         [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with
         the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+  - featureGate: SigstoreImageVerification
+    tests:
+    - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
+        Should fail clusterimagepolicy signature validation root of trust does not
+        match the identity in the signature'
+    - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
+        Should fail clusterimagepolicy signature validation when scope in allowedRegistries
+        list does not skip signature verification'
+    - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
+        Should fail imagepolicy signature validation in different namespaces root
+        of trust does not match the identity in the signature'
+    - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
+        Should pass clusterimagepolicy signature validation with signed image'
+    - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
+        Should pass imagepolicy signature validation with signed image in namespaces'
   - featureGate: VSphereDriverConfiguration
     tests:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
