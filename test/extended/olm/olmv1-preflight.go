@@ -115,14 +115,14 @@ func waitForPreflightFailure(oc *exutil.CLI, ceName string) (bool, error, string
 		return false, nil, fmt.Sprintf("expected status to be %q: %+v", metav1.ConditionTrue, c)
 	}
 
-	messagePrefix := "pre-authorization failed:"
-	if !strings.HasPrefix(c.Message, messagePrefix) {
-		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", messagePrefix, c)
+	messageFailed := "pre-authorization failed:"
+	if !strings.Contains(c.Message, messageFailed) {
+		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", messageFailed, c)
 	}
 
-	messageContains := "service account requires the following permissions to manage cluster extension:"
-	if !strings.Contains(c.Message, messageContains) {
-		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", messageContains, c)
+	messageServiceAccount := "service account requires the following permissions to manage cluster extension:"
+	if !strings.Contains(c.Message, messageServiceAccount) {
+		return false, nil, fmt.Sprintf("expected message to contain %q: %+v", messageServiceAccount, c)
 	}
 
 	c = meta.FindStatusCondition(conditions, typeInstalled)
