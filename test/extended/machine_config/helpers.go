@@ -126,11 +126,25 @@ func IsTwoNodeArbiter(oc *exutil.CLI) bool {
 		infra.Status.InfrastructureTopology == osconfigv1.HighlyAvailableTopologyMode
 }
 
-// skipOnMetal skips the test if the cluster is using Metal PLatform
-func skipOnMetal(oc *exutil.CLI) {
+// `IsDisconnected` returns true if the cluster is a Disconnected cluster and false otherwise
+func IsDisconnected(oc *exutil.CLI, nodeName string) bool {
+	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "systemctl", "is-active", "NetworkManager-wait-online.service")
+	if networkStatus == "active" {
+		return false
+	}
+	return true
+}
+
+// `IsMetal` returns true if the cluster is hosted on a Metal Platform and false otherwise
+func IsMetal(oc *exutil.CLI) bool {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
-	if infra.Status.Platform == osconfigv1.BareMetalPlatformType {
+	return infra.Status.Platform == osconfigv1.BareMetalPlatformType
+}
+
+// skipOnMetal skips the test if the cluster is using Metal PLatform
+func skipOnMetal(oc *exutil.CLI) {
+	if IsMetal(oc) {
 		e2eskipper.Skipf("This test does not apply to metal")
 	}
 }
