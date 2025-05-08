@@ -23,6 +23,7 @@ var (
 			`\[Feature:UserNamespacesSupport\]`,
 			`\[Feature:DynamicResourceAllocation\]`,
 			`\[Feature:GPUUpgrade\]`,
+			`\[Feature:OrderedNamespaceDeletion\]`, // disabled Beta
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
