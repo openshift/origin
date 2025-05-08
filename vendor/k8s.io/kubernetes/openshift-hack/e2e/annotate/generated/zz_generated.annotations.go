@@ -1123,9 +1123,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to create LoadBalancer Service without NodePort and change it [Slow]": " [Skipped:alibabacloud] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:k8s]",
 
-	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:external] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:external] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to switch session affinity for LoadBalancer service with Cluster traffic policy [Slow] [LinuxOnly]": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:k8s]",
 
@@ -2368,6 +2368,8 @@ var Annotations = map[string]string{
 	"[sig-storage] CSI Mock volume storage capacity storage capacity exhausted, late binding, with topology": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Mock volume storage capacity storage capacity unlimited": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock when kubelet restart [Serial] [Disruptive] should not umount volume when the pvc is terminating but still used by a running pod": " [Suite:k8s]",
 
 	"[sig-storage] CSI Mock workload info CSI PodInfoOnMount Update should be passed when update from false to true": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
