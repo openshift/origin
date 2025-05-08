@@ -30,6 +30,7 @@ type auditLogAnalyzer struct {
 	requestCountTracking          *countTracking
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
+	watchCountTracking            *watchCountTracking
 
 	countsForInstall *CountsForRun
 }
@@ -40,6 +41,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		excessiveApplyChecker:         CheckForExcessiveApplies(),
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
+		watchCountTracking:            NewWatchCountTracking(),
 	}
 }
 
@@ -82,6 +84,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.excessiveApplyChecker,
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
+		w.watchCountTracking,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -231,7 +234,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: strings.Join(failures, "\n"),
+						Message: strings.Join(flakes, "\n"),
 						Output:  "details in audit log",
 					},
 				},
@@ -361,13 +364,24 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			},
 		)
 	}
-
-	return ret, nil
+	junits, err := w.watchCountTracking.CreateJunits()
+	if err == nil {
+		ret = append(ret, junits...)
+	}
+	return ret, err
 }
 
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
 		return currErr
+	}
+
+	if w.watchCountTracking != nil {
+		err := w.watchCountTracking.WriteAuditLogSummary(ctx, storageDir, "watch-requests", timeSuffix)
+		if err != nil {
+			// print any error and continue processing
+			fmt.Printf("unable to write audit log summary for %s - %v\n", "watch-requests", err)
+		}
 	}
 
 	if w.requestCountTracking != nil {
