@@ -99,12 +99,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	g.It("Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]", func() {
-		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		ValidateMCNScopeImpersonationPathTest(oc)
 	})
 
 	g.It("Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
-		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		ValidateMCNScopeHappyPathTest(oc)
 	})
 })
@@ -571,7 +569,7 @@ func ValidateMCNScopeSadPathTest(oc *exutil.CLI) {
 	// Grab two different nodes, so we don't end up testing and targeting the same node.
 	nodeUnderTest := nodes[0]
 	targetNode := nodes[1]
-	framework.Logf("Testing with nodes '%v' and '%v'.", nodeUnderTest, targetNode)
+	framework.Logf("Testing with nodes '%v' and '%v'.", nodeUnderTest.Name, targetNode.Name)
 
 	// Attempt to patch the MCN owned by targetNode from nodeUnderTest's MCD. This should fail.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
@@ -584,9 +582,10 @@ func ValidateMCNScopeSadPathTest(oc *exutil.CLI) {
 
 // `ValidateMCNScopeImpersonationPathTest` checks that MCN updates by impersonation of the MCD SA are blocked
 func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
-	// Grab a random node from the worker pool
+	// Grab a random node with a worker role
 	nodeUnderTest := GetRandomNode(oc, "worker")
-	framework.Logf("Testing with node '%v'.", nodeUnderTest)
+	o.Expect(nodeUnderTest.Name).NotTo(o.Equal(""), "Could not get a `worker` node.")
+	framework.Logf("Testing with node '%v'.", nodeUnderTest.Name)
 
 	var errb bytes.Buffer
 	// Attempt to patch the MCN owned by nodeUnderTest by impersonating the MCD SA. This should fail.
@@ -602,9 +601,10 @@ func ValidateMCNScopeImpersonationPathTest(oc *exutil.CLI) {
 
 // `ValidateMCNScopeHappyPathTest` checks that MCN updates from the associated MCD are allowed
 func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
-	// Grab a random node from the worker pool
+	// Grab a random node with a worker role
 	nodeUnderTest := GetRandomNode(oc, "worker")
-	framework.Logf("Testing with node '%v'.", nodeUnderTest)
+	o.Expect(nodeUnderTest.Name).NotTo(o.Equal(""), "Could not get a `worker` node.")
+	framework.Logf("Testing with node '%v'.", nodeUnderTest.Name)
 
 	// Get node's starting desired version
 	nodeDesiredConfig := nodeUnderTest.Annotations[desiredConfigAnnotationKey]
@@ -612,7 +612,7 @@ func ValidateMCNScopeHappyPathTest(oc *exutil.CLI) {
 	// Attempt to patch the MCN owned by nodeUnderTest from nodeUnderTest's MCD. This should succeed.
 	// This oc command effectively use the service account of the nodeUnderTest's MCD pod, which should only be able to edit nodeUnderTest's MCN.
 	ExecCmdOnNode(oc, nodeUnderTest, "chroot", "/rootfs", "oc", "patch", "machineconfignodes", nodeUnderTest.Name, "--type=merge", "-p", "{\"spec\":{\"configVersion\":{\"desired\":\"rendered-worker-test\"}}}")
-	framework.Logf("MCN '%v' patched successfully.", nodeUnderTest)
+	framework.Logf("MCN '%v' patched successfully.", nodeUnderTest.Name)
 
 	// Cleanup by updating the MCN desired config back to the original value.
 	framework.Logf("Cleaning up patched MCN's desired config value.")

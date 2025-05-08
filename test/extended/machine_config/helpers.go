@@ -430,19 +430,19 @@ func ValidateMCNForNodeInPool(oc *exutil.CLI, clientSet *machineconfigclient.Cli
 	return nil
 }
 
-// `GetRandomNode` gets a random node from a given MCP and checks whether the node is ready. If no
+// `GetRandomNode` gets a random node from with a given role and checks whether the node is ready. If no
 // nodes are ready, it will wait for up to 5 minutes for a node to become available.
-func GetRandomNode(oc *exutil.CLI, pool string) corev1.Node {
-	if node := getRandomNode(oc, pool); isNodeReady(node) {
+func GetRandomNode(oc *exutil.CLI, role string) corev1.Node {
+	if node := getRandomNode(oc, role); isNodeReady(node) {
 		return node
 	}
 
 	// If no nodes are ready, wait for up to 5 minutes for one to be ready
 	waitPeriod := time.Minute * 5
-	framework.Logf("No ready nodes found for pool '%s', waiting up to %s for a ready node to become available", pool, waitPeriod)
+	framework.Logf("No ready nodes found with role '%s', waiting up to %s for a ready node to become available", role, waitPeriod)
 	var targetNode corev1.Node
 	o.Eventually(func() bool {
-		if node := getRandomNode(oc, pool); isNodeReady(node) {
+		if node := getRandomNode(oc, role); isNodeReady(node) {
 			targetNode = node
 			return true
 		}
@@ -453,9 +453,9 @@ func GetRandomNode(oc *exutil.CLI, pool string) corev1.Node {
 	return targetNode
 }
 
-// `getRandomNode` gets a random node from a given pool
-func getRandomNode(oc *exutil.CLI, pool string) corev1.Node {
-	nodes, err := GetNodesByRole(oc, pool)
+// `getRandomNode` gets a random node with a given role
+func getRandomNode(oc *exutil.CLI, role string) corev1.Node {
+	nodes, err := GetNodesByRole(oc, role)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(nodes).ShouldNot(o.BeEmpty())
 

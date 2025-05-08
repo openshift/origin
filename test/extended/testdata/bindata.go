@@ -439,6 +439,8 @@
 // test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml
 // test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml
 // test/extended/testdata/machine_config/pinnedimage/invalidPis.yaml
+// test/extended/testdata/machine_config/pinnedimage/masterInvalidPis.yaml
+// test/extended/testdata/machine_config/pinnedimage/masterPis.yaml
 // test/extended/testdata/machine_config/pinnedimage/pis.yaml
 // test/extended/testdata/marketplace/csc/02-csc.yaml
 // test/extended/testdata/marketplace/opsrc/02-opsrc.yaml
@@ -49640,6 +49642,58 @@ func testExtendedTestdataMachine_configPinnedimageInvalidpisYaml() (*asset, erro
 	return a, nil
 }
 
+var _testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "master"
+spec:
+  pinnedImages:
+   - name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:86d26e7ebcccd6f07a75db5b1e56283b25c2ee1c6a755d6ffc5a4d59beb9cdef
+`)
+
+func testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/masterInvalidPis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataMachine_configPinnedimageMasterpisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: PinnedImageSet
+metadata:
+  name: test-pinned
+  labels:
+    machineconfiguration.openshift.io/role: "master"
+spec:
+  pinnedImages:
+   - name: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+`)
+
+func testExtendedTestdataMachine_configPinnedimageMasterpisYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataMachine_configPinnedimageMasterpisYaml, nil
+}
+
+func testExtendedTestdataMachine_configPinnedimageMasterpisYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataMachine_configPinnedimageMasterpisYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/machine_config/pinnedimage/masterPis.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataMachine_configPinnedimagePisYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
 kind: PinnedImageSet
 metadata:
@@ -59072,6 +59126,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/machine_config/pinnedimage/customInvalidPis.yaml":                                testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml,
 	"test/extended/testdata/machine_config/pinnedimage/customMCPpis.yaml":                                    testExtendedTestdataMachine_configPinnedimageCustommcppisYaml,
 	"test/extended/testdata/machine_config/pinnedimage/invalidPis.yaml":                                      testExtendedTestdataMachine_configPinnedimageInvalidpisYaml,
+	"test/extended/testdata/machine_config/pinnedimage/masterInvalidPis.yaml":                                testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYaml,
+	"test/extended/testdata/machine_config/pinnedimage/masterPis.yaml":                                       testExtendedTestdataMachine_configPinnedimageMasterpisYaml,
 	"test/extended/testdata/machine_config/pinnedimage/pis.yaml":                                             testExtendedTestdataMachine_configPinnedimagePisYaml,
 	"test/extended/testdata/marketplace/csc/02-csc.yaml":                                                     testExtendedTestdataMarketplaceCsc02CscYaml,
 	"test/extended/testdata/marketplace/opsrc/02-opsrc.yaml":                                                 testExtendedTestdataMarketplaceOpsrc02OpsrcYaml,
@@ -59858,6 +59914,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"customInvalidPis.yaml": {testExtendedTestdataMachine_configPinnedimageCustominvalidpisYaml, map[string]*bintree{}},
 						"customMCPpis.yaml":     {testExtendedTestdataMachine_configPinnedimageCustommcppisYaml, map[string]*bintree{}},
 						"invalidPis.yaml":       {testExtendedTestdataMachine_configPinnedimageInvalidpisYaml, map[string]*bintree{}},
+						"masterInvalidPis.yaml": {testExtendedTestdataMachine_configPinnedimageMasterinvalidpisYaml, map[string]*bintree{}},
+						"masterPis.yaml":        {testExtendedTestdataMachine_configPinnedimageMasterpisYaml, map[string]*bintree{}},
 						"pis.yaml":              {testExtendedTestdataMachine_configPinnedimagePisYaml, map[string]*bintree{}},
 					}},
 				}},
