@@ -29,20 +29,46 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture       = exutil.FixturePath("testdata", "builds", "test-build.yaml")
-		bcWithPRRef        = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
-		exampleGemfile     = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
-		exampleBuild       = exutil.FixturePath("testdata", "builds", "test-build-app")
-		symlinkFixture     = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
-		exampleGemfileURL  = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
-		exampleArchiveURL  = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
-		oc                 = exutil.NewCLIWithPodSecurityLevel("cli-start-build", admissionapi.LevelBaseline)
-		verifyNodeSelector = func(oc *exutil.CLI, name string) {
+		buildFixture      = exutil.FixturePath("testdata", "builds", "test-build.yaml")
+		bcWithPRRef       = exutil.FixturePath("testdata", "builds", "test-bc-with-pr-ref.yaml")
+		exampleGemfile    = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
+		exampleBuild      = exutil.FixturePath("testdata", "builds", "test-build-app")
+		symlinkFixture    = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
+		exampleGemfileURL = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
+		exampleArchiveURL = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
+		oc                = exutil.NewCLIWithPodSecurityLevel("cli-start-build", admissionapi.LevelBaseline)
+		verifyBuildPod    = func(oc *exutil.CLI, name string) {
+			// Check the build ran on a linux node
 			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), name+"-build", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			os, ok := pod.Spec.NodeSelector[corev1.LabelOSStable]
 			o.Expect(ok).To(o.BeTrue())
 			o.Expect(os).To(o.Equal("linux"))
+
+			// CVE-2024-45496: .gitconfig can be abused to run aritrary commands.
+			// Ensure the git-clone container does not run privileged and with minimum capabilities enabled.
+			for _, initContainer := range pod.Spec.InitContainers {
+				if initContainer.Name != "git-clone" {
+					continue
+				}
+				o.Expect(initContainer.SecurityContext).NotTo(o.BeNil(), "git-clone container should have a security context")
+				o.Expect(*initContainer.SecurityContext.Privileged).To(o.Or(o.BeNil(), o.BeEquivalentTo(false)), "git-clone container should not be privileged")
+				o.Expect(initContainer.SecurityContext.SeccompProfile.Type).To(o.Or(o.BeNil(), o.BeEquivalentTo(corev1.SeccompProfileTypeRuntimeDefault)),
+					"git-clone container should have the runtime default seccomp profile")
+				capabilities := initContainer.SecurityContext.Capabilities
+				o.Expect(capabilities).NotTo(o.BeNil(), "git-clone container should have capabilities defined")
+				o.Expect(capabilities.Drop).NotTo(o.BeEmpty(), "git-clone container should drop ALL capabilities")
+				for _, cap := range capabilities.Drop {
+					o.Expect(cap).To(o.BeEquivalentTo("ALL"), "git-clone container should only drop the ALL capability")
+				}
+				for _, cap := range capabilities.Add {
+					o.Expect(cap).To(o.Or(o.BeEquivalentTo("CHOWN"), o.BeEquivalentTo("DAC_OVERRIDE")),
+						"git-clone is only allowed to have the following capabilities: %s",
+						[]string{"CHOWN", "DAC_OVERRIDE"})
+				}
+
+			}
+
 		}
 	)
 
@@ -69,7 +95,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", "--wait")
 					o.Expect(err).NotTo(o.HaveOccurred())
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 				})
 
 				g.It("should start a build and wait for the build to fail [apigroup:build.openshift.io]", func() {
@@ -78,7 +104,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					br.AssertFailure()
 					o.Expect(br.StartBuildErr).To(o.HaveOccurred()) // start-build should detect the build error with --wait flag
 					o.Expect(br.StartBuildStdErr).Should(o.ContainSubstring(`status is "Failed"`))
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 				})
 			})
 
@@ -96,11 +122,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					br, err := exutil.StartBuildAndWait(oc, "bc-with-pr-ref-docker")
 					o.Expect(err).NotTo(o.HaveOccurred())
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					br, err = exutil.StartBuildAndWait(oc, "bc-with-pr-ref")
 					o.Expect(err).NotTo(o.HaveOccurred())
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					out, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -132,7 +158,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with -e FOO=bar,-e VAR=test")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", "-e", "FOO=bar", "-e", "VAR=test")
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -149,7 +175,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with buildconfig strategy env BUILD_LOGLEVEL=5")
 					br, err := exutil.StartBuildAndWait(oc, "sample-verbose-build")
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build output is verbose"))
@@ -164,7 +190,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with buildconfig strategy env BUILD_LOGLEVEL=5 but build-loglevel=1")
 					br, err := exutil.StartBuildAndWait(oc, "sample-verbose-build", "--build-loglevel=1")
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build output is not verbose"))
@@ -187,7 +213,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with a Dockerfile")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfile))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build %q status", br.BuildPath))
@@ -201,7 +227,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with a directory")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-dir=%s", exampleBuild))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build %q status", br.BuildPath))
@@ -215,7 +241,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					tryRepoInit(exampleBuild)
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-repo=%s", exampleBuild))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -235,7 +261,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					o.Expect(err).NotTo(o.HaveOccurred())
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--commit=%s", commit), fmt.Sprintf("--from-repo=%s", exampleBuild))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -252,7 +278,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting a valid build with a directory")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-binary", "--follow", fmt.Sprintf("--from-dir=%s", exampleBuild))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading directory"))
@@ -274,7 +300,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting a valid build with input file served by https")
 					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfileURL))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading file from %q as binary input for the build", exampleGemfileURL)))
@@ -286,7 +312,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					// can't use sample-build-binary because we need contextDir due to github archives containing the top-level directory
 					br, err := exutil.StartBuildAndWait(oc, "sample-build-github-archive", fmt.Sprintf("--from-archive=%s", exampleArchiveURL))
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring(fmt.Sprintf("Uploading archive from %q as binary input for the build", exampleArchiveURL)))
@@ -361,7 +387,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build without --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By("verifying the build output contains the build args from the BuildConfig.")
@@ -371,7 +397,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=foofoo=bar")
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By("verifying the build output contains the changes.")
@@ -381,7 +407,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					g.By("starting the build with --build-arg flag")
 					br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=bar=foo")
 					br.AssertSuccess()
-					verifyNodeSelector(oc, br.BuildName)
+					verifyBuildPod(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By("verifying the build completed with a warning.")
