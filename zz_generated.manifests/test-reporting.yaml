@@ -146,58 +146,64 @@ spec:
         on desired.architecture field in the CV [apigroup:image.openshift.io]'
   - featureGate: MachineConfigNodes
     tests:
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should have MCN properties
-        matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block
-        MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly block
-        MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] Should properly update
-        the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should have
-        MCN properties matching associated node properties for nodes in custom MCPs
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        Should have MCN properties matching associated node properties for nodes in
+        default MCPs [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        Should properly block MCN updates from a MCD that is not the associated one
         [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly
-        transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should
-        properly create and remove MCN on node creation and deletion [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial][Slow]Should
-        properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        [Serial]Should have MCN properties matching associated node properties for
+        nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        [Serial]Should properly transition through MCN conditions on rebootless node
+        update [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        [Serial][Slow]Should properly create and remove MCN on node creation and deletion
+        [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]
+        [Serial][Slow]Should properly report MCN conditions on node degrade [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a custom Pool should have the PinnedImages even after Garbage
         Collection [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ManagedBootImages
     tests:
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
-        on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should not update
-        boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should stamp
-        coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
-        boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
-        boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImages][Serial]
+        Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImages][Serial]
+        Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImages][Serial]
+        Should stamp coreos-bootimages configmap with current MCO hash and release
+        version [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImages][Serial]
+        Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImages][Serial]
+        Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ManagedBootImagesAWS
     tests:
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade
-        on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not
-        update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should stamp
-        coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
-        boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
-        boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]
+        Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]
+        Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]
+        Should stamp coreos-bootimages configmap with current MCO hash and release
+        version [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]
+        Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]
+        Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
   - featureGate: MetricsCollectionProfiles
     tests:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
@@ -581,16 +587,16 @@ spec:
         when the VMI attached to a secondary UDN is migrated between nodes'
   - featureGate: PinnedImages
     tests:
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a Custom Pool should have the PinnedImages in PIS [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a custom Pool should have the PinnedImages even after Garbage
         Collection [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]'
-    - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ProcMountType
     tests:

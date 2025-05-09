@@ -29,7 +29,7 @@ const (
 	arbiter = "arbiter"
 )
 
-var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	defer g.GinkgoRecover()
 	var (
 		MCOMachineConfigPoolBaseDir    = exutil.FixturePath("testdata", "machine_config", "machineconfigpool")
