@@ -685,6 +685,11 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 
 	framework.Logf("Launching a new prober pod")
 	proberPod := createProberPod(oc, externalNamespace, probePodName)
+	defer func() {
+		framework.Logf("Destroying the prober pod")
+		err := destroyProberPod(oc, proberPod)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}()
 
 	// Unfortunately, even after we created the EgressIP object and the CloudPrivateIPConfig, it can take some time before everything is applied correctly.
 	// Retry this test every 30 seconds for up to 2 minutes to give the cluster time to converge - eventually, this test should pass.
@@ -693,10 +698,6 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 		result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
 		return err == nil && result
 	}, 120*time.Second, 30*time.Second).Should(o.BeTrue())
-
-	framework.Logf("Destroying the prober pod")
-	err := destroyProberPod(oc, proberPod)
-	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 // ovnKubernetesCreateEgressIPObject creates the file containing the EgressIP YAML definition which can
@@ -742,35 +743,40 @@ func applyEgressIPObject(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Inte
 	_, err := runOcWithRetry(oc.AsAdmin(), "apply", "-f", egressIPYamlPath)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
-	var exists bool
-	var isAssigned bool
-	o.Eventually(func() bool {
-		for eip := range egressIPSet {
-			exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if !exists {
-				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
-				return false
+	if cloudNetworkClientset != nil {
+		framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
+		var exists bool
+		var isAssigned bool
+		o.Eventually(func() bool {
+			for eip := range egressIPSet {
+				exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if !exists {
+					framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
+					return false
+				}
+				if !isAssigned {
+					framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
+					return false
+				}
 			}
-			if !isAssigned {
-				framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
-				return false
-			}
-		}
-		framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
-		return true
-	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
+			framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
+			return true
+		}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
+	}
 
 	framework.Logf(fmt.Sprintf("Waiting for EgressIP addresses inside status of EgressIP CR %s for a maximum of %d seconds", egressIPObjectName, timeout))
 	var hasIP bool
+	var nodeName string
 	o.Eventually(func() bool {
 		for eip := range egressIPSet {
-			hasIP, err = egressIPStatusHasIP(oc, egressIPObjectName, eip)
+			hasIP, nodeName, err = egressIPStatusHasIP(oc, egressIPObjectName, eip)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !hasIP {
 				framework.Logf("EgressIP object %s does not have IP %s in its status field.", egressIPObjectName, eip)
 				return false
+			} else {
+				egressIPSet[eip] = nodeName
 			}
 		}
 		framework.Logf("Egress IP object %s does have all IPs for %v.", egressIPObjectName, egressIPSet)
