@@ -78,5 +78,5 @@ func includeNonFeatureGateTest(name string) bool {
 }
 
 var (
-	featureGateRegex = regexp.MustCompile(`\[OCPFeatureGate:([^]]*)\]`)
+	featureGateRegex = regexp.MustCompile(`\[(OCP)?FeatureGate:([^]]*)\]`)
 )
