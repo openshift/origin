@@ -1079,9 +1079,9 @@ var Annotations = map[string]string{
 
 	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to create LoadBalancer Service without NodePort and change it [Slow]": " [Skipped:alibabacloud] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:k8s]",
 
-	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:external] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:external] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-network] LoadBalancers [Feature:LoadBalancer] should be able to switch session affinity for LoadBalancer service with Cluster traffic policy [Slow] [LinuxOnly]": " [Skipped:alibabacloud] [Skipped:aws] [Skipped:baremetal] [Skipped:ibmcloud] [Skipped:kubevirt] [Skipped:nutanix] [Skipped:openstack] [Skipped:ovirt] [Skipped:vsphere] [Suite:k8s]",
 
@@ -1341,7 +1341,7 @@ var Annotations = map[string]string{
 
 	"[sig-network] Services should have session affinity work for service with type clusterIP [LinuxOnly] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-network] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes": " [Disabled:RebaseInProgress] [Suite:k8s]",
+	"[sig-network] Services should implement NodePort and HealthCheckNodePort correctly when ExternalTrafficPolicy changes": " [Disabled:Broken] [Suite:k8s]",
 
 	"[sig-network] Services should implement service.kubernetes.io/headless": " [Disabled:Broken] [Suite:k8s]",
 
