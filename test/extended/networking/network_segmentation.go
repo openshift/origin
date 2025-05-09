@@ -1919,7 +1919,7 @@ func generateNAD(config networkAttachmentConfig) *nadapi.NetworkAttachmentDefini
         "topology":%q,
         "subnets": %q,
         "excludeSubnets": %q,
-        "mtu": 1300,
+        "mtu": 1000,
         "netAttachDefName": %q,
         "vlanID": %d,
         "allowPersistentIPs": %t,
