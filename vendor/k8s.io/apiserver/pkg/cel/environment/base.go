@@ -132,6 +132,13 @@ var baseOptsWithoutStrictCost = []VersionedOptions{
 			library.CIDR(),
 		},
 	},
+	// Format Library
+	{
+		IntroducedVersion: version.MajorMinor(1, 30),
+		EnvOptions: []cel.EnvOption{
+			library.Format(),
+		},
+	},
 }
 
 var StrictCostOpt = VersionedOptions{

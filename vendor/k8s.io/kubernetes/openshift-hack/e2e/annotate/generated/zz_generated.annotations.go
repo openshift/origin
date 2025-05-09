@@ -207,11 +207,13 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] Namespaces [Serial] should patch a Namespace [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
-	"[sig-api-machinery] OpenAPIV3 should contain OpenAPI V3 for Aggregated APIServer": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] OpenAPIV3 should contain OpenAPI V3 for Aggregated APIServer [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-api-machinery] OpenAPIV3 should publish OpenAPI V3 for CustomResourceDefinition": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-api-machinery] OpenAPIV3 should round trip OpenAPI V3 for all built-in group versions": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should delete pod first [Feature:OrderedNamespaceDeletion] [FeatureGate:OrderedNamespaceDeletion] [Beta]": " [Disabled:Alpha] [Suite:k8s]",
 
 	"[sig-api-machinery] ResourceQuota [Feature:PodPriority] should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes.": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -563,6 +565,10 @@ var Annotations = map[string]string{
 
 	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should delete PVCs with a WhenDeleted policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVC with OnScaledown policy if another controller owns the PVC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVCs when there is another controller": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[sig-apps] StatefulSet Scaling StatefulSetStartOrdinal Decreasing .start.ordinal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Scaling StatefulSetStartOrdinal Increasing .start.ordinal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -888,6 +894,8 @@ var Annotations = map[string]string{
 	"[sig-cli] Kubectl client Simple pod Kubectl run running a failing command": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-cli] Kubectl client Simple pod Kubectl run running a successful command": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-cli] Kubectl client Simple pod [Slow] should support exec idle connections": " [Suite:k8s]",
 
 	"[sig-cli] Kubectl client Simple pod should contain last line of the log": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2500,6 +2508,8 @@ var Annotations = map[string]string{
 	"[sig-storage] CSI Mock volume storage capacity storage capacity exhausted, late binding, with topology": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Mock volume storage capacity storage capacity unlimited": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-storage] CSI Mock when kubelet restart [Serial] [Disruptive] should not umount volume when the pvc is terminating but still used by a running pod": " [Suite:k8s]",
 
 	"[sig-storage] CSI Mock workload info CSI PodInfoOnMount Update should be passed when update from false to true": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -14380,6 +14390,8 @@ var Annotations = map[string]string{
 	"[sig-windows] [Feature:Windows] Memory Limits [Serial] [Slow] attempt to deploy past allocatable memory limits should fail deployments of pods once there isn't enough memory": " [Suite:k8s]",
 
 	"[sig-windows] [Feature:Windows] SecurityContext should be able create pods and run containers with a given username": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-windows] [Feature:Windows] SecurityContext should be able to create pod and run containers": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-windows] [Feature:Windows] SecurityContext should ignore Linux Specific SecurityContext if set": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

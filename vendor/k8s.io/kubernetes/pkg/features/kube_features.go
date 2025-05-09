@@ -541,7 +541,8 @@ const (
 	// alpha: v1.27
 	// beta: v1.30
 	//
-	// Enables querying logs of node services using the /logs endpoint
+	// Enables querying logs of node services using the /logs endpoint. Enabling this feature has security implications.
+	// The recommendation is to enable it on a need basis for debugging purposes and disabling otherwise.
 	NodeLogQuery featuregate.Feature = "NodeLogQuery"
 
 	// owner: @xing-yang @sonasingh46
@@ -561,6 +562,12 @@ const (
 
 	// Permits kubelet to run with swap enabled.
 	NodeSwap featuregate.Feature = "NodeSwap"
+
+	// owner: @cici37
+	// kep: https://kep.k8s.io/5080
+	//
+	// Enables ordered namespace deletion.
+	OrderedNamespaceDeletion featuregate.Feature = "OrderedNamespaceDeletion"
 
 	// owner: @mortent, @atiratree, @ravig
 	// kep: http://kep.k8s.io/3018
@@ -1149,6 +1156,8 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	NodeSwap: {Default: true, PreRelease: featuregate.Beta},
 
+	OrderedNamespaceDeletion: {Default: false, PreRelease: featuregate.Beta},
+
 	PDBUnhealthyPodEvictionPolicy: {Default: true, PreRelease: featuregate.Beta},
 
 	PersistentVolumeLastPhaseTransitionTime: {Default: true, PreRelease: featuregate.Beta},
@@ -1268,7 +1277,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	genericfeatures.APIServerTracing: {Default: true, PreRelease: featuregate.Beta},
 
-	genericfeatures.APIServingWithRoutine: {Default: true, PreRelease: featuregate.Beta},
+	genericfeatures.APIServingWithRoutine: {Default: false, PreRelease: featuregate.Alpha},
 
 	genericfeatures.ConsistentListFromCache: {Default: false, PreRelease: featuregate.Alpha},
 

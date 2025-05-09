@@ -39,8 +39,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
 	"k8s.io/client-go/informers"
-
 	"k8s.io/mount-utils"
+
+	utilfs "k8s.io/kubernetes/pkg/util/filesystem"
 	netutils "k8s.io/utils/net"
 
 	v1 "k8s.io/api/core/v1"
@@ -1407,7 +1408,7 @@ func (kl *Kubelet) setupDataDirs() error {
 	if err := os.MkdirAll(kl.getRootDir(), 0750); err != nil {
 		return fmt.Errorf("error creating root directory: %v", err)
 	}
-	if err := os.MkdirAll(kl.getPodLogsDir(), 0750); err != nil {
+	if err := utilfs.MkdirAll(kl.getPodLogsDir(), 0750); err != nil {
 		return fmt.Errorf("error creating pod logs root directory %q: %w", kl.getPodLogsDir(), err)
 	}
 	if err := kl.hostutil.MakeRShared(kl.getRootDir()); err != nil {
@@ -1416,17 +1417,17 @@ func (kl *Kubelet) setupDataDirs() error {
 	if err := os.MkdirAll(kl.getPodsDir(), 0750); err != nil {
 		return fmt.Errorf("error creating pods directory: %v", err)
 	}
-	if err := os.MkdirAll(kl.getPluginsDir(), 0750); err != nil {
+	if err := utilfs.MkdirAll(kl.getPluginsDir(), 0750); err != nil {
 		return fmt.Errorf("error creating plugins directory: %v", err)
 	}
-	if err := os.MkdirAll(kl.getPluginsRegistrationDir(), 0750); err != nil {
+	if err := utilfs.MkdirAll(kl.getPluginsRegistrationDir(), 0750); err != nil {
 		return fmt.Errorf("error creating plugins registry directory: %v", err)
 	}
 	if err := os.MkdirAll(kl.getPodResourcesDir(), 0750); err != nil {
 		return fmt.Errorf("error creating podresources directory: %v", err)
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(features.ContainerCheckpoint) {
-		if err := os.MkdirAll(kl.getCheckpointsDir(), 0700); err != nil {
+		if err := utilfs.MkdirAll(kl.getCheckpointsDir(), 0700); err != nil {
 			return fmt.Errorf("error creating checkpoint directory: %v", err)
 		}
 	}
@@ -1516,6 +1517,14 @@ func (kl *Kubelet) initializeModules() error {
 	if _, err := os.Stat(ContainerLogsDir); err != nil {
 		if err := kl.os.MkdirAll(ContainerLogsDir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %q: %v", ContainerLogsDir, err)
+		}
+	}
+
+	if sysruntime.GOOS == "windows" {
+		// On Windows we should not allow other users to read the logs directory
+		// to avoid allowing non-root containers from reading the logs of other containers.
+		if err := utilfs.Chmod(ContainerLogsDir, 0750); err != nil {
+			return fmt.Errorf("failed to set permissions on directory %q: %w", ContainerLogsDir, err)
 		}
 	}
 
@@ -2590,7 +2599,8 @@ func (kl *Kubelet) HandlePodAdditions(pods []*v1.Pod) {
 		// shutting it down. If the pod hasn't started yet, we know that when
 		// the pod worker is invoked it will also avoid setting up the pod, so
 		// we simply avoid doing any work.
-		if !kl.podWorkers.IsPodTerminationRequested(pod.UID) {
+		// We also do not try to admit the pod that is already in terminated state.
+		if !kl.podWorkers.IsPodTerminationRequested(pod.UID) && !podutil.IsPodPhaseTerminal(pod.Status.Phase) {
 			// We failed pods that we rejected, so activePods include all admitted
 			// pods that are alive.
 			activePods := kl.filterOutInactivePods(existingPods)
