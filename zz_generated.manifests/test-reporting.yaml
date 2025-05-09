@@ -184,6 +184,11 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork
         status should report not-ready'
+  - featureGate: OrderedNamespaceDeletion
+    tests:
+    - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
+        delete pod first [Feature:OrderedNamespaceDeletion] [FeatureGate:OrderedNamespaceDeletion]
+        [Beta]'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
