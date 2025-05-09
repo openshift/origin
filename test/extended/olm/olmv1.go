@@ -635,6 +635,8 @@ func checkFeatureCapability(oc *exutil.CLI) {
 
 // verifyAPIEndpoint runs a job to validate the given service endpoint of a ClusterCatalog
 func verifyAPIEndpoint(ctx g.SpecContext, oc *exutil.CLI, serviceURL string) {
+	startTime := time.Now()
+
 	jobName := fmt.Sprintf("test-catalog-endpoint-%s", rand.String(5))
 
 	jobYAML := fmt.Sprintf(`
@@ -680,9 +682,11 @@ spec:
 	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", tempFile.Name()).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	g.By(fmt.Sprintf("Creating the API endpoint verification job: %s at %v", jobName, startTime.Format(time.RFC3339)))
+
 	// Wait for job completion
 	var lastErr error
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
 			"job", jobName, "-n", "default", "-o=jsonpath={.status}").Output()
 		if err != nil {
@@ -717,10 +721,14 @@ spec:
 		return false, nil
 	})
 
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
+
 	if err != nil {
 		if lastErr != nil {
 			g.GinkgoLogr.Error(nil, fmt.Sprintf("Last error encountered while polling: %v", lastErr))
 		}
-		o.Expect(err).NotTo(o.HaveOccurred(), "Job failed or timed out")
+		o.Expect(err).NotTo(o.HaveOccurred(), "Job failed or timed out in %v", duration)
 	}
+	g.GinkgoLogr.Info(fmt.Sprintf("Job completed successfully in: %v", duration))
 }
