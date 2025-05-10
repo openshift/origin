@@ -1,0 +1,21 @@
+dnsrecords.ingress.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/584
+  CRDName: dnsrecords.ingress.operator.openshift.io
+  Capability: Ingress
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: dns
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_50"
+  GroupName: ingress.operator.openshift.io
+  HasStatus: true
+  KindName: DNSRecord
+  Labels: {}
+  PluralName: dnsrecords
+  PrinterColumns: []
+  Scope: Namespaced
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+

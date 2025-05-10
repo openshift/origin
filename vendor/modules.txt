@@ -869,6 +869,7 @@ github.com/openshift/api/operator/v1
 github.com/openshift/api/operator/v1alpha1
 github.com/openshift/api/operatorcontrolplane
 github.com/openshift/api/operatorcontrolplane/v1alpha1
+github.com/openshift/api/operatoringress/v1
 github.com/openshift/api/osin
 github.com/openshift/api/osin/v1
 github.com/openshift/api/pkg/serialization
@@ -1011,6 +1012,11 @@ github.com/openshift/client-go/operator/clientset/versioned
 github.com/openshift/client-go/operator/clientset/versioned/scheme
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1
 github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1alpha1
+github.com/openshift/client-go/operatoringress/applyconfigurations/internal
+github.com/openshift/client-go/operatoringress/applyconfigurations/operatoringress/v1
+github.com/openshift/client-go/operatoringress/clientset/versioned
+github.com/openshift/client-go/operatoringress/clientset/versioned/scheme
+github.com/openshift/client-go/operatoringress/clientset/versioned/typed/operatoringress/v1
 github.com/openshift/client-go/project/applyconfigurations/internal
 github.com/openshift/client-go/project/applyconfigurations/project/v1
 github.com/openshift/client-go/project/clientset/versioned
