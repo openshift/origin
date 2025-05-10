@@ -624,17 +624,28 @@ func CheckMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1
 	return conditionStatus == status
 }
 
-// `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
-func getMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) metav1.ConditionStatus {
+// `GetMCNCondition` returns the queried condition or nil if the condition does not exist
+func GetMCNCondition(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) *metav1.Condition {
 	// Loop through conditions and return the status of the desired condition type
 	conditions := mcn.Status.Conditions
 	for _, condition := range conditions {
 		if condition.Type == string(conditionType) {
-			framework.Logf("MCN '%s' %s condition status is %s", mcn.Name, conditionType, condition.Status)
-			return condition.Status
+			return &condition
 		}
 	}
-	return ""
+	return nil
+}
+
+// `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
+func getMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) metav1.ConditionStatus {
+	// Loop through conditions and return the status of the desired condition type
+	condition := GetMCNCondition(mcn, conditionType)
+	if condition == nil {
+		return ""
+	}
+
+	framework.Logf("MCN '%s' %s condition status is %s", mcn.Name, conditionType, condition.Status)
+	return condition.Status
 }
 
 // `ConfirmUpdatedMCNStatus` confirms that an MCN is in a fully updated state, which requires:
