@@ -78,6 +78,53 @@ func (r *monitorTestRegistry) ListMonitorTests() sets.String {
 	return sets.StringKeySet(r.monitorTests)
 }
 
+func (r *monitorTestRegistry) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
+	junits := []*junitapi.JUnitTestCase{}
+	errs := []error{}
+
+	for _, invariant := range r.monitorTests {
+		testName := fmt.Sprintf("[Jira:%q] monitor test %v preparation", invariant.jiraComponent, invariant.name)
+		logrus.Infof("  Preparing %v for %v", invariant.name, invariant.jiraComponent)
+
+		start := time.Now()
+		err := prepareCollectionWithPanicProtection(ctx, invariant.monitorTest, adminRESTConfig, recorder)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			var nsErr *NotSupportedError
+			if errors.As(err, &nsErr) {
+				junits = append(junits, &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					SkipMessage: &junitapi.SkipMessage{
+						Message: nsErr.Reason,
+					},
+				})
+				continue
+			}
+			errs = append(errs, err)
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:     testName,
+				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during preparation\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during preparation\n%v", err),
+			})
+			var flakeErr *FlakeError
+			if !errors.As(err, &flakeErr) {
+				continue
+			}
+		}
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
+	return junits, utilerrors.NewAggregate(errs)
+}
+
 func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
 	wg := sync.WaitGroup{}
 	junitCh := make(chan *junitapi.JUnitTestCase, 2*len(r.monitorTests))

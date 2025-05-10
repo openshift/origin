@@ -20,6 +20,10 @@ func NewOperatorWatcher() monitortestframework.MonitorTest {
 	return &operatorWatcher{}
 }
 
+func (w *operatorWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *operatorWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	configClient, err := configclient.NewForConfig(adminRESTConfig)
 	if err != nil {

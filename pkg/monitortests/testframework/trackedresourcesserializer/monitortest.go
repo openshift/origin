@@ -23,6 +23,10 @@ func NewTrackedResourcesSerializer() monitortestframework.MonitorTest {
 	return &trackedResourcesSerializer{}
 }
 
+func (w *trackedResourcesSerializer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *trackedResourcesSerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
