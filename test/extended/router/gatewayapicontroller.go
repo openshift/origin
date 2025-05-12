@@ -26,6 +26,13 @@ import (
 	gatewayapiclientset "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
+var (
+	requiredCapabilities = []configv1.ClusterVersionCapability{
+		configv1.ClusterVersionCapabilityMarketplace,
+		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
+	}
+)
+
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
 	defer g.GinkgoRecover()
 	var (
@@ -73,6 +80,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			g.Skip(fmt.Sprintf("Skipping on non cloud platform type %q", platformType))
 		}
 
+		// GatewayAPIController relies on OSSM OLM operator.
+		// Skipping on clusters which don't have capabilities required
+		// to install an OLM operator.
+		exutil.SkipIfMissingCapabilities(oc, requiredCapabilities...)
+
 		gwapiClient := gatewayapiclientset.NewForConfigOrDie(oc.AdminConfig())
 		// create the default gatewayClass
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
@@ -80,7 +92,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		if err != nil && !apierrors.IsAlreadyExists(err) {
 			e2e.Failf("Failed to create GatewayClass %q", gatewayClassName)
 		}
-
 	})
 
 	g.AfterAll(func() {
