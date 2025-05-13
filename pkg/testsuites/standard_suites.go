@@ -436,4 +436,17 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 30 * time.Minute,
 	},
+	{
+		Name: "openshift/usernamespace",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate user namespace functionality.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/usernamespace")
+		},
+		TestTimeout: 60 * time.Minute,
+	},
 }

@@ -572,6 +572,11 @@ spec:
         Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]'
+  - featureGate: ProcMountType
+    tests:
+    - testName: '[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType]
+        [FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem
+        test in baseline mode'
   - featureGate: RouteAdvertisements
     tests:
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
@@ -785,6 +790,11 @@ spec:
         Should pass clusterimagepolicy signature validation with signed image'
     - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
         Should pass imagepolicy signature validation with signed image in namespaces'
+  - featureGate: UserNamespacesSupport
+    tests:
+    - testName: '[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType]
+        [FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem
+        test in baseline mode'
   - featureGate: VSphereDriverConfiguration
     tests:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
