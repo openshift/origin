@@ -240,6 +240,8 @@ const (
 	E2ETestFinished IntervalReason = "E2ETestFinished"
 
 	CloudMetricsExtrenuous                IntervalReason = "CloudMetricsExtrenuous"
+	CloudMetricsLBAvailability            IntervalReason = "CloudMetricsLBAvailability"
+	CloudMetricsLBHealthEvent             IntervalReason = "CloudMetricsLBHealthEvent"
 	FailedToDeleteCGroupsPath             IntervalReason = "FailedToDeleteCGroupsPath"
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
