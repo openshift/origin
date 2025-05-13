@@ -1,17 +1,12 @@
 reviewers:
+  - jcaamano
   - knobunc
-  - squeed
-  - dcbw
   - danwinship
   - trozet
+  - tssurya
 approvers:
-  - smarterclayton
-  - bparees
-  - mfojtik
+  - jcaamano
   - knobunc
-  - ironcladlou
-  - squeed
-  - dcbw
   - danwinship
   - trozet
-  - adambkaplan
+  - tssurya
