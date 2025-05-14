@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: install-test-ns-{UNIQUE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{UNIQUE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{UNIQUE}
+  annotations:
+    olm.operatorframework.io/watch-namespace: install-test-ns-{UNIQUE}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{UNIQUE}
+  source:
+    catalog:
+      packageName: "openshift-pipelines-operator-rh"
+      version: "1.17.1"
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog

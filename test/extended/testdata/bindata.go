@@ -465,6 +465,7 @@
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
 // test/extended/testdata/olmv1/install-catalog.yaml
+// test/extended/testdata/olmv1/install-openshift-pipelines-operator-ownns.yaml
 // test/extended/testdata/olmv1/install-operator.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-0.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-1.yaml
@@ -474,6 +475,8 @@
 // test/extended/testdata/olmv1/install-pipeline-operator-5.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-6.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-base.yaml
+// test/extended/testdata/olmv1/install-quay-operator-ownns.yaml
+// test/extended/testdata/olmv1/install-quay-operator-singlens.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
@@ -51020,6 +51023,64 @@ func testExtendedTestdataOlmv1InstallCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: install-test-ns-{UNIQUE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{UNIQUE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{UNIQUE}
+  annotations:
+    olm.operatorframework.io/watch-namespace: install-test-ns-{UNIQUE}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{UNIQUE}
+  source:
+    catalog:
+      packageName: "openshift-pipelines-operator-rh"
+      version: "1.17.1"
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-openshift-pipelines-operator-ownns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmv1InstallOperatorYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -53556,6 +53617,117 @@ func testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-pipeline-operator-base.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: install-test-ns-{UNIQUE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{UNIQUE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{UNIQUE}
+  annotations:
+    olm.operatorframework.io/watch-namespace: install-test-ns-{UNIQUE}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{UNIQUE}
+  source:
+    catalog:
+      packageName: "quay-operator"
+      version: "3.14.2"
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-quay-operator-ownns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{UNIQUE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{UNIQUE}
+  annotations:
+    olm.operatorframework.io/watch-namespace: {NAMESPACE}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{UNIQUE}
+  source:
+    catalog:
+      packageName: "quay-operator"
+      version: "3.14.2"
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1InstallQuayOperatorSinglensYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallQuayOperatorSinglensYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-quay-operator-singlens.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -59225,6 +59397,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
 	"test/extended/testdata/olmv1/install-catalog.yaml":                                                      testExtendedTestdataOlmv1InstallCatalogYaml,
+	"test/extended/testdata/olmv1/install-openshift-pipelines-operator-ownns.yaml":                           testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYaml,
 	"test/extended/testdata/olmv1/install-operator.yaml":                                                     testExtendedTestdataOlmv1InstallOperatorYaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-0.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator0Yaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-1.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator1Yaml,
@@ -59234,6 +59407,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/olmv1/install-pipeline-operator-5.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator5Yaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-6.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator6Yaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-base.yaml":                                       testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml,
+	"test/extended/testdata/olmv1/install-quay-operator-ownns.yaml":                                          testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml,
+	"test/extended/testdata/olmv1/install-quay-operator-singlens.yaml":                                       testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
@@ -60035,16 +60210,19 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
 				}},
 				"olmv1": {nil, map[string]*bintree{
-					"install-catalog.yaml":                {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
-					"install-operator.yaml":               {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
-					"install-pipeline-operator-0.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator0Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-1.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator1Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-2.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator2Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-3.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator3Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-4.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator4Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-5.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator5Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-6.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator6Yaml, map[string]*bintree{}},
-					"install-pipeline-operator-base.yaml": {testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml, map[string]*bintree{}},
+					"install-catalog.yaml":                            {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
+					"install-openshift-pipelines-operator-ownns.yaml": {testExtendedTestdataOlmv1InstallOpenshiftPipelinesOperatorOwnnsYaml, map[string]*bintree{}},
+					"install-operator.yaml":                           {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
+					"install-pipeline-operator-0.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator0Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-1.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator1Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-2.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator2Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-3.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator3Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-4.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator4Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-5.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator5Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-6.yaml":                {testExtendedTestdataOlmv1InstallPipelineOperator6Yaml, map[string]*bintree{}},
+					"install-pipeline-operator-base.yaml":             {testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml, map[string]*bintree{}},
+					"install-quay-operator-ownns.yaml":                {testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml, map[string]*bintree{}},
+					"install-quay-operator-singlens.yaml":             {testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml, map[string]*bintree{}},
 				}},
 				"poddisruptionbudgets": {nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
