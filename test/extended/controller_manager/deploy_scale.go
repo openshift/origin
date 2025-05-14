@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	"github.com/openshift/api/apps"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -13,11 +18,6 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/scale"
 
-	g "github.com/onsi/ginkgo/v2"
-	"github.com/openshift/api/apps"
-	appsv1 "github.com/openshift/api/apps/v1"
-	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
-	"github.com/openshift/library-go/pkg/apps/appsutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

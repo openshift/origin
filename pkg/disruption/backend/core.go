@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"k8s.io/client-go/tools/events"
+
 	"github.com/openshift/origin/pkg/disruption/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"k8s.io/client-go/tools/events"
 )
 
 // Client sends a given request to the server, and
@@ -30,8 +30,11 @@ type SampleResult struct {
 }
 
 func (s SampleResult) Succeeded() bool { return s.Sample.Err == nil }
-func (s SampleResult) Error() string   { return s.Sample.Err.Error() }
-func (s SampleResult) Err() error      { return s.Sample.Err }
+
+func (s SampleResult) Error() string { return s.Sample.Err.Error() }
+
+func (s SampleResult) Err() error { return s.Sample.Err }
+
 func (s SampleResult) AggregateErr() error {
 	err := s.Sample.Err
 	if s.ShutdownResponseHeaderParseErr != nil {

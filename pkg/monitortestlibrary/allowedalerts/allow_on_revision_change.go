@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 )
 
 type etcdRevisionChangeAllowance struct {
@@ -18,6 +18,7 @@ type etcdRevisionChangeAllowance struct {
 }
 
 var allowedWhenEtcdRevisionChange = &etcdRevisionChangeAllowance{}
+
 var _ AlertTestAllowanceCalculator = &etcdRevisionChangeAllowance{}
 
 func NewAllowedWhenEtcdRevisionChange(ctx context.Context, kubeClient kubernetes.Interface, duration time.Duration) (*etcdRevisionChangeAllowance, error) {

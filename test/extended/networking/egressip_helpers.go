@@ -18,6 +18,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	configv1 "github.com/openshift/api/config/v1"
+	networkv1 "github.com/openshift/api/network/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -32,15 +37,9 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
-
-	configv1 "github.com/openshift/api/config/v1"
-	networkv1 "github.com/openshift/api/network/v1"
-	routev1 "github.com/openshift/api/route/v1"
-	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
-	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	imageutils "k8s.io/kubernetes/test/utils/image"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // Add EgressIP types (copy/paste) instead of vendoring them.
@@ -144,8 +143,10 @@ const (
 
 type byName []corev1.Node
 
-func (n byName) Len() int           { return len(n) }
-func (n byName) Swap(i, j int)      { n[i], n[j] = n[j], n[i] }
+func (n byName) Len() int { return len(n) }
+
+func (n byName) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+
 func (n byName) Less(i, j int) bool { return n[i].Name < n[j].Name }
 
 // GetNodesOrdered returns a sorted slice (by node.Name) of nodes or error.

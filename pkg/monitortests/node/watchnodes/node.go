@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	corev1 "k8s.io/api/core/v1"
 	informercorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client kubernetes.Interface) {

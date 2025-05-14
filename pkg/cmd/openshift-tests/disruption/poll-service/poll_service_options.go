@@ -6,12 +6,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/openshift/origin/pkg/clioptions/iooptions"
-	"github.com/openshift/origin/pkg/monitor"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/monitor"
 )
 
 type PollServiceOptions struct {

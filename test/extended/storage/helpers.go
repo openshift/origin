@@ -9,10 +9,11 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	imageregistry "github.com/openshift/client-go/imageregistry/clientset/versioned"
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // Define test waiting time const

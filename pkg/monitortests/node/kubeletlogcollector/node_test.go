@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMonitorApiIntervals(t *testing.T) {

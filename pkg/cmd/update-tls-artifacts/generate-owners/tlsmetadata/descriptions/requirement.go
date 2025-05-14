@@ -3,6 +3,7 @@ package descriptions
 import (
 	"github.com/openshift/api/annotations"
 	"github.com/openshift/library-go/pkg/markdown"
+
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 )
 

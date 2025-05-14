@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	networkopernames "github.com/openshift/cluster-network-operator/pkg/names"
-	"github.com/openshift/origin/test/extended/util/operator"
-
+	"github.com/pborman/uuid"
 	corev1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -24,8 +24,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
-	g "github.com/onsi/ginkgo/v2"
-	"github.com/pborman/uuid"
+	"github.com/openshift/origin/test/extended/util/operator"
 )
 
 const (

@@ -3,9 +3,9 @@ package dr
 import (
 	"context"
 	"fmt"
+	"time"
+
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,7 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/utils/pointer"
-	"time"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const postBackupNamespaceName = "etcd-backup-ns"

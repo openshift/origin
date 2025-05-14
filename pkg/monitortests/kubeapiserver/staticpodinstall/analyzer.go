@@ -211,6 +211,8 @@ func key(interval monitorapi.Interval) podKey {
 
 type sortedByFrom []*podWindow
 
-func (s sortedByFrom) Len() int           { return len(s) }
+func (s sortedByFrom) Len() int { return len(s) }
+
 func (s sortedByFrom) Less(i, j int) bool { return s[i].from.Before(s[j].from) }
-func (s sortedByFrom) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func (s sortedByFrom) Swap(i, j int) { s[i], s[j] = s[j], s[i] }

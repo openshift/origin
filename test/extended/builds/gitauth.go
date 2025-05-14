@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/origin/test/extended/util"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

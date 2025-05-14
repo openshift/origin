@@ -8,17 +8,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/spf13/cobra"
 	"golang.org/x/exp/slices"
+	"k8s.io/kube-openapi/pkg/util/sets"
+	"k8s.io/kubectl/pkg/util/templates"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
-	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/cmd"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/test/extended/util/image"
-	"github.com/spf13/cobra"
-	"k8s.io/kube-openapi/pkg/util/sets"
-	"k8s.io/kubectl/pkg/util/templates"
 )
 
 func NewImagesCommand() *cobra.Command {

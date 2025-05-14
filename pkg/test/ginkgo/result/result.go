@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 

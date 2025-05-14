@@ -22,6 +22,7 @@ func newCIShutdownIntervalHandler(descriptor backend.TestDescriptor, monitorReco
 }
 
 var _ shutdownIntervalHandler = &ciShutdownIntervalHandler{}
+
 var _ backend.WantEventRecorderAndMonitorRecorder = &ciShutdownIntervalHandler{}
 
 type ciShutdownIntervalHandler struct {

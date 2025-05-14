@@ -7,17 +7,16 @@ import (
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	utilmetrics "github.com/openshift/library-go/test/library/metrics"
+	prometheustypes "github.com/prometheus/common/model"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/metrics"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/test/e2e/framework"
-
-	prometheustypes "github.com/prometheus/common/model"
 )
 
 const (
@@ -174,6 +173,7 @@ type apiUnreachableCallback struct {
 }
 
 func (b *apiUnreachableCallback) Name() string { return MonitorName }
+
 func (b *apiUnreachableCallback) StartSeries(metric prometheustypes.Metric) {
 	instanceIP := string(metric["instance"])
 	nodeName, nodeRole, err := b.resolver.GetNodeNameAndRoleFromInstance(instanceIP)
@@ -183,6 +183,7 @@ func (b *apiUnreachableCallback) StartSeries(metric prometheustypes.Metric) {
 
 	b.locator = monitorapi.NewLocator().WithAPIUnreachableFromClient(metric, b.resolver.serviceNetworkIP, nodeName, nodeRole)
 }
+
 func (b *apiUnreachableCallback) EndSeries() { b.locator = monitorapi.Locator{} }
 
 func (b *apiUnreachableCallback) NewInterval(metric prometheustypes.Metric, start, end *prometheustypes.SamplePair) {

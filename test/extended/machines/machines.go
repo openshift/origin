@@ -11,11 +11,9 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/stretchr/objx"
-
 	v1 "github.com/openshift/api/config/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/stretchr/objx"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,6 +25,8 @@ import (
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

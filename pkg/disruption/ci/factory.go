@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/disruption/backend/disruption"
@@ -17,8 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/disruption/backend/transport"
 	"github.com/openshift/origin/pkg/disruption/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"k8s.io/client-go/rest"
 )
 
 type ServerNameType string
@@ -127,10 +126,14 @@ func (t TestDescriptor) Validate() error {
 	}
 	return nil
 }
-func (t TestDescriptor) GetLoadBalancerType() backend.LoadBalancerType       { return t.LoadBalancerType }
-func (t TestDescriptor) GetProtocol() backend.ProtocolType                   { return t.Protocol }
+
+func (t TestDescriptor) GetLoadBalancerType() backend.LoadBalancerType { return t.LoadBalancerType }
+
+func (t TestDescriptor) GetProtocol() backend.ProtocolType { return t.Protocol }
+
 func (t TestDescriptor) GetConnectionType() monitorapi.BackendConnectionType { return t.ConnectionType }
-func (t TestDescriptor) GetTargetServerName() string                         { return string(t.TargetServer) }
+
+func (t TestDescriptor) GetTargetServerName() string { return string(t.TargetServer) }
 
 // dependency is an internal interface that facilitates writing a
 // unit test for the factory.
@@ -228,6 +231,7 @@ func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 	}
 	return rt, nil
 }
+
 func (r *restConfigDependency) HostName() string {
 	return r.config.Host
 }

@@ -7,7 +7,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	admissionapi "k8s.io/pod-security-admission/api"

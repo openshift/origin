@@ -19,7 +19,6 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
-
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
@@ -51,16 +50,20 @@ type additionalTest struct {
 }
 
 func (s additionalTest) PrintHumanReadable() string { return fmt.Sprintf("%s: %s", s.Name, s.Failure) }
-func (s additionalTest) SummaryKind() string        { return "AdditionalTest" }
-func (s additionalTest) PrintJSON() string          { data, _ := json.Marshal(s); return string(data) }
+
+func (s additionalTest) SummaryKind() string { return "AdditionalTest" }
+
+func (s additionalTest) PrintJSON() string { data, _ := json.Marshal(s); return string(data) }
 
 // flakeSummary is a test summary type that allows upgrades to report violations
 // without failing the upgrade test.
 type flakeSummary string
 
 func (s flakeSummary) PrintHumanReadable() string { return string(s) }
-func (s flakeSummary) SummaryKind() string        { return "Flake" }
-func (s flakeSummary) PrintJSON() string          { return `{"type":"Flake"}` }
+
+func (s flakeSummary) SummaryKind() string { return "Flake" }
+
+func (s flakeSummary) PrintJSON() string { return `{"type":"Flake"}` }
 
 // TestData is passed to the invariant tests executed during the upgrade. The default UpgradeType
 // is MasterUpgrade.

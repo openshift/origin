@@ -9,19 +9,18 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
+	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	utilnet "k8s.io/utils/net"
 
-	configv1 "github.com/openshift/api/config/v1"
-	operatorv1 "github.com/openshift/api/operator/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 

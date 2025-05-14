@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/client-go/tools/events"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/client-go/tools/events"
 )
 
 // NewIntervalTracker returns a SampleCollector that does the following:

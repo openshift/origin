@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 

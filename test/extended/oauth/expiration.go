@@ -10,14 +10,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"golang.org/x/oauth2"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	oauthv1 "github.com/openshift/api/oauth/v1"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/oauthserver"

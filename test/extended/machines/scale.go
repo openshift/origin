@@ -9,7 +9,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +20,8 @@ import (
 	"k8s.io/client-go/scale"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 )
 
 const (

@@ -11,17 +11,18 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	configv1 "github.com/openshift/api/config/v1"
 	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	config "github.com/openshift/client-go/config/clientset/versioned"
 	imageregistry "github.com/openshift/client-go/imageregistry/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/imageregistryutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/imageregistryutil"
 )
 
 func storageSupportsRedirects(storage imageregistryv1.ImageRegistryConfigStorage, authentication *configv1.Authentication) bool {

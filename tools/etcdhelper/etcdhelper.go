@@ -10,13 +10,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/openshift/api"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
-
-	"go.etcd.io/etcd/client/pkg/v3/transport"
-	"go.etcd.io/etcd/client/v3"
-
-	"github.com/openshift/api"
 )
 
 func init() {

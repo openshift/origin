@@ -3,11 +3,11 @@ package authorization
 import (
 	"fmt"
 
-	"k8s.io/client-go/kubernetes"
-
 	g "github.com/onsi/ginkgo/v2"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	"k8s.io/client-go/kubernetes"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

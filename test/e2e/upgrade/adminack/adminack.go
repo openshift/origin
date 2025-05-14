@@ -6,13 +6,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/openshift/clusterversionoperator"
-
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/openshift/clusterversionoperator"
 )
 
 // UpgradeTest contains artifacts used during test
@@ -22,6 +21,7 @@ type UpgradeTest struct {
 }
 
 func (UpgradeTest) Name() string { return "check-for-admin-acks" }
+
 func (UpgradeTest) DisplayName() string {
 	return "[bz-Cluster Version Operator] Verify presence of admin ack gate blocks upgrade until acknowledged"
 }

@@ -285,6 +285,7 @@ func (b *LocatorBuilder) withDaemonSet(daemonSetName string) *LocatorBuilder {
 	b.annotations[LocatorDaemonSetKey] = daemonSetName
 	return b
 }
+
 func (b *LocatorBuilder) withStatefuulSet(statefulSetName string) *LocatorBuilder {
 	b.annotations[LocatorStatefulSetKey] = statefulSetName
 	return b

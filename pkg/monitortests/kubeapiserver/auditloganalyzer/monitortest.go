@@ -7,17 +7,17 @@ import (
 	"strings"
 	"time"
 
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type auditLogAnalyzer struct {

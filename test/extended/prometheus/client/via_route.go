@@ -7,14 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/transport"
-
-	routev1 "github.com/openshift/api/route/v1"
 
 	"github.com/openshift/origin/test/extended/util"
 	promHelpers "github.com/openshift/origin/test/extended/util/prometheus"

@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {

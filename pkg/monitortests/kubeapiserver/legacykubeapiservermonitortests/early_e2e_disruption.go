@@ -3,21 +3,25 @@ package legacykubeapiservermonitortests
 import (
 	"context"
 	"fmt"
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/client-go/rest"
 	"regexp"
 	"strings"
 	"time"
 
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // amount of time near E2E test start that we consider "early"
 const preE2ECheckDuration = 2 * time.Minute
+
 const earlyE2ECheckDuration = 2 * time.Minute
+
 const kubeTestName = "[Jira:\"kube-apiserver\"] kube API servers should not experience disruption near the start of E2E testing"
+
 const oauthTestName = "[Jira:\"oauth-apiserver\"] oauth API servers should not experience disruption near the start of E2E testing"
 
 func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals, config *rest.Config) []*junitapi.JUnitTestCase {

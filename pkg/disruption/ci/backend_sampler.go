@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"sync"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/events"
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/disruption/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/kubernetes/test/e2e/framework"
-
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/events"
 )
 
 type Sampler interface {

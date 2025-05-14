@@ -4,19 +4,16 @@ import (
 	"context"
 	"time"
 
-	configv1 "github.com/openshift/api/config/v1"
-	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
+	configv1 "github.com/openshift/api/config/v1"
+	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

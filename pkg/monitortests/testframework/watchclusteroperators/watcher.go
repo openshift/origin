@@ -3,11 +3,12 @@ package watchclusteroperators
 import (
 	"sync"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type errorRecordingListWatcher struct {

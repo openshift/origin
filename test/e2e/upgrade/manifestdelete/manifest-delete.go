@@ -7,9 +7,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +16,8 @@ import (
 	apiregistrationsclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // UpgradeTest contains artifacts used during test.
@@ -88,6 +87,7 @@ func (u unstructured) String() string {
 }
 
 func (UpgradeTest) Name() string { return "check-for-deletes" }
+
 func (UpgradeTest) DisplayName() string {
 	return "[bz-Cluster Version Operator] Verify object deletions after upgrade success"
 }

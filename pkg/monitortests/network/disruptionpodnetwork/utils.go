@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // GetOpenshiftTestsImagePullSpec returns the pull spec or an error.

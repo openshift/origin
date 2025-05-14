@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // EnsureThanosQueriersConnectedToPromSidecars ensures that all Thanos queriers are connected to all

@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
+	consolev1client "github.com/openshift/client-go/console/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 
-	consolev1client "github.com/openshift/client-go/console/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -86,6 +86,7 @@ func (c *Client) Console(vmName, command string) (string, error) {
 func (c *Client) Login(vmName, hostname string) error {
 	return LoginToFedoraWithHostname(c.virtCtl, c.oc.Namespace(), vmName, "fedora", "fedora", hostname)
 }
+
 func (c *Client) GetJSONPath(resource, name, jsonPath string) (string, error) {
 	output, err := c.oc.AsAdmin().Run("get").Args(resource, name, "-n", c.oc.Namespace(), "-o", fmt.Sprintf(`jsonpath=%q`, jsonPath)).Output()
 	if err != nil {
@@ -93,6 +94,7 @@ func (c *Client) GetJSONPath(resource, name, jsonPath string) (string, error) {
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(output, `"`), `"`), nil
 }
+
 func ensureVirtctl(oc *exutil.CLI, dir string) (string, error) {
 	url, err := discoverVirtctlURL(oc)
 	if err != nil {

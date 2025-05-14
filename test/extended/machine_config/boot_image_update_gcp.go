@@ -4,9 +4,9 @@ import (
 	"context"
 	"path/filepath"
 
+	g "github.com/onsi/ginkgo/v2"
 	osconfigv1 "github.com/openshift/api/config/v1"
 
-	g "github.com/onsi/ginkgo/v2"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

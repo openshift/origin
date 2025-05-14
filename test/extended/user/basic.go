@@ -8,16 +8,15 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	authorizationv1 "github.com/openshift/api/authorization/v1"
-	userv1 "github.com/openshift/api/user/v1"
-	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

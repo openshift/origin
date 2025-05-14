@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
+	frrapi "github.com/metallb/frr-k8s/api/v1beta1"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
-	frrapi "github.com/metallb/frr-k8s/api/v1beta1"
+	configv1 "github.com/openshift/api/config/v1"
 	ratypes "github.com/ovn-org/ovn-kubernetes/go-controller/pkg/crd/routeadvertisements/v1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,8 +28,6 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	configv1 "github.com/openshift/api/config/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

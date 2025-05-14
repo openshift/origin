@@ -6,15 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
+	configv1 "github.com/openshift/api/config/v1"
+	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
-	configv1 "github.com/openshift/api/config/v1"
-	configclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client configclientset.Interface) {

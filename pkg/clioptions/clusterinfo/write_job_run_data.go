@@ -4,12 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
 func WasMasterNodeUpdated(events monitorapi.Intervals) string {

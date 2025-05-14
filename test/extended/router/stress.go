@@ -11,9 +11,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
-	"k8s.io/kubernetes/test/e2e/framework/statefulset"
-
+	routev1 "github.com/openshift/api/route/v1"
+	v2 "github.com/openshift/api/security/v1"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
+	v1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -26,13 +27,11 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/ptr"
 
-	routev1 "github.com/openshift/api/route/v1"
-	v2 "github.com/openshift/api/security/v1"
-	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	v1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

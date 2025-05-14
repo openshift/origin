@@ -1,11 +1,12 @@
 package monitor
 
 import (
+	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	summarize_audit_logs "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/summarize-audit-logs"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-	"github.com/spf13/cobra"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 func NewMonitorCommand(streams genericclioptions.IOStreams) *cobra.Command {

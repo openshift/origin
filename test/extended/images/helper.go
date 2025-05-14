@@ -19,7 +19,9 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	g "github.com/onsi/ginkgo/v2"
 	godigest "github.com/opencontainers/go-digest"
-
+	"github.com/openshift/api/image/docker10"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	knet "k8s.io/apimachinery/pkg/util/net"
@@ -27,9 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 
-	"github.com/openshift/api/image/docker10"
-	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/library-go/pkg/image/imageutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -111,11 +110,13 @@ func (sfs *RegistryStorageFiles) Len() int {
 func repoToPath(root, repository string) string {
 	return path.Join(root, fmt.Sprintf("repositories/%s", repository))
 }
+
 func repoLinkToPath(root, fileType, repository, dgst string) string {
 	d := godigest.Digest(dgst)
 	return path.Join(root, fmt.Sprintf("repositories/%s/_%ss/%s/%s/link",
 		repository, fileType, d.Algorithm(), d.Hex()))
 }
+
 func blobToPath(root, dgst string) string {
 	d := godigest.Digest(dgst)
 	return path.Join(root, fmt.Sprintf("blobs/%s/%s/%s/data",

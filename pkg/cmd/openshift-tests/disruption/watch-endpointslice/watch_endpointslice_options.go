@@ -6,17 +6,14 @@ import (
 	"io"
 	"os"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
+	discoveryinformers "k8s.io/client-go/informers/discovery/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitor"
-	"k8s.io/client-go/informers"
-
-	discoveryinformers "k8s.io/client-go/informers/discovery/v1"
-
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type WatchEndpointSliceOptions struct {

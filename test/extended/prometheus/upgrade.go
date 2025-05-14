@@ -6,15 +6,16 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
-	helper "github.com/openshift/origin/test/extended/util/prometheus"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 // MetricsAvailableAfterUpgradeTest tests that metrics from before an upgrade

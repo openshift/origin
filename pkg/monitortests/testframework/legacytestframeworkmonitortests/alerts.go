@@ -6,24 +6,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/alerts"
-	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
-	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/sirupsen/logrus"
-
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/alerts"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending alerts.MetricConditions)

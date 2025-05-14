@@ -6,19 +6,16 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/pborman/uuid"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/client-go/user/clientset/versioned"
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	"k8s.io/client-go/rest"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	userv1 "github.com/openshift/api/user/v1"
+	"github.com/openshift/client-go/user/clientset/versioned"
+	"github.com/pborman/uuid"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

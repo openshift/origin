@@ -7,12 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 )
 
 // WatchEndpointSliceFlags is used to run a monitoring process against the provided server as

@@ -6,12 +6,11 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // TODO: Remove this test if/when the JenkinsPipeline build strategy is removed.

@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func clusterOperatorsForRendering(ctx context.Context, c configv1client.Interface) string {

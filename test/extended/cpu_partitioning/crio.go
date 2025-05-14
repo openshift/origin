@@ -10,10 +10,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	ocpv1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +22,8 @@ import (
 	"k8s.io/client-go/util/retry"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/utils/cpuset"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // This collection script queries CRI-O for all it's containers, that data is then filtered down to only a subset

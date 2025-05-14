@@ -3,16 +3,19 @@ package monitortestlibrary
 import (
 	"strconv"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type ObjCreateFunc func(obj interface{}) []monitorapi.Interval
+
 type ObjUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
+
 type ObjDeleteFunc func(obj interface{}) []monitorapi.Interval
 
 type ResourceTracker interface {

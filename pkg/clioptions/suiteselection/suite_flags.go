@@ -12,14 +12,12 @@ import (
 	"strings"
 
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/spf13/pflag"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
 
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
-
-	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type DiscoveryClientGetter interface {

@@ -8,7 +8,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	buildv1 "github.com/openshift/api/build/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -17,9 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	buildv1 "github.com/openshift/api/build/v1"
-	templatev1 "github.com/openshift/api/template/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

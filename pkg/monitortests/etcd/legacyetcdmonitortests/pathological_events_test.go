@@ -3,9 +3,10 @@ package legacyetcdmonitortests
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func Test_testRequiredInstallerResourcesMissing(t *testing.T) {

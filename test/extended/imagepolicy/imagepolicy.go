@@ -8,8 +8,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	machineconfighelper "github.com/openshift/origin/test/extended/machine_config"
-	exutil "github.com/openshift/origin/test/extended/util"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
@@ -17,6 +15,9 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
+
+	machineconfighelper "github.com/openshift/origin/test/extended/machine_config"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

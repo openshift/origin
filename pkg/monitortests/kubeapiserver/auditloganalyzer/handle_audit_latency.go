@@ -2,14 +2,16 @@ package auditloganalyzer
 
 import (
 	"fmt"
-	"github.com/openshift/origin/pkg/dataloader"
-	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+
+	"github.com/openshift/origin/pkg/dataloader"
 )
 
 var (

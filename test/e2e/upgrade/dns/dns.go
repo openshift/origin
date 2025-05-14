@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
 	kappsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +21,8 @@ import (
 	e2edaemonset "k8s.io/kubernetes/test/e2e/framework/daemonset"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	imageutils "k8s.io/kubernetes/test/utils/image"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type UpgradeTest struct{}
@@ -29,6 +30,7 @@ type UpgradeTest struct{}
 var appName string
 
 func (t *UpgradeTest) Name() string { return "check-for-dns-availability" }
+
 func (UpgradeTest) DisplayName() string {
 	return "[sig-network-edge] Verify DNS availability during and after upgrade success"
 }

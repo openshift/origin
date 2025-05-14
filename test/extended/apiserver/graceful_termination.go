@@ -16,12 +16,10 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"k8s.io/klog/v2"
-
+	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	configv1 "github.com/openshift/api/config/v1"
+	klog "k8s.io/klog/v2"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	clihelpers "github.com/openshift/origin/test/extended/cli"

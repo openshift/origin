@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
-	"github.com/openshift/origin/pkg/certs"
-
 	"github.com/google/go-cmp/cmp"
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
+
+	"github.com/openshift/origin/pkg/certs"
 )
 
 type SimpleRequirementsResult struct {

@@ -5,14 +5,13 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
-
-	"log"
 )
 
 var reLine = regexp.MustCompile("^\\s*(\\w+)\\s+(\\w+)\\s+(.+)$")

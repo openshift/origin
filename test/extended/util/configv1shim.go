@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"sync"
 
+	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	applyconfigv1 "github.com/openshift/client-go/config/applyconfigurations/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1alpha1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha1"
-
-	openapi_v2 "github.com/google/gnostic-models/openapiv2"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -27,7 +25,7 @@ import (
 	"k8s.io/client-go/openapi"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 )
 
 var (
@@ -272,6 +270,7 @@ func (c *ConfigClientShim) ConfigV1() configv1.ConfigV1Interface {
 		fakeConfigV1Client: c.fakeClient.ConfigV1(),
 	}
 }
+
 func (c *ConfigClientShim) ConfigV1alpha1() configv1alpha1.ConfigV1alpha1Interface {
 	return c.configClient.ConfigV1alpha1()
 }

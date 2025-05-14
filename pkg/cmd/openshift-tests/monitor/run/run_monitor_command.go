@@ -9,21 +9,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-
-	"github.com/openshift/origin/pkg/clioptions/imagesetup"
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/test/extended/util/image"
-
-	"github.com/spf13/pflag"
-
-	"github.com/openshift/origin/pkg/defaultmonitortests"
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 type RunMonitorFlags struct {

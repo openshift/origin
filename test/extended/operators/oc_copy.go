@@ -1,7 +1,7 @@
 package operators
 
 import (
-	"github.com/distribution/distribution/v3"
+	distribution "github.com/distribution/distribution/v3"
 	digest "github.com/opencontainers/go-digest"
 	imageapi "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/dockerv1client"

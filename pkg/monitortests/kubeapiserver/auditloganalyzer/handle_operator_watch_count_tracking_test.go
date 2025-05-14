@@ -1,12 +1,13 @@
 package auditloganalyzer
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	authnv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-	"testing"
-	"time"
 )
 
 func Test_WatchCountTrackerEventHandler(t *testing.T) {

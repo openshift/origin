@@ -3,17 +3,19 @@ package dr
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/test/extended/prometheus/client"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"github.com/prometheus/common/model"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"strings"
-	"time"
+
+	"github.com/openshift/origin/test/extended/prometheus/client"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certrotation] etcd", func() {

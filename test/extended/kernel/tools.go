@@ -7,13 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/cpuset"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

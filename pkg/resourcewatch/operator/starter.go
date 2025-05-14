@@ -6,13 +6,14 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
-	"github.com/openshift/origin/pkg/resourcewatch/storage"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
+	"github.com/openshift/origin/pkg/resourcewatch/storage"
 )
 
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying

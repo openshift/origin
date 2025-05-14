@@ -2,11 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
+	"os"
 )
-
-import "io/ioutil"
-import "os"
 
 func main() {
 	if len(os.Args) != 2 {

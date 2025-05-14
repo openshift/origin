@@ -10,8 +10,6 @@ import (
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	podframework "k8s.io/kubernetes/test/e2e/framework/pod"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-network][Feature:vlan]", func() {

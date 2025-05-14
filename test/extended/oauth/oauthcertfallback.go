@@ -8,16 +8,15 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	configv1 "github.com/openshift/api/config/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned"
+	"github.com/openshift/library-go/pkg/crypto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
-	configv1 "github.com/openshift/api/config/v1"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned"
-	"github.com/openshift/library-go/pkg/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

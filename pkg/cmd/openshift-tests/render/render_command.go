@@ -1,9 +1,10 @@
 package render
 
 import (
-	test_report "github.com/openshift/origin/pkg/cmd/openshift-tests/render/test-report"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	test_report "github.com/openshift/origin/pkg/cmd/openshift-tests/render/test-report"
 )
 
 func NewRenderCommand(streams genericclioptions.IOStreams) *cobra.Command {

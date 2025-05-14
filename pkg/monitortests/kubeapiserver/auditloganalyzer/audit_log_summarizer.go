@@ -3,22 +3,27 @@ package auditloganalyzer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/pkg/dataloader"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+
+	"github.com/openshift/origin/pkg/dataloader"
 )
 
 var systemNode = "system:node"
+
 var openshiftServiceAccount = "system:serviceaccount:openshift-"
+
 var monitoredUsers = []string{"system:serviceaccount:kube-", openshiftServiceAccount, systemNode}
+
 var filteredUsers = []string{"system:serviceaccount:openshift-must-gather"}
+
 var mappedUsers = map[string]string{}
 
 // every audit log summarizer is not threadsafe. The idea is that you use one per thread and
@@ -307,17 +312,20 @@ func NewAuditLogSummary() *AuditLogSummary {
 		perHTTPStatusRequestCount: map[int32]*PerHTTPStatusRequestCount{},
 	}
 }
+
 func NewRequestCounts() *RequestCounts {
 	return &RequestCounts{
 		perHTTPStatusRequestCount: map[int32]int{},
 	}
 }
+
 func NewRequestCountsWithVerbs() *RequestCountsWithVerbs {
 	return &RequestCountsWithVerbs{
 		requestCounts:       NewRequestCounts(),
 		perVerbRequestCount: map[string]*RequestCounts{},
 	}
 }
+
 func NewPerStatusRequestCount(httpStatus int32) *PerHTTPStatusRequestCount {
 	return &PerHTTPStatusRequestCount{
 		httpStatus:              httpStatus,
@@ -326,6 +334,7 @@ func NewPerStatusRequestCount(httpStatus int32) *PerHTTPStatusRequestCount {
 		perUserRequestCount:     map[string]*RequestCounts{},
 	}
 }
+
 func NewPerUserRequestCount(user string) *PerUserRequestCount {
 	return &PerUserRequestCount{
 		user:                    user,
@@ -334,6 +343,7 @@ func NewPerUserRequestCount(user string) *PerUserRequestCount {
 		perVerbRequestCount:     map[string]*RequestCounts{},
 	}
 }
+
 func NewPerResourceRequestCount(gvr schema.GroupVersionResource) *PerResourceRequestCount {
 	return &PerResourceRequestCount{
 		groupVersionResource: gvr,

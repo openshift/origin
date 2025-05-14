@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/test/e2e/framework"
-
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type Callback interface {

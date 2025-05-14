@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners"
-
 	"github.com/openshift/library-go/pkg/serviceability"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/spf13/pflag"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	generate_owners "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func main() {

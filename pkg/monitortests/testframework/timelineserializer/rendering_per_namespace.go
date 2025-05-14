@@ -3,10 +3,10 @@ package timelineserializer
 import (
 	"strings"
 
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 type relatedNamespaces struct {

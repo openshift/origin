@@ -2,6 +2,7 @@ package autoregenerate_after_expiry
 
 import (
 	"github.com/openshift/library-go/pkg/markdown"
+
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 )
 

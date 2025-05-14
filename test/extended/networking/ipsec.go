@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/operator/v1"
-	mg "github.com/openshift/origin/test/extended/machine_config"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,8 +24,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
+	mg "github.com/openshift/origin/test/extended/machine_config"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

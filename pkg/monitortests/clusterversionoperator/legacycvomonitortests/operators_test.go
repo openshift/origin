@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // buildUpgradeInterval creates a standard upgrade interval using the given reason and eventTime.

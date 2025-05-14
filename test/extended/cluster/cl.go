@@ -10,7 +10,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	v1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,11 +27,14 @@ import (
 )
 
 const checkDeleteProjectInterval = 10 * time.Second
+
 const checkDeleteProjectTimeout = 3 * time.Minute
+
 const checkPodRunningTimeout = 5 * time.Minute
 
 // TODO sjug: pass label via config
 var podLabelMap = map[string]string{"purpose": "test"}
+
 var rootDir string
 
 var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func() {

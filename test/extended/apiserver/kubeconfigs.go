@@ -8,14 +8,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	configv1 "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	configv1 "github.com/openshift/api/config/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -26,6 +24,7 @@ var kcLocations = map[string]string{
 	"lb-int.kubeconfig":             "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig",
 	"localhost-recovery.kubeconfig": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig",
 }
+
 var kubeApiserverLocations = map[string]string{
 	"check-endpoints.kubeconfig":    "/etc/kubernetes/static-pod-certs/configmaps/check-endpoints-kubeconfig/kubeconfig",
 	"control-plane-node.kubeconfig": "/etc/kubernetes/static-pod-certs/configmaps/control-plane-node-kubeconfig/kubeconfig",

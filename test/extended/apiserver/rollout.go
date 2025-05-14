@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/single_node"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	"github.com/openshift/origin/test/extended/single_node"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const desiredTestDuration = 1 * time.Hour

@@ -8,17 +8,12 @@ import (
 	"time"
 
 	o "github.com/onsi/gomega"
-
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/api/machine/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
-
-	bmhelper "github.com/openshift/origin/test/extended/baremetal"
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,11 +27,17 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
+
+	bmhelper "github.com/openshift/origin/test/extended/baremetal"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const masterMachineLabelSelector = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
+
 const machineDeletionHookName = "EtcdQuorumOperator"
+
 const machineDeletionHookOwner = "clusteroperator/etcd"
+
 const masterNodeRoleLabel = "node-role.kubernetes.io/master"
 
 type TestingT interface {

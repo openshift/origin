@@ -11,13 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
 )
 
 func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface, beginning, end *time.Time, auditLogHandlers []AuditEventHandler) error {
@@ -77,6 +78,7 @@ type AuditEventHandler interface {
 func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string, beginning, end *metav1.MicroTime, auditLogHandlers []AuditEventHandler) error {
 	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver", beginning, end, auditLogHandlers)
 }
+
 func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string, beginning, end *metav1.MicroTime, auditLogHandlers []AuditEventHandler) error {
 	auditLogFilenames, err := getAuditLogFilenames(ctx, client, nodeName, apiserver)
 	if err != nil {

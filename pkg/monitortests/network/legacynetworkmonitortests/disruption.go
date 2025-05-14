@@ -6,12 +6,12 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/kustomize/kyaml/sets"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/sirupsen/logrus"
-	"sigs.k8s.io/kustomize/kyaml/sets"
 )
 
 func TestMultipleSingleSecondDisruptions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func LocatePod(pod *corev1.Pod) Locator {
@@ -202,6 +201,7 @@ func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
 }
 
 func (intervals ByTimeWithNamespacedPods) Len() int { return len(intervals) }
+
 func (intervals ByTimeWithNamespacedPods) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }

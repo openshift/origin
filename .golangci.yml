@@ -2,7 +2,12 @@ linters:
   disable-all: true
   enable:
     - nosprintfhostport
+    - goimports
   presets: []
   fast: true
 run:
   timeout: 5m
+
+linters-settings:
+  goimports-reviser:
+    local-prefixes: github.com/openshift/origin

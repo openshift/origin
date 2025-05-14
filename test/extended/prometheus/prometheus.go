@@ -9,11 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -31,8 +29,8 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/yaml"
 
-	configv1 "github.com/openshift/api/config/v1"
-
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"

@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/rest"
 )
 
 type operatorLeaseCheck struct {
@@ -122,7 +123,9 @@ func (intervals byLeaseAcquisition) Less(i, j int) bool {
 	// that use keys is trickier than the old flat string method.
 	return intervals[i].Locator.OldLocator() < intervals[j].Locator.OldLocator()
 }
+
 func (intervals byLeaseAcquisition) Len() int { return len(intervals) }
+
 func (intervals byLeaseAcquisition) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }

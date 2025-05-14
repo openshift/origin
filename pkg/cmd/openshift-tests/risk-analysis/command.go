@@ -1,9 +1,10 @@
 package risk_analysis
 
 import (
-	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/riskanalysis"
 )
 
 const sippyDefaultURL = "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"

@@ -2,13 +2,12 @@ package ginkgo
 
 import (
 	"context"
+	_ "embed"
 	"math/rand"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	_ "embed"
 )
 
 //go:embed testNames.txt

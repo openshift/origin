@@ -7,18 +7,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
-
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 type operatorLogAnalyzer struct {

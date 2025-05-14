@@ -4,13 +4,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/statetracker"
 	"github.com/sirupsen/logrus"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/statetracker"
 )
 
 func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
@@ -183,6 +182,7 @@ type simpleTimeBounder struct {
 func (t simpleTimeBounder) getStartTime(locator monitorapi.Locator) time.Time {
 	return t.startTime
 }
+
 func (t simpleTimeBounder) getEndTime(locator monitorapi.Locator) time.Time {
 	return t.endTime
 }

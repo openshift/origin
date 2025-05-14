@@ -10,9 +10,6 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
-
-	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -22,6 +19,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 )
 
 var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)

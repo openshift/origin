@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/util/diff"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func TestMonitor_Newlines(t *testing.T) {

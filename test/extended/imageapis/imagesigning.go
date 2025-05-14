@@ -8,15 +8,15 @@ import (
 	"reflect"
 	"strings"
 
+	g "github.com/onsi/ginkgo/v2"
+	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/config/helpers"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 
-	g "github.com/onsi/ginkgo/v2"
-	imagev1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/library-go/pkg/config/helpers"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
-
+	"github.com/openshift/library-go/pkg/build/naming"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -14,8 +14,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	"github.com/openshift/library-go/pkg/build/naming"
 )
 
 var _ = g.Describe("[sig-node]", func() {

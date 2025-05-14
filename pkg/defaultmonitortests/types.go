@@ -3,6 +3,8 @@ package defaultmonitortests
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/authentication/requiredsccmonitortests"
@@ -46,7 +48,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
-
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
@@ -58,7 +59,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
-	"github.com/sirupsen/logrus"
 )
 
 // ListAllMonitorTests is a helper that returns a simple list of

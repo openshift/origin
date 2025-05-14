@@ -3,9 +3,9 @@ package cli
 import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 var _ = g.Describe("[sig-cli] oc --request-timeout", func() {

@@ -8,20 +8,17 @@ import (
 	"strconv"
 	"strings"
 
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
-
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	dockerClient "github.com/fsouza/go-dockerclient"
-
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
+	"github.com/openshift/api/image/docker10"
+	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
-
-	"github.com/openshift/api/image/docker10"
-	imagev1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -357,8 +354,10 @@ type RegistryConfiguration struct {
 
 type byAgeDesc []kapiv1.Pod
 
-func (ba byAgeDesc) Len() int      { return len(ba) }
+func (ba byAgeDesc) Len() int { return len(ba) }
+
 func (ba byAgeDesc) Swap(i, j int) { ba[i], ba[j] = ba[j], ba[i] }
+
 func (ba byAgeDesc) Less(i, j int) bool {
 	return ba[j].CreationTimestamp.Before(&ba[i].CreationTimestamp)
 }

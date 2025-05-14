@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/klog/v2"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/events"
+	klog "k8s.io/klog/v2"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/events"
 )
 
 // newCIHandler returns a new intervalHandler instance
@@ -33,6 +32,7 @@ func newCIHandler(descriptor backend.TestDescriptor, monitor monitorapi.Recorder
 }
 
 var _ intervalHandler = &ciHandler{}
+
 var _ backend.WantEventRecorderAndMonitorRecorder = &ciHandler{}
 
 // ciHandler records the availability and unavailability interval in CI

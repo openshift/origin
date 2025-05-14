@@ -13,12 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/extensions"
-
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/extensions"
 )
 
 type testSuiteRunner interface {

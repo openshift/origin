@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
+	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,9 +22,6 @@ import (
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
 
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -492,6 +490,7 @@ func podNetworkStatus(pod *v1.Pod, predicates ...func(nadapi.NetworkStatus) bool
 	}
 	return netStatusMeetingPredicates, nil
 }
+
 func checkPodRunningReady() func(Gomega, *corev1.Pod) {
 	return func(g Gomega, pod *corev1.Pod) {
 		ok, err := testutils.PodRunningReady(pod)
@@ -531,6 +530,7 @@ func prepareHTTPServerPods(fr *framework.Framework, netConfig networkAttachmentC
 	waitForPodsCondition(fr, httpServerTestPods, httpServerPodCondition)
 	return updatePods(fr, httpServerTestPods)
 }
+
 func httpServerTestPodsMultusNetworkIPs(netConfig networkAttachmentConfigParams, httpServerTestPods []*corev1.Pod) map[string][]string {
 	GinkgoHelper()
 	ips := map[string][]string{}

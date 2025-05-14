@@ -18,8 +18,6 @@ import (
 	o "github.com/onsi/gomega"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/test/library"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
 	"github.com/stretchr/objx"
 	xssh "golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
@@ -36,11 +34,14 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/kubernetes/test/utils"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const (

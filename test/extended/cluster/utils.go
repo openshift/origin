@@ -15,7 +15,7 @@ import (
 	"unicode"
 
 	"github.com/ghodss/yaml"
-
+	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,7 +28,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 
-	"github.com/openshift/library-go/pkg/template/templateprocessingclient"
 	"github.com/openshift/origin/test/extended/cluster/metrics"
 	exutil "github.com/openshift/origin/test/extended/util"
 )

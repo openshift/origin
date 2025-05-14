@@ -7,7 +7,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"

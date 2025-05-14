@@ -5,9 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	configv1 "github.com/openshift/api/config/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // ExtensionInfo represents an extension to openshift-tests.
@@ -66,6 +65,7 @@ type Suite struct {
 type Lifecycle string
 
 var LifecycleInforming Lifecycle = "informing"
+
 var LifecycleBlocking Lifecycle = "blocking"
 
 type ExtensionTestSpecs []*ExtensionTestSpec
@@ -116,7 +116,9 @@ type ExtensionTestResults []*ExtensionTestResult
 type Result string
 
 var ResultPassed Result = "passed"
+
 var ResultSkipped Result = "skipped"
+
 var ResultFailed Result = "failed"
 
 type ExtensionTestResult struct {

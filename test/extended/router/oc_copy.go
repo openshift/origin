@@ -1,9 +1,8 @@
 package router
 
 import (
-	corev1 "k8s.io/api/core/v1"
-
 	routev1 "github.com/openshift/api/route/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func IngressConditionStatus(ingress *routev1.RouteIngress, t routev1.RouteIngressConditionType) (corev1.ConditionStatus, routev1.RouteIngressCondition) {

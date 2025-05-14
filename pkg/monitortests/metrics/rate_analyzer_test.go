@@ -240,9 +240,12 @@ type fakeCallback struct {
 	disruptions          []interval
 }
 
-func (c *fakeCallback) Name() string                              { return "fake-monitor" }
+func (c *fakeCallback) Name() string { return "fake-monitor" }
+
 func (c *fakeCallback) StartSeries(metric prometheustypes.Metric) { c.countStart++ }
-func (c *fakeCallback) EndSeries()                                { c.countEnd++ }
+
+func (c *fakeCallback) EndSeries() { c.countEnd++ }
+
 func (c *fakeCallback) NewInterval(metric prometheustypes.Metric, from, to *prometheustypes.SamplePair) {
 	c.disruptions = append(c.disruptions, interval{From: *from, To: *to})
 }

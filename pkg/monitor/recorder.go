@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type recorder struct {

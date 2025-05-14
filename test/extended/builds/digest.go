@@ -7,7 +7,6 @@ import (
 	manifestschema2 "github.com/distribution/distribution/v3/manifest/schema2"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 

@@ -2,11 +2,13 @@ package auditloganalyzer
 
 import (
 	"fmt"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"strings"
 	"sync"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 func CheckForViolations() *auditViolations {

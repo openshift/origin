@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/sirupsen/logrus"
+
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
 type AlertStatisticalData struct {

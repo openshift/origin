@@ -5,13 +5,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"k8s.io/client-go/tools/events"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
-
-	"k8s.io/client-go/tools/events"
-	"k8s.io/kubernetes/test/e2e/framework"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // NewSharedShutdownIntervalTracker returns a SampleCollector

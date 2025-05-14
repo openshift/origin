@@ -11,7 +11,6 @@ import (
 
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	"github.com/openshift/origin/pkg/version"
 )
 

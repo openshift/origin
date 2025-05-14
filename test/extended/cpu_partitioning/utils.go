@@ -7,15 +7,12 @@ import (
 
 	o "github.com/onsi/gomega"
 	t "github.com/onsi/gomega/types"
-
 	v1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 

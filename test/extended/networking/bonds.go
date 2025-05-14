@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	nadtypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	"github.com/lithammer/dedent"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 
-	nadtypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-	"github.com/lithammer/dedent"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

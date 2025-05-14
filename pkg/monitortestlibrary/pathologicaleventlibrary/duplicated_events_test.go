@@ -6,9 +6,10 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func TestAllowedRepeatedEvents(t *testing.T) {

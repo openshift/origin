@@ -7,10 +7,11 @@ import (
 	o "github.com/onsi/gomega"
 	imageregistryv1 "github.com/openshift/api/imageregistry/v1"
 	imageregistry "github.com/openshift/client-go/imageregistry/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

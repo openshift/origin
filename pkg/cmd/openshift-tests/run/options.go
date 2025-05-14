@@ -6,15 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	klog "k8s.io/klog/v2"
+	k8simage "k8s.io/kubernetes/test/utils/image"
+
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/openshift/origin/test/extended/util/image"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/klog/v2"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 // TODO collapse this with cmd_runsuite

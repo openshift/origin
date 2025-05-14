@@ -14,14 +14,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

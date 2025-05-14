@@ -2,13 +2,14 @@ package riskanalysis
 
 import (
 	"encoding/json"
-	"github.com/h2non/gock"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/h2non/gock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWriteRARequestLogsWritesDataCorrectly(t *testing.T) {

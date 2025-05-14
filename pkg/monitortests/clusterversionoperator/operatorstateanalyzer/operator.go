@@ -5,8 +5,9 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/sirupsen/logrus"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func intervalsFromEvents_OperatorAvailable(intervals monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
