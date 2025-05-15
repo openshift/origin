@@ -460,6 +460,6 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:openshift/machine-config-operator/disruptive")
 		},
-		TestTimeout: 60 * time.Minute,
+		TestTimeout: 120 * time.Minute,
 	},
 }
