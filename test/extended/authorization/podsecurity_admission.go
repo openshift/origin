@@ -33,21 +33,23 @@ var sleeperContainer = corev1.Container{
 var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelRestricted)
+	g.Context("with restricted level", func() {
+		oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelRestricted)
 
-	g.It("restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile", func() {
-		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				GenerateName: "psa-testpod",
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					sleeperContainer,
+		g.It("restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile", func() {
+			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "psa-testpod",
 				},
-			},
-		}, metav1.CreateOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())                                                     // the pod passed admission
-		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2")) // and the mutating SCC is restricted-v2
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						sleeperContainer,
+					},
+				},
+			}, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())                                                     // the pod passed admission
+			o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2")) // and the mutating SCC is restricted-v2
+		})
 	})
 })
 
