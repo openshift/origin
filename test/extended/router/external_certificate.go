@@ -836,6 +836,15 @@ func createNamespace(oc *exutil.CLI, name string) error {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				// "pod-security.kubernetes.io/enforce": "baseline",
+				"pod-security.kubernetes.io/enforce": "privileged",
+				"pod-security.kubernetes.io/audit":   "privileged",
+				"pod-security.kubernetes.io/warn":    "privileged",
+
+				"security.openshift.io/disable-securitycontextconstraints": "true",
+				"security.openshift.io/scc.podSecurityLabelSync":           "false",
+			},
 		},
 	}
 	_, err := oc.AdminKubeClient().CoreV1().

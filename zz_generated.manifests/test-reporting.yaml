@@ -593,6 +593,8 @@ spec:
   - featureGate: RouteExternalCertificate
     tests:
     - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
+        stress testing should work'
+    - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with invalid setup the router should not support external certificate if inline
         certificate is also present'
     - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
