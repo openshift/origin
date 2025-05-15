@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -13,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 	psapi "k8s.io/pod-security-admission/api"
@@ -49,6 +51,39 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 			}, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())                                                     // the pod passed admission
 			o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2")) // and the mutating SCC is restricted-v2
+		})
+	})
+
+	g.Context("with baseline level", func() {
+		oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelBaseline)
+
+		g.It("should set correct MinimallySufficientPodSecurityStandard, even though PSA label is set to Baseline", func(ctx context.Context) {
+			verifyNSMetadata := func(ctx context.Context) (bool, error) {
+				namespace, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, oc.Namespace(), metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+
+				if warnLabel, hasWarnLabel := namespace.Labels[psapi.WarnLevelLabel]; hasWarnLabel {
+					if warnLabel != string(psapi.LevelBaseline) {
+						return false, nil
+					}
+				}
+
+				if auditLabel, hasAuditLabel := namespace.Labels[psapi.AuditLevelLabel]; hasAuditLabel {
+					if auditLabel != string(psapi.LevelBaseline) {
+						return false, nil
+					}
+				}
+
+				hasMinimallyAnnotation := namespace.Annotations != nil &&
+					namespace.Annotations["security.openshift.io/MinimallySufficientPodSecurityStandard"] == string(psapi.LevelRestricted)
+
+				// We expect no PSA labels but the annotation should be set
+				return hasMinimallyAnnotation, nil
+			}
+
+			o.Expect(wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 1*time.Minute, true, verifyNSMetadata)).NotTo(o.HaveOccurred())
 		})
 	})
 })
