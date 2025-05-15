@@ -6,9 +6,10 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	"github.com/openshift/origin/test/extended/util"
 )
 
 // PodConfig holds configuration for a pod.

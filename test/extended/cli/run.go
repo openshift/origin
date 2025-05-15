@@ -3,7 +3,6 @@ package cli
 import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"

@@ -9,7 +9,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	authorizationv1 "github.com/openshift/api/authorization/v1"
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	kauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -24,6 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	kauthorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz", func() {

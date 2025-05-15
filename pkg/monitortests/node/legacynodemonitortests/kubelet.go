@@ -9,14 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
 )
 
 func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
@@ -581,9 +580,13 @@ func testSystemDTimeout(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 }
 
 var errImagePullTimeoutRE = regexp.MustCompile("ErrImagePull.*read: connection timed out")
+
 var errImagePullGenericRE = regexp.MustCompile("ErrImagePull")
+
 var errImagePullQPSExceededRE = regexp.MustCompile("ErrImagePull.*pull QPS exceeded")
+
 var errImagePullManifestUnknownRE = regexp.MustCompile("ErrImagePull.*manifest unknown")
+
 var invalidImagesRE = []*regexp.Regexp{
 
 	// See this test: "should not be able to pull image from invalid registry [NodeConformance]"

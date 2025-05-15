@@ -1,9 +1,10 @@
 package run_resource_watch
 
 import (
-	"github.com/openshift/origin/pkg/resourcewatch/operator"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/resourcewatch/operator"
 )
 
 func NewRunResourceWatchCommand() *cobra.Command {

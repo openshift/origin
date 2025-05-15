@@ -5,8 +5,9 @@ import (
 	"sync"
 	"time"
 
+	klog "k8s.io/klog/v2"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/klog/v2"
 )
 
 type SummarizationFunc func(locator, line string)

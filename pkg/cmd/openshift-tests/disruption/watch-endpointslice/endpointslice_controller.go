@@ -8,11 +8,8 @@ import (
 	"sync"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	discoveryv1 "k8s.io/api/discovery/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -23,8 +20,11 @@ import (
 	discoverylisters "k8s.io/client-go/listers/discovery/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/controller"
+
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type EndpointSliceController struct {
@@ -334,6 +334,7 @@ func (c *EndpointSliceController) deleteEndpointSlice(obj interface{}) {
 	}
 	c.enqueueEndpointSlice(endpointSlice)
 }
+
 func (c *EndpointSliceController) enqueueEndpointSlice(endpointSlice *discoveryv1.EndpointSlice) {
 	key, err := controller.KeyFunc(endpointSlice)
 	if err != nil {

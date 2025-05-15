@@ -7,19 +7,16 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
-
 	"github.com/distribution/distribution/v3/manifest/schema1"
 	"github.com/distribution/distribution/v3/manifest/schema2"
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	godigest "github.com/opencontainers/go-digest"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	"github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -441,8 +438,10 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 
 type byLayerSize []imagev1.ImageLayer
 
-func (bls byLayerSize) Len() int      { return len(bls) }
+func (bls byLayerSize) Len() int { return len(bls) }
+
 func (bls byLayerSize) Swap(i, j int) { bls[i], bls[j] = bls[j], bls[i] }
+
 func (bls byLayerSize) Less(i, j int) bool {
 	if bls[i].LayerSize < bls[j].LayerSize {
 		return true

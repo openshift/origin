@@ -9,12 +9,11 @@ import (
 	"testing"
 	"time"
 
-	monitor2 "github.com/openshift/origin/pkg/monitor"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
-
 	"k8s.io/client-go/tools/events"
+
+	monitor2 "github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func TestBackendSampler_checkConnection(t *testing.T) {

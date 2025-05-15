@@ -8,7 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	securityv1 "github.com/openshift/api/security/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
@@ -17,8 +17,6 @@ import (
 	rest "k8s.io/client-go/rest"
 	psapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
-
-	securityv1 "github.com/openshift/api/security/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

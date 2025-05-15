@@ -4,15 +4,12 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
-
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
-
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 )
 
 type EnsureNoViolationRegressionOptions struct {

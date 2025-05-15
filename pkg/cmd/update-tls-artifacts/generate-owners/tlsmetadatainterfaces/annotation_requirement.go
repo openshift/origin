@@ -6,8 +6,9 @@ import (
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/markdown"
-	"github.com/openshift/origin/pkg/certs"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/certs"
 )
 
 type annotationRequirement struct {

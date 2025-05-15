@@ -3,11 +3,10 @@ package ginkgo
 import (
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 // JUnitsForEvents returns a set of JUnit results for the provided events encountered

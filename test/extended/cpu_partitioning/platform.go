@@ -7,13 +7,11 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	ocpv1 "github.com/openshift/api/config/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	ocpv1 "github.com/openshift/api/config/v1"
-
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster infrastructure", func() {

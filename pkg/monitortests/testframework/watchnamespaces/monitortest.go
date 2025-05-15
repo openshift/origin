@@ -3,16 +3,17 @@ package watchnamespaces
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/kubernetes"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
 )
 
 var (

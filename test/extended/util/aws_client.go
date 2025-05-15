@@ -10,7 +10,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/tidwall/gjson"
-
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 

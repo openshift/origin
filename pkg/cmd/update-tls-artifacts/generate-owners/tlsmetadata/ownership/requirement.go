@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/markdown"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
-
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type OwnerRequirement struct {

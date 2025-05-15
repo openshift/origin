@@ -1,9 +1,10 @@
 package logger
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
-	"github.com/sirupsen/logrus"
 )
 
 // NewLogger returns a new instance of SampleCollector that logs samples

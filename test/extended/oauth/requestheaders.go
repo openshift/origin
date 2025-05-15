@@ -20,7 +20,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	configv1 "github.com/openshift/api/config/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
+	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -28,10 +30,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	configv1 "github.com/openshift/api/config/v1"
-	osinv1 "github.com/openshift/api/osin/v1"
-	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

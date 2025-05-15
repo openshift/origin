@@ -7,7 +7,16 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	"github.com/openshift/api/authorization"
+	"github.com/openshift/api/build"
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/console"
+	"github.com/openshift/api/image"
+	"github.com/openshift/api/oauth"
+	"github.com/openshift/api/project"
+	"github.com/openshift/api/security"
+	"github.com/openshift/api/template"
+	"github.com/openshift/api/user"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,17 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/registry/rbac/validation"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	"github.com/openshift/api/authorization"
-	"github.com/openshift/api/build"
-	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/api/console"
-	"github.com/openshift/api/image"
-	"github.com/openshift/api/oauth"
-	"github.com/openshift/api/project"
-	"github.com/openshift/api/security"
-	"github.com/openshift/api/template"
-	"github.com/openshift/api/user"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

@@ -3,11 +3,11 @@ package generate_owners
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
 )
 
 // GenerateOwnersFlags gets bound to cobra commands and arguments.  It is used to validate input and then produce

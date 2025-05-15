@@ -5,35 +5,21 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-
-	"github.com/openshift/origin/test/extended/util/image"
+	_ "k8s.io/kubernetes/test/e2e"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	_ "k8s.io/kubernetes/test/e2e/lifecycle"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	// Initialize baremetal as a provider
-	_ "github.com/openshift/origin/test/extended/util/baremetal"
-
-	// Initialize ovirt as a provider
-	_ "github.com/openshift/origin/test/extended/util/ovirt"
-
-	// Initialize kubevirt as a provider
-	_ "github.com/openshift/origin/test/extended/util/kubevirt"
-
-	// Initialize alibabacloud as a provider
 	_ "github.com/openshift/origin/test/extended/util/alibabacloud"
-
-	// Initialize nutanix as a provider
-	_ "github.com/openshift/origin/test/extended/util/nutanix"
-
-	// Initialize nutanix as a provider
+	_ "github.com/openshift/origin/test/extended/util/baremetal"
 	_ "github.com/openshift/origin/test/extended/util/external"
-
-	// these are loading important global flags that we need to get and set
-	_ "k8s.io/kubernetes/test/e2e"
-	_ "k8s.io/kubernetes/test/e2e/lifecycle"
+	"github.com/openshift/origin/test/extended/util/image"
+	_ "github.com/openshift/origin/test/extended/util/kubevirt"
+	_ "github.com/openshift/origin/test/extended/util/nutanix"
+	_ "github.com/openshift/origin/test/extended/util/ovirt"
 )
 
 func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfiguration, dryRun bool) error {

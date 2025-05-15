@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"sort"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // Event is not an interval.  It is an instant.  The instant removes any ambiguity about "when"
@@ -193,6 +193,7 @@ func (intervals byTime) Less(i, j int) bool {
 }
 
 func (intervals byTime) Len() int { return len(intervals) }
+
 func (intervals byTime) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }

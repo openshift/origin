@@ -8,12 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 )
 
 type PollServiceFlags struct {

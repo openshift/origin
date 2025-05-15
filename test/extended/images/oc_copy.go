@@ -8,6 +8,12 @@ import (
 	"sync"
 	"time"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	imageapiv1 "github.com/openshift/api/image/v1"
+	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/apps/appsserialization"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
+	"github.com/openshift/library-go/pkg/build/naming"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,17 +27,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/reference"
 	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsv1 "github.com/openshift/api/apps/v1"
-	imageapiv1 "github.com/openshift/api/image/v1"
-	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/origin/test/extended/scheme"
-
-	"github.com/openshift/library-go/pkg/apps/appsserialization"
-	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 const (

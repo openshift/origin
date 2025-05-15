@@ -9,13 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor"
-
-	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func TestBackendSampler(t *testing.T) {
@@ -140,10 +139,13 @@ func (d *testServerDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 
 	return transport, nil
 }
+
 func (d *testServerDependency) HostName() string { return d.server.URL }
+
 func (d *testServerDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
 	return nil, nil
 }
+
 func (d *testServerDependency) GetRestConfig() *rest.Config { return nil }
 
 type instruction struct {
@@ -153,6 +155,7 @@ type instruction struct {
 func (i *instruction) value() int64 {
 	return atomic.LoadInt64(&i.val)
 }
+
 func (i *instruction) set(v int64) {
 	atomic.StoreInt64(&i.val, v)
 }

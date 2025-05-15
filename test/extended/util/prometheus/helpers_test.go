@@ -4,10 +4,11 @@ import (
 	"testing"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/alerts"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openshift/origin/pkg/alerts"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func TestMetricConditions_MatchesInterval(t *testing.T) {

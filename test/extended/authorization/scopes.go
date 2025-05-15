@@ -8,6 +8,18 @@ import (
 	"strings"
 	"time"
 
+	g "github.com/onsi/ginkgo/v2"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
+	projectapiv1 "github.com/openshift/api/project/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,20 +33,7 @@ import (
 	"k8s.io/client-go/transport"
 	rbacvalidation "k8s.io/component-helpers/auth/rbac/validation"
 
-	authorizationv1 "github.com/openshift/api/authorization/v1"
-	buildv1 "github.com/openshift/api/build/v1"
-	oauthv1 "github.com/openshift/api/oauth/v1"
-	projectapiv1 "github.com/openshift/api/project/v1"
-	userv1 "github.com/openshift/api/user/v1"
-	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
-	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
-	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	g "github.com/onsi/ginkgo/v2"
 )
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestlibrary"
-	"k8s.io/apimachinery/pkg/fields"
-
 	machine "github.com/openshift/api/machine/v1beta1"
 	machineClient "github.com/openshift/client-go/machine/clientset/versioned"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary"
 )
 
 func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client machineClient.Interface) {
@@ -146,6 +146,7 @@ func toDeleteFns(machineUpdateFns []func(machine, oldMachine *machine.Machine) [
 	}
 	return ret
 }
+
 func toUpdateFns(machineUpdateFns []func(machine, oldMachine *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjUpdateFunc {
 	ret := []monitortestlibrary.ObjUpdateFunc{}
 

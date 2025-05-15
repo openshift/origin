@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
 	"github.com/sirupsen/logrus"
+
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
 // defaultMinJobRuns is the required threshold for historical data to be sufficient to run the test.

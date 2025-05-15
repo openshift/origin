@@ -10,18 +10,17 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"sigs.k8s.io/yaml"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // This test is [Serial] because it modifies the state of the images present on Node in each test.

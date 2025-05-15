@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/pkg/dataloader"
 	"io"
 	"net/http"
 	"os"
@@ -14,12 +13,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/test/extended/testdata"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -166,6 +167,7 @@ func (opt *Options) readWriteRiskAnalysis(inputBytes []byte) ([]byte, error) {
 type sleeper interface {
 	Sleep(d time.Duration)
 }
+
 type realSleeper struct{}
 
 func (rs *realSleeper) Sleep(d time.Duration) {

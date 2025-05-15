@@ -4,8 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/test/ginkgo"
 )
 
 func UpgradeTestSuites() []*ginkgo.TestSuite {

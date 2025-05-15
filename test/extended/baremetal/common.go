@@ -8,12 +8,13 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func skipIfNotBaremetal(oc *exutil.CLI) {

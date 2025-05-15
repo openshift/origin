@@ -7,14 +7,15 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	librarygov1helpers "github.com/openshift/library-go/pkg/operator/v1helpers"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Disruptive] etcd", func() {

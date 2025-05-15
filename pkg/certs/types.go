@@ -8,22 +8,31 @@ import (
 )
 
 type ConfigMapRefByNamespaceName []certgraphapi.InClusterConfigMapLocation
+
 type SecretRefByNamespaceName []certgraphapi.InClusterSecretLocation
+
 type SecretInfoByNamespaceName map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryCertKeyPairInfo
+
 type ConfigMapInfoByNamespaceName map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryCertificateAuthorityInfo
+
 type OnDiskLocationByPath []certgraphapi.OnDiskLocation
+
 type CertKeyPairInfoByOnDiskLocation map[certgraphapi.OnDiskLocation]certgraphapi.PKIRegistryCertKeyPairInfo
+
 type CABundleInfoByOnDiskLocation map[certgraphapi.OnDiskLocation]certgraphapi.PKIRegistryCertificateAuthorityInfo
 
 type CertKeyPairByLocation []certgraphapi.PKIRegistryCertKeyPair
+
 type CertificateAuthorityBundleByLocation []certgraphapi.PKIRegistryCABundle
 
 func (n SecretRefByNamespaceName) Len() int {
 	return len(n)
 }
+
 func (n SecretRefByNamespaceName) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
+
 func (n SecretRefByNamespaceName) Less(i, j int) bool {
 	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
 	switch {
@@ -39,9 +48,11 @@ func (n SecretRefByNamespaceName) Less(i, j int) bool {
 func (n ConfigMapRefByNamespaceName) Len() int {
 	return len(n)
 }
+
 func (n ConfigMapRefByNamespaceName) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
+
 func (n ConfigMapRefByNamespaceName) Less(i, j int) bool {
 	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
 	switch {
@@ -57,9 +68,11 @@ func (n ConfigMapRefByNamespaceName) Less(i, j int) bool {
 func (n OnDiskLocationByPath) Len() int {
 	return len(n)
 }
+
 func (n OnDiskLocationByPath) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
+
 func (n OnDiskLocationByPath) Less(i, j int) bool {
 	return strings.Compare(n[i].Path, n[j].Path) < 0
 }
@@ -87,9 +100,11 @@ func BuildCABundlePath(curr certgraphapi.PKIRegistryCABundle) string {
 func (n CertKeyPairByLocation) Len() int {
 	return len(n)
 }
+
 func (n CertKeyPairByLocation) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
+
 func (n CertKeyPairByLocation) Less(i, j int) bool {
 	return strings.Compare(BuildCertKeyPath(n[i]), BuildCertKeyPath(n[j])) < 0
 }
@@ -97,9 +112,11 @@ func (n CertKeyPairByLocation) Less(i, j int) bool {
 func (n CertificateAuthorityBundleByLocation) Len() int {
 	return len(n)
 }
+
 func (n CertificateAuthorityBundleByLocation) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
+
 func (n CertificateAuthorityBundleByLocation) Less(i, j int) bool {
 	return strings.Compare(BuildCABundlePath(n[i]), BuildCABundlePath(n[j])) < 0
 }

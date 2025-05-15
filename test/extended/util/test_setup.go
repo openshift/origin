@@ -9,9 +9,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/onsi/ginkgo/v2"
-	"k8s.io/klog/v2"
-
+	ginkgo "github.com/onsi/ginkgo/v2"
+	projectv1 "github.com/openshift/api/project/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -21,18 +21,14 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
+	klog "k8s.io/klog/v2"
 	"k8s.io/kubernetes/openshift-hack/e2e"
 	conformancetestdata "k8s.io/kubernetes/test/conformance/testdata"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
+	_ "k8s.io/kubernetes/test/e2e/storage/drivers"
 	e2etestingmanifests "k8s.io/kubernetes/test/e2e/testing-manifests"
 	testfixtures "k8s.io/kubernetes/test/fixtures"
-
-	// this appears to inexplicably auto-register global flags.
-	_ "k8s.io/kubernetes/test/e2e/storage/drivers"
-
-	projectv1 "github.com/openshift/api/project/v1"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/version"
 )

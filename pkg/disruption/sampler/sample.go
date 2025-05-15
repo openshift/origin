@@ -24,16 +24,21 @@ func (s Sample) String() string {
 }
 
 var _ sort.Interface = SortedByID{}
+
 var _ sort.Interface = SortedByStartedAt{}
 
 type SortedByID []*Sample
 
 func (s SortedByID) Less(i, j int) bool { return s[i].ID < s[j].ID }
-func (s SortedByID) Len() int           { return len(s) }
-func (s SortedByID) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func (s SortedByID) Len() int { return len(s) }
+
+func (s SortedByID) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 type SortedByStartedAt []*Sample
 
 func (s SortedByStartedAt) Less(i, j int) bool { return s[i].StartedAt.Before(s[j].StartedAt) }
-func (s SortedByStartedAt) Len() int           { return len(s) }
-func (s SortedByStartedAt) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func (s SortedByStartedAt) Len() int { return len(s) }
+
+func (s SortedByStartedAt) Swap(i, j int) { s[i], s[j] = s[j], s[i] }

@@ -2,20 +2,21 @@ package run_test
 
 import (
 	"fmt"
-	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	klog "k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-	"github.com/spf13/cobra"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/util/templates"
 )
 
 func NewRunTestCommand(streams genericclioptions.IOStreams) *cobra.Command {

@@ -5,15 +5,14 @@ import (
 	"strings"
 	"time"
 
+	o "github.com/onsi/gomega"
 	osconfigv1 "github.com/openshift/api/config/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
-
-	o "github.com/onsi/gomega"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func AllMachineSetTest(oc *exutil.CLI, fixture string) {

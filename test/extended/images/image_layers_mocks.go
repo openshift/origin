@@ -15,6 +15,7 @@ func MakeDockerImageReference(ns, isName, imageID string) string {
 
 // 1 data layer of 128 B
 const BaseImageWith1LayerDigest = `sha256:c5207ce0f38da269ad2e58f143b5ea4b314c75ce1121384369f0db9015e10e82`
+
 const BaseImageWith1Layer = `{
    "schemaVersion": 1,
    "name": "miminar/baseImageWith1Layer",
@@ -40,6 +41,7 @@ const BaseImageWith1Layer = `{
 
 // 2 data layers, the first is shared with baseImageWith1Layer, total size of 240 B
 const BaseImageWith2LayersDigest = "sha256:77371f61c054608a4bb1a96b99f9be69f0868340f5c924ecd8813172f7cf853d"
+
 const BaseImageWith2Layers = `{
    "schemaVersion": 1,
    "name": "miminar/baseImageWith2Layers",
@@ -71,6 +73,7 @@ const BaseImageWith2Layers = `{
 
 // based on baseImageWith1Layer, it adds a new data layer of 126 B
 const ChildImageWith2LayersDigest = "sha256:a9f073fbf2c9835711acd09081d87f5b7129ac6269e0df834240000f48abecd4"
+
 const ChildImageWith2Layers = `{
    "schemaVersion": 1,
    "name": "miminar/childImageWith2Layers",
@@ -108,6 +111,7 @@ const ChildImageWith2Layers = `{
 
 // based on baseImageWith2Layers, it adds a new data layer of 70 B
 const ChildImageWith3LayersDigest = "sha256:2282a6d553353756fa43ba8672807d3fe81f8fdef54b0f6a360d64aaef2f243a"
+
 const ChildImageWith3Layers = `{
    "schemaVersion": 1,
    "name": "miminar/childImageWith3Layers",
@@ -151,6 +155,7 @@ const ChildImageWith3Layers = `{
 
 // another base image with unique data layer of 554 B
 const MiscImageDigest = "sha256:2643199e5ed5047eeed22da854748ed88b3a63ba0497601ba75852f7b92d4640"
+
 const MiscImage = `{
    "schemaVersion": 1,
    "name": "miminar/misc",

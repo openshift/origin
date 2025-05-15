@@ -6,9 +6,6 @@ import (
 	"regexp"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/clioptions/imagesetup"
-	"github.com/openshift/origin/pkg/cmd"
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +13,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	"sigs.k8s.io/yaml"
+
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/cmd"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 type RenderTestReportFlags struct {

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/test/e2e/upgrade"
 	"k8s.io/kubernetes/test/e2e/upgrades"
+
+	"github.com/openshift/origin/test/e2e/upgrade"
 )
 
 type UpgradeOptions struct {

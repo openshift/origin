@@ -10,8 +10,6 @@ import (
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestlibrary/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
@@ -19,6 +17,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/prometheus"
 )
 
 func fetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.Interval, error) {

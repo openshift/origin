@@ -8,19 +8,17 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
+	authv1 "github.com/openshift/api/authorization/v1"
+	projv1 "github.com/openshift/api/project/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 
-	authv1 "github.com/openshift/api/authorization/v1"
-	projv1 "github.com/openshift/api/project/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )

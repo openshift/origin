@@ -45,8 +45,10 @@ type SerializedPerHTTPStatusCount struct {
 
 type httpStatusByBiggestCount []SerializedPerHTTPStatusCount
 
-func (a httpStatusByBiggestCount) Len() int      { return len(a) }
+func (a httpStatusByBiggestCount) Len() int { return len(a) }
+
 func (a httpStatusByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a httpStatusByBiggestCount) Less(i, j int) bool {
 	if a[i].Count > a[j].Count {
 		return true
@@ -63,8 +65,10 @@ type SerializedPerHTTPStatusRequestCount struct {
 
 type statusCountByBiggestCount []SerializedPerHTTPStatusRequestCount
 
-func (a statusCountByBiggestCount) Len() int      { return len(a) }
+func (a statusCountByBiggestCount) Len() int { return len(a) }
+
 func (a statusCountByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a statusCountByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -78,8 +82,10 @@ type SerializedPerUserRequestCount struct {
 
 type userCountByBiggestCount []SerializedPerUserRequestCount
 
-func (a userCountByBiggestCount) Len() int      { return len(a) }
+func (a userCountByBiggestCount) Len() int { return len(a) }
+
 func (a userCountByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a userCountByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -93,8 +99,10 @@ type SerializedPerUserRequestCountWithVerbs struct {
 
 type userCountWithVerbsByBiggestCount []SerializedPerUserRequestCountWithVerbs
 
-func (a userCountWithVerbsByBiggestCount) Len() int      { return len(a) }
+func (a userCountWithVerbsByBiggestCount) Len() int { return len(a) }
+
 func (a userCountWithVerbsByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a userCountWithVerbsByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -108,8 +116,10 @@ type SerializedPerResourceRequestCount struct {
 
 type resourceCountByBiggestCount []SerializedPerResourceRequestCount
 
-func (a resourceCountByBiggestCount) Len() int      { return len(a) }
+func (a resourceCountByBiggestCount) Len() int { return len(a) }
+
 func (a resourceCountByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a resourceCountByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -121,8 +131,10 @@ type SerializedPerVerbCountOnly struct {
 
 type verbCountOnlyByBiggestCount []SerializedPerVerbCountOnly
 
-func (a verbCountOnlyByBiggestCount) Len() int      { return len(a) }
+func (a verbCountOnlyByBiggestCount) Len() int { return len(a) }
+
 func (a verbCountOnlyByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a verbCountOnlyByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -134,8 +146,10 @@ type SerializedPerUserCountOnly struct {
 
 type userCountOnlyByBiggestCount []SerializedPerUserCountOnly
 
-func (a userCountOnlyByBiggestCount) Len() int      { return len(a) }
+func (a userCountOnlyByBiggestCount) Len() int { return len(a) }
+
 func (a userCountOnlyByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a userCountOnlyByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -147,8 +161,10 @@ type SerializedPerResourceCountOnly struct {
 
 type resourceCountOnlyByBiggestCount []SerializedPerResourceCountOnly
 
-func (a resourceCountOnlyByBiggestCount) Len() int      { return len(a) }
+func (a resourceCountOnlyByBiggestCount) Len() int { return len(a) }
+
 func (a resourceCountOnlyByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a resourceCountOnlyByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -160,8 +176,10 @@ type SerializedPerResourceCountWithVerbs struct {
 
 type resourceCountWithVerbsByBiggestCount []SerializedPerResourceCountWithVerbs
 
-func (a resourceCountWithVerbsByBiggestCount) Len() int      { return len(a) }
+func (a resourceCountWithVerbsByBiggestCount) Len() int { return len(a) }
+
 func (a resourceCountWithVerbsByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a resourceCountWithVerbsByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirstWithVerbs(a[i].RequestCounts, a[j].RequestCounts)
 }
@@ -208,6 +226,7 @@ func NewSerializedRequestCounts(summary RequestCounts) SerializedRequestCounts {
 
 	return ret
 }
+
 func NewSerializedRequestCountsWithVerbs(summary RequestCountsWithVerbs) SerializedRequestCountsWithVerbs {
 	ret := SerializedRequestCountsWithVerbs{
 		SerializedRequestCounts: NewSerializedRequestCounts(*summary.requestCounts),
@@ -287,18 +306,21 @@ func NewSerializedPerVerbCountOnly(verb string, count RequestCounts) SerializedP
 		RequestCounts: NewSerializedRequestCounts(count),
 	}
 }
+
 func NewSerializedPerUserCountOnly(user string, count RequestCounts) SerializedPerUserCountOnly {
 	return SerializedPerUserCountOnly{
 		User:          user,
 		RequestCounts: NewSerializedRequestCounts(count),
 	}
 }
+
 func NewSerializedPerResourceCountOnly(gvr schema.GroupVersionResource, count RequestCounts) SerializedPerResourceCountOnly {
 	return SerializedPerResourceCountOnly{
 		GroupVersionResource: gvr,
 		RequestCounts:        NewSerializedRequestCounts(count),
 	}
 }
+
 func NewSerializedPerResourceCountWithVerbs(gvr schema.GroupVersionResource, count RequestCountsWithVerbs) SerializedPerResourceCountWithVerbs {
 	return SerializedPerResourceCountWithVerbs{
 		GroupVersionResource: gvr,

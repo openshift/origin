@@ -13,15 +13,13 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	buildv1 "github.com/openshift/api/build/v1"
-	configv1 "github.com/openshift/api/config/v1"
-	imagev1 "github.com/openshift/api/image/v1"
 
 	"github.com/openshift/origin/pkg/clusterversion"
 	exutil "github.com/openshift/origin/test/extended/util"

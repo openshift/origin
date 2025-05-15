@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/disruption/sampler"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestShutdownIntervalTracker(t *testing.T) {

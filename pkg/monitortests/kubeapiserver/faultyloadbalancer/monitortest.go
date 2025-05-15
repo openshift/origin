@@ -6,12 +6,12 @@ import (
 	"sort"
 	"time"
 
+	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -225,7 +225,9 @@ func (intervals bySource) Less(i, j int) bool {
 
 	return true
 }
+
 func (intervals bySource) Len() int { return len(intervals) }
+
 func (intervals bySource) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }

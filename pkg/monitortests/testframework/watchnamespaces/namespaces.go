@@ -3,14 +3,15 @@ package watchnamespaces
 import (
 	"context"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestlibrary"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
 // allObservedPlatformNamespaces contains a list of namespaces observed
@@ -68,6 +69,7 @@ func toDeleteFns(namespaceUpdateFns []func(namespace, oldNamespace *corev1.Names
 	}
 	return ret
 }
+
 func toUpdateFns(namespaceUpdateFns []func(namespace, oldNamespace *corev1.Namespace) []monitorapi.Interval) []monitortestlibrary.ObjUpdateFunc {
 	ret := []monitortestlibrary.ObjUpdateFunc{}
 

@@ -199,6 +199,7 @@ func TestDisruptionTracker(t *testing.T) {
 type interval struct {
 	from, to uint64
 }
+
 type fakeHandler struct {
 	t                      *testing.T
 	available, unavailable int
@@ -211,6 +212,7 @@ func (f *fakeHandler) Unavailable(from, to *backend.SampleResult) {
 	f.unavailable++
 	f.intervals = append(f.intervals, interval{from: from.Sample.ID, to: to.Sample.ID})
 }
+
 func (f *fakeHandler) Available(from, to *backend.SampleResult) {
 	f.available++
 	f.intervals = append(f.intervals, interval{from: from.Sample.ID, to: to.Sample.ID})

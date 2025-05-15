@@ -3,14 +3,13 @@ package builds
 import (
 	"fmt"
 
-	"k8s.io/pod-security-admission/api"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	buildv1 "github.com/openshift/api/build/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/pod-security-admission/api"
 
-	buildv1 "github.com/openshift/api/build/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

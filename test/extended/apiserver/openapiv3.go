@@ -9,12 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
-
 	"github.com/golang/protobuf/proto"
 	openapi_v3 "github.com/google/gnostic-models/openapiv3"
-
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/handler3"
 	"k8s.io/kube-openapi/pkg/spec3"

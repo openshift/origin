@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func APIServerAvailabilityIntervalsFromCluster(kubeClient kubernetes.Interface, beginning, end time.Time) (monitorapi.Intervals, error) {

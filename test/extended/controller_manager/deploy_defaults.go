@@ -6,13 +6,13 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
-
 	appsv1 "github.com/openshift/api/apps/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var (

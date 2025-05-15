@@ -16,19 +16,17 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
+	configv1 "github.com/openshift/api/config/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	certv1 "k8s.io/api/certificates/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kubeclient "k8s.io/client-go/kubernetes"
 	certclientv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 	restclient "k8s.io/client-go/rest"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )

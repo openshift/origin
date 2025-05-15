@@ -42,6 +42,7 @@ type clusterInfoResolver struct {
 }
 
 func (r *clusterInfoResolver) GetKubernetesServiceClusterIP() string { return r.serviceNetworkIP }
+
 func (r *clusterInfoResolver) GetNodeNameAndRoleFromInstance(instance string) (string, string, error) {
 	if len(instance) == 0 {
 		return "", "", fmt.Errorf("instance name is empty")

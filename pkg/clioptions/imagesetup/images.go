@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openshift/origin/test/extended/util/image"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 // OpenShift tests consume images from the cluster, from a number of vetted community locations,

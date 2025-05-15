@@ -4,16 +4,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
-
-	// these register framework.NewFrameworkExtensions responsible for
-	// executing post-test actions, here debug and metrics gathering
-	// see https://github.com/kubernetes/kubernetes/blob/v1.26.0/test/e2e/framework/framework.go#L175-L181
-	// for more details
 	_ "k8s.io/kubernetes/test/e2e/framework/debug/init"
 	_ "k8s.io/kubernetes/test/e2e/framework/metrics/init"
 
+	"github.com/openshift/origin/pkg/test/ginkgo"
 	_ "github.com/openshift/origin/test/extended"
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
 )

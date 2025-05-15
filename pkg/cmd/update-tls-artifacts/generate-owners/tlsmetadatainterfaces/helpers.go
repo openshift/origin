@@ -11,9 +11,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/markdown"
-	"github.com/openshift/origin/pkg/certs"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/certs"
 )
 
 const UnknownOwner = "Unknown Owner"

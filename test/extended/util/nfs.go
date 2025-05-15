@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/test/extended/util/image"
-
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -14,6 +12,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	"k8s.io/kubernetes/test/e2e/framework/volume"
+
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 // SetupK8SNFSServerAndVolume sets up an nfs server pod with count number of persistent volumes

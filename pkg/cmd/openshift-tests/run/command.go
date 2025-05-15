@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/clioptions/imagesetup"
-	"github.com/openshift/origin/pkg/testsuites"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/testsuites"
 )
 
 func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {

@@ -11,20 +11,18 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-ldap/ldap/v3"
+	ldap "github.com/go-ldap/ldap/v3"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	userv1 "github.com/openshift/api/user/v1"
+	userclient "github.com/openshift/client-go/user/clientset/versioned"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kdiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/yaml"
-
-	userv1 "github.com/openshift/api/user/v1"
-	userclient "github.com/openshift/client-go/user/clientset/versioned"
-	"github.com/openshift/library-go/pkg/security/ldapclient"
 
 	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"

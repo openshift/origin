@@ -5,24 +5,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	routeclient "github.com/openshift/client-go/route/clientset/versioned"
-
-	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	helper "github.com/openshift/origin/test/extended/util/prometheus"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 const (

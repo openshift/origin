@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	osinv1 "github.com/openshift/api/osin/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
-
-	osinv1 "github.com/openshift/api/osin/v1"
-	userv1 "github.com/openshift/api/user/v1"
-	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 )
 
 var (

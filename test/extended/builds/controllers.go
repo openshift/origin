@@ -6,6 +6,10 @@ import (
 	"os"
 	"time"
 
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,11 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-
-	buildv1 "github.com/openshift/api/build/v1"
-	imagev1 "github.com/openshift/api/image/v1"
-	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	imagev1clienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 )
 
 const (

@@ -6,7 +6,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"golang.org/x/net/http2"
-
 	"k8s.io/client-go/rest"
 
 	exutil "github.com/openshift/origin/test/extended/util"

@@ -565,7 +565,9 @@ func (intervals Intervals) Less(i, j int) bool {
 	// that use keys is trickier than the old flat string method.
 	return intervals[i].Locator.OldLocator() < intervals[j].Locator.OldLocator()
 }
+
 func (intervals Intervals) Len() int { return len(intervals) }
+
 func (intervals Intervals) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }
@@ -863,4 +865,5 @@ type InstanceKey struct {
 }
 
 type InstanceMap map[InstanceKey]runtime.Object
+
 type ResourcesMap map[string]InstanceMap

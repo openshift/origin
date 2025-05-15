@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
 func writeAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
@@ -61,8 +61,10 @@ type AlertKey struct {
 
 type AlertKeyByAlert []AlertKey
 
-func (a AlertKeyByAlert) Len() int      { return len(a) }
+func (a AlertKeyByAlert) Len() int { return len(a) }
+
 func (a AlertKeyByAlert) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a AlertKeyByAlert) Less(i, j int) bool {
 	if strings.Compare(a[i].Name, a[j].Name) < 0 {
 		return true
@@ -92,8 +94,10 @@ type Alert struct {
 
 type AlertByKey []Alert
 
-func (a AlertByKey) Len() int      { return len(a) }
+func (a AlertByKey) Len() int { return len(a) }
+
 func (a AlertByKey) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a AlertByKey) Less(i, j int) bool {
 	if strings.Compare(a[i].Name, a[j].Name) < 0 {
 		return true

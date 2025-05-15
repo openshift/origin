@@ -7,7 +7,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	securityv1 "github.com/openshift/api/security/v1"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,9 +20,6 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	securityv1 "github.com/openshift/api/security/v1"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 
 	"github.com/openshift/origin/test/extended/authorization"
 	exutil "github.com/openshift/origin/test/extended/util"

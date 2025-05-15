@@ -9,7 +9,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	routev1 "github.com/openshift/api/route/v1"
+	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,9 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	utilpointer "k8s.io/utils/pointer"
-
-	routev1 "github.com/openshift/api/route/v1"
-	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"

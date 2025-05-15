@@ -8,11 +8,10 @@ import (
 	o "github.com/onsi/gomega"
 	s "github.com/onsi/gomega/gstruct"
 	t "github.com/onsi/gomega/types"
+	config "github.com/openshift/api/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kube-openapi/pkg/util/sets"
-
-	config "github.com/openshift/api/config/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

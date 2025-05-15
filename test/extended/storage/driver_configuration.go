@@ -11,8 +11,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	opv1 "github.com/openshift/api/operator/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"gopkg.in/ini.v1"
+	ini "gopkg.in/ini.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +20,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	"k8s.io/utils/ptr"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

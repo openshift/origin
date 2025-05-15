@@ -4,15 +4,16 @@ import (
 	"context"
 	"strings"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func getOpenshiftNamespaces(f *framework.Framework) []corev1.Namespace {

@@ -6,19 +6,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
-	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
-
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"k8s.io/client-go/kubernetes"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (

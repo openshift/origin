@@ -3,9 +3,8 @@ package nodestateanalyzer
 import (
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/statetracker"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/statetracker"
 )
 
 const (

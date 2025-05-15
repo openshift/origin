@@ -7,12 +7,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	admissionapi "k8s.io/pod-security-admission/api"
 
 	imageeco "github.com/openshift/origin/test/extended/image_ecosystem"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context directory", func() {

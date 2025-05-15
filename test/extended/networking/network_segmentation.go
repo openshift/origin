@@ -11,22 +11,20 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-
 	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
-
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubectl/pkg/util/podutils"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -40,6 +38,7 @@ import (
 )
 
 const openDefaultPortsAnnotation = "k8s.ovn.org/open-default-ports"
+
 const RequiredUDNNamespaceLabel = "k8s.ovn.org/primary-user-defined-network"
 
 // NOTE: We are observing pod creation requests taking more than two minutes t
@@ -50,6 +49,7 @@ const RequiredUDNNamespaceLabel = "k8s.ovn.org/primary-user-defined-network"
 // pod to startup is 5mins: https://github.com/kubernetes/kubernetes/blob/60c4c2b2521fb454ce69dee737e3eb91a25e0535/test/e2e/framework/timeouts.go#L22-L23
 // we are not too far from the mark or against test policy
 const podReadyPollTimeout = 10 * time.Minute
+
 const podReadyPollInterval = 6 * time.Second
 
 // NOTE: Upstream, we use either the default of gomega which is 1sec polltimeout with 10ms pollinterval OR
@@ -61,6 +61,7 @@ const podReadyPollInterval = 6 * time.Second
 // FIXME: Timeout increased to 30 seconds because default network controller does not receive the pod event after its annotations
 // are updated. Reduce timeout back to sensible value once issue is understood.
 const serverConnectPollTimeout = 30 * time.Second
+
 const serverConnectPollInterval = 1 * time.Second
 
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {

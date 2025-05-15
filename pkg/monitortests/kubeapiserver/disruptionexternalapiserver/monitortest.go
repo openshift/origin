@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/sirupsen/logrus"
-
-	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type InvariantExternalDisruption struct {

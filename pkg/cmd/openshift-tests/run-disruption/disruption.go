@@ -9,18 +9,11 @@ import (
 	"sync"
 	"syscall"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
-	"k8s.io/apimachinery/pkg/fields"
-
-	"github.com/openshift/origin/pkg/clioptions/iooptions"
-	"github.com/openshift/origin/pkg/disruption/backend"
-	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	apimachinerywatch "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -28,6 +21,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/watch"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/disruption/backend"
+	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 )
 
 type RunAPIDisruptionMonitorFlags struct {

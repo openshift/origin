@@ -1,11 +1,10 @@
 package configmonitor
 
 import (
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	"k8s.io/klog/v2"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
+	klog "k8s.io/klog/v2"
 )
 
 type resourceObserverEventHandler interface {

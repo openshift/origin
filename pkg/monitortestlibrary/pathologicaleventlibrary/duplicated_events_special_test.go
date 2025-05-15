@@ -3,8 +3,9 @@ package pathologicaleventlibrary
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func Test_singleEventThresholdCheck_getNamespacedFailuresAndFlakes(t *testing.T) {

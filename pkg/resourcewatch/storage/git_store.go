@@ -9,18 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/wait"
-
-	"k8s.io/kube-openapi/pkg/util/sets"
-
-	"gopkg.in/src-d/go-git.v4"
-
+	git "gopkg.in/src-d/go-git.v4"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
+	"k8s.io/kube-openapi/pkg/util/sets"
 	"sigs.k8s.io/yaml"
 )
 

@@ -7,11 +7,12 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kube-openapi/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func InstanceMapToFile(filename string, resourceType string, instances monitorapi.InstanceMap) error {

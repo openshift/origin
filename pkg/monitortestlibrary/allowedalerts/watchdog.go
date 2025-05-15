@@ -5,19 +5,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	o "github.com/onsi/gomega"
-	helper "github.com/openshift/origin/test/extended/util/prometheus"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
+	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 type watchdogAlertTest struct {

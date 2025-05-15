@@ -3,14 +3,6 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
-	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/dataloader"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-	"k8s.io/kubernetes/test/e2e/framework"
 	"math"
 	"path/filepath"
 	"sort"
@@ -18,6 +10,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // with https://github.com/openshift/kubernetes/pull/2113 we no longer have the counts used in

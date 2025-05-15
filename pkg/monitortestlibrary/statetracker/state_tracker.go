@@ -3,8 +3,9 @@ package statetracker
 import (
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type stateTracker struct {
@@ -117,6 +118,7 @@ func (t *stateTracker) OpenInterval(locator monitorapi.Locator, state StateInfo,
 
 	return false
 }
+
 func (t *stateTracker) CloseIfOpenedInterval(locator monitorapi.Locator, state StateInfo, intervalCreator intervalCreationFunc, to time.Time) []monitorapi.Interval {
 	states := t.getStates(locator)
 	if _, ok := states[state]; !ok {

@@ -13,7 +13,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	appsv1 "github.com/openshift/api/apps/v1"
+	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -30,10 +32,6 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	appsv1 "github.com/openshift/api/apps/v1"
-	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	"github.com/openshift/library-go/pkg/apps/appsutil"
 
 	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -668,6 +666,7 @@ func (d *deployerPodInvariantChecker) getCacheKey(pod *corev1.Pod) string {
 
 	return fmt.Sprintf("%s/%s", pod.Namespace, dcName)
 }
+
 func (d *deployerPodInvariantChecker) getPodIndex(list []*corev1.Pod, pod *corev1.Pod) int {
 	for i, p := range list {
 		if p.Name == pod.Name && p.Namespace == pod.Namespace {

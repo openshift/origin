@@ -4,11 +4,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-
 	"k8s.io/apimachinery/pkg/util/errors"
-
 	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 
 	"github.com/openshift/origin/pkg/test/extensions"

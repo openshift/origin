@@ -9,9 +9,18 @@ import (
 	"testing"
 
 	g "github.com/onsi/ginkgo/v2"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
-
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	cbor "k8s.io/apimachinery/pkg/runtime/serializer/cbor/direct"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	discocache "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
@@ -23,17 +32,6 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	exutilimage "github.com/openshift/origin/test/extended/util/image"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	cbor "k8s.io/apimachinery/pkg/runtime/serializer/cbor/direct"
-	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Etcd data for all persisted OpenShift objects.

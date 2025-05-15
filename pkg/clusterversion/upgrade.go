@@ -3,9 +3,8 @@ package clusterversion
 import (
 	"strings"
 
-	"golang.org/x/mod/semver"
-
 	configv1 "github.com/openshift/api/config/v1"
+	"golang.org/x/mod/semver"
 )
 
 // IsUpgradedFromMinorVersion returns true if the cluster has been upgraded from or through the given version.

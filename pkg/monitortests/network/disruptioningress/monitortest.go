@@ -5,26 +5,21 @@ import (
 	_ "embed"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-
-	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/rest"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type availability struct {

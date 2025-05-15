@@ -7,14 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
-	"github.com/openshift/origin/test/extended/operators"
-	"github.com/openshift/origin/test/extended/scheme"
-	"github.com/openshift/origin/test/extended/single_node"
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,6 +22,11 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	"github.com/openshift/origin/test/extended/operators"
+	"github.com/openshift/origin/test/extended/scheme"
+	"github.com/openshift/origin/test/extended/single_node"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {

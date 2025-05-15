@@ -15,8 +15,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	v1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/apis/audit"
@@ -24,6 +22,8 @@ import (
 	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/transport"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // this entire file should be a separate package with disruption_***, but we are entanged because the sampler lives in monitor

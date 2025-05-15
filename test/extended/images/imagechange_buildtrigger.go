@@ -3,16 +3,16 @@ package images
 import (
 	"context"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
-	buildv1 "github.com/openshift/api/build/v1"
-	imagev1 "github.com/openshift/api/image/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -153,6 +153,7 @@ func dockerStrategy(kind, name string) buildv1.BuildStrategy {
 		},
 	}
 }
+
 func stiStrategy(kind, name string) buildv1.BuildStrategy {
 	return buildv1.BuildStrategy{
 		SourceStrategy: &buildv1.SourceBuildStrategy{
@@ -163,6 +164,7 @@ func stiStrategy(kind, name string) buildv1.BuildStrategy {
 		},
 	}
 }
+
 func customStrategy(kind, name string) buildv1.BuildStrategy {
 	return buildv1.BuildStrategy{
 		CustomStrategy: &buildv1.CustomBuildStrategy{

@@ -5,13 +5,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/rest"
 )
 
 type timelineSerializer struct {

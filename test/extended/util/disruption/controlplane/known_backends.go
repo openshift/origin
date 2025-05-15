@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -12,9 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/disruption/backend"
 	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func StartAPIMonitoringUsingNewBackend(

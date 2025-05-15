@@ -8,16 +8,15 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	configv1 "github.com/openshift/api/config/v1"
+	imageapi "github.com/openshift/api/image/v1"
+	imageclientset "github.com/openshift/client-go/image/clientset/versioned"
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	configv1 "github.com/openshift/api/config/v1"
-	imageapi "github.com/openshift/api/image/v1"
-	imageclientset "github.com/openshift/client-go/image/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )

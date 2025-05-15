@@ -10,7 +10,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	"k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/rest"
 

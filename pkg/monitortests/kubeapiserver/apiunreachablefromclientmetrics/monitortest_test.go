@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortests/metrics"
-
 	prometheustypes "github.com/prometheus/common/model"
+
+	"github.com/openshift/origin/pkg/monitortests/metrics"
 )
 
 func TestAPIUnreachableMonitor(t *testing.T) {

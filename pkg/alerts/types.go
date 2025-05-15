@@ -1,8 +1,9 @@
 package alerts
 
 import (
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/prometheus/common/model"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 type MetricCondition struct {

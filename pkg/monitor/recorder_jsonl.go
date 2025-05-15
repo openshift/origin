@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/apimachinery/pkg/runtime"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
 
 type jsonlRecorder struct {

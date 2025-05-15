@@ -5,15 +5,13 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	osinv1 "github.com/openshift/api/osin/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	osinv1 "github.com/openshift/api/osin/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	utiloauth "github.com/openshift/origin/test/extended/util/oauthserver"

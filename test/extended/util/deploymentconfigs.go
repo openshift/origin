@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -14,10 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	appsv1 "github.com/openshift/api/apps/v1"
-	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	"github.com/openshift/library-go/pkg/apps/appsutil"
 )
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition

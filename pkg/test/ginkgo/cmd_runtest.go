@@ -3,22 +3,21 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	"github.com/onsi/ginkgo/v2"
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+	"github.com/sirupsen/logrus"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ExitError struct {

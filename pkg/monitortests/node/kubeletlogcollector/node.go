@@ -16,12 +16,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/staticpodinstall/kubeletlogparser"
-
-	"k8s.io/client-go/kubernetes"
 )
 
 func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -342,8 +341,11 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 var imagePullContainerRefRegex = regexp.MustCompile(`err=.*for \\"(?P<CONTAINER>[a-z0-9.-]+)\\".*pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID="(?P<PODUID>[a-z0-9.-]+)"`)
 
 var containerRefRegex = regexp.MustCompile(`pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID="(?P<PODUID>[a-z0-9.-]+)" containerName="(?P<CONTAINER>[a-z0-9.-]+)"`)
+
 var readinessFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Readiness".*output="(?P<OUTPUT>.+)"`)
+
 var readinessErrorOutputRegex = regexp.MustCompile(`"Probe errored" err="(?P<OUTPUT>.+)" probeType="Readiness"`)
+
 var startupFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Startup".*output="(?P<OUTPUT>.+)"`)
 
 // Some logs end with "probeResult=failure output=<" and the output continues on the next log line.
@@ -389,6 +391,7 @@ func regexToContainerReference(logLine string, containerReferenceMatch *regexp.R
 }
 
 var reflectorRefRegex = regexp.MustCompile(`object-"(?P<NS>[a-z0-9.-]+)"\/"(?P<POD>[a-z0-9.-]+)"`)
+
 var reflectorOutputRegex = regexp.MustCompile(`error on the server \("(?P<OUTPUT>.+)"\)`)
 
 func reflectorHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {
@@ -407,6 +410,7 @@ func reflectorHttpClientConnectionLostError(nodeName, logLine string) monitorapi
 }
 
 var statusRefRegex = regexp.MustCompile(`podUID="(?P<PODUID>[a-z0-9.-]+)" pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
+
 var statusOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
 func statusHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {
@@ -592,6 +596,7 @@ func findLeaseBackOffs(intervals monitorapi.Intervals) monitorapi.Intervals {
 }
 
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
+
 var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
 func kubeletNodeHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {

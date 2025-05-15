@@ -7,16 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-	e2edebug "k8s.io/kubernetes/test/e2e/framework/debug"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2edebug "k8s.io/kubernetes/test/e2e/framework/debug"
 )
 
 var _ = g.Describe("[sig-storage] Managed cluster should", func() {

@@ -9,7 +9,15 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	oapps "github.com/openshift/api/apps"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	"github.com/openshift/api/build"
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/image"
+	"github.com/openshift/api/oauth"
+	projectv1 "github.com/openshift/api/project/v1"
+	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
+	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
@@ -28,15 +36,6 @@ import (
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	oapps "github.com/openshift/api/apps"
-	authorizationv1 "github.com/openshift/api/authorization/v1"
-	"github.com/openshift/api/build"
-	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/api/image"
-	"github.com/openshift/api/oauth"
-	projectv1 "github.com/openshift/api/project/v1"
-	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
-	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
@@ -209,6 +208,7 @@ func prettyPrintReviewResponse(resp *authorizationv1.ResourceAccessReviewRespons
 
 // This list includes the admins from above, plus users or groups known to have global view access
 var globalClusterReaderUsers = sets.NewString("system:admin")
+
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
 
 // this list includes any other users who can get DeploymentConfigs

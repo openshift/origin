@@ -5,7 +5,6 @@ import (
 	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
-
 	"k8s.io/apimachinery/pkg/version"
 )
 

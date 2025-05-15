@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func Test_checkSubresourceStatus(t *testing.T) {

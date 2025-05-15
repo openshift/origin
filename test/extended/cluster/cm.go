@@ -8,14 +8,13 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
-
+	yaml "gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	"gopkg.in/yaml.v2"
 )
 
 var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror cluster", func() {

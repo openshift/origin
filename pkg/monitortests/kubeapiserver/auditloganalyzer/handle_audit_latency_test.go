@@ -1,11 +1,12 @@
 package auditloganalyzer
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-	"testing"
-	"time"
 )
 
 func Test_auditLogEventHandler(t *testing.T) {

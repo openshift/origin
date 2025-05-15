@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	nadtypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	nadtypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

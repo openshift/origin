@@ -8,7 +8,14 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	appsv1 "github.com/openshift/api/apps/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	templatev1 "github.com/openshift/api/template/v1"
+	userv1 "github.com/openshift/api/user/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
 	kappsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,17 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
-
-	appsv1 "github.com/openshift/api/apps/v1"
-	authorizationv1 "github.com/openshift/api/authorization/v1"
-	buildv1 "github.com/openshift/api/build/v1"
-	routev1 "github.com/openshift/api/route/v1"
-	templatev1 "github.com/openshift/api/template/v1"
-	userv1 "github.com/openshift/api/user/v1"
-
-	"github.com/openshift/library-go/pkg/apps/appsutil"
-
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

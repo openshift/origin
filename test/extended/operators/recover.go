@@ -10,15 +10,12 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
-	// corev1 "k8s.io/api/core/v1"
+	config "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-
-	config "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster should recover", func() {

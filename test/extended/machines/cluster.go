@@ -12,8 +12,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/prometheus"
 	"github.com/stretchr/objx"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,6 +22,9 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	psapi "k8s.io/pod-security-admission/api"
+
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/prometheus"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
@@ -230,8 +231,10 @@ type bootTimelineEntry struct {
 
 type byTime []bootTimelineEntry
 
-func (a byTime) Len() int      { return len(a) }
+func (a byTime) Len() int { return len(a) }
+
 func (a byTime) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 func (a byTime) Less(i, j int) bool {
 	return a[i].time.Before(a[j].time)
 }

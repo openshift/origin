@@ -7,10 +7,9 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var _ = g.Describe("[sig-cli] oc project", func() {

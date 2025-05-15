@@ -7,14 +7,12 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	"github.com/openshift/api/image/docker10"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	"github.com/openshift/api/image/docker10"
-	"github.com/openshift/library-go/pkg/image/imageutil"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"

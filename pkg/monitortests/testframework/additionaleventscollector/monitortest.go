@@ -7,13 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/rest"
 )
 
 type additionalEventsCollector struct {

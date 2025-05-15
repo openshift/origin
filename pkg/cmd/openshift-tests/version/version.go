@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd"

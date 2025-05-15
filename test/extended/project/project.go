@@ -14,8 +14,6 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/apiserver-library-go/pkg/authorization/scope"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	"github.com/openshift/origin/test/extended/authorization"
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +22,9 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/test/extended/authorization"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
@@ -242,6 +243,7 @@ func waitForDelete(projectName string, w watch.Interface) {
 	})
 
 }
+
 func waitForAdd(projectName string, w watch.Interface) {
 	g.By("waitForAdd "+projectName, func() {
 		for {
@@ -287,6 +289,7 @@ func waitForOnlyAdd(projectName string, w watch.Interface) {
 		}
 	})
 }
+
 func waitForOnlyDelete(projectName string, w watch.Interface) {
 	g.By("waitForOnlyDelete "+projectName, func() {
 		hasTerminated := sets.NewString()

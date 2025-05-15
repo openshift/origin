@@ -6,15 +6,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/disruption/sampler"
-
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/disruption/sampler"
 )
 
 // NewAPIServerIdentityToHostNameDecoder returns a new
@@ -26,6 +26,7 @@ func NewAPIServerIdentityToHostNameDecoder(kubeClient kubernetes.Interface) (*ap
 }
 
 var _ backend.HostNameDecoder = &apiServerIdentityDecoder{}
+
 var _ sampler.Runner = &apiServerIdentityDecoder{}
 
 type apiServerIdentityDecoder struct {

@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func Test_nonOverlappingBlackoutWindowsFromEvents(t *testing.T) {

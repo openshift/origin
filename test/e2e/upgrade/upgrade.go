@@ -10,11 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
-
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
@@ -32,12 +27,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog/v2"
+	klog "k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
@@ -80,6 +78,7 @@ var (
 // upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
 // between (0,100].
 const upgradeAbortAtRandom = -1
+
 const defaultCVOUpdateAckTimeout = 2 * time.Minute
 
 // SetTests controls the list of tests to run during an upgrade. See AllTests for the supported

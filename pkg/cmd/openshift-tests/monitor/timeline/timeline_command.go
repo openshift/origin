@@ -7,15 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	"github.com/openshift/origin/test/extended/testdata"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
+	"github.com/openshift/origin/test/extended/testdata"
 )
 
 type TimelineOptions struct {

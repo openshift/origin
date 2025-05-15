@@ -28,11 +28,9 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-
-	"google.golang.org/grpc/codes"
-
 	expect "github.com/google/goexpect"
+	. "github.com/onsi/ginkgo/v2"
+	"google.golang.org/grpc/codes"
 )
 
 const (
@@ -277,6 +275,7 @@ func configureConsole(expecter expect.Expecter, shouldSudo bool) error {
 	}
 	return err
 }
+
 func retValue(retcode string) string {
 	return retcode + CRLF + ".*" + PromptExpression
 }
