@@ -57026,6 +57026,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         if (eventInterval.message.reason !== "DisruptionBegan" && eventInterval.message.reason !== "DisruptionSamplerOutageBegan") {
             return false
         }
+        if (eventInterval.locator.keys["load-balancer"] === "localhost") {
+            return false
+        }
         if (eventInterval.source === "Disruption") {
             return true
         }
