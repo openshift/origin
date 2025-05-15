@@ -135,6 +135,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						By("creating the network")
 						netConfig.namespace = f.Namespace.Name
 						Expect(createNetworkFn(netConfig)).To(Succeed())
+						Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, netConfig.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 
 						By("creating client/server pods")
 						runUDNPod(cs, f.Namespace.Name, serverPodConfig, nil)
@@ -228,6 +229,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						netConfigParams.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 						Expect(createNetworkFn(netConfigParams)).To(Succeed())
 						Expect(err).NotTo(HaveOccurred())
+						Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, netConfigParams.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 
 						udnPodConfig.namespace = f.Namespace.Name
 
@@ -532,6 +534,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							// update the name because createNetworkFn may mutate the netConfig.name
 							// for cluster scope objects (i.g.: CUDN cases) to enable parallel testing.
 							networkNamespaceMap[namespace] = netConfig.name
+							Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, netConfig.namespace), udnCrReadyTimeout, time.Second).Should(Succeed())
 
 						}
 						red = networkNamespaceMap[namespaceRed]
