@@ -63,7 +63,7 @@ const podReadyPollInterval = 6 * time.Second
 const serverConnectPollTimeout = 30 * time.Second
 const serverConnectPollInterval = 1 * time.Second
 
-var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
+var _ = Describe("[sig-network][Feature:UserDefinedPrimaryNetworks][OCPFeatureGate:NetworkSegmentation]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
 	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
 	// it didn't work.
