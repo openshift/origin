@@ -52,7 +52,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		}
 	})
 
-	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/parallel]Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) || IsTwoNode(oc) { //handle SNO & two-node clusters
 			// In SNO and standard two-node openshift clusters, the nodes have both worker and master roles, but are a part
 			// of the master MCP. Thus, the tests for these clusters will be limited to checking master MCP association.
@@ -67,13 +67,13 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		}
 	})
 
-	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/serial][Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		skipOnTwoNodeTopology(oc)    //skip this test for two-node openshift
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
-	g.It("[Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/serial][Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) {
 			ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
 		} else {
@@ -94,15 +94,15 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		ValidateMCNOnNodeCreationAndDeletion(oc)
 	})
 
-	g.It("Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/parallel]Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNScopeSadPathTest(oc)
 	})
 
-	g.It("Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/parallel]Should properly block MCN updates by impersonation of the MCD SA [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNScopeImpersonationPathTest(oc)
 	})
 
-	g.It("Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/parallel]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNScopeHappyPathTest(oc)
 	})
 })
