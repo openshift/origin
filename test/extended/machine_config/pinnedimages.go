@@ -25,7 +25,7 @@ import (
 )
 
 // This test is [Serial] because it modifies the state of the images present on Node in each test.
-var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]", func() {
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]", func() {
 	defer g.GinkgoRecover()
 	var (
 		MCOPinnedImageBaseDir       = exutil.FixturePath("testdata", "machine_config", "pinnedimage")
