@@ -141,11 +141,21 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
 	testName := "[sig-arch][Late] operators should not create watch channels very often"
+	testMinRequestsName := "[sig-arch][Late] operators should have watch channel requests"
 	oc := exutil.NewCLIWithoutNamespace("operator-watch")
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Message: err.Error(),
+				Output:  err.Error(),
+			},
+		},
+		)
+
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: testMinRequestsName,
 			FailureOutput: &junitapi.FailureOutput{
 				Message: err.Error(),
 				Output:  err.Error(),
@@ -376,19 +386,37 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	}
 
 	var upperBound platformUpperBound
-	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
+
+	switch infra.Status.ControlPlaneTopology {
+	case configv1.ExternalTopologyMode:
+		return []*junitapi.JUnitTestCase{{
+			Name:        testName,
+			SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported topology: %v", infra.Status.ControlPlaneTopology)},
+		}, {
+			Name:        testMinRequestsName,
+			SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported topology: %v", infra.Status.ControlPlaneTopology)},
+		}}, nil
+
+	case configv1.SingleReplicaTopologyMode:
 		if _, exists := upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]; !exists {
 			return []*junitapi.JUnitTestCase{{
 				Name:        testName,
+				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
+			}, {
+				Name:        testMinRequestsName,
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
 			}}, nil
 
 		}
 		upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
-	} else {
+
+	default:
 		if _, exists := upperBounds[infra.Spec.PlatformSpec.Type]; !exists {
 			return []*junitapi.JUnitTestCase{{
 				Name:        testName,
+				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported platform type: %v", infra.Spec.PlatformSpec.Type)},
+			}, {
+				Name:        testMinRequestsName,
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported platform type: %v", infra.Spec.PlatformSpec.Type)},
 			}}, nil
 		}
@@ -396,6 +424,30 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	}
 
 	watchRequestCounts := s.SummarizeWatchCountRequests()
+
+	if len(watchRequestCounts) == 0 {
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testMinRequestsName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: "Expected at least one watch request count to be present",
+				},
+			},
+		)
+		// flake for now
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testMinRequestsName,
+			},
+		)
+
+	} else {
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testMinRequestsName,
+			},
+		)
+	}
 
 	operatorBoundExceeded := []string{}
 	for _, item := range watchRequestCounts {
