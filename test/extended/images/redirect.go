@@ -96,6 +96,8 @@ var _ = g.Describe("[sig-imageregistry] Image registry [apigroup:route.openshift
 		// create a custom http client so we can reliably detect the redirects
 		httpClient := http.Client{
 			Transport: &http.Transport{
+				// Use the HTTP proxy configured in the environment variables.
+				Proxy: http.ProxyFromEnvironment,
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true, // this token will be gone shortly and if someone can intercept the router in a CI cluster, they can intercept a lot.
 				},
