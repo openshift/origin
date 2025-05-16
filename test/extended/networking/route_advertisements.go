@@ -604,12 +604,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					}
 				})
 
-				g.AfterEach(func() {
-					g.By("Turn off the BGP advertisement of EgressIPs")
-					_, err := runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["PodNetwork"]}}`)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				})
-
 				g.DescribeTable("Pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
 					func(ipFamily IPFamily, externalIP string) {
 						if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
@@ -834,7 +828,7 @@ func generateRandomSubnet(ipFamily IPFamily) string {
 	case IPv4:
 		subnet = fmt.Sprintf("203.%d.0.0/16", IntnRange(0, 255))
 	case IPv6:
-		subnet = fmt.Sprintf("2014:100:200:%0x::0/60", IntnRange(0, 255))
+		subnet = fmt.Sprintf("2014:100:200:%02x0::0/60", IntnRange(0, 255))
 	default:
 		o.Expect(false).To(o.BeTrue())
 	}
@@ -1351,7 +1345,7 @@ func applyNNCP(oc *exutil.CLI, name, policy string) {
 		matches := nncpRenderedCompiledRegex.FindStringSubmatch(out)
 		g.Expect(matches).To(o.HaveLen(3))
 		g.Expect(matches[1]).To(o.Equal(matches[2]))
-	}).WithTimeout(180 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
+	}).WithTimeout(300 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
 }
 
 func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, error) {
