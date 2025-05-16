@@ -41,21 +41,29 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("baremetal")
+	isTNFDeployment := false
 
 	g.BeforeEach(func() {
 		skipIfNotBaremetal(oc)
+		isTNFDeployment = exutil.IsTwoNodeFencing(context.TODO(), oc.AdminConfigClient())
 	})
 
 	g.It("have baremetalhost resources", func() {
 		dc := oc.AdminDynamicClient()
 		bmc := baremetalClient(dc)
 
+		// In TNF Deployments we expect baremetal installs to be detached.
+		expectedOperationalStatus := "OK"
+		if isTNFDeployment {
+			expectedOperationalStatus = "detached"
+		}
+
 		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		for _, h := range hosts.Items {
-			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
+			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo(expectedOperationalStatus))
 			expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
 			expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
 

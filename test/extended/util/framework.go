@@ -2328,6 +2328,15 @@ func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
 	return true, nil
 }
 
+func IsTwoNodeFencing(ctx context.Context, configClient clientconfigv1.Interface) bool {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.DualReplicaTopologyMode
+}
+
 func groupName(groupVersionName string) string {
 	return strings.Split(groupVersionName, "/")[0]
 }
