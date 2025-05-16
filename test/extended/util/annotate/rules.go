@@ -219,6 +219,7 @@ var (
 			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should set Forwarded headers appropriately`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\]\[apigroup:operator.openshift.io\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
+			`\[sig-node\]\[Feature:Builds\]\[apigroup:build.openshift.io\] zstd:chunked Image should successfully run date command`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
 		},

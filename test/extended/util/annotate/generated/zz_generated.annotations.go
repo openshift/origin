@@ -1851,6 +1851,8 @@ var Annotations = map[string]string{
 
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
+	"[sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image should successfully run date command": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
