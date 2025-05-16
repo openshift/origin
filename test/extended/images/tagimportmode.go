@@ -115,12 +115,16 @@ func TestImageConfigImageStreamImportModeLegacy(t g.GinkgoTInterface, oc *exutil
 	imageConfig, err := clusterAdminConfigClient.Images().Get(ctx, "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	importModeNoChange := false
 	if imageConfig.Status.ImageStreamImportMode == configv1.ImportModeLegacy {
-		g.Skip("skipping, import mode is already Legacy")
+		importModeNoChange = true
 	}
 
-	err = changeImportModeAndWaitForApiServer(ctx, t, oc, string(configv1.ImportModeLegacy))
-	o.Expect(err).NotTo(o.HaveOccurred())
+	// If import mode is actually the same as the intended one, skip changing it
+	if !importModeNoChange {
+		err = changeImportModeAndWaitForApiServer(ctx, t, oc, string(configv1.ImportModeLegacy))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 
 	g.By("creating an imagestream and imagestream tag")
 	stream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "test-importmode"}}
@@ -145,8 +149,10 @@ func TestImageConfigImageStreamImportModeLegacy(t g.GinkgoTInterface, oc *exutil
 	o.Expect(tag.ImportPolicy.ImportMode).To(o.Equal(imagev1.ImportModeLegacy))
 
 	// Revert back to original
-	err = changeImportModeAndWaitForApiServer(ctx, t, oc, "")
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if !importModeNoChange {
+		err = changeImportModeAndWaitForApiServer(ctx, t, oc, "")
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 }
 
 func TestImageConfigImageStreamImportModePreserveOriginal(t g.GinkgoTInterface, oc *exutil.CLI) {
@@ -162,12 +168,16 @@ func TestImageConfigImageStreamImportModePreserveOriginal(t g.GinkgoTInterface, 
 	imageConfig, err := clusterAdminConfigClient.Images().Get(ctx, "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
+	importModeNoChange := false
 	if imageConfig.Status.ImageStreamImportMode == configv1.ImportModePreserveOriginal {
-		g.Skip("skipping, import mode is already PreserveOriginal")
+		importModeNoChange = true
 	}
 
-	err = changeImportModeAndWaitForApiServer(ctx, t, oc, string(configv1.ImportModePreserveOriginal))
-	o.Expect(err).NotTo(o.HaveOccurred())
+	// If import mode is actually the same as the intended one, skip changing it
+	if !importModeNoChange {
+		err = changeImportModeAndWaitForApiServer(ctx, t, oc, string(configv1.ImportModePreserveOriginal))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 
 	g.By("creating an imagestream and imagestream tag")
 	stream := &imagev1.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "test-importmode"}}
@@ -192,6 +202,8 @@ func TestImageConfigImageStreamImportModePreserveOriginal(t g.GinkgoTInterface, 
 	o.Expect(tag.ImportPolicy.ImportMode).To(o.Equal(imagev1.ImportModePreserveOriginal))
 
 	// Revert back to original
-	err = changeImportModeAndWaitForApiServer(ctx, t, oc, "")
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if !importModeNoChange {
+		err = changeImportModeAndWaitForApiServer(ctx, t, oc, "")
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 }
