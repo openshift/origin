@@ -25,13 +25,17 @@ func NewGenerationAnalyzer() monitortestframework.MonitorTest {
 	return &generationWatcher{}
 }
 
-func (w *generationWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (w *generationWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
 	w.kubeClient = kubeClient
 	startGenerationMonitoring(ctx, recorder, kubeClient)
+	return nil
+}
+
+func (w *generationWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
 

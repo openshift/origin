@@ -58,6 +58,10 @@ func NewAzureMetricsCollector() monitortestframework.MonitorTest {
 	return &azureMetricsCollector{}
 }
 
+func (w *azureMetricsCollector) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func createLogAnalyticsWorkspace(ctx context.Context, credential *azidentity.DefaultAzureCredential, subscriptionID, resourceGroup, workspaceName, location string) (string, error) {
 	client, err := armoperationalinsights.NewWorkspacesClient(subscriptionID, credential, nil)
 	if err != nil {

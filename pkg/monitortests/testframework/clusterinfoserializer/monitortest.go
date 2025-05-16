@@ -27,6 +27,10 @@ func NewClusterInfoSerializer() monitortestframework.MonitorTest {
 	return &clusterInfoSerializer{}
 }
 
+func (w *clusterInfoSerializer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *clusterInfoSerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	return nil

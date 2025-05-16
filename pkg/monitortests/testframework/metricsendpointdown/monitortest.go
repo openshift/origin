@@ -25,6 +25,10 @@ func NewMetricsEndpointDown() monitortestframework.MonitorTest {
 	return &metricsEndpointDown{}
 }
 
+func (w *metricsEndpointDown) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *metricsEndpointDown) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	return nil
