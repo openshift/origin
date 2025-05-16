@@ -99,6 +99,8 @@ and then enforces the following rules.
 3. Every test must be run on every TechPreview platform we have jobs for.  (Ask for an exception if your feature doesn't support a variant.)
 4. Every test must run at least 14 times on every platform/variant.
 5. Every test must pass at least 95% of the time on every platform/variant.
+6. Test results are taken from the last 7 days if the test was run at least 14 times during that period. Otherwise, data from the last 14 days is used.
+7. Test flakes (even if the test eventually passes on a retry) are considered failures and negatively impact the pass rate.
 
 If your FeatureGate lacks automated testing, there is an exception process that allows QE to sign off on the promotion by 
 commenting on the PR.

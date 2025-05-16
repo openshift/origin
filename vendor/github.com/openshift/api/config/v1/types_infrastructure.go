@@ -1559,8 +1559,7 @@ type VSpherePlatformSpec struct {
 	// + If VCenters is not defined use the existing cloud-config configmap defined
 	// + in openshift-config.
 	// +kubebuilder:validation:MinItems=0
-	// +openshift:validation:FeatureGateAwareMaxItems:featureGate="",maxItems=1
-	// +openshift:validation:FeatureGateAwareMaxItems:featureGate=VSphereMultiVCenters,maxItems=3
+	// +kubebuilder:validation:MaxItems=3
 	// +kubebuilder:validation:XValidation:rule="size(self) != size(oldSelf) ? size(oldSelf) == 0 && size(self) < 2 : true",message="vcenters cannot be added or removed once set"
 	// +listType=atomic
 	// +optional
