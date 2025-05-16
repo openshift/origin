@@ -159,6 +159,7 @@ const (
 	LocatorAPIUnreachableHostKey                  LocatorKey = "host"
 	LocatorAPIUnreachableComponentKey             LocatorKey = "component"
 	LocatorOnPremKubeapiUnreachableFromHaproxyKey LocatorKey = "onprem-haproxy"
+	LocatorOnPremVIPMonitorKey                    LocatorKey = "onprem-keepalived"
 
 	LocatorTypeKubeletSyncLoopProbeType LocatorKey = "probe"
 	LocatorTypeKubeletSyncLoopPLEGType  LocatorKey = "plegType"
@@ -233,6 +234,9 @@ const (
 
 	OnPremHaproxyDetectsDown  IntervalReason = "OnPremHaproxyDetectsDown"
 	OnPremHaproxyStatusChange IntervalReason = "OnPremHaproxyStatusChange"
+	OnPremLBPriorityChange    IntervalReason = "OnPremLBPriorityChange"
+	OnPremLBTookVIP           IntervalReason = "OnPremLBTookVIP"
+	OnPremLBLostVIP           IntervalReason = "OnPremLBLostVIP"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -295,12 +299,15 @@ const (
 	AnnotationPreviousPhase      AnnotationKey = "previousPhase"
 	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
-	AnnotationDuration       AnnotationKey = "duration"
-	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
-	AnnotationRoles          AnnotationKey = "roles"
-	AnnotationStatus         AnnotationKey = "status"
-	AnnotationCondition      AnnotationKey = "condition"
-	AnnotationPercentage     AnnotationKey = "percentage"
+	AnnotationDuration         AnnotationKey = "duration"
+	AnnotationRequestAuditID   AnnotationKey = "request-audit-id"
+	AnnotationRoles            AnnotationKey = "roles"
+	AnnotationStatus           AnnotationKey = "status"
+	AnnotationCondition        AnnotationKey = "condition"
+	AnnotationPercentage       AnnotationKey = "percentage"
+	AnnotationPriority         AnnotationKey = "priority"
+	AnnotationPreviousPriority AnnotationKey = "prev-priority"
+	AnnotationVIP              AnnotationKey = "vip"
 )
 
 // ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
@@ -319,6 +326,7 @@ const (
 	ConstructionOwnerMachineLifecycle = "machine-lifecycle-constructor"
 	ConstructionOwnerLeaseChecker     = "lease-checker"
 	ConstructionOwnerOnPremHaproxy    = "on-prem-haproxy-constructor"
+	ConstructionOwnerOnPremKeepalived = "on-prem-keepalived-constructor"
 )
 
 type Message struct {
@@ -345,6 +353,7 @@ const (
 	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor               IntervalSource = "NodeMonitor"
 	SourceHaproxyMonitor            IntervalSource = "OnPremHaproxyMonitor"
+	SourceKeepalivedMonitor         IntervalSource = "OnPremKeepalivedMonitor"
 	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
 	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
