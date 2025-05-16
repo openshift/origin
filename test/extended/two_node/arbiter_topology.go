@@ -1,4 +1,4 @@
-package arbiter_topology
+package two_node
 
 import (
 	"context"
@@ -21,11 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-const (
-	labelNodeRoleMaster  = "node-role.kubernetes.io/master"
-	labelNodeRoleArbiter = "node-role.kubernetes.io/arbiter"
-)
-
 var (
 	defaultExpectedMaxPodCount      = 30
 	expectedMaxPodCountsPerPlatform = map[v1.PlatformType]int{
@@ -39,10 +34,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("")
 
 	g.BeforeEach(func() {
-		infraStatus := getInfraStatus(oc)
-		if infraStatus.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("Cluster is not in HighlyAvailableArbiterMode skipping test")
-		}
+		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("Should validate that there are Master and Arbiter nodes as specified in the cluster", func() {
@@ -76,10 +68,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 	)
 
 	g.BeforeEach(func() {
-		infraStatus = getInfraStatus(oc)
-		if infraStatus.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-			g.Skip("Cluster is not in HighlyAvailableArbiterMode skipping test")
-		}
+		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
 		g.By("inferring platform type")
@@ -116,7 +105,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 
 	oc := exutil.NewCLI("arbiter-pod-validation").SetManagedNamespace().AsAdmin()
 	g.BeforeEach(func() {
-		skipNonArbiterCluster(oc)
+		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should be created on arbiter nodes when arbiter node is selected", func() {
@@ -211,7 +200,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 	oc := exutil.NewCLI("daemonset-pod-validation").SetManagedNamespace().AsAdmin()
 
 	g.BeforeEach(func() {
-		skipNonArbiterCluster(oc)
+		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should not create a DaemonSet on the Arbiter node", func() {
@@ -261,7 +250,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 
 	g.BeforeEach(func() {
-		skipNonArbiterCluster(oc)
+		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should have all etcd pods running and quorum met", func() {
@@ -431,18 +420,4 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 		}
 	}
 	return false
-}
-
-func skipNonArbiterCluster(oc *exutil.CLI) {
-	infraStatus := getInfraStatus(oc)
-	if infraStatus.ControlPlaneTopology != v1.HighlyAvailableArbiterMode {
-		g.Skip("Cluster is not in HighlyAvailableArbiterMode, skipping test")
-	}
-}
-
-func getInfraStatus(oc *exutil.CLI) v1.InfrastructureStatus {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
-		"cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return infra.Status
 }
