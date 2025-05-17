@@ -604,12 +604,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					}
 				})
 
-				g.AfterEach(func() {
-					g.By("Turn off the BGP advertisement of EgressIPs")
-					_, err := runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["PodNetwork"]}}`)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				})
-
 				g.DescribeTable("Pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
 					func(ipFamily IPFamily, externalIP string) {
 						if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
