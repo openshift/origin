@@ -253,15 +253,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
-	filteredTests := []*testCase{}
-	for _, test := range tests {
-		checkName := strings.ToLower(test.name)
-		if strings.Contains(checkName, "network") {
-			filteredTests = append(filteredTests, test)
+	if strings.Contains(suite.Name, "conformance") {
+		filteredTests := []*testCase{}
+		for _, test := range tests {
+			checkName := strings.ToLower(test.name)
+			if strings.Contains(checkName, "network") {
+				filteredTests = append(filteredTests, test)
+			}
 		}
-	}
 
-	tests = filteredTests
+		tests = filteredTests
+	}
 
 	if len(tests) == 0 {
 		return fmt.Errorf("Filtered suite %q does not contain any tests", suite.Name)
