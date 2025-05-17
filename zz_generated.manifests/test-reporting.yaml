@@ -115,6 +115,10 @@ spec:
         mock driver Static provisioning should honor pv retain reclaim policy'
   - featureGate: ImageStreamImportMode
     tests:
+    - testName: '[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode] ClusterVersion
+        API desired.architecture field in the CV should be multi or empty depending
+        on the ''release.openshift.io/architecture'' field being set in the release
+        payload''s metadata [apigroup:config.openshift.io]'
     - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
         ImageStream API import mode should be Legacy if the import mode specified
         in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]'
