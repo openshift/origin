@@ -256,7 +256,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	filteredTests := []*testCase{}
 	for _, test := range tests {
 		checkName := strings.ToLower(test.name)
-		if strings.Contains(checkName, "network") {
+		if !strings.Contains(checkName, "network") {
 			filteredTests = append(filteredTests, test)
 		}
 	}
