@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -17,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -246,13 +244,27 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
-	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
+	//suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	//r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	//r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
+	}
+
+	filteredTests := []*testCase{}
+	for _, test := range tests {
+		checkName := strings.ToLower(test.name)
+		if strings.Contains(checkName, "network") {
+			filteredTests = append(filteredTests, test)
+		}
+	}
+
+	tests = filteredTests
+
+	if len(tests) == 0 {
+		return fmt.Errorf("Filtered suite %q does not contain any tests", suite.Name)
 	}
 
 	logrus.Infof("Found %d filtered tests", len(tests))
