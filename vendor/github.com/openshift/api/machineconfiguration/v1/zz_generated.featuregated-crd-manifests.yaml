@@ -39,7 +39,6 @@ controllerconfigs.machineconfiguration.openshift.io:
   - HighlyAvailableArbiter+DualReplica
   - NutanixMultiSubnets
   - VSphereMultiNetworks
-  - VSphereMultiVCenters
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_80"
