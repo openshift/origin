@@ -64,7 +64,7 @@ require (
 	golang.org/x/oauth2 v0.23.0
 	golang.org/x/sync v0.12.0
 	gonum.org/v1/plot v0.14.0
-	google.golang.org/grpc v1.66.2
+	google.golang.org/grpc v1.67.0
 	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
