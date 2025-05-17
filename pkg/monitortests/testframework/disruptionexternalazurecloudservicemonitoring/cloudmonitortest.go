@@ -50,6 +50,10 @@ func NewRecordCloudAvailabilityOnly() monitortestframework.MonitorTest {
 	}
 }
 
+func (w *cloudAvailability) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	{
 		kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)

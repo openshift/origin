@@ -39,6 +39,10 @@ func NewEnsureValidImages() monitortestframework.MonitorTest {
 	return &clusterImageValidator{}
 }
 
+func (w *clusterImageValidator) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *clusterImageValidator) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminKubeConfig = adminRESTConfig
 	return nil
