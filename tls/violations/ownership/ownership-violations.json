@@ -3,6 +3,32 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
+                    "Namespace": "kube-system",
+                    "Name": "extension-apiserver-authentication"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-apiserver",
+                    "Name": "image-import-ca"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
                     "Namespace": "openshift-config-managed",
                     "Name": "default-ingress-cert"
                 },
@@ -16,8 +42,60 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
+                    "Namespace": "openshift-config-managed",
+                    "Name": "image-registry-ca"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-config-managed",
+                    "Name": "merged-trusted-image-registry-ca"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
                     "Namespace": "openshift-console",
                     "Name": "default-ingress-cert"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-image-registry",
+                    "Name": "image-registry-certificates"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-monitoring",
+                    "Name": "metrics-client-ca"
                 },
                 "certificateAuthorityBundleInfo": {
                     "owningJiraComponent": "",
