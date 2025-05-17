@@ -191,6 +191,8 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
 		}
 		expectedTests.Delete(result.Name)
+
+		result.Source = b.info.Source
 		results = append(results, result)
 	}
 
@@ -202,6 +204,8 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 			Result: ResultFailed,
 			Output: string(testResult),
 			Error:  "external binary did not produce a result for this test",
+
+			Source: b.info.Source,
 		})
 	}
 

@@ -70,6 +70,11 @@ var LifecycleBlocking Lifecycle = "blocking"
 
 type ExtensionTestSpecs []*ExtensionTestSpec
 
+type EnvironmentSelector struct {
+	Include string `json:"include,omitempty"`
+	Exclude string `json:"exclude,omitempty"`
+}
+
 type ExtensionTestSpec struct {
 	Name string `json:"name"`
 
@@ -89,11 +94,17 @@ type ExtensionTestSpec struct {
 	// Source is the origin of the test.
 	Source string `json:"source"`
 
+	// CodeLocations are the files where the spec originates from.
+	CodeLocations []string `json:"codeLocations,omitempty"`
+
 	// Lifecycle informs the executor whether the test is informing only, and should not cause the
 	// overall job run to fail, or if it's blocking where a failure of the test is fatal.
 	// Informing lifecycle tests can be used temporarily to gather information about a test's stability.
 	// Tests must not remain informing forever.
 	Lifecycle Lifecycle `json:"lifecycle"`
+
+	// EnvironmentSelector allows for CEL expressions to be used to control test inclusion
+	EnvironmentSelector EnvironmentSelector `json:"environmentSelector,omitempty"`
 
 	// Binary invokes a link to the external binary that provided this test
 	Binary *TestBinary
@@ -129,6 +140,10 @@ type ExtensionTestResult struct {
 	Output    string    `json:"output"`
 	Error     string    `json:"error,omitempty"`
 	Details   []Details `json:"details,omitempty"`
+
+	// Source is the information from the extension binary (it's image tag, repo, commit sha, etc), reported
+	// up by origin so it's easy to identify where a particular result came from in the overall combined result JSON.
+	Source Source `json:"source"`
 }
 
 // Details are human-readable messages to further explain skips, timeouts, etc.
