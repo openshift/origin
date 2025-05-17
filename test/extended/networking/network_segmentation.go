@@ -212,15 +212,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						f.Namespace = ns
 						By("Creating second namespace for default network pods")
 						defaultNetNamespace := f.Namespace.Name + "-default"
-						_, err = cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-							ObjectMeta: metav1.ObjectMeta{
-								Name: defaultNetNamespace,
-							},
-						}, metav1.CreateOptions{})
+						_, err = f.CreateNamespace(context.TODO(), defaultNetNamespace, nil)
 						Expect(err).NotTo(HaveOccurred())
-						defer func() {
-							Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
-						}()
 
 						By("creating the network")
 						netConfigParams.namespace = f.Namespace.Name
@@ -501,21 +494,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						for _, namespace := range []string{namespaceRed, namespaceBlue} {
 							By("Creating namespace " + namespace)
-							_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-								ObjectMeta: metav1.ObjectMeta{
-									Name:   namespace,
-									Labels: l,
-								},
-							}, metav1.CreateOptions{})
+							_, err := f.CreateNamespace(context.TODO(), namespace, l)
 							Expect(err).NotTo(HaveOccurred())
-							defer func() {
-								By("Removing namespace " + namespace)
-								Expect(cs.CoreV1().Namespaces().Delete(
-									context.Background(),
-									namespace,
-									metav1.DeleteOptions{},
-								)).To(Succeed())
-							}()
+							err = udnWaitForOpenShift(oc, namespace)
+							Expect(err).NotTo(HaveOccurred())
 						}
 						networkNamespaceMap := map[string]string{namespaceRed: red, namespaceBlue: blue}
 						for namespace, network := range networkNamespaceMap {
@@ -835,7 +817,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			const clusterUserDefinedNetworkResource = "clusteruserdefinednetwork"
 
 			var testTenantNamespaces []string
-			var defaultNetNamespace *v1.Namespace
+			var defaultNetNamespace string
 
 			BeforeEach(func() {
 				namespace, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
@@ -853,27 +835,17 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 				By("Creating test tenants namespaces")
 				for _, nsName := range testTenantNamespaces {
-					_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   nsName,
-							Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
-						}}, metav1.CreateOptions{})
+					l := map[string]string{RequiredUDNNamespaceLabel: ""}
+					_, err := f.CreateNamespace(context.TODO(), nsName, l)
 					Expect(err).NotTo(HaveOccurred())
-					DeferCleanup(func() error {
-						err := cs.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{})
-						return err
-					})
+					err = udnWaitForOpenShift(oc, nsName)
+					Expect(err).NotTo(HaveOccurred())
 				}
 				// default cluster network namespace, for use when only testing secondary UDNs/NADs
-				defaultNetNamespace = &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: f.Namespace.Name + "-default",
-					},
-				}
-				f.AddNamespacesToDelete(defaultNetNamespace)
-				_, err = cs.CoreV1().Namespaces().Create(context.Background(), defaultNetNamespace, metav1.CreateOptions{})
+				defaultNetNamespace = f.Namespace.Name + "-default"
+				_, err = f.CreateNamespace(context.TODO(), defaultNetNamespace, nil)
 				Expect(err).NotTo(HaveOccurred())
-				testTenantNamespaces = append(testTenantNamespaces, defaultNetNamespace.Name)
+				testTenantNamespaces = append(testTenantNamespaces, defaultNetNamespace)
 			})
 
 			var testClusterUdnName string
@@ -938,16 +910,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					1*time.Minute, 3*time.Second).Should(Succeed())
 
 				By("create the new target namespace")
-				_, err = cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   testNewNs,
-						Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
-					}}, metav1.CreateOptions{})
+				l := map[string]string{RequiredUDNNamespaceLabel: ""}
+				_, err = f.CreateNamespace(context.TODO(), testNewNs, l)
 				Expect(err).NotTo(HaveOccurred())
-				DeferCleanup(func() error {
-					err := cs.CoreV1().Namespaces().Delete(context.Background(), testNewNs, metav1.DeleteOptions{})
-					return err
-				})
+				err = udnWaitForOpenShift(oc, testNewNs)
+				Expect(err).NotTo(HaveOccurred())
 
 				expectedActiveNamespaces := append(testTenantNamespaces, testNewNs)
 				Eventually(
@@ -967,16 +934,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					testNewNs := f.Namespace.Name + "green"
 
 					By("create new namespace")
-					_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:   testNewNs,
-							Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
-						}}, metav1.CreateOptions{})
+					l := map[string]string{RequiredUDNNamespaceLabel: ""}
+					_, err := f.CreateNamespace(context.TODO(), testNewNs, l)
 					Expect(err).NotTo(HaveOccurred())
-					DeferCleanup(func() error {
-						err := cs.CoreV1().Namespaces().Delete(context.Background(), testNewNs, metav1.DeleteOptions{})
-						return err
-					})
+					err = udnWaitForOpenShift(oc, testNewNs)
+					Expect(err).NotTo(HaveOccurred())
 
 					By("add new namespace to CR namespace-selector")
 					patch := fmt.Sprintf(`[{"op": "add", "path": "./spec/namespaceSelector/matchExpressions/0/values/-", "value": "%s"}]`, testNewNs)
@@ -1031,7 +993,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				)
 
 				BeforeEach(func() {
-					inUseNetTestTenantNamespace = defaultNetNamespace.Name
+					inUseNetTestTenantNamespace = defaultNetNamespace
 
 					By("create pod in one of the test tenant namespaces")
 					networkAttachments := []nadapi.NetworkSelectionElement{
@@ -1101,16 +1063,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			}
 			By("Creating test tenants namespaces")
 			for _, nsName := range testTenantNamespaces {
-				_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   nsName,
-						Labels: map[string]string{RequiredUDNNamespaceLabel: ""},
-					}}, metav1.CreateOptions{})
+				l := map[string]string{RequiredUDNNamespaceLabel: ""}
+				_, err = f.CreateNamespace(context.TODO(), nsName, l)
 				Expect(err).NotTo(HaveOccurred())
-				DeferCleanup(func() error {
-					err := cs.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{})
-					return err
-				})
+				err = udnWaitForOpenShift(oc, nsName)
+				Expect(err).NotTo(HaveOccurred())
 			}
 
 			By("create primary network NAD in one of the tenant namespaces")
@@ -1193,15 +1150,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			It("should react to k8s.ovn.org/open-default-ports annotations changes", func() {
 				By("Creating second namespace for default network pod")
 				defaultNetNamespace := f.Namespace.Name + "-default"
-				_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: defaultNetNamespace,
-					},
-				}, metav1.CreateOptions{})
+				_, err := f.CreateNamespace(context.TODO(), defaultNetNamespace, nil)
 				Expect(err).NotTo(HaveOccurred())
-				defer func() {
-					Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
-				}()
 
 				By("creating default network client pod")
 				defaultClientPod := frameworkpod.CreateExecPodOrFail(
