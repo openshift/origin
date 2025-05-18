@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -400,6 +399,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
+	networkSegmentationTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "NetworkSegmentation")
+	})
+
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
@@ -407,6 +410,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kube tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
+	logrus.Infof("Found %d network segmentation tests", len(networkSegmentationTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
@@ -415,12 +419,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
+		originalNetworkSegmentation := networkSegmentationTests
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
+			networkSegmentationTests = append(networkSegmentationTests, copyTests(originalNetworkSegmentation)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
@@ -453,6 +459,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		storageTestsCopy := copyTests(storageTests)
 		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
+
+		networkSegmentationCopy := copyTests(networkSegmentationTests)
+		q.Execute(testCtx, networkSegmentationCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, networkSegmentationCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
 		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
@@ -500,71 +510,71 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	pass, fail, skip, failing := summarizeTests(tests)
 
 	// attempt to retry failures to do flake detection
-	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
-		var retries []*testCase
-
-		// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
-		// a list of tests to retry.
-		for _, test := range failing {
-			retry := test.Retry()
-			retries = append(retries, retry)
-			if len(retries) > suite.MaximumAllowedFlakes {
-				break
-			}
-		}
-
-		logrus.Warningf("Retry count: %d", len(retries))
-
-		// Run the tests in the retries list.
-		q := newParallelTestQueue(testRunnerContext)
-		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
-
-		var flaky, skipped []string
-		var repeatFailures []*testCase
-		for _, test := range retries {
-			if test.success {
-				flaky = append(flaky, test.name)
-			} else if test.skipped {
-				skipped = append(skipped, test.name)
-			} else {
-				repeatFailures = append(repeatFailures, test)
-			}
-		}
-
-		// Add the list of retries into the list of all tests.
-		for _, retry := range retries {
-			if retry.flake {
-				// Retry tests that flaked are omitted so that the original test is counted as a failure.
-				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
-				continue
-			}
-			tests = append(tests, retry)
-		}
-		if len(flaky) > 0 {
-			failing = repeatFailures
-			sort.Strings(flaky)
-			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
-		}
-		if len(skipped) > 0 {
-			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
-			// we need to remove the failure case.
-			var withoutPreconditionFailures []*testCase
-		testLoop:
-			for _, t := range tests {
-				for _, st := range skipped {
-					if t.name == st && t.failed {
-						continue testLoop
-					}
-					withoutPreconditionFailures = append(withoutPreconditionFailures, t)
-				}
-			}
-			tests = withoutPreconditionFailures
-			failing = repeatFailures
-			sort.Strings(skipped)
-			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
-
-		}
-	}
+	//if fail > 0 && fail <= suite.MaximumAllowedFlakes {
+	//	var retries []*testCase
+	//
+	//	// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
+	//	// a list of tests to retry.
+	//	for _, test := range failing {
+	//		retry := test.Retry()
+	//		retries = append(retries, retry)
+	//		if len(retries) > suite.MaximumAllowedFlakes {
+	//			break
+	//		}
+	//	}
+	//
+	//	logrus.Warningf("Retry count: %d", len(retries))
+	//
+	//	// Run the tests in the retries list.
+	//	q := newParallelTestQueue(testRunnerContext)
+	//	q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
+	//
+	//	var flaky, skipped []string
+	//	var repeatFailures []*testCase
+	//	for _, test := range retries {
+	//		if test.success {
+	//			flaky = append(flaky, test.name)
+	//		} else if test.skipped {
+	//			skipped = append(skipped, test.name)
+	//		} else {
+	//			repeatFailures = append(repeatFailures, test)
+	//		}
+	//	}
+	//
+	//	// Add the list of retries into the list of all tests.
+	//	for _, retry := range retries {
+	//		if retry.flake {
+	//			// Retry tests that flaked are omitted so that the original test is counted as a failure.
+	//			fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+	//			continue
+	//		}
+	//		tests = append(tests, retry)
+	//	}
+	//	if len(flaky) > 0 {
+	//		failing = repeatFailures
+	//		sort.Strings(flaky)
+	//		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
+	//	}
+	//	if len(skipped) > 0 {
+	//		// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
+	//		// we need to remove the failure case.
+	//		var withoutPreconditionFailures []*testCase
+	//	testLoop:
+	//		for _, t := range tests {
+	//			for _, st := range skipped {
+	//				if t.name == st && t.failed {
+	//					continue testLoop
+	//				}
+	//				withoutPreconditionFailures = append(withoutPreconditionFailures, t)
+	//			}
+	//		}
+	//		tests = withoutPreconditionFailures
+	//		failing = repeatFailures
+	//		sort.Strings(skipped)
+	//		fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
+	//
+	//	}
+	//}
 
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
