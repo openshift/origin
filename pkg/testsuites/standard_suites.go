@@ -462,4 +462,18 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 120 * time.Minute,
 	},
+	{
+		Name: "openshift/dra-gpu-validation",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate gpu workload with dra structured parameters and nvidia dra driver.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/dra-gpu-validation]")
+		},
+		Parallelism: 1,
+		TestTimeout: 60 * time.Minute,
+	},
 }
