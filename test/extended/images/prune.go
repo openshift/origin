@@ -10,7 +10,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	"github.com/distribution/distribution/v3/manifest/schema1"
+	"github.com/distribution/distribution/manifest/schema1"
 	"github.com/distribution/distribution/v3/manifest/schema2"
 	godigest "github.com/opencontainers/go-digest"
 
