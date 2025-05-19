@@ -357,7 +357,3 @@ replace (
 	k8s.io/sample-cli-plugin => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250519165152-4250c8819f43
 	k8s.io/sample-controller => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250519165152-4250c8819f43
 )
-
-// The cadvisor version used in k8s v1.32.1 (v0.51.0) relies on code present on this version
-// This can be removed once it's no longer used in o/k
-replace github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
