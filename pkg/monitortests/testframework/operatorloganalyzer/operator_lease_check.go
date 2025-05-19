@@ -21,6 +21,10 @@ func OperatorLeaseCheck() monitortestframework.MonitorTest {
 	return &operatorLeaseCheck{}
 }
 
+func (w *operatorLeaseCheck) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *operatorLeaseCheck) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

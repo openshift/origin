@@ -27,6 +27,10 @@ func NewGracefulShutdownAnalyzer() monitortestframework.MonitorTest {
 	return &apiserverGracefulShutdownAnalyzer{}
 }
 
+func (w *apiserverGracefulShutdownAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *apiserverGracefulShutdownAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

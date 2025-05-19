@@ -30,6 +30,13 @@ import (
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
+var (
+	requiredCapabilities = []configv1.ClusterVersionCapability{
+		configv1.ClusterVersionCapabilityMarketplace,
+		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
+	}
+)
+
 const (
 	// Max time duration for the DNS resolution
 	dnsResolutionTimeout = 10 * time.Minute
@@ -71,6 +78,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		// skip non clould platforms since gateway needs LB service
 		skipGatewayIfNonCloudPlatform(oc)
+
+		// GatewayAPIController relies on OSSM OLM operator.
+		// Skipping on clusters which don't have capabilities required
+		// to install an OLM operator.
+		exutil.SkipIfMissingCapabilities(oc, requiredCapabilities...)
 
 		// create the default gatewayClass
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)

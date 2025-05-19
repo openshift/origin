@@ -42,6 +42,10 @@ func NewRecordAvailabilityOnly() monitortestframework.MonitorTest {
 	}
 }
 
+func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 

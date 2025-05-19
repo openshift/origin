@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/informers"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"regexp"
 	"sort"
 	"strings"
@@ -12,18 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	coreinformers "k8s.io/client-go/informers/core/v1"
-
-	"k8s.io/client-go/informers"
-
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/podaccess"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -42,7 +39,7 @@ func NewEtcdLogAnalyzer() monitortestframework.MonitorTest {
 	}
 }
 
-func (w *etcdLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (w *etcdLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	logToIntervalConverter := newEtcdRecorder(recorder)
 	w.adminRESTConfig = adminRESTConfig
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
@@ -70,6 +67,10 @@ func (w *etcdLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *
 	go kubeInformers.Start(ctx.Done())
 	go podStreamer.Run(ctx, w.finishedCollecting)
 
+	return nil
+}
+
+func (w *etcdLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
 

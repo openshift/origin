@@ -89,6 +89,10 @@ func createOauthApiChecker(adminRESTConfig *rest.Config, url string, cache bool)
 	return createApiServerChecker(adminRESTConfig, disruptionBackendName, "oauth-apiserver", url)
 }
 
+func (i *InvariantExternalDisruption) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (i *InvariantExternalDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 

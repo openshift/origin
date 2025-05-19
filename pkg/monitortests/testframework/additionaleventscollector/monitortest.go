@@ -23,6 +23,10 @@ func NewIntervalSerializer() monitortestframework.MonitorTest {
 	return &additionalEventsCollector{}
 }
 
+func (w *additionalEventsCollector) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *additionalEventsCollector) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }

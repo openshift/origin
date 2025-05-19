@@ -27,6 +27,10 @@ func NewLegacyTests(info monitortestframework.MonitorTestInitializationInfo) mon
 	return &legacyMonitorTests{clusterStabilityDuringTest: &info.ClusterStabilityDuringTest}
 }
 
+func (w *legacyMonitorTests) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
 	return nil
