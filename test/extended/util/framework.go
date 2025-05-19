@@ -325,7 +325,14 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 		return err
 	}
 
-	if !hasSamplesOperator {
+	// Check to see if SamplesOperator managementState is Removed
+	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "cluster", "-o", "yaml").Output()
+
+	if err != nil {
+		e2e.Logf("\n  error on getting samples operator CR: %+v\n%#v\n", err, out)
+	}
+
+	if !hasSamplesOperator || strings.Contains(out, "managementState: Removed") {
 		images = []string{"cli", "tools", "tests", "installer"}
 	}
 
