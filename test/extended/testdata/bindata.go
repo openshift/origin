@@ -53517,7 +53517,7 @@ spec:
   source:
     catalog:
       packageName: "openshift-pipelines-operator-rh"
-      version: "1.18.0"
+      version: "1.17.1"
       selector: {}
       upgradeConstraintPolicy: CatalogProvided
     sourceType: Catalog
