@@ -359,6 +359,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:PodSecurity][Feature:SCC] SCC admission fails for incorrect/non-existent required-scc annotation": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:PodSecurity][Feature:SCC] SCC hostmount-anyuid-v2 allows use of spc_t SELinux label": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:PodSecurity][Feature:SCC] SCC validated-scc-subject-type annotation reflects the correct subject type": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:PodSecurity][Feature:SCC] creating pod controllers": " [Suite:openshift/conformance/parallel]",

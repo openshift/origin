@@ -12,12 +12,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	psapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
@@ -227,32 +230,7 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		// Use the existing ClusterRole that grants access to the anyuid SCC
 		anyuidClusterRole := "system:openshift:scc:anyuid"
 
-		// Create a role binding for the regular user
-		g.By("Creating a role binding for the regular user")
-		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(
-			ctx,
-			&rbacv1.RoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "user-anyuid-",
-					Namespace:    oc.Namespace(),
-				},
-				RoleRef: rbacv1.RoleRef{
-					APIGroup: "rbac.authorization.k8s.io",
-					Kind:     "ClusterRole",
-					Name:     anyuidClusterRole,
-				},
-				Subjects: []rbacv1.Subject{
-					{
-						Kind:     "User",
-						Name:     oc.Username(),
-						APIGroup: "rbac.authorization.k8s.io",
-					},
-				},
-			},
-			metav1.CreateOptions{},
-		)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
+		bindUserRoleToSCC(ctx, oc, anyuidClusterRole)
 		// Create a role binding for the service account
 		g.By("Creating a role binding for the service account")
 		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(
@@ -330,4 +308,75 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		o.Expect(saCreatedPod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("anyuid"), "Pod should be validated against anyuid SCC")
 		o.Expect(saCreatedPod.Annotations[securityv1.ValidatedSCCSubjectTypeAnnotation]).To(o.Equal("serviceaccount"), "Subject type annotation should be set to 'serviceaccount'")
 	})
+	g.It("SCC hostmount-anyuid-v2 allows use of spc_t SELinux label", func() {
+		ctx := context.Background()
+
+		// Use the existing ClusterRole that grants access to the anyuid SCC
+		hostmountAnyuidV2ClusterRole := "system:openshift:scc:hostmount-anyuid-v2"
+
+		bindUserRoleToSCC(ctx, oc, hostmountAnyuidV2ClusterRole)
+
+		// Create a pod with the regular user - should match anyuid SCC
+		g.By("Creating a pod as a regular user")
+		userPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "user-pod-",
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:    "test-container",
+						Image:   image.ShellImage(),
+						Command: []string{"sleep"},
+						Args:    []string{"5m"},
+						SecurityContext: &corev1.SecurityContext{
+							SELinuxOptions: &corev1.SELinuxOptions{
+								Type: "spc_t",
+							},
+						},
+					},
+				},
+			},
+		}
+		userCreatedPod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, userPod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Waiting for pod to be come ready")
+		o.Expect(e2epod.WaitTimeoutForPodReadyInNamespace(ctx, oc.KubeClient(), userCreatedPod.Name, userCreatedPod.Namespace, framework.PodStartTimeout)).NotTo(o.HaveOccurred())
+
+		output, err := exutil.ExecInPodWithResult(oc.KubeClient().CoreV1(), oc.AdminConfig(), userCreatedPod.Namespace, userCreatedPod.Name, "test-container", []string{"/bin/ps", "-eZf"})
+		g.By(output)
+		o.Expect(output).To(o.ContainSubstring("spc_t"))
+
+		g.By("Verifying annotations on user-created pod")
+		o.Expect(userCreatedPod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("hostmount-anyuid-v2"), "Pod should be validated against anyuid SCC")
+	})
 })
+
+func bindUserRoleToSCC(ctx context.Context, oc *exutil.CLI, scc string) {
+	// Create a role binding for the regular user
+	g.By("Creating a role binding for the regular user")
+	_, err := oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(
+		ctx,
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "user-anyuid-",
+				Namespace:    oc.Namespace(),
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     scc,
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind:     "User",
+					Name:     oc.Username(),
+					APIGroup: "rbac.authorization.k8s.io",
+				},
+			},
+		},
+		metav1.CreateOptions{},
+	)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
