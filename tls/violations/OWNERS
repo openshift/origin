@@ -7,3 +7,4 @@ filters:
   ".*":
     approvers:
       - deads2k
+      - sjenning
