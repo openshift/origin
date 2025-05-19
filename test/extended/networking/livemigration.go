@@ -402,7 +402,17 @@ func addressFromStatus(cli *kubevirt.Client, vmName string) ([]string, error) {
 	if err := json.Unmarshal([]byte(addressesStr), &addresses); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal addresses %q: %w", addressesStr, err)
 	}
-	return addresses, nil
+
+	// Filter out IPv6 link-local addresses using net.IP.IsLinkLocalUnicast
+	var filteredAddresses []string
+	for _, addr := range addresses {
+		ip := net.ParseIP(addr)
+		if ip != nil && !ip.IsLinkLocalUnicast() {
+			filteredAddresses = append(filteredAddresses, addr)
+		}
+	}
+
+	return filteredAddresses, nil
 }
 
 func obtainAddresses(virtClient *kubevirt.Client, vmName string) ([]string, error) {
