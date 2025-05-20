@@ -1,6 +1,12 @@
 package ginkgo
 
-import "testing"
+import (
+	_ "embed"
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"strings"
+	"testing"
+)
 
 func Test_lastLines(t *testing.T) {
 	tests := []struct {
@@ -32,4 +38,39 @@ func Test_lastLines(t *testing.T) {
 			}
 		})
 	}
+}
+
+//go:embed 4.18-tests.txt
+var fourEighteenTestNamesTest string
+
+func Test_TestNames(t *testing.T) {
+
+	testsArray := strings.Split(fourEighteenTestNamesTest, "\n")
+	set := make(map[string]bool)
+
+	for _, val := range testsArray {
+		if val == "" {
+			continue
+		}
+		if val[0] == '"' {
+			val = val[1:]
+		}
+
+		if val[len(val)-1] == '"' {
+			val = val[:len(val)-1]
+		}
+
+		set[val] = true
+
+		fmt.Printf("Adding test: `%s`\n", val)
+	}
+	testString := "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \\\"lb-ext.kubeconfig\\\" should be present on all masters and work [Suite:openshift/conformance/parallel/minimal]"
+	present, ok := set[testString]
+	assert.True(t, ok)
+	assert.True(t, present)
+
+	testString = "not found"
+	present = set[testString]
+	assert.False(t, present)
+
 }
