@@ -239,10 +239,18 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 	testName := fmt.Sprintf("[Jira:\"Networking / On-Prem Load Balancer\"] on-prem loadbalancer must achieve full priority")
 
 	neededPriority := "65"
+	ingressPriority := "80"
 	achievedPriority := false
+	ingressAchievedPriority := false
+	// Note that we're relying on the fact that the require priorities are different from
+	// API to ingress. If that ever changes for some reason we'll need to be more specific
+	// about which log messages we look at for each.
 	for _, interval := range priorityIntervals {
 		if interval.Message.Annotations[monitorapi.AnnotationPriority] == neededPriority {
 			achievedPriority = true
+		}
+		if interval.Message.Annotations[monitorapi.AnnotationPriority] == ingressPriority {
+			ingressAchievedPriority = true
 		}
 	}
 
@@ -262,8 +270,23 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			&junitapi.JUnitTestCase{
 				Name: testName,
 				FailureOutput: &junitapi.FailureOutput{
-					Message: fmt.Sprintf("no master achieved priority %s", neededPriority),
-					Output:  fmt.Sprintf("no master achieved priority %s", neededPriority),
+					Message: fmt.Sprintf("no API achieved priority %s", neededPriority),
+					Output:  fmt.Sprintf("no API achieved priority %s", neededPriority),
+				},
+			},
+		)
+	}
+	if ingressAchievedPriority {
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: testName,
+		})
+	} else {
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: fmt.Sprintf("no ingress achieved priority %s", ingressPriority),
+					Output:  fmt.Sprintf("no ingress achieved priority %s", ingressPriority),
 				},
 			},
 		)
