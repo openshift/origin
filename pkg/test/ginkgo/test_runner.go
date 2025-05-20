@@ -54,7 +54,7 @@ func (r *testSuiteRunnerImpl) RunOneTest(ctx context.Context, test *testCase) {
 	defer recordTestResultInMonitor(testRunResult, r.testOutput.monitorRecorder)
 
 	// log the results to systemout
-	r.testSuiteProgress.LogTestStart(r.testOutput.out, test.name)
+	r.testSuiteProgress.LogTestStart(r.testOutput.out, time.Now().Format(time.RFC3339)+"_"+test.name)
 	defer r.testSuiteProgress.TestEnded(test.name, testRunResult)
 	defer recordTestResultInLogWithoutOverlap(testRunResult, r.testOutput.testOutputLock, r.testOutput.out, r.testOutput.includeSuccessfulOutput)
 
