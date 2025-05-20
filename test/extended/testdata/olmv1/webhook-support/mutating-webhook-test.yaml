@@ -1,0 +1,7 @@
+apiVersion: webhook.operators.coreos.io/v1
+kind: webhooktest
+metadata:
+  namespace: webhook-operator
+  name: mutating-webhook-test
+spec:
+  valid: true
