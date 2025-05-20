@@ -951,6 +951,19 @@ spec:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
         OLMv1 operator preflight checks should report error when {services} are not
         specified'
+  - featureGate: NewOLMWebhookProviderOpenshiftServiceCA
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected][Serial]
+        OLMv1 operator with webhooks should be tolerant to openshift-service-ca certificate
+        rotation'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected][Serial]
+        OLMv1 operator with webhooks should be tolerant to tls secret deletion'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected][Serial]
+        OLMv1 operator with webhooks should have a working conversion webhook'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected][Serial]
+        OLMv1 operator with webhooks should have a working mutating webhook'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected][Serial]
+        OLMv1 operator with webhooks should have a working validating webhook'
   - featureGate: OrderedNamespaceDeletion
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should

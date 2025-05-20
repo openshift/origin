@@ -477,6 +477,9 @@
 // test/extended/testdata/olmv1/install-pipeline-operator-base.yaml
 // test/extended/testdata/olmv1/install-quay-operator-ownns.yaml
 // test/extended/testdata/olmv1/install-quay-operator-singlens.yaml
+// test/extended/testdata/olmv1/operator.yaml
+// test/extended/testdata/olmv1/webhook-support/webhook-operator-catalog.yaml
+// test/extended/testdata/olmv1/webhook-support/webhook-operator.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
@@ -53732,6 +53735,142 @@ func testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml() (*asset, error) 
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1OperatorYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-quay-operator
+  namespace: testit
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-quay-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-quay-operator
+  namespace: testit
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-quay-operator
+spec:
+  namespace: testit
+  serviceAccount:
+    name: install-test-sa-quay-operator
+  source:
+    catalog:
+      packageName: quay-operator
+      version: 3.13.0
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1OperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1OperatorYaml, nil
+}
+
+func testExtendedTestdataOlmv1OperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1OperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml = []byte(`apiVersion: olm.operatorframework.io/v1
+kind: ClusterCatalog
+metadata:
+  name: webhook-operator-catalog
+spec:
+  source:
+    type: Image
+    image:
+      ref: quay.io/operator-framework/webhook-operator-index:0.0.3
+`)
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/webhook-operator-catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml = []byte(`---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webhook-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-operator-installer
+  namespace: webhook-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: webhook-operator-installer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: webhook-operator-installer
+    namespace: webhook-operator
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: webhook-operator
+spec:
+  namespace: webhook-operator
+  serviceAccount:
+    name: webhook-operator-installer
+  source:
+    catalog:
+      packageName: webhook-operator
+      version: 0.0.1
+      selector:
+        matchLabels:
+          olm.operatorframework.io/metadata.name: webhook-operator-catalog
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/webhook-operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml = []byte(`---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -59409,6 +59548,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/olmv1/install-pipeline-operator-base.yaml":                                       testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml,
 	"test/extended/testdata/olmv1/install-quay-operator-ownns.yaml":                                          testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml,
 	"test/extended/testdata/olmv1/install-quay-operator-singlens.yaml":                                       testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml,
+	"test/extended/testdata/olmv1/operator.yaml":                                                             testExtendedTestdataOlmv1OperatorYaml,
+	"test/extended/testdata/olmv1/webhook-support/webhook-operator-catalog.yaml":                             testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml,
+	"test/extended/testdata/olmv1/webhook-support/webhook-operator.yaml":                                     testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
@@ -60223,6 +60365,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"install-pipeline-operator-base.yaml":             {testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml, map[string]*bintree{}},
 					"install-quay-operator-ownns.yaml":                {testExtendedTestdataOlmv1InstallQuayOperatorOwnnsYaml, map[string]*bintree{}},
 					"install-quay-operator-singlens.yaml":             {testExtendedTestdataOlmv1InstallQuayOperatorSinglensYaml, map[string]*bintree{}},
+					"operator.yaml":                                   {testExtendedTestdataOlmv1OperatorYaml, map[string]*bintree{}},
+					"webhook-support": {nil, map[string]*bintree{
+						"webhook-operator-catalog.yaml": {testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml, map[string]*bintree{}},
+						"webhook-operator.yaml":         {testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml, map[string]*bintree{}},
+					}},
 				}},
 				"poddisruptionbudgets": {nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
