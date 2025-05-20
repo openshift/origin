@@ -96,6 +96,7 @@ type CLI struct {
 	globalArgs           []string
 	commandArgs          []string
 	finalArgs            []string
+	environmentVariables []string
 	namespacesToDelete   []string
 	stdin                *bytes.Buffer
 	stdout               io.Writer
@@ -908,6 +909,15 @@ func (c *CLI) Args(args ...string) *CLI {
 	return c
 }
 
+// EnvironmentVariables sets environment variables for the OpenShift CLI command.
+//
+// With the same semantics as exec.Cmd's Env property.
+// https://pkg.go.dev/os/exec#Cmd
+func (c *CLI) EnvironmentVariables(env ...string) *CLI {
+	c.environmentVariables = env
+	return c
+}
+
 func (c *CLI) printCmd() string {
 	return strings.Join(c.finalArgs, " ")
 }
@@ -947,6 +957,7 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
+	cmd.Env = c.environmentVariables
 	cmd.Stdin = c.stdin
 	// Redact any bearer token information from the log.
 	framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
