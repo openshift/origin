@@ -67,21 +67,21 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.33.0
-	k8s.io/apiextensions-apiserver v0.33.0
-	k8s.io/apimachinery v0.33.0
-	k8s.io/apiserver v0.33.0
+	k8s.io/api v0.33.1
+	k8s.io/apiextensions-apiserver v0.33.1
+	k8s.io/apimachinery v0.33.1
+	k8s.io/apiserver v0.33.1
 	k8s.io/cli-runtime v0.32.4
-	k8s.io/client-go v0.33.0
-	k8s.io/component-base v0.33.0
+	k8s.io/client-go v0.33.1
+	k8s.io/component-base v0.33.1
 	k8s.io/component-helpers v0.32.4
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kube-aggregator v0.33.0
+	k8s.io/kube-aggregator v0.33.1
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
 	k8s.io/kubectl v0.32.4
-	k8s.io/kubernetes v1.33.0
+	k8s.io/kubernetes v1.33.1
 	k8s.io/pod-security-admission v0.32.4
-	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e
+	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979
 	sigs.k8s.io/cloud-provider-azure v1.30.4
 	sigs.k8s.io/gateway-api v1.2.1
 	sigs.k8s.io/kustomize/kyaml v0.19.0
@@ -303,7 +303,7 @@ require (
 	k8s.io/dynamic-resource-allocation v0.0.0 // indirect
 	k8s.io/endpointslice v0.0.0 // indirect
 	k8s.io/externaljwt v0.0.0 // indirect
-	k8s.io/kms v0.33.0 // indirect
+	k8s.io/kms v0.33.1 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
 	k8s.io/kubelet v0.31.1 // indirect
 	k8s.io/mount-utils v0.0.0 // indirect
@@ -320,10 +320,11 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
-	github.com/openshift/api => github.com/bertinatto/api v0.0.0-20250424162333-ea9aa552fb1f
-	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20250424170922-f0ed2ebdfa0e
-	github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20250424165256-8e483f88d906
-	github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20250424170039-404d4458c1e7
+
+	github.com/openshift/api => github.com/bertinatto/api v0.0.0-20250520115859-b898b0e2c869
+	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20250520123314-ff5ccc5ea18f
+	github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20250520121926-f59a9e37a6ce
+	github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20250520122705-5f54187435ed
 
 	k8s.io/api => github.com/bertinatto/kubernetes/staging/src/k8s.io/api v0.0.0-20250519165152-4250c8819f43
 	k8s.io/apiextensions-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250519165152-4250c8819f43

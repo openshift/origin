@@ -314,7 +314,6 @@ infrastructures.config.openshift.io:
   Category: ""
   FeatureGates:
   - AWSClusterHostedDNS
-  - BareMetalLoadBalancer
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNS
@@ -325,7 +324,6 @@ infrastructures.config.openshift.io:
   - NutanixMultiSubnets
   - VSphereHostVMGroupZonal
   - VSphereMultiNetworks
-  - VSphereMultiVCenters
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"

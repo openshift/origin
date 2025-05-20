@@ -825,7 +825,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/api v0.0.0-20250513132935-9052dea86694 => github.com/bertinatto/api v0.0.0-20250424162333-ea9aa552fb1f
+# github.com/openshift/api v0.0.0-20250513132935-9052dea86694 => github.com/bertinatto/api v0.0.0-20250520115859-b898b0e2c869
 ## explicit; go 1.24.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -902,7 +902,7 @@ github.com/openshift/api/template/v1
 github.com/openshift/api/unidling/v1alpha1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20250424170922-f0ed2ebdfa0e => github.com/bertinatto/apiserver-library-go v0.0.0-20250424170922-f0ed2ebdfa0e
+# github.com/openshift/apiserver-library-go v0.0.0-20250424170922-f0ed2ebdfa0e => github.com/bertinatto/apiserver-library-go v0.0.0-20250520123314-ff5ccc5ea18f
 ## explicit; go 1.24.0
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -933,7 +933,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20250513150353-9ea84fa6431b => github.com/bertinatto/client-go v0.0.0-20250424165256-8e483f88d906
+# github.com/openshift/client-go v0.0.0-20250513150353-9ea84fa6431b => github.com/bertinatto/client-go v0.0.0-20250520121926-f59a9e37a6ce
 ## explicit; go 1.24.0
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -1075,7 +1075,7 @@ github.com/openshift/client-go/user/listers/user/v1
 # github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
 ## explicit; go 1.22.0
 github.com/openshift/cluster-network-operator/pkg/names
-# github.com/openshift/library-go v0.0.0-20250424170039-404d4458c1e7 => github.com/bertinatto/library-go v0.0.0-20250424170039-404d4458c1e7
+# github.com/openshift/library-go v0.0.0-20250424170039-404d4458c1e7 => github.com/bertinatto/library-go v0.0.0-20250520122705-5f54187435ed
 ## explicit; go 1.24.0
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
@@ -1819,7 +1819,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/api v0.0.0-20250519165152-4250c8819f43
+# k8s.io/api v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/api v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1881,7 +1881,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1alpha1
-# k8s.io/apiextensions-apiserver v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250519165152-4250c8819f43
+# k8s.io/apiextensions-apiserver v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/apiextensions-apiserver/pkg/apihelpers
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
@@ -1931,7 +1931,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250519165152-4250c8819f43
+# k8s.io/apimachinery v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -2010,7 +2010,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20250519165152-4250c8819f43
+# k8s.io/apiserver v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/configuration
@@ -2203,7 +2203,7 @@ k8s.io/cli-runtime/pkg/genericclioptions
 k8s.io/cli-runtime/pkg/genericiooptions
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/client-go v0.0.0-20250519165152-4250c8819f43
+# k8s.io/client-go v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/client-go v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/client-go/applyconfigurations
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
@@ -2597,7 +2597,7 @@ k8s.io/cluster-bootstrap/token/api
 k8s.io/cluster-bootstrap/token/util
 k8s.io/cluster-bootstrap/util/secrets
 k8s.io/cluster-bootstrap/util/tokens
-# k8s.io/component-base v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/component-base v0.0.0-20250519165152-4250c8819f43
+# k8s.io/component-base v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/component-base v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/component-base/cli/flag
 k8s.io/component-base/cli/globalflag
@@ -2706,13 +2706,13 @@ k8s.io/klog/v2/internal/sloghandler
 k8s.io/klog/v2/internal/verbosity
 k8s.io/klog/v2/ktesting
 k8s.io/klog/v2/textlogger
-# k8s.io/kms v0.33.0
+# k8s.io/kms v0.33.1
 ## explicit; go 1.24.0
 k8s.io/kms/apis/v1beta1
 k8s.io/kms/apis/v2
 k8s.io/kms/pkg/service
 k8s.io/kms/pkg/util
-# k8s.io/kube-aggregator v0.33.0 => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20250519165152-4250c8819f43
+# k8s.io/kube-aggregator v0.33.1 => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/install
@@ -2828,7 +2828,7 @@ k8s.io/kubelet/pkg/cri/streaming
 k8s.io/kubelet/pkg/cri/streaming/portforward
 k8s.io/kubelet/pkg/cri/streaming/remotecommand
 k8s.io/kubelet/pkg/types
-# k8s.io/kubernetes v1.33.0 => github.com/bertinatto/kubernetes v1.11.0-alpha.0.0.20250519165152-4250c8819f43
+# k8s.io/kubernetes v1.33.1 => github.com/bertinatto/kubernetes v1.11.0-alpha.0.0.20250519165152-4250c8819f43
 ## explicit; go 1.24.0
 k8s.io/kubernetes/cmd/kube-apiserver/app
 k8s.io/kubernetes/cmd/kube-apiserver/app/options
@@ -3685,7 +3685,7 @@ k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1
 k8s.io/sample-apiserver/pkg/generated/applyconfiguration/wardle/v1alpha1
 k8s.io/sample-apiserver/pkg/generated/clientset/versioned/scheme
 k8s.io/sample-apiserver/pkg/generated/clientset/versioned/typed/wardle/v1alpha1
-# k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e
+# k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979
 ## explicit; go 1.18
 k8s.io/utils/buffer
 k8s.io/utils/clock
@@ -3941,10 +3941,10 @@ sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 sigs.k8s.io/yaml/goyaml.v3
 # github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
-# github.com/openshift/api => github.com/bertinatto/api v0.0.0-20250424162333-ea9aa552fb1f
-# github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20250424170922-f0ed2ebdfa0e
-# github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20250424165256-8e483f88d906
-# github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20250424170039-404d4458c1e7
+# github.com/openshift/api => github.com/bertinatto/api v0.0.0-20250520115859-b898b0e2c869
+# github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20250520123314-ff5ccc5ea18f
+# github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20250520121926-f59a9e37a6ce
+# github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20250520122705-5f54187435ed
 # k8s.io/api => github.com/bertinatto/kubernetes/staging/src/k8s.io/api v0.0.0-20250519165152-4250c8819f43
 # k8s.io/apiextensions-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250519165152-4250c8819f43
 # k8s.io/apimachinery => github.com/bertinatto/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250519165152-4250c8819f43
