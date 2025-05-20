@@ -33,11 +33,13 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 		MCOKubeletConfigBaseDir     = exutil.FixturePath("testdata", "machine_config", "kubeletconfig")
 
 		pinnedImageSetFixture              = filepath.Join(MCOPinnedImageBaseDir, "pis.yaml")
+		masterPinnedImageSetFixture        = filepath.Join(MCOPinnedImageBaseDir, "masterPis.yaml")
 		customMCPFixture                   = filepath.Join(MCOMachineConfigPoolBaseDir, "customMCP.yaml")
 		customMCPpinnedImageSetFixture     = filepath.Join(MCOPinnedImageBaseDir, "customMCPpis.yaml")
 		customGCMCPpinnedImageSetFixture   = filepath.Join(MCOPinnedImageBaseDir, "customGCMCPpis.yaml")
 		customGcKCFixture                  = filepath.Join(MCOKubeletConfigBaseDir, "gcKC.yaml")
 		invalidPinnedImageSetFixture       = filepath.Join(MCOPinnedImageBaseDir, "invalidPis.yaml")
+		masterInvalidPinnedImageSetFixture = filepath.Join(MCOPinnedImageBaseDir, "masterInvalidPis.yaml")
 		customInvalidPinnedImageSetFixture = filepath.Join(MCOPinnedImageBaseDir, "customInvalidPis.yaml")
 
 		oc = exutil.NewCLIWithoutNamespace("machine-config")
@@ -109,21 +111,31 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:Machin
 	})
 
 	g.It("All Nodes in a standard Pool should have the PinnedImages PIS [apigroup:machineconfiguration.openshift.io]", func() {
-		// TODO (ijanssen/rsaini): re-enable this test on SNO after fixing OCPBUGS-55384
-		// (temporarily) skip these tests on SNO
-		skipOnSingleNodeTopology(oc)
-
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
-		SimplePISTest(oc, kubeClient, pinnedImageSetFixture, true)
+		// Since the node in a SNO cluster is a part of the master MCP, the PIS for this test on a
+		// single node topology should target `master`.
+		pisFixture := pinnedImageSetFixture
+		if IsSingleNode(oc) {
+			pisFixture = masterPinnedImageSetFixture
+		}
+
+		SimplePISTest(oc, kubeClient, pisFixture, true)
 	})
 
 	g.It("Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]", func() {
 		kubeClient, err := kubernetes.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get KubeClient")
 
-		SimplePISTest(oc, kubeClient, invalidPinnedImageSetFixture, false)
+		// Since the node in a SNO cluster is a part of the master MCP, the PIS for this test on a
+		// single node topology should target `master`.
+		pisFixture := invalidPinnedImageSetFixture
+		if IsSingleNode(oc) {
+			pisFixture = masterInvalidPinnedImageSetFixture
+		}
+
+		SimplePISTest(oc, kubeClient, pisFixture, false)
 	})
 
 	g.It("Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]", func() {
