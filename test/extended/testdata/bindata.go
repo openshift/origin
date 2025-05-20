@@ -465,6 +465,8 @@
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
 // test/extended/testdata/olmv1/install-catalog.yaml
+// test/extended/testdata/olmv1/install-lvm-operator-otherns.yaml
+// test/extended/testdata/olmv1/install-lvm-operator-singlens.yaml
 // test/extended/testdata/olmv1/install-operator.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-0.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-1.yaml
@@ -50998,6 +51000,117 @@ func testExtendedTestdataOlmv1InstallCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1InstallLvmOperatorOthernsYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: install-test-ns-{UNIQUE}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{UNIQUE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{UNIQUE}
+  annotations:
+    olm.operatorframework.io/watch-namespace: install-test-ns-{UNIQUE}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{UNIQUE}
+  source:
+    catalog:
+      packageName: "lvms-operator"
+      version: "4.17.5"
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1InstallLvmOperatorOthernsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallLvmOperatorOthernsYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallLvmOperatorOthernsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallLvmOperatorOthernsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-lvm-operator-otherns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1InstallLvmOperatorSinglensYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-{UNIQUE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-{UNIQUE}
+  namespace: {NAMESPACE}
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-{UNIQUE}
+  annotations:
+    olm.operatorframework.io/watch-namespace: {NAMESPACE}
+spec:
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa-{UNIQUE}
+  source:
+    catalog:
+      packageName: "lvms-operator"
+      version: "4.17.5"
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1InstallLvmOperatorSinglensYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1InstallLvmOperatorSinglensYaml, nil
+}
+
+func testExtendedTestdataOlmv1InstallLvmOperatorSinglensYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1InstallLvmOperatorSinglensYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/install-lvm-operator-singlens.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmv1InstallOperatorYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -59152,6 +59265,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
 	"test/extended/testdata/olmv1/install-catalog.yaml":                                                      testExtendedTestdataOlmv1InstallCatalogYaml,
+	"test/extended/testdata/olmv1/install-lvm-operator-otherns.yaml":                                         testExtendedTestdataOlmv1InstallLvmOperatorOthernsYaml,
+	"test/extended/testdata/olmv1/install-lvm-operator-singlens.yaml":                                        testExtendedTestdataOlmv1InstallLvmOperatorSinglensYaml,
 	"test/extended/testdata/olmv1/install-operator.yaml":                                                     testExtendedTestdataOlmv1InstallOperatorYaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-0.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator0Yaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-1.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator1Yaml,
@@ -59963,6 +60078,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"olmv1": {nil, map[string]*bintree{
 					"install-catalog.yaml":                {testExtendedTestdataOlmv1InstallCatalogYaml, map[string]*bintree{}},
+					"install-lvm-operator-otherns.yaml":   {testExtendedTestdataOlmv1InstallLvmOperatorOthernsYaml, map[string]*bintree{}},
+					"install-lvm-operator-singlens.yaml":  {testExtendedTestdataOlmv1InstallLvmOperatorSinglensYaml, map[string]*bintree{}},
 					"install-operator.yaml":               {testExtendedTestdataOlmv1InstallOperatorYaml, map[string]*bintree{}},
 					"install-pipeline-operator-0.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator0Yaml, map[string]*bintree{}},
 					"install-pipeline-operator-1.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator1Yaml, map[string]*bintree{}},

@@ -1891,6 +1891,10 @@ var Annotations = map[string]string{
 
 	"[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas endpoint": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected] OLMv1 operator single/own namespace support should install a cluster extension in OtherNamespace mode": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected] OLMv1 operator single/own namespace support should install a cluster extension in SingleNamespace mode": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {ClusterRoleBindings} are not specified": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {ConfigMap:resourceNames} are not all specified": " [Suite:openshift/conformance/parallel]",
