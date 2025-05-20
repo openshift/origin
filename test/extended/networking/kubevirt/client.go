@@ -94,14 +94,14 @@ func (c *Client) GetJSONPath(resource, name, jsonPath string) (string, error) {
 	return strings.TrimSuffix(strings.TrimPrefix(output, `"`), `"`), nil
 }
 func ensureVirtctl(oc *exutil.CLI, dir string) (string, error) {
-	url, err := discoverVirtctlURL(oc)
-	if err != nil {
-		return "", err
-	}
 	filepath := filepath.Join(dir, "virtctl")
-	_, err = os.Stat(filepath)
+	_, err := os.Stat(filepath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
+			url, err := discoverVirtctlURL(oc)
+			if err != nil {
+				return "", err
+			}
 			if err := downloadFile(url, filepath); err != nil {
 				return "", err
 			}
@@ -133,11 +133,9 @@ func discoverVirtctlURL(oc *exutil.CLI) (string, error) {
 }
 
 func downloadFile(url string, filepath string) error {
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	client := &http.Client{Transport: transport}
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
