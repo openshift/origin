@@ -489,6 +489,14 @@ spec:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
         OLMv1 operator preflight checks should report error when {services} are not
         specified'
+  - featureGate: NewOLMWebhookProviderOpenshiftServiceCA
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected]
+        OLMv1 support for bundles with webhooks should have working conversion webhook'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected]
+        OLMv1 support for bundles with webhooks should have working mutating webhook'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected]
+        OLMv1 support for bundles with webhooks should have working validating webhook'
   - featureGate: OrderedNamespaceDeletion
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should

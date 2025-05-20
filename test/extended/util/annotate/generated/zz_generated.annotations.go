@@ -1903,6 +1903,12 @@ var Annotations = map[string]string{
 
 	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {services} are not specified": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected] OLMv1 support for bundles with webhooks should have working conversion webhook": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected] OLMv1 support for bundles with webhooks should have working mutating webhook": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected] OLMv1 support for bundles with webhooks should have working validating webhook": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs should be installed": " [Suite:openshift/conformance/parallel]",
