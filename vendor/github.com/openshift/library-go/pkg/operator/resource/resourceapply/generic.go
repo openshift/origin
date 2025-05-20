@@ -9,6 +9,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -141,6 +142,12 @@ func ApplyDirectly(ctx context.Context, clients *ClientHolder, recorder events.R
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
 				result.Result, result.Changed, result.Error = ApplySecretImproved(ctx, client, recorder, t, cache)
+			}
+		case *networkingv1.NetworkPolicy:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			} else {
+				result.Result, result.Changed, result.Error = ApplyNetworkPolicy(ctx, clients.kubeClient.NetworkingV1(), recorder, t)
 			}
 		case *rbacv1.ClusterRole:
 			if clients.kubeClient == nil {
@@ -294,6 +301,12 @@ func DeleteAll(ctx context.Context, clients *ClientHolder, recorder events.Recor
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
 				_, result.Changed, result.Error = DeleteSecret(ctx, client, recorder, t)
+			}
+		case *networkingv1.NetworkPolicy:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			} else {
+				_, result.Changed, result.Error = DeleteNetworkPolicy(ctx, clients.kubeClient.NetworkingV1(), recorder, t)
 			}
 		case *rbacv1.ClusterRole:
 			if clients.kubeClient == nil {
