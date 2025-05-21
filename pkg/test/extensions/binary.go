@@ -106,7 +106,7 @@ func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (
 	binLogger.Infof("OTE API version is: %s", b.info.APIVersion)
 	envFlags = b.filterToApplicableEnvironmentFlags(envFlags)
 	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
-	binLogger.Infof("adding the following applicable flags to the list command: %s", envFlags.String())
+	binLogger.Infof("Adding the following applicable flags to the list command: %s", envFlags.String())
 	command.Args = append(command.Args, envFlags.ArgStrings()...)
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
