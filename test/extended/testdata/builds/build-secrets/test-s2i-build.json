@@ -45,7 +45,7 @@
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8"
         },
         "env": [
           {

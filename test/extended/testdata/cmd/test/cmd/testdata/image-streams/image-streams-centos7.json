@@ -843,20 +843,20 @@
             }
           },
           {
-            "name": "3.1-ubi8",
+            "name": "3.3-ubi8",
             "annotations": {
-              "description": "Build and run Ruby 3.1 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.1/README.md.",
+              "description": "Build and run Ruby 3.3 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.3/README.md.",
               "iconClass": "icon-ruby",
-              "openshift.io/display-name": "Ruby 3.1 (UBI 8)",
+              "openshift.io/display-name": "Ruby 3.3 (UBI 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
-              "supports": "ruby:3.1,ruby",
+              "supports": "ruby:3.3,ruby",
               "tags": "builder,ruby",
-              "version": "3.1"
+              "version": "3.3"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/ubi8/ruby-31:latest"
+              "name": "registry.redhat.io/ubi8/ruby-33:latest"
             },
             "generation": null,
             "importPolicy": {},
