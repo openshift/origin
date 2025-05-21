@@ -14,7 +14,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/RangelReale/osincli v0.0.0-20160924135400-fababb0555f2
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/aws-sdk-go v1.44.204
+	github.com/aws/aws-sdk-go v1.50.25
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/distribution/distribution/v3 v3.0.0-20230530204932-ba46c769b3d1
 	github.com/fsouza/go-dockerclient v1.12.0
@@ -45,7 +45,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.74.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.74.0
-	github.com/prometheus/client_golang v1.20.2
+	github.com/prometheus/client_golang v1.20.4
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.55.0
 	github.com/sirupsen/logrus v1.9.3
@@ -53,7 +53,7 @@ require (
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/objx v0.5.2
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/gjson v1.18.0
 	go.etcd.io/etcd/client/pkg/v3 v3.5.16
 	go.etcd.io/etcd/client/v3 v3.5.16
@@ -89,6 +89,12 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.18.1
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0
 	sigs.k8s.io/yaml v1.4.0
+)
+
+require (
+	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
+	github.com/gocarina/gocsv v0.0.0-20231116093920-b87c2d0e983a // indirect
+	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 )
 
 require (
@@ -232,6 +238,7 @@ require (
 	github.com/opencontainers/runc v1.2.1 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
 	github.com/opencontainers/selinux v1.11.1 // indirect
+	github.com/openshift-kni/commatrix v0.0.3-0.20250511111221-7e611a3e3676
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
