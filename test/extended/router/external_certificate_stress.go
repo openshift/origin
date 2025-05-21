@@ -30,8 +30,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 	)
 
 	const (
-		numNamespace         = 5
-		numRoutePerNamespace = 20
+		numNamespace         = 10
+		numRoutePerNamespace = 100
+		repeat               = 2
 	)
 
 	g.BeforeEach(func() {
@@ -50,82 +51,87 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 			routes     []*routev1.Route
 		)
 		g.It("should work", func() {
-			for i := 0; i < numNamespace; i++ {
-				nsName := fmt.Sprintf("ns-ext-%d", i)
-				createNamespace(oc, nsName)
-				oc = oc.SetNamespace(nsName).AsAdmin()
+			// Repeat Loop
+			for rep := 0; rep < repeat; rep++ {
 
-				// Create hello-openshift resources in each namespace.
-				g.By("creating pod")
-				err = oc.Run("create").Args("-f", helloPodPath, "-n", oc.Namespace()).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
+				for i := 0; i < numNamespace; i++ {
+					nsName := fmt.Sprintf("ns-ext-%d", i)
+					createNamespace(oc, nsName)
+					oc = oc.SetNamespace(nsName).AsAdmin()
+					namespaces = append(namespaces, nsName)
 
-				g.By("waiting for the pod to be running")
-				err = pod.WaitForPodNameRunningInNamespace(context.TODO(), oc.KubeClient(), helloPodName, oc.Namespace())
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("creating service")
-				err = oc.Run("expose").Args("pod", helloPodName, "-n", oc.Namespace()).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("waiting for the service to become available")
-				err = exutil.WaitForEndpoint(oc.KubeClient(), oc.Namespace(), helloPodSvc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				// Create routes in each namespace
-				for j := 0; j < numRoutePerNamespace; j++ {
-					secretName := fmt.Sprintf("%s-secret-%d", nsName, j)
-					routeName := fmt.Sprintf("%s-route-%d", nsName, j)
-					host := fmt.Sprintf("host-%d-%s.%s", j, oc.Namespace(), defaultDomain)
-
-					// Create the secret
-					g.By(fmt.Sprintf("Creating secret %s in %s", secretName, oc.Namespace()))
-					secret, rootDerBytes, err := generateTLSCertSecret(oc.Namespace(), secretName, corev1.SecretTypeTLS, host)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
-					secrets = append(secrets, secret)
-
-					// Grant the permission
-					g.By(fmt.Sprintf("Granting permissions to router service account in %s", oc.Namespace()))
-					err = createOrPatchRole(oc, secretName)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					createOrPatchRoleBinding(oc)
+					// Create hello-openshift resources in each namespace.
+					g.By("creating pod")
+					err = oc.Run("create").Args("-f", helloPodPath, "-n", oc.Namespace()).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					// Create the route
-					g.By(fmt.Sprintf("Creating route %s in %s", routeName, oc.Namespace()))
-					route := generateRouteWithExternalCertificate(oc.Namespace(), routeName, secretName, helloPodSvc, host, routev1.TLSTerminationEdge)
-					_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
+					g.By("waiting for the pod to be running")
+					err = pod.WaitForPodNameRunningInNamespace(context.TODO(), oc.KubeClient(), helloPodName, oc.Namespace())
 					o.Expect(err).NotTo(o.HaveOccurred())
-					routes = append(routes, route)
 
-					// Send traffic
-					g.By("Sending https request")
-					hostName, err := getHostnameForRoute(oc, route.Name)
+					g.By("creating service")
+					err = oc.Run("expose").Args("pod", helloPodName, "-n", oc.Namespace()).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					resp, err := httpsGetCall(oc, hostName, rootDerBytes)
+
+					g.By("waiting for the service to become available")
+					err = exutil.WaitForEndpoint(oc.KubeClient(), oc.Namespace(), helloPodSvc)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
+
+					// Create routes in each namespace
+					for j := 0; j < numRoutePerNamespace; j++ {
+						secretName := fmt.Sprintf("%s-secret-%d", nsName, j)
+						routeName := fmt.Sprintf("%s-route-%d", nsName, j)
+						host := fmt.Sprintf("host-%d-%s.%s", j, oc.Namespace(), defaultDomain)
+
+						// Create the secret
+						g.By(fmt.Sprintf("Creating secret %s in %s", secretName, oc.Namespace()))
+						secret, rootDerBytes, err := generateTLSCertSecret(oc.Namespace(), secretName, corev1.SecretTypeTLS, host)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						_, err = oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Create(context.Background(), secret, metav1.CreateOptions{})
+						o.Expect(err).NotTo(o.HaveOccurred())
+						secrets = append(secrets, secret)
+
+						// Grant the permission
+						g.By(fmt.Sprintf("Granting permissions to router service account in %s", oc.Namespace()))
+						err = createOrPatchRole(oc, secretName)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						createOrPatchRoleBinding(oc)
+						o.Expect(err).NotTo(o.HaveOccurred())
+
+						// Create the route
+						g.By(fmt.Sprintf("Creating route %s in %s", routeName, oc.Namespace()))
+						route := generateRouteWithExternalCertificate(oc.Namespace(), routeName, secretName, helloPodSvc, host, routev1.TLSTerminationEdge)
+						_, err = oc.RouteClient().RouteV1().Routes(oc.Namespace()).Create(context.Background(), route, metav1.CreateOptions{})
+						o.Expect(err).NotTo(o.HaveOccurred())
+						routes = append(routes, route)
+
+						// Send traffic
+						g.By("Sending https request")
+						hostName, err := getHostnameForRoute(oc, route.Name)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						resp, err := httpsGetCall(oc, hostName, rootDerBytes)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						o.Expect(resp).Should(o.ContainSubstring(helloOpenShiftResponse))
+					}
 				}
-			}
-			// Clean up routes
-			for _, route := range routes {
-				e2e.Logf("Removing route %s", route.Name)
-				err = oc.RouteClient().RouteV1().Routes(route.Namespace).Delete(context.Background(), route.Name, metav1.DeleteOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			// Clean up secrets
-			for _, secret := range secrets {
-				e2e.Logf("Removing secret %s", secret.Name)
-				err = oc.KubeClient().CoreV1().Secrets(secret.Namespace).Delete(context.Background(), secret.Name, metav1.DeleteOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			// Clean up namespaces
-			for _, ns := range namespaces {
-				e2e.Logf("Removing namespace %s", ns)
-				err = oc.KubeClient().CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// Clean up routes
+				for _, route := range routes {
+					e2e.Logf("Removing route %s", route.Name)
+					err = oc.RouteClient().RouteV1().Routes(route.Namespace).Delete(context.Background(), route.Name, metav1.DeleteOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+				// Clean up secrets
+				for _, secret := range secrets {
+					e2e.Logf("Removing secret %s", secret.Name)
+					err = oc.KubeClient().CoreV1().Secrets(secret.Namespace).Delete(context.Background(), secret.Name, metav1.DeleteOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
+				// Clean up namespaces
+				for _, ns := range namespaces {
+					e2e.Logf("Removing namespace %s", ns)
+					err = oc.KubeClient().CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+				}
 			}
 		})
 	})
