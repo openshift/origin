@@ -789,12 +789,6 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		return nil, err
 	}
 
-	featureGates, err := determineEnabledFeatureGates(ctx, clientConfig)
-	if err != nil {
-		return nil, errors.WithMessage(err, "couldn't determine feature gates")
-	}
-	envFlagBuilder.AddFeatureGates(featureGates...)
-
 	discoveryClient, err := kubeconfig.NewDiscoveryGetter(restConfig).GetDiscoveryClient()
 	if err != nil {
 		return nil, err
@@ -803,7 +797,15 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 	if err != nil {
 		return nil, errors.WithMessage(err, "couldn't determine api groups")
 	}
-	envFlagBuilder.AddAPIGroups(apiGroups...)
+	envFlagBuilder.AddAPIGroups(apiGroups.UnsortedList()...)
+
+	if apiGroups.Has("config.openshift.io") {
+		featureGates, err := determineEnabledFeatureGates(ctx, clientConfig)
+		if err != nil {
+			return nil, errors.WithMessage(err, "couldn't determine feature gates")
+		}
+		envFlagBuilder.AddFeatureGates(featureGates...)
+	}
 
 	//Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
@@ -862,12 +864,12 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 	return "Direct"
 }
 
-func determineEnabledAPIGroups(discoveryClient discovery.AggregatedDiscoveryInterface) ([]string, error) {
+func determineEnabledAPIGroups(discoveryClient discovery.AggregatedDiscoveryInterface) (sets.Set[string], error) {
 	groups, err := discoveryClient.ServerGroups()
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve served resources: %v", err)
 	}
-	apiGroups := sets.NewString()
+	apiGroups := sets.New[string]()
 	for _, apiGroup := range groups.Groups {
 		// ignore the empty group
 		if apiGroup.Name == "" {
@@ -876,7 +878,7 @@ func determineEnabledAPIGroups(discoveryClient discovery.AggregatedDiscoveryInte
 		apiGroups.Insert(apiGroup.Name)
 	}
 
-	return apiGroups.List(), nil
+	return apiGroups, nil
 }
 
 func determineEnabledFeatureGates(ctx context.Context, configClient clientconfigv1.Interface) ([]string, error) {
