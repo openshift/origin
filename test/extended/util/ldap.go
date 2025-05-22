@@ -71,7 +71,7 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 
 	// Create CA.
 	ca, err := crypto.MakeSelfSignedCA(path.Join(certDir, caCertFilename), path.Join(certDir, caKeyFilename),
-		path.Join(certDir, "serial"), caName, 100)
+		path.Join(certDir, "serial"), caName, 100*24*time.Hour)
 	if err != nil {
 		return "", "", "", nil, err
 	}
@@ -80,7 +80,7 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 	svcNs = oc.Namespace()
 	svcName = ldapService.Name
 	svcHostname = svcName + "." + svcNs + ".svc"
-	serverCertConfig, err := ca.MakeServerCert(sets.New("localhost", "127.0.0.1", svcHostname), 100)
+	serverCertConfig, err := ca.MakeServerCert(sets.New("localhost", "127.0.0.1", svcHostname), 100*24*time.Hour)
 	if err != nil {
 		return "", "", "", nil, err
 	}
