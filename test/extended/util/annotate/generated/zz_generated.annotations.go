@@ -981,6 +981,8 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources [apigroup:machine.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cluster-lifecycle][Feature:Machines] Managed cluster should the Machine provider spec zone should match the label on the paired node": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines [apigroup:machine.openshift.io]": " [Serial]",
 
 	"[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should have same number of Machines and Nodes [apigroup:machine.openshift.io]": " [Suite:openshift/conformance/parallel]",
