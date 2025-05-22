@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -72,7 +73,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 			path.Join(fakecadir, "fakeca.key"),
 			path.Join(fakecadir, "fakeca.serial"),
 			realCA[0].Subject.String(),
-			100,
+			100*24*time.Hour,
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -80,7 +81,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 			path.Join(fakecadir, "fakeclient.crt"),
 			path.Join(fakecadir, "fakeclient.key"),
 			&user.DefaultInfo{Name: "fakeuser"},
-			365*2, /* 2 years */
+			365*2*24*time.Hour, /* 2 years */
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
