@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -71,7 +72,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 			path.Join(fakecadir, "fakeca.key"),
 			path.Join(fakecadir, "fakeca.serial"),
 			realCA[0].Subject.String(),
-			100,
+			100*24*time.Hour,
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
