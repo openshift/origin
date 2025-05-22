@@ -2,27 +2,28 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (128)](#Items-Do-NOT-Meet-the-Requirement-128)
-    - [Unknown Owner (4)](#Unknown-Owner-4)
+  - [Items Do NOT Meet the Requirement (101)](#Items-Do-NOT-Meet-the-Requirement-101)
+    - [Unknown Owner (9)](#Unknown-Owner-9)
       - [Certificates (2)](#Certificates-2)
-      - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
+      - [Certificate Authority Bundles (7)](#Certificate-Authority-Bundles-7)
     - [Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)](#Bare-Metal-Hardware-Provisioning-/-cluster-baremetal-operator-1)
       - [Certificates (1)](#Certificates-1)
     - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [End User (1)](#End-User-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+    - [Etcd (1)](#Etcd-1)
+      - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [Image Registry (2)](#Image-Registry-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-    - [Machine Config Operator (3)](#Machine-Config-Operator-3)
-      - [Certificates (1)](#Certificates-1)
+    - [Machine Config Operator (2)](#Machine-Config-Operator-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-    - [Monitoring (6)](#Monitoring-6)
-      - [Certificates (2)](#Certificates-2)
+    - [Monitoring (7)](#Monitoring-7)
+      - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (4)](#Certificate-Authority-Bundles-4)
-    - [Networking / cluster-network-operator (39)](#Networking-/-cluster-network-operator-39)
+    - [Networking / cluster-network-operator (40)](#Networking-/-cluster-network-operator-40)
       - [Certificates (8)](#Certificates-8)
-      - [Certificate Authority Bundles (31)](#Certificate-Authority-Bundles-31)
+      - [Certificate Authority Bundles (32)](#Certificate-Authority-Bundles-32)
     - [Node / Kubelet (2)](#Node-/-Kubelet-2)
       - [Certificates (2)](#Certificates-2)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
@@ -34,20 +35,32 @@
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [cluster-network-operator (1)](#cluster-network-operator-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-    - [kube-apiserver (46)](#kube-apiserver-46)
-      - [Certificates (25)](#Certificates-25)
-      - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
-    - [kube-controller-manager (12)](#kube-controller-manager-12)
+    - [kube-apiserver (14)](#kube-apiserver-14)
+      - [Certificates (4)](#Certificates-4)
+      - [Certificate Authority Bundles (10)](#Certificate-Authority-Bundles-10)
+    - [kube-controller-manager (10)](#kube-controller-manager-10)
       - [Certificates (3)](#Certificates-3)
-      - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
+      - [Certificate Authority Bundles (7)](#Certificate-Authority-Bundles-7)
     - [kube-scheduler (1)](#kube-scheduler-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [Items That DO Meet the Requirement (131)](#Items-That-DO-Meet-the-Requirement-131)
+  - [Items That DO Meet the Requirement (171)](#Items-That-DO-Meet-the-Requirement-171)
+    - [ (1)](#-1)
+      - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+    - [Machine Config Operator (3)](#Machine-Config-Operator-3)
+      - [Certificates (2)](#Certificates-2)
+      - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+    - [Networking / cluster-network-operator (1)](#Networking-/-cluster-network-operator-1)
+      - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [etcd (31)](#etcd-31)
       - [Certificates (22)](#Certificates-22)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [service-ca (100)](#service-ca-100)
-      - [Certificates (97)](#Certificates-97)
+    - [kube-apiserver (32)](#kube-apiserver-32)
+      - [Certificates (21)](#Certificates-21)
+      - [Certificate Authority Bundles (11)](#Certificate-Authority-Bundles-11)
+    - [kube-controller-manager (2)](#kube-controller-manager-2)
+      - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
+    - [service-ca (101)](#service-ca-101)
+      - [Certificates (98)](#Certificates-98)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
@@ -62,8 +75,8 @@ These descriptions must be in the style of API documentation and must include
 
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
-## Items Do NOT Meet the Requirement (128)
-### Unknown Owner (4)
+## Items Do NOT Meet the Requirement (101)
+### Unknown Owner (9)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
 
@@ -77,13 +90,44 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-#### Certificate Authority Bundles (2)
-1. ns/openshift-config-managed configmap/default-ingress-cert
+#### Certificate Authority Bundles (7)
+1. ns/kube-system configmap/extension-apiserver-authentication
 
       **Description:** 
       
 
-2. ns/openshift-console configmap/default-ingress-cert
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+2. ns/openshift-apiserver configmap/image-import-ca
+
+      **Description:** 
+      
+
+3. ns/openshift-config-managed configmap/default-ingress-cert
+
+      **Description:** 
+      
+
+4. ns/openshift-config-managed configmap/image-registry-ca
+
+      **Description:** 
+      
+
+5. ns/openshift-console configmap/default-ingress-cert
+
+      **Description:** 
+      
+
+6. ns/openshift-image-registry configmap/image-registry-certificates
+
+      **Description:** 
+      
+
+7. ns/openshift-monitoring configmap/metrics-client-ca
 
       **Description:** 
       
@@ -122,6 +166,20 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
+### Etcd (1)
+#### Certificate Authority Bundles (1)
+1. ns/openshift-etcd configmap/etcd-all-bundles
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/metrics-ca-bundle.crt
+      
+
+
+
 ### Image Registry (2)
 #### Certificate Authority Bundles (2)
 1. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
@@ -146,15 +204,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### Machine Config Operator (3)
-#### Certificates (1)
-1. ns/openshift-machine-config-operator secret/machine-config-server-tls
-
-      **Description:** 
-      
-
-
-
+### Machine Config Operator (2)
 #### Certificate Authority Bundles (2)
 1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
 
@@ -168,14 +218,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### Monitoring (6)
-#### Certificates (2)
+### Monitoring (7)
+#### Certificates (3)
 1. ns/openshift-monitoring secret/federate-client-certs
 
       **Description:** 
       
 
 2. ns/openshift-monitoring secret/metrics-client-certs
+
+      **Description:** 
+      
+
+3. ns/openshift-monitoring secret/metrics-server-client-certs
 
       **Description:** 
       
@@ -205,7 +260,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### Networking / cluster-network-operator (39)
+### Networking / cluster-network-operator (40)
 #### Certificates (8)
 1. ns/openshift-network-node-identity secret/network-node-identity-ca
 
@@ -249,7 +304,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-#### Certificate Authority Bundles (31)
+#### Certificate Authority Bundles (32)
 1. ns/openshift-apiserver configmap/trusted-ca-bundle
 
       **Description:** 
@@ -270,42 +325,42 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
-5. ns/openshift-cloud-credential-operator configmap/cco-trusted-ca
+5. ns/openshift-catalogd configmap/catalogd-trusted-ca-bundle
 
       **Description:** 
       
 
-6. ns/openshift-cloud-network-config-controller configmap/trusted-ca
+6. ns/openshift-cloud-credential-operator configmap/cco-trusted-ca
 
       **Description:** 
       
 
-7. ns/openshift-cluster-csi-drivers configmap/aws-ebs-csi-driver-trusted-ca-bundle
+7. ns/openshift-cloud-network-config-controller configmap/trusted-ca
 
       **Description:** 
       
 
-8. ns/openshift-cluster-csi-drivers configmap/azure-disk-csi-driver-trusted-ca-bundle
+8. ns/openshift-cluster-csi-drivers configmap/aws-ebs-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
 
-9. ns/openshift-cluster-csi-drivers configmap/azure-file-csi-driver-trusted-ca-bundle
+9. ns/openshift-cluster-csi-drivers configmap/azure-disk-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
 
-10. ns/openshift-cluster-csi-drivers configmap/gcp-pd-csi-driver-trusted-ca-bundle
+10. ns/openshift-cluster-csi-drivers configmap/azure-file-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
 
-11. ns/openshift-cluster-csi-drivers configmap/openstack-cinder-csi-driver-trusted-ca-bundle
+11. ns/openshift-cluster-csi-drivers configmap/gcp-pd-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
 
-12. ns/openshift-cluster-csi-drivers configmap/shared-resource-csi-driver-operator-trusted-ca-bundle
+12. ns/openshift-cluster-csi-drivers configmap/openstack-cinder-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
@@ -365,22 +420,22 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
-24. ns/openshift-kube-apiserver configmap/trusted-ca-bundle
+24. ns/openshift-kube-controller-manager configmap/trusted-ca-bundle
 
       **Description:** 
       
 
-25. ns/openshift-kube-controller-manager configmap/trusted-ca-bundle
+25. ns/openshift-machine-api configmap/cbo-trusted-ca
 
       **Description:** 
       
 
-26. ns/openshift-machine-api configmap/cbo-trusted-ca
+26. ns/openshift-machine-api configmap/mao-trusted-ca
 
       **Description:** 
       
 
-27. ns/openshift-machine-api configmap/mao-trusted-ca
+27. ns/openshift-manila-csi-driver configmap/manila-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
@@ -395,12 +450,17 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
-30. ns/openshift-ovn-kubernetes configmap/ovn-ca
+30. ns/openshift-operator-controller configmap/operator-controller-trusted-ca-bundle
 
       **Description:** 
       
 
-31. ns/openshift-ovn-kubernetes configmap/signer-ca
+31. ns/openshift-ovn-kubernetes configmap/ovn-ca
+
+      **Description:** 
+      
+
+32. ns/openshift-ovn-kubernetes configmap/signer-ca
 
       **Description:** 
       
@@ -500,49 +560,9 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### kube-apiserver (46)
-#### Certificates (25)
-1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
-      
-
-2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      
-
-3. ns/openshift-kube-apiserver secret/aggregator-client
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
-      
-
-4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
-      
-
-5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
+### kube-apiserver (14)
+#### Certificates (4)
+1. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
 
       **Description:** 
       
@@ -552,52 +572,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
       
 
-6. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
-      
-
-7. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
-      
-
-8. ns/openshift-kube-apiserver secret/kubelet-client
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
-      
-
-9. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
-
-      **Description:** 
-      
-
-10. ns/openshift-kube-apiserver secret/localhost-serving-cert-certkey
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
-      
-
-11. ns/openshift-kube-apiserver secret/node-kubeconfigs
+2. ns/openshift-kube-apiserver secret/node-kubeconfigs
 
       **Description:** 
       
@@ -610,119 +585,20 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-12. ns/openshift-kube-apiserver secret/service-network-serving-certkey
+3. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
 
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
-      
-
-13. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
-
-      **Description:** 
-      
-
-14. ns/openshift-kube-apiserver-operator secret/kube-apiserver-to-kubelet-signer
-
-      **Description:** 
-      
-
-15. ns/openshift-kube-apiserver-operator secret/kube-control-plane-signer
-
-      **Description:** 
-      
-
-16. ns/openshift-kube-apiserver-operator secret/loadbalancer-serving-signer
-
-      **Description:** 
-      
-
-17. ns/openshift-kube-apiserver-operator secret/localhost-recovery-serving-signer
-
-      **Description:** 
-      
-
-18. ns/openshift-kube-apiserver-operator secret/localhost-serving-signer
-
-      **Description:** 
-      
-
-19. ns/openshift-kube-apiserver-operator secret/node-system-admin-client
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
-      
-
-20. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
-
-      **Description:** 
-      
-
-21. ns/openshift-kube-apiserver-operator secret/service-network-serving-signer
-
-      **Description:** 
-      
-
-22. ns/openshift-kube-controller-manager secret/kube-controller-manager-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
-      
-
-23. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      
-
-24. file /etc/kubernetes/kubeconfig
-
-      **Description:** 
-      
-
-25. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+4. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
       **Description:** 
       
 
 
 
-#### Certificate Authority Bundles (21)
-1. ns/openshift-config configmap/admin-kubeconfig-client-ca
-
-      **Description:** 
-      
-
-2. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-3. ns/openshift-config-managed configmap/kube-apiserver-client-ca
+#### Certificate Authority Bundles (10)
+1. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
@@ -734,7 +610,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-4. ns/openshift-config-managed configmap/kube-apiserver-server-ca
+2. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -748,35 +624,12 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-5. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+3. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
 
       **Description:** 
       
 
-6. ns/openshift-controller-manager configmap/client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/kubelet-ca.crt
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
-      
-
-7. ns/openshift-kube-apiserver configmap/aggregator-client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-8. ns/openshift-kube-apiserver configmap/client-ca
+4. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -788,7 +641,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-9. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+5. ns/openshift-kube-apiserver configmap/client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
+6. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -802,53 +667,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-10. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
-
-      **Description:** 
-      
-
-11. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
-
-      **Description:** 
-      
-
-12. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
-
-      **Description:** 
-      
-
-13. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
-
-      **Description:** 
-      
-
-14. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
-
-      **Description:** 
-      
-
-15. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
-
-      **Description:** 
-      
-
-16. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
-
-      **Description:** 
-      
-
-17. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-18. ns/openshift-kube-controller-manager configmap/client-ca
+7. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -860,7 +679,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-19. ns/openshift-route-controller-manager configmap/client-ca
+8. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -872,7 +691,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-20. file /etc/kubernetes/kubeconfig
+9. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
@@ -885,14 +704,14 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-21. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+10. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
 
 
 
-### kube-controller-manager (12)
+### kube-controller-manager (10)
 #### Certificates (3)
 1. ns/openshift-kube-controller-manager secret/csr-signer
 
@@ -911,48 +730,38 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-#### Certificate Authority Bundles (9)
+#### Certificate Authority Bundles (7)
 1. ns/openshift-config-managed configmap/csr-controller-ca
 
       **Description:** 
       
 
-2. ns/openshift-config-managed configmap/kubelet-serving-ca
+2. ns/openshift-kube-controller-manager configmap/serviceaccount-ca
 
       **Description:** 
       
 
-3. ns/openshift-kube-apiserver configmap/kubelet-serving-ca
+3. ns/openshift-kube-controller-manager-operator configmap/csr-controller-ca
 
       **Description:** 
       
 
-4. ns/openshift-kube-controller-manager configmap/serviceaccount-ca
+4. ns/openshift-kube-controller-manager-operator configmap/csr-controller-signer-ca
 
       **Description:** 
       
 
-5. ns/openshift-kube-controller-manager-operator configmap/csr-controller-ca
+5. ns/openshift-kube-controller-manager-operator configmap/csr-signer-ca
 
       **Description:** 
       
 
-6. ns/openshift-kube-controller-manager-operator configmap/csr-controller-signer-ca
+6. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
 
-7. ns/openshift-kube-controller-manager-operator configmap/csr-signer-ca
-
-      **Description:** 
-      
-
-8. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
-
-      **Description:** 
-      
-
-9. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
+7. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
 
       **Description:** 
       
@@ -968,7 +777,47 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-## Items That DO Meet the Requirement (131)
+## Items That DO Meet the Requirement (171)
+###  (1)
+#### Certificate Authority Bundles (1)
+1. ns/openshift-config-managed configmap/merged-trusted-image-registry-ca
+
+      **Description:** Created and managed by the machine-config-operator
+      
+
+
+
+### Machine Config Operator (3)
+#### Certificates (2)
+1. ns/openshift-machine-config-operator secret/machine-config-server-ca
+
+      **Description:** CA used to sign the MachineConfigServer TLS certificate
+      
+
+2. ns/openshift-machine-config-operator secret/machine-config-server-tls
+
+      **Description:** Secret containing the MachineConfigServer TLS certificate and key
+      
+
+
+
+#### Certificate Authority Bundles (1)
+1. ns/openshift-machine-config-operator configmap/machine-config-server-ca
+
+      **Description:** CA bundle that stores all valid CAs for the MachineConfigServer TLS certificate
+      
+
+
+
+### Networking / cluster-network-operator (1)
+#### Certificate Authority Bundles (1)
+1. ns/openshift-kube-apiserver configmap/trusted-ca-bundle
+
+      **Description:** CA used to recognize proxy servers.  By default this will contain standard root CAs on the cluster-network-operator pod.
+      
+
+
+
 ### etcd (31)
 #### Certificates (22)
 1. ns/openshift-apiserver secret/etcd-client
@@ -1221,8 +1070,270 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### service-ca (100)
-#### Certificates (97)
+### kube-apiserver (32)
+#### Certificates (21)
+1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
+
+      **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
+2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
+
+      **Description:** Client certificate used by the kube-scheduler to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+3. ns/openshift-kube-apiserver secret/aggregator-client
+
+      **Description:** Client certificate used by the kube-apiserver to communicate to aggregated apiservers.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
+      
+
+4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
+
+      **Description:** Client certificate used by the network connectivity checker of the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
+      
+
+5. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the external load balancer.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
+      
+
+6. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the internal load balancer.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
+      
+
+7. ns/openshift-kube-apiserver secret/kubelet-client
+
+      **Description:** Client certificate used by the kube-apiserver to authenticate to the kubelet for requests like exec and logs.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
+      
+
+8. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the localhost recovery SNI ServerName.
+      
+
+9. ns/openshift-kube-apiserver secret/localhost-serving-cert-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via localhost.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
+      
+
+10. ns/openshift-kube-apiserver secret/service-network-serving-certkey
+
+      **Description:** Serving certificate used by the kube-apiserver to terminate requests via the service network.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
+      
+
+11. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
+
+      **Description:** Signer for the kube-apiserver to create client certificates for aggregated apiservers to recognize as a front-proxy
+      
+
+12. ns/openshift-kube-apiserver-operator secret/kube-apiserver-to-kubelet-signer
+
+      **Description:** Signer for the kube-apiserver-to-kubelet-client so kubelets can recognize the kube-apiserver.
+      
+
+13. ns/openshift-kube-apiserver-operator secret/kube-control-plane-signer
+
+      **Description:** Signer for kube-controller-manager and kube-scheduler client certificates.
+      
+
+14. ns/openshift-kube-apiserver-operator secret/loadbalancer-serving-signer
+
+      **Description:** Signer used by the kube-apiserver operator to create serving certificates for the kube-apiserver via internal and external load balancers.
+      
+
+15. ns/openshift-kube-apiserver-operator secret/localhost-recovery-serving-signer
+
+      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network.
+      
+
+16. ns/openshift-kube-apiserver-operator secret/localhost-serving-signer
+
+      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via localhost.
+      
+
+17. ns/openshift-kube-apiserver-operator secret/node-system-admin-client
+
+      **Description:** Client certificate (system:masters) placed on each master to allow communication to kube-apiserver for debugging.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
+18. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
+
+      **Description:** Signer for the per-master-debugging-client.
+      
+
+19. ns/openshift-kube-apiserver-operator secret/service-network-serving-signer
+
+      **Description:** Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network.
+      
+
+20. ns/openshift-kube-controller-manager secret/kube-controller-manager-client-cert-key
+
+      **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
+21. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
+
+      **Description:** Client certificate used by the kube-scheduler to authenticate to the kube-apiserver.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+
+
+#### Certificate Authority Bundles (11)
+1. ns/openshift-config configmap/admin-kubeconfig-client-ca
+
+      **Description:** CA for kube-apiserver to recognize the system:master created by the installer.
+      
+
+2. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
+
+      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+3. ns/openshift-kube-apiserver configmap/aggregator-client-ca
+
+      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+4. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+
+      **Description:** CA for the kubelet to recognize the kube-apiserver client certificate.
+      
+
+5. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+
+      **Description:** CA for kube-apiserver to recognize the kube-controller-manager and kube-scheduler client certificates.
+      
+
+6. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via the internal or external load balancers.
+      
+
+7. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via the localhost recovery SNI ServerName.
+      
+
+8. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via localhost.
+      
+
+9. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
+
+      **Description:** CA for kube-apiserver to recognize local system:masters rendered to each master.
+      
+
+10. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
+
+      **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc).
+      
+
+11. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
+
+      **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+
+
+### kube-controller-manager (2)
+#### Certificate Authority Bundles (2)
+1. ns/openshift-config-managed configmap/kubelet-serving-ca
+
+      **Description:** CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager.
+      
+
+2. ns/openshift-kube-apiserver configmap/kubelet-serving-ca
+
+      **Description:** CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager.
+      
+
+
+
+### service-ca (101)
+#### Certificates (98)
 1. ns/openshift-apiserver secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/api with hostname api.openshift-apiserver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
@@ -1245,7 +1356,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 5. ns/openshift-catalogd secret/catalogserver-cert
 
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-catalogserver with hostname catalogd-catalogserver.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years.
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-service with hostname catalogd-service.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years.
       
 
 6. ns/openshift-cloud-controller-manager-operator secret/cloud-controller-manager-operator-tls
@@ -1278,299 +1389,299 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/capi-webhook-service with hostname capi-webhook-service.openshift-cluster-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: capi-webhook-service-cert'. The certificate is valid for 2 years.
       
 
-12. ns/openshift-cluster-api secret/capv-webhook-service-cert
+12. ns/openshift-cluster-api secret/capm3-webhook-service-cert
+
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/capm3-webhook-service with hostname capm3-webhook-service.openshift-cluster-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: capm3-webhook-service-cert'. The certificate is valid for 2 years.
+      
+
+13. ns/openshift-cluster-api secret/capv-webhook-service-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/capv-webhook-service with hostname capv-webhook-service.openshift-cluster-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: capv-webhook-service-cert'. The certificate is valid for 2 years.
       
 
-13. ns/openshift-cluster-api secret/capz-webhook-service-cert
+14. ns/openshift-cluster-api secret/capz-webhook-service-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/capz-webhook-service with hostname capz-webhook-service.openshift-cluster-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: capz-webhook-service-cert'. The certificate is valid for 2 years.
       
 
-14. ns/openshift-cluster-api secret/cluster-capi-operator-webhook-service-cert
+15. ns/openshift-cluster-api secret/cluster-capi-operator-webhook-service-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-capi-operator-webhook-service with hostname cluster-capi-operator-webhook-service.openshift-cluster-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-capi-operator-webhook-service-cert'. The certificate is valid for 2 years.
       
 
-15. ns/openshift-cluster-csi-drivers secret/aws-ebs-csi-driver-controller-metrics-serving-cert
+16. ns/openshift-cluster-api secret/ipam-webhook-service-cert
+
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ipam-webhook-service with hostname ipam-webhook-service.openshift-cluster-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ipam-webhook-service-cert'. The certificate is valid for 2 years.
+      
+
+17. ns/openshift-cluster-csi-drivers secret/aws-ebs-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/aws-ebs-csi-driver-controller-metrics with hostname aws-ebs-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: aws-ebs-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-16. ns/openshift-cluster-csi-drivers secret/azure-disk-csi-driver-controller-metrics-serving-cert
+18. ns/openshift-cluster-csi-drivers secret/azure-disk-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-disk-csi-driver-controller-metrics with hostname azure-disk-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-disk-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-17. ns/openshift-cluster-csi-drivers secret/azure-disk-csi-driver-node-metrics-serving-cert
+19. ns/openshift-cluster-csi-drivers secret/azure-disk-csi-driver-node-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-disk-csi-driver-node-metrics with hostname azure-disk-csi-driver-node-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-disk-csi-driver-node-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-18. ns/openshift-cluster-csi-drivers secret/azure-file-csi-driver-controller-metrics-serving-cert
+20. ns/openshift-cluster-csi-drivers secret/azure-file-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-file-csi-driver-controller-metrics with hostname azure-file-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-file-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-19. ns/openshift-cluster-csi-drivers secret/gcp-pd-csi-driver-controller-metrics-serving-cert
+21. ns/openshift-cluster-csi-drivers secret/gcp-pd-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/gcp-pd-csi-driver-controller-metrics with hostname gcp-pd-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: gcp-pd-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-20. ns/openshift-cluster-csi-drivers secret/openstack-cinder-csi-driver-controller-metrics-serving-cert
+22. ns/openshift-cluster-csi-drivers secret/openstack-cinder-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openstack-cinder-csi-driver-controller-metrics with hostname openstack-cinder-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openstack-cinder-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-21. ns/openshift-cluster-csi-drivers secret/shared-resource-csi-driver-node-metrics-serving-cert
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/shared-resource-csi-driver-node-metrics with hostname shared-resource-csi-driver-node-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: shared-resource-csi-driver-node-metrics-serving-cert'. The certificate is valid for 2 years.
-      
-
-22. ns/openshift-cluster-csi-drivers secret/shared-resource-csi-driver-operator-metrics-serving-cert
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/shared-resource-csi-driver-operator-metrics with hostname shared-resource-csi-driver-operator-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: shared-resource-csi-driver-operator-metrics-serving-cert'. The certificate is valid for 2 years.
-      
-
-23. ns/openshift-cluster-csi-drivers secret/shared-resource-csi-driver-webhook-serving-cert
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/shared-resource-csi-driver-webhook with hostname shared-resource-csi-driver-webhook.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: shared-resource-csi-driver-webhook-serving-cert'. The certificate is valid for 2 years.
-      
-
-24. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-controller-metrics-serving-cert
+23. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-controller-metrics with hostname vmware-vsphere-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-25. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-operator-metrics-serving-cert
+24. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-operator-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-operator-metrics with hostname vmware-vsphere-csi-driver-operator-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-operator-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-26. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-webhook-secret
+25. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-webhook-secret
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-webhook-svc with hostname vmware-vsphere-csi-driver-webhook-svc.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-webhook-secret'. The certificate is valid for 2 years.
       
 
-27. ns/openshift-cluster-machine-approver secret/machine-approver-tls
+26. ns/openshift-cluster-machine-approver secret/machine-approver-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-approver with hostname machine-approver.openshift-cluster-machine-approver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-approver-tls'. The certificate is valid for 2 years.
       
 
-28. ns/openshift-cluster-node-tuning-operator secret/node-tuning-operator-tls
+27. ns/openshift-cluster-node-tuning-operator secret/node-tuning-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/node-tuning-operator with hostname node-tuning-operator.openshift-cluster-node-tuning-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: node-tuning-operator-tls'. The certificate is valid for 2 years.
       
 
-29. ns/openshift-cluster-node-tuning-operator secret/performance-addon-operator-webhook-cert
+28. ns/openshift-cluster-node-tuning-operator secret/performance-addon-operator-webhook-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/performance-addon-operator-service with hostname performance-addon-operator-service.openshift-cluster-node-tuning-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: performance-addon-operator-webhook-cert'. The certificate is valid for 2 years.
       
 
-30. ns/openshift-cluster-olm-operator secret/cluster-olm-operator-serving-cert
+29. ns/openshift-cluster-olm-operator secret/cluster-olm-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-olm-operator-metrics with hostname cluster-olm-operator-metrics.openshift-cluster-olm-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-olm-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-31. ns/openshift-cluster-samples-operator secret/samples-operator-tls
+30. ns/openshift-cluster-samples-operator secret/samples-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-cluster-samples-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: samples-operator-tls'. The certificate is valid for 2 years.
       
 
-32. ns/openshift-cluster-storage-operator secret/cluster-storage-operator-serving-cert
+31. ns/openshift-cluster-storage-operator secret/cluster-storage-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-storage-operator-metrics with hostname cluster-storage-operator-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-storage-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-33. ns/openshift-cluster-storage-operator secret/csi-snapshot-webhook-secret
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/csi-snapshot-webhook with hostname csi-snapshot-webhook.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: csi-snapshot-webhook-secret'. The certificate is valid for 2 years.
-      
-
-34. ns/openshift-cluster-storage-operator secret/serving-cert
+32. ns/openshift-cluster-storage-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/csi-snapshot-controller-operator-metrics with hostname csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-35. ns/openshift-cluster-storage-operator secret/vsphere-problem-detector-serving-cert
+33. ns/openshift-cluster-storage-operator secret/vsphere-problem-detector-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vsphere-problem-detector-metrics with hostname vsphere-problem-detector-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vsphere-problem-detector-serving-cert'. The certificate is valid for 2 years.
       
 
-36. ns/openshift-cluster-version secret/cluster-version-operator-serving-cert
+34. ns/openshift-cluster-version secret/cluster-version-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-version-operator with hostname cluster-version-operator.openshift-cluster-version.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-version-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-37. ns/openshift-config-operator secret/config-operator-serving-cert
+35. ns/openshift-config-operator secret/config-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: config-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-38. ns/openshift-console secret/console-serving-cert
+36. ns/openshift-console secret/console-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/console with hostname console.openshift-console.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: console-serving-cert'. The certificate is valid for 2 years.
       
 
-39. ns/openshift-console-operator secret/serving-cert
+37. ns/openshift-console-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-console-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-40. ns/openshift-controller-manager secret/serving-cert
+38. ns/openshift-controller-manager secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/controller-manager with hostname controller-manager.openshift-controller-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-41. ns/openshift-controller-manager-operator secret/openshift-controller-manager-operator-serving-cert
+39. ns/openshift-controller-manager-operator secret/openshift-controller-manager-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-controller-manager-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-42. ns/openshift-dns secret/dns-default-metrics-tls
+40. ns/openshift-dns secret/dns-default-metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/dns-default with hostname dns-default.openshift-dns.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: dns-default-metrics-tls'. The certificate is valid for 2 years.
       
 
-43. ns/openshift-dns-operator secret/metrics-tls
+41. ns/openshift-dns-operator secret/metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-dns-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years.
       
 
-44. ns/openshift-e2e-loki secret/proxy-tls
+42. ns/openshift-e2e-loki secret/proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/promtail with hostname promtail.openshift-e2e-loki.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years.
       
 
-45. ns/openshift-etcd secret/serving-cert
+43. ns/openshift-etcd secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/etcd with hostname etcd.openshift-etcd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-46. ns/openshift-etcd-operator secret/etcd-operator-serving-cert
+44. ns/openshift-etcd-operator secret/etcd-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-etcd-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: etcd-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-47. ns/openshift-image-registry secret/image-registry-operator-tls
+45. ns/openshift-image-registry secret/image-registry-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/image-registry-operator with hostname image-registry-operator.openshift-image-registry.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: image-registry-operator-tls'. The certificate is valid for 2 years.
       
 
-48. ns/openshift-image-registry secret/image-registry-tls
+46. ns/openshift-image-registry secret/image-registry-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/image-registry with hostname image-registry.openshift-image-registry.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: image-registry-tls'. The certificate is valid for 2 years.
       
 
-49. ns/openshift-ingress secret/router-metrics-certs-default
+47. ns/openshift-ingress secret/router-metrics-certs-default
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/router-internal-default with hostname router-internal-default.openshift-ingress.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: router-metrics-certs-default'. The certificate is valid for 2 years.
       
 
-50. ns/openshift-ingress-canary secret/canary-serving-cert
+48. ns/openshift-ingress-canary secret/canary-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ingress-canary with hostname ingress-canary.openshift-ingress-canary.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: canary-serving-cert'. The certificate is valid for 2 years.
       
 
-51. ns/openshift-ingress-operator secret/metrics-tls
+49. ns/openshift-ingress-operator secret/metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-ingress-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years.
       
 
-52. ns/openshift-insights secret/openshift-insights-serving-cert
+50. ns/openshift-insights secret/insights-runtime-extractor-tls
+
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/exporter with hostname exporter.openshift-insights.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: insights-runtime-extractor-tls'. The certificate is valid for 2 years.
+      
+
+51. ns/openshift-insights secret/openshift-insights-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-insights.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-insights-serving-cert'. The certificate is valid for 2 years.
       
 
-53. ns/openshift-kube-apiserver-operator secret/kube-apiserver-operator-serving-cert
+52. ns/openshift-kube-apiserver-operator secret/kube-apiserver-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-apiserver-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-apiserver-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-54. ns/openshift-kube-controller-manager secret/serving-cert
+53. ns/openshift-kube-controller-manager secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/kube-controller-manager with hostname kube-controller-manager.openshift-kube-controller-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-55. ns/openshift-kube-controller-manager-operator secret/kube-controller-manager-operator-serving-cert
+54. ns/openshift-kube-controller-manager-operator secret/kube-controller-manager-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-controller-manager-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-56. ns/openshift-kube-scheduler secret/serving-cert
+55. ns/openshift-kube-scheduler secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/scheduler with hostname scheduler.openshift-kube-scheduler.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-57. ns/openshift-kube-scheduler-operator secret/kube-scheduler-operator-serving-cert
+56. ns/openshift-kube-scheduler-operator secret/kube-scheduler-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-scheduler-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-scheduler-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-58. ns/openshift-kube-storage-version-migrator-operator secret/serving-cert
+57. ns/openshift-kube-storage-version-migrator-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-storage-version-migrator-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-59. ns/openshift-machine-api secret/baremetal-operator-webhook-server-cert
+58. ns/openshift-machine-api secret/baremetal-operator-webhook-server-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/baremetal-operator-webhook-service with hostname baremetal-operator-webhook-service.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: baremetal-operator-webhook-server-cert'. The certificate is valid for 2 years.
       
 
-60. ns/openshift-machine-api secret/cluster-autoscaler-operator-cert
+59. ns/openshift-machine-api secret/cluster-autoscaler-operator-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-autoscaler-operator with hostname cluster-autoscaler-operator.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-autoscaler-operator-cert'. The certificate is valid for 2 years.
       
 
-61. ns/openshift-machine-api secret/cluster-baremetal-operator-tls
+60. ns/openshift-machine-api secret/cluster-baremetal-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-baremetal-operator-service with hostname cluster-baremetal-operator-service.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-baremetal-operator-tls'. The certificate is valid for 2 years.
       
 
-62. ns/openshift-machine-api secret/cluster-baremetal-webhook-server-cert
+61. ns/openshift-machine-api secret/cluster-baremetal-webhook-server-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-baremetal-webhook-service with hostname cluster-baremetal-webhook-service.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-baremetal-webhook-server-cert'. The certificate is valid for 2 years.
       
 
-63. ns/openshift-machine-api secret/control-plane-machine-set-operator-tls
+62. ns/openshift-machine-api secret/control-plane-machine-set-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/control-plane-machine-set-operator with hostname control-plane-machine-set-operator.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: control-plane-machine-set-operator-tls'. The certificate is valid for 2 years.
       
 
-64. ns/openshift-machine-api secret/machine-api-controllers-tls
+63. ns/openshift-machine-api secret/machine-api-controllers-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-controllers with hostname machine-api-controllers.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-controllers-tls'. The certificate is valid for 2 years.
       
 
-65. ns/openshift-machine-api secret/machine-api-operator-machine-webhook-cert
+64. ns/openshift-machine-api secret/machine-api-operator-machine-webhook-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-operator-machine-webhook with hostname machine-api-operator-machine-webhook.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-machine-webhook-cert'. The certificate is valid for 2 years.
       
 
-66. ns/openshift-machine-api secret/machine-api-operator-tls
+65. ns/openshift-machine-api secret/machine-api-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-operator with hostname machine-api-operator.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-tls'. The certificate is valid for 2 years.
       
 
-67. ns/openshift-machine-api secret/machine-api-operator-webhook-cert
+66. ns/openshift-machine-api secret/machine-api-operator-webhook-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-operator-webhook with hostname machine-api-operator-webhook.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-webhook-cert'. The certificate is valid for 2 years.
       
 
-68. ns/openshift-machine-config-operator secret/mcc-proxy-tls
+67. ns/openshift-machine-config-operator secret/mcc-proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-controller with hostname machine-config-controller.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: mcc-proxy-tls'. The certificate is valid for 2 years.
       
 
-69. ns/openshift-machine-config-operator secret/mco-proxy-tls
+68. ns/openshift-machine-config-operator secret/mco-proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-operator with hostname machine-config-operator.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: mco-proxy-tls'. The certificate is valid for 2 years.
       
 
-70. ns/openshift-machine-config-operator secret/proxy-tls
+69. ns/openshift-machine-config-operator secret/proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-daemon with hostname machine-config-daemon.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years.
+      
+
+70. ns/openshift-manila-csi-driver secret/manila-csi-driver-controller-metrics-serving-cert
+
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/manila-csi-driver-controller-metrics with hostname manila-csi-driver-controller-metrics.openshift-manila-csi-driver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: manila-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
 71. ns/openshift-marketplace secret/marketplace-operator-metrics
@@ -1668,42 +1779,47 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/api with hostname api.openshift-oauth-apiserver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-90. ns/openshift-operator-lifecycle-manager secret/catalog-operator-serving-cert
+90. ns/openshift-operator-controller secret/operator-controller-cert
+
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/operator-controller-service with hostname operator-controller-service.openshift-operator-controller.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: operator-controller-cert'. The certificate is valid for 2 years.
+      
+
+91. ns/openshift-operator-lifecycle-manager secret/catalog-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalog-operator-metrics with hostname catalog-operator-metrics.openshift-operator-lifecycle-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalog-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-91. ns/openshift-operator-lifecycle-manager secret/olm-operator-serving-cert
+92. ns/openshift-operator-lifecycle-manager secret/olm-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/olm-operator-metrics with hostname olm-operator-metrics.openshift-operator-lifecycle-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: olm-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-92. ns/openshift-operator-lifecycle-manager secret/package-server-manager-serving-cert
+93. ns/openshift-operator-lifecycle-manager secret/package-server-manager-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/package-server-manager-metrics with hostname package-server-manager-metrics.openshift-operator-lifecycle-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: package-server-manager-serving-cert'. The certificate is valid for 2 years.
       
 
-93. ns/openshift-ovn-kubernetes secret/ovn-control-plane-metrics-cert
+94. ns/openshift-ovn-kubernetes secret/ovn-control-plane-metrics-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ovn-kubernetes-control-plane with hostname ovn-kubernetes-control-plane.openshift-ovn-kubernetes.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ovn-control-plane-metrics-cert'. The certificate is valid for 2 years.
       
 
-94. ns/openshift-ovn-kubernetes secret/ovn-node-metrics-cert
+95. ns/openshift-ovn-kubernetes secret/ovn-node-metrics-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ovn-kubernetes-node with hostname ovn-kubernetes-node.openshift-ovn-kubernetes.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ovn-node-metrics-cert'. The certificate is valid for 2 years.
       
 
-95. ns/openshift-route-controller-manager secret/serving-cert
+96. ns/openshift-route-controller-manager secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/route-controller-manager with hostname route-controller-manager.openshift-route-controller-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-96. ns/openshift-service-ca secret/signing-key
+97. ns/openshift-service-ca secret/signing-key
 
       **Description:** Service CA secret contains a signing key that will be used to issue a signed serving certificate/key pair to services annotated with 'service.beta.openshift.io/serving-cert-secret-name'
       
 
-97. ns/openshift-service-ca-operator secret/serving-cert
+98. ns/openshift-service-ca-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-service-ca-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
