@@ -325,7 +325,6 @@ infrastructures.config.openshift.io:
   - NutanixMultiSubnets
   - VSphereHostVMGroupZonal
   - VSphereMultiNetworks
-  - VSphereMultiVCenters
   FilenameOperatorName: config-operator
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"
