@@ -85,7 +85,7 @@ func (t *UpgradeTest) getServiceIP(f *framework.Framework) string {
 
 // createDNSTestDaemonSet creates a DaemonSet to test DNS availability
 func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceIP string) *kappsv1.DaemonSet {
-	cmd := fmt.Sprintf("while true; do dig +short @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
+	cmd := fmt.Sprintf("while true; do date && dig +short @%s google.com || echo $(date) fail && sleep 1; done", dnsServiceIP)
 	ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), &kappsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{Name: appName},
 		Spec: kappsv1.DaemonSetSpec{
@@ -140,17 +140,34 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 		failureCount := 0.0
 		successCount := 0.0
+		totalLineCount := 0
 		scan := bufio.NewScanner(r)
+		var ipParseErrors []string
+		var timeStampCollection []string
 		for scan.Scan() {
 			line := scan.Text()
-			if strings.Contains(line, "fail") {
+			totalLineCount++
+			if t, e := time.Parse(time.UnixDate, line); e == nil {
+				timeStampCollection = append(timeStampCollection, t.String())
+			} else if strings.Contains(line, "fail") {
 				failureCount++
 			} else if ip := net.ParseIP(line); ip != nil {
 				successCount++
+			} else {
+				ipParseErrors = append(ipParseErrors, fmt.Sprintf("line (%s) was not parsable by net.ParseIP", line))
 			}
 		}
+		if ipParseErrors != nil {
+			ginkgo.By(fmt.Sprintf("Found IP Parse Errors %s", ipParseErrors))
+		}
+		if timeStampCollection != nil {
+			ginkgo.By(fmt.Sprintf("TimeStamp Start (%s) End (%s) Count(%d)", timeStampCollection[0], timeStampCollection[len(timeStampCollection)-1], len(timeStampCollection)))
+		}
+		framework.ExpectNoError(scan.Err())
+		successRate := (successCount / (successCount + failureCount)) * 100
+		ginkgo.By(fmt.Sprintf("SuccessRate: %f SuccessCount: %f, FailureCount: %f | TotalLineCount: %d", successRate, successCount, failureCount, totalLineCount))
 
-		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
+		if successRate < 99 {
 			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
 		} else {
 			err = nil
