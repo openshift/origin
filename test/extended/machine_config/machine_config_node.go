@@ -29,7 +29,7 @@ const (
 	arbiter = "arbiter"
 )
 
-var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	defer g.GinkgoRecover()
 	var (
 		MCOMachineConfigPoolBaseDir    = exutil.FixturePath("testdata", "machine_config", "machineconfigpool")
@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 		}
 	})
 
-	g.It("Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/parallel]Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) || IsTwoNode(oc) { //handle SNO & two-node clusters
 			// In SNO and standard two-node openshift clusters, the nodes have both worker and master roles, but are a part
 			// of the master MCP. Thus, the tests for these clusters will be limited to checking master MCP association.
@@ -67,13 +67,13 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 		}
 	})
 
-	g.It("[Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/serial][Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
 		skipOnSingleNodeTopology(oc) //skip this test for SNO
 		skipOnTwoNodeTopology(oc)    //skip this test for two-node openshift
 		ValidateMCNPropertiesCustomMCP(oc, infraMCPFixture)
 	})
 
-	g.It("[Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/serial][Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
 		if IsSingleNode(oc) {
 			ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
 		} else {
