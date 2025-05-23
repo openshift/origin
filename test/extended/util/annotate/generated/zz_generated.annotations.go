@@ -263,6 +263,8 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch][Late][Jira:\"kube-apiserver\"] [OCPFeatureGate:ShortCertRotation] all certificates should expire in no more than 8 hours": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch][Late][Jira:\"kube-apiserver\"] all registered tls artifacts must have no metadata violation regressions": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Late][Jira:\"kube-apiserver\"] all tls artifacts must be registered": " [Suite:openshift/conformance/parallel]",

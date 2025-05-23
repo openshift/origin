@@ -784,6 +784,10 @@ spec:
         [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with
         the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+  - featureGate: ShortCertRotation
+    tests:
+    - testName: '[sig-arch][Late][Jira:"kube-apiserver"] [OCPFeatureGate:ShortCertRotation]
+        all certificates should expire in no more than 8 hours'
   - featureGate: SigstoreImageVerification
     tests:
     - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
