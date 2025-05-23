@@ -65,13 +65,14 @@ intervention.
 To assert that a particular cert/key pair or CA bundle can do this, add the annotation to the secret or configmap.
 ```yaml
   annotations:
-    certificates.openshift.io/auto-regenerate-after-offline-expiry: https//github.com/link/to/pr/adding/annotation, "quote escaped formatted name of e2e test that ensures the PKI artifact functions properly"
+    certificates.openshift.io/auto-regenerate-after-offline-expiry: true
 ```
 
 This assertion means that you have
 1. Manually tested that this works or seen someone else manually test that this works.  AND
 2. Written an automated e2e test to ensure this PKI artifact is function that is a blocking GA criteria, and/or
-      QE has required test every release that ensures the functionality works every release.
+3. QE has required test every release that ensures the functionality works every release.
+      This TLS artifact has associated test name annotation ("certificates.openshift.io/test-name").
 If you have not done this, you should not merge the annotation.
 
 ## Items Do NOT Meet the Requirement (240)
