@@ -132,7 +132,6 @@ var (
 			"OAuthServingCertValidationDegraded",
 			"OAuthServingCertValidationProgressing",
 			"OCDownloadsSyncDegraded",
-			"ODODownloadsSyncDegraded",
 			"OIDCClientConfigDegraded",
 			"OIDCClientConfigProgressing",
 			"PDBSyncDegraded",
