@@ -111,6 +111,10 @@ var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func(
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "signed", "latest")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("triggering delete operation with --dry-run=server")
+		err = oc.Run("delete").Args("istag/signed:latest", "--dry-run=server").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		g.By("obtaining the signed:latest image name")
 		imageName, err := oc.Run("get").Args("istag", "signed:latest", "-o", "jsonpath={.image.metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
