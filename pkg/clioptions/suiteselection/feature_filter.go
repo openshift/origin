@@ -70,7 +70,11 @@ func (f *featureGateFilter) includeTest(name string) bool {
 		return false
 	}
 
-	return f.enabled.HasAll(featureGates...)
+	// It is important that we always return true if we don't know the status of the gate.
+	// This generally means we have no opinion on whether the feature is on or off.
+	// We expect the default case to be on, as this is what would happen after a feature is promoted,
+	// and the gate is removed.
+	return true
 }
 
 func includeNonFeatureGateTest(name string) bool {
