@@ -469,6 +469,14 @@ spec:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
         OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas
         endpoint'
+  - featureGate: NewOLMOwnSingleNamespace
+    tests:
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
+        OLMv1 operator single/own namespace support should install a cluster extension
+        in OtherNamespace mode'
+    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
+        OLMv1 operator single/own namespace support should install a cluster extension
+        in SingleNamespace mode'
   - featureGate: NewOLMPreflightPermissionChecks
     tests:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
