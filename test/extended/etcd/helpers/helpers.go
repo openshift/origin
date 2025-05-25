@@ -8,6 +8,7 @@ import (
 	"time"
 
 	o "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/api/machine/v1"
@@ -15,9 +16,11 @@ import (
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
 )
@@ -80,8 +84,9 @@ func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machi
 		//if templateMachine is provided, form the new machine name using the same clusterIdRole and index
 		machineToClone = templateMachine.DeepCopy()
 		machineIndex := machineToClone.Name[strings.LastIndex(machineToClone.Name, "-")+1:]
-		machineClusterIdRole := machineToClone.Name[:strings.LastIndex(machineToClone.Name, "-")]
-		machineToClone.Name = fmt.Sprintf("%s-%s-%s", machineClusterIdRole, rand.String(5), machineIndex)
+		clusterId := machineToClone.ObjectMeta.Labels[machinev1beta1.MachineClusterIDLabel]
+		machineRole := machineToClone.ObjectMeta.Labels["machine.openshift.io/cluster-api-machine-role"]
+		machineToClone.Name = fmt.Sprintf("%s-%s-%s-%s", clusterId, machineRole, rand.String(5), machineIndex)
 	}
 
 	machineToClone.Spec.ProviderID = nil
@@ -133,14 +138,14 @@ func EnsureInitialClusterState(ctx context.Context, t TestingT, etcdClientFactor
 	if err := EnsureVotingMembersCount(ctx, t, etcdClientFactory, kubeClient, 3); err != nil {
 		return err
 	}
-	return EnsureMasterMachinesAndCount(ctx, t, machineClient)
+	return EnsureMasterMachinesAndCount(ctx, t, 3, machineClient)
 }
 
-// EnsureMasterMachinesAndCount checks if there are only 3 running master machines otherwise it returns an error
-func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) error {
+// EnsureMasterMachinesAndCount checks if there are only given number of running master machines otherwise it returns an error
+func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, expectedCount int, machineClient machinev1beta1client.MachineInterface) error {
 	waitPollInterval := 15 * time.Second
 	waitPollTimeout := 10 * time.Minute
-	t.Logf("Waiting up to %s for the cluster to reach the expected machines count of 3", waitPollTimeout.String())
+	t.Logf("Waiting up to %s for the cluster to reach the expected machines count of %d", waitPollTimeout.String(), expectedCount)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
 		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
@@ -148,12 +153,12 @@ func EnsureMasterMachinesAndCount(ctx context.Context, t TestingT, machineClient
 			return isTransientAPIError(t, err)
 		}
 
-		if len(machineList.Items) != 3 {
+		if len(machineList.Items) != expectedCount {
 			var machineNames []string
 			for _, machine := range machineList.Items {
 				machineNames = append(machineNames, machine.Name)
 			}
-			t.Logf("expected exactly 3 master machines, got %d, machines are: %v", len(machineList.Items), machineNames)
+			t.Logf("expected exactly %d master machines, got %d, machines are: %v", expectedCount, len(machineList.Items), machineNames)
 			return false, nil
 		}
 
@@ -595,6 +600,66 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 		}
 	}
 	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on the following machine's IPs: %v, checked: %v", machineName, machineIPListSet.List(), nodeNames)
+}
+
+// StopKubelet stops the kubelet on the given node by spwaning a pod on the node and running the stop kubelet command
+func StopKubelet(ctx context.Context, adminKubeClient kubernetes.Interface, node *corev1.Node) error {
+	if node == nil {
+		return fmt.Errorf("cannot stop kubelet: node reference is nil; a valid node is required")
+	}
+
+	podSpec := applycorev1.PodSpec().WithRestartPolicy(corev1.RestartPolicyNever).WithHostNetwork(true).WithHostPID(true)
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName("kubelet-stopper").
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true).WithRunAsUser(0)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(applycorev1.VolumeMount().WithName("host").WithMountPath("/host")).
+			WithCommand("/bin/sh").
+			WithArgs("-c", "chroot /host /bin/sh -c 'sleep 1 && systemctl stop kubelet'"),
+	}
+	podSpec.NodeSelector = map[string]string{"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"]}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{*applycorev1.Toleration().WithOperator(corev1.TolerationOpExists)}
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("host").WithHostPath(applycorev1.HostPathVolumeSource().WithPath("/").WithType("Directory")),
+	}
+
+	pod := applycorev1.Pod("kubelet-stopper", "openshift-etcd").WithSpec(podSpec)
+	_, err := adminKubeClient.CoreV1().Pods(*pod.Namespace).Apply(context.Background(), pod, metav1.ApplyOptions{FieldManager: *pod.Name})
+	if err != nil {
+		return fmt.Errorf("error applying pod %w", err)
+	}
+
+	isNodeNotReady := e2enode.WaitForNodeToBeNotReady(ctx, adminKubeClient, node.Name, 5*time.Minute)
+	if !isNodeNotReady {
+		return fmt.Errorf("timed out waiting for the node %s to be NotReady", node.Name)
+	}
+
+	return nil
+}
+
+func AssertVotingMemberAndMasterMachineCount(ctx context.Context, t TestingT, expectedCount int, actionDescription string, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface, etcdClientFactory EtcdClientCreator) {
+	framework.Logf("Waiting for etcd membership to show %d voting members", expectedCount)
+	err := EnsureVotingMembersCount(ctx, t, etcdClientFactory, kubeClient, expectedCount)
+	err = errors.Wrapf(err, "%s: timed out waiting for %d voting members in the etcd cluster and etcd-endpoints configmap", actionDescription, expectedCount)
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+	framework.Logf("Waiting for %d Running master machines", expectedCount)
+	err = EnsureMasterMachinesAndCount(ctx, t, expectedCount, machineClient)
+	err = errors.Wrapf(err, "%s: timed out waiting for only %d Running master machines", actionDescription, expectedCount)
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+}
+
+func AssertCPMSReplicasAndConvergence(ctx context.Context, t TestingT, expectedCount int, actionDescription string, cpmsClient machinev1client.ControlPlaneMachineSetInterface, nodeClient v1.NodeInterface) {
+	framework.Logf("Waiting for %d ready replicas on CPMS", expectedCount)
+	err := EnsureReadyReplicasOnCPMS(ctx, t, expectedCount, cpmsClient, nodeClient)
+	err = errors.Wrapf(err, "%s: timed out waiting for CPMS to show %d ready replicas", actionDescription, expectedCount)
+	o.Expect(err).ToNot(o.HaveOccurred())
+
+	framework.Logf("Waiting for CPMS replicas to converge")
+	err = EnsureCPMSReplicasConverged(ctx, cpmsClient)
+	o.Expect(err).ToNot(o.HaveOccurred())
 }
 
 func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
