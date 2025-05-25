@@ -192,13 +192,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer listContextCancel()
 
-		envFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
+		osEnv := updateEnvVars(o.AsEnv())
+
+		clusterEnvFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
 		if err != nil {
 			return fmt.Errorf("could not determine environment flags: %w", err)
 		}
-		logrus.WithField("flags", envFlags.String()).Infof("Determined all potential environment flags")
+		logrus.WithField("flags", clusterEnvFlags.String()).Infof("Determined all potential environment flags")
 
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
+		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, osEnv, clusterEnvFlags)
 		if err != nil {
 			return err
 		}
