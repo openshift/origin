@@ -9,7 +9,6 @@ import (
 	_ "github.com/openshift/origin/test/e2e/upgrade"
 	_ "github.com/openshift/origin/test/extended/adminack"
 	_ "github.com/openshift/origin/test/extended/apiserver"
-	_ "github.com/openshift/origin/test/extended/arbiter_topology"
 	_ "github.com/openshift/origin/test/extended/authentication"
 	_ "github.com/openshift/origin/test/extended/authorization"
 	_ "github.com/openshift/origin/test/extended/authorization/rbac"
@@ -58,6 +57,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/storage"
 	_ "github.com/openshift/origin/test/extended/tbr_health"
 	_ "github.com/openshift/origin/test/extended/templates"
+	_ "github.com/openshift/origin/test/extended/two_node"
 	_ "github.com/openshift/origin/test/extended/user"
 	_ "github.com/openshift/origin/test/extended/windows"
 )
