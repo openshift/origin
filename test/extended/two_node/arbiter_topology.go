@@ -33,7 +33,7 @@ var (
 	}
 )
 
-var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and Arbiter node counts", func() {
+var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("")
 
@@ -66,7 +66,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] expected Master and
 	})
 })
 
-var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on the Arbiter node", func() {
+var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] required pods on the Arbiter node", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] required pods on th
 	})
 })
 
-var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on HighlyAvailableArbiterMode topology", func() {
+var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Deployments on HighlyAvailableArbiterMode topology", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("arbiter-pod-validation").SetManagedNamespace().AsAdmin()
@@ -202,7 +202,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Deployments on Highly
 	})
 })
 
-var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology", func() {
+var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("daemonset-pod-validation").SetManagedNamespace().AsAdmin()
 
@@ -252,7 +252,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io] Evaluate DaemonSet pl
 	})
 })
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Ensure etcd health and quorum in HighlyAvailableArbiterMode", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Ensure etcd health and quorum in HighlyAvailableArbiterMode", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 
