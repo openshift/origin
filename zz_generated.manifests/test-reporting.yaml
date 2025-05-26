@@ -603,7 +603,7 @@ spec:
         when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
         defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
         Over a VRF-Lite configuration Pods should be able to communicate on a secondary
-        network'
+        network [Timeout:30m]'
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
         when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user
         defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]
