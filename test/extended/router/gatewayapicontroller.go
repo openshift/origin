@@ -252,7 +252,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		assertHttpRouteConnection(defaultRoutename)
 	})
 
-	g.It("Ensure OSSM subscription and istio could be deleted and then get recreated", func() {
+	g.It("Ensure OSSM subscription, istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
 		const (
 			operatorNamespace      = "openshift-operators"
 			ingressNamespace       = "openshift-ingress"
@@ -312,7 +312,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		}, 5*time.Minute, time.Second).Should(o.Equal("1"))
 	})
 
-	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated", func() {
+	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]", func() {
 		const (
 			operatorNamespace = "openshift-operators"
 			ingressNamespace  = "openshift-ingress"
