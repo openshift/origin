@@ -534,7 +534,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 				// All VRF-Lite checks for 'vrfLiteCUDNName' need to happen on a
 				// single test (or otherwise we should resort to a serial job)
-				g.It("Pods should be able to communicate on a secondary network", func() {
+				// This test has a long timeout due to its serial nature and also
+				// because of OCPBUGS-56488
+				g.It("Pods should be able to communicate on a secondary network [Timeout:30m]", func() {
 					g.By("testing with a layer 3 CUDN", func() { test("layer3") })
 					// TODO: Add test for layer 2 UDN once CORENET-5881 is done.
 					//g.By("testing with a layer 2 CUDN", func() { test("layer2") })

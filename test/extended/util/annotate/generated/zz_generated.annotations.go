@@ -1779,7 +1779,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io] when using openshift ovn-kubernetes [EgressIP] Advertising EgressIP [apigroup:user.openshift.io][apigroup:security.openshift.io] For the default network Pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io] When the network is IPv6": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io] when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io] Over a VRF-Lite configuration Pods should be able to communicate on a secondary network": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io] when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io] Over a VRF-Lite configuration Pods should be able to communicate on a secondary network [Timeout:30m]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io] when using openshift ovn-kubernetes [PodNetwork] Advertising a cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io] Over the default VRF When the network topology is Layer 2 External host should be able to query route advertised pods by the pod IP": " [Suite:openshift/conformance/parallel]",
 
