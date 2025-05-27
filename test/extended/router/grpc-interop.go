@@ -181,7 +181,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			_, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair("Root CA", notBefore, notAfter)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			derKey, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey)
+			pemKey, err := certgen.MarshalPrivateKeyToPEMString(tlsPrivateKey)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			pemCrt, err := certgen.MarshalCertToPEMString(tlsCrtData)
@@ -227,7 +227,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationEdge,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           derKey,
+							Key:                           pemKey,
 							Certificate:                   pemCrt,
 						},
 						To: routev1.RouteTargetReference{
@@ -253,7 +253,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationReencrypt,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           derKey,
+							Key:                           pemKey,
 							Certificate:                   pemCrt,
 						},
 						To: routev1.RouteTargetReference{
