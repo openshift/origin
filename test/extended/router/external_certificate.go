@@ -749,7 +749,7 @@ func generateTLSCertSecret(namespace, secretName string, secretType corev1.Secre
 		return nil, nil, err
 	}
 
-	derKey, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey)
+	pemKey, err := certgen.MarshalPrivateKeyToPEMString(tlsPrivateKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -766,7 +766,7 @@ func generateTLSCertSecret(namespace, secretName string, secretType corev1.Secre
 		},
 		StringData: map[string]string{
 			"tls.crt": pemCrt,
-			"tls.key": derKey,
+			"tls.key": pemKey,
 		},
 		Type: secretType,
 	}, rootDerBytes, nil
