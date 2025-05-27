@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -31,9 +32,16 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Seria
 	oc := exutil.NewCLIWithoutNamespace("network-diagnostics")
 
 	g.BeforeAll(func(ctx context.Context) {
+		// Check if the test can write to cluster/network.config.openshift.io
+		hasAccess, err := hasNetworkConfigWriteAccess(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !hasAccess {
+			skipper.Skipf("The test is not permitted to modify the cluster/network.config.openshift.io resource")
+		}
+
 		// Reset and take ownership of the network diagnostics config
 		patch := []byte(`{"spec":{"networkDiagnostics":null}}`)
-		_, err := oc.AdminConfigClient().ConfigV1().Networks().Patch(ctx, clusterConfig, types.MergePatchType, patch, metav1.PatchOptions{FieldManager: fieldManager})
+		_, err = oc.AdminConfigClient().ConfigV1().Networks().Patch(ctx, clusterConfig, types.MergePatchType, patch, metav1.PatchOptions{FieldManager: fieldManager})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
