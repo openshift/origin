@@ -23,6 +23,7 @@ import (
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -488,6 +489,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					g.By("deploy nmstate handler")
 					err = deployNmstateHandler(oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// This is a workaround for OCPBUGS-56488: scale down
+					// nmstate operator and disable liveness probe
+					o.Eventually(workaroundOCPBUGS56488).WithArguments(oc).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(o.BeTrue())
 				})
 
 				g.AfterEach(func() {
@@ -1425,10 +1430,10 @@ func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNames
 		logs, err := getDaemonSetLogs(oc.KubeFramework().ClientSet, snifferDaemonset)
 		if err != nil {
 			framework.Logf("failed to gather packet sniffer logs: %v", err)
-			return
-		}
-		for node, log := range logs {
-			framework.Logf("packet sniffer logs for node %s:\n%s", node, log)
+		} else {
+			for node, log := range logs {
+				framework.Logf("packet sniffer logs for node %s:\n%s", node, log)
+			}
 		}
 	}
 
@@ -1504,4 +1509,22 @@ func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNames
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
+}
+
+func workaroundOCPBUGS56488(oc *exutil.CLI) (bool, error) {
+	opPatch := []byte(`{"spec":{"replicas": 0}}`)
+	dp, err := oc.AdminKubeClient().AppsV1().Deployments(nmstateNamespace).Patch(context.Background(), "nmstate-operator", types.MergePatchType, opPatch, metav1.PatchOptions{})
+	if err != nil {
+		return false, err
+	}
+	err = exutil.WaitForDeploymentReadyWithTimeout(oc, "nmstate-operator", nmstateNamespace, dp.Generation, 0)
+	if err != nil {
+		return false, err
+	}
+	hPatch := []byte(`{"spec":{"template":{"spec":{"containers":[{"name":"nmstate-handler","livenessProbe":{"exec":{"command": ["true"]}}}]}}}}`)
+	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(nmstateNamespace).Patch(context.Background(), "nmstate-handler", types.StrategicMergePatchType, hPatch, metav1.PatchOptions{})
+	if err != nil {
+		return false, err
+	}
+	return isDaemonSetRunningOnGeneration(oc, nmstateNamespace, "nmstate-handler", ds.Generation)
 }
