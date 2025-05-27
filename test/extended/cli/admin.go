@@ -424,21 +424,28 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	})
 
 	g.It("new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io]", func() {
+		projectName := gen.GenerateName("recreated-project-")
 		// Test deleting and recreating a project
-		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser1").Execute()).To(o.Succeed())
-		o.Expect(oc.Run("delete").Args("project", "recreated-project").Execute()).To(o.Succeed())
-		err := wait.Poll(cliInterval, deleteCliTimeout, func() (bool, error) {
-			out, err := ocns.Run("get").Args("project/recreated-project").Output()
+		o.Expect(oc.Run("adm", "new-project").Args(projectName, "--admin=createuser1").Execute()).To(o.Succeed())
+		err := wait.PollUntilContextTimeout(context.TODO(), cliInterval, deleteCliTimeout, false, func(ctx context.Context) (done bool, err error) {
+			// we are polling delete operation in here. Because after the creation of the project,
+			// different controllers (like ovn) update the namespace and this consequently result in resourceVersion mismatch.
+			err = oc.Run("delete").Args("project", projectName).Execute()
+			return err == nil, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = wait.PollUntilContextTimeout(context.TODO(), cliInterval, deleteCliTimeout, true, func(ctx context.Context) (done bool, err error) {
+			out, err := ocns.Run("get").Args(fmt.Sprintf("project/%s", projectName)).Output()
 			return err != nil && strings.Contains(out, "not found"), nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(oc.Run("adm", "new-project").Args("recreated-project", "--admin=createuser2").Execute()).To(o.Succeed())
+		o.Expect(oc.Run("adm", "new-project").Args(projectName, "--admin=createuser2").Execute()).To(o.Succeed())
 		defer func() {
-			oc.Run("delete").Args("project", "recreated-project").Execute()
+			oc.Run("delete").Args("project", projectName).Execute()
 		}()
 
-		out, err := oc.Run("get").Args("rolebinding", "admin", "-n", "recreated-project", "-o", "jsonpath={.subjects[*].name}").Output()
+		out, err := oc.Run("get").Args("rolebinding", "admin", "-n", projectName, "-o", "jsonpath={.subjects[*].name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("createuser2"))
 	})
