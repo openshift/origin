@@ -1008,7 +1008,6 @@ type BareMetalPlatformStatus struct {
 	// loadBalancer defines how the load balancer used by the cluster is configured.
 	// +default={"type": "OpenShiftManagedDefault"}
 	// +kubebuilder:default={"type": "OpenShiftManagedDefault"}
-	// +openshift:enable:FeatureGate=BareMetalLoadBalancer
 	// +optional
 	LoadBalancer *BareMetalPlatformLoadBalancer `json:"loadBalancer,omitempty"`
 
@@ -1222,7 +1221,6 @@ type OvirtPlatformStatus struct {
 	// loadBalancer defines how the load balancer used by the cluster is configured.
 	// +default={"type": "OpenShiftManagedDefault"}
 	// +kubebuilder:default={"type": "OpenShiftManagedDefault"}
-	// +openshift:enable:FeatureGate=BareMetalLoadBalancer
 	// +optional
 	LoadBalancer *OvirtPlatformLoadBalancer `json:"loadBalancer,omitempty"`
 }
@@ -1671,7 +1669,6 @@ type VSpherePlatformStatus struct {
 	// loadBalancer defines how the load balancer used by the cluster is configured.
 	// +default={"type": "OpenShiftManagedDefault"}
 	// +kubebuilder:default={"type": "OpenShiftManagedDefault"}
-	// +openshift:enable:FeatureGate=BareMetalLoadBalancer
 	// +optional
 	LoadBalancer *VSpherePlatformLoadBalancer `json:"loadBalancer,omitempty"`
 
@@ -2089,7 +2086,6 @@ type NutanixPlatformStatus struct {
 	// loadBalancer defines how the load balancer used by the cluster is configured.
 	// +default={"type": "OpenShiftManagedDefault"}
 	// +kubebuilder:default={"type": "OpenShiftManagedDefault"}
-	// +openshift:enable:FeatureGate=BareMetalLoadBalancer
 	// +optional
 	LoadBalancer *NutanixPlatformLoadBalancer `json:"loadBalancer,omitempty"`
 }

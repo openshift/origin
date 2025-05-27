@@ -24,7 +24,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 		return nil, nil, err
 	}
 
-	e2e.Logf(fmt.Sprintf("Creating NFS server"))
+	e2e.Logf("Creating NFS server")
 	config := volume.TestConfig{
 		Namespace: oc.Namespace(),
 		Prefix:    "nfs",
@@ -52,7 +52,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 	pvs := []*kapiv1.PersistentVolume{}
 	volLabel := labels.Set{e2epv.VolumeSelectorKey: oc.Namespace()}
 	for i := 0; i < count; i++ {
-		e2e.Logf(fmt.Sprintf("Creating persistent volume %d", i))
+		e2e.Logf("Creating persistent volume %d", i)
 		pvConfig := e2epv.PersistentVolumeConfig{
 			NamePrefix: "nfs-",
 			Labels:     volLabel,
