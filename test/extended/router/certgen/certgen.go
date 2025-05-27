@@ -14,10 +14,10 @@ import (
 	"time"
 )
 
-// MarshalPrivateKeyToDERFormat converts the key to a string
-// representation (SEC 1, ASN.1 DER form) suitable for dropping into a
+// MarshalPrivateKeyToPEMString converts the key to a string
+// representation (PEM form) suitable for dropping into a
 // route's TLS key stanza.
-func MarshalPrivateKeyToDERFormat(key *ecdsa.PrivateKey) (string, error) {
+func MarshalPrivateKeyToPEMString(key *ecdsa.PrivateKey) (string, error) {
 	data, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal private key: %v", err)
