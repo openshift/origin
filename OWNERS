@@ -18,6 +18,7 @@ filters:
     - stbenjam
     - xueqzhan
     - sosiouxme
+    - smg247
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
