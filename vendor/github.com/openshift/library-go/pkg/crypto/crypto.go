@@ -144,6 +144,9 @@ var ciphers = map[string]uint16{
 	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":        tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
 	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
 	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	"TLS_AES_128_GCM_SHA256":                        tls.TLS_AES_128_GCM_SHA256,
+	"TLS_AES_256_GCM_SHA384":                        tls.TLS_AES_256_GCM_SHA384,
+	"TLS_CHACHA20_POLY1305_SHA256":                  tls.TLS_CHACHA20_POLY1305_SHA256,
 }
 
 // openSSLToIANACiphersMap maps OpenSSL cipher suite names to IANA names
@@ -270,17 +273,20 @@ func DefaultCiphers() []uint16 {
 		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,   // forbidden by http/2, not flagged by http2isBadCipher() in go1.8
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    // forbidden by http/2
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,    // forbidden by http/2
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,      // forbidden by http/2
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,      // forbidden by http/2
-		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,         // forbidden by http/2
-		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,         // forbidden by http/2
+		// tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,   // forbidden by http/2
+		// tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,   // forbidden by http/2
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // forbidden by http/2
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // forbidden by http/2
 		// the next one is in the intermediate suite, but go1.8 http2isBadCipher() complains when it is included at the recommended index
 		// because it comes after ciphers forbidden by the http/2 spec
 		// tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
 		// tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, // forbidden by http/2, disabled to mitigate SWEET32 attack
 		// tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,       // forbidden by http/2, disabled to mitigate SWEET32 attack
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA, // forbidden by http/2
-		tls.TLS_RSA_WITH_AES_256_CBC_SHA, // forbidden by http/2
+		// tls.TLS_RSA_WITH_AES_128_CBC_SHA,        // forbidden by http/2
+		// tls.TLS_RSA_WITH_AES_256_CBC_SHA,        // forbidden by http/2
+		tls.TLS_AES_128_GCM_SHA256,
+		tls.TLS_AES_256_GCM_SHA384,
+		tls.TLS_CHACHA20_POLY1305_SHA256,
 	}
 }
 
