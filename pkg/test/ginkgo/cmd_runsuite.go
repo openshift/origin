@@ -509,7 +509,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 		// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
 		// a list of tests to retry.
+		failedExtensionTestCount := 0
 		for _, test := range failing {
+			// Do not retry extension tests -- we also want to remove retries from origin-sourced
+			// tests, but extensions is where we can start.
+			if test.binary != nil {
+				failedExtensionTestCount++
+				continue
+			}
+
 			retry := test.Retry()
 			retries = append(retries, retry)
 			if len(retries) > suite.MaximumAllowedFlakes {
@@ -517,7 +525,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			}
 		}
 
-		logrus.Warningf("Retry count: %d", len(retries))
+		logrus.Warningf("%d tests failed, %d origin-sourced tests will be retried; %d extension tests will not", len(failing), len(retries), failedExtensionTestCount)
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
