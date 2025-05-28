@@ -209,6 +209,8 @@ func GetJobType(ctx context.Context, clientConfig *rest.Config) (*JobType, error
 		platform = "libvirt"
 	case configv1.KubevirtPlatformType:
 		platform = "kubevirt"
+	case configv1.NonePlatformType:
+		platform = "none"
 	}
 
 	networkType := ""
