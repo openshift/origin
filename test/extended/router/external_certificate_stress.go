@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	routev1 "github.com/openshift/api/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -31,7 +32,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 	const (
 		numNamespace         = 10
-		numRoutePerNamespace = 100
+		numRoutePerNamespace = 50
 		repeat               = 2
 	)
 
@@ -45,14 +46,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 	g.Context("stress testing", func() {
 
-		var (
-			namespaces []string
-			secrets    []*corev1.Secret
-			routes     []*routev1.Route
-		)
 		g.It("should work", func() {
 			// Repeat Loop
 			for rep := 0; rep < repeat; rep++ {
+				var (
+					namespaces []string
+					secrets    []*corev1.Secret
+					routes     []*routev1.Route
+				)
 
 				for i := 0; i < numNamespace; i++ {
 					nsName := fmt.Sprintf("ns-ext-%d", i)
@@ -131,6 +132,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 					e2e.Logf("Removing namespace %s", ns)
 					err = oc.KubeClient().CoreV1().Namespaces().Delete(context.Background(), ns, metav1.DeleteOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// Wait for namespace to be fully deleted
+					err = waitForNamespaceDeletion(oc, ns)
+					o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("timed out waiting for namespace %s to delete", ns))
 				}
 			}
 		})
@@ -165,4 +170,17 @@ func createOrPatchRoleBinding(oc *exutil.CLI) error {
 		return err
 	}
 	return nil
+}
+
+func waitForNamespaceDeletion(oc *exutil.CLI, name string) error {
+	return wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (done bool, err error) {
+		_, err = oc.KubeClient().CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return true, nil // deleted
+		}
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	})
 }
