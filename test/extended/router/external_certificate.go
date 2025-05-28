@@ -25,6 +25,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
@@ -445,11 +446,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						hostName, err := getHostnameForRoute(oc, routeToTest.Name)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
-						// Check if the job is running on a metal platform
-						metal, err := isMetalJob(oc)
+						// Check if the job is running on an on-prem platform
+						onPrem, err := isOnPremJob(oc)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
-						if metal {
+						if onPrem {
 							execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod")
 							defer func() {
 								oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
@@ -486,7 +487,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 
 // httpsGetCall makes an HTTPS GET request to the specified hostname with retries.
 // It uses the provided rootDerBytes as the trusted CA certificate.
-// For metal platforms, it uses an exec pod to make the request.
+// For on-prem platforms, it uses an exec pod to make the request.
 func httpsGetCall(oc *exutil.CLI, hostname string, rootDerBytes []byte) (string, error) {
 	url := fmt.Sprintf("https://%s", hostname)
 	e2e.Logf("running https get for host %q", hostname)
@@ -500,14 +501,14 @@ func httpsGetCall(oc *exutil.CLI, hostname string, rootDerBytes []byte) (string,
 		Bytes: rootDerBytes,
 	})
 
-	// Check if the job is running on a metal platform
-	metal, err := isMetalJob(oc)
+	// Check if the job is running on an on-prem platform
+	onPrem, err := isOnPremJob(oc)
 	if err != nil {
 		return "", err
 	}
 
-	if metal {
-		e2e.Logf("Running on a metal platform")
+	if onPrem {
+		e2e.Logf("Running on an on-prem platform")
 		return httpsGetCallWithExecPod(oc, url, rootCertPEM)
 	}
 
@@ -531,7 +532,7 @@ func httpsGetCall(oc *exutil.CLI, hostname string, rootDerBytes []byte) (string,
 }
 
 // httpsGetCallWithExecPod makes HTTPS GET request using an exec pod.
-// This function is used specifically for metal platforms where external DNS resolution
+// This function is used specifically for on-prem platforms where external DNS resolution
 // might be problematic. It creates a ConfigMap using the given root CA certificate,
 // mounts it to the exec pod, and then uses curl within the pod to make the HTTPS request with retries.
 func httpsGetCallWithExecPod(oc *exutil.CLI, url string, rootCertPEM []byte) (string, error) {
@@ -887,11 +888,15 @@ func patchRouteToRemoveExternalCertificate(oc *exutil.CLI, routeName string) err
 	return err
 }
 
-// isMetalJob checks if the current job is running on a metal platform.
-func isMetalJob(oc *exutil.CLI) (bool, error) {
+// isOnPremJob checks if the current job is running on an on-prem platform.
+func isOnPremJob(oc *exutil.CLI) (bool, error) {
+	onPremPlatforms := sets.NewString("metal", "openstack", "kubevirt")
+
 	jobType, err := platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
 	if err != nil {
 		return false, err
 	}
-	return jobType.Platform == "metal", nil
+	e2e.Logf("Detected platform: %s", jobType.Platform)
+
+	return onPremPlatforms.Has(jobType.Platform), nil
 }
