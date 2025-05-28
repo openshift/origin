@@ -261,7 +261,9 @@ func generateGCPProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string,
 	newBootImage := "projects/centos-cloud/global/images/family/centos-stream-9"
 	newProviderSpec := providerSpec.DeepCopy()
 	for idx := range newProviderSpec.Disks {
-		newProviderSpec.Disks[idx].Image = newBootImage
+		if newProviderSpec.Disks[idx].Boot {
+			newProviderSpec.Disks[idx].Image = newBootImage
+		}
 	}
 	newProviderSpecPatch, err := marshalProviderSpec(newProviderSpec)
 	o.Expect(err).NotTo(o.HaveOccurred())
