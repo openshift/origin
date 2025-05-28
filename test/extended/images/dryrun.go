@@ -7,6 +7,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
@@ -18,7 +19,7 @@ var _ = g.Describe("[sig-imageregistry] Image --dry-run", func() {
 
 	g.It("should not delete resources [apigroup:image.openshift.io]", func() {
 		g.By("preparing the image stream where the test image will be pushed")
-		_, err := oc.Run("create").Args("imagestreamtag", "test:latest", "--from=tools:latest").Output()
+		err := oc.Run("tag").Args("--source=docker", image.ShellImage(), "test:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "test", "latest")
