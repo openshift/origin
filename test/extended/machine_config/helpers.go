@@ -128,8 +128,8 @@ func IsTwoNodeArbiter(oc *exutil.CLI) bool {
 
 // `IsDisconnected` returns true if the cluster is a Disconnected cluster and false otherwise
 func IsDisconnected(oc *exutil.CLI, nodeName string) bool {
-	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "systemctl", "is-active", "NetworkManager-wait-online.service")
-	if networkStatus == "active" {
+	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "sh", "-c", "curl -s --connect-timeout 5 http://fedoraproject.org/static/hotspot.txt &>/dev/null && echo \"Connected\" || echo \"Disconnected\"")
+	if networkStatus == "Connected" {
 		return false
 	}
 	return true
