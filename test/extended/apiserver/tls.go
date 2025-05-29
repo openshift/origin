@@ -18,7 +18,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
-	ocpv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -41,20 +40,15 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	g.It("TestTLSMinimumVersions", func() {
 		ctx := context.TODO()
 
-		coreClient, err := e2e.LoadClientset(true)
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if isMicroShift {
-			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
+		if isMicroShift || isHyperShift {
+			g.Skip("tls configuration for the apiserver resource is not applicable to microshift or hypershift clusters - skipping")
 		}
-
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		configClient := oc.AdminConfigClient()
 
 		insecure := true
 		configFlags := &genericclioptions.ConfigFlags{}
@@ -65,19 +59,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		restConfig, err := configFlags.ToRESTConfig()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		config, err := configClient.ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var tlsShouldWork, tlsShouldNotWork *tls.Config
 
 		if config.Spec.TLSSecurityProfile == nil {
 			// default to intermediate profile, which requires 1.2
-			tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+			tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 			tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
 		} else {
 			switch config.Spec.TLSSecurityProfile.Type {
 			case configv1.TLSProfileIntermediateType:
-				tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS12, InsecureSkipVerify: true}
+				tlsShouldWork = &tls.Config{MinVersion: tls.VersionTLS12, MaxVersion: tls.VersionTLS13, InsecureSkipVerify: true}
 				tlsShouldNotWork = &tls.Config{MinVersion: tls.VersionTLS11, MaxVersion: tls.VersionTLS11, InsecureSkipVerify: true}
 
 			case configv1.TLSProfileModernType:
@@ -134,13 +128,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		_, err = tls.DialWithDialer(dialer, "tcp", tlsHost, tlsShouldNotWork)
 		o.Expect(err).To(o.HaveOccurred())
-
-		//////
-
-		// Tests below this are not relevant in external control plane topology mode
-		if *controlPlaneTopology == ocpv1.ExternalTopologyMode {
-			return
-		}
 
 		//////
 
