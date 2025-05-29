@@ -359,7 +359,9 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OpenShiftAuthorization][Serial] authorization TestAuthorizationResourceAccessReview should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-auth][Feature:PodSecurity] restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:PodSecurity] with baseline level should set correct MinimallySufficientPodSecurityStandard, even though PSA label is set to Baseline": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-auth][Feature:PodSecurity] with restricted level restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:PodSecurity][Feature:SCC] SCC admission fails for incorrect/non-existent required-scc annotation": " [Suite:openshift/conformance/parallel]",
 
