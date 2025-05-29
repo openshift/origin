@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // ExtensionInfo represents an extension to openshift-tests.
@@ -199,12 +199,27 @@ const (
 	optionalCapability   EnvironmentFlagName = "optional-capability"
 	fact                 EnvironmentFlagName = "fact"
 	version              EnvironmentFlagName = "version"
+	featureGate          EnvironmentFlagName = "feature-gate"
+	apiGroup             EnvironmentFlagName = "api-group"
 )
 
 type EnvironmentFlagsBuilder struct {
 	flags EnvironmentFlags
 }
 
+func (e *EnvironmentFlagsBuilder) AddAPIGroups(values ...string) *EnvironmentFlagsBuilder {
+	for _, value := range values {
+		e.flags = append(e.flags, newEnvironmentFlag(apiGroup, value))
+	}
+	return e
+}
+
+func (e *EnvironmentFlagsBuilder) AddFeatureGates(values ...string) *EnvironmentFlagsBuilder {
+	for _, value := range values {
+		e.flags = append(e.flags, newEnvironmentFlag(featureGate, value))
+	}
+	return e
+}
 func (e *EnvironmentFlagsBuilder) AddPlatform(value string) *EnvironmentFlagsBuilder {
 	e.flags = append(e.flags, newEnvironmentFlag(platform, value))
 	return e
@@ -290,11 +305,28 @@ func (ef EnvironmentFlags) ArgStrings() []string {
 }
 
 func (ef EnvironmentFlags) String() string {
-	return strings.Join(ef.ArgStrings(), ", ")
+	return strings.Join(ef.ArgStrings(), " ")
+}
+
+func (ef EnvironmentFlags) LogFields() logrus.Fields {
+	fields := logrus.Fields{}
+
+	for _, flag := range ef {
+		name := string(flag.Name)
+		if val, ok := fields[name]; ok {
+			fields[name] = append(val.([]string), flag.Value)
+		} else {
+			fields[name] = []string{flag.Value}
+		}
+	}
+
+	return fields
 }
 
 // EnvironmentFlagVersions holds the "Since" version metadata for each flag.
 var EnvironmentFlagVersions = map[EnvironmentFlagName]string{
+	featureGate:          "v1.1",
+	apiGroup:             "v1.1",
 	platform:             "v1.0",
 	network:              "v1.0",
 	networkStack:         "v1.0",
