@@ -748,7 +748,7 @@ func waitForDeploymentComplete(oc *exutil.CLI, namespace, name string) error {
 	return e2edeployment.WaitForDeploymentComplete(oc.AdminKubeClient(), deployment)
 }
 
-func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
+func isDaemonSetRunningOnGeneration(oc *exutil.CLI, namespace, name string, generation int64) (bool, error) {
 	ds, err := getDaemonSet(oc, namespace, name)
 	if err != nil {
 		return false, err
@@ -756,9 +756,15 @@ func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
 	if ds == nil {
 		return false, nil
 	}
-	// Be sure that it has ds pod running in each node.
-	desired, scheduled, ready := ds.Status.DesiredNumberScheduled, ds.Status.CurrentNumberScheduled, ds.Status.NumberReady
-	return desired == scheduled && desired == ready, nil
+	if generation == 0 {
+		generation = ds.Generation
+	}
+	desired, ready := ds.Status.DesiredNumberScheduled, ds.Status.NumberReady
+	return generation == ds.Status.ObservedGeneration && desired > 0 && desired == ready, nil
+}
+
+func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
+	return isDaemonSetRunningOnGeneration(oc, namespace, name, 0)
 }
 
 func getDaemonSet(oc *exutil.CLI, namespace, name string) (*appsv1.DaemonSet, error) {
