@@ -16,7 +16,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
-	operatoringressclientset "github.com/openshift/client-go/operatoringress/clientset/versioned"
+	ingressv1client "github.com/openshift/client-go/operatoringress/clientset/versioned"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -279,30 +279,30 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gatewayLbService := assertGWLBServiceAndDnsrecordProvisioned(oc, gatewayClassName, gateways)
 
 		g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
-		coreClient := clientset.NewForConfigOrDie(oc.AdminConfig())
-		lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		adminkubeclient := oc.AdminKubeClient()
+		lbService, err := adminkubeclient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		createdTime1 := lbService.ObjectMeta.CreationTimestamp
-		err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
+		err = adminkubeclient.CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
-		pollWaitGWLBServiceRecreated(coreClient, ingressNamespace, gatewayLbService, createdTime1)
+		pollWaitGWLBServiceRecreated(adminkubeclient, ingressNamespace, gatewayLbService, createdTime1)
 
 		// deleted the gateway dnsrecords then checked if it was restored
 		g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
-		ingressclient := operatoringressclientset.NewForConfigOrDie(oc.AdminConfig())
-		dnsrecordList, err := ingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		adminingressclient := oc.AdminIngressClient()
+		dnsrecordList, err := adminingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dnsrecordName := dnsrecordList.Items[0].ObjectMeta.Name
 		targets := dnsrecordList.Items[0].Spec.Targets
 		targetsList1 := getSortedString(targets)
 
-		err = ingressclient.IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecordName, metav1.DeleteOptions{})
+		err = adminingressclient.IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecordName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
-		pollWaitGWDnsrecordsRecreated(ingressclient, ingressNamespace, targetsList1)
+		pollWaitGWDnsrecordsRecreated(adminingressclient, ingressNamespace, targetsList1)
 	})
 })
 
@@ -799,13 +799,13 @@ func pollWaitOssmCsvCreated(oc *exutil.CLI, operatorNamespace, csvName string) {
 // used to delete a deployment and wait for it is automatically recreated again
 func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns string) {
 	g.By(fmt.Sprintf("Try to delete the deployment %s in %s namespace", deploymentName, ns))
-	client := clientset.NewForConfigOrDie(oc.AdminConfig())
-	err := client.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
+	adminkubeclient := oc.AdminKubeClient()
+	err := adminkubeclient.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("Wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
 	err = wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		deployment, err := client.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		deployment, err := adminkubeclient.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -845,9 +845,9 @@ func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName string) {
 }
 
 // used to wait for the gateway lb service is automatically recreated successfully
-func pollWaitGWLBServiceRecreated(coreClient *clientset.Clientset, ingressNamespace, gatewayLbService string, createdTime1 metav1.Time) {
+func pollWaitGWLBServiceRecreated(adminkubeclient clientset.Interface, ingressNamespace, gatewayLbService string, createdTime1 metav1.Time) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		lbService, err := coreClient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		lbService, err := adminkubeclient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -880,9 +880,9 @@ func pollWaitGWLBServiceRecreated(coreClient *clientset.Clientset, ingressNamesp
 }
 
 // used to wait for the gateway dnsrecords is automatically recreated successfully
-func pollWaitGWDnsrecordsRecreated(ingressclient *operatoringressclientset.Clientset, ingressNamespace, targetsList1 string) {
+func pollWaitGWDnsrecordsRecreated(adminingressclient ingressv1client.Interface, ingressNamespace, targetsList1 string) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		dnsrecordList, err := ingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		dnsrecordList, err := adminingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		targetsList2 := getSortedString(dnsrecordList.Items[0].Spec.Targets)
 
