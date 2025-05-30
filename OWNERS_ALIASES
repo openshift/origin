@@ -36,12 +36,13 @@ aliases:
   - kevinrizza # Operator Lifecycle Manager
   - mandre # Shift on Stack
   - mike-nguyen # CoreOS
+  - pacevedom # MicroShift
   - pedjak # App Services
   - jmguzik # Test Platform
-  - romfreiman # Single Node OpenShift
+  - omertuc # Single Node OpenShift
   - rphillips # Node
   - sadasu # Metal Platform
-  - selansen # Windows Containers
+  - sebsoto # Windows Containers
   - simonpasquier # Monitoring - In Cluster
   - sinnykumari # MCO
   - sosiouxme # Automated Release Tooling
@@ -53,3 +54,25 @@ aliases:
   - umohnani8 # Container Engine Tools
   - davidvossel # HyperShift on KubeVirt Platform
   - orenc1 # HyperShift on KubeVirt Platform
+  network-ingress-dns-test-case-approvers:
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
+  network-ingress-dns-test-case-reviewers:
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
