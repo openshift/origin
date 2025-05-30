@@ -2,17 +2,19 @@ package oauth
 
 import (
 	"context"
+	"crypto/sha256"
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -58,9 +60,8 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 		// openssl s_client shows the kube-control-plane-signer CA name sent as one of the acceptable client CAs, so use that.
 		realCASecret, err := oc.AsAdmin().KubeClient().CoreV1().Secrets("openshift-kube-apiserver-operator").Get(context.Background(), "kube-control-plane-signer", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-
 		realCAPEM, ok := realCASecret.Data["tls.crt"]
-		o.Expect(ok).NotTo(o.BeFalse())
+		o.Expect(ok).To(o.BeTrue())
 
 		realCA, err := crypto.CertsFromPEM(realCAPEM)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -87,75 +88,117 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		fooUserConfig := oc.GetClientConfigForUser(tokenUser)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(fooUserConfig).NotTo(o.BeNil())
 		validToken := fooUserConfig.BearerToken
 		o.Expect(validToken).ToNot(o.BeEmpty())
 
 		adminConfig := oc.AdminConfig()
 		validCert := adminConfig.TLSClientConfig
 
+		// Cache certs in a map
+		certs := map[string]restclient.TLSClientConfig{
+			"validCert":   validCert,
+			"invalidCert": invalidCert,
+			"noCert":      noCert,
+		}
+
 		for name, test := range map[string]struct {
 			token         string
-			cert          rest.TLSClientConfig
+			certKey       string // use "validCert", "invalidCert", or "noCert"
 			expectedUser  string
 			errorExpected bool
 			errorString   string
 		}{
 			"valid token, valid cert": {
 				token:        validToken,
-				cert:         validCert,
-				expectedUser: certUser,
+				certKey:      "validCert",
+				expectedUser: certUser, // If cert is valid, it takes precedence over token (because client certs are stronger auth).
 			},
+
 			"valid token, invalid cert": {
 				token:        validToken,
-				cert:         invalidCert,
+				certKey:      "invalidCert",
 				expectedUser: tokenUser,
 			},
+
 			"valid token, no cert": {
 				token:        validToken,
-				cert:         noCert,
+				certKey:      "noCert",
 				expectedUser: tokenUser,
 			},
+
 			"invalid token, valid cert": {
 				token:        invalidToken,
-				cert:         validCert,
+				certKey:      "validCert",
 				expectedUser: certUser,
 			},
+
 			"invalid token, invalid cert": {
 				token:         invalidToken,
-				cert:          invalidCert,
+				certKey:       "invalidCert",
 				errorExpected: true,
 				errorString:   unauthorizedError,
 			},
+
 			"invalid token, no cert": {
 				token:         invalidToken,
-				cert:          noCert,
+				certKey:       "noCert",
 				errorExpected: true,
 				errorString:   unauthorizedError,
 			},
+
 			"no token, valid cert": {
 				token:        noToken,
-				cert:         validCert,
+				certKey:      "validCert",
 				expectedUser: certUser,
 			},
+
 			"no token, invalid cert": {
 				token:         noToken,
-				cert:          invalidCert,
+				certKey:       "invalidCert",
 				errorExpected: true,
 				errorString:   unauthorizedError,
 			},
+
 			"no token, no cert": {
 				token:         noToken,
-				cert:          noCert,
+				certKey:       "noCert",
 				errorExpected: true,
 				errorString:   anonymousError,
 			},
 		} {
 			g.By(name)
+
+			// Skip if test requires validCert but kubeconfig doesn't have one
+			if test.certKey == "validCert" && len(validCert.CertData) == 0 && validCert.CertFile == "" {
+				e2e.Logf("🧪 Skipping test '%s': no available client certificate key in kubeconfig", name)
+				continue
+			}
+
 			adminConfig := restclient.AnonymousClientConfig(oc.AdminConfig())
+			adminConfig.TLSClientConfig = certs[test.certKey]
 			adminConfig.BearerToken = test.token
-			adminConfig.TLSClientConfig = test.cert
 			adminConfig.CAData = oc.AdminConfig().CAData
+
+			tokenPrefix := test.token
+			if strings.HasPrefix(test.token, "sha256~") && len(test.token) > len("sha256~")+6 {
+				tokenPrefix = test.token[:len("sha256~")+6] + "..."
+			}
+			e2e.Logf("🔍 Test case '%s': token='%s', using cert='%s'\n", name, tokenPrefix, test.certKey)
+			if len(adminConfig.TLSClientConfig.CertData) > 0 {
+				certs, err := crypto.CertsFromPEM(adminConfig.TLSClientConfig.CertData)
+				if err != nil {
+					e2e.Logf("❌ Failed to parse cert: %v\n", err)
+				} else {
+					for i, cert := range certs {
+						fingerprint := sha256.Sum256(cert.Raw)
+						e2e.Logf("🔐 Cert[%d]: Subject=%s, Issuer=%s, SHA256=%x\n",
+							i, cert.Subject.String(), cert.Issuer.String(), fingerprint[:8])
+					}
+				}
+			} else {
+				e2e.Logf("🚫 no available client certificate key in kubeconfig\n")
+			}
 
 			userClient := userv1client.NewForConfigOrDie(adminConfig)
 			user, err := userClient.UserV1().Users().Get(context.Background(), "~", metav1.GetOptions{})
@@ -164,9 +207,9 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 				o.Expect(err).ToNot(o.BeNil())
 				o.Expect(err.Error()).To(o.Equal(test.errorString))
 			} else {
+				o.Expect(err).To(o.BeNil())
 				o.Expect(user).ToNot(o.BeNil())
 				o.Expect(user.Name).To(o.Equal(test.expectedUser))
-				o.Expect(err).To(o.BeNil())
 			}
 		}
 	})

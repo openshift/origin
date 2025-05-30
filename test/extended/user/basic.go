@@ -44,14 +44,26 @@ var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 		})
 
 		g.By("make sure that user/~ returns groups for unbacked users", func() {
-			// make sure that user/~ returns groups for unbacked users
-			expectedClusterAdminGroups := []string{"system:authenticated", "system:masters"}
+			// Compatible with some setups use system:cluster-admins instead of system:masters
+			allowedGroups := [][]string{
+				{"system:authenticated", "system:masters"},
+				{"system:authenticated", "system:cluster-admins"},
+			}
+
 			clusterAdminUser, err := clusterAdminUserClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if !reflect.DeepEqual(clusterAdminUser.Groups, expectedClusterAdminGroups) {
-				t.Errorf("expected %v, got %v", expectedClusterAdminGroups, clusterAdminUser.Groups)
+
+			matched := false
+			for _, expectedGroups := range allowedGroups {
+				if reflect.DeepEqual(clusterAdminUser.Groups, expectedGroups) {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				t.Errorf("unexpected groups returned for user/~: got %v, expected one of %v", clusterAdminUser.Groups, allowedGroups)
 			}
 		})
 
