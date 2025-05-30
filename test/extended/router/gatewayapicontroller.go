@@ -16,13 +16,11 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
-	ingressv1client "github.com/openshift/client-go/operatoringress/clientset/versioned"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clientset "k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
@@ -200,7 +198,26 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
-		assertGWLBServiceAndDnsrecordProvisioned(oc, gatewayClassName, gateways)
+		g.By("Ensure default GatewayClass is accepted")
+		errCheck := checkGatewayClass(oc, gatewayClassName)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Getting the default domain")
+		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+		defaultDomain := strings.Replace(defaultIngressDomain, "apps.", "gw-default.", 1)
+
+		g.By("Create the default Gateway")
+		gw := names.SimpleNameGenerator.GenerateName("gateway-")
+		gateways = append(gateways, gw)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain)
+		o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
+
+		g.By("Verify the gateway's LoadBalancer service and DNSRecords")
+		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+
+		// check the dns record is created and status of the published dnsrecord of all zones are True
+		assertDNSRecordStatus(oc, gw)
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
@@ -272,37 +289,49 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		const (
 			operatorNamespace = "openshift-operators"
 			ingressNamespace  = "openshift-ingress"
-			gatewayName       = "gateway"
 		)
 
-		g.By(fmt.Sprintf("Ensure LB, service, and dnsRecord are created for the %s Gateway object", gatewayClassName))
-		gatewayLbService := assertGWLBServiceAndDnsrecordProvisioned(oc, gatewayClassName, gateways)
+		g.By("Getting the default domain for creating a custom Gateway")
+		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find default domain name")
+		customDomain := strings.Replace(defaultIngressDomain, "apps.", "gw-custom.", 1)
+
+		g.By("Create a custom Gateway")
+		gw := names.SimpleNameGenerator.GenerateName("gateway-")
+		gateways = append(gateways, gw)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
+		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
+
+		// verify the gateway's LoadBalancer service
+		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		gatewayLbService := gw + "-openshift-default"
+
+		// make sure the DNSRecord is ready to use.
+		assertDNSRecordStatus(oc, gw)
 
 		g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
-		adminkubeclient := oc.AdminKubeClient()
-		lbService, err := adminkubeclient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		createdTime1 := lbService.ObjectMeta.CreationTimestamp
-		err = adminkubeclient.CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
+		err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
-		pollWaitGWLBServiceRecreated(adminkubeclient, ingressNamespace, gatewayLbService, createdTime1)
+		pollWaitGWLBServiceRecreated(oc, ingressNamespace, gatewayLbService, createdTime1)
 
 		// deleted the gateway dnsrecords then checked if it was restored
 		g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
-		adminingressclient := oc.AdminIngressClient()
-		dnsrecordList, err := adminingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dnsrecordName := dnsrecordList.Items[0].ObjectMeta.Name
 		targets := dnsrecordList.Items[0].Spec.Targets
 		targetsList1 := getSortedString(targets)
 
-		err = adminingressclient.IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecordName, metav1.DeleteOptions{})
+		err = oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecordName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
-		pollWaitGWDnsrecordsRecreated(adminingressclient, ingressNamespace, targetsList1)
+		pollWaitGWDnsrecordsRecreated(oc, ingressNamespace, targetsList1)
 	})
 })
 
@@ -732,32 +761,6 @@ func isOKD(oc *exutil.CLI) (bool, error) {
 	return false, nil
 }
 
-// used to ensure LB, service, and dnsRecord are created and provisioned for a Gateway object
-// and the return was the name of LB service(for another test)
-func assertGWLBServiceAndDnsrecordProvisioned(oc *exutil.CLI, gatewayClassName string, gateways []string) string {
-	g.By("Ensure default GatewayClass is accepted")
-	errCheck := checkGatewayClass(oc, gatewayClassName)
-	o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
-
-	g.By("Getting the default domain")
-	defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-	o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
-	defaultDomain := strings.Replace(defaultIngressDomain, "apps.", "gw-default.", 1)
-
-	g.By("Create the default Gateway")
-	gw := names.SimpleNameGenerator.GenerateName("gateway-")
-	gateways = append(gateways, gw)
-	_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, defaultDomain)
-	o.Expect(gwerr).NotTo(o.HaveOccurred(), "failed to create Gateway")
-
-	g.By("Verify the gateway's LoadBalancer service and DNSRecords")
-	assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
-
-	// check the dns record is created and status of the published dnsrecord of all zones are True
-	assertDNSRecordStatus(oc, gw)
-	return gw + "-openshift-default"
-}
-
 // used to wait a subscription is created successfully by checking its CatalogSourcesUnhealthy
 func pollWaitSubscriptionCreated(oc *exutil.CLI, operatorNamespace, ossmSubscriptionName string) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
@@ -799,13 +802,12 @@ func pollWaitOssmCsvCreated(oc *exutil.CLI, operatorNamespace, csvName string) {
 // used to delete a deployment and wait for it is automatically recreated again
 func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns string) {
 	g.By(fmt.Sprintf("Try to delete the deployment %s in %s namespace", deploymentName, ns))
-	adminkubeclient := oc.AdminKubeClient()
-	err := adminkubeclient.AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
+	err := oc.AdminKubeClient().AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("Wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
 	err = wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		deployment, err := adminkubeclient.AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -845,9 +847,9 @@ func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName string) {
 }
 
 // used to wait for the gateway lb service is automatically recreated successfully
-func pollWaitGWLBServiceRecreated(adminkubeclient clientset.Interface, ingressNamespace, gatewayLbService string, createdTime1 metav1.Time) {
+func pollWaitGWLBServiceRecreated(oc *exutil.CLI, ingressNamespace, gatewayLbService string, createdTime1 metav1.Time) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		lbService, err := adminkubeclient.CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return false, nil
@@ -880,9 +882,9 @@ func pollWaitGWLBServiceRecreated(adminkubeclient clientset.Interface, ingressNa
 }
 
 // used to wait for the gateway dnsrecords is automatically recreated successfully
-func pollWaitGWDnsrecordsRecreated(adminingressclient ingressv1client.Interface, ingressNamespace, targetsList1 string) {
+func pollWaitGWDnsrecordsRecreated(oc *exutil.CLI, ingressNamespace, targetsList1 string) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		dnsrecordList, err := adminingressclient.IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		targetsList2 := getSortedString(dnsrecordList.Items[0].Spec.Targets)
 
