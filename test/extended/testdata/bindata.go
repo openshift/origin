@@ -478,6 +478,12 @@
 // test/extended/testdata/olmv1/install-pipeline-operator-5.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-6.yaml
 // test/extended/testdata/olmv1/install-pipeline-operator-base.yaml
+// test/extended/testdata/olmv1/operator.yaml
+// test/extended/testdata/olmv1/webhook-support/conversion-webhook-test.yaml
+// test/extended/testdata/olmv1/webhook-support/mutating-webhook-test.yaml
+// test/extended/testdata/olmv1/webhook-support/validating-webhook-test.yaml
+// test/extended/testdata/olmv1/webhook-support/webhook-operator-catalog.yaml
+// test/extended/testdata/olmv1/webhook-support/webhook-operator.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
@@ -53673,6 +53679,210 @@ func testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml() (*asset, error) 
 	return a, nil
 }
 
+var _testExtendedTestdataOlmv1OperatorYaml = []byte(`apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: install-test-sa-quay-operator
+  namespace: testit
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: install-test-crb-quay-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: install-test-sa-quay-operator
+  namespace: testit
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: install-test-ce-quay-operator
+spec:
+  namespace: testit
+  serviceAccount:
+    name: install-test-sa-quay-operator
+  source:
+    catalog:
+      packageName: quay-operator
+      version: 3.13.0
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1OperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1OperatorYaml, nil
+}
+
+func testExtendedTestdataOlmv1OperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1OperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYaml = []byte(`apiVersion: webhook.operators.coreos.io/v1
+kind: webhooktest
+metadata:
+  namespace: webhook-operator
+  name: conversion-webhook-test
+spec:
+  valid: true`)
+
+func testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/conversion-webhook-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYaml = []byte(`apiVersion: webhook.operators.coreos.io/v1
+kind: webhooktest
+metadata:
+  namespace: webhook-operator
+  name: mutating-webhook-test
+spec:
+  valid: true`)
+
+func testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/mutating-webhook-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYaml = []byte(`apiVersion: webhook.operators.coreos.io/v1
+kind: webhooktest
+metadata:
+  namespace: webhook-operator
+  name: validating-webhook-test
+spec:
+  valid: false
+`)
+
+func testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/validating-webhook-test.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml = []byte(`apiVersion: olm.operatorframework.io/v1
+kind: ClusterCatalog
+metadata:
+  name: webhook-operator-catalog
+spec:
+  source:
+    type: Image
+    image:
+      ref: quay.io/operator-framework/webhook-operator-index:0.0.3
+`)
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/webhook-operator-catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml = []byte(`---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webhook-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-operator-installer
+  namespace: webhook-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: webhook-operator-installer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: webhook-operator-installer
+    namespace: webhook-operator
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: webhook-operator
+spec:
+  namespace: webhook-operator
+  serviceAccount:
+    name: webhook-operator-installer
+  source:
+    catalog:
+      packageName: webhook-operator
+      version: 0.0.1
+      selector: {}
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
+`)
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml, nil
+}
+
+func testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olmv1/webhook-support/webhook-operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml = []byte(`---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -59300,6 +59510,12 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/olmv1/install-pipeline-operator-5.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator5Yaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-6.yaml":                                          testExtendedTestdataOlmv1InstallPipelineOperator6Yaml,
 	"test/extended/testdata/olmv1/install-pipeline-operator-base.yaml":                                       testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml,
+	"test/extended/testdata/olmv1/operator.yaml":                                                             testExtendedTestdataOlmv1OperatorYaml,
+	"test/extended/testdata/olmv1/webhook-support/conversion-webhook-test.yaml":                              testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYaml,
+	"test/extended/testdata/olmv1/webhook-support/mutating-webhook-test.yaml":                                testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYaml,
+	"test/extended/testdata/olmv1/webhook-support/validating-webhook-test.yaml":                              testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYaml,
+	"test/extended/testdata/olmv1/webhook-support/webhook-operator-catalog.yaml":                             testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml,
+	"test/extended/testdata/olmv1/webhook-support/webhook-operator.yaml":                                     testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
@@ -60117,6 +60333,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"install-pipeline-operator-5.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator5Yaml, map[string]*bintree{}},
 					"install-pipeline-operator-6.yaml":    {testExtendedTestdataOlmv1InstallPipelineOperator6Yaml, map[string]*bintree{}},
 					"install-pipeline-operator-base.yaml": {testExtendedTestdataOlmv1InstallPipelineOperatorBaseYaml, map[string]*bintree{}},
+					"operator.yaml":                       {testExtendedTestdataOlmv1OperatorYaml, map[string]*bintree{}},
+					"webhook-support": {nil, map[string]*bintree{
+						"conversion-webhook-test.yaml":  {testExtendedTestdataOlmv1WebhookSupportConversionWebhookTestYaml, map[string]*bintree{}},
+						"mutating-webhook-test.yaml":    {testExtendedTestdataOlmv1WebhookSupportMutatingWebhookTestYaml, map[string]*bintree{}},
+						"validating-webhook-test.yaml":  {testExtendedTestdataOlmv1WebhookSupportValidatingWebhookTestYaml, map[string]*bintree{}},
+						"webhook-operator-catalog.yaml": {testExtendedTestdataOlmv1WebhookSupportWebhookOperatorCatalogYaml, map[string]*bintree{}},
+						"webhook-operator.yaml":         {testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml, map[string]*bintree{}},
+					}},
 				}},
 				"poddisruptionbudgets": {nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
