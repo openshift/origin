@@ -177,7 +177,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			notBefore := time.Now().Add(-24 * time.Hour)
 			notAfter := time.Now().Add(24 * time.Hour)
 
-			// Generate crt/key for routes that need them.
+			// Generate crts/keys for routes that need them.
 			_, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair("Root CA", notBefore, notAfter)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -185,6 +185,15 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			pemCrt, err := certgen.MarshalCertToPEMString(tlsCrtData)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, tlsCrt2Data, tlsPrivateKey2, err := certgen.GenerateKeyPair("Root CA", notBefore, notAfter)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			pemKey2, err := certgen.MarshalPrivateKeyToPEMString(tlsPrivateKey2)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			shardFQDN := oc.Namespace() + "." + defaultDomain
@@ -253,8 +262,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationReencrypt,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           pemKey,
-							Certificate:                   pemCrt,
+							Key:                           pemKey2,
+							Certificate:                   pemCrt2,
 						},
 						To: routev1.RouteTargetReference{
 							Kind:   "Service",
