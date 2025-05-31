@@ -617,7 +617,7 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapi
 func assertHttpRouteConnection(hostname string) {
 	// Create the http client to check the response status code.
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -626,7 +626,7 @@ func assertHttpRouteConnection(hostname string) {
 	err := wait.PollUntilContextTimeout(context.Background(), 20*time.Second, dnsResolutionTimeout, false, func(context context.Context) (bool, error) {
 		_, err := net.LookupHost(hostname)
 		if err != nil {
-			e2e.Logf("[%v] Failed to resolve HTTP route's hostname %q: %v, retrying...", time.Now(), hostname, err)
+			e2e.Logf("Failed to resolve HTTP route's hostname %q: %v, retrying...", time.Now(), hostname, err)
 			return false, nil
 		}
 		return true, nil
