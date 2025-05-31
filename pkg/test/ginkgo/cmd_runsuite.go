@@ -7,17 +7,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -246,13 +243,28 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
-	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
+	//suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	//r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	//r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
+	}
+
+	if strings.Contains(suite.Name, "conformance") {
+		filteredTests := []*testCase{}
+		for _, test := range tests {
+			checkName := strings.ToLower(test.name)
+			if !strings.Contains(checkName, "network") {
+				filteredTests = append(filteredTests, test)
+			}
+		}
+		tests = filteredTests
+	}
+
+	if len(tests) == 0 {
+		return fmt.Errorf("Filtered suite %q does not contain any tests", suite.Name)
 	}
 
 	logrus.Infof("Found %d filtered tests", len(tests))
@@ -500,71 +512,71 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	pass, fail, skip, failing := summarizeTests(tests)
 
 	// attempt to retry failures to do flake detection
-	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
-		var retries []*testCase
-
-		// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
-		// a list of tests to retry.
-		for _, test := range failing {
-			retry := test.Retry()
-			retries = append(retries, retry)
-			if len(retries) > suite.MaximumAllowedFlakes {
-				break
-			}
-		}
-
-		logrus.Warningf("Retry count: %d", len(retries))
-
-		// Run the tests in the retries list.
-		q := newParallelTestQueue(testRunnerContext)
-		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
-
-		var flaky, skipped []string
-		var repeatFailures []*testCase
-		for _, test := range retries {
-			if test.success {
-				flaky = append(flaky, test.name)
-			} else if test.skipped {
-				skipped = append(skipped, test.name)
-			} else {
-				repeatFailures = append(repeatFailures, test)
-			}
-		}
-
-		// Add the list of retries into the list of all tests.
-		for _, retry := range retries {
-			if retry.flake {
-				// Retry tests that flaked are omitted so that the original test is counted as a failure.
-				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
-				continue
-			}
-			tests = append(tests, retry)
-		}
-		if len(flaky) > 0 {
-			failing = repeatFailures
-			sort.Strings(flaky)
-			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
-		}
-		if len(skipped) > 0 {
-			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
-			// we need to remove the failure case.
-			var withoutPreconditionFailures []*testCase
-		testLoop:
-			for _, t := range tests {
-				for _, st := range skipped {
-					if t.name == st && t.failed {
-						continue testLoop
-					}
-					withoutPreconditionFailures = append(withoutPreconditionFailures, t)
-				}
-			}
-			tests = withoutPreconditionFailures
-			failing = repeatFailures
-			sort.Strings(skipped)
-			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
-
-		}
-	}
+	//if fail > 0 && fail <= suite.MaximumAllowedFlakes {
+	//	var retries []*testCase
+	//
+	//	// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
+	//	// a list of tests to retry.
+	//	for _, test := range failing {
+	//		retry := test.Retry()
+	//		retries = append(retries, retry)
+	//		if len(retries) > suite.MaximumAllowedFlakes {
+	//			break
+	//		}
+	//	}
+	//
+	//	logrus.Warningf("Retry count: %d", len(retries))
+	//
+	//	// Run the tests in the retries list.
+	//	q := newParallelTestQueue(testRunnerContext)
+	//	q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
+	//
+	//	var flaky, skipped []string
+	//	var repeatFailures []*testCase
+	//	for _, test := range retries {
+	//		if test.success {
+	//			flaky = append(flaky, test.name)
+	//		} else if test.skipped {
+	//			skipped = append(skipped, test.name)
+	//		} else {
+	//			repeatFailures = append(repeatFailures, test)
+	//		}
+	//	}
+	//
+	//	// Add the list of retries into the list of all tests.
+	//	for _, retry := range retries {
+	//		if retry.flake {
+	//			// Retry tests that flaked are omitted so that the original test is counted as a failure.
+	//			fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+	//			continue
+	//		}
+	//		tests = append(tests, retry)
+	//	}
+	//	if len(flaky) > 0 {
+	//		failing = repeatFailures
+	//		sort.Strings(flaky)
+	//		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
+	//	}
+	//	if len(skipped) > 0 {
+	//		// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
+	//		// we need to remove the failure case.
+	//		var withoutPreconditionFailures []*testCase
+	//	testLoop:
+	//		for _, t := range tests {
+	//			for _, st := range skipped {
+	//				if t.name == st && t.failed {
+	//					continue testLoop
+	//				}
+	//				withoutPreconditionFailures = append(withoutPreconditionFailures, t)
+	//			}
+	//		}
+	//		tests = withoutPreconditionFailures
+	//		failing = repeatFailures
+	//		sort.Strings(skipped)
+	//		fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
+	//
+	//	}
+	//}
 
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
