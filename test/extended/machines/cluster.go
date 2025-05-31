@@ -64,8 +64,16 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 		machineList := objx.Map(obj.UnstructuredContent())
 		machineItems := objects(machineList.Get("items"))
 
+		// Get number of nodes with machine annotation ("machine.openshift.io/machine")
+		machineNodes := 0
+		for _, node := range nodeItems {
+			if _, ok := node.Annotations["machine.openshift.io/machine"]; ok {
+				machineNodes++
+			}
+		}
+
 		g.By("ensure number of Machines and Nodes are equal")
-		o.Expect(len(nodeItems)).To(o.Equal(len(machineItems)))
+		o.Expect(machineNodes).To(o.Equal(len(machineItems)))
 	})
 })
 
