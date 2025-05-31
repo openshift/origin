@@ -106,7 +106,7 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 		nil,
 		func(event watch.Event) (bool, error) {
 			deployment := event.Object.(*appsv1.Deployment)
-			return deployment.Status.AvailableReplicas == deployment.Status.Replicas, nil
+			return deployment.Status.AvailableReplicas == *deployment.Spec.Replicas, nil
 		},
 	); watchErr != nil {
 		return fmt.Errorf("deployment %s didn't roll out: %v", deploymentObj.Name, watchErr)
