@@ -186,6 +186,17 @@ spec:
         boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
         boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should
+        degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should
+        not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should
+        stamp coreos-bootimages configmap with current MCO hash and release version
+        [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should
+        update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] vsphere Should
+        update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
   - featureGate: ManagedBootImagesAWS
     tests:
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade
