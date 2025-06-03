@@ -27,9 +27,6 @@ func SuitesString(suites []*ginkgo.TestSuite, prefix string) string {
 			if suite.Extension.Source.SourceURL != "" {
 				fmt.Fprintf(buf, "  URL: %s\n", suite.Extension.Source.SourceURL)
 			}
-			if suite.Extension.Source.Commit != "" {
-				fmt.Fprintf(buf, "  Commit: %s\n", suite.Extension.Source.Commit)
-			}
 		} else {
 			fmt.Fprintf(buf, "  Source: Internal\n")
 		}
