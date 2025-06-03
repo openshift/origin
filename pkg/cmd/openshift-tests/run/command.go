@@ -20,7 +20,7 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		Long: templates.LongDesc(`
 		Run a test suite against an OpenShift server
 
-		This command will run one of the following suites against a cluster identified by the current
+		This command will run one of the available test suites against a cluster identified by the current
 		KUBECONFIG file. See the suite description for more on what actions the suite will take.
 
 		If you specify the --dry-run argument, the names of each individual test that is part of the
@@ -28,7 +28,8 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		command with the --file argument. You may also pipe a list of test names, one per line, on
 		standard input by passing "-f -".
 
-		`) + testsuites.SuitesString(testsuites.StandardTestSuites(), "\n\nAvailable test suites:\n\n"),
+		Use 'openshift-tests list suites' to see all available test suites.
+		`),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
