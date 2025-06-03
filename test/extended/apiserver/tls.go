@@ -14,6 +14,7 @@ import (
 	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -21,10 +22,27 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
+	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+)
+
+type IPFamily string
+
+const (
+	namespace = "apiserver-tls-test"
+
+	// How often to poll pods and nodes.
+	poll = 5 * time.Second
+
+	// IPFamily constants
+	IPv4      IPFamily = "ipv4"
+	IPv6      IPFamily = "ipv6"
+	DualStack IPFamily = "dual"
+	Unknown   IPFamily = "unknown"
 )
 
 // This test only checks whether components are serving the proper TLS version based
@@ -35,7 +53,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("apiserver")
+	oc := exutil.NewCLI(namespace)
 
 	g.It("TestTLSMinimumVersions", func() {
 		ctx := context.TODO()
@@ -48,6 +66,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		if isMicroShift || isHyperShift {
 			g.Skip("tls configuration for the apiserver resource is not applicable to microshift or hypershift clusters - skipping")
+		}
+
+		ipFamily := getIPFamilyForCluster(*oc, namespace)
+
+		if ipFamily != IPv4 {
+			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
 		}
 
 		insecure := true
@@ -83,50 +107,18 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			}
 		}
 
-		net.DefaultResolver = &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				if network == "udp" || network == "tcp" {
-					// Attempt IPv6 first
-					ipv6Network := network + "6"
-					dialer := &net.Dialer{Timeout: 2 * time.Second}
-
-					conn, err := dialer.DialContext(ctx, ipv6Network, address)
-					if err == nil {
-						// IPv6 succeeded
-						return conn, nil
-					}
-
-					// Fall back to IPv4 if IPv6 failed
-					ipv4Network := network + "4"
-					return dialer.DialContext(ctx, ipv4Network, address)
-				}
-
-				// For any other network types, use as is
-				return (&net.Dialer{}).DialContext(ctx, network, address)
-			},
-		}
-
-		dialer := &net.Dialer{
-			Timeout:       30 * time.Second,
-			KeepAlive:     30 * time.Second,
-			DualStack:     true,
-			FallbackDelay: 500 * time.Millisecond,
-			Resolver:      net.DefaultResolver,
-		}
-
 		//////
 
 		g.By("Checking the Kube API server")
 
 		tlsHost := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
 
-		conn, err := tls.DialWithDialer(dialer, "tcp", tlsHost, tlsShouldWork)
+		conn, err := tls.Dial("tcp", tlsHost, tlsShouldWork)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		conn.Close()
 
-		_, err = tls.DialWithDialer(dialer, "tcp", tlsHost, tlsShouldNotWork)
+		_, err = tls.Dial("tcp", tlsHost, tlsShouldNotWork)
 		o.Expect(err).To(o.HaveOccurred())
 
 		//////
@@ -138,12 +130,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		oauthRouteString := fmt.Sprintf("%s:443", oauthRoute.Status.Ingress[0].Host)
 
-		conn, err = tls.DialWithDialer(dialer, "tcp", oauthRouteString, tlsShouldWork)
+		conn, err = tls.Dial("tcp", oauthRouteString, tlsShouldWork)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		conn.Close()
 
-		_, err = tls.DialWithDialer(dialer, "tcp", oauthRouteString, tlsShouldNotWork)
+		_, err = tls.Dial("tcp", oauthRouteString, tlsShouldNotWork)
 		o.Expect(err).To(o.HaveOccurred())
 
 		//////
@@ -160,12 +152,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"10357"},
 			func() {
-				conn, err = tls.DialWithDialer(dialer, "tcp", "localhost:10357", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:10357", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.DialWithDialer(dialer, "tcp", "localhost:10357", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:10357", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -185,12 +177,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"10259"},
 			func() {
-				conn, err = tls.DialWithDialer(dialer, "tcp", "localhost:10259", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:10259", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.DialWithDialer(dialer, "tcp", "localhost:10259", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:10259", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -210,12 +202,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"8443"},
 			func() {
-				conn, err = tls.DialWithDialer(dialer, "tcp", "localhost:8443", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:8443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.DialWithDialer(dialer, "tcp", "localhost:8443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:8443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -235,12 +227,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"8443"},
 			func() {
-				conn, err = tls.DialWithDialer(dialer, "tcp", "localhost:8443", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:8443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.DialWithDialer(dialer, "tcp", "localhost:8443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:8443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -260,12 +252,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			&pods.Items[0],
 			[]string{"9001"},
 			func() {
-				conn, err = tls.DialWithDialer(dialer, "tcp", "localhost:9001", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:9001", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.DialWithDialer(dialer, "tcp", "localhost:9001", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:9001", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -289,14 +281,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 				// with it - just checking TLS protocol versions. So, if it throws a "bad certificate"
 				// error, we're past the version check and consider it a success for this test.
 
-				conn, err = tls.DialWithDialer(dialer, "tcp", "localhost:2379", tlsShouldWork)
+				conn, err = tls.Dial("tcp", "localhost:2379", tlsShouldWork)
 				if err != nil {
 					o.Expect(err.Error()).To(o.ContainSubstring("remote error: tls: bad certificate"))
 				} else {
 					conn.Close()
 				}
 
-				_, err = tls.DialWithDialer(dialer, "tcp", "localhost:2379", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:2379", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -372,6 +364,53 @@ func defaultRESTConfigs(config rest.Config) *rest.Config {
 	return &config
 }
 
+func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
+	podIPs, err := createPod(client, namespace, "test-ip-family-pod")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return getIPFamily(podIPs)
+}
+
+func getIPFamily(podIPs []v1.PodIP) IPFamily {
+	switch len(podIPs) {
+	case 1:
+		ip := net.ParseIP(podIPs[0].IP)
+		if ip.To4() != nil {
+			return IPv4
+		} else {
+			return IPv6
+		}
+	case 2:
+		ip1 := net.ParseIP(podIPs[0].IP)
+		ip2 := net.ParseIP(podIPs[1].IP)
+		if ip1 == nil || ip2 == nil {
+			return Unknown
+		}
+		if (ip1.To4() == nil) == (ip2.To4() == nil) {
+			return Unknown
+		}
+		return DualStack
+	default:
+		return Unknown
+	}
+}
+
+func createPod(client exutil.CLI, ns, generateName string) ([]corev1.PodIP, error) {
+	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
+	pod.ObjectMeta.GenerateName = generateName
+	execPod, err := client.AdminKubeClient().CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	var podIPs []corev1.PodIP
+	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
+		retrievedPod, err := client.AdminKubeClient().CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		podIPs = retrievedPod.Status.PodIPs
+		return retrievedPod.Status.Phase == corev1.PodRunning, nil
+	})
+	return podIPs, err
+}
+
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
@@ -397,38 +436,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("the cluster's tls profile is in a non-default state, not testing cipher defaults")
 		}
 
-		net.DefaultResolver = &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				if network == "udp" || network == "tcp" {
-					// Attempt IPv6 first
-					ipv6Network := network + "6"
-					dialer := &net.Dialer{Timeout: 2 * time.Second}
-
-					conn, err := dialer.DialContext(ctx, ipv6Network, address)
-					if err == nil {
-						// IPv6 succeeded
-						return conn, nil
-					}
-
-					// Fall back to IPv4 if IPv6 failed
-					ipv4Network := network + "4"
-					return dialer.DialContext(ctx, ipv4Network, address)
-				}
-
-				// For any other network types, use as is
-				return (&net.Dialer{}).DialContext(ctx, network, address)
-			},
-		}
-
-		dialer := &net.Dialer{
-			Timeout:       30 * time.Second,
-			KeepAlive:     30 * time.Second,
-			DualStack:     true,
-			FallbackDelay: 500 * time.Millisecond,
-			Resolver:      net.DefaultResolver,
-		}
-
 		// Verify we fail with TLS versions less than the default, and work with TLS versions >= the default
 		for _, tlsVersionName := range crypto.ValidTLSVersions() {
 			tlsVersion := crypto.TLSVersionOrDie(tlsVersionName)
@@ -439,7 +446,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			host := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
 
 			{
-				conn, err := tls.DialWithDialer(dialer, "tcp", host, config)
+				conn, err := tls.Dial("tcp", host, config)
 				if err == nil {
 					conn.Close()
 				}
@@ -464,7 +471,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			config := &tls.Config{CipherSuites: []uint16{cipher}, InsecureSkipVerify: true}
 
 			{
-				conn, err := tls.DialWithDialer(dialer, "tcp", oc.AdminConfig().Host, config)
+				conn, err := tls.Dial("tcp", oc.AdminConfig().Host, config)
 				if err == nil {
 					conn.Close()
 					if expectFailure {
