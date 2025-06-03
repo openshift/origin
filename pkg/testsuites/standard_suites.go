@@ -4,8 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/test/ginkgo"
 
 	// these register framework.NewFrameworkExtensions responsible for
 	// executing post-test actions, here debug and metrics gathering
@@ -18,7 +19,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
-func StandardTestSuites() []*ginkgo.TestSuite {
+func InternalTestSuites() []*ginkgo.TestSuite {
 	copied := make([]*ginkgo.TestSuite, 0, len(staticSuites))
 	for i := range staticSuites {
 		curr := staticSuites[i]

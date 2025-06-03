@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
@@ -605,7 +606,7 @@ func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]
 var safePathRegexp = regexp.MustCompile(`[<>:"/\\|?*\s]+`)
 
 // safeComponentPath sanitizes a component identifier to be safe for use as a file or directory name.
-func safeComponentPath(c *Component) string {
+func safeComponentPath(c *extension.Component) string {
 	return path.Join(
 		safePathRegexp.ReplaceAllString(c.Product, "_"),
 		safePathRegexp.ReplaceAllString(c.Kind, "_"),

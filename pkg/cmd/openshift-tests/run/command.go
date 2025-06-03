@@ -12,7 +12,7 @@ import (
 )
 
 func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
-	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation, testsuites.StandardTestSuites())
+	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation, testsuites.InternalTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
