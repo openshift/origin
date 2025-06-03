@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/test/extensions"
@@ -33,14 +32,14 @@ func InternalTestSuites() []*ginkgo.TestSuite {
 }
 
 // AllTestSuites returns all test suites including internal suites and extension suites.
-// It validates that extension suites don't redeclare any internal suite names.
+// It validates that no suite names are duplicated across internal and extension suites.
 func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 	suites := InternalTestSuites()
 
-	// Create a set to track internal suite names to prevent redeclaration
-	internalSuiteNames := sets.New[string]()
+	// Create a map to track suite names and their sources for better error reporting
+	suiteNameToSources := make(map[string][]string)
 	for _, suite := range suites {
-		internalSuiteNames.Insert(suite.Name)
+		suiteNameToSources[suite.Name] = []string{"internal"}
 	}
 
 	// Extract all test binaries from the release payload
@@ -58,11 +57,20 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 
 	for _, e := range extensionInfos {
 		for _, s := range e.Suites {
-			// Check if extension suite name conflicts with internal suite name
-			if internalSuiteNames.Has(s.Name) {
-				return nil, fmt.Errorf("extension suite %q from %s/%s conflicts with internal suite name - there can be only one canonical source of a suite",
-					s.Name, e.Component.Product, e.Component.Name)
+			extensionSource := fmt.Sprintf("extension %s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
+			if e.Source.SourceImage != "" {
+				extensionSource = fmt.Sprintf("extension %s:%s:%s (image: %s)", e.Component.Product, e.Component.Kind, e.Component.Name, e.Source.SourceImage)
 			}
+
+			// Check if suite name conflicts with any existing suite name (internal or extension)
+			if existingSources, exists := suiteNameToSources[s.Name]; exists {
+				allSources := append(existingSources, extensionSource)
+				return nil, fmt.Errorf("suite %q is declared by multiple sources: %v - there can be only one canonical source of a suite",
+					s.Name, allSources)
+			}
+
+			// Add the suite name and its source to our tracking map
+			suiteNameToSources[s.Name] = []string{extensionSource}
 
 			suites = append(suites, &ginkgo.TestSuite{
 				Name:        s.Name,

@@ -20,9 +20,15 @@ func SuitesString(suites []*ginkgo.TestSuite, prefix string) string {
 
 		// Add source information
 		if suite.Extension != nil {
-			fmt.Fprintf(buf, "  Source: %s (%s:%s:%s)\n", suite.Extension.Source.SourceImage, suite.Extension.Component.Product, suite.Extension.Component.Kind, suite.Extension.Component.Name)
+			fmt.Fprintf(buf, "  Source: Extension (%s:%s:%s)\n", suite.Extension.Component.Product, suite.Extension.Component.Kind, suite.Extension.Component.Name)
+			if suite.Extension.Source.SourceImage != "" {
+				fmt.Fprintf(buf, "  Image: %s\n", suite.Extension.Source.SourceImage)
+			}
 			if suite.Extension.Source.SourceURL != "" {
 				fmt.Fprintf(buf, "  URL: %s\n", suite.Extension.Source.SourceURL)
+			}
+			if suite.Extension.Source.Commit != "" {
+				fmt.Fprintf(buf, "  Commit: %s\n", suite.Extension.Source.Commit)
 			}
 		} else {
 			fmt.Fprintf(buf, "  Source: Internal\n")
