@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/utils/ptr"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
@@ -68,7 +70,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("tls configuration for the apiserver resource is not applicable to microshift or hypershift clusters - skipping")
 		}
 
-		ipFamily := getIPFamilyForCluster(*oc, namespace)
+		ipFamily := getIPFamilyForCluster(*oc, oc.Namespace())
 
 		if ipFamily != IPv4 {
 			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
@@ -111,38 +113,61 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the Kube API server")
 
-		tlsHost := strings.TrimPrefix(oc.AdminConfig().Host, "https://")
-
-		conn, err := tls.Dial("tcp", tlsHost, tlsShouldWork)
+		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-kube-apiserver").List(ctx, metav1.ListOptions{
+			LabelSelector: "apiserver=true",
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		conn.Close()
+		err = ForwardPortsAndExecute(
+			*restConfig,
+			&pods.Items[0],
+			[]string{"6443"},
+			3,
+			200*time.Millisecond,
+			func() {
+				conn, err := tls.Dial("tcp", "localhost:6443", tlsShouldWork)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = tls.Dial("tcp", tlsHost, tlsShouldNotWork)
-		o.Expect(err).To(o.HaveOccurred())
+				conn.Close()
+
+				_, err = tls.Dial("tcp", "localhost:6443", tlsShouldNotWork)
+				o.Expect(err).To(o.HaveOccurred())
+			},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		//////
 
 		g.By("Checking the OAuth server")
 
-		oauthRoute, err := oc.AdminRouteClient().RouteV1().Routes("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(ctx, metav1.ListOptions{
+			LabelSelector: "app=oauth-openshift",
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		oauthRouteString := fmt.Sprintf("%s:443", oauthRoute.Status.Ingress[0].Host)
+		err = ForwardPortsAndExecute(
+			*restConfig,
+			&pods.Items[0],
+			[]string{"6443"},
+			3,
+			200*time.Millisecond,
+			func() {
+				conn, err := tls.Dial("tcp", "localhost:6443", tlsShouldWork)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-		conn, err = tls.Dial("tcp", oauthRouteString, tlsShouldWork)
+				conn.Close()
+
+				_, err = tls.Dial("tcp", "localhost:6443", tlsShouldNotWork)
+				o.Expect(err).To(o.HaveOccurred())
+			},
+		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		conn.Close()
-
-		_, err = tls.Dial("tcp", oauthRouteString, tlsShouldNotWork)
-		o.Expect(err).To(o.HaveOccurred())
 
 		//////
 
 		g.By("Checking the kube-controller-manager")
 
-		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-kube-controller-manager").List(ctx, metav1.ListOptions{
+		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-kube-controller-manager").List(ctx, metav1.ListOptions{
 			LabelSelector: "app=kube-controller-manager",
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -151,8 +176,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			*restConfig,
 			&pods.Items[0],
 			[]string{"10357"},
+			3,
+			200*time.Millisecond,
 			func() {
-				conn, err = tls.Dial("tcp", "localhost:10357", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:10357", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
@@ -176,8 +203,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			*restConfig,
 			&pods.Items[0],
 			[]string{"10259"},
+			3,
+			200*time.Millisecond,
 			func() {
-				conn, err = tls.Dial("tcp", "localhost:10259", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:10259", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
@@ -201,8 +230,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			*restConfig,
 			&pods.Items[0],
 			[]string{"8443"},
+			3,
+			200*time.Millisecond,
 			func() {
-				conn, err = tls.Dial("tcp", "localhost:8443", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:8443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
@@ -226,8 +257,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			*restConfig,
 			&pods.Items[0],
 			[]string{"8443"},
+			3,
+			200*time.Millisecond,
 			func() {
-				conn, err = tls.Dial("tcp", "localhost:8443", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:8443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
@@ -251,8 +284,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			*restConfig,
 			&pods.Items[0],
 			[]string{"9001"},
+			3,
+			200*time.Millisecond,
 			func() {
-				conn, err = tls.Dial("tcp", "localhost:9001", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:9001", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
@@ -276,12 +311,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			*restConfig,
 			&pods.Items[0],
 			[]string{"2379"},
+			3,
+			200*time.Millisecond,
 			func() {
 				// We aren't actually going through mTLS authentication with etcd to communicate
 				// with it - just checking TLS protocol versions. So, if it throws a "bad certificate"
 				// error, we're past the version check and consider it a success for this test.
 
-				conn, err = tls.Dial("tcp", "localhost:2379", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:2379", tlsShouldWork)
 				if err != nil {
 					o.Expect(err.Error()).To(o.ContainSubstring("remote error: tls: bad certificate"))
 				} else {
@@ -297,7 +334,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 })
 
-func ForwardPortsAndExecute(restConfig rest.Config, pod *v1.Pod, ports []string, toExecute func()) error {
+func ForwardPortsAndExecute(restConfig rest.Config, pod *v1.Pod, ports []string, maxConnectRetries int, initialBackoff time.Duration, toExecute func()) error {
 	if len(ports) < 1 {
 		return fmt.Errorf("at least 1 PORT is required for port-forward")
 	}
@@ -331,7 +368,20 @@ func ForwardPortsAndExecute(restConfig rest.Config, pod *v1.Pod, ports []string,
 	}
 
 	go func() {
-		err := fw.ForwardPorts()
+		var err error
+
+		for attempt := 0; attempt < maxConnectRetries; attempt++ {
+			err = fw.ForwardPorts()
+			if err == nil {
+				break
+			}
+
+			if attempt < maxConnectRetries-1 {
+				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
+				time.Sleep(backoff)
+			}
+		}
+
 		if err != nil {
 			errorChannel <- err
 			close(stopChannel)
@@ -397,6 +447,21 @@ func getIPFamily(podIPs []v1.PodIP) IPFamily {
 func createPod(client exutil.CLI, ns, generateName string) ([]corev1.PodIP, error) {
 	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
+	pod.Spec.SecurityContext = &corev1.PodSecurityContext{
+		RunAsNonRoot: ptr.To(true),
+		SeccompProfile: &corev1.SeccompProfile{
+			Type: corev1.SeccompProfileTypeRuntimeDefault,
+		},
+	}
+	pod.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
+		AllowPrivilegeEscalation: ptr.To(false),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{"ALL"},
+		},
+		ReadOnlyRootFilesystem: ptr.To(true),
+		Privileged:             ptr.To(false),
+	}
+
 	execPod, err := client.AdminKubeClient().CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	var podIPs []corev1.PodIP
