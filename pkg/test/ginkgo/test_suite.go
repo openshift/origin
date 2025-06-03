@@ -144,24 +144,25 @@ var (
 )
 
 type TestSuite struct {
-	Name        string `json:"name" yaml:"name"`
-	Description string `json:"description" yaml:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 
-	Matches TestMatchFunc `json:"-" yaml:"-"`
+	SuiteMatcher TestMatchFunc `json:"-"`
 
 	// The number of times to execute each test in this suite.
-	Count int `json:"count,omitempty" yaml:"count,omitempty"`
+	Count int `json:"count,omitempty"`
 	// The maximum parallelism of this suite.
-	Parallelism int `json:"parallelism,omitempty" yaml:"parallelism,omitempty"`
+	Parallelism int `json:"parallelism,omitempty"`
 	// The number of flakes that may occur before this test is marked as a failure.
-	MaximumAllowedFlakes int `json:"maximumAllowedFlakes,omitempty" yaml:"maximumAllowedFlakes,omitempty"`
+	MaximumAllowedFlakes int `json:"maximumAllowedFlakes,omitempty"`
 
-	ClusterStabilityDuringTest ClusterStabilityDuringTest `json:"clusterStabilityDuringTest,omitempty" yaml:"clusterStabilityDuringTest,omitempty"`
+	ClusterStabilityDuringTest ClusterStabilityDuringTest `json:"clusterStabilityDuringTest,omitempty"`
 
-	TestTimeout time.Duration `json:"testTimeout,omitempty" yaml:"testTimeout,omitempty"`
+	TestTimeout time.Duration `json:"testTimeout,omitempty"`
 
 	// OTE
-	Extension *extensions.Extension `json:"-" yaml:"-"`
+	Qualifiers []string              `json:"qualifiers,omitempty"`
+	Extension  *extensions.Extension `json:"-"`
 }
 
 type TestMatchFunc func(name string) bool
@@ -169,7 +170,7 @@ type TestMatchFunc func(name string) bool
 func (s *TestSuite) Filter(tests []*testCase) []*testCase {
 	matches := make([]*testCase, 0, len(tests))
 	for _, test := range tests {
-		if !s.Matches(test.name) {
+		if !s.SuiteMatcher(test.name) {
 			continue
 		}
 		matches = append(matches, test)
@@ -181,13 +182,13 @@ func (s *TestSuite) AddRequiredMatchFunc(matchFn TestMatchFunc) {
 	if matchFn == nil {
 		return
 	}
-	if s.Matches == nil {
-		s.Matches = matchFn
+	if s.SuiteMatcher == nil {
+		s.SuiteMatcher = matchFn
 		return
 	}
 
-	originalMatchFn := s.Matches
-	s.Matches = func(name string) bool {
+	originalMatchFn := s.SuiteMatcher
+	s.SuiteMatcher = func(name string) bool {
 		return originalMatchFn(name) && matchFn(name)
 	}
 }

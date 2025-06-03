@@ -83,9 +83,6 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 				Name:        s.Name,
 				Description: s.Description,
 				Extension:   e,
-				Matches: func(name string) bool {
-					return name == s.Name
-				},
 			})
 		}
 	}
@@ -100,10 +97,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that ensure an OpenShift cluster and components are working properly.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/conformance/")
 		},
 		Parallelism: 30,
@@ -113,10 +107,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 		},
 		Parallelism:          30,
@@ -127,10 +118,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run serially.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/conformance/serial") || isStandardEarlyOrLateTest(name)
 		},
 		TestTimeout: 40 * time.Minute,
@@ -141,10 +129,7 @@ var staticSuites = []ginkgo.TestSuite{
 		The disruptive test suite.  Disruptive tests interrupt the cluster function such as by stopping/restarting the control plane or 
 		changing the global cluster configuration in a way that can affect other tests.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			// excluded due to stopped instance handling until https://bugzilla.redhat.com/show_bug.cgi?id=1905709 is fixed
 			if strings.Contains(name, "Cluster should survive master and worker failure and recover with machine health checks") {
 				return false
@@ -161,10 +146,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		The default Kubernetes conformance suite.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:k8s]") && strings.Contains(name, "[Conformance]")
 		},
 		Parallelism: 30,
@@ -174,10 +156,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift build functionality.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Feature:Builds]") || isStandardEarlyOrLateTest(name)
 		},
 		Parallelism: 7,
@@ -191,10 +170,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift template functionality.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Feature:Templates]") || isStandardEarlyOrLateTest(name)
 		},
 		Parallelism: 1,
@@ -204,8 +180,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift image-registry functionality.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) || strings.Contains(name, "[Local]") {
+		SuiteMatcher: func(name string) bool {
+			if strings.Contains(name, "[Local]") {
 				return false
 			}
 			return strings.Contains(name, "[sig-imageregistry]") || isStandardEarlyOrLateTest(name)
@@ -216,8 +192,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that exercise language and tooling images shipped as part of OpenShift.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) || strings.Contains(name, "[Local]") {
+		SuiteMatcher: func(name string) bool {
+			if strings.Contains(name, "[Local]") {
 				return false
 			}
 			return strings.Contains(name, "[Feature:ImageEcosystem]") || isStandardEarlyOrLateTest(name)
@@ -230,10 +206,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Feature:Jenkins]") || isStandardEarlyOrLateTest(name)
 		},
 		Parallelism: 4,
@@ -244,10 +217,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Feature:JenkinsRHELImagesOnly]") || isStandardEarlyOrLateTest(name)
 		},
 		Parallelism: 4,
@@ -258,10 +228,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that verify the scalability characteristics of the cluster. Currently this is focused on core performance behaviors and preventing regressions.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/scalability]")
 		},
 		Parallelism: 1,
@@ -272,10 +239,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run only tests that are excluded from conformance. Makes identifying omitted tests easier.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return !strings.Contains(name, "[Suite:openshift/conformance/")
 		},
 	},
@@ -284,10 +248,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run only tests for test-cmd.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Feature:LegacyCommandTests]") || isStandardEarlyOrLateTest(name)
 		},
 	},
@@ -307,10 +268,7 @@ var staticSuites = []ginkgo.TestSuite{
 		of the file. Replace "master" with the OpenShift version you are testing against, e.g.
 		"blob/release-4.17/test/..."
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
 		},
 	},
@@ -319,10 +277,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite performs IPsec e2e tests covering control plane and data plane for east west and north south traffic scenarios.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/network/ipsec")
 		},
 		Parallelism: 1,
@@ -333,10 +288,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite repeatedly verifies the networking function of the cluster in parallel to find flakes.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			// Skip NetworkPolicy tests for https://bugzilla.redhat.com/show_bug.cgi?id=1980141
 			if strings.Contains(name, "[Feature:NetworkPolicy]") {
 				return false
@@ -356,10 +308,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite performs CNI live migration either from SDN to OVN-Kubernetes or OVN-Kubernetes to SDN.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/network/live-migration")
 		},
 		Count:                      1,
@@ -371,10 +320,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		The conformance testing suite for certified third-party CNI plugins.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return inCNISuite(name)
 		},
 	},
@@ -383,10 +329,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		The conformance testing suite for virtualization related features.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/network/virtualization")
 		},
 		Parallelism: 3,
@@ -396,13 +339,13 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Set of highly reliable tests.
 		`),
-		Matches: func(name string) bool {
+		SuiteMatcher: func(name string) bool {
 
 			_, exists := minimal[name]
 			if !exists {
 				return false
 			}
-			return !isDisabled(name) && strings.Contains(name, "[Suite:openshift/conformance/parallel")
+			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 		},
 		Parallelism:          20,
 		MaximumAllowedFlakes: 15,
@@ -412,7 +355,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run all tests.
 		`),
-		Matches: func(name string) bool {
+		SuiteMatcher: func(name string) bool {
 			return true
 		},
 	},
@@ -421,10 +364,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs vertical scaling tests to exercise the safe scale-up and scale-down of etcd members.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/etcd/scaling") || strings.Contains(name, "[Feature:EtcdVerticalScaling]") || isStandardEarlyOrLateTest(name)
 		},
 		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
@@ -435,10 +375,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs etcd recovery tests to exercise the safe restore process of etcd members.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/etcd/recovery") || strings.Contains(name, "[Feature:EtcdRecovery]") || isStandardEarlyOrLateTest(name)
 		},
 		// etcd's restore test can take a while for apiserver rollouts to stabilize
@@ -451,10 +388,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs etcd cert rotation tests to exercise the the automatic and manual certificate rotation.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/etcd/certrotation") || strings.Contains(name, "[Feature:CertRotation]") || isStandardEarlyOrLateTest(name)
 		},
 		TestTimeout:                60 * time.Minute,
@@ -466,10 +400,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs kube-apiserver rollout reliability.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/kube-apiserver/rollout") || isStandardEarlyOrLateTest(name)
 		},
 		TestTimeout:                90 * time.Minute,
@@ -481,10 +412,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate realtime functionality on nodes.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/nodes/realtime")
 		},
 		TestTimeout: 30 * time.Minute,
@@ -494,10 +422,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate realtime latency on nodes.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/nodes/realtime/latency")
 		},
 		TestTimeout: 30 * time.Minute,
@@ -507,10 +432,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate user namespace functionality.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/usernamespace")
 		},
 		TestTimeout: 60 * time.Minute,
@@ -520,10 +442,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate machine-config-operator functionality.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
+		SuiteMatcher: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/machine-config-operator/disruptive")
 		},
 		TestTimeout: 120 * time.Minute,

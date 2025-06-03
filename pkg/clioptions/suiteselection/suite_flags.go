@@ -162,7 +162,7 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 	return suite, nil
 }
 
-// If a test file was provided, override the Matches function
+// If a test file was provided, override the SuiteMatcher function
 // to match the tests from both the suite and the file.
 func (f *TestSuiteSelectionFlags) testFileMatchFunc() (testginkgo.TestMatchFunc, error) {
 	if len(f.TestFile) == 0 {

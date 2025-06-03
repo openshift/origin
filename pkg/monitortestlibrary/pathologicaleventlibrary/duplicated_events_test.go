@@ -186,7 +186,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			}
 			allowed, matchedAllowedDupe := registry.AllowedByAny(i, test.topology)
 
-			// In some tests we also want to check that the matcher Matches, even if it doesn't
+			// In some tests we also want to check that the matcher SuiteMatcher, even if it doesn't
 			// Allow the event to repeat pathologically:
 			if test.expectedMatchName != "" {
 				matches, matcher := registry.MatchesAny(i)

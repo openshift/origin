@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			}
 			// var controlPlaneTarget bool
 			// selector := labels.SelectorFromSet(pod.Spec.NodeSelector)
-			// if !selector.Empty() && selector.Matches(labels.Set(map[string]string{"node-role.kubernetes.io/master": ""})) {
+			// if !selector.Empty() && selector.SuiteMatcher(labels.Set(map[string]string{"node-role.kubernetes.io/master": ""})) {
 			// 	controlPlaneTarget = true
 			// }
 
