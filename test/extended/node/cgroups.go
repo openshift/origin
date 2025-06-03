@@ -19,8 +19,6 @@ var _ = g.Describe("[sig-node][Feature:Remove support to configure Cgroup v1 fro
 	var (
 		oc = exutil.NewCLIWithoutNamespace("node").AsAdmin()
 	)
-	// Setup project to ensure a valid namespace exists
-	oc.SetupProject()
 
 	const cgroupV2 = "cgroup2fs"
 
