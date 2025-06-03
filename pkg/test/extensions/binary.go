@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
@@ -189,7 +190,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		//  - we got a test result we didn't expect at all (maybe the external binary improperly
 		//    mutated the name, or otherwise did something weird)
 		if !expectedTests.Has(result.Name) {
-			result.Result = ResultFailed
+			result.Result = extensiontests.ResultFailed
 			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
 		}
 		expectedTests.Delete(result.Name)
@@ -202,12 +203,13 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	// we didn't get results for them.
 	for _, expectedTest := range expectedTests.UnsortedList() {
 		results = append(results, &ExtensionTestResult{
-			Name:   expectedTest,
-			Result: ResultFailed,
-			Output: string(testResult),
-			Error:  "external binary did not produce a result for this test",
-
-			Source: b.info.Source,
+			&extensiontests.ExtensionTestResult{
+				Name:   expectedTest,
+				Result: extensiontests.ResultFailed,
+				Output: string(testResult),
+				Error:  "external binary did not produce a result for this test",
+			},
+			b.info.Source,
 		})
 	}
 
