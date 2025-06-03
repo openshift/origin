@@ -73,12 +73,12 @@ type ClusterConfiguration struct {
 	// IsNoOptionalCapabilities indicates the cluster has no optional capabilities enabled
 	HasNoOptionalCapabilities bool
 
-	// availableAPIGroups contains the set of API groups available in the cluster
-	availableAPIGroups sets.Set[string] `json:"-"`
-	// enabledFeatureGates contains the set of enabled feature gates in the cluster
-	enabledFeatureGates sets.Set[string] `json:"-"`
-	// disabledFeatureGates contains the set of disabled feature gates in the cluster
-	disabledFeatureGates sets.Set[string] `json:"-"`
+	// APIGroups contains the set of API groups available in the cluster
+	APIGroups sets.Set[string] `json:"-"`
+	// EnabledFeatureGates contains the set of enabled feature gates in the cluster
+	EnabledFeatureGates sets.Set[string] `json:"-"`
+	// DisabledFeatureGates contains the set of disabled feature gates in the cluster
+	DisabledFeatureGates sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -338,7 +338,7 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 		}
 
 		// Apply API group filtering
-		if c.availableAPIGroups != nil {
+		if c.APIGroups != nil {
 			requiredGroups := []string{}
 			matches := apiGroupRegex.FindAllStringSubmatch(name, -1)
 			for _, match := range matches {
@@ -348,13 +348,13 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 				apigroup := match[1]
 				requiredGroups = append(requiredGroups, apigroup)
 			}
-			if !c.availableAPIGroups.HasAll(requiredGroups...) {
+			if !c.APIGroups.HasAll(requiredGroups...) {
 				return false
 			}
 		}
 
 		// Apply feature gate filtering
-		if c.enabledFeatureGates != nil || c.disabledFeatureGates != nil {
+		if c.EnabledFeatureGates != nil || c.DisabledFeatureGates != nil {
 			featureGates := []string{}
 			matches := featureGateRegex.FindAllStringSubmatch(name, -1)
 			for _, match := range matches {
@@ -366,17 +366,17 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 			}
 
 			// If no feature gates are configured, exclude all featuregated tests
-			if c.enabledFeatureGates == nil && len(featureGates) > 0 {
+			if c.EnabledFeatureGates == nil && len(featureGates) > 0 {
 				return false
 			}
 
 			// If any required feature gates are disabled, exclude the test
-			if c.disabledFeatureGates != nil && c.disabledFeatureGates.HasAny(featureGates...) {
+			if c.DisabledFeatureGates != nil && c.DisabledFeatureGates.HasAny(featureGates...) {
 				return false
 			}
 
 			// If feature gates are required, ensure they are all enabled
-			if len(featureGates) > 0 && c.enabledFeatureGates != nil && !c.enabledFeatureGates.HasAll(featureGates...) {
+			if len(featureGates) > 0 && c.EnabledFeatureGates != nil && !c.EnabledFeatureGates.HasAll(featureGates...) {
 				return false
 			}
 		}

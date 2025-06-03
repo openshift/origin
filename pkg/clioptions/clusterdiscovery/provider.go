@@ -108,11 +108,6 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 // based on the current cluster state. This should be called after LoadConfig but before
 // the configuration is used for test filtering.
 func PopulateClusterFilters(config *ClusterConfiguration, dryRun bool) error {
-	if dryRun {
-		// In dry-run mode, skip filter population to avoid cluster access
-		return nil
-	}
-
 	clientConfig, err := e2e.LoadConfig(true)
 	if err != nil {
 		return fmt.Errorf("unable to load client config for filter population: %w", err)
@@ -135,13 +130,13 @@ func PopulateClusterFilters(config *ClusterConfiguration, dryRun bool) error {
 	if err != nil {
 		return fmt.Errorf("unable to retrieve served resources: %v", err)
 	}
-	config.availableAPIGroups = sets.New[string]()
+	config.APIGroups = sets.New[string]()
 	for _, apiGroup := range groups.Groups {
 		// ignore the empty group
 		if apiGroup.Name == "" {
 			continue
 		}
-		config.availableAPIGroups.Insert(apiGroup.Name)
+		config.APIGroups.Insert(apiGroup.Name)
 	}
 
 	// Create config client for feature gate filtering
@@ -169,8 +164,8 @@ func PopulateClusterFilters(config *ClusterConfiguration, dryRun bool) error {
 			desiredVersion = clusterVersion.Status.History[0].Version
 		}
 
-		config.enabledFeatureGates = sets.New[string]()
-		config.disabledFeatureGates = sets.New[string]()
+		config.EnabledFeatureGates = sets.New[string]()
+		config.DisabledFeatureGates = sets.New[string]()
 		found := false
 		for _, featureGateValues := range featureGate.Status.FeatureGates {
 			if featureGateValues.Version != desiredVersion {
@@ -178,10 +173,10 @@ func PopulateClusterFilters(config *ClusterConfiguration, dryRun bool) error {
 			}
 			found = true
 			for _, enabledGate := range featureGateValues.Enabled {
-				config.enabledFeatureGates.Insert(string(enabledGate.Name))
+				config.EnabledFeatureGates.Insert(string(enabledGate.Name))
 			}
 			for _, disabledGate := range featureGateValues.Disabled {
-				config.disabledFeatureGates.Insert(string(disabledGate.Name))
+				config.DisabledFeatureGates.Insert(string(disabledGate.Name))
 			}
 			break
 		}
