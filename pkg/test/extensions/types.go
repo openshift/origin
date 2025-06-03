@@ -11,13 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// ExtensionInfo represents an extension to openshift-tests.
-type ExtensionInfo struct {
+// Extension represents an extension to openshift-tests.
+type Extension struct {
 	*extension.Extension
 
 	// -- origin specific info --
-	Source               Source `json:"source"`
-	ExtensionArtifactDir string `json:"extension_artifact_dir"`
+	Binary               *TestBinary `json:"-"`
+	Source               Source      `json:"source"`
+	ExtensionArtifactDir string      `json:"extension_artifact_dir"`
 }
 
 // Source contains the details of the commit and source URL.

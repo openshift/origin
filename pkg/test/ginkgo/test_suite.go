@@ -159,6 +159,9 @@ type TestSuite struct {
 	ClusterStabilityDuringTest ClusterStabilityDuringTest `json:"clusterStabilityDuringTest,omitempty" yaml:"clusterStabilityDuringTest,omitempty"`
 
 	TestTimeout time.Duration `json:"testTimeout,omitempty" yaml:"testTimeout,omitempty"`
+
+	// OTE
+	Extension *extensions.Extension `json:"-" yaml:"-"`
 }
 
 type TestMatchFunc func(name string) bool

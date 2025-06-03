@@ -36,7 +36,7 @@ type TestBinary struct {
 	binaryPath string
 
 	// Cache the info after gathering it
-	info *ExtensionInfo
+	info *Extension
 }
 
 // ImageSet maps a Kubernetes image ID to its corresponding configuration.
@@ -63,7 +63,7 @@ var extensionBinaries = []TestBinary{
 }
 
 // Info returns information about this particular extension.
-func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
+func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 	if b.info != nil {
 		return b.info, nil
 	}
@@ -79,7 +79,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
-	var info ExtensionInfo
+	var info Extension
 	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
@@ -87,6 +87,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	b.info = &info
 
 	// Set fields origin knows or calculates:
+	b.info.Binary = b
 	b.info.Source.SourceBinary = binName
 	b.info.Source.SourceImage = b.imageTag
 	b.info.ExtensionArtifactDir = path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&b.info.Component))
@@ -387,9 +388,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 type TestBinaries []*TestBinary
 
 // Info fetches the info from all TestBinaries using the specified parallelism.
-func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*ExtensionInfo, error) {
+func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Extension, error) {
 	var (
-		infos []*ExtensionInfo
+		infos []*Extension
 		mu    sync.Mutex
 		wg    sync.WaitGroup
 		errCh = make(chan error, len(binaries))

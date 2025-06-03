@@ -67,7 +67,8 @@ func NewListSuitesCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				for _, s := range e.Suites {
 					suites = append(suites, &ginkgo.TestSuite{
 						Name:        s.Name,
-						Description: "Extension suite",
+						Description: s.Description,
+						Extension:   e,
 						Matches: func(name string) bool {
 							return name == s.Name
 						},
