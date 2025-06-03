@@ -3,9 +3,11 @@ package testsuites
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/test/extensions"
@@ -35,6 +37,11 @@ func InternalTestSuites() []*ginkgo.TestSuite {
 // It validates that no suite names are duplicated across internal and extension suites.
 func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 	suites := InternalTestSuites()
+
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		logrus.Warning("Using built-in suites only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+		return suites, nil
+	}
 
 	// Create a map to track suite names and their sources for better error reporting
 	suiteNameToSources := make(map[string][]string)

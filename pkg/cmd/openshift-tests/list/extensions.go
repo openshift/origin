@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -33,6 +34,9 @@ func NewListExtensionsCommand(streams genericclioptions.IOStreams) *cobra.Comman
 		PreRunE:       origincmd.RequireClusterAccess,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
+			if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+				return fmt.Errorf("OPENSHIFT_SKIP_EXTERNAL_TESTS is set, cannot list extensions")
+			}
 
 			// Get output format flag
 			const flag = "output"
