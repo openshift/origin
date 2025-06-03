@@ -1747,6 +1747,8 @@ var Annotations = map[string]string{
 
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
+	"[sig-node][Feature:Remove support to configure Cgroup v1 from OCP version >= 4.19][apigroup:operator.openshift.io] Should result in an error when cgroupMode is changed from v2 to v1": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
