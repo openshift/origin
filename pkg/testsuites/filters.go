@@ -16,7 +16,32 @@ func SuitesString(suites []*ginkgo.TestSuite, prefix string) string {
 	buf := &bytes.Buffer{}
 	fmt.Fprintf(buf, prefix)
 	for _, suite := range suites {
-		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
+		fmt.Fprintf(buf, "%s\n", suite.Name)
+
+		// Add source information
+		if suite.Extension != nil {
+			fmt.Fprintf(buf, "  Source: %s (%s:%s:%s)\n", suite.Extension.Source.SourceImage, suite.Extension.Component.Product, suite.Extension.Component.Kind, suite.Extension.Component.Name)
+			if suite.Extension.Source.SourceURL != "" {
+				fmt.Fprintf(buf, "  URL: %s\n", suite.Extension.Source.SourceURL)
+			}
+		} else {
+			fmt.Fprintf(buf, "  Source: Internal\n")
+		}
+
+		// Add description with proper indentation
+		if suite.Description != "" {
+			// Split description into lines and indent each line
+			lines := strings.Split(strings.TrimSpace(suite.Description), "\n")
+			fmt.Fprintf(buf, "  Description:\n")
+			for _, line := range lines {
+				trimmedLine := strings.TrimSpace(line)
+				if trimmedLine != "" {
+					fmt.Fprintf(buf, "    %s\n", trimmedLine)
+				}
+			}
+		}
+
+		fmt.Fprintf(buf, "\n")
 	}
 	return buf.String()
 }

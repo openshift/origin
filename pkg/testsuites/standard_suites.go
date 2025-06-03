@@ -1,11 +1,15 @@
 package testsuites
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubectl/pkg/util/templates"
 
+	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 
 	// these register framework.NewFrameworkExtensions responsible for
@@ -26,6 +30,52 @@ func InternalTestSuites() []*ginkgo.TestSuite {
 		copied = append(copied, &curr)
 	}
 	return copied
+}
+
+// AllTestSuites returns all test suites including internal suites and extension suites.
+// It validates that extension suites don't redeclare any internal suite names.
+func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
+	suites := InternalTestSuites()
+
+	// Create a set to track internal suite names to prevent redeclaration
+	internalSuiteNames := sets.New[string]()
+	for _, suite := range suites {
+		internalSuiteNames.Insert(suite.Name)
+	}
+
+	// Extract all test binaries from the release payload
+	cleanup, binaries, err := extensions.ExtractAllTestBinaries(ctx, 10)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract test binaries: %w", err)
+	}
+	defer cleanup()
+
+	// Get info from all binaries
+	extensionInfos, err := binaries.Info(ctx, 4)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get extension info: %w", err)
+	}
+
+	for _, e := range extensionInfos {
+		for _, s := range e.Suites {
+			// Check if extension suite name conflicts with internal suite name
+			if internalSuiteNames.Has(s.Name) {
+				return nil, fmt.Errorf("extension suite %q from %s/%s conflicts with internal suite name - there can be only one canonical source of a suite",
+					s.Name, e.Component.Product, e.Component.Name)
+			}
+
+			suites = append(suites, &ginkgo.TestSuite{
+				Name:        s.Name,
+				Description: s.Description,
+				Extension:   e,
+				Matches: func(name string) bool {
+					return name == s.Name
+				},
+			})
+		}
+	}
+
+	return suites, nil
 }
 
 // staticSuites are all known test suites this binary should run

@@ -13,8 +13,6 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	origincmd "github.com/openshift/origin/pkg/cmd"
-	"github.com/openshift/origin/pkg/test/extensions"
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/testsuites"
 )
 
@@ -46,34 +44,12 @@ func NewListSuitesCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				return errors.Wrapf(err, "error accessing flag %s for command %s", flag, cmd.Name())
 			}
 
-			suites := testsuites.InternalTestSuites()
-
 			ctx := context.TODO()
 
-			// Extract all test binaries from the release payload
-			cleanup, binaries, err := extensions.ExtractAllTestBinaries(ctx, 10)
+			// Get all test suites (internal + extensions) with validation
+			suites, err := testsuites.AllTestSuites(ctx)
 			if err != nil {
-				return fmt.Errorf("failed to extract test binaries: %w", err)
-			}
-			defer cleanup()
-
-			// Get info from all binaries
-			extensionInfos, err := binaries.Info(ctx, 4)
-			if err != nil {
-				return fmt.Errorf("failed to get extension info: %w", err)
-			}
-
-			for _, e := range extensionInfos {
-				for _, s := range e.Suites {
-					suites = append(suites, &ginkgo.TestSuite{
-						Name:        s.Name,
-						Description: s.Description,
-						Extension:   e,
-						Matches: func(name string) bool {
-							return name == s.Name
-						},
-					})
-				}
+				return err
 			}
 
 			// Output in the requested format
