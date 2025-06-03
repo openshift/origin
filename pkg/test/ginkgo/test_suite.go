@@ -144,21 +144,21 @@ var (
 )
 
 type TestSuite struct {
-	Name        string
-	Description string
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
 
-	Matches TestMatchFunc
+	Matches TestMatchFunc `json:"-" yaml:"-"`
 
 	// The number of times to execute each test in this suite.
-	Count int
+	Count int `json:"count,omitempty" yaml:"count,omitempty"`
 	// The maximum parallelism of this suite.
-	Parallelism int
+	Parallelism int `json:"parallelism,omitempty" yaml:"parallelism,omitempty"`
 	// The number of flakes that may occur before this test is marked as a failure.
-	MaximumAllowedFlakes int
+	MaximumAllowedFlakes int `json:"maximumAllowedFlakes,omitempty" yaml:"maximumAllowedFlakes,omitempty"`
 
-	ClusterStabilityDuringTest ClusterStabilityDuringTest
+	ClusterStabilityDuringTest ClusterStabilityDuringTest `json:"clusterStabilityDuringTest,omitempty" yaml:"clusterStabilityDuringTest,omitempty"`
 
-	TestTimeout time.Duration
+	TestTimeout time.Duration `json:"testTimeout,omitempty" yaml:"testTimeout,omitempty"`
 }
 
 type TestMatchFunc func(name string) bool
