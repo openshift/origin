@@ -34,8 +34,6 @@ type TestSuiteSelectionFlags struct {
 
 	// Regex allows a selection of a subset of tests
 	Regex string
-	// MatchFn if set is also used to filter the suite contents
-	MatchFn testginkgo.TestMatchFunc
 
 	genericclioptions.IOStreams
 }
@@ -62,9 +60,7 @@ func (f *TestSuiteSelectionFlags) SetIOStreams(streams genericclioptions.IOStrea
 // SelectSuite returns the defined suite plus the requested modifications to the suite in order to select the specified tests
 func (f *TestSuiteSelectionFlags) SelectSuite(
 	suites []*testginkgo.TestSuite,
-	args []string,
-	additionalMatchFn testginkgo.TestMatchFunc,
-) (*testginkgo.TestSuite, error) {
+	args []string) (*testginkgo.TestSuite, error) {
 	var suite *testginkgo.TestSuite
 
 	// If a test file was provided with no suite, use the "files" suite.
@@ -103,9 +99,6 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 		}
 		suite.AddRequiredMatchFunc(re.MatchString)
 	}
-
-	suite.AddRequiredMatchFunc(f.MatchFn)
-	suite.AddRequiredMatchFunc(additionalMatchFn)
 
 	return suite, nil
 }

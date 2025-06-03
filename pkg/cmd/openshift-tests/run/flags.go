@@ -1,13 +1,14 @@
 package run
 
 import (
+	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/clioptions/suiteselection"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -88,9 +89,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	}
 	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
 		f.AvailableSuites,
-		args,
-		providerConfig.MatchFn(),
-	)
+		args)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +97,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	o := &RunSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,
+		ClusterFilters:        providerConfig.MatchFn(),
 		FromRepository:        f.FromRepository,
 		CloudProviderJSON:     providerConfig.ToJSONString(),
 		CloseFn:               closeFn,
