@@ -837,6 +837,8 @@ func (c *CLI) UserConfig() *rest.Config {
 func (c *CLI) AdminConfig() *rest.Config {
 	clientConfig, err := GetClientConfig(c.adminConfigPath)
 	if err != nil {
+		fmt.Println(err.Error())
+		fmt.Println(c.adminConfigPath)
 		FatalErr(err)
 	}
 	return clientConfig

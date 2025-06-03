@@ -5,15 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
-	"github.com/openshift/origin/pkg/test/extensions"
-	"github.com/openshift/origin/pkg/testsuites"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	origincmd "github.com/openshift/origin/pkg/cmd"
+	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/pkg/testsuites"
 )
 
 func NewListCommand(streams genericclioptions.IOStreams) *cobra.Command {
@@ -51,6 +54,13 @@ func NewListSuitesCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PreRunE: func(c *cobra.Command, args []string) error {
+			if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
+				return origincmd.RequireClusterAccess(c, args)
+			}
+
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get output format flag
 			const flag = "output"
@@ -104,6 +114,7 @@ func NewListExtensionsCommand(streams genericclioptions.IOStreams) *cobra.Comman
 		`),
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PreRunE:       origincmd.RequireClusterAccess,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
