@@ -1,7 +1,6 @@
 package run
 
 import (
-	"fmt"
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/clioptions/suiteselection"
@@ -47,8 +46,7 @@ func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string
 // SuiteWithKubeTestInitializationPreSuite
 //  1. invokes the Kube suite in order to populate data from the environment for the CSI suite (originally, but now everything).
 //  2. ensures that the suite filters out tests from providers that aren't relevant (see exutilcluster.ClusterConfig.MatchFn) by
-//     loading the provider info from the cluster or flags.
-//  3. populates cluster-specific filters for API groups and feature gates.
+//     loading the provider info from the cluster or flags, including API groups and feature gates.
 func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdiscovery.ClusterConfiguration, error) {
 	providerConfig, err := clusterdiscovery.DecodeProvider(f.ProviderTypeOrJSON, f.GinkgoRunSuiteOptions.DryRun, true, nil)
 	if err != nil {
@@ -57,11 +55,6 @@ func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdisco
 
 	if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, providerConfig, f.GinkgoRunSuiteOptions.DryRun); err != nil {
 		return nil, err
-	}
-
-	// Populate cluster-specific filters for API groups and feature gates
-	if err := clusterdiscovery.PopulateClusterFilters(providerConfig, f.GinkgoRunSuiteOptions.DryRun); err != nil {
-		return nil, fmt.Errorf("failed to populate cluster filters: %w", err)
 	}
 
 	return providerConfig, nil

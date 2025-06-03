@@ -1,7 +1,6 @@
 package clusterdiscovery
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,11 +9,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/discovery"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/test/extended/util/image"
@@ -98,90 +92,6 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 
 		if err := image.InitializeReleasePullSpecString(imageStreamString, config.HasNoOptionalCapabilities); err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-// PopulateClusterFilters adds API group and feature gate filters to the cluster configuration
-// based on the current cluster state. This should be called after LoadConfig but before
-// the configuration is used for test filtering.
-func PopulateClusterFilters(config *ClusterConfiguration, dryRun bool) error {
-	clientConfig, err := e2e.LoadConfig(true)
-	if err != nil {
-		return fmt.Errorf("unable to load client config for filter population: %w", err)
-	}
-
-	// Create discovery client for API group filtering
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(clientConfig)
-	if err != nil {
-		return fmt.Errorf("unable to create discovery client: %w", err)
-	}
-
-	// Test server connectivity before proceeding
-	_, serverVersionErr := discoveryClient.ServerVersion()
-	if serverVersionErr != nil {
-		return fmt.Errorf("unable to connect to server for filter population: %w", serverVersionErr)
-	}
-
-	// Populate available API groups
-	groups, err := discoveryClient.ServerGroups()
-	if err != nil {
-		return fmt.Errorf("unable to retrieve served resources: %v", err)
-	}
-	config.APIGroups = sets.New[string]()
-	for _, apiGroup := range groups.Groups {
-		// ignore the empty group
-		if apiGroup.Name == "" {
-			continue
-		}
-		config.APIGroups.Insert(apiGroup.Name)
-	}
-
-	// Create config client for feature gate filtering
-	configClient, err := configclient.NewForConfig(clientConfig)
-	if err != nil {
-		return fmt.Errorf("unable to create config client: %w", err)
-	}
-
-	// Populate feature gate information
-	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
-	switch {
-	case apierrors.IsNotFound(err):
-		// In case we are unable to determine if there is support for feature gates, leave sets nil
-		// which will exclude all featuregated tests as the test target doesn't comply with preconditions.
-	case err != nil:
-		return fmt.Errorf("unable to get feature gates: %w", err)
-	default:
-		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("unable to get cluster version: %w", err)
-		}
-
-		desiredVersion := clusterVersion.Status.Desired.Version
-		if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
-			desiredVersion = clusterVersion.Status.History[0].Version
-		}
-
-		config.EnabledFeatureGates = sets.New[string]()
-		config.DisabledFeatureGates = sets.New[string]()
-		found := false
-		for _, featureGateValues := range featureGate.Status.FeatureGates {
-			if featureGateValues.Version != desiredVersion {
-				continue
-			}
-			found = true
-			for _, enabledGate := range featureGateValues.Enabled {
-				config.EnabledFeatureGates.Insert(string(enabledGate.Name))
-			}
-			for _, disabledGate := range featureGateValues.Disabled {
-				config.DisabledFeatureGates.Insert(string(disabledGate.Name))
-			}
-			break
-		}
-		if !found {
-			return fmt.Errorf("no featuregates found for version %s", desiredVersion)
 		}
 	}
 
