@@ -1,12 +1,10 @@
 reviewers:
   - grokspawn
-  - everettraven
+  - oceanc80
   - tmshort
   - perdasilva
-  - LalatenduMohanty
   - dtfranz
   - kevinrizza
-  - dinhxuanvu
   - anik120
   - ankitathomas
   - joelanford
@@ -15,5 +13,5 @@ approvers:
   - perdasilva
   - tmshort
   - grokspawn
-  - LalatenduMohanty
+  - oceanc80
   - kevinrizza

@@ -128,8 +128,8 @@ func IsTwoNodeArbiter(oc *exutil.CLI) bool {
 
 // `IsDisconnected` returns true if the cluster is a Disconnected cluster and false otherwise
 func IsDisconnected(oc *exutil.CLI, nodeName string) bool {
-	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "systemctl", "is-active", "NetworkManager-wait-online.service")
-	if networkStatus == "active" {
+	networkStatus, _ := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-machine-config-operator", "sh", "-c", "curl -s --connect-timeout 5 http://fedoraproject.org/static/hotspot.txt &>/dev/null && echo \"Connected\" || echo \"Disconnected\"")
+	if networkStatus == "Connected" {
 		return false
 	}
 	return true
@@ -261,7 +261,9 @@ func generateGCPProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string,
 	newBootImage := "projects/centos-cloud/global/images/family/centos-stream-9"
 	newProviderSpec := providerSpec.DeepCopy()
 	for idx := range newProviderSpec.Disks {
-		newProviderSpec.Disks[idx].Image = newBootImage
+		if newProviderSpec.Disks[idx].Boot {
+			newProviderSpec.Disks[idx].Image = newBootImage
+		}
 	}
 	newProviderSpecPatch, err := marshalProviderSpec(newProviderSpec)
 	o.Expect(err).NotTo(o.HaveOccurred())

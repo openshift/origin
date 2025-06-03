@@ -15,6 +15,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = Describe("[sig-network] services", func() {
@@ -89,6 +90,13 @@ var _ = Describe("[sig-network] services", func() {
 
 	InIPv4ClusterContext(oc, func() {
 		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+			// Check if the test can write to cluster/network.config.openshift.io
+			hasAccess, err := hasNetworkConfigWriteAccess(oc)
+			Expect(err).NotTo(HaveOccurred())
+			if !hasAccess {
+				skipper.Skipf("The test is not permitted to modify the cluster/network.config.openshift.io resource")
+			}
+
 			namespace := oc.Namespace()
 			adminConfigClient := oc.AdminConfigClient()
 			k8sClient := oc.KubeClient()
@@ -97,7 +105,7 @@ var _ = Describe("[sig-network] services", func() {
 			By("create service of type load balancer with default cluster networks config")
 			serviceName := names.SimpleNameGenerator.GenerateName("svc-without-ext-ip")
 			By("check load balance service creation fails")
-			err := createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
+			err = createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
 			Expect(kapierrs.IsForbidden(err)).Should(Equal(true))
 
 			// Test external ip policy configured with allowedCIDRs. Make sure service
@@ -166,6 +174,13 @@ var _ = Describe("[sig-network] services", func() {
 
 	InBareMetalIPv4ClusterContext(oc, func() {
 		It("ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+			// Check if the test can write to cluster/network.config.openshift.io
+			hasAccess, err := hasNetworkConfigWriteAccess(oc)
+			Expect(err).NotTo(HaveOccurred())
+			if !hasAccess {
+				skipper.Skipf("The test is not permitted to modify the cluster/network.config.openshift.io resource")
+			}
+
 			namespace := oc.Namespace()
 			adminConfigClient := oc.AdminConfigClient()
 			k8sClient := oc.KubeClient()
@@ -175,7 +190,7 @@ var _ = Describe("[sig-network] services", func() {
 			By("create service of type load balancer with default cluster networks config")
 			serviceName := names.SimpleNameGenerator.GenerateName("svc-without-ext-ip-3")
 			By("check load balance service creation fails")
-			err := createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
+			err = createWebserverLBService(k8sClient, namespace, serviceName, "", []string{"192.168.132.10"}, nil)
 			Expect(kapierrs.IsForbidden(err)).Should(Equal(true))
 
 			// Test external ip policy configured with both policy and auto assign cidr. Make sure service

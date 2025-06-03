@@ -64,7 +64,11 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		nodeNames := sets.NewString()
 		for i := range allNodes.Items {
 			node := &allNodes.Items[i]
-			nodeNames.Insert(node.ObjectMeta.Name)
+
+			// If the node does not have the label, it may be a non machine node.
+			if _, ok := node.Annotations["machine.openshift.io/machine"]; ok {
+				nodeNames.Insert(node.ObjectMeta.Name)
+			}
 		}
 
 		if len(nodeNames) == 0 {

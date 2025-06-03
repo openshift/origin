@@ -363,6 +363,17 @@ func SimplePISTest(oc *exutil.CLI, kubeClient *kubernetes.Clientset, clientSet *
 
 func detectXCondition(oc *exutil.CLI, node corev1.Node, mcn *mcfgv1.MachineConfigNode, appliedPIS *mcfgv1.PinnedImageSet, detectingSuccess bool, isMetalDisconnected bool) (bool, bool, error) {
 	if detectingSuccess {
+		if isMetalDisconnected {
+			crictlStatus, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-machine-config-operator", "crictl", "inspecti", emptyImagePin)
+			if err != nil {
+				return false, false, fmt.Errorf("failed to execute `crictl inspecti %s` on node %s: %w", emptyImagePin, node.Name, err)
+			}
+			if !strings.Contains(crictlStatus, "imageSpec") {
+				return false, false, fmt.Errorf("Image %s not present on node %s: %w", emptyImagePin, node.Name, err)
+			}
+			return true, false, nil
+		}
+
 		for _, cond := range mcn.Status.Conditions {
 			if mcfgv1.StateProgress(cond.Type) == mcfgv1.MachineConfigNodePinnedImageSetsDegraded && cond.Status == "True" {
 				return false, true, fmt.Errorf("PIS degraded for MCN %s with reason: %s and message: %s", mcn.Name, cond.Reason, cond.Message)
@@ -373,16 +384,6 @@ func detectXCondition(oc *exutil.CLI, node corev1.Node, mcn *mcfgv1.MachineConfi
 			}
 		}
 		for _, img := range appliedPIS.Spec.PinnedImages {
-			if isMetalDisconnected {
-				crictlStatus, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-machine-config-operator", "crictl", "inspecti", emptyImagePin)
-				if err != nil {
-					return false, false, fmt.Errorf("failed to execute `crictl inspecti %s` on node %s: %w", img.Name, node.Name, err)
-				}
-				if !strings.Contains(crictlStatus, "imageSpec") {
-					return false, false, fmt.Errorf("Image %s not present on node %s: %w", img.Name, node.Name, err)
-				}
-				break
-			}
 			crictlStatus, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, node.Name, "openshift-machine-config-operator", "crictl", "inspecti", string(img.Name))
 			if err != nil {
 				return false, false, fmt.Errorf("failed to execute `crictl inspecti %s` on node %s: %w", img.Name, node.Name, err)
