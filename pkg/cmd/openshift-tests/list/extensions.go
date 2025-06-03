@@ -99,7 +99,7 @@ func NewListExtensionsCommand(streams genericclioptions.IOStreams) *cobra.Comman
 }
 
 func printExtensionInfo(out io.Writer, info *extensions.Extension) {
-	fmt.Fprintf(out, "%s/%s (%s)\n", info.Component.Product, info.Component.Name, info.Component.Kind)
+	fmt.Fprintf(out, "%s:%s:%s\n", info.Component.Product, info.Component.Kind, info.Component.Name)
 	fmt.Fprintf(out, "  API Version: %s\n", info.APIVersion)
 
 	if info.Source.SourceBinary != "" {
