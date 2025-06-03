@@ -1857,6 +1857,8 @@ var Annotations = map[string]string{
 
 	"[sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image should successfully run date command": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-node][Feature:Remove support to configure Cgroup v1 from OCP version >= 4.19][apigroup:operator.openshift.io] Should result in an error when cgroupMode is changed from v2 to v1": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
