@@ -2,7 +2,6 @@ package suiteselection
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,8 +11,6 @@ import (
 	"strings"
 
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"k8s.io/client-go/discovery"
 
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -66,9 +63,6 @@ func (f *TestSuiteSelectionFlags) SetIOStreams(streams genericclioptions.IOStrea
 func (f *TestSuiteSelectionFlags) SelectSuite(
 	suites []*testginkgo.TestSuite,
 	args []string,
-	discoveryClientGetter DiscoveryClientGetter,
-	configClientGetter ConfigClientGetter,
-	dryRun bool,
 	additionalMatchFn testginkgo.TestMatchFunc,
 ) (*testginkgo.TestSuite, error) {
 	var suite *testginkgo.TestSuite
@@ -112,52 +106,6 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 
 	suite.AddRequiredMatchFunc(f.MatchFn)
 	suite.AddRequiredMatchFunc(additionalMatchFn)
-
-	// Skip tests with [apigroup:GROUP] labels for apigroups which are not
-	// served by a cluster. E.g. MicroShift is not serving most of the openshift.io
-	// apigroups. Other installations might be serving only a subset of the api groups.
-	discoveryClient, err := discoveryClientGetter.GetDiscoveryClient()
-	switch {
-	case err != nil && dryRun:
-		fmt.Fprintf(f.ErrOut, "Unable to get discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
-	case err != nil && !dryRun:
-		return nil, fmt.Errorf("unable to get discovery client, skipping apigroup check in the dry-run mode: %w", err)
-
-	default:
-		_, serverVersionErr := discoveryClient.ServerVersion()
-		switch {
-		case serverVersionErr != nil && dryRun:
-			fmt.Fprintf(f.ErrOut, "Unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
-		case serverVersionErr != nil && !dryRun:
-			return nil, fmt.Errorf("unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %w", err)
-		default:
-			apiGroupFilter, err := newApiGroupFilter(discoveryClient)
-			if err != nil {
-				return nil, fmt.Errorf("unable to build api group filter: %w", err)
-			}
-			suite.AddRequiredMatchFunc(apiGroupFilter.includeTest)
-		}
-	}
-
-	configClient, err := configClientGetter.GetConfigClient()
-	switch {
-	case err != nil && dryRun:
-		fmt.Fprintf(f.ErrOut, "Unable to get config client, skipping FeatureGate check in the dry-run mode: %v\n", err)
-	case err != nil && !dryRun:
-		return nil, fmt.Errorf("unable to get config client, skipping FeatureGate check in the dry-run mode: %w", err)
-	default:
-		featureGateFilter, err := newFeatureGateFilter(context.TODO(), configClient)
-		switch {
-		case apierrors.IsNotFound(err):
-			// In case we are unable to determine if there is support for feature gates, exclude all featuregated tests
-			// as the test target doesnt comply with preconditions.
-			suite.AddRequiredMatchFunc(includeNonFeatureGateTest)
-		case err != nil:
-			return nil, fmt.Errorf("unable to build FeatureGate filter: %w", err)
-		default:
-			suite.AddRequiredMatchFunc(featureGateFilter.includeTest)
-		}
-	}
 
 	return suite, nil
 }

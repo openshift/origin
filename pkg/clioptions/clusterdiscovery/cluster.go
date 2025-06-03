@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,6 +23,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
+
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
@@ -70,6 +72,13 @@ type ClusterConfiguration struct {
 
 	// IsNoOptionalCapabilities indicates the cluster has no optional capabilities enabled
 	HasNoOptionalCapabilities bool
+
+	// availableAPIGroups contains the set of API groups available in the cluster
+	availableAPIGroups sets.Set[string] `json:"-"`
+	// enabledFeatureGates contains the set of enabled feature gates in the cluster
+	enabledFeatureGates sets.Set[string] `json:"-"`
+	// disabledFeatureGates contains the set of disabled feature gates in the cluster
+	disabledFeatureGates sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -327,7 +336,58 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 				return false
 			}
 		}
+
+		// Apply API group filtering
+		if c.availableAPIGroups != nil {
+			requiredGroups := []string{}
+			matches := apiGroupRegex.FindAllStringSubmatch(name, -1)
+			for _, match := range matches {
+				if len(match) < 2 {
+					panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
+				}
+				apigroup := match[1]
+				requiredGroups = append(requiredGroups, apigroup)
+			}
+			if !c.availableAPIGroups.HasAll(requiredGroups...) {
+				return false
+			}
+		}
+
+		// Apply feature gate filtering
+		if c.enabledFeatureGates != nil || c.disabledFeatureGates != nil {
+			featureGates := []string{}
+			matches := featureGateRegex.FindAllStringSubmatch(name, -1)
+			for _, match := range matches {
+				if len(match) < 2 {
+					panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
+				}
+				featureGate := match[1]
+				featureGates = append(featureGates, featureGate)
+			}
+
+			// If no feature gates are configured, exclude all featuregated tests
+			if c.enabledFeatureGates == nil && len(featureGates) > 0 {
+				return false
+			}
+
+			// If any required feature gates are disabled, exclude the test
+			if c.disabledFeatureGates != nil && c.disabledFeatureGates.HasAny(featureGates...) {
+				return false
+			}
+
+			// If feature gates are required, ensure they are all enabled
+			if len(featureGates) > 0 && c.enabledFeatureGates != nil && !c.enabledFeatureGates.HasAll(featureGates...) {
+				return false
+			}
+		}
+
 		return true
 	}
 	return matchFn
 }
+
+// Regular expressions for parsing test labels
+var (
+	apiGroupRegex    = regexp.MustCompile(`\[apigroup:([^]]*)\]`)
+	featureGateRegex = regexp.MustCompile(`\[OCPFeatureGate:([^]]*)\]`)
+)
