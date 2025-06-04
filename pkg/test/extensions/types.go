@@ -47,6 +47,44 @@ type ExtensionTestSpec struct {
 	Binary *TestBinary
 }
 
+// FilterWrappedSpecs applies the upstream Filter method (defined on extensiontests.ExtensionTestSpecs)
+// while preserving our local ExtensionTestSpec wrappers.
+//
+// This is a bit awkward because our ExtensionTestSpecs is a slice of wrappers around
+// *extensiontests.ExtensionTestSpec, but the Filter method only exists on the upstream slice type.
+// To work around this, we:
+//  1. Extract the underlying *extensiontests.ExtensionTestSpec values.
+//  2. Call the upstream Filter.
+//  3. Map the filtered results back to the original wrapped specs using pointer identity.
+//
+// This preserves metadata like the Binary field stored in our wrapper.
+func FilterWrappedSpecs(
+	wrappedSpecs ExtensionTestSpecs,
+	qualifiers []string,
+) (ExtensionTestSpecs, error) {
+	var baseSpecs extensiontests.ExtensionTestSpecs
+	specMap := make(map[*extensiontests.ExtensionTestSpec]*ExtensionTestSpec)
+
+	for _, spec := range wrappedSpecs {
+		baseSpecs = append(baseSpecs, spec.ExtensionTestSpec)
+		specMap[spec.ExtensionTestSpec] = spec
+	}
+
+	filtered, err := baseSpecs.Filter(qualifiers)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ExtensionTestSpecs
+	for _, f := range filtered {
+		if orig, ok := specMap[f]; ok {
+			result = append(result, orig)
+		}
+	}
+
+	return result, nil
+}
+
 type ExtensionTestResults []*ExtensionTestResult
 
 type ExtensionTestResult struct {

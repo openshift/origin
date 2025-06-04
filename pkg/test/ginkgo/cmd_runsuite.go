@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/pkg/errors"
@@ -151,15 +152,29 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	upgrade bool) error {
 	ctx := context.Background()
 
-	tests, err := testsForSuite()
-	if err != nil {
-		return fmt.Errorf("failed reading origin test suites: %w", err)
-	}
-
 	var sharder Sharder
 	switch o.ShardStrategy {
 	default:
 		sharder = &HashSharder{}
+	}
+
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		return err
+	}
+
+	// Filter internal tests by OTE qualifiers
+	if len(suite.Qualifiers) > 0 {
+		specs, err = specs.Filter(suite.Qualifiers)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Convert internal tests to origin's testCase format
+	tests, err := testsForSuite(suite, specs)
+	if err != nil {
+		return err
 	}
 
 	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary", len(tests))
@@ -206,6 +221,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		if err != nil {
 			return err
 		}
+
+		if len(suite.Qualifiers) > 0 {
+			externalTestSpecs, err = extensions.FilterWrappedSpecs(externalTestSpecs, suite.Qualifiers)
+			if err != nil {
+				return err
+			}
+		}
+
 		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
 
 		var filteredTests []*testCase

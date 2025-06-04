@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
@@ -15,35 +15,40 @@ import (
 	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
-func testsForSuite() ([]*testCase, error) {
+func testsForSuite(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([]*testCase, error) {
 	var tests []*testCase
 	var errs []error
 
-	// Don't build the tree multiple times, it results in multiple initing of tests
-	if !ginkgo.GetSuite().InPhaseBuildTree() {
-		ginkgo.GetSuite().BuildTree()
-	}
-
-	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
 		// we need to ensure the default path always annotates both
 		// origin and k8s tests accordingly, since each of these
 		// currently have their own annotations which are not
 		// merged anywhere else but applied here
-		if append, ok := origingenerated.Annotations[name]; ok {
-			spec.AppendText(append)
+		if append, ok := origingenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
 		}
-		if append, ok := k8sgenerated.Annotations[name]; ok {
-			spec.AppendText(append)
+		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
 		}
-		tc, err := newTestCaseFromGinkgoSpec(spec)
-		if err != nil {
-			errs = append(errs, err)
+		tc := &testCase{
+			name:    spec.Name,
+			rawName: spec.Name,
 		}
+		if suite != nil && suite.TestTimeout > 0 {
+			tc.testTimeout = suite.TestTimeout
+		}
+
 		tests = append(tests, tc)
 	})
 	if len(errs) > 0 {
 		return nil, errors.NewAggregate(errs)
 	}
+
+	// Filter tests by origin's suite matcher
+	if suite != nil && suite.SuiteMatcher != nil {
+		tests = suite.Filter(tests)
+	}
+
 	return tests, nil
 }
 
@@ -170,6 +175,10 @@ type TestSuite struct {
 type TestMatchFunc func(name string) bool
 
 func (s *TestSuite) Filter(tests []*testCase) []*testCase {
+	if s.SuiteMatcher == nil {
+		return tests
+	}
+
 	matches := make([]*testCase, 0, len(tests))
 	for _, test := range tests {
 		if !s.SuiteMatcher(test.name) {

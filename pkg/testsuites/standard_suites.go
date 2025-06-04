@@ -83,6 +83,7 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 				Name:        s.Name,
 				Description: s.Description,
 				Extension:   e,
+				Qualifiers:  s.Qualifiers,
 			})
 		}
 	}
