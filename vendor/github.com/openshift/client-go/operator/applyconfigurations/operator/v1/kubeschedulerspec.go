@@ -23,7 +23,7 @@ func KubeSchedulerSpec() *KubeSchedulerSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *KubeSchedulerSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.ManagementState = &value
+	b.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithManagementState(value operator
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *KubeSchedulerSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.LogLevel = &value
+	b.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithLogLevel(value operatorv1.LogL
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *KubeSchedulerSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
+	b.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithOperatorLogLevel(value operato
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *KubeSchedulerSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
+	b.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithUnsupportedConfigOverrides(val
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *KubeSchedulerSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
+	b.ObservedConfig = &value
 	return b
 }
 
@@ -63,7 +63,7 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithObservedConfig(value runtime.R
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ForceRedeploymentReason field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithForceRedeploymentReason(value string) *KubeSchedulerSpecApplyConfiguration {
-	b.StaticPodOperatorSpecApplyConfiguration.ForceRedeploymentReason = &value
+	b.ForceRedeploymentReason = &value
 	return b
 }
 
@@ -71,7 +71,7 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithForceRedeploymentReason(value 
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the FailedRevisionLimit field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithFailedRevisionLimit(value int32) *KubeSchedulerSpecApplyConfiguration {
-	b.StaticPodOperatorSpecApplyConfiguration.FailedRevisionLimit = &value
+	b.FailedRevisionLimit = &value
 	return b
 }
 
@@ -79,6 +79,6 @@ func (b *KubeSchedulerSpecApplyConfiguration) WithFailedRevisionLimit(value int3
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the SucceededRevisionLimit field is set to the value of the last call.
 func (b *KubeSchedulerSpecApplyConfiguration) WithSucceededRevisionLimit(value int32) *KubeSchedulerSpecApplyConfiguration {
-	b.StaticPodOperatorSpecApplyConfiguration.SucceededRevisionLimit = &value
+	b.SucceededRevisionLimit = &value
 	return b
 }

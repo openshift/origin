@@ -69,7 +69,7 @@ func extractInsightsDataGather(insightsDataGather *configv1alpha1.InsightsDataGa
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithKind(value string) *InsightsDataGatherApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithKind(value string) *InsightsD
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithAPIVersion(value string) *InsightsDataGatherApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithAPIVersion(value string) *Ins
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithName(value string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithName(value string) *InsightsD
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithGenerateName(value string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithGenerateName(value string) *I
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithNamespace(value string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithNamespace(value string) *Insi
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithUID(value types.UID) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithUID(value types.UID) *Insight
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithResourceVersion(value string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,7 +131,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithResourceVersion(value string)
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithGeneration(value int64) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
@@ -140,7 +140,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithGeneration(value int64) *Insi
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithCreationTimestamp(value metav1.Time) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
@@ -149,7 +149,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithCreationTimestamp(value metav
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithDeletionTimestamp(value metav
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *InsightsDataGatherApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *InsightsDataGatherApplyConfiguration) WithDeletionGracePeriodSeconds(va
 // overwriting an existing map entries in Labels field with the same key.
 func (b *InsightsDataGatherApplyConfiguration) WithLabels(entries map[string]string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *InsightsDataGatherApplyConfiguration) WithLabels(entries map[string]str
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *InsightsDataGatherApplyConfiguration) WithAnnotations(entries map[string]string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -201,7 +201,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithOwnerReferences(values ...*v1
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,7 +212,7 @@ func (b *InsightsDataGatherApplyConfiguration) WithOwnerReferences(values ...*v1
 func (b *InsightsDataGatherApplyConfiguration) WithFinalizers(values ...string) *InsightsDataGatherApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
@@ -242,5 +242,5 @@ func (b *InsightsDataGatherApplyConfiguration) WithStatus(value configv1alpha1.I
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *InsightsDataGatherApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

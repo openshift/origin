@@ -1,18 +1,10 @@
 package swarm // import "github.com/docker/docker/api/types/swarm"
 
-import (
-	"strconv"
-	"time"
-)
+import "time"
 
 // Version represents the internal object version.
 type Version struct {
 	Index uint64 `json:",omitempty"`
-}
-
-// String implements fmt.Stringer interface.
-func (v Version) String() string {
-	return strconv.FormatUint(v.Index, 10)
 }
 
 // Meta is a base object inherited by most of the other once.

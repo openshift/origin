@@ -420,9 +420,7 @@ func (e *TokensController) generateTokenIfNeeded(logger klog.Logger, serviceAcco
 
 	// Generate the token
 	if needsToken {
-		c, pc := serviceaccount.LegacyClaims(*serviceAccount, *liveSecret)
-		// TODO: need to plumb context if using external signer ever becomes a posibility.
-		token, err := e.token.GenerateToken(context.TODO(), c, pc)
+		token, err := e.token.GenerateToken(serviceaccount.LegacyClaims(*serviceAccount, *liveSecret))
 		if err != nil {
 			return false, err
 		}

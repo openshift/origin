@@ -21,7 +21,7 @@ func HubSourceStatus() *HubSourceStatusApplyConfiguration {
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *HubSourceStatusApplyConfiguration) WithName(value string) *HubSourceStatusApplyConfiguration {
 	b.ensureHubSourceApplyConfigurationExists()
-	b.HubSourceApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -30,7 +30,7 @@ func (b *HubSourceStatusApplyConfiguration) WithName(value string) *HubSourceSta
 // If called multiple times, the Disabled field is set to the value of the last call.
 func (b *HubSourceStatusApplyConfiguration) WithDisabled(value bool) *HubSourceStatusApplyConfiguration {
 	b.ensureHubSourceApplyConfigurationExists()
-	b.HubSourceApplyConfiguration.Disabled = &value
+	b.Disabled = &value
 	return b
 }
 

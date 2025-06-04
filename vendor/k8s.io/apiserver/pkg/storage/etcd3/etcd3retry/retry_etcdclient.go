@@ -2,9 +2,6 @@ package etcd3retry
 
 import (
 	"context"
-	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	etcdrpc "go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -39,16 +36,16 @@ func NewRetryingEtcdStorage(delegate storage.Interface) storage.Interface {
 // in seconds (0 means forever). If no error is returned and out is not nil, out will be
 // set to the read value from database.
 func (c *retryClient) Create(ctx context.Context, key string, obj, out runtime.Object, ttl uint64) error {
-	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
+	return OnError(ctx, DefaultRetry, IsRetriableEtcdError, func() error {
 		return c.Interface.Create(ctx, key, obj, out, ttl)
 	})
 }
 
 // Delete removes the specified key and returns the value that existed at that spot.
 // If key didn't exist, it will return NotFound storage error.
-func (c *retryClient) Delete(ctx context.Context, key string, out runtime.Object, preconditions *storage.Preconditions, validateDeletion storage.ValidateObjectFunc, cachedExistingObject runtime.Object, opts storage.DeleteOptions) error {
-	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
-		return c.Interface.Delete(ctx, key, out, preconditions, validateDeletion, cachedExistingObject, opts)
+func (c *retryClient) Delete(ctx context.Context, key string, out runtime.Object, preconditions *storage.Preconditions, validateDeletion storage.ValidateObjectFunc, cachedExistingObject runtime.Object) error {
+	return OnError(ctx, DefaultRetry, IsRetriableEtcdError, func() error {
+		return c.Interface.Delete(ctx, key, out, preconditions, validateDeletion, cachedExistingObject)
 	})
 }
 
@@ -61,7 +58,7 @@ func (c *retryClient) Delete(ctx context.Context, key string, out runtime.Object
 // and send it in an "ADDED" event, before watch starts.
 func (c *retryClient) Watch(ctx context.Context, key string, opts storage.ListOptions) (watch.Interface, error) {
 	var ret watch.Interface
-	err := OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
+	err := OnError(ctx, DefaultRetry, IsRetriableEtcdError, func() error {
 		var innerErr error
 		ret, innerErr = c.Interface.Watch(ctx, key, opts)
 		return innerErr
@@ -75,7 +72,7 @@ func (c *retryClient) Watch(ctx context.Context, key string, opts storage.ListOp
 // The returned contents may be delayed, but it is guaranteed that they will
 // match 'opts.ResourceVersion' according 'opts.ResourceVersionMatch'.
 func (c *retryClient) Get(ctx context.Context, key string, opts storage.GetOptions, objPtr runtime.Object) error {
-	return OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
+	return OnError(ctx, DefaultRetry, IsRetriableEtcdError, func() error {
 		return c.Interface.Get(ctx, key, opts, objPtr)
 	})
 }
@@ -87,7 +84,7 @@ func (c *retryClient) Get(ctx context.Context, key string, opts storage.GetOptio
 // The returned contents may be delayed, but it is guaranteed that they will
 // match 'opts.ResourceVersion' according 'opts.ResourceVersionMatch'.
 func (c *retryClient) GetList(ctx context.Context, key string, opts storage.ListOptions, listObj runtime.Object) error {
-	return OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
+	return OnError(ctx, DefaultRetry, IsRetriableEtcdError, func() error {
 		return c.Interface.GetList(ctx, key, opts, listObj)
 	})
 }
@@ -128,65 +125,23 @@ func (c *retryClient) GetList(ctx context.Context, key string, opts storage.List
 // )
 func (c *retryClient) GuaranteedUpdate(ctx context.Context, key string, destination runtime.Object, ignoreNotFound bool,
 	preconditions *storage.Preconditions, tryUpdate storage.UpdateFunc, cachedExistingObject runtime.Object) error {
-	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
+	return OnError(ctx, DefaultRetry, IsRetriableEtcdError, func() error {
 		return c.Interface.GuaranteedUpdate(ctx, key, destination, ignoreNotFound, preconditions, tryUpdate, cachedExistingObject)
 	})
 }
 
-// These errors are coming back from the k8s.io/apiserver storage.Interface, not directly from an
-// etcd client. Classifying them can be fragile since the storage methods may not return etcd client
-// errors directly.
-var errorLabelsBySuffix = map[string]string{
-	"etcdserver: leader changed": "LeaderChanged",
-	"etcdserver: no leader":      "NoLeader",
-	"raft proposal dropped":      "ProposalDropped",
-
-	"etcdserver: request timed out":                                              "Timeout",
-	"etcdserver: request timed out, possibly due to previous leader failure":     "Timeout",
-	"etcdserver: request timed out, possible due to connection lost":             "Timeout",
-	"etcdserver: request timed out, waiting for the applied index took too long": "Timeout",
-	"etcdserver: server stopped":                                                 "Stopped",
-}
-
-var retriableWriteErrorSuffixes = func() *regexp.Regexp {
-	// This list should include only errors the caller is certain have no side effects.
-	suffixes := []string{
-		"etcdserver: leader changed",
-		"etcdserver: no leader",
-		"raft proposal dropped",
+// IsRetriableEtcdError returns true if a retry should be attempted, otherwise false.
+// errorLabel is set to a non-empty value that reflects the type of error encountered.
+func IsRetriableEtcdError(err error) (errorLabel string, retry bool) {
+	if err != nil {
+		if etcdError, ok := etcdrpc.Error(err).(etcdrpc.EtcdError); ok {
+			if etcdError.Code() == codes.Unavailable {
+				errorLabel = "Unavailable"
+				retry = true
+			}
+		}
 	}
-	return regexp.MustCompile(fmt.Sprintf(`(%s)$`, strings.Join(suffixes, `|`)))
-}()
-
-// IsRetriableErrorOnWrite returns true if and only if a retry should be attempted when the provided
-// error is returned from a write attempt. If the error is retriable, a non-empty string classifying
-// the error is also returned.
-func IsRetriableErrorOnWrite(err error) (string, bool) {
-	if suffix := retriableWriteErrorSuffixes.FindString(err.Error()); suffix != "" {
-		return errorLabelsBySuffix[suffix], true
-	}
-	return "", false
-}
-
-var retriableReadErrorSuffixes = func() *regexp.Regexp {
-	var suffixes []string
-	for suffix := range errorLabelsBySuffix {
-		suffixes = append(suffixes, suffix)
-	}
-	return regexp.MustCompile(fmt.Sprintf(`(%s)$`, strings.Join(suffixes, `|`)))
-}()
-
-// IsRetriableErrorOnRead returns true if and only if a retry should be attempted when the provided
-// error is returned from a read attempt. If the error is retriable, a non-empty string classifying
-// the error is also returned.
-func IsRetriableErrorOnRead(err error) (string, bool) {
-	if suffix := retriableReadErrorSuffixes.FindString(err.Error()); suffix != "" {
-		return errorLabelsBySuffix[suffix], true
-	}
-	if etcdError, ok := etcdrpc.Error(err).(etcdrpc.EtcdError); ok && etcdError.Code() == codes.Unavailable {
-		return "Unavailable", true
-	}
-	return "", false
+	return
 }
 
 // OnError allows the caller to retry fn in case the error returned by fn is retriable
@@ -208,9 +163,6 @@ func OnError(ctx context.Context, backoff wait.Backoff, retriable func(error) (s
 		}
 
 		lastErrLabel, retry = retriable(err)
-		if klog.V(6).Enabled() {
-			klog.V(6).InfoS("observed storage error", "err", err, "retriable", retry)
-		}
 		if retry {
 			lastErr = err
 			retryCounter++

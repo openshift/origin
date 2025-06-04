@@ -17,7 +17,6 @@ var ErrContainerAlreadyExists = errors.New("container already exists")
 // See https://goo.gl/tyzwVM for more details.
 type CreateContainerOptions struct {
 	Name             string
-	Platform         string
 	Config           *Config           `qs:"-"`
 	HostConfig       *HostConfig       `qs:"-"`
 	NetworkingConfig *NetworkingConfig `qs:"-"`

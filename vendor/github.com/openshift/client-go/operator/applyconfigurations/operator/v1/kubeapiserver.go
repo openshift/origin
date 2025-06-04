@@ -3,21 +3,21 @@
 package v1
 
 import (
-	operatorv1 "github.com/openshift/api/operator/v1"
+	apioperatorv1 "github.com/openshift/api/operator/v1"
 	internal "github.com/openshift/client-go/operator/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // KubeAPIServerApplyConfiguration represents a declarative configuration of the KubeAPIServer type for use
 // with apply.
 type KubeAPIServerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *KubeAPIServerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *KubeAPIServerStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *KubeAPIServerSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *KubeAPIServerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // KubeAPIServer constructs a declarative configuration of the KubeAPIServer type for use with
@@ -41,18 +41,18 @@ func KubeAPIServer(name string) *KubeAPIServerApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractKubeAPIServer(kubeAPIServer *operatorv1.KubeAPIServer, fieldManager string) (*KubeAPIServerApplyConfiguration, error) {
+func ExtractKubeAPIServer(kubeAPIServer *apioperatorv1.KubeAPIServer, fieldManager string) (*KubeAPIServerApplyConfiguration, error) {
 	return extractKubeAPIServer(kubeAPIServer, fieldManager, "")
 }
 
 // ExtractKubeAPIServerStatus is the same as ExtractKubeAPIServer except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractKubeAPIServerStatus(kubeAPIServer *operatorv1.KubeAPIServer, fieldManager string) (*KubeAPIServerApplyConfiguration, error) {
+func ExtractKubeAPIServerStatus(kubeAPIServer *apioperatorv1.KubeAPIServer, fieldManager string) (*KubeAPIServerApplyConfiguration, error) {
 	return extractKubeAPIServer(kubeAPIServer, fieldManager, "status")
 }
 
-func extractKubeAPIServer(kubeAPIServer *operatorv1.KubeAPIServer, fieldManager string, subresource string) (*KubeAPIServerApplyConfiguration, error) {
+func extractKubeAPIServer(kubeAPIServer *apioperatorv1.KubeAPIServer, fieldManager string, subresource string) (*KubeAPIServerApplyConfiguration, error) {
 	b := &KubeAPIServerApplyConfiguration{}
 	err := managedfields.ExtractInto(kubeAPIServer, internal.Parser().Type("com.github.openshift.api.operator.v1.KubeAPIServer"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractKubeAPIServer(kubeAPIServer *operatorv1.KubeAPIServer, fieldManager 
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithKind(value string) *KubeAPIServerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *KubeAPIServerApplyConfiguration) WithKind(value string) *KubeAPIServerA
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithAPIVersion(value string) *KubeAPIServerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *KubeAPIServerApplyConfiguration) WithAPIVersion(value string) *KubeAPIS
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithName(value string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *KubeAPIServerApplyConfiguration) WithName(value string) *KubeAPIServerA
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithGenerateName(value string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *KubeAPIServerApplyConfiguration) WithGenerateName(value string) *KubeAP
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithNamespace(value string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *KubeAPIServerApplyConfiguration) WithNamespace(value string) *KubeAPISe
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithUID(value types.UID) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *KubeAPIServerApplyConfiguration) WithUID(value types.UID) *KubeAPIServe
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithResourceVersion(value string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *KubeAPIServerApplyConfiguration) WithResourceVersion(value string) *Kub
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithGeneration(value int64) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *KubeAPIServerApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *KubeAPIServerApplyConfiguration {
+func (b *KubeAPIServerApplyConfiguration) WithCreationTimestamp(value metav1.Time) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *KubeAPIServerApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *KubeAPIServerApplyConfiguration {
+func (b *KubeAPIServerApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *KubeAPIServerApplyConfiguration) WithDeletionTimestamp(value apismetav1
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *KubeAPIServerApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *KubeAPIServerApplyConfiguration) WithDeletionGracePeriodSeconds(value i
 // overwriting an existing map entries in Labels field with the same key.
 func (b *KubeAPIServerApplyConfiguration) WithLabels(entries map[string]string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *KubeAPIServerApplyConfiguration) WithLabels(entries map[string]string) 
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *KubeAPIServerApplyConfiguration) WithAnnotations(entries map[string]string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *KubeAPIServerApplyConfiguration) WithAnnotations(entries map[string]str
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *KubeAPIServerApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *KubeAPIServerApplyConfiguration {
+func (b *KubeAPIServerApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *KubeAPIServerApplyConfiguration) WithOwnerReferences(values ...*metav1.
 func (b *KubeAPIServerApplyConfiguration) WithFinalizers(values ...string) *KubeAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *KubeAPIServerApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *KubeAPIServerApplyConfiguration) WithStatus(value *KubeAPIServerStatusA
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *KubeAPIServerApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

@@ -38,9 +38,6 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	clientgoinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	zpagesfeatures "k8s.io/component-base/zpages/features"
-	"k8s.io/component-base/zpages/flagz"
-	"k8s.io/component-base/zpages/statusz"
 	"k8s.io/component-helpers/apimachinery/lease"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/clock"
@@ -158,19 +155,9 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 		return nil, fmt.Errorf("failed to get listener address: %w", err)
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(zpagesfeatures.ComponentFlagz) {
-		if c.Generic.Flagz != nil {
-			flagz.Install(s.GenericAPIServer.Handler.NonGoRestfulMux, name, c.Generic.Flagz)
-		}
-	}
-
-	if utilfeature.DefaultFeatureGate.Enabled(zpagesfeatures.ComponentStatusz) {
-		statusz.Install(s.GenericAPIServer.Handler.NonGoRestfulMux, name, statusz.NewRegistry())
-	}
-
 	if utilfeature.DefaultFeatureGate.Enabled(apiserverfeatures.CoordinatedLeaderElection) {
 		leaseInformer := s.VersionedInformers.Coordination().V1().Leases()
-		lcInformer := s.VersionedInformers.Coordination().V1alpha2().LeaseCandidates()
+		lcInformer := s.VersionedInformers.Coordination().V1alpha1().LeaseCandidates()
 		// Ensure that informers are registered before starting. Coordinated Leader Election leader-elected
 		// and may register informer handlers after they are started.
 		_ = leaseInformer.Informer()
@@ -181,7 +168,7 @@ func (c completedConfig) New(name string, delegationTarget genericapiserver.Dele
 					leaseInformer,
 					lcInformer,
 					client.CoordinationV1(),
-					client.CoordinationV1alpha2(),
+					client.CoordinationV1alpha1(),
 				)
 				gccontroller := leaderelection.NewLeaseCandidateGC(
 					client,

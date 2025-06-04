@@ -18,10 +18,6 @@ limitations under the License.
 
 package v1alpha1
 
-type MutatingAdmissionPolicyExpansion interface{}
-
-type MutatingAdmissionPolicyBindingExpansion interface{}
-
 type ValidatingAdmissionPolicyExpansion interface{}
 
 type ValidatingAdmissionPolicyBindingExpansion interface{}

@@ -112,17 +112,14 @@ func (c *Repair) doRunOnce() error {
 	// If etcd server is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and etcd at the same time.
 	var snapshot *api.RangeAllocation
-	var err error
-	err = wait.PollUntilContextTimeout(context.Background(), time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+
+	err := wait.PollImmediate(time.Second, 10*time.Second, func() (bool, error) {
+		var err error
 		snapshot, err = c.alloc.Get()
-		if err != nil {
-			runtime.HandleError(fmt.Errorf("unable to refresh the port allocations: %w", err))
-			return false, nil
-		}
-		return true, nil
+		return err == nil, err
 	})
 	if err != nil {
-		return fmt.Errorf("unable to refresh the port allocations: %w", err)
+		return fmt.Errorf("unable to refresh the port allocations: %v", err)
 	}
 	// If not yet initialized.
 	if snapshot.Range == "" {

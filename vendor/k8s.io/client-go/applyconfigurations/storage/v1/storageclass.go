@@ -21,26 +21,26 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
 	applyconfigurationscorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	internal "k8s.io/client-go/applyconfigurations/internal"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // StorageClassApplyConfiguration represents a declarative configuration of the StorageClass type for use
 // with apply.
 type StorageClassApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Provisioner                          *string                                                            `json:"provisioner,omitempty"`
-	Parameters                           map[string]string                                                  `json:"parameters,omitempty"`
-	ReclaimPolicy                        *corev1.PersistentVolumeReclaimPolicy                              `json:"reclaimPolicy,omitempty"`
-	MountOptions                         []string                                                           `json:"mountOptions,omitempty"`
-	AllowVolumeExpansion                 *bool                                                              `json:"allowVolumeExpansion,omitempty"`
-	VolumeBindingMode                    *storagev1.VolumeBindingMode                                       `json:"volumeBindingMode,omitempty"`
-	AllowedTopologies                    []applyconfigurationscorev1.TopologySelectorTermApplyConfiguration `json:"allowedTopologies,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Provisioner                      *string                                                            `json:"provisioner,omitempty"`
+	Parameters                       map[string]string                                                  `json:"parameters,omitempty"`
+	ReclaimPolicy                    *corev1.PersistentVolumeReclaimPolicy                              `json:"reclaimPolicy,omitempty"`
+	MountOptions                     []string                                                           `json:"mountOptions,omitempty"`
+	AllowVolumeExpansion             *bool                                                              `json:"allowVolumeExpansion,omitempty"`
+	VolumeBindingMode                *storagev1.VolumeBindingMode                                       `json:"volumeBindingMode,omitempty"`
+	AllowedTopologies                []applyconfigurationscorev1.TopologySelectorTermApplyConfiguration `json:"allowedTopologies,omitempty"`
 }
 
 // StorageClass constructs a declarative configuration of the StorageClass type for use with
@@ -92,7 +92,7 @@ func extractStorageClass(storageClass *storagev1.StorageClass, fieldManager stri
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithKind(value string) *StorageClassApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -100,7 +100,7 @@ func (b *StorageClassApplyConfiguration) WithKind(value string) *StorageClassApp
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithAPIVersion(value string) *StorageClassApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -109,7 +109,7 @@ func (b *StorageClassApplyConfiguration) WithAPIVersion(value string) *StorageCl
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithName(value string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -118,7 +118,7 @@ func (b *StorageClassApplyConfiguration) WithName(value string) *StorageClassApp
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithGenerateName(value string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -127,7 +127,7 @@ func (b *StorageClassApplyConfiguration) WithGenerateName(value string) *Storage
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithNamespace(value string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -136,7 +136,7 @@ func (b *StorageClassApplyConfiguration) WithNamespace(value string) *StorageCla
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithUID(value types.UID) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -145,7 +145,7 @@ func (b *StorageClassApplyConfiguration) WithUID(value types.UID) *StorageClassA
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithResourceVersion(value string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -154,25 +154,25 @@ func (b *StorageClassApplyConfiguration) WithResourceVersion(value string) *Stor
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithGeneration(value int64) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *StorageClassApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *StorageClassApplyConfiguration {
+func (b *StorageClassApplyConfiguration) WithCreationTimestamp(value metav1.Time) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *StorageClassApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *StorageClassApplyConfiguration {
+func (b *StorageClassApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -181,7 +181,7 @@ func (b *StorageClassApplyConfiguration) WithDeletionTimestamp(value apismetav1.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *StorageClassApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -191,11 +191,11 @@ func (b *StorageClassApplyConfiguration) WithDeletionGracePeriodSeconds(value in
 // overwriting an existing map entries in Labels field with the same key.
 func (b *StorageClassApplyConfiguration) WithLabels(entries map[string]string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -206,11 +206,11 @@ func (b *StorageClassApplyConfiguration) WithLabels(entries map[string]string) *
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *StorageClassApplyConfiguration) WithAnnotations(entries map[string]string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -218,13 +218,13 @@ func (b *StorageClassApplyConfiguration) WithAnnotations(entries map[string]stri
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *StorageClassApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *StorageClassApplyConfiguration {
+func (b *StorageClassApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -235,14 +235,14 @@ func (b *StorageClassApplyConfiguration) WithOwnerReferences(values ...*metav1.O
 func (b *StorageClassApplyConfiguration) WithFinalizers(values ...string) *StorageClassApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *StorageClassApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -318,5 +318,5 @@ func (b *StorageClassApplyConfiguration) WithAllowedTopologies(values ...*applyc
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *StorageClassApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

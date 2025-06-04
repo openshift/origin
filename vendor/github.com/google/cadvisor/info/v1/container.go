@@ -333,8 +333,6 @@ type CpuStats struct {
 	// Load is smoothed over the last 10 seconds. Instantaneous value can be read
 	// from LoadStats.NrRunning.
 	LoadAverage int32 `json:"load_average"`
-	// from LoadStats.NrUninterruptible
-	LoadDAverage int32 `json:"load_d_average"`
 }
 
 type PerDiskStats struct {
@@ -394,14 +392,6 @@ type MemoryStats struct {
 	// dirty memory, and kernel memory. Working set is <= "usage".
 	// Units: Bytes.
 	WorkingSet uint64 `json:"working_set"`
-
-	// The total amount of active file memory.
-	// Units: Bytes.
-	TotalActiveFile uint64 `json:"total_active_file"`
-
-	// The total amount of inactive file memory.
-	// Units: Bytes.
-	TotalInactiveFile uint64 `json:"total_inactive_file"`
 
 	Failcnt uint64 `json:"failcnt"`
 
@@ -639,7 +629,7 @@ type TcpAdvancedStat struct {
 	// The number of retransmits failed, including FastRetrans, SlowStartRetrans
 	TCPRetransFail uint64
 
-	// The number of packets collapsed in receive queue due to low socket buffer
+	// he number of packets collapsed in receive queue due to low socket buffer
 	TCPRcvCollapsed uint64
 	// The number of DSACKs sent for old packets
 	TCPDSACKOldSent uint64

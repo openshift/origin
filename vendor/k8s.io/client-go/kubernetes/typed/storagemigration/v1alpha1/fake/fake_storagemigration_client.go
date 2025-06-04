@@ -29,7 +29,7 @@ type FakeStoragemigrationV1alpha1 struct {
 }
 
 func (c *FakeStoragemigrationV1alpha1) StorageVersionMigrations() v1alpha1.StorageVersionMigrationInterface {
-	return newFakeStorageVersionMigrations(c)
+	return &FakeStorageVersionMigrations{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

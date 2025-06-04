@@ -8,11 +8,10 @@ import (
 )
 
 type DurationBundle struct {
-	EventuallyTimeout                       time.Duration
-	EventuallyPollingInterval               time.Duration
-	ConsistentlyDuration                    time.Duration
-	ConsistentlyPollingInterval             time.Duration
-	EnforceDefaultTimeoutsWhenUsingContexts bool
+	EventuallyTimeout           time.Duration
+	EventuallyPollingInterval   time.Duration
+	ConsistentlyDuration        time.Duration
+	ConsistentlyPollingInterval time.Duration
 }
 
 const (
@@ -21,19 +20,15 @@ const (
 
 	ConsistentlyDurationEnvVarName        = "GOMEGA_DEFAULT_CONSISTENTLY_DURATION"
 	ConsistentlyPollingIntervalEnvVarName = "GOMEGA_DEFAULT_CONSISTENTLY_POLLING_INTERVAL"
-
-	EnforceDefaultTimeoutsWhenUsingContextsEnvVarName = "GOMEGA_ENFORCE_DEFAULT_TIMEOUTS_WHEN_USING_CONTEXTS"
 )
 
 func FetchDefaultDurationBundle() DurationBundle {
-	_, EnforceDefaultTimeoutsWhenUsingContexts := os.LookupEnv(EnforceDefaultTimeoutsWhenUsingContextsEnvVarName)
 	return DurationBundle{
 		EventuallyTimeout:         durationFromEnv(EventuallyTimeoutEnvVarName, time.Second),
 		EventuallyPollingInterval: durationFromEnv(EventuallyPollingIntervalEnvVarName, 10*time.Millisecond),
 
-		ConsistentlyDuration:                    durationFromEnv(ConsistentlyDurationEnvVarName, 100*time.Millisecond),
-		ConsistentlyPollingInterval:             durationFromEnv(ConsistentlyPollingIntervalEnvVarName, 10*time.Millisecond),
-		EnforceDefaultTimeoutsWhenUsingContexts: EnforceDefaultTimeoutsWhenUsingContexts,
+		ConsistentlyDuration:        durationFromEnv(ConsistentlyDurationEnvVarName, 100*time.Millisecond),
+		ConsistentlyPollingInterval: durationFromEnv(ConsistentlyPollingIntervalEnvVarName, 10*time.Millisecond),
 	}
 }
 

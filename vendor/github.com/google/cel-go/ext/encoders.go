@@ -36,7 +36,7 @@ import (
 // Examples:
 //
 //	base64.decode('aGVsbG8=')  // return b'hello'
-//	base64.decode('aGVsbG8')   // return b'hello'
+//	base64.decode('aGVsbG8')   // error
 //
 // # Base64.Encode
 //
@@ -79,14 +79,7 @@ func (encoderLib) ProgramOptions() []cel.ProgramOption {
 }
 
 func base64DecodeString(str string) ([]byte, error) {
-	b, err := base64.StdEncoding.DecodeString(str)
-	if err == nil {
-		return b, nil
-	}
-	if _, tryAltEncoding := err.(base64.CorruptInputError); tryAltEncoding {
-		return base64.RawStdEncoding.DecodeString(str)
-	}
-	return nil, err
+	return base64.StdEncoding.DecodeString(str)
 }
 
 func base64EncodeBytes(bytes []byte) (string, error) {

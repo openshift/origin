@@ -68,7 +68,6 @@ var BaseSuites = []func() storageframework.TestSuite{
 	InitTopologyTestSuite,
 	InitVolumeStressTestSuite,
 	InitFsGroupChangePolicyTestSuite,
-	InitVolumeGroupSnapshottableTestSuite,
 	func() storageframework.TestSuite {
 		return InitCustomEphemeralTestSuite(GenericEphemeralTestPatterns())
 	},
@@ -80,10 +79,8 @@ var CSISuites = append(BaseSuites,
 		return InitCustomEphemeralTestSuite(CSIEphemeralTestPatterns())
 	},
 	InitSnapshottableTestSuite,
-	InitVolumeGroupSnapshottableTestSuite,
 	InitSnapshottableStressTestSuite,
 	InitVolumePerformanceTestSuite,
-	InitPvcDeletionPerformanceTestSuite,
 	InitReadWriteOncePodTestSuite,
 	InitVolumeModifyTestSuite,
 )

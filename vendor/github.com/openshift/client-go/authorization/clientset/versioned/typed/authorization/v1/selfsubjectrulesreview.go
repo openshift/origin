@@ -3,9 +3,9 @@
 package v1
 
 import (
-	context "context"
+	"context"
 
-	authorizationv1 "github.com/openshift/api/authorization/v1"
+	v1 "github.com/openshift/api/authorization/v1"
 	scheme "github.com/openshift/client-go/authorization/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	gentype "k8s.io/client-go/gentype"
@@ -19,24 +19,23 @@ type SelfSubjectRulesReviewsGetter interface {
 
 // SelfSubjectRulesReviewInterface has methods to work with SelfSubjectRulesReview resources.
 type SelfSubjectRulesReviewInterface interface {
-	Create(ctx context.Context, selfSubjectRulesReview *authorizationv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authorizationv1.SelfSubjectRulesReview, error)
+	Create(ctx context.Context, selfSubjectRulesReview *v1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*v1.SelfSubjectRulesReview, error)
 	SelfSubjectRulesReviewExpansion
 }
 
 // selfSubjectRulesReviews implements SelfSubjectRulesReviewInterface
 type selfSubjectRulesReviews struct {
-	*gentype.Client[*authorizationv1.SelfSubjectRulesReview]
+	*gentype.Client[*v1.SelfSubjectRulesReview]
 }
 
 // newSelfSubjectRulesReviews returns a SelfSubjectRulesReviews
 func newSelfSubjectRulesReviews(c *AuthorizationV1Client, namespace string) *selfSubjectRulesReviews {
 	return &selfSubjectRulesReviews{
-		gentype.NewClient[*authorizationv1.SelfSubjectRulesReview](
+		gentype.NewClient[*v1.SelfSubjectRulesReview](
 			"selfsubjectrulesreviews",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *authorizationv1.SelfSubjectRulesReview { return &authorizationv1.SelfSubjectRulesReview{} },
-		),
+			func() *v1.SelfSubjectRulesReview { return &v1.SelfSubjectRulesReview{} }),
 	}
 }

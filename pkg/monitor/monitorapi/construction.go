@@ -364,7 +364,7 @@ func (b *LocatorBuilder) KubeAPIServerWithLB(loadBalancer string) Locator {
 	return b.Build()
 }
 
-func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, serviceNetworkIP, nodeName, nodeRole string) Locator {
+func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, serviceNetworkIP string) Locator {
 	// the label 'host' is the endpoint used to contact the kube-apiserver
 	getHost := func(metric model.Metric, serviceNetworkIP string) string {
 		host := string(metric["host"])
@@ -385,15 +385,7 @@ func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, servi
 	}
 
 	b.targetType = LocatorTypeAPIUnreachableFromClient
-	if host := getHost(metric, serviceNetworkIP); len(host) > 0 {
-		b.annotations[LocatorAPIUnreachableHostKey] = host
-	}
-	if job := string(metric["job"]); len(job) > 0 {
-		b.annotations[LocatorAPIUnreachableComponentKey] = job
-	}
-
-	b.annotations[LocatorNodeKey] = nodeName
-	b.annotations[LocatorNodeRoleKey] = nodeRole
+	b.annotations[LocatorAPIUnreachableHostKey] = getHost(metric, serviceNetworkIP)
 	return b.Build()
 }
 
@@ -428,34 +420,6 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	if len(event.InvolvedObject.Namespace) > 0 {
 		b.annotations[LocatorNamespaceKey] = event.InvolvedObject.Namespace
 	}
-	return b.Build()
-}
-
-// KubeletSyncLoopProbe constructs a locator from a Kubelet SyncLoop
-// probe event, typically kubelet log prints the events as follows:
-// "SyncLoop (probe)" probe="readiness" status="ready" pod="openshift-etcd/etcd-ci-op-bzbjn2bk-206af-gfdsw-master-2"
-func (b *LocatorBuilder) KubeletSyncLoopProbe(node, ns, podName, probeType string) Locator {
-	b.targetType = LocatorTypeKubeletSyncLoopProbe
-	b.withNode(node).
-		withNamespace(ns).
-		withPodName(podName)
-	b.annotations[LocatorTypeKubeletSyncLoopProbeType] = probeType
-	return b.Build()
-}
-
-func (b *LocatorBuilder) KubeletSyncLoopPLEG(node, ns, podName, eventType string) Locator {
-	b.targetType = LocatorTypeKubeletSyncLoopPLEG
-	b.withNode(node).
-		withNamespace(ns).
-		withPodName(podName)
-	b.annotations[LocatorTypeKubeletSyncLoopPLEGType] = eventType
-	return b.Build()
-}
-
-func (b *LocatorBuilder) StaticPodInstall(node, podType string) Locator {
-	b.targetType = LocatorTypeStaticPodInstall
-	b.withNode(node)
-	b.annotations[LocatorStaticPodInstallType] = podType
 	return b.Build()
 }
 

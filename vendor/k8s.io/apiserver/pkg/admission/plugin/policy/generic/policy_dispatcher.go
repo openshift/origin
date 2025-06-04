@@ -36,7 +36,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// PolicyInvocation is a single policy-binding-param tuple from a Policy Hook
+// A policy invocation is a single policy-binding-param tuple from a Policy Hook
 // in the context of a specific request. The params have already been resolved
 // and any error in configuration or setting up the invocation is stored in
 // the Error field.
@@ -62,6 +62,10 @@ type PolicyInvocation[P runtime.Object, B runtime.Object, E Evaluator] struct {
 
 	// Params fetched by the binding to use to evaluate the policy
 	Param runtime.Object
+
+	// Error is set if there was an error with the policy or binding or its
+	// params, etc
+	Error error
 }
 
 // dispatcherDelegate is called during a request with a pre-filtered list
@@ -72,7 +76,7 @@ type PolicyInvocation[P runtime.Object, B runtime.Object, E Evaluator] struct {
 //
 // The delegate provides the "validation" or "mutation" aspect of dispatcher functionality
 // (in contrast to generic.PolicyDispatcher which only selects active policies and params)
-type dispatcherDelegate[P, B runtime.Object, E Evaluator] func(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces, versionedAttributes webhookgeneric.VersionedAttributeAccessor, invocations []PolicyInvocation[P, B, E]) ([]PolicyError, *apierrors.StatusError)
+type dispatcherDelegate[P, B runtime.Object, E Evaluator] func(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces, versionedAttributes webhookgeneric.VersionedAttributeAccessor, invocations []PolicyInvocation[P, B, E]) error
 
 type policyDispatcher[P runtime.Object, B runtime.Object, E Evaluator] struct {
 	newPolicyAccessor  func(P) PolicyAccessor
@@ -100,10 +104,7 @@ func NewPolicyDispatcher[P runtime.Object, B runtime.Object, E Evaluator](
 // request. It then resolves all params and creates an Invocation for each
 // matching policy-binding-param tuple. The delegate is then called with the
 // list of tuples.
-func (d *policyDispatcher[P, B, E]) Start(ctx context.Context) error {
-	return nil
-}
-
+//
 // Note: MatchConditions expressions are not evaluated here. The dispatcher delegate
 // is expected to ignore the result of any policies whose match conditions dont pass.
 // This may be possible to refactor so matchconditions are checked here instead.
@@ -116,33 +117,29 @@ func (d *policyDispatcher[P, B, E]) Dispatch(ctx context.Context, a admission.At
 		objectInterfaces: o,
 	}
 
-	var policyErrors []PolicyError
-	addConfigError := func(err error, definition PolicyAccessor, binding BindingAccessor) {
-		var message error
-		if binding == nil {
-			message = fmt.Errorf("failed to configure policy: %w", err)
-		} else {
-			message = fmt.Errorf("failed to configure binding: %w", err)
-		}
-
-		policyErrors = append(policyErrors, PolicyError{
-			Policy:  definition,
-			Binding: binding,
-			Message: message,
-		})
-	}
-
 	for _, hook := range hooks {
 		policyAccessor := d.newPolicyAccessor(hook.Policy)
 		matches, matchGVR, matchGVK, err := d.matcher.DefinitionMatches(a, o, policyAccessor)
 		if err != nil {
 			// There was an error evaluating if this policy matches anything.
-			addConfigError(err, policyAccessor, nil)
+			utilruntime.HandleError(err)
+			relevantHooks = append(relevantHooks, PolicyInvocation[P, B, E]{
+				Policy: hook.Policy,
+				Error:  err,
+			})
 			continue
 		} else if !matches {
 			continue
 		} else if hook.ConfigurationError != nil {
-			addConfigError(hook.ConfigurationError, policyAccessor, nil)
+			// The policy matches but there is a configuration error with the
+			// policy itself
+			relevantHooks = append(relevantHooks, PolicyInvocation[P, B, E]{
+				Policy:   hook.Policy,
+				Error:    hook.ConfigurationError,
+				Resource: matchGVR,
+				Kind:     matchGVK,
+			})
+			utilruntime.HandleError(hook.ConfigurationError)
 			continue
 		}
 
@@ -151,19 +148,16 @@ func (d *policyDispatcher[P, B, E]) Dispatch(ctx context.Context, a admission.At
 			matches, err = d.matcher.BindingMatches(a, o, bindingAccessor)
 			if err != nil {
 				// There was an error evaluating if this binding matches anything.
-				addConfigError(err, policyAccessor, bindingAccessor)
+				utilruntime.HandleError(err)
+				relevantHooks = append(relevantHooks, PolicyInvocation[P, B, E]{
+					Policy:   hook.Policy,
+					Binding:  binding,
+					Error:    err,
+					Resource: matchGVR,
+					Kind:     matchGVK,
+				})
 				continue
 			} else if !matches {
-				continue
-			}
-
-			// here the binding matches.
-			// VersionedAttr result will be cached and reused later during parallel
-			// hook calls.
-			if _, err = versionedAttrAccessor.VersionedAttribute(matchGVK); err != nil {
-				// VersionedAttr result will be cached and reused later during parallel
-				// hook calls.
-				addConfigError(err, policyAccessor, nil)
 				continue
 			}
 
@@ -177,7 +171,14 @@ func (d *policyDispatcher[P, B, E]) Dispatch(ctx context.Context, a admission.At
 			)
 			if err != nil {
 				// There was an error collecting params for this binding.
-				addConfigError(err, policyAccessor, bindingAccessor)
+				utilruntime.HandleError(err)
+				relevantHooks = append(relevantHooks, PolicyInvocation[P, B, E]{
+					Policy:   hook.Policy,
+					Binding:  binding,
+					Error:    err,
+					Resource: matchGVR,
+					Kind:     matchGVK,
+				})
 				continue
 			}
 
@@ -193,72 +194,23 @@ func (d *policyDispatcher[P, B, E]) Dispatch(ctx context.Context, a admission.At
 					Evaluator: hook.Evaluator,
 				})
 			}
-		}
-	}
 
-	if len(relevantHooks) > 0 {
-		extraPolicyErrors, statusError := d.delegate(ctx, a, o, versionedAttrAccessor, relevantHooks)
-		if statusError != nil {
-			return statusError
-		}
-		policyErrors = append(policyErrors, extraPolicyErrors...)
-	}
-
-	var filteredErrors []PolicyError
-	for _, e := range policyErrors {
-		// we always default the FailurePolicy if it is unset and validate it in API level
-		var policy v1.FailurePolicyType
-		if fp := e.Policy.GetFailurePolicy(); fp == nil {
-			policy = v1.Fail
-		} else {
-			policy = *fp
-		}
-
-		switch policy {
-		case v1.Ignore:
-			// TODO: add metrics for ignored error here
-			continue
-		case v1.Fail:
-			filteredErrors = append(filteredErrors, e)
-		default:
-			filteredErrors = append(filteredErrors, e)
-		}
-	}
-
-	if len(filteredErrors) > 0 {
-
-		forbiddenErr := admission.NewForbidden(a, fmt.Errorf("admission request denied by policy"))
-
-		// The forbiddenErr is always a StatusError.
-		var err *apierrors.StatusError
-		if !errors.As(forbiddenErr, &err) {
-			// Should never happen.
-			return apierrors.NewInternalError(fmt.Errorf("failed to create status error"))
-		}
-		err.ErrStatus.Message = ""
-
-		for _, policyError := range filteredErrors {
-			message := policyError.Error()
-
-			// If this is the first denied decision, use its message and reason
-			// for the status error message.
-			if err.ErrStatus.Message == "" {
-				err.ErrStatus.Message = message
-				if policyError.Reason != "" {
-					err.ErrStatus.Reason = policyError.Reason
-				}
+			// VersionedAttr result will be cached and reused later during parallel
+			// hook calls
+			_, err = versionedAttrAccessor.VersionedAttribute(matchGVK)
+			if err != nil {
+				return apierrors.NewInternalError(err)
 			}
-
-			// Add the denied decision's message to the status error's details
-			err.ErrStatus.Details.Causes = append(
-				err.ErrStatus.Details.Causes,
-				metav1.StatusCause{Message: message})
 		}
 
-		return err
 	}
 
-	return nil
+	if len(relevantHooks) == 0 {
+		// no matching hooks
+		return nil
+	}
+
+	return d.delegate(ctx, a, o, versionedAttrAccessor, relevantHooks)
 }
 
 // Returns params to use to evaluate a policy-binding with given param
@@ -399,19 +351,4 @@ func (v *versionedAttributeAccessor) VersionedAttribute(gvk schema.GroupVersionK
 	}
 	v.versionedAttrs[gvk] = versionedAttr
 	return versionedAttr, nil
-}
-
-type PolicyError struct {
-	Policy  PolicyAccessor
-	Binding BindingAccessor
-	Message error
-	Reason  metav1.StatusReason
-}
-
-func (c PolicyError) Error() string {
-	if c.Binding != nil {
-		return fmt.Sprintf("policy '%s' with binding '%s' denied request: %s", c.Policy.GetName(), c.Binding.GetName(), c.Message.Error())
-	}
-
-	return fmt.Sprintf("policy %q denied request: %s", c.Policy.GetName(), c.Message.Error())
 }

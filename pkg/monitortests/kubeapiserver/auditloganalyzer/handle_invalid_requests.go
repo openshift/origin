@@ -1,13 +1,12 @@
 package auditloganalyzer
 
 import (
-	"net/http"
-	"strings"
-	"sync"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"net/http"
+	"strings"
+	"sync"
 )
 
 type invalidRequests struct {
@@ -77,7 +76,7 @@ func CheckForInvalidMutations() *invalidRequests {
 
 func isApply(auditEvent *auditv1.Event) bool {
 	// only SSA
-	if auditEvent.Verb != "patch" || auditEvent.Verb == "apply" {
+	if auditEvent.Verb != "patch" {
 		return false
 	}
 	// SSA requires a field manager
@@ -87,7 +86,7 @@ func isApply(auditEvent *auditv1.Event) bool {
 	return true
 }
 
-func (s *invalidRequests) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
+func (s *invalidRequests) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
 	if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) {
 		return
 	}

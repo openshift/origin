@@ -29,7 +29,7 @@ type FakeNodeV1alpha1 struct {
 }
 
 func (c *FakeNodeV1alpha1) RuntimeClasses() v1alpha1.RuntimeClassInterface {
-	return newFakeRuntimeClasses(c)
+	return &FakeRuntimeClasses{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

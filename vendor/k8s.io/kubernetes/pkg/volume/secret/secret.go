@@ -17,7 +17,6 @@ limitations under the License.
 package secret
 
 import (
-	"errors"
 	"fmt"
 
 	"k8s.io/klog/v2"
@@ -25,7 +24,7 @@ import (
 	utilstrings "k8s.io/utils/strings"
 
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/volume"
@@ -185,7 +184,7 @@ func (b *secretVolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterArgs
 	optional := b.source.Optional != nil && *b.source.Optional
 	secret, err := b.getSecret(b.pod.Namespace, b.source.SecretName)
 	if err != nil {
-		if !(apierrors.IsNotFound(err) && optional) {
+		if !(errors.IsNotFound(err) && optional) {
 			klog.Errorf("Couldn't get secret %v/%v: %v", b.pod.Namespace, b.source.SecretName, err)
 			return err
 		}
@@ -277,8 +276,8 @@ func MakePayload(mappings []v1.KeyToPath, secret *v1.Secret, defaultMode *int32,
 					continue
 				}
 				errMsg := fmt.Sprintf("references non-existent secret key: %s", ktp.Key)
-				klog.Error(errMsg)
-				return nil, errors.New(errMsg)
+				klog.Errorf(errMsg)
+				return nil, fmt.Errorf(errMsg)
 			}
 
 			fileProjection.Data = []byte(content)

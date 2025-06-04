@@ -26,7 +26,6 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
@@ -82,7 +81,7 @@ func NewTestConfig(t testing.TB) *embed.Config {
 // RunEtcd starts an embedded etcd server with the provided config
 // (or NewTestConfig(t) if nil), and returns a client connected to the server.
 // The server is terminated when the test ends.
-func RunEtcd(t testing.TB, cfg *embed.Config) *kubernetes.Client {
+func RunEtcd(t testing.TB, cfg *embed.Config) *clientv3.Client {
 	t.Helper()
 
 	if cfg == nil {
@@ -113,7 +112,7 @@ func RunEtcd(t testing.TB, cfg *embed.Config) *kubernetes.Client {
 		t.Fatal(err)
 	}
 
-	client, err := kubernetes.New(clientv3.Config{
+	client, err := clientv3.New(clientv3.Config{
 		TLS:         tlsConfig,
 		Endpoints:   e.Server.Cluster().ClientURLs(),
 		DialTimeout: 10 * time.Second,

@@ -856,8 +856,7 @@ func (p *parser) reportError(ctx any, format string, args ...any) ast.Expr {
 
 // ANTLR Parse listener implementations
 func (p *parser) SyntaxError(recognizer antlr.Recognizer, offendingSymbol any, line, column int, msg string, e antlr.RecognitionException) {
-	offset := p.helper.sourceInfo.ComputeOffset(int32(line), int32(column))
-	l := p.helper.getLocationByOffset(offset)
+	l := p.helper.source.NewLocation(line, column)
 	// Hack to keep existing error messages consistent with previous versions of CEL when a reserved word
 	// is used as an identifier. This behavior needs to be overhauled to provide consistent, normalized error
 	// messages out of ANTLR to prevent future breaking changes related to error message content.
@@ -917,12 +916,10 @@ func (p *parser) expandMacro(exprID int64, function string, target ast.Expr, arg
 	expr, err := macro.Expander()(eh, target, args)
 	// An error indicates that the macro was matched, but the arguments were not well-formed.
 	if err != nil {
-		loc := err.Location
-		if loc == nil {
-			loc = p.helper.getLocation(exprID)
+		if err.Location != nil {
+			return p.reportError(err.Location, err.Message), true
 		}
-		p.helper.deleteID(exprID)
-		return p.reportError(loc, err.Message), true
+		return p.reportError(p.helper.getLocation(exprID), err.Message), true
 	}
 	// A nil value from the macro indicates that the macro implementation decided that
 	// an expansion should not be performed.
@@ -932,7 +929,6 @@ func (p *parser) expandMacro(exprID int64, function string, target ast.Expr, arg
 	if p.populateMacroCalls {
 		p.helper.addMacroCall(expr.ID(), function, target, args...)
 	}
-	p.helper.deleteID(exprID)
 	return expr, true
 }
 

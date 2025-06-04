@@ -148,7 +148,7 @@ func (c *Client) Close() error {
 		c.Lease.Close()
 	}
 	if c.conn != nil {
-		return ContextError(c.ctx, c.conn.Close())
+		return toErr(c.ctx, c.conn.Close())
 	}
 	return c.ctx.Err()
 }
@@ -573,9 +573,7 @@ func isUnavailableErr(ctx context.Context, err error) bool {
 	return false
 }
 
-// ContextError converts the error into an EtcdError if the error message matches one of
-// the defined messages; otherwise, it tries to retrieve the context error.
-func ContextError(ctx context.Context, err error) error {
+func toErr(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
 	}

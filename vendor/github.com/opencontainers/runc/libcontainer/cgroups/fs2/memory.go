@@ -40,11 +40,6 @@ func setMemory(dirPath string, r *configs.Resources) error {
 	if !isMemorySet(r) {
 		return nil
 	}
-
-	if err := CheckMemoryUsage(dirPath, r); err != nil {
-		return err
-	}
-
 	swap, err := cgroups.ConvertMemorySwapToCgroupV2Value(r.MemorySwap, r.Memory)
 	if err != nil {
 		return err
@@ -57,10 +52,7 @@ func setMemory(dirPath string, r *configs.Resources) error {
 	// never write empty string to `memory.swap.max`, it means set to 0.
 	if swapStr != "" {
 		if err := cgroups.WriteFile(dirPath, "memory.swap.max", swapStr); err != nil {
-			// If swap is not enabled, silently ignore setting to max or disabling it.
-			if !(errors.Is(err, os.ErrNotExist) && (swapStr == "max" || swapStr == "0")) {
-				return err
-			}
+			return err
 		}
 	}
 

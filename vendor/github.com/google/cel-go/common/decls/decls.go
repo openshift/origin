@@ -162,9 +162,7 @@ func (f *FunctionDecl) AddOverload(overload *OverloadDecl) error {
 		if oID == overload.ID() {
 			if o.SignatureEquals(overload) && o.IsNonStrict() == overload.IsNonStrict() {
 				// Allow redefinition of an overload implementation so long as the signatures match.
-				if overload.hasBinding() {
-					f.overloads[oID] = overload
-				}
+				f.overloads[oID] = overload
 				return nil
 			}
 			return fmt.Errorf("overload redefinition in function. %s: %s has multiple definitions", f.Name(), oID)
@@ -251,15 +249,15 @@ func (f *FunctionDecl) Bindings() ([]*functions.Overload, error) {
 			// are preserved in order to assist with the function resolution step.
 			switch len(args) {
 			case 1:
-				if o.unaryOp != nil && o.matchesRuntimeSignature(f.disableTypeGuards, args...) {
+				if o.unaryOp != nil && o.matchesRuntimeSignature( /* disableTypeGuards=*/ false, args...) {
 					return o.unaryOp(args[0])
 				}
 			case 2:
-				if o.binaryOp != nil && o.matchesRuntimeSignature(f.disableTypeGuards, args...) {
+				if o.binaryOp != nil && o.matchesRuntimeSignature( /* disableTypeGuards=*/ false, args...) {
 					return o.binaryOp(args[0], args[1])
 				}
 			}
-			if o.functionOp != nil && o.matchesRuntimeSignature(f.disableTypeGuards, args...) {
+			if o.functionOp != nil && o.matchesRuntimeSignature( /* disableTypeGuards=*/ false, args...) {
 				return o.functionOp(args...)
 			}
 			// eventually this will fall through to the noSuchOverload below.
@@ -777,13 +775,8 @@ func (v *VariableDecl) DeclarationIsEquivalent(other *VariableDecl) bool {
 	return v.Name() == other.Name() && v.Type().IsEquivalentType(other.Type())
 }
 
-// TypeVariable creates a new type identifier for use within a types.Provider
-func TypeVariable(t *types.Type) *VariableDecl {
-	return NewVariable(t.TypeName(), types.NewTypeTypeWithParam(t))
-}
-
-// variableDeclToExprDecl converts a go-native variable declaration into a protobuf-type variable declaration.
-func variableDeclToExprDecl(v *VariableDecl) (*exprpb.Decl, error) {
+// VariableDeclToExprDecl converts a go-native variable declaration into a protobuf-type variable declaration.
+func VariableDeclToExprDecl(v *VariableDecl) (*exprpb.Decl, error) {
 	varType, err := types.TypeToExprType(v.Type())
 	if err != nil {
 		return nil, err
@@ -791,8 +784,13 @@ func variableDeclToExprDecl(v *VariableDecl) (*exprpb.Decl, error) {
 	return chkdecls.NewVar(v.Name(), varType), nil
 }
 
-// functionDeclToExprDecl converts a go-native function declaration into a protobuf-typed function declaration.
-func functionDeclToExprDecl(f *FunctionDecl) (*exprpb.Decl, error) {
+// TypeVariable creates a new type identifier for use within a types.Provider
+func TypeVariable(t *types.Type) *VariableDecl {
+	return NewVariable(t.TypeName(), types.NewTypeTypeWithParam(t))
+}
+
+// FunctionDeclToExprDecl converts a go-native function declaration into a protobuf-typed function declaration.
+func FunctionDeclToExprDecl(f *FunctionDecl) (*exprpb.Decl, error) {
 	overloads := make([]*exprpb.Decl_FunctionDecl_Overload, len(f.overloads))
 	for i, oID := range f.overloadOrdinals {
 		o := f.overloads[oID]

@@ -37,7 +37,6 @@ type BackendSampler struct {
 	hostNameDecoder             backend.HostNameDecoderWithRunner
 	lock                        sync.Mutex
 	cancel                      context.CancelFunc
-	samplerFinished             chan struct{}
 }
 
 func (bs *BackendSampler) GetTargetServerName() string {
@@ -69,8 +68,6 @@ func (bs *BackendSampler) GetURL() (string, error) {
 }
 
 func (bs *BackendSampler) RunEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
-	defer close(bs.samplerFinished)
-
 	ctx, cancel := context.WithCancel(ctx)
 	bs.lock.Lock()
 	bs.cancel = cancel
@@ -138,7 +135,4 @@ func (bs *BackendSampler) Stop() {
 	if cancel != nil {
 		cancel()
 	}
-
-	// wait for the sampler to be done
-	<-bs.samplerFinished
 }

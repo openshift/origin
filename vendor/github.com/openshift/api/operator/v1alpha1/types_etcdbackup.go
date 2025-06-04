@@ -23,19 +23,22 @@ type EtcdBackup struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec EtcdBackupSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
+	// +kubebuilder:validation:Optional
 	// +optional
 	Status EtcdBackupStatus `json:"status"`
 }
 
 type EtcdBackupSpec struct {
-	// pvcName specifies the name of the PersistentVolumeClaim (PVC) which binds a PersistentVolume where the
+	// PVCName specifies the name of the PersistentVolumeClaim (PVC) which binds a PersistentVolume where the
 	// etcd backup file would be saved
 	// The PVC itself must always be created in the "openshift-etcd" namespace
 	// If the PVC is left unspecified "" then the platform will choose a reasonable default location to save the backup.
 	// In the future this would be backups saved across the control-plane master nodes.
+	// +kubebuilder:validation:Optional
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="pvcName is immutable once set"
 	PVCName string `json:"pvcName"`
@@ -44,14 +47,16 @@ type EtcdBackupSpec struct {
 // +kubebuilder:validation:Optional
 type EtcdBackupStatus struct {
 	// conditions provide details on the status of the etcd backup job.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions" patchStrategy:"merge" patchMergeKey:"type"`
 
 	// backupJob is the reference to the Job that executes the backup.
 	// Optional
-	// +optional
+	// +kubebuilder:validation:Optional
 	BackupJob *BackupJobReference `json:"backupJob"`
 }
 
@@ -62,13 +67,13 @@ type BackupJobReference struct {
 	// this is always expected to be "openshift-etcd" since the user provided PVC
 	// is also required to be in "openshift-etcd"
 	// Required
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern:=`^openshift-etcd$`
 	Namespace string `json:"namespace"`
 
 	// name is the name of the Job.
 	// Required
-	// +required
+	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 }
 

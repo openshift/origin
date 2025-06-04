@@ -19,7 +19,6 @@ limitations under the License.
 package clustertrustbundle
 
 import (
-	"context"
 	"encoding/pem"
 	"fmt"
 	"math/rand"
@@ -59,7 +58,7 @@ type InformerManager struct {
 var _ Manager = (*InformerManager)(nil)
 
 // NewInformerManager returns an initialized InformerManager.
-func NewInformerManager(ctx context.Context, bundles certinformersv1alpha1.ClusterTrustBundleInformer, cacheSize int, cacheTTL time.Duration) (*InformerManager, error) {
+func NewInformerManager(bundles certinformersv1alpha1.ClusterTrustBundleInformer, cacheSize int, cacheTTL time.Duration) (*InformerManager, error) {
 	// We need to call Informer() before calling start on the shared informer
 	// factory, or the informer won't be registered to be started.
 	m := &InformerManager{
@@ -69,7 +68,6 @@ func NewInformerManager(ctx context.Context, bundles certinformersv1alpha1.Clust
 		cacheTTL:           cacheTTL,
 	}
 
-	logger := klog.FromContext(ctx)
 	// Have the informer bust cache entries when it sees updates that could
 	// apply to them.
 	_, err := m.ctbInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -78,7 +76,7 @@ func NewInformerManager(ctx context.Context, bundles certinformersv1alpha1.Clust
 			if !ok {
 				return
 			}
-			logger.Info("Dropping all cache entries for signer", "signerName", ctb.Spec.SignerName)
+			klog.InfoS("Dropping all cache entries for signer", "signerName", ctb.Spec.SignerName)
 			m.dropCacheFor(ctb)
 		},
 		UpdateFunc: func(old, new any) {
@@ -86,7 +84,7 @@ func NewInformerManager(ctx context.Context, bundles certinformersv1alpha1.Clust
 			if !ok {
 				return
 			}
-			logger.Info("Dropping cache for ClusterTrustBundle", "signerName", ctb.Spec.SignerName)
+			klog.InfoS("Dropping cache for ClusterTrustBundle", "signerName", ctb.Spec.SignerName)
 			m.dropCacheFor(new.(*certificatesv1alpha1.ClusterTrustBundle))
 		},
 		DeleteFunc: func(obj any) {
@@ -101,7 +99,7 @@ func NewInformerManager(ctx context.Context, bundles certinformersv1alpha1.Clust
 					return
 				}
 			}
-			logger.Info("Dropping cache for ClusterTrustBundle", "signerName", ctb.Spec.SignerName)
+			klog.InfoS("Dropping cache for ClusterTrustBundle", "signerName", ctb.Spec.SignerName)
 			m.dropCacheFor(ctb)
 		},
 	})

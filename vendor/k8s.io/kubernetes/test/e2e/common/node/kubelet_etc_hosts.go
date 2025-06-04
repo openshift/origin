@@ -31,13 +31,11 @@ import (
 )
 
 const (
-	etcHostsPodName             = "test-pod"
-	etcHostsHostNetworkPodName  = "test-host-network-pod"
-	etcHostsPartialContent      = "# Kubernetes-managed hosts file."
-	etcHostsPathLinux           = "/etc/hosts"
-	etcHostsPathWindows         = `C:\Windows\System32\drivers\etc\hosts`
-	etcHostsOriginalPathLinux   = "/etc/hosts-original"
-	etcHostsOriginalPathWindows = `C:\Windows\System32\drivers\etc\hosts-original`
+	etcHostsPodName            = "test-pod"
+	etcHostsHostNetworkPodName = "test-host-network-pod"
+	etcHostsPartialContent     = "# Kubernetes-managed hosts file."
+	etcHostsPath               = "/etc/hosts"
+	etcHostsOriginalPath       = "/etc/hosts-original"
 )
 
 // KubeletManagedHostConfig defines the types for running managed etc hosts test cases
@@ -61,8 +59,9 @@ var _ = SIGDescribe("KubeletManagedEtcHosts", func() {
 			1. The Pod with hostNetwork=false MUST have /etc/hosts of containers managed by the Kubelet.
 			2. The Pod with hostNetwork=false but the container mounts /etc/hosts file from the host. The /etc/hosts file MUST not be managed by the Kubelet.
 			3. The Pod with hostNetwork=true , /etc/hosts file MUST not be managed by the Kubelet.
+		This test is marked LinuxOnly since Windows cannot mount individual files in Containers.
 	*/
-	framework.ConformanceIt("should test kubelet managed /etc/hosts file", f.WithNodeConformance(), func(ctx context.Context) {
+	framework.ConformanceIt("should test kubelet managed /etc/hosts file [LinuxOnly]", f.WithNodeConformance(), func(ctx context.Context) {
 		ginkgo.By("Setting up the test")
 		config.setup(ctx)
 
@@ -113,7 +112,6 @@ func assertManagedStatus(
 
 	retryCount := 0
 	etcHostsContent := ""
-	etcHostsPath, etcHostsOriginalPath := getEtcHostsPath()
 
 	for startTime := time.Now(); time.Since(startTime) < retryTimeout; {
 		etcHostsContent = config.getFileContents(podName, name, etcHostsPath)
@@ -157,7 +155,6 @@ func (config *KubeletManagedHostConfig) getFileContents(podName, containerName, 
 func (config *KubeletManagedHostConfig) createPodSpec(podName string) *v1.Pod {
 	hostPathType := new(v1.HostPathType)
 	*hostPathType = v1.HostPathType(string(v1.HostPathFileOrCreate))
-	etcHostsPath, etcHostsOriginalPath := getEtcHostsPath()
 	mounts := []v1.VolumeMount{
 		{
 			Name:      "host-etc-hosts",
@@ -201,7 +198,6 @@ func (config *KubeletManagedHostConfig) createPodSpec(podName string) *v1.Pod {
 func (config *KubeletManagedHostConfig) createPodSpecWithHostNetwork(podName string) *v1.Pod {
 	hostPathType := new(v1.HostPathType)
 	*hostPathType = v1.HostPathType(string(v1.HostPathFileOrCreate))
-	etcHostsPath, etcHostsOriginalPath := getEtcHostsPath()
 	mounts := []v1.VolumeMount{
 		{
 			Name:      "host-etc-hosts",
@@ -233,11 +229,4 @@ func (config *KubeletManagedHostConfig) createPodSpecWithHostNetwork(podName str
 		},
 	}
 	return pod
-}
-
-func getEtcHostsPath() (string, string) {
-	if framework.NodeOSDistroIs("windows") {
-		return etcHostsPathWindows, etcHostsOriginalPathWindows
-	}
-	return etcHostsPathLinux, etcHostsOriginalPathLinux
 }

@@ -199,10 +199,6 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 									},
 								},
 								{
-									Name:  "ROUTER_IP_V4_V6_MODE",
-									Value: "v4v6",
-								},
-								{
 									Name:  "DEFAULT_CERTIFICATE",
 									Value: defaultPemData,
 								},
@@ -245,7 +241,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.52"),
 							Args: []string{
 								"netexec",
 							},
@@ -276,7 +272,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.52"),
 							Args: []string{
 								"netexec",
 							},
@@ -307,7 +303,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.52"),
 							Args: []string{
 								"netexec",
 							},
@@ -363,7 +359,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// router expected to listen on port 80
-			routerURL := fmt.Sprintf("http://%s", exutil.IPUrl(routerIP))
+			routerURL := fmt.Sprintf("http://%s", routerIP)
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))

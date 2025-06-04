@@ -61,7 +61,7 @@ func CountsOverTime(estimatedStartOfCluster metav1.Time) *countTracking {
 	}
 }
 
-func (s *countTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime, nodeName string) {
+func (s *countTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

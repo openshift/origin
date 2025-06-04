@@ -90,7 +90,6 @@ type ClusterState struct {
 	NetworkSpec          *operatorv1.NetworkSpec
 	ControlPlaneTopology *configv1.TopologyMode
 	OptionalCapabilities []configv1.ClusterVersionCapability
-	Version              *configv1.ClusterVersion
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -153,7 +152,6 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	if err != nil {
 		return nil, err
 	}
-	state.Version = clusterVersion
 	state.OptionalCapabilities = clusterVersion.Status.Capabilities.EnabledCapabilities
 
 	return state, nil

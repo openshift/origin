@@ -28,14 +28,13 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/browsersafe"
-	"k8s.io/kubernetes/openshift-kube-apiserver/authorization/minimumkubeletversion"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	authzconfig "k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
-	authorizationcel "k8s.io/apiserver/pkg/authorization/cel"
+	"k8s.io/apiserver/pkg/authorization/cel"
 	authorizationmetrics "k8s.io/apiserver/pkg/authorization/metrics"
 	"k8s.io/apiserver/pkg/authorization/union"
 	"k8s.io/apiserver/pkg/server/options/authorizationconfig/metrics"
@@ -44,7 +43,6 @@ import (
 	webhookmetrics "k8s.io/apiserver/plugin/pkg/authorizer/webhook/metrics"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/auth/authorizer/abac"
-	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/kubeapiserver/authorizer/modes"
 	"k8s.io/kubernetes/pkg/util/filesystem"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
@@ -66,7 +64,6 @@ type reloadableAuthorizerResolver struct {
 	rbacAuthorizer         *rbac.RBACAuthorizer
 	scopeLimitedAuthorizer authorizer.Authorizer
 	abacAuthorizer         abac.PolicyList
-	compiler               authorizationcel.Compiler // non-nil and shared across reloads.
 
 	lastLoadedLock   sync.Mutex
 	lastLoadedConfig *authzconfig.AuthorizationConfiguration
@@ -84,8 +81,8 @@ func (r *reloadableAuthorizerResolver) Authorize(ctx context.Context, a authoriz
 	return r.current.Load().authorizer.Authorize(ctx, a)
 }
 
-func (r *reloadableAuthorizerResolver) RulesFor(ctx context.Context, user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
-	return r.current.Load().ruleResolver.RulesFor(ctx, user, namespace)
+func (r *reloadableAuthorizerResolver) RulesFor(user user.Info, namespace string) ([]authorizer.ResourceRuleInfo, []authorizer.NonResourceRuleInfo, bool, error) {
+	return r.current.Load().ruleResolver.RulesFor(user, namespace)
 }
 
 // newForConfig constructs
@@ -156,8 +153,7 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 				decisionOnError,
 				configuredAuthorizer.Webhook.MatchConditions,
 				configuredAuthorizer.Name,
-				kubeapiserverWebhookMetrics{WebhookMetrics: webhookmetrics.NewWebhookMetrics(), MatcherMetrics: authorizationcel.NewMatcherMetrics()},
-				r.compiler,
+				kubeapiserverWebhookMetrics{WebhookMetrics: webhookmetrics.NewWebhookMetrics(), MatcherMetrics: cel.NewMatcherMetrics()},
 			)
 			if err != nil {
 				return nil, nil, err
@@ -177,15 +173,6 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 		case authzconfig.AuthorizerType(modes.ModeSystemMasters):
 			// no browsersafeauthorizer here becase that rewrites the resources.  This authorizer matches no matter which resource matches.
 			authorizers = append(authorizers, authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup))
-		case authzconfig.AuthorizerType(modes.ModeMinimumKubeletVersion):
-			// Add MinimumKubeletVerison authorizer, to block a node from being able to access most resources if it's not new enough.
-			// We must do so here instead of in pkg/apiserver because it relies on a node informer, which is not present in generic control planes.
-			authorizers = append(authorizers, minimumkubeletversion.NewMinimumKubeletVersion(
-				GetMinimumKubeletVersion(),
-				nodeidentifier.NewDefaultNodeIdentifier(),
-				r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Informer(),
-				r.initialConfig.VersionedInformerFactory.Core().V1().Nodes().Lister(),
-			))
 		default:
 			return nil, nil, fmt.Errorf("unknown authorization mode %s specified", configuredAuthorizer.Type)
 		}
@@ -200,7 +187,7 @@ type kubeapiserverWebhookMetrics struct {
 	// kube-apiserver does report webhook metrics
 	webhookmetrics.WebhookMetrics
 	// kube-apiserver does report matchCondition metrics
-	authorizationcel.MatcherMetrics
+	cel.MatcherMetrics
 }
 
 // runReload starts checking the config file for changes and reloads the authorizer when it changes.
@@ -239,7 +226,7 @@ func (r *reloadableAuthorizerResolver) checkFile(ctx context.Context) {
 	klog.InfoS("found new authorization config data")
 	r.lastReadData = data
 
-	config, err := LoadAndValidateData(data, r.compiler, r.requireNonWebhookTypes)
+	config, err := LoadAndValidateData(data, r.requireNonWebhookTypes)
 	if err != nil {
 		klog.ErrorS(err, "reloading authorization config")
 		metrics.RecordAuthorizationConfigAutomaticReloadFailure(r.apiServerID)

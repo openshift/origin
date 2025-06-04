@@ -28,9 +28,6 @@ import (
 	// Initialize nutanix as a provider
 	_ "github.com/openshift/origin/test/extended/util/nutanix"
 
-	// Initialize nutanix as a provider
-	_ "github.com/openshift/origin/test/extended/util/external"
-
 	// these are loading important global flags that we need to get and set
 	_ "k8s.io/kubernetes/test/e2e"
 	_ "k8s.io/kubernetes/test/e2e/lifecycle"
@@ -138,7 +135,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		}
 		fallthrough
 
-	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud", "external":
+	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud":
 		if clusterState == nil {
 			clientConfig, err := e2e.LoadConfig(true)
 			if err != nil {

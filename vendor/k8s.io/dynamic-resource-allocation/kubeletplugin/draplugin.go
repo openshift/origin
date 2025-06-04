@@ -26,12 +26,11 @@ import (
 	"google.golang.org/grpc"
 	"k8s.io/klog/v2"
 
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1alpha3"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/dynamic-resource-allocation/resourceslice"
-	drapbv1alpha4 "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
-	drapbv1beta1 "k8s.io/kubelet/pkg/apis/dra/v1beta1"
+	drapb "k8s.io/kubelet/pkg/apis/dra/v1alpha4"
 	registerapi "k8s.io/kubelet/pkg/apis/pluginregistration/v1"
 )
 
@@ -56,10 +55,7 @@ type DRAPlugin interface {
 	// to the API server.
 	//
 	// The caller must not modify the content after the call.
-	//
-	// Returns an error if KubeClient or NodeName options were not
-	// set in Start() to create the DRAPlugin instance.
-	PublishResources(ctx context.Context, resources Resources) error
+	PublishResources(ctx context.Context, resources Resources)
 
 	// This unexported method ensures that we can modify the interface
 	// without causing an API break of the package
@@ -109,7 +105,7 @@ func RegistrarSocketPath(path string) Option {
 }
 
 // RegistrarListener sets an already created listener for the plugin
-// registration API. Can be combined with RegistrarSocketPath.
+// registrarion API. Can be combined with RegistrarSocketPath.
 //
 // At least one of these two options is required.
 func RegistrarListener(listener net.Listener) Option {
@@ -173,20 +169,11 @@ func GRPCStreamInterceptor(interceptor grpc.StreamServerInterceptor) Option {
 	}
 }
 
-// NodeV1alpha4 explicitly chooses whether the DRA gRPC API v1alpha4
+// NodeV1alpha3 explicitly chooses whether the DRA gRPC API v1alpha3
 // gets enabled.
-func NodeV1alpha4(enabled bool) Option {
+func NodeV1alpha3(enabled bool) Option {
 	return func(o *options) error {
-		o.nodeV1alpha4 = enabled
-		return nil
-	}
-}
-
-// NodeV1beta1 explicitly chooses whether the DRA gRPC API v1beta1
-// gets enabled.
-func NodeV1beta1(enabled bool) Option {
-	return func(o *options) error {
-		o.nodeV1beta1 = enabled
+		o.nodeV1alpha3 = enabled
 		return nil
 	}
 }
@@ -236,8 +223,7 @@ type options struct {
 	streamInterceptors         []grpc.StreamServerInterceptor
 	kubeClient                 kubernetes.Interface
 
-	nodeV1alpha4 bool
-	nodeV1beta1  bool
+	nodeV1alpha3 bool
 }
 
 // draPlugin combines the kubelet registration service and the DRA node plugin
@@ -268,22 +254,12 @@ type draPlugin struct {
 // The context and/or DRAPlugin.Stop can be used to stop all background activity.
 // Stop also blocks. A logger can be stored in the context to add values or
 // a name to all log entries.
-//
-// If the plugin will be used to publish resources, [KubeClient] and [NodeName]
-// options are mandatory.
-//
-// The DRA driver decides which gRPC interfaces it implements. At least one
-// implementation of [drapbv1alpha4.NodeServer] or [drapbv1beta1.DRAPluginServer]
-// is required. Implementing drapbv1beta1.DRAPluginServer is recommended for
-// DRA driver targeting Kubernetes >= 1.32. To be compatible with Kubernetes 1.31,
-// DRA drivers must implement only [drapbv1alpha4.NodeServer].
-func Start(ctx context.Context, nodeServers []interface{}, opts ...Option) (result DRAPlugin, finalErr error) {
+func Start(ctx context.Context, nodeServer interface{}, opts ...Option) (result DRAPlugin, finalErr error) {
 	logger := klog.FromContext(ctx)
 	o := options{
 		logger:        klog.Background(),
 		grpcVerbosity: 6, // Logs requests and responses, which can be large.
-		nodeV1alpha4:  true,
-		nodeV1beta1:   true,
+		nodeV1alpha3:  true,
 	}
 	for _, option := range opts {
 		if err := option(&o); err != nil {
@@ -336,40 +312,24 @@ func Start(ctx context.Context, nodeServers []interface{}, opts ...Option) (resu
 	}()
 
 	// Run the node plugin gRPC server first to ensure that it is ready.
-	var supportedServices []string
+	implemented := false
 	plugin, err := startGRPCServer(klog.NewContext(ctx, klog.LoggerWithName(logger, "dra")), o.grpcVerbosity, o.unaryInterceptors, o.streamInterceptors, o.draEndpoint, func(grpcServer *grpc.Server) {
-		for _, nodeServer := range nodeServers {
-			if nodeServer, ok := nodeServer.(drapbv1alpha4.NodeServer); ok && o.nodeV1alpha4 {
-				logger.V(5).Info("registering v1alpha4.Node gGRPC service")
-				drapbv1alpha4.RegisterNodeServer(grpcServer, nodeServer)
-				supportedServices = append(supportedServices, drapbv1alpha4.NodeService)
-			}
-			if nodeServer, ok := nodeServer.(drapbv1beta1.DRAPluginServer); ok && o.nodeV1beta1 {
-				logger.V(5).Info("registering v1beta1.DRAPlugin gRPC service")
-				drapbv1beta1.RegisterDRAPluginServer(grpcServer, nodeServer)
-				supportedServices = append(supportedServices, drapbv1beta1.DRAPluginService)
-			}
+		if nodeServer, ok := nodeServer.(drapb.NodeServer); ok && o.nodeV1alpha3 {
+			logger.V(5).Info("registering drapbv1alpha3.NodeServer")
+			drapb.RegisterNodeServer(grpcServer, nodeServer)
+			implemented = true
 		}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("start node client: %v", err)
 	}
 	d.plugin = plugin
-	if len(supportedServices) == 0 {
+	if !implemented {
 		return nil, errors.New("no supported DRA gRPC API is implemented and enabled")
 	}
 
-	// Backwards compatibility hack: if only the alpha gRPC service is enabled,
-	// then we can support registration against a 1.31 kubelet by reporting "1.0.0"
-	// as version. That also works with 1.32 because 1.32 supports that legacy
-	// behavior and 1.31 works because it doesn't fail while parsing "v1alpha3.Node"
-	// as version.
-	if len(supportedServices) == 1 && supportedServices[0] == drapbv1alpha4.NodeService {
-		supportedServices = []string{"1.0.0"}
-	}
-
 	// Now make it available to kubelet.
-	registrar, err := startRegistrar(klog.NewContext(ctx, klog.LoggerWithName(logger, "registrar")), o.grpcVerbosity, o.unaryInterceptors, o.streamInterceptors, o.driverName, supportedServices, o.draAddress, o.pluginRegistrationEndpoint)
+	registrar, err := startRegistrar(klog.NewContext(ctx, klog.LoggerWithName(logger, "registrar")), o.grpcVerbosity, o.unaryInterceptors, o.streamInterceptors, o.driverName, o.draAddress, o.pluginRegistrationEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("start registrar: %v", err)
 	}
@@ -405,16 +365,8 @@ func (d *draPlugin) Stop() {
 	d.wg.Wait()
 }
 
-// PublishResources implements [DRAPlugin.PublishResources]. Returns en error if
-// kubeClient or nodeName are unset.
-func (d *draPlugin) PublishResources(ctx context.Context, resources Resources) error {
-	if d.kubeClient == nil {
-		return errors.New("no KubeClient found to publish resources")
-	}
-	if d.nodeName == "" {
-		return errors.New("no NodeName was set to publish resources")
-	}
-
+// PublishResources implements [DRAPlugin.PublishResources].
+func (d *draPlugin) PublishResources(ctx context.Context, resources Resources) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -427,9 +379,7 @@ func (d *draPlugin) PublishResources(ctx context.Context, resources Resources) e
 	driverResources := &resourceslice.DriverResources{
 		Pools: map[string]resourceslice.Pool{
 			d.nodeName: {
-				Slices: []resourceslice.Slice{{
-					Devices: resources.Devices,
-				}},
+				Devices: resources.Devices,
 			},
 		},
 	}
@@ -442,23 +392,12 @@ func (d *draPlugin) PublishResources(ctx context.Context, resources Resources) e
 		controllerLogger := klog.FromContext(controllerCtx)
 		controllerLogger = klog.LoggerWithName(controllerLogger, "ResourceSlice controller")
 		controllerCtx = klog.NewContext(controllerCtx, controllerLogger)
-		var err error
-		if d.resourceSliceController, err = resourceslice.StartController(controllerCtx,
-			resourceslice.Options{
-				DriverName: d.driverName,
-				KubeClient: d.kubeClient,
-				Owner:      &owner,
-				Resources:  driverResources,
-			}); err != nil {
-			return fmt.Errorf("start ResourceSlice controller: %w", err)
-		}
-		return nil
+		d.resourceSliceController = resourceslice.StartController(controllerCtx, d.kubeClient, d.driverName, owner, driverResources)
+		return
 	}
 
 	// Inform running controller about new information.
 	d.resourceSliceController.Update(driverResources)
-
-	return nil
 }
 
 // RegistrationStatus implements [DRAPlugin.RegistrationStatus].

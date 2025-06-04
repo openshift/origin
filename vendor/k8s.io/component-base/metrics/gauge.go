@@ -18,7 +18,6 @@ package metrics
 
 import (
 	"context"
-	"sync"
 
 	"github.com/blang/semver/v4"
 	"github.com/prometheus/client_golang/prometheus"
@@ -106,6 +105,11 @@ func NewGaugeVec(opts *GaugeOpts, labels []string) *GaugeVec {
 	opts.StabilityLevel.setDefaults()
 
 	fqName := BuildFQName(opts.Namespace, opts.Subsystem, opts.Name)
+	allowListLock.RLock()
+	if allowList, ok := labelValueAllowLists[fqName]; ok {
+		opts.LabelValueAllowLists = allowList
+	}
+	allowListLock.RUnlock()
 
 	cv := &GaugeVec{
 		GaugeVec:       noopGaugeVec,
@@ -145,15 +149,6 @@ func (v *GaugeVec) WithLabelValuesChecked(lvs ...string) (GaugeMetric, error) {
 	}
 	if v.LabelValueAllowLists != nil {
 		v.LabelValueAllowLists.ConstrainToAllowedList(v.originalLabels, lvs)
-	} else {
-		v.initializeLabelAllowListsOnce.Do(func() {
-			allowListLock.RLock()
-			if allowList, ok := labelValueAllowLists[v.FQName()]; ok {
-				v.LabelValueAllowLists = allowList
-				allowList.ConstrainToAllowedList(v.originalLabels, lvs)
-			}
-			allowListLock.RUnlock()
-		})
 	}
 	elt, err := v.GaugeVec.GetMetricWithLabelValues(lvs...)
 	return elt, err
@@ -191,15 +186,6 @@ func (v *GaugeVec) WithChecked(labels map[string]string) (GaugeMetric, error) {
 	}
 	if v.LabelValueAllowLists != nil {
 		v.LabelValueAllowLists.ConstrainLabelMap(labels)
-	} else {
-		v.initializeLabelAllowListsOnce.Do(func() {
-			allowListLock.RLock()
-			if allowList, ok := labelValueAllowLists[v.FQName()]; ok {
-				v.LabelValueAllowLists = allowList
-				allowList.ConstrainLabelMap(labels)
-			}
-			allowListLock.RUnlock()
-		})
 	}
 	elt, err := v.GaugeVec.GetMetricWith(labels)
 	return elt, err
@@ -238,13 +224,6 @@ func (v *GaugeVec) Reset() {
 	}
 
 	v.GaugeVec.Reset()
-}
-
-// ResetLabelAllowLists resets the label allow list for the GaugeVec.
-// NOTE: This should only be used in test.
-func (v *GaugeVec) ResetLabelAllowLists() {
-	v.initializeLabelAllowListsOnce = sync.Once{}
-	v.LabelValueAllowLists = nil
 }
 
 func newGaugeFunc(opts *GaugeOpts, function func() float64, v semver.Version) GaugeFunc {

@@ -29,7 +29,7 @@ type MachineOSBuild struct {
 
 	// spec describes the configuration of the machine os build
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="machineOSBuildSpec is immutable once set"
-	// +required
+	// +kubebuilder:validation:Required
 	Spec MachineOSBuildSpec `json:"spec"`
 
 	// status describes the lst observed state of this machine os build
@@ -54,17 +54,17 @@ type MachineOSBuildList struct {
 type MachineOSBuildSpec struct {
 	// configGeneration tracks which version of MachineOSConfig this build is based off of
 	// +kubebuilder:validation:Minimum=1
-	// +required
+	// +kubebuilder:validation:Required
 	ConfigGeneration int64 `json:"configGeneration"`
 	// desiredConfig is the desired config we want to build an image for.
-	// +required
+	// +kubebuilder:validation:Required
 	DesiredConfig RenderedMachineConfigReference `json:"desiredConfig"`
 	// machineOSConfig is the config object which the build is based off of
-	// +required
+	// +kubebuilder:validation:Required
 	MachineOSConfig MachineOSConfigReference `json:"machineOSConfig"`
 	// version tracks the newest MachineOSBuild for each MachineOSConfig
 	// +kubebuilder:validation:Minimum=1
-	// +required
+	// +kubebuilder:validation:Required
 	Version int64 `json:"version"`
 	// renderedImagePushspec is set from the MachineOSConfig
 	// The format of the image pullspec is:
@@ -73,7 +73,7 @@ type MachineOSBuildSpec struct {
 	// +kubebuilder:validation:MaxLength=447
 	// +kubebuilder:validation:XValidation:rule=`((self.split(':').size() == 2 && self.split(':')[1].matches('^([a-zA-Z0-9-./:])+$')) || self.matches('^[^.]+\\.[^.]+\\.svc:\\d+\\/[^\\/]+\\/[^\\/]+:[^\\/]+$'))`,message="the OCI Image reference must end with a valid :<tag>, where '<digest>' is 64 characters long and '<tag>' is any valid string  Or it must be a valid .svc followed by a port, repository, image name, and tag."
 	// +kubebuilder:validation:XValidation:rule=`((self.split(':').size() == 2 && self.split(':')[0].matches('^([a-zA-Z0-9-]+\\.)+[a-zA-Z0-9-]+(:[0-9]{2,5})?/([a-zA-Z0-9-_]{0,61}/)?[a-zA-Z0-9-_.]*?$')) || self.matches('^[^.]+\\.[^.]+\\.svc:\\d+\\/[^\\/]+\\/[^\\/]+:[^\\/]+$'))`,message="the OCI Image name should follow the host[:port][/namespace]/name format, resembling a valid URL without the scheme. Or it must be a valid .svc followed by a port, repository, image name, and tag."
-	// +required
+	// +kubebuilder:validation:Required
 	RenderedImagePushspec string `json:"renderedImagePushspec"`
 }
 
@@ -82,10 +82,12 @@ type MachineOSBuildStatus struct {
 	// conditions are state related conditions for the build. Valid types are:
 	// Prepared, Building, Failed, Interrupted, and Succeeded
 	// once a Build is marked as Failed, no future conditions can be set. This is enforced by the MCO.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 	// ImageBuilderType describes the image builder set in the MachineOSConfig
 	// +optional
 	BuilderReference *MachineOSBuilderReference `json:"builderReference"`
@@ -93,7 +95,7 @@ type MachineOSBuildStatus struct {
 	RelatedObjects []ObjectReference `json:"relatedObjects,omitempty"`
 	// buildStart describes when the build started.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="buildStart is immutable once set"
-	// +required
+	// +kubebuilder:validation:Required
 	BuildStart *metav1.Time `json:"buildStart"`
 	// buildEnd describes when the build ended.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="buildEnd is immutable once set"
@@ -109,7 +111,7 @@ type MachineOSBuildStatus struct {
 // +union
 // +kubebuilder:validation:XValidation:rule="has(self.imageBuilderType) && self.imageBuilderType == 'PodImageBuilder' ?  true : !has(self.buildPod)",message="buildPod is required when imageBuilderType is PodImageBuilder, and forbidden otherwise"
 type MachineOSBuilderReference struct {
-	// imageBuilderType describes the image builder set in the MachineOSConfig
+	// ImageBuilderType describes the image builder set in the MachineOSConfig
 	// +unionDiscriminator
 	ImageBuilderType MachineOSImageBuilderType `json:"imageBuilderType"`
 
@@ -141,29 +143,29 @@ type RenderedMachineConfigReference struct {
 	// name is the name of the rendered MachineConfig object.
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +required
+	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 }
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
 type ObjectReference struct {
 	// group of the referent.
-	// +required
+	// +kubebuilder:validation:Required
 	Group string `json:"group"`
 	// resource of the referent.
-	// +required
+	// +kubebuilder:validation:Required
 	Resource string `json:"resource"`
 	// namespace of the referent.
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 	// name of the referent.
-	// +required
+	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 }
 
 // MachineOSConfigReference refers to the MachineOSConfig this build is based off of
 type MachineOSConfigReference struct {
 	// name of the MachineOSConfig
-	// +required
+	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 }

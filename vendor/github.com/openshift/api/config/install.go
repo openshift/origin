@@ -6,7 +6,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1alpha1 "github.com/openshift/api/config/v1alpha1"
-	configv1alpha2 "github.com/openshift/api/config/v1alpha2"
 )
 
 const (
@@ -14,7 +13,7 @@ const (
 )
 
 var (
-	schemeBuilder = runtime.NewSchemeBuilder(configv1.Install, configv1alpha1.Install, configv1alpha2.Install)
+	schemeBuilder = runtime.NewSchemeBuilder(configv1.Install, configv1alpha1.Install)
 	// Install is a function which adds every version of this group to a scheme
 	Install = schemeBuilder.AddToScheme
 )

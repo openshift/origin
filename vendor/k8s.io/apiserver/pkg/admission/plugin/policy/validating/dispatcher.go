@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utiljson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apiserver/pkg/admission"
-	admissionauthorizer "k8s.io/apiserver/pkg/admission/plugin/authorizer"
 	"k8s.io/apiserver/pkg/admission/plugin/policy/generic"
 	celmetrics "k8s.io/apiserver/pkg/admission/plugin/policy/validating/metrics"
 	celconfig "k8s.io/apiserver/pkg/apis/cel"
@@ -62,10 +61,6 @@ type policyDecisionWithMetadata struct {
 	PolicyDecision
 	Definition *admissionregistrationv1.ValidatingAdmissionPolicy
 	Binding    *admissionregistrationv1.ValidatingAdmissionPolicyBinding
-}
-
-func (c *dispatcher) Start(ctx context.Context) error {
-	return nil
 }
 
 // Dispatch implements generic.Dispatcher.
@@ -114,7 +109,7 @@ func (c *dispatcher) Dispatch(ctx context.Context, a admission.Attributes, o adm
 		}
 	}
 
-	authz := admissionauthorizer.NewCachingAuthorizer(c.authz)
+	authz := newCachingAuthorizer(c.authz)
 
 	for _, hook := range hooks {
 		// versionedAttributes will be set to non-nil inside of the loop, but

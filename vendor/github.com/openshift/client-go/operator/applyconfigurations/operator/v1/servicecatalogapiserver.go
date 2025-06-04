@@ -3,21 +3,21 @@
 package v1
 
 import (
-	operatorv1 "github.com/openshift/api/operator/v1"
+	apioperatorv1 "github.com/openshift/api/operator/v1"
 	internal "github.com/openshift/client-go/operator/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ServiceCatalogAPIServerApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServer type for use
 // with apply.
 type ServiceCatalogAPIServerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ServiceCatalogAPIServerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ServiceCatalogAPIServerStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ServiceCatalogAPIServerSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *ServiceCatalogAPIServerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ServiceCatalogAPIServer constructs a declarative configuration of the ServiceCatalogAPIServer type for use with
@@ -41,18 +41,18 @@ func ServiceCatalogAPIServer(name string) *ServiceCatalogAPIServerApplyConfigura
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
+func ExtractServiceCatalogAPIServer(serviceCatalogAPIServer *apioperatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
 	return extractServiceCatalogAPIServer(serviceCatalogAPIServer, fieldManager, "")
 }
 
 // ExtractServiceCatalogAPIServerStatus is the same as ExtractServiceCatalogAPIServer except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractServiceCatalogAPIServerStatus(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
+func ExtractServiceCatalogAPIServerStatus(serviceCatalogAPIServer *apioperatorv1.ServiceCatalogAPIServer, fieldManager string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
 	return extractServiceCatalogAPIServer(serviceCatalogAPIServer, fieldManager, "status")
 }
 
-func extractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceCatalogAPIServer, fieldManager string, subresource string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
+func extractServiceCatalogAPIServer(serviceCatalogAPIServer *apioperatorv1.ServiceCatalogAPIServer, fieldManager string, subresource string) (*ServiceCatalogAPIServerApplyConfiguration, error) {
 	b := &ServiceCatalogAPIServerApplyConfiguration{}
 	err := managedfields.ExtractInto(serviceCatalogAPIServer, internal.Parser().Type("com.github.openshift.api.operator.v1.ServiceCatalogAPIServer"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceC
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithKind(value string) *ServiceCatalogAPIServerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithKind(value string) *Serv
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithAPIVersion(value string) *ServiceCatalogAPIServerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithAPIVersion(value string)
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithName(value string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithName(value string) *Serv
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithGenerateName(value string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithGenerateName(value strin
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithNamespace(value string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithNamespace(value string) 
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithUID(value types.UID) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithUID(value types.UID) *Se
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithResourceVersion(value string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithResourceVersion(value st
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithGeneration(value int64) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ServiceCatalogAPIServerApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ServiceCatalogAPIServerApplyConfiguration {
+func (b *ServiceCatalogAPIServerApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ServiceCatalogAPIServerApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ServiceCatalogAPIServerApplyConfiguration {
+func (b *ServiceCatalogAPIServerApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithDeletionTimestamp(value 
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithDeletionGracePeriodSecon
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithLabels(entries map[string]string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithLabels(entries map[strin
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithAnnotations(entries map[string]string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithAnnotations(entries map[
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ServiceCatalogAPIServerApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ServiceCatalogAPIServerApplyConfiguration {
+func (b *ServiceCatalogAPIServerApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithOwnerReferences(values .
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithFinalizers(values ...string) *ServiceCatalogAPIServerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ServiceCatalogAPIServerApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithStatus(value *ServiceCat
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ServiceCatalogAPIServerApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

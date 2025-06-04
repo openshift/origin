@@ -237,7 +237,7 @@ var staticSuites = []ginkgo.TestSuite{
 		TEST_OCP_CSI_DRIVER_FILES environment is optional and when set, must be a name of file
 		with the OCP specific CSI driver test manifest. By specifying this file, the test suite will
 		run the OCP specific tests in addition to the upstream tests. See
-		https://github.com/openshift/origin/tree/main/test/extended/storage/csi for required format
+		https://github.com/openshift/origin/tree/master/test/extended/storage/csi for required format
 		of the file. Replace "master" with the OpenShift version you are testing against, e.g.
 		"blob/release-4.17/test/..."
 		`),
@@ -260,7 +260,7 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/network/ipsec")
 		},
 		Parallelism: 1,
-		TestTimeout: 60 * time.Minute,
+		TestTimeout: 120 * time.Minute,
 	},
 	{
 		Name: "openshift/network/stress",

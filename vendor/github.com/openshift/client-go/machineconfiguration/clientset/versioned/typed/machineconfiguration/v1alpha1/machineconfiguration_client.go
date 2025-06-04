@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	http "net/http"
+	"net/http"
 
-	machineconfigurationv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
-	scheme "github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
+	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	"github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -84,10 +84,10 @@ func New(c rest.Interface) *MachineconfigurationV1alpha1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	gv := machineconfigurationv1alpha1.SchemeGroupVersion
+	gv := v1alpha1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = rest.CodecFactoryForGeneratedClient(scheme.Scheme, scheme.Codecs).WithoutConversion()
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

@@ -13,87 +13,87 @@ type FakeConfigV1 struct {
 }
 
 func (c *FakeConfigV1) APIServers() v1.APIServerInterface {
-	return newFakeAPIServers(c)
+	return &FakeAPIServers{c}
 }
 
 func (c *FakeConfigV1) Authentications() v1.AuthenticationInterface {
-	return newFakeAuthentications(c)
+	return &FakeAuthentications{c}
 }
 
 func (c *FakeConfigV1) Builds() v1.BuildInterface {
-	return newFakeBuilds(c)
+	return &FakeBuilds{c}
 }
 
 func (c *FakeConfigV1) ClusterOperators() v1.ClusterOperatorInterface {
-	return newFakeClusterOperators(c)
+	return &FakeClusterOperators{c}
 }
 
 func (c *FakeConfigV1) ClusterVersions() v1.ClusterVersionInterface {
-	return newFakeClusterVersions(c)
+	return &FakeClusterVersions{c}
 }
 
 func (c *FakeConfigV1) Consoles() v1.ConsoleInterface {
-	return newFakeConsoles(c)
+	return &FakeConsoles{c}
 }
 
 func (c *FakeConfigV1) DNSes() v1.DNSInterface {
-	return newFakeDNSes(c)
+	return &FakeDNSes{c}
 }
 
 func (c *FakeConfigV1) FeatureGates() v1.FeatureGateInterface {
-	return newFakeFeatureGates(c)
+	return &FakeFeatureGates{c}
 }
 
 func (c *FakeConfigV1) Images() v1.ImageInterface {
-	return newFakeImages(c)
+	return &FakeImages{c}
 }
 
 func (c *FakeConfigV1) ImageContentPolicies() v1.ImageContentPolicyInterface {
-	return newFakeImageContentPolicies(c)
+	return &FakeImageContentPolicies{c}
 }
 
 func (c *FakeConfigV1) ImageDigestMirrorSets() v1.ImageDigestMirrorSetInterface {
-	return newFakeImageDigestMirrorSets(c)
+	return &FakeImageDigestMirrorSets{c}
 }
 
 func (c *FakeConfigV1) ImageTagMirrorSets() v1.ImageTagMirrorSetInterface {
-	return newFakeImageTagMirrorSets(c)
+	return &FakeImageTagMirrorSets{c}
 }
 
 func (c *FakeConfigV1) Infrastructures() v1.InfrastructureInterface {
-	return newFakeInfrastructures(c)
+	return &FakeInfrastructures{c}
 }
 
 func (c *FakeConfigV1) Ingresses() v1.IngressInterface {
-	return newFakeIngresses(c)
+	return &FakeIngresses{c}
 }
 
 func (c *FakeConfigV1) Networks() v1.NetworkInterface {
-	return newFakeNetworks(c)
+	return &FakeNetworks{c}
 }
 
 func (c *FakeConfigV1) Nodes() v1.NodeInterface {
-	return newFakeNodes(c)
+	return &FakeNodes{c}
 }
 
 func (c *FakeConfigV1) OAuths() v1.OAuthInterface {
-	return newFakeOAuths(c)
+	return &FakeOAuths{c}
 }
 
 func (c *FakeConfigV1) OperatorHubs() v1.OperatorHubInterface {
-	return newFakeOperatorHubs(c)
+	return &FakeOperatorHubs{c}
 }
 
 func (c *FakeConfigV1) Projects() v1.ProjectInterface {
-	return newFakeProjects(c)
+	return &FakeProjects{c}
 }
 
 func (c *FakeConfigV1) Proxies() v1.ProxyInterface {
-	return newFakeProxies(c)
+	return &FakeProxies{c}
 }
 
 func (c *FakeConfigV1) Schedulers() v1.SchedulerInterface {
-	return newFakeSchedulers(c)
+	return &FakeSchedulers{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

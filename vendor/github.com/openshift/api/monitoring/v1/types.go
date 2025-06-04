@@ -44,7 +44,7 @@ type AlertingRule struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec describes the desired state of this AlertingRule object.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec AlertingRuleSpec `json:"spec"`
 
 	// status describes the current state of this AlertOverrides object.
@@ -67,8 +67,8 @@ type AlertingRuleList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	// items is a list of AlertingRule objects.
-	// +optional
-	Items []AlertingRule `json:"items,omitempty"`
+	// +kubebuilder:validation:Required
+	Items []AlertingRule `json:"items"`
 }
 
 // AlertingRuleSpec is the desired state of an AlertingRule resource.
@@ -93,7 +93,7 @@ type AlertingRuleSpec struct {
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MinItems:=1
-	// +required
+	// +kubebuilder:validation:Required
 	Groups []RuleGroup `json:"groups"`
 }
 
@@ -110,7 +110,7 @@ type Duration string
 type RuleGroup struct {
 	// name is the name of the group.
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
 	Name string `json:"name"`
@@ -130,7 +130,7 @@ type RuleGroup struct {
 	// processed sequentially, and all rules are processed.
 	//
 	// +kubebuilder:validation:MinItems:=1
-	// +required
+	// +kubebuilder:validation:Required
 	Rules []Rule `json:"rules"`
 }
 
@@ -143,7 +143,7 @@ type Rule struct {
 	// alert is the name of the alert. Must be a valid label value, i.e. may
 	// contain any Unicode character.
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
 	Alert string `json:"alert"`
@@ -157,7 +157,7 @@ type Rule struct {
 	// to create an always-firing "Watchdog" alert in order to ensure the alerting
 	// pipeline is functional.
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	Expr intstr.IntOrString `json:"expr"`
 
 	// for is the time period after which alerts are considered firing after first
@@ -210,7 +210,7 @@ type PrometheusRuleRef struct {
 	// the reference should we ever need to.
 
 	// name of the referenced PrometheusRule.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
 	Name string `json:"name"`
@@ -238,7 +238,7 @@ type AlertRelabelConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec describes the desired state of this AlertRelabelConfig object.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec AlertRelabelConfigSpec `json:"spec"`
 
 	// status describes the current state of this AlertRelabelConfig object.
@@ -254,7 +254,7 @@ type AlertRelabelConfigSpec struct {
 	// configs is a list of sequentially evaluated alert relabel configs.
 	//
 	// +kubebuilder:validation:MinItems:=1
-	// +required
+	// +kubebuilder:validation:Required
 	Configs []RelabelConfig `json:"configs"`
 }
 
@@ -264,8 +264,6 @@ type AlertRelabelConfigStatus struct {
 	// empty.
 	//
 	// +optional
-	// +listType=map
-	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -287,8 +285,9 @@ type AlertRelabelConfigList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	// items is a list of AlertRelabelConfigs.
-	// +optional
-	Items []AlertRelabelConfig `json:"items,omitempty"`
+	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:validation:Required
+	Items []*AlertRelabelConfig `json:"items"`
 }
 
 // LabelName is a valid Prometheus label name which may only contain ASCII

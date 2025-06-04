@@ -664,7 +664,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		f,
 		"[sig-cluster-lifecycle] ClusterOperators are available and not degraded after upgrade",
 		func() (error, bool) {
-			if err := operator.WaitForOperatorsToSettle(context.TODO(), c, 5); err != nil {
+			if err := operator.WaitForOperatorsToSettle(context.TODO(), c); err != nil {
 				return err, false
 			}
 			return nil, false

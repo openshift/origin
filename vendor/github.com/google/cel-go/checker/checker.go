@@ -496,32 +496,16 @@ func (c *checker) checkComprehension(e ast.Expr) {
 	comp := e.AsComprehension()
 	c.check(comp.IterRange())
 	c.check(comp.AccuInit())
-	rangeType := substitute(c.mappings, c.getType(comp.IterRange()), false)
-
-	// Create a scope for the comprehension since it has a local accumulation variable.
-	// This scope will contain the accumulation variable used to compute the result.
 	accuType := c.getType(comp.AccuInit())
-	c.env = c.env.enterScope()
-	c.env.AddIdents(decls.NewVariable(comp.AccuVar(), accuType))
+	rangeType := substitute(c.mappings, c.getType(comp.IterRange()), false)
+	var varType *types.Type
 
-	var varType, var2Type *types.Type
 	switch rangeType.Kind() {
 	case types.ListKind:
-		// varType represents the list element type for one-variable comprehensions.
 		varType = rangeType.Parameters()[0]
-		if comp.HasIterVar2() {
-			// varType represents the list index (int) for two-variable comprehensions,
-			// and var2Type represents the list element type.
-			var2Type = varType
-			varType = types.IntType
-		}
 	case types.MapKind:
-		// varType represents the map entry key for all comprehension types.
+		// Ranges over the keys.
 		varType = rangeType.Parameters()[0]
-		if comp.HasIterVar2() {
-			// var2Type represents the map entry value for two-variable comprehensions.
-			var2Type = rangeType.Parameters()[1]
-		}
 	case types.DynKind, types.ErrorKind, types.TypeParamKind:
 		// Set the range type to DYN to prevent assignment to a potentially incorrect type
 		// at a later point in type-checking. The isAssignable call will update the type
@@ -534,12 +518,13 @@ func (c *checker) checkComprehension(e ast.Expr) {
 		varType = types.ErrorType
 	}
 
+	// Create a scope for the comprehension since it has a local accumulation variable.
+	// This scope will contain the accumulation variable used to compute the result.
+	c.env = c.env.enterScope()
+	c.env.AddIdents(decls.NewVariable(comp.AccuVar(), accuType))
 	// Create a block scope for the loop.
 	c.env = c.env.enterScope()
 	c.env.AddIdents(decls.NewVariable(comp.IterVar(), varType))
-	if comp.HasIterVar2() {
-		c.env.AddIdents(decls.NewVariable(comp.IterVar2(), var2Type))
-	}
 	// Check the variable references in the condition and step.
 	c.check(comp.LoopCondition())
 	c.assertType(comp.LoopCondition(), types.BoolType)

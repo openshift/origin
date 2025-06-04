@@ -85,7 +85,7 @@ func extractVolumeAttachment(volumeAttachment *storagev1alpha1.VolumeAttachment,
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithKind(value string) *VolumeAttachmentApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -93,7 +93,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithKind(value string) *VolumeAttac
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithAPIVersion(value string) *VolumeAttachmentApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -102,7 +102,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithAPIVersion(value string) *Volum
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithName(value string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -111,7 +111,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithName(value string) *VolumeAttac
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithGenerateName(value string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -120,7 +120,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithGenerateName(value string) *Vol
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithNamespace(value string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -129,7 +129,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithNamespace(value string) *Volume
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithUID(value types.UID) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -138,7 +138,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithUID(value types.UID) *VolumeAtt
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithResourceVersion(value string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -147,7 +147,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithResourceVersion(value string) *
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithGeneration(value int64) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
@@ -156,7 +156,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithGeneration(value int64) *Volume
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithCreationTimestamp(value metav1.Time) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
@@ -165,7 +165,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithCreationTimestamp(value metav1.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -174,7 +174,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithDeletionTimestamp(value metav1.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *VolumeAttachmentApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -184,11 +184,11 @@ func (b *VolumeAttachmentApplyConfiguration) WithDeletionGracePeriodSeconds(valu
 // overwriting an existing map entries in Labels field with the same key.
 func (b *VolumeAttachmentApplyConfiguration) WithLabels(entries map[string]string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -199,11 +199,11 @@ func (b *VolumeAttachmentApplyConfiguration) WithLabels(entries map[string]strin
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *VolumeAttachmentApplyConfiguration) WithAnnotations(entries map[string]string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -217,7 +217,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithOwnerReferences(values ...*v1.O
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -228,7 +228,7 @@ func (b *VolumeAttachmentApplyConfiguration) WithOwnerReferences(values ...*v1.O
 func (b *VolumeAttachmentApplyConfiguration) WithFinalizers(values ...string) *VolumeAttachmentApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
@@ -258,5 +258,5 @@ func (b *VolumeAttachmentApplyConfiguration) WithStatus(value *VolumeAttachmentS
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *VolumeAttachmentApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

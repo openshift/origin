@@ -30,9 +30,6 @@ type auditLogAnalyzer struct {
 	requestCountTracking          *countTracking
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
-	violationChecker              *auditViolations
-	watchCountTracking            *watchCountTracking
-	latencyChecker                *auditLatencyRecords
 
 	countsForInstall *CountsForRun
 }
@@ -43,9 +40,6 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		excessiveApplyChecker:         CheckForExcessiveApplies(),
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
-		violationChecker:              CheckForViolations(),
-		watchCountTracking:            NewWatchCountTracking(),
-		latencyChecker:                CheckForLatency(),
 	}
 }
 
@@ -88,9 +82,6 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.excessiveApplyChecker,
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
-		w.violationChecker,
-		w.watchCountTracking,
-		w.latencyChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -207,7 +198,6 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		flakes := []string{}
 		for username, numberOfApplies := range usersToApplies {
 			if numberOfApplies > 200 {
-				errorMessage := fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies)
 				switch username {
 				case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
 					"system:serviceaccount:openshift-network-operator:cluster-network-operator",
@@ -217,9 +207,9 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 
 					// These usernames are already creating more than 200 applies, so flake instead of fail.
 					// We really want to find a way to track namespaces created by the payload versus everything else.
-					flakes = append(flakes, errorMessage)
+					flakes = append(flakes, fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies))
 				default:
-					failures = append(failures, errorMessage)
+					failures = append(failures, fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies))
 				}
 			}
 		}
@@ -241,7 +231,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: strings.Join(flakes, "\n"),
+						Message: strings.Join(failures, "\n"),
 						Output:  "details in audit log",
 					},
 				},
@@ -260,40 +250,6 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			)
 		}
 
-	}
-
-	testName := `[Jira:"kube-apiserver"] API resources are not updated excessively`
-	flakes := []string{}
-	for resource, applies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
-		if applies.numberOfApplies < 200 {
-			continue
-		}
-		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())
-		flakes = append(flakes, errorMessage)
-	}
-	switch {
-	case len(flakes) > 1:
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Message: strings.Join(flakes, "\n"),
-					Output:  "details in audit log",
-				},
-			},
-		)
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-			},
-		)
-
-	default:
-		ret = append(ret,
-			&junitapi.JUnitTestCase{
-				Name: testName,
-			},
-		)
 	}
 
 	for verb, namespacesToUserToNumberOf422s := range w.invalidRequestsChecker.verbToNamespacesTouserToNumberOf422s {
@@ -386,7 +342,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		}
 	}
 
-	testName = "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+	testName := "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
 	switch {
 	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
 		ret = append(ret,
@@ -406,33 +362,12 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		)
 	}
 
-	ret = append(ret, w.violationChecker.CreateJunits()...)
-	junits, err := w.watchCountTracking.CreateJunits()
-	if err == nil {
-		ret = append(ret, junits...)
-	}
-	return ret, err
+	return ret, nil
 }
 
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
 		return currErr
-	}
-
-	if w.watchCountTracking != nil {
-		err := w.watchCountTracking.WriteAuditLogSummary(ctx, storageDir, "watch-requests", timeSuffix)
-		if err != nil {
-			// print any error and continue processing
-			fmt.Printf("unable to write audit log summary for %s - %v\n", "watch-requests", err)
-		}
-	}
-
-	if w.latencyChecker != nil {
-		err := w.latencyChecker.WriteAuditLogSummary(storageDir, "audit-latency", timeSuffix)
-		if err != nil {
-			// print any error and continue processing
-			fmt.Printf("unable to write audit log summary for %s - %v\n", "audit-latency", err)
-		}
 	}
 
 	if w.requestCountTracking != nil {

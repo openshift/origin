@@ -24,6 +24,7 @@ type OpenShiftControllerManager struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec OpenShiftControllerManagerSpec `json:"spec"`
 	// +optional
@@ -51,6 +52,6 @@ type OpenShiftControllerManagerList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata"`
 
-	// items contains the items
+	// Items contains the items
 	Items []OpenShiftControllerManager `json:"items"`
 }

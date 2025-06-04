@@ -23,7 +23,6 @@ import (
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:prerelease-lifecycle-gen:introduced=1.26
-// +k8s:prerelease-lifecycle-gen:deprecated=1.34
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterTrustBundle is a cluster-scoped container for X.509 trust anchors
@@ -91,7 +90,6 @@ type ClusterTrustBundleSpec struct {
 }
 
 // +k8s:prerelease-lifecycle-gen:introduced=1.26
-// +k8s:prerelease-lifecycle-gen:deprecated=1.34
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterTrustBundleList is a collection of ClusterTrustBundle objects

@@ -3,24 +3,24 @@
 package v1
 
 import (
-	templatev1 "github.com/openshift/api/template/v1"
+	apitemplatev1 "github.com/openshift/api/template/v1"
 	internal "github.com/openshift/client-go/template/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // TemplateApplyConfiguration represents a declarative configuration of the Template type for use
 // with apply.
 type TemplateApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Message                              *string                       `json:"message,omitempty"`
-	Objects                              []runtime.RawExtension        `json:"objects,omitempty"`
-	Parameters                           []ParameterApplyConfiguration `json:"parameters,omitempty"`
-	ObjectLabels                         map[string]string             `json:"labels,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Message                          *string                       `json:"message,omitempty"`
+	Objects                          []runtime.RawExtension        `json:"objects,omitempty"`
+	Parameters                       []ParameterApplyConfiguration `json:"parameters,omitempty"`
+	ObjectLabels                     map[string]string             `json:"labels,omitempty"`
 }
 
 // Template constructs a declarative configuration of the Template type for use with
@@ -45,18 +45,18 @@ func Template(name, namespace string) *TemplateApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractTemplate(template *templatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
+func ExtractTemplate(template *apitemplatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
 	return extractTemplate(template, fieldManager, "")
 }
 
 // ExtractTemplateStatus is the same as ExtractTemplate except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractTemplateStatus(template *templatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
+func ExtractTemplateStatus(template *apitemplatev1.Template, fieldManager string) (*TemplateApplyConfiguration, error) {
 	return extractTemplate(template, fieldManager, "status")
 }
 
-func extractTemplate(template *templatev1.Template, fieldManager string, subresource string) (*TemplateApplyConfiguration, error) {
+func extractTemplate(template *apitemplatev1.Template, fieldManager string, subresource string) (*TemplateApplyConfiguration, error) {
 	b := &TemplateApplyConfiguration{}
 	err := managedfields.ExtractInto(template, internal.Parser().Type("com.github.openshift.api.template.v1.Template"), fieldManager, b, subresource)
 	if err != nil {
@@ -74,7 +74,7 @@ func extractTemplate(template *templatev1.Template, fieldManager string, subreso
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithKind(value string) *TemplateApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -82,7 +82,7 @@ func (b *TemplateApplyConfiguration) WithKind(value string) *TemplateApplyConfig
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithAPIVersion(value string) *TemplateApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -91,7 +91,7 @@ func (b *TemplateApplyConfiguration) WithAPIVersion(value string) *TemplateApply
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithName(value string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -100,7 +100,7 @@ func (b *TemplateApplyConfiguration) WithName(value string) *TemplateApplyConfig
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithGenerateName(value string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -109,7 +109,7 @@ func (b *TemplateApplyConfiguration) WithGenerateName(value string) *TemplateApp
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithNamespace(value string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -118,7 +118,7 @@ func (b *TemplateApplyConfiguration) WithNamespace(value string) *TemplateApplyC
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithUID(value types.UID) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -127,7 +127,7 @@ func (b *TemplateApplyConfiguration) WithUID(value types.UID) *TemplateApplyConf
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithResourceVersion(value string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -136,25 +136,25 @@ func (b *TemplateApplyConfiguration) WithResourceVersion(value string) *Template
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithGeneration(value int64) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *TemplateApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *TemplateApplyConfiguration {
+func (b *TemplateApplyConfiguration) WithCreationTimestamp(value metav1.Time) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *TemplateApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *TemplateApplyConfiguration {
+func (b *TemplateApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -163,7 +163,7 @@ func (b *TemplateApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *TemplateApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -173,11 +173,11 @@ func (b *TemplateApplyConfiguration) WithDeletionGracePeriodSeconds(value int64)
 // overwriting an existing map entries in Labels field with the same key.
 func (b *TemplateApplyConfiguration) WithLabels(entries map[string]string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -188,11 +188,11 @@ func (b *TemplateApplyConfiguration) WithLabels(entries map[string]string) *Temp
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *TemplateApplyConfiguration) WithAnnotations(entries map[string]string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -200,13 +200,13 @@ func (b *TemplateApplyConfiguration) WithAnnotations(entries map[string]string) 
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *TemplateApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *TemplateApplyConfiguration {
+func (b *TemplateApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -217,14 +217,14 @@ func (b *TemplateApplyConfiguration) WithOwnerReferences(values ...*metav1.Owner
 func (b *TemplateApplyConfiguration) WithFinalizers(values ...string) *TemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *TemplateApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -276,5 +276,5 @@ func (b *TemplateApplyConfiguration) WithObjectLabels(entries map[string]string)
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *TemplateApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

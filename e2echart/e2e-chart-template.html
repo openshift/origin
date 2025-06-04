@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>EVENT_INTERVAL_TITLE_GOES_HERE</title>
-    <script src="https://cdn.jsdelivr.net/npm/timelines-chart"></script>
+    <script src="https://unpkg.com/timelines-chart"></script>
     <script src="https://d3js.org/d3-array.v1.min.js"></script>
     <script src="https://d3js.org/d3-collection.v1.min.js"></script>
     <script src="https://d3js.org/d3-color.v1.min.js"></script>
@@ -101,11 +101,6 @@
 
     }
 
-    function isEtcdBootstrap(eventInterval) {
-        return eventInterval.source === 'PodLog' && eventInterval.message.reason === "EtcdBootstrap";
-
-    }
-
     function isPodLog(eventInterval) {
         if (eventInterval.source === 'PodLog') {
             return true
@@ -145,10 +140,6 @@
 
     function isAPIUnreachableFromClientActivity(eventInterval) {
         return (eventInterval.source === "APIUnreachableFromClient")
-    }
-
-    function isStaticPodInstallMonitorActivity(eventInterval) {
-        return (eventInterval.source === "StaticPodInstallMonitor")
     }
 
     function isEndpointConnectivity(eventInterval) {
@@ -279,10 +270,6 @@
 
     function isAPIUnreachableFromClientValue(item) {
         return [buildLocatorDisplayString(item.locator), "", "APIUnreachableFromClientMetrics"]
-    }
-
-    function isStaticPodInstallMonitorValue(item) {
-        return [buildLocatorDisplayString(item.locator), "", item.message.reason]
     }
 
     function disruptionValue(item) {
@@ -500,12 +487,8 @@
         timelineGroups.push({group: "api-unreachable", data: []})
         createTimelineData(isAPIUnreachableFromClientValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIUnreachableFromClientActivity, regex)
 
-        timelineGroups.push({group: "staticpod-install", data: []})
-        createTimelineData(isStaticPodInstallMonitorValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isStaticPodInstallMonitorActivity, regex)
-
         timelineGroups.push({ group: "etcd-leaders", data: [] })
         createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
-        createTimelineData("Bootstrap", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdBootstrap, regex)
 
         timelineGroups.push({group: "cloud-metrics", data: []})
         createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)

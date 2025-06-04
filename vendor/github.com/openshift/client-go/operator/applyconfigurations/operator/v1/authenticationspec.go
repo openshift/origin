@@ -23,7 +23,7 @@ func AuthenticationSpec() *AuthenticationSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *AuthenticationSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *AuthenticationSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.ManagementState = &value
+	b.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *AuthenticationSpecApplyConfiguration) WithManagementState(value operato
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *AuthenticationSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *AuthenticationSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.LogLevel = &value
+	b.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *AuthenticationSpecApplyConfiguration) WithLogLevel(value operatorv1.Log
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *AuthenticationSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *AuthenticationSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
+	b.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *AuthenticationSpecApplyConfiguration) WithOperatorLogLevel(value operat
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *AuthenticationSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *AuthenticationSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
+	b.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,6 +55,6 @@ func (b *AuthenticationSpecApplyConfiguration) WithUnsupportedConfigOverrides(va
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *AuthenticationSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *AuthenticationSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
+	b.ObservedConfig = &value
 	return b
 }

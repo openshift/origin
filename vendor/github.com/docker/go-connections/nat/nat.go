@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const (
+	// portSpecTemplate is the expected format for port specifications
+	portSpecTemplate = "ip:hostPort:containerPort"
+)
+
 // PortBinding represents a binding between a Host IP address and a Host Port
 type PortBinding struct {
 	// HostIP is the host IP Address
@@ -153,51 +158,48 @@ type PortMapping struct {
 func splitParts(rawport string) (string, string, string) {
 	parts := strings.Split(rawport, ":")
 	n := len(parts)
-	containerPort := parts[n-1]
+	containerport := parts[n-1]
 
 	switch n {
 	case 1:
-		return "", "", containerPort
+		return "", "", containerport
 	case 2:
-		return "", parts[0], containerPort
+		return "", parts[0], containerport
 	case 3:
-		return parts[0], parts[1], containerPort
+		return parts[0], parts[1], containerport
 	default:
-		return strings.Join(parts[:n-2], ":"), parts[n-2], containerPort
+		return strings.Join(parts[:n-2], ":"), parts[n-2], containerport
 	}
 }
 
 // ParsePortSpec parses a port specification string into a slice of PortMappings
 func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	var proto string
-	ip, hostPort, containerPort := splitParts(rawPort)
+	rawIP, hostPort, containerPort := splitParts(rawPort)
 	proto, containerPort = SplitProtoPort(containerPort)
 
-	if ip != "" && ip[0] == '[' {
-		// Strip [] from IPV6 addresses
-		rawIP, _, err := net.SplitHostPort(ip + ":")
-		if err != nil {
-			return nil, fmt.Errorf("invalid IP address %v: %w", ip, err)
-		}
-		ip = rawIP
+	// Strip [] from IPV6 addresses
+	ip, _, err := net.SplitHostPort(rawIP + ":")
+	if err != nil {
+		return nil, fmt.Errorf("Invalid ip address %v: %s", rawIP, err)
 	}
 	if ip != "" && net.ParseIP(ip) == nil {
-		return nil, fmt.Errorf("invalid IP address: %s", ip)
+		return nil, fmt.Errorf("Invalid ip address: %s", ip)
 	}
 	if containerPort == "" {
-		return nil, fmt.Errorf("no port specified: %s<empty>", rawPort)
+		return nil, fmt.Errorf("No port specified: %s<empty>", rawPort)
 	}
 
 	startPort, endPort, err := ParsePortRange(containerPort)
 	if err != nil {
-		return nil, fmt.Errorf("invalid containerPort: %s", containerPort)
+		return nil, fmt.Errorf("Invalid containerPort: %s", containerPort)
 	}
 
 	var startHostPort, endHostPort uint64 = 0, 0
 	if len(hostPort) > 0 {
 		startHostPort, endHostPort, err = ParsePortRange(hostPort)
 		if err != nil {
-			return nil, fmt.Errorf("invalid hostPort: %s", hostPort)
+			return nil, fmt.Errorf("Invalid hostPort: %s", hostPort)
 		}
 	}
 
@@ -206,12 +208,12 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 		// In this case, use the host port range as the dynamic
 		// host port range to allocate into.
 		if endPort != startPort {
-			return nil, fmt.Errorf("invalid ranges specified for container and host Ports: %s and %s", containerPort, hostPort)
+			return nil, fmt.Errorf("Invalid ranges specified for container and host Ports: %s and %s", containerPort, hostPort)
 		}
 	}
 
 	if !validateProto(strings.ToLower(proto)) {
-		return nil, fmt.Errorf("invalid proto: %s", proto)
+		return nil, fmt.Errorf("Invalid proto: %s", proto)
 	}
 
 	ports := []PortMapping{}

@@ -19,8 +19,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
-	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/staticpodinstall/kubeletlogparser"
-
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -92,8 +90,6 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
 	ret := monitorapi.Intervals{}
 
-	parse := kubeletlogparser.NewEtcdStaticPodEventsFromKubelet()
-
 	scanner := bufio.NewScanner(bytes.NewBuffer(kubeletLog))
 	for scanner.Scan() {
 		currLine := scanner.Text()
@@ -108,7 +104,6 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
 		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
 		ret = append(ret, leaseFailBackOff(nodeLocator, currLine)...)
-		ret = append(ret, parse(nodeName, currLine)...)
 	}
 
 	return ret
@@ -138,7 +133,7 @@ func unreasonablyLongPollInterval(logLine string, nodeLocator monitorapi.Locator
 		return nil
 	}
 
-	toTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	toTime := utility.SystemdJournalLogTime(logLine)
 
 	// Extract the number of millis and use it for the interval, starting from the point we logged
 	// and looking backwards.
@@ -189,7 +184,7 @@ func tooManyNetlinkEvents(logLine string, nodeLocator monitorapi.Locator) monito
 		return nil
 	}
 
-	logTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	logTime := utility.SystemdJournalLogTime(logLine)
 
 	message := logLine[strings.Index(logLine, "NetworkManager"):]
 	return monitorapi.Intervals{
@@ -224,7 +219,7 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -251,7 +246,7 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 	message, _ = strconv.Unquote(`"` + message + `"`)
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -278,7 +273,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := errImagePullToContainerReference(logLine)
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -324,7 +319,7 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
@@ -429,7 +424,7 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 		return nil
 	}
 
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
@@ -445,7 +440,7 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 		return nil
 	}
 
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
@@ -472,7 +467,7 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 		return nil
 	}
 
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 	url := ""
 	msg := ""
 
@@ -514,7 +509,7 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 
 func leaseFailBackOff(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
 
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 
 	subMatches := failedLeaseFiveTimes.FindStringSubmatch(logLine)
 
@@ -622,7 +617,7 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 		message = unquotedMessage
 	}
 
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+	failureTime := utility.SystemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(locator()).

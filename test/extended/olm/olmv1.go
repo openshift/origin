@@ -13,10 +13,8 @@ import (
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -36,7 +34,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
+		checkFeatureCapability(ctx, oc)
 
 		providedAPIs := []struct {
 			group   string
@@ -78,7 +76,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
+		checkFeatureCapability(ctx, oc)
 
 		providedCatalogs := []string{
 			"openshift-certified-operators",
@@ -98,210 +96,6 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Serving", metav1.ConditionTrue)).To(o.BeTrue())
 		}
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-community-operators"
-		endpoint := "all"
-
-		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-certified-operators"
-		endpoint := "all"
-
-		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-redhat-marketplace"
-		endpoint := "all"
-
-		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/all endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-redhat-operators"
-		endpoint := "all"
-
-		g.By(fmt.Sprintf("Testing api/v1/all endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s", baseURL, endpoint)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-community-operators"
-		endpoint := "metas"
-		query := "schema=olm.package"
-
-		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-certified-operators Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-certified-operators"
-		endpoint := "metas"
-		query := "schema=olm.package"
-
-		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-redhat-marketplace"
-		endpoint := "metas"
-		query := "schema=olm.package"
-
-		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
-	})
-})
-
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should serve FBC via the /v1/api/metas endpoint", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		catalog := "openshift-redhat-operators"
-		endpoint := "metas"
-		query := "schema=olm.package"
-
-		g.By(fmt.Sprintf("Testing api/v1/metas endpoint for catalog %q", catalog))
-		baseURL, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"clustercatalogs.olm.operatorframework.io",
-			catalog,
-			"-o=jsonpath={.status.urls.base}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(baseURL).NotTo(o.BeEmpty(), fmt.Sprintf("Base URL not found for catalog %s", catalog))
-
-		serviceURL := fmt.Sprintf("%s/api/v1/%s?%s", baseURL, endpoint, query)
-		g.GinkgoLogr.Info(fmt.Sprintf("Using service URL: %s", serviceURL))
-
-		verifyAPIEndpoint(ctx, oc, serviceURL)
 	})
 })
 
@@ -329,7 +123,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should fail to install if it has an invalid reference", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
+		checkFeatureCapability(ctx, oc)
 
 		g.By("applying the necessary resources")
 		err := oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", catFile).Execute()
@@ -371,15 +165,14 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
+		checkFeatureCapability(ctx, oc)
 
 		const (
 			packageName = "quay-operator"
 			version     = "3.13.0"
 		)
 
-		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
-		ceName := "install-test-ce-" + unique
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
@@ -398,15 +191,14 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should fail to install a non-existing cluster extension", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
+		checkFeatureCapability(ctx, oc)
 
 		const (
 			packageName = "does-not-exist"
 			version     = "99.99.99"
 		)
 
-		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
-		ceName := "install-test-ce-" + unique
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to report failure")
@@ -425,16 +217,15 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
-		g.Skip("Temporarily skipping this test due to https://issues.redhat.com/browse/OCPBUGS-56796")
-		checkFeatureCapability(oc)
+		g.Skip("This test is broken: need to verify OCP max version behavior")
+		checkFeatureCapability(ctx, oc)
 
 		const (
-			packageName = "cluster-logging"
-			version     = "6.2.2"
+			packageName = "elasticsearch-operator"
+			version     = "5.8.13"
 		)
 
-		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
-		ceName := "install-test-ce-" + unique
+		cleanup, ceName := applyClusterExtension(oc, packageName, version, ceFile)
 		g.DeferCleanup(cleanup)
 
 		g.By("waiting for the ClusterExtention to be installed")
@@ -467,35 +258,27 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 })
 
-// Use the supplied |unique| value if provided, otherwise generate a unique string. The unique string is returned.
-// |unique| is used to combine common test elements and to avoid duplicate names, which can occur if, for instance,
-// the packageName is used.
-// If this is called multiple times, pass the unique value from the first invocation to subsequent invocations.
-func applyResourceFile(oc *exutil.CLI, packageName, version, unique, ceFile string) (func(), string) {
+func applyClusterExtension(oc *exutil.CLI, packageName, version, ceFile string) (func(), string) {
 	ns := oc.Namespace()
-	if unique == "" {
-		unique = rand.String(8)
-	}
 	g.By(fmt.Sprintf("updating the namespace to: %q", ns))
-	newCeFile := ceFile + "." + unique
+	ceName := "install-test-ce-" + packageName
+	newCeFile := ceFile + "." + packageName
 	b, err := os.ReadFile(ceFile)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	s := string(b)
 	s = strings.ReplaceAll(s, "{NAMESPACE}", ns)
 	s = strings.ReplaceAll(s, "{PACKAGENAME}", packageName)
 	s = strings.ReplaceAll(s, "{VERSION}", version)
-	s = strings.ReplaceAll(s, "{UNIQUE}", unique)
 	err = os.WriteFile(newCeFile, []byte(s), 0666)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.By(fmt.Sprintf("applying the necessary %q resources", unique))
+	g.By("applying the necessary resources")
 	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return func() {
-		g.By(fmt.Sprintf("cleaning the necessary %q resources", unique))
-		err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}, unique
+		g.By("cleaning the necessary resources")
+		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
+	}, ceName
 }
 
 func waitForClusterExtensionReady(oc *exutil.CLI, ceName string) (bool, error, string) {
@@ -626,110 +409,13 @@ func waitForCatalogFailure(oc *exutil.CLI, name string) (bool, error, string) {
 	return true, nil, ""
 }
 
-func checkFeatureCapability(oc *exutil.CLI) {
-	cap, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1)
+func checkFeatureCapability(ctx context.Context, oc *exutil.CLI) {
+	// Hardcoded until openshift/api is updated:
+	// import (	configv1 "github.com/openshift/api/config/v1" )
+	// configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1
+	cap, err := exutil.IsCapabilityEnabled(oc, "OperatorLifecycleManagerV1")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if !cap {
 		g.Skip("Test only runs with OperatorLifecycleManagerV1 capability")
 	}
-}
-
-// verifyAPIEndpoint runs a job to validate the given service endpoint of a ClusterCatalog
-func verifyAPIEndpoint(ctx g.SpecContext, oc *exutil.CLI, serviceURL string) {
-	startTime := time.Now()
-
-	jobName := fmt.Sprintf("test-catalog-endpoint-%s", rand.String(5))
-
-	jobYAML := fmt.Sprintf(`
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: %s
-  namespace: %s
-spec:
-  template:
-    spec:
-      containers:
-      - name: api-tester
-        image: registry.redhat.io/rhel8/httpd-24:latest
-        resources:
-          requests:
-            cpu: "10m"
-            memory: "50Mi"
-        command:
-        - /bin/bash
-        - -c
-        - |
-          set -ex
-          curl -v -k "%s" 
-          if [ $? -ne 0 ]; then
-            echo "Failed to access endpoint"
-            exit 1
-          fi
-          echo "Successfully verified API endpoint"
-          exit 0
-      restartPolicy: Never
-  backoffLimit: 2
-`, jobName, "default", serviceURL)
-
-	tempFile, err := os.CreateTemp("", "api-test-job-*.yaml")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	tempFile.Close()
-	defer os.Remove(tempFile.Name())
-
-	err = os.WriteFile(tempFile.Name(), []byte(jobYAML), 0644)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", tempFile.Name()).Execute()
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	g.By(fmt.Sprintf("Creating the API endpoint verification job: %s at %v", jobName, startTime.Format(time.RFC3339)))
-
-	// Wait for job completion
-	var lastErr error
-	err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-		output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args(
-			"job", jobName, "-n", "default", "-o=jsonpath={.status}").Output()
-		if err != nil {
-			lastErr = err
-			g.GinkgoLogr.Info(fmt.Sprintf("error getting job status: %v (will retry)", err))
-			return false, nil
-		}
-
-		if output == "" {
-			return false, nil // Job status not available yet
-		}
-
-		// Parse job status
-		var status struct {
-			Succeeded int `json:"succeeded"`
-			Failed    int `json:"failed"`
-		}
-
-		if err := json.Unmarshal([]byte(output), &status); err != nil {
-			g.GinkgoLogr.Info(fmt.Sprintf("Error parsing job status: %v", err))
-			return false, nil
-		}
-
-		if status.Succeeded > 0 {
-			return true, nil
-		}
-
-		if status.Failed > 0 {
-			return false, fmt.Errorf("job failed")
-		}
-
-		return false, nil
-	})
-
-	endTime := time.Now()
-	duration := endTime.Sub(startTime)
-
-	if err != nil {
-		if lastErr != nil {
-			g.GinkgoLogr.Error(nil, fmt.Sprintf("Last error encountered while polling: %v", lastErr))
-		}
-		o.Expect(err).NotTo(o.HaveOccurred(), "Job failed or timed out in %v", duration)
-	}
-	g.GinkgoLogr.Info(fmt.Sprintf("Job completed successfully in: %v", duration))
 }

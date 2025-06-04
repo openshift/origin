@@ -38,7 +38,7 @@ type testLib struct {
 }
 
 func (*testLib) LibraryName() string {
-	return "kubernetes.test"
+	return "k8s.test"
 }
 
 type TestOption func(*testLib) *testLib

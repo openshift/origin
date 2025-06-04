@@ -120,8 +120,8 @@ func (o *RecommendedOptions) ApplyTo(config *server.RecommendedConfig) error {
 	if err := o.CoreAPI.ApplyTo(config); err != nil {
 		return err
 	}
-	var kubeClient kubernetes.Interface
-	var dynamicClient dynamic.Interface
+	var kubeClient *kubernetes.Clientset
+	var dynamicClient *dynamic.DynamicClient
 	if config.ClientConfig != nil {
 		var err error
 		kubeClient, err = kubernetes.NewForConfig(config.ClientConfig)

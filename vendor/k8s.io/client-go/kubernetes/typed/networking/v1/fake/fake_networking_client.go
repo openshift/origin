@@ -29,15 +29,15 @@ type FakeNetworkingV1 struct {
 }
 
 func (c *FakeNetworkingV1) Ingresses(namespace string) v1.IngressInterface {
-	return newFakeIngresses(c, namespace)
+	return &FakeIngresses{c, namespace}
 }
 
 func (c *FakeNetworkingV1) IngressClasses() v1.IngressClassInterface {
-	return newFakeIngressClasses(c)
+	return &FakeIngressClasses{c}
 }
 
 func (c *FakeNetworkingV1) NetworkPolicies(namespace string) v1.NetworkPolicyInterface {
-	return newFakeNetworkPolicies(c, namespace)
+	return &FakeNetworkPolicies{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

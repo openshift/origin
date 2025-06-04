@@ -17,7 +17,6 @@ limitations under the License.
 package options
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -26,14 +25,14 @@ import (
 	_ "k8s.io/component-base/metrics/prometheus/workqueue"
 	netutils "k8s.io/utils/net"
 
-	cp "k8s.io/kubernetes/pkg/controlplane/apiserver/options"
+	controlplane "k8s.io/kubernetes/pkg/controlplane/apiserver/options"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
 	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 )
 
 // completedOptions is a private wrapper that enforces a call of Complete() before Run can be invoked.
 type completedOptions struct {
-	cp.CompletedOptions
+	controlplane.CompletedOptions
 	CloudProvider *kubeoptions.CloudProviderOptions
 
 	Extra
@@ -46,27 +45,27 @@ type CompletedOptions struct {
 
 // Complete set default ServerRunOptions.
 // Should be called after kube-apiserver flags parsed.
-func (s *ServerRunOptions) Complete(ctx context.Context) (CompletedOptions, error) {
-	if s == nil {
+func (opts *ServerRunOptions) Complete() (CompletedOptions, error) {
+	if opts == nil {
 		return CompletedOptions{completedOptions: &completedOptions{}}, nil
 	}
 
-	// process s.ServiceClusterIPRange from list to Primary and Secondary
+	// process opts.ServiceClusterIPRange from list to Primary and Secondary
 	// we process secondary only if provided by user
-	apiServerServiceIP, primaryServiceIPRange, secondaryServiceIPRange, err := getServiceIPAndRanges(s.ServiceClusterIPRanges)
+	apiServerServiceIP, primaryServiceIPRange, secondaryServiceIPRange, err := getServiceIPAndRanges(opts.ServiceClusterIPRanges)
 	if err != nil {
 		return CompletedOptions{}, err
 	}
-	controlplane, err := s.Options.Complete(ctx, []string{"kubernetes.default.svc", "kubernetes.default", "kubernetes"}, []net.IP{apiServerServiceIP})
+	controlplane, err := opts.Options.Complete([]string{"kubernetes.default.svc", "kubernetes.default", "kubernetes"}, []net.IP{apiServerServiceIP})
 	if err != nil {
 		return CompletedOptions{}, err
 	}
 
 	completed := completedOptions{
 		CompletedOptions: controlplane,
-		CloudProvider:    s.CloudProvider,
+		CloudProvider:    opts.CloudProvider,
 
-		Extra: s.Extra,
+		Extra: opts.Extra,
 	}
 
 	completed.PrimaryServiceClusterIPRange = primaryServiceIPRange
@@ -107,7 +106,7 @@ func getServiceIPAndRanges(serviceClusterIPRanges string) (net.IP, net.IPNet, ne
 	// nothing provided by user, use default range (only applies to the Primary)
 	if len(serviceClusterIPRangeList) == 0 {
 		var primaryServiceClusterCIDR net.IPNet
-		primaryServiceIPRange, apiServerServiceIP, err = cp.ServiceIPRange(primaryServiceClusterCIDR)
+		primaryServiceIPRange, apiServerServiceIP, err = controlplane.ServiceIPRange(primaryServiceClusterCIDR)
 		if err != nil {
 			return net.IP{}, net.IPNet{}, net.IPNet{}, fmt.Errorf("error determining service IP ranges: %v", err)
 		}
@@ -119,7 +118,7 @@ func getServiceIPAndRanges(serviceClusterIPRanges string) (net.IP, net.IPNet, ne
 		return net.IP{}, net.IPNet{}, net.IPNet{}, fmt.Errorf("service-cluster-ip-range[0] is not a valid cidr")
 	}
 
-	primaryServiceIPRange, apiServerServiceIP, err = cp.ServiceIPRange(*primaryServiceClusterCIDR)
+	primaryServiceIPRange, apiServerServiceIP, err = controlplane.ServiceIPRange(*primaryServiceClusterCIDR)
 	if err != nil {
 		return net.IP{}, net.IPNet{}, net.IPNet{}, fmt.Errorf("error determining service IP ranges for primary service cidr: %v", err)
 	}

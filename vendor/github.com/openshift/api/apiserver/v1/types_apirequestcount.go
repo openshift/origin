@@ -35,6 +35,7 @@ type APIRequestCount struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// spec defines the characteristics of the resource.
+	// +kubebuilder:validation:Required
 	// +required
 	Spec APIRequestCountSpec `json:"spec"`
 
@@ -57,10 +58,9 @@ type APIRequestCountSpec struct {
 type APIRequestCountStatus struct {
 
 	// conditions contains details of the current status of this API Resource.
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions"`
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	Conditions []metav1.Condition `json:"conditions" patchStrategy:"merge" patchMergeKey:"type"`
 
 	// removedInRelease is when the API will be removed.
 	// +kubebuilder:validation:MinLength=0
@@ -126,7 +126,7 @@ type PerNodeAPIRequestLog struct {
 // PerUserAPIRequestCount contains logs of a user's requests.
 type PerUserAPIRequestCount struct {
 
-	// username that made the request.
+	// userName that made the request.
 	// +kubebuilder:validation:MaxLength=512
 	UserName string `json:"username"`
 

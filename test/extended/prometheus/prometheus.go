@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -27,6 +27,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 	"sigs.k8s.io/yaml"
@@ -421,7 +422,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		var averageSeriesLimit int
 		switch {
 		case isManagedServiceCluster:
-			averageSeriesLimit = 850
+			averageSeriesLimit = 800
 		default:
 			averageSeriesLimit = 760
 		}
@@ -453,7 +454,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 	defer g.GinkgoRecover()
 	ctx := context.TODO()
 	var (
-		oc                                                                  = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
+		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
+
 		queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string
 	)
 
@@ -503,7 +505,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			e2e.Logf("Telemetry is enabled")
+			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 
 			if err != nil {
 				// Making the test flaky until monitoring team fixes the rate limit issue.
@@ -521,7 +523,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-				results, err := helper.GetBearerTokenURLViaPod(oc, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
+				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -722,12 +724,12 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
 			// Copy so we can expand:
-			allowedAlertNames := make([]string, len(allowedalerts.AllowedAlertNames))
-			copy(allowedAlertNames, allowedalerts.AllowedAlertNames)
+			allowedAlertNames := make([]string, len(allowedalerts2.AllowedAlertNames))
+			copy(allowedAlertNames, allowedalerts2.AllowedAlertNames)
 
 			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			// we exclude alerts that have their own separate tests.
-			for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts.DefaultAllowances) {
+			for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts2.DefaultAllowances) {
 				allowedAlertNames = append(allowedAlertNames, alertTest.AlertName())
 			}
 
@@ -738,25 +740,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				allowedAlertNames = append(allowedAlertNames, "TechPreviewNoUpgrade", "ClusterNotUpgradeable")
 			}
 
-			// OSD-26887: managed services taints several nodes as infrastructure.  This taint appears to be applied
-			// after some of the platform DS are scheduled there, causing this alert to fire.  Managed services
-			// rebalances the DS after the taint is added, and the alert clears, but origin fails this test. Allowing
-			// this alert to fire while we investigate why the taint is not added at node birth.
-			isManagedService, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if isManagedService {
-				allowedAlertNames = append(allowedAlertNames, "KubeDaemonSetMisScheduled")
-			}
-			// https://issues.redhat.com/browse/OCPBUGS-48340
-			if SkipOperatorHubMetricsCheck(oc) {
-				allowedAlertNames = append(allowedAlertNames, "OperatorHubSourceError")
-			}
-
 			tests := map[string]bool{
 				// openshift-e2e-loki alerts should never fail this test, we've seen this happen on daemon set rollout stuck when CI loki was down.
 				fmt.Sprintf(`ALERTS{alertname!~"%s",alertstate="firing",severity!="info",namespace!="openshift-e2e-loki"} >= 1`, strings.Join(allowedAlertNames, "|")): false,
 			}
-			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -941,6 +929,15 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 	return result
 }
 
+func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	if err != nil {
+		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	return output, nil
+}
+
 // telemetryIsEnabled returns (nil, nil) if Telemetry is enabled,
 // (error, nil) if Telemetry is not enabled, and (_, error) if it fails
 // to determine whether or not Telemetry is enabled.
@@ -1017,12 +1014,4 @@ func hasTelemeterClient(client clientset.Interface) bool {
 		e2e.Failf("could not list pods: %v", err)
 	}
 	return true
-}
-
-func SkipOperatorHubMetricsCheck(oc *exutil.CLI) bool {
-	stdout, stderr, err := oc.AsAdmin().Run("get").Args("operatorhub", "cluster", "-o=jsonpath={.spec.disableAllDefaultSources}").Outputs()
-	if err != nil {
-		fmt.Printf("command failed: %v\nstderr: %s\nstdout:%s", err, stderr, stdout)
-	}
-	return stdout == "true"
 }

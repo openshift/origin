@@ -108,58 +108,70 @@ type Identity struct {
 	SID string
 }
 
-// Chown changes the numeric uid and gid of the named file to id.UID and id.GID.
-func (id Identity) Chown(name string) error {
-	return os.Chown(name, id.UID, id.GID)
+// IdentityMapping contains a mappings of UIDs and GIDs
+type IdentityMapping struct {
+	uids []IDMap
+	gids []IDMap
 }
 
-// IdentityMapping contains a mappings of UIDs and GIDs.
-// The zero value represents an empty mapping.
-type IdentityMapping struct {
-	UIDMaps []IDMap `json:"UIDMaps"`
-	GIDMaps []IDMap `json:"GIDMaps"`
+// NewIDMappingsFromMaps creates a new mapping from two slices
+// Deprecated: this is a temporary shim while transitioning to IDMapping
+func NewIDMappingsFromMaps(uids []IDMap, gids []IDMap) *IdentityMapping {
+	return &IdentityMapping{uids: uids, gids: gids}
 }
 
 // RootPair returns a uid and gid pair for the root user. The error is ignored
 // because a root user always exists, and the defaults are correct when the uid
 // and gid maps are empty.
-func (i IdentityMapping) RootPair() Identity {
-	uid, gid, _ := GetRootUIDGID(i.UIDMaps, i.GIDMaps)
+func (i *IdentityMapping) RootPair() Identity {
+	uid, gid, _ := GetRootUIDGID(i.uids, i.gids)
 	return Identity{UID: uid, GID: gid}
 }
 
 // ToHost returns the host UID and GID for the container uid, gid.
 // Remapping is only performed if the ids aren't already the remapped root ids
-func (i IdentityMapping) ToHost(pair Identity) (Identity, error) {
+func (i *IdentityMapping) ToHost(pair Identity) (Identity, error) {
 	var err error
 	target := i.RootPair()
 
 	if pair.UID != target.UID {
-		target.UID, err = toHost(pair.UID, i.UIDMaps)
+		target.UID, err = toHost(pair.UID, i.uids)
 		if err != nil {
 			return target, err
 		}
 	}
 
 	if pair.GID != target.GID {
-		target.GID, err = toHost(pair.GID, i.GIDMaps)
+		target.GID, err = toHost(pair.GID, i.gids)
 	}
 	return target, err
 }
 
 // ToContainer returns the container UID and GID for the host uid and gid
-func (i IdentityMapping) ToContainer(pair Identity) (int, int, error) {
-	uid, err := toContainer(pair.UID, i.UIDMaps)
+func (i *IdentityMapping) ToContainer(pair Identity) (int, int, error) {
+	uid, err := toContainer(pair.UID, i.uids)
 	if err != nil {
 		return -1, -1, err
 	}
-	gid, err := toContainer(pair.GID, i.GIDMaps)
+	gid, err := toContainer(pair.GID, i.gids)
 	return uid, gid, err
 }
 
 // Empty returns true if there are no id mappings
-func (i IdentityMapping) Empty() bool {
-	return len(i.UIDMaps) == 0 && len(i.GIDMaps) == 0
+func (i *IdentityMapping) Empty() bool {
+	return len(i.uids) == 0 && len(i.gids) == 0
+}
+
+// UIDs return the UID mapping
+// TODO: remove this once everything has been refactored to use pairs
+func (i *IdentityMapping) UIDs() []IDMap {
+	return i.uids
+}
+
+// GIDs return the UID mapping
+// TODO: remove this once everything has been refactored to use pairs
+func (i *IdentityMapping) GIDs() []IDMap {
+	return i.gids
 }
 
 func createIDMap(subidRanges ranges) []IDMap {

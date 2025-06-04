@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -75,7 +74,6 @@ import (
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 )
 
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
@@ -694,10 +692,6 @@ func (c *CLI) TemplateClient() templatev1client.Interface {
 	return templatev1client.NewForConfigOrDie(c.UserConfig())
 }
 
-func (c *CLI) AdminApiextensionsClient() apiextensionsclient.Interface {
-	return apiextensionsclient.NewForConfigOrDie(c.AdminConfig())
-}
-
 func (c *CLI) AdminAppsClient() appsv1client.Interface {
 	return appsv1client.NewForConfigOrDie(c.AdminConfig())
 }
@@ -937,23 +931,13 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	}
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
-	// Redact any bearer token information from the log.
-	framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
+	framework.Logf("Running '%s %s'", c.execPath, strings.Join(c.finalArgs, " "))
 
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
 	err := cmd.Start()
 
 	return cmd, err
-}
-
-func RedactBearerToken(args string) string {
-	if strings.Contains(args, "Authorization: Bearer") {
-		// redact bearer token
-		re := regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
-		args = re.ReplaceAllString(args, "Authorization: Bearer <redacted> ")
-	}
-	return args
 }
 
 // getStartingIndexForLastN calculates a byte offset in a byte slice such that when using
@@ -985,8 +969,8 @@ func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, err
 		c.stderr = bytes.NewBuffer(stdErrBytes)
 		return stdOut, stdErr, nil
 	case *exec.ExitError:
-		framework.Logf("Error running %s %s:\nStdOut>\n%s\nStdErr>\n%s\n", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")), stdOut, stdErr)
-		wrappedErr := fmt.Errorf("Error running %s %s:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")), stdOut[getStartingIndexForLastN(stdOutBytes, 4096):], stdErr[getStartingIndexForLastN(stdErrBytes, 4096):], err)
+		framework.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
+		wrappedErr := fmt.Errorf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", cmd, stdOut[getStartingIndexForLastN(stdOutBytes, 4096):], stdErr[getStartingIndexForLastN(stdErrBytes, 4096):], err)
 		return stdOut, stdErr, wrappedErr
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))

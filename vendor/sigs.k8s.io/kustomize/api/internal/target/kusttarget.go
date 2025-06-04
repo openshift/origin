@@ -449,6 +449,9 @@ func (kt *KustTarget) accumulateResources(
 				ra, err = kt.accumulateDirectory(ra, ldr, false)
 			}
 			if err != nil {
+				if kusterr.IsMalformedYAMLError(errF) { // Some error occurred while tyring to decode YAML file
+					return nil, errF
+				}
 				return nil, errors.WrapPrefixf(
 					err, "accumulation err='%s'", errF.Error())
 			}
@@ -457,7 +460,7 @@ func (kt *KustTarget) accumulateResources(
 	return ra, nil
 }
 
-// accumulateComponents fills the given resourceAccumulator
+// accumulateResources fills the given resourceAccumulator
 // with resources read from the given list of paths.
 func (kt *KustTarget) accumulateComponents(
 	ra *accumulator.ResAccumulator, paths []string) (*accumulator.ResAccumulator, error) {

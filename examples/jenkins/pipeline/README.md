@@ -20,12 +20,12 @@ To walk through the example:
 
     If they are not present, you can create them  by running these commands as a cluster admin:
 
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/main/examples/image-streams/image-streams-centos7.json -n openshift
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/jenkins-ephemeral-template.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/image-streams/image-streams-centos7.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-ephemeral-template.json -n openshift
 
     Note: If you have persistent volumes available in your cluster and prefer to use persistent storage (recommended) for your Jenkins server, register the jenkins-persistent-template.json file as well:
 
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/jenkins-persistent-template.json -n openshift
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/jenkins-persistent-template.json -n openshift
 
 1. Create a project for your user named "pipelineproject"
 
@@ -33,7 +33,7 @@ To walk through the example:
 
 1. Run this command to instantiate the template which will create a pipeline buildconfig and some other resources in your project:
 
-        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/pipeline/samplepipeline.yaml
+        $ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/samplepipeline.yaml
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined by the sample-pipeline template.
 
@@ -79,7 +79,7 @@ To run this example:
    3. Enter a project name
    4. Click *Create*
 3. In the *Add to Project* page, click on *Import YAML/JSON*
-4. In a separate browser tab, navigate to [maven-pipeline.yaml](https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/pipeline/maven-pipeline.yaml) and copy its content.
+4. In a separate browser tab, navigate to [maven-pipeline.yaml](https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/maven-pipeline.yaml) and copy its content.
 5. Paste the YAML text in the text box of the *Import YAML/JSON* tab.
 6. Click on *Create*
 7. Leave *Process the template* checked and click on *Continue*
@@ -109,7 +109,7 @@ To run this example:
    3. Enter a project name
    4. Click *Create*
 3. In the *Add to Project* page, click on *Import YAML/JSON*
-4. In a separate browser tab, navigate to [bluegreen-pipeline.yaml](https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/pipeline/bluegreen-pipeline.yaml) and copy its content.
+4. In a separate browser tab, navigate to [bluegreen-pipeline.yaml](https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/bluegreen-pipeline.yaml) and copy its content.
 5. Paste the YAML text in the text box of the *Import YAML/JSON* tab.
 6. Click on *Create*
 7. Leave *Process the template* checked and click on *Continue*
@@ -140,7 +140,7 @@ To run this example:
 
 2. Run this command to create a pipeline buildconfig in your project:
 
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. This pod was created as a result of the new pipeline buildconfig being defined.
 
@@ -168,7 +168,7 @@ To run this example:
 
 2. Run this command to create a pipeline buildconfig in your project:
 
-        $ oc create -f https://raw.githubusercontent.com/openshift/origin/main/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml
+        $ oc create -f https://raw.githubusercontent.com/openshift/origin/master/examples/jenkins/pipeline/nodejs-sample-pipeline.yaml
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. This pod was created as a result of the new pipeline buildconfig being defined.
 

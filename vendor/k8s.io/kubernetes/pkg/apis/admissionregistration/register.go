@@ -55,10 +55,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ValidatingAdmissionPolicyList{},
 		&ValidatingAdmissionPolicyBinding{},
 		&ValidatingAdmissionPolicyBindingList{},
-		&MutatingAdmissionPolicy{},
-		&MutatingAdmissionPolicyList{},
-		&MutatingAdmissionPolicyBinding{},
-		&MutatingAdmissionPolicyBindingList{},
 	)
 	return nil
 }

@@ -337,7 +337,7 @@ func (r *peerEndpointLeaseReconciler) StopReconciling() {
 // different ports
 func (r *peerEndpointLeaseReconciler) RemoveLease(serverId string) error {
 	key := path.Join(r.serverLeases.baseKey, serverId)
-	return r.serverLeases.storage.Delete(apirequest.NewDefaultContext(), key, &corev1.Endpoints{}, nil, rest.ValidateAllObjectFunc, nil, storage.DeleteOptions{})
+	return r.serverLeases.storage.Delete(apirequest.NewDefaultContext(), key, &corev1.Endpoints{}, nil, rest.ValidateAllObjectFunc, nil)
 }
 
 func (r *peerEndpointLeaseReconciler) Destroy() {

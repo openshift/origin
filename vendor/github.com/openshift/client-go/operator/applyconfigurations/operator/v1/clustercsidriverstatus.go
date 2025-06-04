@@ -18,7 +18,7 @@ func ClusterCSIDriverStatus() *ClusterCSIDriverStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *ClusterCSIDriverStatusApplyConfiguration) WithObservedGeneration(value int64) *ClusterCSIDriverStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
+	b.ObservedGeneration = &value
 	return b
 }
 
@@ -30,7 +30,7 @@ func (b *ClusterCSIDriverStatusApplyConfiguration) WithConditions(values ...*Ope
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
+		b.Conditions = append(b.Conditions, *values[i])
 	}
 	return b
 }
@@ -39,7 +39,7 @@ func (b *ClusterCSIDriverStatusApplyConfiguration) WithConditions(values ...*Ope
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *ClusterCSIDriverStatusApplyConfiguration) WithVersion(value string) *ClusterCSIDriverStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.Version = &value
+	b.Version = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *ClusterCSIDriverStatusApplyConfiguration) WithVersion(value string) *Cl
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ClusterCSIDriverStatusApplyConfiguration) WithReadyReplicas(value int32) *ClusterCSIDriverStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
+	b.ReadyReplicas = &value
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *ClusterCSIDriverStatusApplyConfiguration) WithReadyReplicas(value int32
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *ClusterCSIDriverStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ClusterCSIDriverStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
+	b.LatestAvailableRevision = &value
 	return b
 }
 
@@ -67,7 +67,7 @@ func (b *ClusterCSIDriverStatusApplyConfiguration) WithGenerations(values ...*Ge
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
+		b.Generations = append(b.Generations, *values[i])
 	}
 	return b
 }

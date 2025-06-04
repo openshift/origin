@@ -3,21 +3,21 @@
 package v1
 
 import (
-	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
+	apimachineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
 	internal "github.com/openshift/client-go/machineconfiguration/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // KubeletConfigApplyConfiguration represents a declarative configuration of the KubeletConfig type for use
 // with apply.
 type KubeletConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *KubeletConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *KubeletConfigStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *KubeletConfigSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *KubeletConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // KubeletConfig constructs a declarative configuration of the KubeletConfig type for use with
@@ -41,18 +41,18 @@ func KubeletConfig(name string) *KubeletConfigApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
+func ExtractKubeletConfig(kubeletConfig *apimachineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
 	return extractKubeletConfig(kubeletConfig, fieldManager, "")
 }
 
 // ExtractKubeletConfigStatus is the same as ExtractKubeletConfig except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractKubeletConfigStatus(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
+func ExtractKubeletConfigStatus(kubeletConfig *apimachineconfigurationv1.KubeletConfig, fieldManager string) (*KubeletConfigApplyConfiguration, error) {
 	return extractKubeletConfig(kubeletConfig, fieldManager, "status")
 }
 
-func extractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, fieldManager string, subresource string) (*KubeletConfigApplyConfiguration, error) {
+func extractKubeletConfig(kubeletConfig *apimachineconfigurationv1.KubeletConfig, fieldManager string, subresource string) (*KubeletConfigApplyConfiguration, error) {
 	b := &KubeletConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(kubeletConfig, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1.KubeletConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractKubeletConfig(kubeletConfig *machineconfigurationv1.KubeletConfig, f
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithKind(value string) *KubeletConfigApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *KubeletConfigApplyConfiguration) WithKind(value string) *KubeletConfigA
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithAPIVersion(value string) *KubeletConfigApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *KubeletConfigApplyConfiguration) WithAPIVersion(value string) *KubeletC
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithName(value string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *KubeletConfigApplyConfiguration) WithName(value string) *KubeletConfigA
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithGenerateName(value string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *KubeletConfigApplyConfiguration) WithGenerateName(value string) *Kubele
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithNamespace(value string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *KubeletConfigApplyConfiguration) WithNamespace(value string) *KubeletCo
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithUID(value types.UID) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *KubeletConfigApplyConfiguration) WithUID(value types.UID) *KubeletConfi
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithResourceVersion(value string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *KubeletConfigApplyConfiguration) WithResourceVersion(value string) *Kub
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithGeneration(value int64) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *KubeletConfigApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *KubeletConfigApplyConfiguration {
+func (b *KubeletConfigApplyConfiguration) WithCreationTimestamp(value metav1.Time) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *KubeletConfigApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *KubeletConfigApplyConfiguration {
+func (b *KubeletConfigApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *KubeletConfigApplyConfiguration) WithDeletionTimestamp(value apismetav1
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *KubeletConfigApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *KubeletConfigApplyConfiguration) WithDeletionGracePeriodSeconds(value i
 // overwriting an existing map entries in Labels field with the same key.
 func (b *KubeletConfigApplyConfiguration) WithLabels(entries map[string]string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *KubeletConfigApplyConfiguration) WithLabels(entries map[string]string) 
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *KubeletConfigApplyConfiguration) WithAnnotations(entries map[string]string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *KubeletConfigApplyConfiguration) WithAnnotations(entries map[string]str
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *KubeletConfigApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *KubeletConfigApplyConfiguration {
+func (b *KubeletConfigApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *KubeletConfigApplyConfiguration) WithOwnerReferences(values ...*metav1.
 func (b *KubeletConfigApplyConfiguration) WithFinalizers(values ...string) *KubeletConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *KubeletConfigApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *KubeletConfigApplyConfiguration) WithStatus(value *KubeletConfigStatusA
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *KubeletConfigApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

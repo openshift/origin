@@ -3,21 +3,21 @@
 package v1
 
 import (
-	configv1 "github.com/openshift/api/config/v1"
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	internal "github.com/openshift/client-go/config/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // DNSApplyConfiguration represents a declarative configuration of the DNS type for use
 // with apply.
 type DNSApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *DNSSpecApplyConfiguration `json:"spec,omitempty"`
-	Status                               *configv1.DNSStatus        `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *DNSSpecApplyConfiguration `json:"spec,omitempty"`
+	Status                           *apiconfigv1.DNSStatus     `json:"status,omitempty"`
 }
 
 // DNS constructs a declarative configuration of the DNS type for use with
@@ -41,18 +41,18 @@ func DNS(name string) *DNSApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractDNS(dNS *configv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
+func ExtractDNS(dNS *apiconfigv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
 	return extractDNS(dNS, fieldManager, "")
 }
 
 // ExtractDNSStatus is the same as ExtractDNS except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractDNSStatus(dNS *configv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
+func ExtractDNSStatus(dNS *apiconfigv1.DNS, fieldManager string) (*DNSApplyConfiguration, error) {
 	return extractDNS(dNS, fieldManager, "status")
 }
 
-func extractDNS(dNS *configv1.DNS, fieldManager string, subresource string) (*DNSApplyConfiguration, error) {
+func extractDNS(dNS *apiconfigv1.DNS, fieldManager string, subresource string) (*DNSApplyConfiguration, error) {
 	b := &DNSApplyConfiguration{}
 	err := managedfields.ExtractInto(dNS, internal.Parser().Type("com.github.openshift.api.config.v1.DNS"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractDNS(dNS *configv1.DNS, fieldManager string, subresource string) (*DN
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithKind(value string) *DNSApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *DNSApplyConfiguration) WithKind(value string) *DNSApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithAPIVersion(value string) *DNSApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *DNSApplyConfiguration) WithAPIVersion(value string) *DNSApplyConfigurat
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithName(value string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *DNSApplyConfiguration) WithName(value string) *DNSApplyConfiguration {
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithGenerateName(value string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *DNSApplyConfiguration) WithGenerateName(value string) *DNSApplyConfigur
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithNamespace(value string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *DNSApplyConfiguration) WithNamespace(value string) *DNSApplyConfigurati
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithUID(value types.UID) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *DNSApplyConfiguration) WithUID(value types.UID) *DNSApplyConfiguration 
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithResourceVersion(value string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *DNSApplyConfiguration) WithResourceVersion(value string) *DNSApplyConfi
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithGeneration(value int64) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *DNSApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *DNSApplyConfiguration {
+func (b *DNSApplyConfiguration) WithCreationTimestamp(value metav1.Time) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *DNSApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *DNSApplyConfiguration {
+func (b *DNSApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *DNSApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *DN
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *DNSApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *DNSApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *DNS
 // overwriting an existing map entries in Labels field with the same key.
 func (b *DNSApplyConfiguration) WithLabels(entries map[string]string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *DNSApplyConfiguration) WithLabels(entries map[string]string) *DNSApplyC
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *DNSApplyConfiguration) WithAnnotations(entries map[string]string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *DNSApplyConfiguration) WithAnnotations(entries map[string]string) *DNSA
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *DNSApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *DNSApplyConfiguration {
+func (b *DNSApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *DNSApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerRefer
 func (b *DNSApplyConfiguration) WithFinalizers(values ...string) *DNSApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *DNSApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -234,7 +234,7 @@ func (b *DNSApplyConfiguration) WithSpec(value *DNSSpecApplyConfiguration) *DNSA
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *DNSApplyConfiguration) WithStatus(value configv1.DNSStatus) *DNSApplyConfiguration {
+func (b *DNSApplyConfiguration) WithStatus(value apiconfigv1.DNSStatus) *DNSApplyConfiguration {
 	b.Status = &value
 	return b
 }
@@ -242,5 +242,5 @@ func (b *DNSApplyConfiguration) WithStatus(value configv1.DNSStatus) *DNSApplyCo
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *DNSApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

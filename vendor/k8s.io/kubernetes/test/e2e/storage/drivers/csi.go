@@ -158,7 +158,6 @@ func InitHostPathCSIDriver() storageframework.TestDriver {
 		storageframework.CapReadWriteOncePod:               true,
 		storageframework.CapMultiplePVsSameID:              true,
 		storageframework.CapFSResizeFromSourceNotSupported: true,
-		storageframework.CapVolumeGroupSnapshot:            true,
 
 		// This is needed for the
 		// testsuites/volumelimits.go `should support volume limits`
@@ -223,12 +222,6 @@ func (h *hostpathCSIDriver) GetVolumeAttributesClass(_ context.Context, config *
 			hostpathCSIDriverMutableParameterName: hostpathCSIDriverMutableParameterValue,
 		},
 	}, config.Framework.Namespace.Name, "e2e-vac-hostpath")
-}
-func (h *hostpathCSIDriver) GetVolumeGroupSnapshotClass(ctx context.Context, config *storageframework.PerTestConfig, parameters map[string]string) *unstructured.Unstructured {
-	snapshotter := config.GetUniqueDriverName()
-	ns := config.Framework.Namespace.Name
-
-	return utils.GenerateVolumeGroupSnapshotClassSpec(snapshotter, parameters, ns)
 }
 
 func (h *hostpathCSIDriver) PrepareTest(ctx context.Context, f *framework.Framework) *storageframework.PerTestConfig {
@@ -351,13 +344,11 @@ type mockCSIDriver struct {
 	requiresRepublish             *bool
 	fsGroupPolicy                 *storagev1.FSGroupPolicy
 	enableVolumeMountGroup        bool
-	enableNodeVolumeCondition     bool
 	embedded                      bool
 	calls                         MockCSICalls
 	embeddedCSIDriver             *mockdriver.CSIDriver
 	enableSELinuxMount            *bool
 	enableRecoverExpansionFailure bool
-	disableControllerExpansion    bool
 	enableHonorPVReclaimPolicy    bool
 
 	// Additional values set during PrepareTest
@@ -400,10 +391,8 @@ type CSIMockDriverOpts struct {
 	EnableTopology                bool
 	EnableResizing                bool
 	EnableNodeExpansion           bool
-	DisableControllerExpansion    bool
 	EnableSnapshot                bool
 	EnableVolumeMountGroup        bool
-	EnableNodeVolumeCondition     bool
 	TokenRequests                 []storagev1.TokenRequest
 	RequiresRepublish             *bool
 	FSGroupPolicy                 *storagev1.FSGroupPolicy
@@ -558,8 +547,6 @@ func InitMockCSIDriver(driverOpts CSIMockDriverOpts) MockCSITestDriver {
 		attachable:                    !driverOpts.DisableAttach,
 		attachLimit:                   driverOpts.AttachLimit,
 		enableNodeExpansion:           driverOpts.EnableNodeExpansion,
-		enableNodeVolumeCondition:     driverOpts.EnableNodeVolumeCondition,
-		disableControllerExpansion:    driverOpts.DisableControllerExpansion,
 		tokenRequests:                 driverOpts.TokenRequests,
 		requiresRepublish:             driverOpts.RequiresRepublish,
 		fsGroupPolicy:                 driverOpts.FSGroupPolicy,
@@ -634,14 +621,12 @@ func (m *mockCSIDriver) PrepareTest(ctx context.Context, f *framework.Framework)
 		// for cleanup callbacks.
 		ctx, cancel := context.WithCancel(context.Background())
 		serviceConfig := mockservice.Config{
-			DisableAttach:               !m.attachable,
-			DriverName:                  "csi-mock-" + f.UniqueName,
-			AttachLimit:                 int64(m.attachLimit),
-			NodeExpansionRequired:       m.enableNodeExpansion,
-			DisableControllerExpansion:  m.disableControllerExpansion,
-			NodeVolumeConditionRequired: m.enableNodeVolumeCondition,
-			VolumeMountGroupRequired:    m.enableVolumeMountGroup,
-			EnableTopology:              m.enableTopology,
+			DisableAttach:            !m.attachable,
+			DriverName:               "csi-mock-" + f.UniqueName,
+			AttachLimit:              int64(m.attachLimit),
+			NodeExpansionRequired:    m.enableNodeExpansion,
+			VolumeMountGroupRequired: m.enableVolumeMountGroup,
+			EnableTopology:           m.enableTopology,
 			IO: proxy.PodDirIO{
 				F:             f,
 				Namespace:     m.driverNamespace.Name,

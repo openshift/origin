@@ -23,7 +23,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	storage "k8s.io/api/storage/v1"
 	"k8s.io/csi-translation-lib/plugins"
-	"k8s.io/klog/v2"
 )
 
 var (
@@ -51,11 +50,11 @@ func New() CSITranslator {
 
 // TranslateInTreeStorageClassToCSI takes in-tree Storage Class
 // and translates it to a set of parameters consumable by CSI plugin
-func (CSITranslator) TranslateInTreeStorageClassToCSI(logger klog.Logger, inTreePluginName string, sc *storage.StorageClass) (*storage.StorageClass, error) {
+func (CSITranslator) TranslateInTreeStorageClassToCSI(inTreePluginName string, sc *storage.StorageClass) (*storage.StorageClass, error) {
 	newSC := sc.DeepCopy()
 	for _, curPlugin := range inTreePlugins {
 		if inTreePluginName == curPlugin.GetInTreePluginName() {
-			return curPlugin.TranslateInTreeStorageClassToCSI(logger, newSC)
+			return curPlugin.TranslateInTreeStorageClassToCSI(newSC)
 		}
 	}
 	return nil, fmt.Errorf("could not find in-tree storage class parameter translation logic for %#v", inTreePluginName)
@@ -64,13 +63,13 @@ func (CSITranslator) TranslateInTreeStorageClassToCSI(logger klog.Logger, inTree
 // TranslateInTreeInlineVolumeToCSI takes a inline volume and will translate
 // the in-tree volume source to a CSIPersistentVolumeSource (wrapped in a PV)
 // if the translation logic has been implemented.
-func (CSITranslator) TranslateInTreeInlineVolumeToCSI(logger klog.Logger, volume *v1.Volume, podNamespace string) (*v1.PersistentVolume, error) {
+func (CSITranslator) TranslateInTreeInlineVolumeToCSI(volume *v1.Volume, podNamespace string) (*v1.PersistentVolume, error) {
 	if volume == nil {
 		return nil, fmt.Errorf("persistent volume was nil")
 	}
 	for _, curPlugin := range inTreePlugins {
 		if curPlugin.CanSupportInline(volume) {
-			pv, err := curPlugin.TranslateInTreeInlineVolumeToCSI(logger, volume, podNamespace)
+			pv, err := curPlugin.TranslateInTreeInlineVolumeToCSI(volume, podNamespace)
 			if err != nil {
 				return nil, err
 			}
@@ -93,14 +92,14 @@ func (CSITranslator) TranslateInTreeInlineVolumeToCSI(logger klog.Logger, volume
 // the in-tree source to a CSI Source if the translation logic
 // has been implemented. The input persistent volume will not
 // be modified
-func (CSITranslator) TranslateInTreePVToCSI(logger klog.Logger, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+func (CSITranslator) TranslateInTreePVToCSI(pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
 	if pv == nil {
 		return nil, errors.New("persistent volume was nil")
 	}
 	copiedPV := pv.DeepCopy()
 	for _, curPlugin := range inTreePlugins {
 		if curPlugin.CanSupport(copiedPV) {
-			return curPlugin.TranslateInTreePVToCSI(logger, copiedPV)
+			return curPlugin.TranslateInTreePVToCSI(copiedPV)
 		}
 	}
 	return nil, fmt.Errorf("could not find in-tree plugin translation logic for %#v", copiedPV.Name)

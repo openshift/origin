@@ -22,7 +22,7 @@ limitations under the License.
 package v2
 
 import (
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	v2 "k8s.io/api/autoscaling/v2"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -30,20 +30,18 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
-	scheme.AddTypeDefaultingFunc(&autoscalingv2.HorizontalPodAutoscaler{}, func(obj interface{}) {
-		SetObjectDefaults_HorizontalPodAutoscaler(obj.(*autoscalingv2.HorizontalPodAutoscaler))
-	})
-	scheme.AddTypeDefaultingFunc(&autoscalingv2.HorizontalPodAutoscalerList{}, func(obj interface{}) {
-		SetObjectDefaults_HorizontalPodAutoscalerList(obj.(*autoscalingv2.HorizontalPodAutoscalerList))
+	scheme.AddTypeDefaultingFunc(&v2.HorizontalPodAutoscaler{}, func(obj interface{}) { SetObjectDefaults_HorizontalPodAutoscaler(obj.(*v2.HorizontalPodAutoscaler)) })
+	scheme.AddTypeDefaultingFunc(&v2.HorizontalPodAutoscalerList{}, func(obj interface{}) {
+		SetObjectDefaults_HorizontalPodAutoscalerList(obj.(*v2.HorizontalPodAutoscalerList))
 	})
 	return nil
 }
 
-func SetObjectDefaults_HorizontalPodAutoscaler(in *autoscalingv2.HorizontalPodAutoscaler) {
+func SetObjectDefaults_HorizontalPodAutoscaler(in *v2.HorizontalPodAutoscaler) {
 	SetDefaults_HorizontalPodAutoscaler(in)
 }
 
-func SetObjectDefaults_HorizontalPodAutoscalerList(in *autoscalingv2.HorizontalPodAutoscalerList) {
+func SetObjectDefaults_HorizontalPodAutoscalerList(in *v2.HorizontalPodAutoscalerList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_HorizontalPodAutoscaler(a)

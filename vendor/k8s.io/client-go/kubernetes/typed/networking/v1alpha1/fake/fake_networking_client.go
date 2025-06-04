@@ -29,11 +29,11 @@ type FakeNetworkingV1alpha1 struct {
 }
 
 func (c *FakeNetworkingV1alpha1) IPAddresses() v1alpha1.IPAddressInterface {
-	return newFakeIPAddresses(c)
+	return &FakeIPAddresses{c}
 }
 
 func (c *FakeNetworkingV1alpha1) ServiceCIDRs() v1alpha1.ServiceCIDRInterface {
-	return newFakeServiceCIDRs(c)
+	return &FakeServiceCIDRs{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

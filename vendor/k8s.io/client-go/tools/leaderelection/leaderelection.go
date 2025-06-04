@@ -173,10 +173,7 @@ type LeaderElectionConfig struct {
 type LeaderCallbacks struct {
 	// OnStartedLeading is called when a LeaderElector client starts leading
 	OnStartedLeading func(context.Context)
-	// OnStoppedLeading is called when a LeaderElector client stops leading.
-	// This callback is always called when the LeaderElector exits, even if it did not start leading.
-	// Users should not assume that OnStoppedLeading is only called after OnStartedLeading.
-	// see: https://github.com/kubernetes/kubernetes/pull/127675#discussion_r1780059887
+	// OnStoppedLeading is called when a LeaderElector client stops leading
 	OnStoppedLeading func()
 	// OnNewLeader is called when the client observes a leader that is
 	// not the previously observed leader. This includes the first observed
@@ -280,13 +277,16 @@ func (le *LeaderElector) renew(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	wait.Until(func() {
-		err := wait.PollUntilContextTimeout(ctx, le.config.RetryPeriod, le.config.RenewDeadline, true, func(ctx context.Context) (done bool, err error) {
+		timeoutCtx, timeoutCancel := context.WithTimeout(ctx, le.config.RenewDeadline)
+		defer timeoutCancel()
+		err := wait.PollImmediateUntil(le.config.RetryPeriod, func() (bool, error) {
 			if !le.config.Coordinated {
-				return le.tryAcquireOrRenew(ctx), nil
+				return le.tryAcquireOrRenew(timeoutCtx), nil
 			} else {
-				return le.tryCoordinatedRenew(ctx), nil
+				return le.tryCoordinatedRenew(timeoutCtx), nil
 			}
-		})
+		}, timeoutCtx.Done())
+
 		le.maybeReportTransition()
 		desc := le.config.Lock.Describe()
 		if err == nil {
@@ -426,7 +426,7 @@ func (le *LeaderElector) tryAcquireOrRenew(ctx context.Context) bool {
 			le.setObservedRecord(&leaderElectionRecord)
 			return true
 		}
-		klog.Errorf("Failed to update lock optimistically: %v, falling back to slow path", err)
+		klog.Errorf("Failed to update lock optimitically: %v, falling back to slow path", err)
 	}
 
 	// 2. obtain or create the ElectionRecord

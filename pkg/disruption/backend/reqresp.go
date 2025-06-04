@@ -24,8 +24,8 @@ type RequestResponse struct {
 }
 
 func (rr RequestResponse) String() string {
-	s := fmt.Sprintf("audit-id=%s conn-reused=%s status-code=%s protocol=%s roundtrip=%s retry-after=%s source=%s",
-		rr.GetAuditID(), rr.ConnectionReused(), rr.StatusCode(), rr.Protocol(), rr.RoundTripDuration.Round(time.Millisecond), rr.RetryAfter(), rr.Source)
+	s := fmt.Sprintf("audit-id=%s conn-reused=%s status-code=%s protocol=%s roundtrip=%s retry-after=%s",
+		rr.GetAuditID(), rr.ConnectionReused(), rr.StatusCode(), rr.Protocol(), rr.RoundTripDuration.Round(time.Millisecond), rr.RetryAfter())
 	if rr.ShutdownResponse != nil {
 		s = fmt.Sprintf("%s %s", s, rr.ShutdownResponse.String())
 	}
@@ -40,7 +40,6 @@ func (rr RequestResponse) Fields() map[string]interface{} {
 	fields["protocol"] = rr.Protocol()
 	fields["roundtrip"] = rr.RoundTripDuration.Round(time.Millisecond)
 	fields["retry-after"] = rr.RetryAfter()
-	fields["source"] = rr.Source
 	if rr.ShutdownResponse != nil {
 		for k, v := range rr.ShutdownResponse.Fields() {
 			fields[k] = v
@@ -74,9 +73,6 @@ func (rr RequestResponse) StatusCode() string {
 func (rr RequestResponse) Protocol() string {
 	if rr.Response != nil {
 		return rr.Response.Proto
-	}
-	if rr.Request != nil {
-		return rr.Request.Proto
 	}
 	return "<none>"
 }
@@ -118,5 +114,5 @@ func IsRetryAfter(resp *http.Response) (string, bool) {
 }
 
 func (rr RequestResponse) ShutdownInProgress() bool {
-	return rr.ShutdownResponse != nil && rr.ShutdownResponse.ShutdownInProgress
+	return rr.ShutdownResponse != nil && rr.ShutdownResponse.ShutdownInProgress == true
 }

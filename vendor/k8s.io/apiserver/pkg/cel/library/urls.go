@@ -113,15 +113,7 @@ var urlsLib = &urls{}
 type urls struct{}
 
 func (*urls) LibraryName() string {
-	return "kubernetes.urls"
-}
-
-func (*urls) Types() []*cel.Type {
-	return []*cel.Type{apiservercel.URLType}
-}
-
-func (*urls) declarations() map[string][]cel.FunctionOpt {
-	return urlLibraryDecls
+	return "k8s.urls"
 }
 
 var urlLibraryDecls = map[string][]cel.FunctionOpt{

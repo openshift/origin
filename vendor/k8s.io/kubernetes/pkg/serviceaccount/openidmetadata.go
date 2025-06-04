@@ -17,7 +17,6 @@ limitations under the License.
 package serviceaccount
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -76,17 +75,7 @@ func (p *openidConfigProvider) Enqueue() {
 	}
 }
 func (p *openidConfigProvider) Update() error {
-	pubKeys := []PublicKey{}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	unfilteredPubKeys := p.pubKeyGetter.GetPublicKeys(ctx, "")
-	for _, key := range unfilteredPubKeys {
-		if !key.ExcludeFromOIDCDiscovery {
-			pubKeys = append(pubKeys, key)
-		}
-	}
-
+	pubKeys := p.pubKeyGetter.GetPublicKeys("")
 	if len(pubKeys) == 0 {
 		return fmt.Errorf("no keys provided for validating keyset")
 	}

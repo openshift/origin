@@ -40,11 +40,6 @@ const (
 	Binding = "binding"
 )
 
-const (
-	GoroutineResultSuccess = "success"
-	GoroutineResultError   = "error"
-)
-
 // ExtentionPoints is a list of possible values for the extension_point label.
 var ExtentionPoints = []string{
 	PreFilter,
@@ -86,67 +81,8 @@ const (
 	QueueingHintResultError     = "Error"
 )
 
-const (
-	PodPoppedInFlightEvent = "PodPopped"
-)
-
 // All the histogram based metrics have 1ms as size for the smallest bucket.
 var (
-	scheduleAttempts           *metrics.CounterVec
-	EventHandlingLatency       *metrics.HistogramVec
-	schedulingLatency          *metrics.HistogramVec
-	SchedulingAlgorithmLatency *metrics.Histogram
-	PreemptionVictims          *metrics.Histogram
-	PreemptionAttempts         *metrics.Counter
-	pendingPods                *metrics.GaugeVec
-	InFlightEvents             *metrics.GaugeVec
-	Goroutines                 *metrics.GaugeVec
-
-	// PodSchedulingDuration is deprecated as of Kubernetes v1.28, and will be removed
-	// in v1.31. Please use PodSchedulingSLIDuration instead.
-	PodSchedulingDuration           *metrics.HistogramVec
-	PodSchedulingSLIDuration        *metrics.HistogramVec
-	PodSchedulingAttempts           *metrics.Histogram
-	FrameworkExtensionPointDuration *metrics.HistogramVec
-	PluginExecutionDuration         *metrics.HistogramVec
-
-	PermitWaitDuration    *metrics.HistogramVec
-	CacheSize             *metrics.GaugeVec
-	unschedulableReasons  *metrics.GaugeVec
-	PluginEvaluationTotal *metrics.CounterVec
-
-	// The below two are only available when the QHint feature gate is enabled.
-	queueingHintExecutionDuration *metrics.HistogramVec
-	SchedulerQueueIncomingPods    *metrics.CounterVec
-
-	// The below two are only available when the async-preemption feature gate is enabled.
-	PreemptionGoroutinesDuration       *metrics.HistogramVec
-	PreemptionGoroutinesExecutionTotal *metrics.CounterVec
-
-	// metricsList is a list of all metrics that should be registered always, regardless of any feature gate's value.
-	metricsList []metrics.Registerable
-)
-
-var registerMetrics sync.Once
-
-// Register all metrics.
-func Register() {
-	// Register the metrics.
-	registerMetrics.Do(func() {
-		InitMetrics()
-		RegisterMetrics(metricsList...)
-		volumebindingmetrics.RegisterVolumeSchedulingMetrics()
-
-		if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints) {
-			RegisterMetrics(queueingHintExecutionDuration, InFlightEvents)
-		}
-		if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerAsyncPreemption) {
-			RegisterMetrics(PreemptionGoroutinesDuration, PreemptionGoroutinesExecutionTotal)
-		}
-	})
-}
-
-func InitMetrics() {
 	scheduleAttempts = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Subsystem:      SchedulerSubsystem,
@@ -205,13 +141,6 @@ func InitMetrics() {
 			Help:           "Number of pending pods, by the queue type. 'active' means number of pods in activeQ; 'backoff' means number of pods in backoffQ; 'unschedulable' means number of pods in unschedulablePods that the scheduler attempted to schedule and failed; 'gated' is the number of unschedulable pods that the scheduler never attempted to schedule because they are gated.",
 			StabilityLevel: metrics.STABLE,
 		}, []string{"queue"})
-	InFlightEvents = metrics.NewGaugeVec(
-		&metrics.GaugeOpts{
-			Subsystem:      SchedulerSubsystem,
-			Name:           "inflight_events",
-			Help:           "Number of events currently tracked in the scheduling queue.",
-			StabilityLevel: metrics.ALPHA,
-		}, []string{"event"})
 	Goroutines = metrics.NewGaugeVec(
 		&metrics.GaugeOpts{
 			Subsystem:      SchedulerSubsystem,
@@ -332,25 +261,6 @@ func InitMetrics() {
 			StabilityLevel: metrics.ALPHA,
 		}, []string{"plugin", "extension_point", "profile"})
 
-	PreemptionGoroutinesDuration = metrics.NewHistogramVec(
-		&metrics.HistogramOpts{
-			Subsystem:      SchedulerSubsystem,
-			Name:           "preemption_goroutines_duration_seconds",
-			Help:           "Duration in seconds for running goroutines for the preemption.",
-			Buckets:        metrics.ExponentialBuckets(0.01, 2, 20),
-			StabilityLevel: metrics.ALPHA,
-		},
-		[]string{"result"})
-
-	PreemptionGoroutinesExecutionTotal = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Subsystem:      SchedulerSubsystem,
-			Name:           "preemption_goroutines_execution_total",
-			Help:           "Number of preemption goroutines executed.",
-			StabilityLevel: metrics.ALPHA,
-		},
-		[]string{"result"})
-
 	metricsList = []metrics.Registerable{
 		scheduleAttempts,
 		schedulingLatency,
@@ -371,6 +281,20 @@ func InitMetrics() {
 		unschedulableReasons,
 		PluginEvaluationTotal,
 	}
+)
+
+var registerMetrics sync.Once
+
+// Register all metrics.
+func Register() {
+	// Register the metrics.
+	registerMetrics.Do(func() {
+		RegisterMetrics(metricsList...)
+		if utilfeature.DefaultFeatureGate.Enabled(features.SchedulerQueueingHints) {
+			RegisterMetrics(queueingHintExecutionDuration)
+		}
+		volumebindingmetrics.RegisterVolumeSchedulingMetrics()
+	})
 }
 
 // RegisterMetrics registers a list of metrics.

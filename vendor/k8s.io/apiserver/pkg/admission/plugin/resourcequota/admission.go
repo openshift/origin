@@ -114,9 +114,7 @@ func (a *QuotaAdmission) SetExternalKubeClientSet(client kubernetes.Interface) {
 
 // SetExternalKubeInformerFactory registers an informer factory into QuotaAdmission
 func (a *QuotaAdmission) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
-	quotas := f.Core().V1().ResourceQuotas()
-	a.quotaAccessor.lister = quotas.Lister()
-	a.quotaAccessor.hasSynced = quotas.Informer().HasSynced
+	a.quotaAccessor.lister = f.Core().V1().ResourceQuotas().Lister()
 }
 
 // SetQuotaConfiguration assigns and initializes configuration and evaluator for QuotaAdmission
@@ -146,9 +144,6 @@ func (a *QuotaAdmission) ValidateInitialization() error {
 	if a.quotaAccessor.lister == nil {
 		return fmt.Errorf("missing quotaAccessor.lister")
 	}
-	if a.quotaAccessor.hasSynced == nil {
-		return fmt.Errorf("missing quotaAccessor.hasSynced")
-	}
 	if a.quotaConfiguration == nil {
 		return fmt.Errorf("missing quotaConfiguration")
 	}
@@ -160,6 +155,10 @@ func (a *QuotaAdmission) ValidateInitialization() error {
 
 // Validate makes admission decisions while enforcing quota
 func (a *QuotaAdmission) Validate(ctx context.Context, attr admission.Attributes, o admission.ObjectInterfaces) (err error) {
+	// ignore all operations that correspond to sub-resource actions
+	if attr.GetSubresource() != "" {
+		return nil
+	}
 	// ignore all operations that are not namespaced or creation of namespaces
 	if attr.GetNamespace() == "" || isNamespaceCreation(attr) {
 		return nil

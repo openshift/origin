@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"golang.org/x/text/width"
 )
 
 // NewError creates an error associated with an expression id with the given message at the given location.
@@ -33,13 +35,16 @@ type Error struct {
 }
 
 const (
-	dot     = "."
-	ind     = "^"
-	wideDot = "\uff0e"
-	wideInd = "\uff3e"
+	dot = "."
+	ind = "^"
 
 	// maxSnippetLength is the largest number of characters which can be rendered in an error message snippet.
 	maxSnippetLength = 16384
+)
+
+var (
+	wideDot = width.Widen.String(dot)
+	wideInd = width.Widen.String(ind)
 )
 
 // ToDisplayString decorates the error message with the source location.

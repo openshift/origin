@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"k8s.io/klog/v2"
@@ -88,7 +89,10 @@ func (h *Handler) GetStats() (*info.ContainerStats, error) {
 		}
 		klog.V(4).Infof("Ignoring errors when gathering stats for root cgroup since some controllers don't have stats on the root cgroup: %v", err)
 	}
-	stats := newContainerStats(cgroupStats, h.includedMetrics)
+	libcontainerStats := &libcontainer.Stats{
+		CgroupStats: cgroupStats,
+	}
+	stats := newContainerStats(libcontainerStats, h.includedMetrics)
 
 	if h.includedMetrics.Has(container.ProcessSchedulerMetrics) {
 		stats.Cpu.Schedstat, err = h.schedulerStatsFromProcs()
@@ -830,18 +834,8 @@ func setMemoryStats(s *cgroups.Stats, ret *info.ContainerStats) {
 		inactiveFileKeyName = "inactive_file"
 	}
 
-	activeFileKeyName := "total_active_file"
-	if cgroups.IsCgroup2UnifiedMode() {
-		activeFileKeyName = "active_file"
-	}
-
-	if v, ok := s.MemoryStats.Stats[activeFileKeyName]; ok {
-		ret.Memory.TotalActiveFile = v
-	}
-
 	workingSet := ret.Memory.Usage
 	if v, ok := s.MemoryStats.Stats[inactiveFileKeyName]; ok {
-		ret.Memory.TotalInactiveFile = v
 		if workingSet < v {
 			workingSet = 0
 		} else {
@@ -884,6 +878,28 @@ func setHugepageStats(s *cgroups.Stats, ret *info.ContainerStats) {
 	}
 }
 
+func setNetworkStats(libcontainerStats *libcontainer.Stats, ret *info.ContainerStats) {
+	ret.Network.Interfaces = make([]info.InterfaceStats, len(libcontainerStats.Interfaces))
+	for i := range libcontainerStats.Interfaces {
+		ret.Network.Interfaces[i] = info.InterfaceStats{
+			Name:      libcontainerStats.Interfaces[i].Name,
+			RxBytes:   libcontainerStats.Interfaces[i].RxBytes,
+			RxPackets: libcontainerStats.Interfaces[i].RxPackets,
+			RxErrors:  libcontainerStats.Interfaces[i].RxErrors,
+			RxDropped: libcontainerStats.Interfaces[i].RxDropped,
+			TxBytes:   libcontainerStats.Interfaces[i].TxBytes,
+			TxPackets: libcontainerStats.Interfaces[i].TxPackets,
+			TxErrors:  libcontainerStats.Interfaces[i].TxErrors,
+			TxDropped: libcontainerStats.Interfaces[i].TxDropped,
+		}
+	}
+
+	// Add to base struct for backwards compatibility.
+	if len(ret.Network.Interfaces) > 0 {
+		ret.Network.InterfaceStats = ret.Network.Interfaces[0]
+	}
+}
+
 // read from pids path not cpu
 func setThreadsStats(s *cgroups.Stats, ret *info.ContainerStats) {
 	if s != nil {
@@ -892,12 +908,12 @@ func setThreadsStats(s *cgroups.Stats, ret *info.ContainerStats) {
 	}
 }
 
-func newContainerStats(cgroupStats *cgroups.Stats, includedMetrics container.MetricSet) *info.ContainerStats {
+func newContainerStats(libcontainerStats *libcontainer.Stats, includedMetrics container.MetricSet) *info.ContainerStats {
 	ret := &info.ContainerStats{
 		Timestamp: time.Now(),
 	}
 
-	if s := cgroupStats; s != nil {
+	if s := libcontainerStats.CgroupStats; s != nil {
 		setCPUStats(s, ret, includedMetrics.Has(container.PerCpuUsageMetrics))
 		if includedMetrics.Has(container.DiskIOMetrics) {
 			setDiskIoStats(s, ret)
@@ -912,6 +928,9 @@ func newContainerStats(cgroupStats *cgroups.Stats, includedMetrics container.Met
 		if includedMetrics.Has(container.CPUSetMetrics) {
 			setCPUSetStats(s, ret)
 		}
+	}
+	if len(libcontainerStats.Interfaces) > 0 {
+		setNetworkStats(libcontainerStats, ret)
 	}
 	return ret
 }

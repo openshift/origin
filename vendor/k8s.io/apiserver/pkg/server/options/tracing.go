@@ -23,11 +23,9 @@ import (
 	"net"
 
 	"github.com/spf13/pflag"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/semconv/v1.12.0"
 	"google.golang.org/grpc"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,14 +45,8 @@ const apiserverService = "apiserver"
 
 var (
 	cfgScheme = runtime.NewScheme()
-	codecs    = serializer.NewCodecFactory(cfgScheme, serializer.EnableStrict)
+	codecs    = serializer.NewCodecFactory(cfgScheme)
 )
-
-func init() {
-	// Prevent memory leak from OTel metrics, which we don't use:
-	// https://github.com/open-telemetry/opentelemetry-go-contrib/issues/5190
-	otel.SetMeterProvider(noop.NewMeterProvider())
-}
 
 func init() {
 	install.Install(cfgScheme)

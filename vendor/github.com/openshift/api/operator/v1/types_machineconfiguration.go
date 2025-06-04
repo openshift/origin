@@ -25,7 +25,7 @@ type MachineConfiguration struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// spec is the specification of the desired behavior of the Machine Config Operator
-	// +required
+	// +kubebuilder:validation:Required
 	Spec MachineConfigurationSpec `json:"spec"`
 
 	// status is the most recently observed status of the Machine Config Operator
@@ -41,10 +41,8 @@ type MachineConfigurationSpec struct {
 	// managedBootImages allows configuration for the management of boot images for machine
 	// resources within the cluster. This configuration allows users to select resources that should
 	// be updated to the latest boot images during cluster upgrades, ensuring that new machines
-	// always boot with the current cluster version's boot image. When omitted, this means no opinion
-	// and the platform is left to choose a reasonable default, which is subject to change over time.
-	// The default for each machine manager mode is All for GCP and AWS platforms, and None for all
-	// other platforms.
+	// always boot with the current cluster version's boot image. When omitted, no boot images
+	// will be updated.
 	// +openshift:enable:FeatureGate=ManagedBootImages
 	// +optional
 	ManagedBootImages ManagedBootImages `json:"managedBootImages"`
@@ -64,10 +62,11 @@ type MachineConfigurationStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// conditions is a list of conditions and their status
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 
 	// Previously there was a StaticPodOperatorStatus here for legacy reasons. Many of the fields within
 	// it are no longer relevant for the MachineConfiguration CRD's functions. The following remainder
@@ -97,12 +96,6 @@ type MachineConfigurationStatus struct {
 	// +openshift:enable:FeatureGate=NodeDisruptionPolicy
 	// +optional
 	NodeDisruptionPolicyStatus NodeDisruptionPolicyStatus `json:"nodeDisruptionPolicyStatus"`
-
-	// managedBootImagesStatus reflects what the latest cluster-validated boot image configuration is
-	// and will be used by Machine Config Controller while performing boot image updates.
-	// +openshift:enable:FeatureGate=ManagedBootImages
-	// +optional
-	ManagedBootImagesStatus ManagedBootImages `json:"managedBootImagesStatus"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -118,7 +111,7 @@ type MachineConfigurationList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata"`
 
-	// items contains the items
+	// Items contains the items
 	Items []MachineConfiguration `json:"items"`
 }
 
@@ -129,7 +122,6 @@ type ManagedBootImages struct {
 	// +listType=map
 	// +listMapKey=resource
 	// +listMapKey=apiGroup
-	// +kubebuilder:validation:MaxItems=5
 	MachineManagers []MachineManager `json:"machineManagers"`
 }
 
@@ -139,17 +131,17 @@ type MachineManager struct {
 	// resource is the machine management resource's type.
 	// The only current valid value is machinesets.
 	// machinesets means that the machine manager will only register resources of the kind MachineSet.
-	// +required
+	// +kubebuilder:validation:Required
 	Resource MachineManagerMachineSetsResourceType `json:"resource"`
 
 	// apiGroup is name of the APIGroup that the machine management resource belongs to.
 	// The only current valid value is machine.openshift.io.
 	// machine.openshift.io means that the machine manager will only register resources that belong to OpenShift machine API group.
-	// +required
+	// +kubebuilder:validation:Required
 	APIGroup MachineManagerMachineSetsAPIGroupType `json:"apiGroup"`
 
 	// selection allows granular control of the machine management resources that will be registered for boot image updates.
-	// +required
+	// +kubebuilder:validation:Required
 	Selection MachineManagerSelector `json:"selection"`
 }
 
@@ -160,9 +152,8 @@ type MachineManagerSelector struct {
 	// Valid values are All and Partial.
 	// All means that every resource matched by the machine manager will be updated.
 	// Partial requires specified selector(s) and allows customisation of which resources matched by the machine manager will be updated.
-	// None means that every resource matched by the machine manager will not be updated.
 	// +unionDiscriminator
-	// +required
+	// +kubebuilder:validation:Required
 	Mode MachineManagerSelectorMode `json:"mode"`
 
 	// partial provides label selector(s) that can be used to match machine management resources.
@@ -174,12 +165,12 @@ type MachineManagerSelector struct {
 // PartialSelector provides label selector(s) that can be used to match machine management resources.
 type PartialSelector struct {
 	// machineResourceSelector is a label selector that can be used to select machine resources like MachineSets.
-	// +required
+	// +kubebuilder:validation:Required
 	MachineResourceSelector *metav1.LabelSelector `json:"machineResourceSelector,omitempty"`
 }
 
 // MachineManagerSelectorMode is a string enum used in the MachineManagerSelector union discriminator.
-// +kubebuilder:validation:Enum:="All";"Partial";"None"
+// +kubebuilder:validation:Enum:="All";"Partial"
 type MachineManagerSelectorMode string
 
 const (
@@ -189,9 +180,6 @@ const (
 	// Partial represents a configuration mode that will register resources specified by the parent MachineManager only
 	// if they match with the label selector.
 	Partial MachineManagerSelectorMode = "Partial"
-
-	// None represents a configuration mode that excludes all resources specified by the parent MachineManager from boot image updates.
-	None MachineManagerSelectorMode = "None"
 )
 
 // MachineManagerManagedResourceType is a string enum used in the MachineManager type to describe the resource
@@ -267,7 +255,7 @@ type NodeDisruptionPolicyClusterStatus struct {
 type NodeDisruptionPolicySpecFile struct {
 	// path is the location of a file being managed through a MachineConfig.
 	// The Actions in the policy will apply to changes to the file at this path.
-	// +required
+	// +kubebuilder:validation:Required
 	Path string `json:"path"`
 	// actions represents the series of commands to be executed on changes to the file at
 	// the corresponding file path. Actions will be applied in the order that
@@ -276,7 +264,7 @@ type NodeDisruptionPolicySpecFile struct {
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.type=='Reboot') ? size(self) == 1 : true", message="Reboot action can only be specified standalone, as it will override any other actions"
@@ -288,7 +276,7 @@ type NodeDisruptionPolicySpecFile struct {
 type NodeDisruptionPolicyStatusFile struct {
 	// path is the location of a file being managed through a MachineConfig.
 	// The Actions in the policy will apply to changes to the file at this path.
-	// +required
+	// +kubebuilder:validation:Required
 	Path string `json:"path"`
 	// actions represents the series of commands to be executed on changes to the file at
 	// the corresponding file path. Actions will be applied in the order that
@@ -297,7 +285,7 @@ type NodeDisruptionPolicyStatusFile struct {
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.type=='Reboot') ? size(self) == 1 : true", message="Reboot action can only be specified standalone, as it will override any other actions"
@@ -312,7 +300,7 @@ type NodeDisruptionPolicySpecUnit struct {
 	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
 	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
 	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
-	// +required
+	// +kubebuilder:validation:Required
 	Name NodeDisruptionPolicyServiceName `json:"name"`
 
 	// actions represents the series of commands to be executed on changes to the file at
@@ -322,7 +310,7 @@ type NodeDisruptionPolicySpecUnit struct {
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.type=='Reboot') ? size(self) == 1 : true", message="Reboot action can only be specified standalone, as it will override any other actions"
@@ -337,7 +325,7 @@ type NodeDisruptionPolicyStatusUnit struct {
 	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
 	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
 	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
-	// +required
+	// +kubebuilder:validation:Required
 	Name NodeDisruptionPolicyServiceName `json:"name"`
 
 	// actions represents the series of commands to be executed on changes to the file at
@@ -347,7 +335,7 @@ type NodeDisruptionPolicyStatusUnit struct {
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.type=='Reboot') ? size(self) == 1 : true", message="Reboot action can only be specified standalone, as it will override any other actions"
@@ -364,7 +352,7 @@ type NodeDisruptionPolicySpecSSHKey struct {
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.type=='Reboot') ? size(self) == 1 : true", message="Reboot action can only be specified standalone, as it will override any other actions"
@@ -381,7 +369,7 @@ type NodeDisruptionPolicyStatusSSHKey struct {
 	// Valid actions are Reboot, Drain, Reload, DaemonReload and None.
 	// The Reboot action and the None action cannot be used in conjunction with any of the other actions.
 	// This list supports a maximum of 10 entries.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=atomic
 	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:XValidation:rule="self.exists(x, x.type=='Reboot') ? size(self) == 1 : true", message="Reboot action can only be specified standalone, as it will override any other actions"
@@ -398,7 +386,7 @@ type NodeDisruptionPolicySpecAction struct {
 	// reload/restart requires a corresponding service target specified in the reload/restart field.
 	// Other values require no further configuration
 	// +unionDiscriminator
-	// +required
+	// +kubebuilder:validation:Required
 	Type NodeDisruptionPolicySpecActionType `json:"type"`
 	// reload specifies the service to reload, only valid if type is reload
 	// +optional
@@ -417,7 +405,7 @@ type NodeDisruptionPolicyStatusAction struct {
 	// reload/restart requires a corresponding service target specified in the reload/restart field.
 	// Other values require no further configuration
 	// +unionDiscriminator
-	// +required
+	// +kubebuilder:validation:Required
 	Type NodeDisruptionPolicyStatusActionType `json:"type"`
 	// reload specifies the service to reload, only valid if type is reload
 	// +optional
@@ -433,7 +421,7 @@ type ReloadService struct {
 	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
 	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
 	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
-	// +required
+	// +kubebuilder:validation:Required
 	ServiceName NodeDisruptionPolicyServiceName `json:"serviceName"`
 }
 
@@ -443,7 +431,7 @@ type RestartService struct {
 	// Service names should be of the format ${NAME}${SERVICETYPE} and can up to 255 characters long.
 	// ${NAME} must be atleast 1 character long and can only consist of alphabets, digits, ":", "-", "_", ".", and "\".
 	// ${SERVICETYPE} must be one of ".service", ".socket", ".device", ".mount", ".automount", ".swap", ".target", ".path", ".timer", ".snapshot", ".slice" or ".scope".
-	// +required
+	// +kubebuilder:validation:Required
 	ServiceName NodeDisruptionPolicyServiceName `json:"serviceName"`
 }
 

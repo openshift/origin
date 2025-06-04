@@ -2,13 +2,13 @@ package events
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/clock"
-	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -145,12 +145,11 @@ func guessControllerReferenceForNamespace(ctx context.Context, client corev1clie
 }
 
 // NewRecorder returns new event recorder.
-func NewRecorder(client corev1client.EventInterface, sourceComponentName string, involvedObjectRef *corev1.ObjectReference, clock clock.PassiveClock) Recorder {
+func NewRecorder(client corev1client.EventInterface, sourceComponentName string, involvedObjectRef *corev1.ObjectReference) Recorder {
 	return &recorder{
 		eventClient:       client,
 		involvedObjectRef: involvedObjectRef,
 		sourceComponent:   sourceComponentName,
-		clock:             clock,
 	}
 }
 
@@ -159,7 +158,6 @@ type recorder struct {
 	eventClient       corev1client.EventInterface
 	involvedObjectRef *corev1.ObjectReference
 	sourceComponent   string
-	clock             clock.PassiveClock
 
 	// TODO: This is not the right way to pass the context, but there is no other way without breaking event interface
 	ctx context.Context
@@ -198,7 +196,7 @@ func (r *recorder) Warningf(reason, messageFmt string, args ...interface{}) {
 
 // Event emits the normal type event.
 func (r *recorder) Event(reason, message string) {
-	event := makeEvent(r.clock, r.involvedObjectRef, r.sourceComponent, corev1.EventTypeNormal, reason, message)
+	event := makeEvent(r.involvedObjectRef, r.sourceComponent, corev1.EventTypeNormal, reason, message)
 	ctx := context.Background()
 	if r.ctx != nil {
 		ctx = r.ctx
@@ -210,7 +208,7 @@ func (r *recorder) Event(reason, message string) {
 
 // Warning emits the warning type event.
 func (r *recorder) Warning(reason, message string) {
-	event := makeEvent(r.clock, r.involvedObjectRef, r.sourceComponent, corev1.EventTypeWarning, reason, message)
+	event := makeEvent(r.involvedObjectRef, r.sourceComponent, corev1.EventTypeWarning, reason, message)
 	ctx := context.Background()
 	if r.ctx != nil {
 		ctx = r.ctx
@@ -220,12 +218,11 @@ func (r *recorder) Warning(reason, message string) {
 	}
 }
 
-func makeEvent(clock clock.PassiveClock, involvedObjRef *corev1.ObjectReference, sourceComponent string, eventType, reason, message string) *corev1.Event {
-	currentTime := metav1.Time{Time: clock.Now()}
+func makeEvent(involvedObjRef *corev1.ObjectReference, sourceComponent string, eventType, reason, message string) *corev1.Event {
+	currentTime := metav1.Time{Time: time.Now()}
 	event := &corev1.Event{
 		ObjectMeta: metav1.ObjectMeta{
-			// TODO this is always used to create a unique event.  Perhaps we should hash the message to be unique enough for apply-configuration
-			Name:      fmt.Sprintf("%v.%x.%s", involvedObjRef.Name, currentTime.UnixNano(), hashForEventNameSuffix(eventType, reason, message)),
+			Name:      fmt.Sprintf("%v.%x", involvedObjRef.Name, currentTime.UnixNano()),
 			Namespace: involvedObjRef.Namespace,
 		},
 		InvolvedObject: *involvedObjRef,
@@ -238,21 +235,4 @@ func makeEvent(clock clock.PassiveClock, involvedObjRef *corev1.ObjectReference,
 	}
 	event.Source.Component = sourceComponent
 	return event
-}
-
-func hashForEventNameSuffix(in ...string) string {
-	data := []byte{}
-	for _, curr := range in {
-		data = append(data, []byte(curr)...)
-	}
-	if len(data) == 0 {
-		return "MISSING"
-	}
-
-	hash := sha256.New()
-	hash.Write(data)
-	hashBytes := hash.Sum(nil)
-
-	// we're looking to deconflict names, not protect the crown jewels
-	return fmt.Sprintf("%x", hashBytes[len(hashBytes)-4:])
 }

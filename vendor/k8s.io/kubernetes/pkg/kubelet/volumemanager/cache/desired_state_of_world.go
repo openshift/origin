@@ -33,7 +33,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/volume/csi"
 
-	resourcehelper "k8s.io/component-helpers/resource"
+	resourcehelper "k8s.io/kubernetes/pkg/api/v1/resource"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
@@ -61,7 +61,7 @@ type DesiredStateOfWorld interface {
 	// added.
 	// If a pod with the same unique name already exists under the specified
 	// volume, this is a no-op.
-	AddPodToVolume(podName types.UniquePodName, pod *v1.Pod, volumeSpec *volume.Spec, outerVolumeSpecName string, volumeGIDValue string, seLinuxContainerContexts []*v1.SELinuxOptions) (v1.UniqueVolumeName, error)
+	AddPodToVolume(podName types.UniquePodName, pod *v1.Pod, volumeSpec *volume.Spec, outerVolumeSpecName string, volumeGidValue string, seLinuxContainerContexts []*v1.SELinuxOptions) (v1.UniqueVolumeName, error)
 
 	// MarkVolumesReportedInUse sets the ReportedInUse value to true for the
 	// reportedVolumes. For volumes not in the reportedVolumes list, the
@@ -134,7 +134,7 @@ type DesiredStateOfWorld interface {
 	// UpdatePersistentVolumeSize updates persistentVolumeSize in desired state of the world
 	// so as it can be compared against actual size and volume expansion performed
 	// if necessary
-	UpdatePersistentVolumeSize(volumeName v1.UniqueVolumeName, size resource.Quantity)
+	UpdatePersistentVolumeSize(volumeName v1.UniqueVolumeName, size *resource.Quantity)
 }
 
 // VolumeToMount represents a volume that is attached to this node and needs to
@@ -193,8 +193,8 @@ type volumeToMount struct {
 	// the volume.DeviceMounter interface
 	pluginIsDeviceMountable bool
 
-	// volumeGIDValue contains the value of the GID annotation, if present.
-	volumeGIDValue string
+	// volumeGidValue contains the value of the GID annotation, if present.
+	volumeGidValue string
 
 	// reportedInUse indicates that the volume was successfully added to the
 	// VolumesInUse field in the node's status.
@@ -206,7 +206,7 @@ type volumeToMount struct {
 
 	// persistentVolumeSize records desired size of a persistent volume.
 	// Usually this value reflects size recorded in pv.Spec.Capacity
-	persistentVolumeSize resource.Quantity
+	persistentVolumeSize *resource.Quantity
 
 	// effectiveSELinuxMountFileLabel is the SELinux label that will be applied to the volume using mount options.
 	// If empty, then:
@@ -262,7 +262,7 @@ func (dsw *desiredStateOfWorld) AddPodToVolume(
 	pod *v1.Pod,
 	volumeSpec *volume.Spec,
 	outerVolumeSpecName string,
-	volumeGIDValue string,
+	volumeGidValue string,
 	seLinuxContainerContexts []*v1.SELinuxOptions) (v1.UniqueVolumeName, error) {
 	dsw.Lock()
 	defer dsw.Unlock()
@@ -301,7 +301,7 @@ func (dsw *desiredStateOfWorld) AddPodToVolume(
 		volumeName = util.GetUniqueVolumeNameFromSpecWithPod(podName, volumePlugin, volumeSpec)
 	}
 
-	seLinuxFileLabel, pluginSupportsSELinuxContextMount, err := dsw.getSELinuxLabel(volumeSpec, seLinuxContainerContexts, pod.Spec.SecurityContext)
+	seLinuxFileLabel, pluginSupportsSELinuxContextMount, err := dsw.getSELinuxLabel(volumeSpec, seLinuxContainerContexts)
 	if err != nil {
 		return "", err
 	}
@@ -336,7 +336,7 @@ func (dsw *desiredStateOfWorld) AddPodToVolume(
 			podsToMount:                    make(map[types.UniquePodName]podToMount),
 			pluginIsAttachable:             attachable,
 			pluginIsDeviceMountable:        deviceMountable,
-			volumeGIDValue:                 volumeGIDValue,
+			volumeGidValue:                 volumeGidValue,
 			reportedInUse:                  false,
 			desiredSizeLimit:               sizeLimit,
 			effectiveSELinuxMountFileLabel: effectiveSELinuxMountLabel,
@@ -347,7 +347,7 @@ func (dsw *desiredStateOfWorld) AddPodToVolume(
 			pvCap := volumeSpec.PersistentVolume.Spec.Capacity.Storage()
 			if pvCap != nil {
 				pvCapCopy := pvCap.DeepCopy()
-				vmt.persistentVolumeSize = pvCapCopy
+				vmt.persistentVolumeSize = &pvCapCopy
 			}
 		}
 		dsw.volumesToMount[volumeName] = vmt
@@ -392,36 +392,65 @@ func (dsw *desiredStateOfWorld) AddPodToVolume(
 	return volumeName, nil
 }
 
-// getSELinuxLabel returns the SELinux label for a given volume and combination of SELinux labels and bool indicating
-// if the plugin supports mounting the volume with SELinux context.
-// It returns error if the SELinux label cannot be constructed or when the volume is used with multiple SELinux
-// labels.
-func (dsw *desiredStateOfWorld) getSELinuxLabel(volumeSpec *volume.Spec, seLinuxContainerContexts []*v1.SELinuxOptions, podSecurityContext *v1.PodSecurityContext) (seLinuxFileLabel string, pluginSupportsSELinuxContextMount bool, err error) {
-	labelInfo, err := util.GetMountSELinuxLabel(volumeSpec, seLinuxContainerContexts, podSecurityContext, dsw.volumePluginMgr, dsw.seLinuxTranslator)
-	if err != nil {
-		accessMode := getVolumeAccessMode(volumeSpec)
-		seLinuxSupported := util.VolumeSupportsSELinuxMount(volumeSpec)
+func (dsw *desiredStateOfWorld) getSELinuxLabel(volumeSpec *volume.Spec, seLinuxContainerContexts []*v1.SELinuxOptions) (string, bool, error) {
+	var seLinuxFileLabel string
+	var pluginSupportsSELinuxContextMount bool
 
-		if util.IsSELinuxLabelTranslationError(err) {
-			err := handleSELinuxMetricError(
-				err,
-				seLinuxSupported,
-				seLinuxContainerContextWarnings.WithLabelValues(accessMode),
-				seLinuxContainerContextErrors.WithLabelValues(accessMode))
-			return "", labelInfo.PluginSupportsSELinuxContextMount, err
+	if feature.DefaultFeatureGate.Enabled(features.SELinuxMountReadWriteOncePod) {
+		var err error
+
+		if !dsw.seLinuxTranslator.SELinuxEnabled() {
+			return "", false, nil
 		}
-		if util.IsMultipleSELinuxLabelsError(err) {
-			err := handleSELinuxMetricError(
-				err,
-				seLinuxSupported,
-				seLinuxPodContextMismatchWarnings.WithLabelValues(accessMode),
-				seLinuxPodContextMismatchErrors.WithLabelValues(accessMode))
+
+		pluginSupportsSELinuxContextMount, err = dsw.getSELinuxMountSupport(volumeSpec)
+		if err != nil {
 			return "", false, err
 		}
-		return "", labelInfo.PluginSupportsSELinuxContextMount, err
-	}
+		seLinuxSupported := util.VolumeSupportsSELinuxMount(volumeSpec)
+		if pluginSupportsSELinuxContextMount {
+			// Ensure that a volume that can be mounted with "-o context=XYZ" is
+			// used only by containers with the same SELinux contexts.
+			for _, containerContext := range seLinuxContainerContexts {
+				newLabel, err := dsw.seLinuxTranslator.SELinuxOptionsToFileLabel(containerContext)
+				if err != nil {
+					fullErr := fmt.Errorf("failed to construct SELinux label from context %q: %s", containerContext, err)
+					accessMode := getVolumeAccessMode(volumeSpec)
+					err := handleSELinuxMetricError(
+						fullErr,
+						seLinuxSupported,
+						seLinuxContainerContextWarnings.WithLabelValues(accessMode),
+						seLinuxContainerContextErrors.WithLabelValues(accessMode))
+					if err != nil {
+						return "", false, err
+					}
+				}
+				if seLinuxFileLabel == "" {
+					seLinuxFileLabel = newLabel
+					continue
+				}
+				if seLinuxFileLabel != newLabel {
+					accessMode := getVolumeAccessMode(volumeSpec)
 
-	return labelInfo.SELinuxMountLabel, labelInfo.PluginSupportsSELinuxContextMount, nil
+					fullErr := fmt.Errorf("volume %s is used with two different SELinux contexts in the same pod: %q, %q", volumeSpec.Name(), seLinuxFileLabel, newLabel)
+					err := handleSELinuxMetricError(
+						fullErr,
+						seLinuxSupported,
+						seLinuxPodContextMismatchWarnings.WithLabelValues(accessMode),
+						seLinuxPodContextMismatchErrors.WithLabelValues(accessMode))
+					if err != nil {
+						return "", false, err
+					}
+				}
+			}
+		} else {
+			// Volume plugin does not support SELinux context mount.
+			// DSW will track this volume with SELinux label "", i.e. no mount with
+			// -o context.
+			seLinuxFileLabel = ""
+		}
+	}
+	return seLinuxFileLabel, pluginSupportsSELinuxContextMount, nil
 }
 
 func (dsw *desiredStateOfWorld) MarkVolumesReportedInUse(
@@ -470,7 +499,7 @@ func (dsw *desiredStateOfWorld) DeletePodFromVolume(
 
 // UpdatePersistentVolumeSize updates last known PV size. This is used for volume expansion and
 // should be only used for persistent volumes.
-func (dsw *desiredStateOfWorld) UpdatePersistentVolumeSize(volumeName v1.UniqueVolumeName, size resource.Quantity) {
+func (dsw *desiredStateOfWorld) UpdatePersistentVolumeSize(volumeName v1.UniqueVolumeName, size *resource.Quantity) {
 	dsw.Lock()
 	defer dsw.Unlock()
 
@@ -574,14 +603,14 @@ func (dsw *desiredStateOfWorld) GetVolumesToMount() []VolumeToMount {
 					PluginIsAttachable:      volumeObj.pluginIsAttachable,
 					PluginIsDeviceMountable: volumeObj.pluginIsDeviceMountable,
 					OuterVolumeSpecName:     podObj.outerVolumeSpecName,
-					VolumeGIDValue:          volumeObj.volumeGIDValue,
+					VolumeGidValue:          volumeObj.volumeGidValue,
 					ReportedInUse:           volumeObj.reportedInUse,
 					MountRequestTime:        podObj.mountRequestTime,
 					DesiredSizeLimit:        volumeObj.desiredSizeLimit,
 					SELinuxLabel:            volumeObj.effectiveSELinuxMountFileLabel,
 				},
 			}
-			if !volumeObj.persistentVolumeSize.IsZero() {
+			if volumeObj.persistentVolumeSize != nil {
 				vmt.DesiredPersistentVolumeSize = volumeObj.persistentVolumeSize.DeepCopy()
 			}
 			volumesToMount = append(volumesToMount, vmt)
@@ -634,6 +663,10 @@ func (dsw *desiredStateOfWorld) MarkVolumeAttachability(volumeName v1.UniqueVolu
 	}
 	volumeObj.pluginIsAttachable = attachable
 	dsw.volumesToMount[volumeName] = volumeObj
+}
+
+func (dsw *desiredStateOfWorld) getSELinuxMountSupport(volumeSpec *volume.Spec) (bool, error) {
+	return util.SupportsSELinuxContextMount(volumeSpec, dsw.volumePluginMgr)
 }
 
 // Based on isRWOP, bump the right warning / error metric and either consume the error or return it.

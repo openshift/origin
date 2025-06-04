@@ -29,7 +29,7 @@ type FakeInternalV1alpha1 struct {
 }
 
 func (c *FakeInternalV1alpha1) StorageVersions() v1alpha1.StorageVersionInterface {
-	return newFakeStorageVersions(c)
+	return &FakeStorageVersions{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

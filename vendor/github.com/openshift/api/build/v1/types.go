@@ -116,7 +116,7 @@ type BuildTriggerCause struct {
 	// genericWebHook holds data about a builds generic webhook trigger.
 	GenericWebHook *GenericWebHookCause `json:"genericWebHook,omitempty" protobuf:"bytes,2,opt,name=genericWebHook"`
 
-	// githubWebHook represents data for a GitHub webhook that fired a
+	// gitHubWebHook represents data for a GitHub webhook that fired a
 	//specific build.
 	GitHubWebHook *GitHubWebHookCause `json:"githubWebHook,omitempty" protobuf:"bytes,3,opt,name=githubWebHook"`
 
@@ -124,11 +124,11 @@ type BuildTriggerCause struct {
 	// that triggered a new build.
 	ImageChangeBuild *ImageChangeCause `json:"imageChangeBuild,omitempty" protobuf:"bytes,4,opt,name=imageChangeBuild"`
 
-	// gitlabWebHook represents data for a GitLab webhook that fired a specific
+	// GitLabWebHook represents data for a GitLab webhook that fired a specific
 	// build.
 	GitLabWebHook *GitLabWebHookCause `json:"gitlabWebHook,omitempty" protobuf:"bytes,5,opt,name=gitlabWebHook"`
 
-	// bitbucketWebHook represents data for a Bitbucket webhook that fired a
+	// BitbucketWebHook represents data for a Bitbucket webhook that fired a
 	// specific build.
 	BitbucketWebHook *BitbucketWebHookCause `json:"bitbucketWebHook,omitempty" protobuf:"bytes,6,opt,name=bitbucketWebHook"`
 }
@@ -158,10 +158,10 @@ type GitHubWebHookCause struct {
 // causes into struct so we can share it in the specific causes;  it is too late for
 // GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.
 type CommonWebHookCause struct {
-	// revision is the git source revision information of the trigger.
+	// Revision is the git source revision information of the trigger.
 	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,1,opt,name=revision"`
 
-	// secret is the obfuscated webhook secret that triggered a build.
+	// Secret is the obfuscated webhook secret that triggered a build.
 	Secret string `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
 }
 
@@ -237,7 +237,7 @@ type BuildStatus struct {
 	// logSnippet is the last few lines of the build log.  This value is only set for builds that failed.
 	LogSnippet string `json:"logSnippet,omitempty" protobuf:"bytes,12,opt,name=logSnippet"`
 
-	// conditions represents the latest available observations of a build's current state.
+	// Conditions represents the latest available observations of a build's current state.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	Conditions []BuildCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,13,rep,name=conditions"`
@@ -358,9 +358,9 @@ type BuildConditionType string
 
 // BuildCondition describes the state of a build at a certain point.
 type BuildCondition struct {
-	// type of build condition.
+	// Type of build condition.
 	Type BuildConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=BuildConditionType"`
-	// status of the condition, one of True, False, Unknown.
+	// Status of the condition, one of True, False, Unknown.
 	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/kubernetes/pkg/api/v1.ConditionStatus"`
 	// The last time this condition was updated.
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,6,opt,name=lastUpdateTime"`
@@ -562,7 +562,7 @@ type SourceRevision struct {
 	// +k8s:conversion-gen=false
 	Type BuildSourceType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=BuildSourceType"`
 
-	// git contains information about git-based build source
+	// Git contains information about git-based build source
 	Git *GitSourceRevision `json:"git,omitempty" protobuf:"bytes,2,opt,name=git"`
 }
 
@@ -632,7 +632,7 @@ type BuildStrategy struct {
 	// customStrategy holds the parameters to the Custom build strategy
 	CustomStrategy *CustomBuildStrategy `json:"customStrategy,omitempty" protobuf:"bytes,4,opt,name=customStrategy"`
 
-	// jenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
+	// JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.
 	// Deprecated: use OpenShift Pipelines
 	JenkinsPipelineStrategy *JenkinsPipelineBuildStrategy `json:"jenkinsPipelineStrategy,omitempty" protobuf:"bytes,5,opt,name=jenkinsPipelineStrategy"`
 }
@@ -801,12 +801,12 @@ type SourceBuildStrategy struct {
 // JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.
 // Deprecated: use OpenShift Pipelines
 type JenkinsPipelineBuildStrategy struct {
-	// jenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
+	// JenkinsfilePath is the optional path of the Jenkinsfile that will be used to configure the pipeline
 	// relative to the root of the context (contextDir). If both JenkinsfilePath & Jenkinsfile are
 	// both not specified, this defaults to Jenkinsfile in the root of the specified contextDir.
 	JenkinsfilePath string `json:"jenkinsfilePath,omitempty" protobuf:"bytes,1,opt,name=jenkinsfilePath"`
 
-	// jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
+	// Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
 	Jenkinsfile string `json:"jenkinsfile,omitempty" protobuf:"bytes,2,opt,name=jenkinsfile"`
 
 	// env contains additional environment variables you want to pass into a build pipeline.
@@ -911,7 +911,7 @@ type BuildOutput struct {
 	// the build unless Namespace is specified.
 	To *corev1.ObjectReference `json:"to,omitempty" protobuf:"bytes,1,opt,name=to"`
 
-	// pushSecret is the name of a Secret that would be used for setting
+	// PushSecret is the name of a Secret that would be used for setting
 	// up the authentication for executing the Docker push to authentication
 	// enabled Docker Registry (or Docker Hub).
 	PushSecret *corev1.LocalObjectReference `json:"pushSecret,omitempty" protobuf:"bytes,2,opt,name=pushSecret"`
@@ -964,7 +964,7 @@ type BuildConfigSpec struct {
 	// +optional
 	Triggers []BuildTriggerPolicy `json:"triggers,omitempty" protobuf:"bytes,1,rep,name=triggers"`
 
-	// runPolicy describes how the new build created from this build
+	// RunPolicy describes how the new build created from this build
 	// configuration will be scheduled for execution.
 	// This is optional, if not specified we default to "Serial".
 	RunPolicy BuildRunPolicy `json:"runPolicy,omitempty" protobuf:"bytes,2,opt,name=runPolicy,casttype=BuildRunPolicy"`
@@ -1007,7 +1007,7 @@ type BuildConfigStatus struct {
 	// lastVersion is used to inform about number of last triggered build.
 	LastVersion int64 `json:"lastVersion" protobuf:"varint,1,opt,name=lastVersion"`
 
-	// imageChangeTriggers captures the runtime state of any ImageChangeTrigger specified in the BuildConfigSpec,
+	// ImageChangeTriggers captures the runtime state of any ImageChangeTrigger specified in the BuildConfigSpec,
 	// including the value reconciled by the OpenShift APIServer for the lastTriggeredImageID. There is a single entry
 	// in this array for each image change trigger in spec. Each trigger status references the ImageStreamTag that acts as the source of the trigger.
 	ImageChangeTriggers []ImageChangeTriggerStatus `json:"imageChangeTriggers,omitempty" protobuf:"bytes,2,rep,name=imageChangeTriggers"`
@@ -1015,7 +1015,7 @@ type BuildConfigStatus struct {
 
 // SecretLocalReference contains information that points to the local secret being used
 type SecretLocalReference struct {
-	// name is the name of the resource in the same namespace being referenced
+	// Name is the name of the resource in the same namespace being referenced
 	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
 }
 
@@ -1203,7 +1203,7 @@ type GenericWebHookEvent struct {
 	// ValueFrom is not supported.
 	Env []corev1.EnvVar `json:"env,omitempty" protobuf:"bytes,3,rep,name=env"`
 
-	// dockerStrategyOptions contains additional docker-strategy specific options for the build
+	// DockerStrategyOptions contains additional docker-strategy specific options for the build
 	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,4,opt,name=dockerStrategyOptions"`
 }
 
@@ -1212,7 +1212,7 @@ type GitInfo struct {
 	GitBuildSource    `json:",inline" protobuf:"bytes,1,opt,name=gitBuildSource"`
 	GitSourceRevision `json:",inline" protobuf:"bytes,2,opt,name=gitSourceRevision"`
 
-	// refs is a list of GitRefs for the provided repo - generally sent
+	// Refs is a list of GitRefs for the provided repo - generally sent
 	// when used from a post-receive hook. This field is optional and is
 	// used when sending multiple refs
 	Refs []GitRefInfo `json:"refs" protobuf:"bytes,3,rep,name=refs"`
@@ -1287,10 +1287,10 @@ type BuildRequest struct {
 	// build configuration and contains information about those triggers.
 	TriggeredBy []BuildTriggerCause `json:"triggeredBy,omitempty" protobuf:"bytes,8,rep,name=triggeredBy"`
 
-	// dockerStrategyOptions contains additional docker-strategy specific options for the build
+	// DockerStrategyOptions contains additional docker-strategy specific options for the build
 	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,9,opt,name=dockerStrategyOptions"`
 
-	// sourceStrategyOptions contains additional source-strategy specific options for the build
+	// SourceStrategyOptions contains additional source-strategy specific options for the build
 	SourceStrategyOptions *SourceStrategyOptions `json:"sourceStrategyOptions,omitempty" protobuf:"bytes,10,opt,name=sourceStrategyOptions"`
 }
 
@@ -1368,7 +1368,7 @@ type BuildLogOptions struct {
 	// slightly more or slightly less than the specified limit.
 	LimitBytes *int64 `json:"limitBytes,omitempty" protobuf:"varint,8,opt,name=limitBytes"`
 
-	// nowait if true causes the call to return immediately even if the build
+	// noWait if true causes the call to return immediately even if the build
 	// is not available yet. Otherwise the server will wait until the build has started.
 	// TODO: Fix the tag to 'noWait' in v2
 	NoWait bool `json:"nowait,omitempty" protobuf:"varint,9,opt,name=nowait"`

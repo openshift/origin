@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	cbor "k8s.io/apimachinery/pkg/runtime/serializer/cbor/direct"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -283,11 +282,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "33") {
+	if strings.HasPrefix(version.Minor, "31") {
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
-			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.33 release.
+			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.30 release.
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -297,11 +296,11 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 
 		// Modified etcd data.
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
-		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.33 release.
+		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.30 release.
 
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
-		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.33 release.
+		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.29 release.
 		removeStorageData(t, etcdStorageData)
 	}
 
@@ -679,10 +678,7 @@ func JSONToUnstructured(stub, namespace string, mapping *meta.RESTMapping, dynam
 	return dynamicClient.Resource(mapping.Resource).Namespace(namespace), &unstructured.Unstructured{Object: typeMetaAdder}, nil
 }
 
-var (
-	protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
-	cborPrefix          = []byte{0xd9, 0xd9, 0xf7}
-)
+var protoEncodingPrefix = []byte{0x6b, 0x38, 0x73, 0x00}
 
 func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
 	response, err := kv.Get(context.Background(), "/"+path)
@@ -716,21 +712,6 @@ func getFromEtcd(kv etcdv3.KV, path string) (*metaObject, error) {
 		if err := json.Unmarshal(value, metaObj); err != nil {
 			return nil, err
 		}
-	case bytes.HasPrefix(value, cborPrefix):
-		var result map[string]any
-		if err := cbor.Unmarshal(value, &result); err != nil {
-			return nil, err
-		}
-		// TODO: we need to do this manual conversion because cbor's Unmarshal currently uses
-		// strict decoding, so metaObj would need to contain all fields of the object.
-		metadata, ok := result["metadata"].(map[string]any)
-		if !ok {
-			metadata = map[string]any{}
-		}
-		metaObj.Kind, _ = result["kind"].(string)
-		metaObj.APIVersion, _ = result["apiVersion"].(string)
-		metaObj.Metadata.Name, _ = metadata["name"].(string)
-		metaObj.Metadata.Namespace, _ = metadata["namespace"].(string)
 	default:
 		// TODO handle encrypted data
 		return nil, fmt.Errorf("unknown data format at path /%s: %s", path, string(value))

@@ -27,6 +27,7 @@ type Infrastructure struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec InfrastructureSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -98,10 +99,7 @@ type InfrastructureStatus struct {
 	// The 'External' mode indicates that the control plane is hosted externally to the cluster and that
 	// its components are not visible within the cluster.
 	// +kubebuilder:default=HighlyAvailable
-	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=DualReplica,enum=HighlyAvailable;SingleReplica;DualReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=HighlyAvailableArbiter;DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
+	// +kubebuilder:validation:Enum=HighlyAvailable;SingleReplica;External
 	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology"`
 
 	// infrastructureTopology expresses the expectations for infrastructure services that do not run on control
@@ -138,14 +136,8 @@ const (
 	// "HighlyAvailable" is for operators to configure high-availability as much as possible.
 	HighlyAvailableTopologyMode TopologyMode = "HighlyAvailable"
 
-	// "HighlyAvailableArbiter" is for operators to configure for an arbiter HA deployment.
-	HighlyAvailableArbiterMode TopologyMode = "HighlyAvailableArbiter"
-
 	// "SingleReplica" is for operators to avoid spending resources for high-availability purpose.
 	SingleReplicaTopologyMode TopologyMode = "SingleReplica"
-
-	// "DualReplica" is for operators to configure for two node topology.
-	DualReplicaTopologyMode TopologyMode = "DualReplica"
 
 	// "External" indicates that the component is running externally to the cluster. When specified
 	// as the control plane topology, operators should avoid scheduling workloads to masters or assume
@@ -265,7 +257,7 @@ const (
 
 // ExternalPlatformSpec holds the desired state for the generic External infrastructure provider.
 type ExternalPlatformSpec struct {
-	// platformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
+	// PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time.
 	// This field is solely for informational and reporting purposes and is not expected to be used for decision-making.
 	// +kubebuilder:default:="Unknown"
 	// +default="Unknown"
@@ -291,55 +283,55 @@ type PlatformSpec struct {
 	// +unionDiscriminator
 	Type PlatformType `json:"type"`
 
-	// aws contains settings specific to the Amazon Web Services infrastructure provider.
+	// AWS contains settings specific to the Amazon Web Services infrastructure provider.
 	// +optional
 	AWS *AWSPlatformSpec `json:"aws,omitempty"`
 
-	// azure contains settings specific to the Azure infrastructure provider.
+	// Azure contains settings specific to the Azure infrastructure provider.
 	// +optional
 	Azure *AzurePlatformSpec `json:"azure,omitempty"`
 
-	// gcp contains settings specific to the Google Cloud Platform infrastructure provider.
+	// GCP contains settings specific to the Google Cloud Platform infrastructure provider.
 	// +optional
 	GCP *GCPPlatformSpec `json:"gcp,omitempty"`
 
-	// baremetal contains settings specific to the BareMetal platform.
+	// BareMetal contains settings specific to the BareMetal platform.
 	// +optional
 	BareMetal *BareMetalPlatformSpec `json:"baremetal,omitempty"`
 
-	// openstack contains settings specific to the OpenStack infrastructure provider.
+	// OpenStack contains settings specific to the OpenStack infrastructure provider.
 	// +optional
 	OpenStack *OpenStackPlatformSpec `json:"openstack,omitempty"`
 
-	// ovirt contains settings specific to the oVirt infrastructure provider.
+	// Ovirt contains settings specific to the oVirt infrastructure provider.
 	// +optional
 	Ovirt *OvirtPlatformSpec `json:"ovirt,omitempty"`
 
-	// vsphere contains settings specific to the VSphere infrastructure provider.
+	// VSphere contains settings specific to the VSphere infrastructure provider.
 	// +optional
 	VSphere *VSpherePlatformSpec `json:"vsphere,omitempty"`
 
-	// ibmcloud contains settings specific to the IBMCloud infrastructure provider.
+	// IBMCloud contains settings specific to the IBMCloud infrastructure provider.
 	// +optional
 	IBMCloud *IBMCloudPlatformSpec `json:"ibmcloud,omitempty"`
 
-	// kubevirt contains settings specific to the kubevirt infrastructure provider.
+	// Kubevirt contains settings specific to the kubevirt infrastructure provider.
 	// +optional
 	Kubevirt *KubevirtPlatformSpec `json:"kubevirt,omitempty"`
 
-	// equinixMetal contains settings specific to the Equinix Metal infrastructure provider.
+	// EquinixMetal contains settings specific to the Equinix Metal infrastructure provider.
 	// +optional
 	EquinixMetal *EquinixMetalPlatformSpec `json:"equinixMetal,omitempty"`
 
-	// powervs contains settings specific to the IBM Power Systems Virtual Servers infrastructure provider.
+	// PowerVS contains settings specific to the IBM Power Systems Virtual Servers infrastructure provider.
 	// +optional
 	PowerVS *PowerVSPlatformSpec `json:"powervs,omitempty"`
 
-	// alibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
+	// AlibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
 	// +optional
 	AlibabaCloud *AlibabaCloudPlatformSpec `json:"alibabaCloud,omitempty"`
 
-	// nutanix contains settings specific to the Nutanix infrastructure provider.
+	// Nutanix contains settings specific to the Nutanix infrastructure provider.
 	// +optional
 	Nutanix *NutanixPlatformSpec `json:"nutanix,omitempty"`
 
@@ -409,59 +401,59 @@ type PlatformStatus struct {
 	// Currently this value cannot be changed once set.
 	Type PlatformType `json:"type"`
 
-	// aws contains settings specific to the Amazon Web Services infrastructure provider.
+	// AWS contains settings specific to the Amazon Web Services infrastructure provider.
 	// +optional
 	AWS *AWSPlatformStatus `json:"aws,omitempty"`
 
-	// azure contains settings specific to the Azure infrastructure provider.
+	// Azure contains settings specific to the Azure infrastructure provider.
 	// +optional
 	Azure *AzurePlatformStatus `json:"azure,omitempty"`
 
-	// gcp contains settings specific to the Google Cloud Platform infrastructure provider.
+	// GCP contains settings specific to the Google Cloud Platform infrastructure provider.
 	// +optional
 	GCP *GCPPlatformStatus `json:"gcp,omitempty"`
 
-	// baremetal contains settings specific to the BareMetal platform.
+	// BareMetal contains settings specific to the BareMetal platform.
 	// +optional
 	BareMetal *BareMetalPlatformStatus `json:"baremetal,omitempty"`
 
-	// openstack contains settings specific to the OpenStack infrastructure provider.
+	// OpenStack contains settings specific to the OpenStack infrastructure provider.
 	// +optional
 	OpenStack *OpenStackPlatformStatus `json:"openstack,omitempty"`
 
-	// ovirt contains settings specific to the oVirt infrastructure provider.
+	// Ovirt contains settings specific to the oVirt infrastructure provider.
 	// +optional
 	Ovirt *OvirtPlatformStatus `json:"ovirt,omitempty"`
 
-	// vsphere contains settings specific to the VSphere infrastructure provider.
+	// VSphere contains settings specific to the VSphere infrastructure provider.
 	// +optional
 	VSphere *VSpherePlatformStatus `json:"vsphere,omitempty"`
 
-	// ibmcloud contains settings specific to the IBMCloud infrastructure provider.
+	// IBMCloud contains settings specific to the IBMCloud infrastructure provider.
 	// +optional
 	IBMCloud *IBMCloudPlatformStatus `json:"ibmcloud,omitempty"`
 
-	// kubevirt contains settings specific to the kubevirt infrastructure provider.
+	// Kubevirt contains settings specific to the kubevirt infrastructure provider.
 	// +optional
 	Kubevirt *KubevirtPlatformStatus `json:"kubevirt,omitempty"`
 
-	// equinixMetal contains settings specific to the Equinix Metal infrastructure provider.
+	// EquinixMetal contains settings specific to the Equinix Metal infrastructure provider.
 	// +optional
 	EquinixMetal *EquinixMetalPlatformStatus `json:"equinixMetal,omitempty"`
 
-	// powervs contains settings specific to the Power Systems Virtual Servers infrastructure provider.
+	// PowerVS contains settings specific to the Power Systems Virtual Servers infrastructure provider.
 	// +optional
 	PowerVS *PowerVSPlatformStatus `json:"powervs,omitempty"`
 
-	// alibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
+	// AlibabaCloud contains settings specific to the Alibaba Cloud infrastructure provider.
 	// +optional
 	AlibabaCloud *AlibabaCloudPlatformStatus `json:"alibabaCloud,omitempty"`
 
-	// nutanix contains settings specific to the Nutanix infrastructure provider.
+	// Nutanix contains settings specific to the Nutanix infrastructure provider.
 	// +optional
 	Nutanix *NutanixPlatformStatus `json:"nutanix,omitempty"`
 
-	// external contains settings specific to the generic External infrastructure provider.
+	// External contains settings specific to the generic External infrastructure provider.
 	// +optional
 	External *ExternalPlatformStatus `json:"external,omitempty"`
 }
@@ -500,7 +492,7 @@ type AWSPlatformStatus struct {
 	// region holds the default AWS region for new AWS resources created by the cluster.
 	Region string `json:"region"`
 
-	// serviceEndpoints list contains custom endpoints which will override default
+	// ServiceEndpoints list contains custom endpoints which will override default
 	// service endpoint of AWS Services.
 	// There must be only one ServiceEndpoint for a service.
 	// +listType=atomic
@@ -515,40 +507,24 @@ type AWSPlatformStatus struct {
 	// +listType=atomic
 	// +optional
 	ResourceTags []AWSResourceTag `json:"resourceTags,omitempty"`
-
-	// cloudLoadBalancerConfig holds configuration related to DNS and cloud
-	// load balancers. It allows configuration of in-cluster DNS as an alternative
-	// to the platform default DNS implementation.
-	// When using the ClusterHosted DNS type, Load Balancer IP addresses
-	// must be provided for the API and internal API load balancers as well as the
-	// ingress load balancer.
-	//
-	// +default={"dnsType": "PlatformDefault"}
-	// +kubebuilder:default={"dnsType": "PlatformDefault"}
-	// +openshift:enable:FeatureGate=AWSClusterHostedDNS
-	// +optional
-	// +nullable
-	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
 }
 
 // AWSResourceTag is a tag to apply to AWS resources created for the cluster.
 type AWSResourceTag struct {
-	// key sets the key of the AWS resource tag key-value pair. Key is required when defining an AWS resource tag.
-	// Key should consist of between 1 and 128 characters, and may
-	// contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', and '@'.
+	// key is the key of the tag
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
-	// +kubebuilder:validation:XValidation:rule=`self.matches('^[0-9A-Za-z_.:/=+-@ ]+$')`,message="invalid AWS resource tag key. The string can contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', '@'"
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.:/=+-@]+$`
 	// +required
 	Key string `json:"key"`
-	// value sets the value of the AWS resource tag key-value pair. Value is required when defining an AWS resource tag.
-	// Value should consist of between 1 and 256 characters, and may
-	// contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', and '@'.
+	// value is the value of the tag.
 	// Some AWS service do not support empty values. Since tags are added to resources in many services, the
 	// length of the tag value must meet the requirements of all services.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	// +kubebuilder:validation:XValidation:rule=`self.matches('^[0-9A-Za-z_.:/=+-@ ]+$')`,message="invalid AWS resource tag value. The string can contain only the set of alphanumeric characters, space (' '), '_', '.', '/', '=', '+', '-', ':', '@'"
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.:/=+-@]+$`
 	// +required
 	Value string `json:"value"`
 }
@@ -594,14 +570,14 @@ type AzureResourceTag struct {
 	// key is the key part of the tag. A tag key can have a maximum of 128 characters and cannot be empty. Key
 	// must begin with a letter, end with a letter, number or underscore, and must contain only alphanumeric
 	// characters and the following special characters `_ . -`.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([0-9A-Za-z_.-]*[0-9A-Za-z_])?$`
 	Key string `json:"key"`
 	// value is the value part of the tag. A tag value can have a maximum of 256 characters and cannot be empty. Value
 	// must contain only alphanumeric characters and the following special characters `_ + , - . / : ; < = > ? @`.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.=+-@]+$`
@@ -628,69 +604,6 @@ const (
 	// AzureStackCloud is the Azure cloud environment used at the edge and on premises.
 	AzureStackCloud AzureCloudEnvironment = "AzureStackCloud"
 )
-
-// GCPServiceEndpointName is the name of the GCP Service Endpoint.
-// +kubebuilder:validation:Enum=Compute;Container;CloudResourceManager;DNS;File;IAM;ServiceUsage;Storage;TagManager
-type GCPServiceEndpointName string
-
-const (
-	// GCPServiceEndpointNameCompute is the name used for the GCP Compute Service endpoint.
-	GCPServiceEndpointNameCompute GCPServiceEndpointName = "Compute"
-
-	// GCPServiceEndpointNameContainer is the name used for the GCP Container Service endpoint.
-	GCPServiceEndpointNameContainer GCPServiceEndpointName = "Container"
-
-	// GCPServiceEndpointNameCloudResource is the name used for the GCP Resource Manager Service endpoint.
-	GCPServiceEndpointNameCloudResource GCPServiceEndpointName = "CloudResourceManager"
-
-	// GCPServiceEndpointNameDNS is the name used for the GCP DNS Service endpoint.
-	GCPServiceEndpointNameDNS GCPServiceEndpointName = "DNS"
-
-	// GCPServiceEndpointNameFile is the name used for the GCP File Service endpoint.
-	GCPServiceEndpointNameFile GCPServiceEndpointName = "File"
-
-	// GCPServiceEndpointNameIAM is the name used for the GCP IAM Service endpoint.
-	GCPServiceEndpointNameIAM GCPServiceEndpointName = "IAM"
-
-	// GCPServiceEndpointNameServiceUsage is the name used for the GCP Service Usage Service endpoint.
-	GCPServiceEndpointNameServiceUsage GCPServiceEndpointName = "ServiceUsage"
-
-	// GCPServiceEndpointNameStorage is the name used for the GCP Storage Service endpoint.
-	GCPServiceEndpointNameStorage GCPServiceEndpointName = "Storage"
-
-	// GCPServiceEndpointNameTagManager is the name used for the GCP Tag Manager Service endpoint.
-	GCPServiceEndpointNameTagManager GCPServiceEndpointName = "TagManager"
-)
-
-// GCPServiceEndpoint store the configuration of a custom url to
-// override existing defaults of GCP Services.
-type GCPServiceEndpoint struct {
-	// name is the name of the GCP service whose endpoint is being overridden.
-	// This must be provided and cannot be empty.
-	//
-	// Allowed values are Compute, Container, CloudResourceManager, DNS, File, IAM, ServiceUsage,
-	// Storage, and TagManager.
-	//
-	// As an example, when setting the name to Compute all requests made by the caller to the GCP Compute
-	// Service will be directed to the endpoint specified in the url field.
-	//
-	// +required
-	Name GCPServiceEndpointName `json:"name"`
-
-	// url is a fully qualified URI that overrides the default endpoint for a client using the GCP service specified
-	// in the name field.
-	// url is required, must use the scheme https, must not be more than 253 characters in length,
-	// and must be a valid URL according to Go's net/url package (https://pkg.go.dev/net/url#URL)
-	//
-	// An example of a valid endpoint that overrides the Compute Service: "https://compute-myendpoint1.p.googleapis.com"
-	//
-	// +required
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="must be a valid URL"
-	// +kubebuilder:validation:XValidation:rule="isURL(self) ? (url(self).getScheme() == \"https\") : true",message="scheme must be https"
-	// +kubebuilder:validation:XValidation:rule="url(self).getEscapedPath() == \"\" || url(self).getEscapedPath() == \"/\"",message="url must consist only of a scheme and domain. The url path must be empty."
-	URL string `json:"url"`
-}
 
 // GCPPlatformSpec holds the desired state of the Google Cloud Platform infrastructure provider.
 // This only includes fields that can be modified in the cluster.
@@ -734,12 +647,12 @@ type GCPPlatformStatus struct {
 	// Tombstone the field as a reminder.
 	// ClusterHostedDNS ClusterHostedDNS `json:"clusterHostedDNS,omitempty"`
 
-	// cloudLoadBalancerConfig holds configuration related to DNS and cloud
-	// load balancers. It allows configuration of in-cluster DNS as an alternative
-	// to the platform default DNS implementation.
-	// When using the ClusterHosted DNS type, Load Balancer IP addresses
-	// must be provided for the API and internal API load balancers as well as the
-	// ingress load balancer.
+	// cloudLoadBalancerConfig is a union that contains the IP addresses of API,
+	// API-Int and Ingress Load Balancers created on the cloud platform. These
+	// values would not be populated on on-prem platforms. These Load Balancer
+	// IPs are used to configure the in-cluster DNS instances for API, API-Int
+	// and Ingress services. `dnsType` is expected to be set to `ClusterHosted`
+	// when these Load Balancer IP addresses are populated and used.
 	//
 	// +default={"dnsType": "PlatformDefault"}
 	// +kubebuilder:default={"dnsType": "PlatformDefault"}
@@ -747,19 +660,6 @@ type GCPPlatformStatus struct {
 	// +optional
 	// +nullable
 	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
-
-	// serviceEndpoints specifies endpoints that override the default endpoints
-	// used when creating clients to interact with GCP services.
-	// When not specified, the default endpoint for the GCP region will be used.
-	// Only 1 endpoint override is permitted for each GCP service.
-	// The maximum number of endpoint overrides allowed is 9.
-	// +listType=map
-	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=9
-	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="only 1 endpoint override is permitted per GCP service name"
-	// +optional
-	// +openshift:enable:FeatureGate=GCPCustomAPIEndpoints
-	ServiceEndpoints []GCPServiceEndpoint `json:"serviceEndpoints,omitempty"`
 }
 
 // GCPResourceLabel is a label to apply to GCP resources created for the cluster.
@@ -769,7 +669,7 @@ type GCPResourceLabel struct {
 	// and the following special characters `_-`. Label key must not have the reserved prefixes `kubernetes-io`
 	// and `openshift-io`.
 	// +kubebuilder:validation:XValidation:rule="!self.startsWith('openshift-io') && !self.startsWith('kubernetes-io')",message="label keys must not start with either `openshift-io` or `kubernetes-io`"
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-z][0-9a-z_-]{0,62}$`
@@ -777,7 +677,7 @@ type GCPResourceLabel struct {
 
 	// value is the value part of the label. A label value can have a maximum of 63 characters and cannot be empty.
 	// Value must contain only lowercase letters, numeric characters, and the following special characters `_-`.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[0-9a-z_-]{1,63}$`
@@ -793,7 +693,7 @@ type GCPResourceTag struct {
 	// An OrganizationID must consist of decimal numbers, and cannot have leading zeroes.
 	// A ProjectID must be 6 to 30 characters in length, can only contain lowercase letters, numbers,
 	// and hyphens, and must start with a letter, and cannot end with a hyphen.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
 	// +kubebuilder:validation:Pattern=`(^[1-9][0-9]{0,31}$)|(^[a-z][a-z0-9-]{4,28}[a-z0-9]$)`
@@ -802,7 +702,7 @@ type GCPResourceTag struct {
 	// key is the key part of the tag. A tag key can have a maximum of 63 characters and cannot be empty.
 	// Tag key must begin and end with an alphanumeric character, and must contain only uppercase, lowercase
 	// alphanumeric characters, and the following special characters `._-`.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([0-9A-Za-z_.-]{0,61}[a-zA-Z0-9])?$`
@@ -811,7 +711,7 @@ type GCPResourceTag struct {
 	// value is the value part of the tag. A tag value can have a maximum of 63 characters and cannot be empty.
 	// Tag value must begin and end with an alphanumeric character, and must contain only uppercase, lowercase
 	// alphanumeric characters, and the following special characters `_-.@%=+:,*#&(){}[]` and spaces.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([0-9A-Za-z_.@%=+:,*#&()\[\]{}\-\s]{0,61}[a-zA-Z0-9])?$`
@@ -1248,34 +1148,12 @@ type VSpherePlatformLoadBalancer struct {
 	Type PlatformLoadBalancerType `json:"type,omitempty"`
 }
 
-// The VSphereFailureDomainZoneType is a string representation of a failure domain
-// zone type. There are two supportable types HostGroup and ComputeCluster
-// +enum
-type VSphereFailureDomainZoneType string
-
-// The VSphereFailureDomainRegionType is a string representation of a failure domain
-// region type. There are two supportable types ComputeCluster and Datacenter
-// +enum
-type VSphereFailureDomainRegionType string
-
-const (
-	// HostGroupFailureDomainZone is a failure domain zone for a vCenter vm-host group.
-	HostGroupFailureDomainZone VSphereFailureDomainZoneType = "HostGroup"
-	// ComputeClusterFailureDomainZone is a failure domain zone for a vCenter compute cluster.
-	ComputeClusterFailureDomainZone VSphereFailureDomainZoneType = "ComputeCluster"
-	// DatacenterFailureDomainRegion is a failure domain region for a vCenter datacenter.
-	DatacenterFailureDomainRegion VSphereFailureDomainRegionType = "Datacenter"
-	// ComputeClusterFailureDomainRegion is a failure domain region for a vCenter compute cluster.
-	ComputeClusterFailureDomainRegion VSphereFailureDomainRegionType = "ComputeCluster"
-)
-
-// VSpherePlatformFailureDomainSpec holds the region and zone failure domain and the vCenter topology of that failure domain.
-// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereHostVMGroupZonal,rule="has(self.zoneAffinity) && self.zoneAffinity.type == 'HostGroup' ?  has(self.regionAffinity) && self.regionAffinity.type == 'ComputeCluster' : true",message="when zoneAffinity type is HostGroup, regionAffinity type must be ComputeCluster"
-// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereHostVMGroupZonal,rule="has(self.zoneAffinity) && self.zoneAffinity.type == 'ComputeCluster' ?  has(self.regionAffinity) && self.regionAffinity.type == 'Datacenter' : true",message="when zoneAffinity type is ComputeCluster, regionAffinity type must be Datacenter"
+// VSpherePlatformFailureDomainSpec holds the region and zone failure domain and
+// the vCenter topology of that failure domain.
 type VSpherePlatformFailureDomainSpec struct {
 	// name defines the arbitrary but unique name
 	// of a failure domain.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
@@ -1285,7 +1163,7 @@ type VSpherePlatformFailureDomainSpec struct {
 	// category in vCenter must be named openshift-region.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=80
-	// +required
+	// +kubebuilder:validation:Required
 	Region string `json:"region"`
 
 	// zone defines the name of a zone tag that will
@@ -1293,34 +1171,19 @@ type VSpherePlatformFailureDomainSpec struct {
 	// category in vCenter must be named openshift-zone.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=80
-	// +required
+	// +kubebuilder:validation:Required
 	Zone string `json:"zone"`
 
-	// regionAffinity holds the type of region, Datacenter or ComputeCluster.
-	// When set to Datacenter, this means the region is a vCenter Datacenter as defined in topology.
-	// When set to ComputeCluster, this means the region is a vCenter Cluster as defined in topology.
-	// +openshift:validation:featureGate=VSphereHostVMGroupZonal
-	// +optional
-	RegionAffinity *VSphereFailureDomainRegionAffinity `json:"regionAffinity,omitempty"`
-
-	// zoneAffinity holds the type of the zone and the hostGroup which
-	// vmGroup and the hostGroup names in vCenter corresponds to
-	// a vm-host group of type Virtual Machine and Host respectively. Is also
-	// contains the vmHostRule which is an affinity vm-host rule in vCenter.
-	// +openshift:validation:featureGate=VSphereHostVMGroupZonal
-	// +optional
-	ZoneAffinity *VSphereFailureDomainZoneAffinity `json:"zoneAffinity,omitempty"`
-
 	// server is the fully-qualified domain name or the IP address of the vCenter server.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=255
 	// ---
 	// + Validation is applied via a patch, we validate the format as either ipv4, ipv6 or hostname
 	Server string `json:"server"`
 
-	// topology describes a given failure domain using vSphere constructs
-	// +required
+	// Topology describes a given failure domain using vSphere constructs
+	// +kubebuilder:validation:Required
 	Topology VSpherePlatformTopology `json:"topology"`
 }
 
@@ -1329,7 +1192,7 @@ type VSpherePlatformFailureDomainSpec struct {
 type VSpherePlatformTopology struct {
 	// datacenter is the name of vCenter datacenter in which virtual machines will be located.
 	// The maximum length of the datacenter name is 80 characters.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=80
 	Datacenter string `json:"datacenter"`
 
@@ -1337,7 +1200,7 @@ type VSpherePlatformTopology struct {
 	// in which virtual machine will be located.
 	// The absolute path is of the form /<datacenter>/host/<cluster>.
 	// The maximum length of the path is 2048 characters.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=2048
 	// +kubebuilder:validation:Pattern=`^/.*?/host/.*?`
 	ComputeCluster string `json:"computeCluster"`
@@ -1350,7 +1213,7 @@ type VSpherePlatformTopology struct {
 	// `govc ls 'network/*'`
 	// Networks should be in the form of an absolute path:
 	// /<datacenter>/network/<portgroup>.
-	// +required
+	// +kubebuilder:validation:Required
 	// +openshift:validation:FeatureGateAwareMaxItems:featureGate="",maxItems=1
 	// +openshift:validation:FeatureGateAwareMaxItems:featureGate=VSphereMultiNetworks,maxItems=10
 	// +kubebuilder:validation:MinItems=1
@@ -1361,7 +1224,7 @@ type VSpherePlatformTopology struct {
 	// virtual machine is located.
 	// The absolute path is of the form /<datacenter>/datastore/<datastore>
 	// The maximum length of the path is 2048 characters.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=2048
 	// +kubebuilder:validation:Pattern=`^/.*?/datastore/.*?`
 	Datastore string `json:"datastore"`
@@ -1392,6 +1255,7 @@ type VSpherePlatformTopology struct {
 	// VSpherePlatformFailureDomainSpec.
 	// For example, for zone=zonea, region=region1, and infrastructure name=test,
 	// the template path would be calculated as /<datacenter>/vm/test-rhcos-region1-zonea.
+	// +openshift:enable:FeatureGate=VSphereControlPlaneMachineSet
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=2048
 	// +kubebuilder:validation:Pattern=`^/.*?/vm/.*?`
@@ -1399,80 +1263,12 @@ type VSpherePlatformTopology struct {
 	Template string `json:"template,omitempty"`
 }
 
-// VSphereFailureDomainZoneAffinity contains the vCenter cluster vm-host group (virtual machine and host types)
-// and the vm-host affinity rule that together creates an affinity configuration for vm-host based zonal.
-// This configuration within vCenter creates the required association between a failure domain, virtual machines
-// and ESXi hosts to create a vm-host based zone.
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'HostGroup' ?  has(self.hostGroup) : !has(self.hostGroup)",message="hostGroup is required when type is HostGroup, and forbidden otherwise"
-// +union
-type VSphereFailureDomainZoneAffinity struct {
-	// type determines the vSphere object type for a zone within this failure domain.
-	// Available types are ComputeCluster and HostGroup.
-	// When set to ComputeCluster, this means the vCenter cluster defined is the zone.
-	// When set to HostGroup, hostGroup must be configured with hostGroup, vmGroup and vmHostRule and
-	// this means the zone is defined by the grouping of those fields.
-	// +kubebuilder:validation:Enum:=HostGroup;ComputeCluster
-	// +required
-	// +unionDiscriminator
-	Type VSphereFailureDomainZoneType `json:"type"`
-
-	// hostGroup holds the vmGroup and the hostGroup names in vCenter
-	// corresponds to a vm-host group of type Virtual Machine and Host respectively. Is also
-	// contains the vmHostRule which is an affinity vm-host rule in vCenter.
-	// +unionMember
-	// +optional
-	HostGroup *VSphereFailureDomainHostGroup `json:"hostGroup,omitempty"`
-}
-
-// VSphereFailureDomainRegionAffinity contains the region type which is the string representation of the
-// VSphereFailureDomainRegionType with available options of Datacenter and ComputeCluster.
-// +union
-type VSphereFailureDomainRegionAffinity struct {
-	// type determines the vSphere object type for a region within this failure domain.
-	// Available types are Datacenter and ComputeCluster.
-	// When set to Datacenter, this means the vCenter Datacenter defined is the region.
-	// When set to ComputeCluster, this means the vCenter cluster defined is the region.
-	// +kubebuilder:validation:Enum:=ComputeCluster;Datacenter
-	// +required
-	// +unionDiscriminator
-	Type VSphereFailureDomainRegionType `json:"type"`
-}
-
-// VSphereFailureDomainHostGroup holds the vmGroup and the hostGroup names in vCenter
-// corresponds to a vm-host group of type Virtual Machine and Host respectively. Is also
-// contains the vmHostRule which is an affinity vm-host rule in vCenter.
-type VSphereFailureDomainHostGroup struct {
-	// vmGroup is the name of the vm-host group of type virtual machine within vCenter for this failure domain.
-	// vmGroup is limited to 80 characters.
-	// This field is required when the VSphereFailureDomain ZoneType is HostGroup
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=80
-	// +required
-	VMGroup string `json:"vmGroup"`
-
-	// hostGroup is the name of the vm-host group of type host within vCenter for this failure domain.
-	// hostGroup is limited to 80 characters.
-	// This field is required when the VSphereFailureDomain ZoneType is HostGroup
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=80
-	// +required
-	HostGroup string `json:"hostGroup"`
-
-	// vmHostRule is the name of the affinity vm-host rule within vCenter for this failure domain.
-	// vmHostRule is limited to 80 characters.
-	// This field is required when the VSphereFailureDomain ZoneType is HostGroup
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=80
-	// +required
-	VMHostRule string `json:"vmHostRule"`
-}
-
 // VSpherePlatformVCenterSpec stores the vCenter connection fields.
 // This is used by the vSphere CCM.
 type VSpherePlatformVCenterSpec struct {
 
 	// server is the fully-qualified domain name or the IP address of the vCenter server.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=255
 	// ---
 	// + Validation is applied via a patch, we validate the format as either ipv4, ipv6 or hostname
@@ -1493,7 +1289,7 @@ type VSpherePlatformVCenterSpec struct {
 	// be used by the Cloud Controller Manager.
 	// Each datacenter listed here should be used within
 	// a topology.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +listType=set
 	Datacenters []string `json:"datacenters"`
@@ -1694,67 +1490,45 @@ type IBMCloudServiceEndpoint struct {
 	// Whereas the IBM Cloud Private VPC service for US South (Dallas) could be configured
 	// with the service `name` of `VPC` and `url` of `https://us.south.private.iaas.cloud.ibm.com`
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	Name IBMCloudServiceName `json:"name"`
 
 	// url is fully qualified URI with scheme https, that overrides the default generated
 	// endpoint for a client.
-	// This must be provided and cannot be empty. The path must follow the pattern
-	// /v[0,9]+ or /api/v[0,9]+
+	// This must be provided and cannot be empty.
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:MaxLength=300
 	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="url must be a valid absolute URL"
-	// +openshift:validation:FeatureGateAwareXValidation:featureGate=DyanmicServiceEndpointIBMCloud,rule="url(self).getScheme() == \"https\"",message="url must use https scheme"
-	// +openshift:validation:FeatureGateAwareXValidation:featureGate=DyanmicServiceEndpointIBMCloud,rule=`matches((url(self).getEscapedPath()), '^/(api/)?v[0-9]+/{0,1}$')`,message="url path must match /v[0,9]+ or /api/v[0,9]+"
 	URL string `json:"url"`
 }
 
 // IBMCloudPlatformSpec holds the desired state of the IBMCloud infrastructure provider.
 // This only includes fields that can be modified in the cluster.
-type IBMCloudPlatformSpec struct {
-	// serviceEndpoints is a list of custom endpoints which will override the default
-	// service endpoints of an IBM service. These endpoints are used by components
-	// within the cluster when trying to reach the IBM Cloud Services that have been
-	// overriden. The CCCMO reads in the IBMCloudPlatformSpec and validates each
-	// endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus
-	// are updated to reflect the same custom endpoints.
-	// A maximum of 13 service endpoints overrides are supported.
-	// +kubebuilder:validation:MaxItems=13
-	// +listType=map
-	// +listMapKey=name
-	// +optional
-	// +openshift:enable:FeatureGate=DyanmicServiceEndpointIBMCloud
-	ServiceEndpoints []IBMCloudServiceEndpoint `json:"serviceEndpoints,omitempty"`
-}
+type IBMCloudPlatformSpec struct{}
 
 // IBMCloudPlatformStatus holds the current status of the IBMCloud infrastructure provider.
 type IBMCloudPlatformStatus struct {
-	// location is where the cluster has been deployed
+	// Location is where the cluster has been deployed
 	Location string `json:"location,omitempty"`
 
-	// resourceGroupName is the Resource Group for new IBMCloud resources created for the cluster.
+	// ResourceGroupName is the Resource Group for new IBMCloud resources created for the cluster.
 	ResourceGroupName string `json:"resourceGroupName,omitempty"`
 
-	// providerType indicates the type of cluster that was created
+	// ProviderType indicates the type of cluster that was created
 	ProviderType IBMCloudProviderType `json:"providerType,omitempty"`
 
-	// cisInstanceCRN is the CRN of the Cloud Internet Services instance managing
+	// CISInstanceCRN is the CRN of the Cloud Internet Services instance managing
 	// the DNS zone for the cluster's base domain
 	CISInstanceCRN string `json:"cisInstanceCRN,omitempty"`
 
-	// dnsInstanceCRN is the CRN of the DNS Services instance managing the DNS zone
+	// DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone
 	// for the cluster's base domain
 	DNSInstanceCRN string `json:"dnsInstanceCRN,omitempty"`
 
 	// serviceEndpoints is a list of custom endpoints which will override the default
-	// service endpoints of an IBM service. These endpoints are used by components
-	// within the cluster when trying to reach the IBM Cloud Services that have been
-	// overriden. The CCCMO reads in the IBMCloudPlatformSpec and validates each
-	// endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus
-	// are updated to reflect the same custom endpoints.
-	// +openshift:validation:FeatureGateAwareMaxItems:featureGate=DyanmicServiceEndpointIBMCloud,maxItems=13
+	// service endpoints of an IBM Cloud service. These endpoints are consumed by
+	// components within the cluster to reach the respective IBM Cloud Services.
 	// +listType=map
 	// +listMapKey=name
 	// +optional
@@ -1804,15 +1578,15 @@ type PowerVSServiceEndpoint struct {
 	// ResourceController - https://cloud.ibm.com/apidocs/resource-controller/resource-controller
 	// Power Cloud - https://cloud.ibm.com/apidocs/power-cloud
 	//
-	// +required
-	// +kubebuilder:validation:Enum=CIS;COS;COSConfig;DNSServices;GlobalCatalog;GlobalSearch;GlobalTagging;HyperProtect;IAM;KeyProtect;Power;ResourceController;ResourceManager;VPC
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=`^[a-z0-9-]+$`
 	Name string `json:"name"`
 
 	// url is fully qualified URI with scheme https, that overrides the default generated
 	// endpoint for a client.
 	// This must be provided and cannot be empty.
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Format=uri
 	// +kubebuilder:validation:Pattern=`^https://`
@@ -1859,11 +1633,11 @@ type PowerVSPlatformStatus struct {
 	// +optional
 	ServiceEndpoints []PowerVSServiceEndpoint `json:"serviceEndpoints,omitempty"`
 
-	// cisInstanceCRN is the CRN of the Cloud Internet Services instance managing
+	// CISInstanceCRN is the CRN of the Cloud Internet Services instance managing
 	// the DNS zone for the cluster's base domain
 	CISInstanceCRN string `json:"cisInstanceCRN,omitempty"`
 
-	// dnsInstanceCRN is the CRN of the DNS Services instance managing the DNS zone
+	// DNSInstanceCRN is the CRN of the DNS Services instance managing the DNS zone
 	// for the cluster's base domain
 	DNSInstanceCRN string `json:"dnsInstanceCRN,omitempty"`
 }
@@ -1875,6 +1649,7 @@ type AlibabaCloudPlatformSpec struct{}
 // AlibabaCloudPlatformStatus holds the current status of the Alibaba Cloud infrastructure provider.
 type AlibabaCloudPlatformStatus struct {
 	// region specifies the region for Alibaba Cloud resources created for the cluster.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z-]+$`
 	// +required
 	Region string `json:"region"`
@@ -1893,11 +1668,13 @@ type AlibabaCloudPlatformStatus struct {
 // AlibabaCloudResourceTag is the set of tags to add to apply to resources.
 type AlibabaCloudResourceTag struct {
 	// key is the key of the tag.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	// +required
 	Key string `json:"key"`
 	// value is the value of the tag.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=128
 	// +required
@@ -1932,7 +1709,7 @@ type NutanixPlatformSpec struct {
 	// When a cluster-wide proxy is installed, by default, this endpoint will be accessed via the proxy.
 	// Should you wish for communication with this endpoint not to be proxied, please add the endpoint to the
 	// proxy spec.noProxy list.
-	// +required
+	// +kubebuilder:validation:Required
 	PrismCentral NutanixPrismEndpoint `json:"prismCentral"`
 
 	// prismElements holds one or more endpoint address and port data to access the Nutanix
@@ -1940,7 +1717,7 @@ type NutanixPlatformSpec struct {
 	// Prism Element (cluster) for an OpenShift cluster, where all the Nutanix resources (VMs, subnets, volumes, etc.)
 	// used in the OpenShift cluster are located. In the future, we may support Nutanix resources (VMs, etc.)
 	// spread over multiple Prism Elements (clusters) of the Prism Central.
-	// +required
+	// +kubebuilder:validation:Required
 	// +listType=map
 	// +listMapKey=name
 	PrismElements []NutanixPrismElementEndpoint `json:"prismElements"`
@@ -1948,7 +1725,6 @@ type NutanixPlatformSpec struct {
 	// failureDomains configures failure domains information for the Nutanix platform.
 	// When set, the failure domains defined here may be used to spread Machines across
 	// prism element clusters to improve fault tolerance of the cluster.
-	// +openshift:validation:FeatureGateAwareMaxItems:featureGate=NutanixMultiSubnets,maxItems=32
 	// +listType=map
 	// +listMapKey=name
 	// +optional
@@ -1962,7 +1738,7 @@ type NutanixFailureDomain struct {
 	// It must consist of only lower case alphanumeric characters and hyphens (-).
 	// It must start and end with an alphanumeric character.
 	// This value is arbitrary and is used to identify the failure domain within the platform.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
 	// +kubebuilder:validation:Pattern=`[a-z0-9]([-a-z0-9]*[a-z0-9])?`
@@ -1971,19 +1747,17 @@ type NutanixFailureDomain struct {
 	// cluster is to identify the cluster (the Prism Element under management of the Prism Central),
 	// in which the Machine's VM will be created. The cluster identifier (uuid or name) can be obtained
 	// from the Prism Central console or using the prism_central API.
-	// +required
+	// +kubebuilder:validation:Required
 	Cluster NutanixResourceIdentifier `json:"cluster"`
 
 	// subnets holds a list of identifiers (one or more) of the cluster's network subnets
-	// If the feature gate NutanixMultiSubnets is enabled, up to 32 subnets may be configured.
 	// for the Machine's VM to connect to. The subnet identifiers (uuid or name) can be
 	// obtained from the Prism Central console or using the prism_central API.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
-	// +openshift:validation:FeatureGateAwareMaxItems:featureGate="",maxItems=1
-	// +openshift:validation:FeatureGateAwareMaxItems:featureGate=NutanixMultiSubnets,maxItems=32
-	// +openshift:validation:FeatureGateAwareXValidation:featureGate=NutanixMultiSubnets,rule="self.all(x, self.exists_one(y, x == y))",message="each subnet must be unique"
-	// +listType=atomic
+	// +kubebuilder:validation:MaxItems=1
+	// +listType=map
+	// +listMapKey=type
 	Subnets []NutanixResourceIdentifier `json:"subnets"`
 }
 
@@ -2006,7 +1780,7 @@ const (
 type NutanixResourceIdentifier struct {
 	// type is the identifier type to use for this resource.
 	// +unionDiscriminator
-	// +required
+	// +kubebuilder:validation:Required
 	Type NutanixIdentifierType `json:"type"`
 
 	// uuid is the UUID of the resource in the PC. It cannot be empty if the type is UUID.
@@ -2021,12 +1795,12 @@ type NutanixResourceIdentifier struct {
 // NutanixPrismEndpoint holds the endpoint address and port to access the Nutanix Prism Central or Element (cluster)
 type NutanixPrismEndpoint struct {
 	// address is the endpoint address (DNS name or IP address) of the Nutanix Prism Central or Element (cluster)
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=256
 	Address string `json:"address"`
 
 	// port is the port number to access the Nutanix Prism Central or Element (cluster)
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
 	Port int32 `json:"port"`
@@ -2036,7 +1810,7 @@ type NutanixPrismEndpoint struct {
 type NutanixPrismElementEndpoint struct {
 	// name is the name of the Prism Element (cluster). This value will correspond with
 	// the cluster field configured on other resources (eg Machines, PVCs, etc).
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxLength=256
 	Name string `json:"name"`
 
@@ -2044,7 +1818,7 @@ type NutanixPrismElementEndpoint struct {
 	// When a cluster-wide proxy is installed, by default, this endpoint will be accessed via the proxy.
 	// Should you wish for communication with this endpoint not to be proxied, please add the endpoint to the
 	// proxy spec.noProxy list.
-	// +required
+	// +kubebuilder:validation:Required
 	Endpoint NutanixPrismEndpoint `json:"endpoint"`
 }
 

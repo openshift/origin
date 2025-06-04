@@ -120,7 +120,10 @@ func Relabel(path string, fileLabel string, shared bool) error {
 		c["level"] = "s0"
 		fileLabel = c.Get()
 	}
-	return selinux.Chcon(path, fileLabel, true)
+	if err := selinux.Chcon(path, fileLabel, true); err != nil {
+		return err
+	}
+	return nil
 }
 
 // DisableSecOpt returns a security opt that can disable labeling

@@ -825,7 +825,7 @@ var _ = SIGDescribe("AdmissionWebhook [Privileged:ClusterAdmin]", func() {
 		_, err := createValidatingWebhookConfiguration(ctx, f, validatingWebhookConfiguration)
 		gomega.Expect(err).To(gomega.HaveOccurred(), "create validatingwebhookconfiguration should have been denied by the api-server")
 		expectedErrMsg := "compilation failed"
-		gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(expectedErrMsg)))
+		gomega.Expect(strings.Contains(err.Error(), expectedErrMsg)).To(gomega.BeTrue())
 	})
 
 	/*
@@ -849,7 +849,7 @@ var _ = SIGDescribe("AdmissionWebhook [Privileged:ClusterAdmin]", func() {
 		_, err := createMutatingWebhookConfiguration(ctx, f, mutatingWebhookConfiguration)
 		gomega.Expect(err).To(gomega.HaveOccurred(), "create mutatingwebhookconfiguration should have been denied by the api-server")
 		expectedErrMsg := "compilation failed"
-		gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(expectedErrMsg)))
+		gomega.Expect(strings.Contains(err.Error(), expectedErrMsg)).To(gomega.BeTrue())
 	})
 
 	/*
@@ -908,7 +908,7 @@ var _ = SIGDescribe("AdmissionWebhook [Privileged:ClusterAdmin]", func() {
 			"mutation-start":   "yes",
 			"mutation-stage-1": "yes",
 		}
-		gomega.Expect(mutatedCM.Data).Should(gomega.Equal(expectedConfigMapData))
+		gomega.Expect(reflect.DeepEqual(expectedConfigMapData, mutatedCM.Data)).To(gomega.BeTrue())
 
 		ginkgo.By("create the configmap with 'skip-me' name")
 
@@ -918,7 +918,7 @@ var _ = SIGDescribe("AdmissionWebhook [Privileged:ClusterAdmin]", func() {
 		expectedConfigMapData = map[string]string{
 			"mutation-start": "yes",
 		}
-		gomega.Expect(skippedCM.Data).Should(gomega.Equal(expectedConfigMapData))
+		gomega.Expect(reflect.DeepEqual(expectedConfigMapData, skippedCM.Data)).To(gomega.BeTrue())
 	})
 })
 

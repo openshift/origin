@@ -25,7 +25,8 @@ type Proxy struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec holds user-settable values for the proxy configuration
+	// Spec holds user-settable values for the proxy configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ProxySpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.

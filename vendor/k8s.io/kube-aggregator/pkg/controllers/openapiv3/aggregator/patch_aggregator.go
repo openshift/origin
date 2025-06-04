@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/apiserver/pkg/util/responsewriter"
 	"k8s.io/klog/v2"
 	"k8s.io/kube-openapi/pkg/handler3"
 	"k8s.io/kube-openapi/pkg/spec3"
@@ -87,7 +86,7 @@ func delegateAndMergeHandleGroupVersion(w http.ResponseWriter, r *http.Request, 
 		var maxLastModified time.Time
 
 		for eligibleURL, apiServiceInfo := range eligibleURLsToAPIServiceInfos {
-			writer := responsewriter.NewInMemoryResponseWriter()
+			writer := newInMemoryResponseWriter()
 			req, err := createNewAPIServiceRequest(r, eligibleURL)
 			if err != nil {
 				klog.Errorf("failed to create request: %s", err.Error())
@@ -103,7 +102,7 @@ func delegateAndMergeHandleGroupVersion(w http.ResponseWriter, r *http.Request, 
 			}
 
 			spec := spec3.OpenAPI{}
-			if err := json.Unmarshal(writer.Data(), &spec); err != nil {
+			if err := json.Unmarshal(writer.data, &spec); err != nil {
 				klog.Errorf("failed to unmarshal OpenAPI for openapiService %v/%v: %s", apiServiceInfo.apiService.Namespace, apiServiceInfo.apiService.Name, err.Error())
 				continue
 			}

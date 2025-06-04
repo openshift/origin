@@ -450,12 +450,8 @@ func (u *Unstructured) SetFinalizers(finalizers []string) {
 }
 
 func (u *Unstructured) GetManagedFields() []metav1.ManagedFieldsEntry {
-	v, found, err := NestedFieldNoCopy(u.Object, "metadata", "managedFields")
+	items, found, err := NestedSlice(u.Object, "metadata", "managedFields")
 	if !found || err != nil {
-		return nil
-	}
-	items, ok := v.([]interface{})
-	if !ok {
 		return nil
 	}
 	managedFields := []metav1.ManagedFieldsEntry{}

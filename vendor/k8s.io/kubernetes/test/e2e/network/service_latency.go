@@ -102,7 +102,7 @@ var _ = common.SIGDescribe("Service endpoints latency", func() {
 		}
 		if n < 2 {
 			failing.Insert("Less than two runs succeeded; aborting.")
-			framework.Fail(strings.Join(failing.List(), "\n"))
+			framework.Failf(strings.Join(failing.List(), "\n"))
 		}
 		percentile := func(p int) time.Duration {
 			est := n * p / 100
@@ -129,7 +129,7 @@ var _ = common.SIGDescribe("Service endpoints latency", func() {
 		if failing.Len() > 0 {
 			errList := strings.Join(failing.List(), "\n")
 			helpfulInfo := fmt.Sprintf("\n50, 90, 99 percentiles: %v %v %v", p50, p90, p99)
-			framework.Fail(errList + helpfulInfo)
+			framework.Failf(errList + helpfulInfo)
 		}
 	})
 })

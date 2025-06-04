@@ -98,7 +98,6 @@ func SerializeObject(mediaType string, encoder runtime.Encoder, hw http.Response
 		attribute.String("protocol", req.Proto),
 		attribute.String("mediaType", mediaType),
 		attribute.String("encoder", string(encoder.Identifier())))
-	req = req.WithContext(ctx)
 	defer span.End(5 * time.Second)
 
 	w := &deferredResponseWriter{
@@ -285,12 +284,7 @@ func WriteObjectNegotiated(s runtime.NegotiatedSerializer, restrictions negotiat
 
 	audit.LogResponseObject(req.Context(), object, gv, s)
 
-	var encoder runtime.Encoder
-	if utilfeature.DefaultFeatureGate.Enabled(features.CBORServingAndStorage) {
-		encoder = s.EncoderForVersion(runtime.UseNondeterministicEncoding(serializer.Serializer), gv)
-	} else {
-		encoder = s.EncoderForVersion(serializer.Serializer, gv)
-	}
+	encoder := s.EncoderForVersion(serializer.Serializer, gv)
 	request.TrackSerializeResponseObjectLatency(req.Context(), func() {
 		if listGVKInContentType {
 			SerializeObject(generateMediaTypeWithGVK(serializer.MediaType, mediaType.Convert), encoder, w, req, statusCode, object)

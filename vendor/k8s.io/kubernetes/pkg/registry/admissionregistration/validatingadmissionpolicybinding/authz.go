@@ -55,10 +55,7 @@ func (v *validatingAdmissionPolicyBindingStrategy) authorizeUpdate(ctx context.C
 }
 
 func (v *validatingAdmissionPolicyBindingStrategy) authorize(ctx context.Context, binding *admissionregistration.ValidatingAdmissionPolicyBinding) error {
-	if v.resourceResolver == nil {
-		return fmt.Errorf(`unexpected internal error: resourceResolver is nil`)
-	}
-	if v.authorizer == nil || binding.Spec.ParamRef == nil {
+	if v.authorizer == nil || v.resourceResolver == nil || binding.Spec.ParamRef == nil {
 		return nil
 	}
 
@@ -75,21 +72,13 @@ func (v *validatingAdmissionPolicyBindingStrategy) authorize(ctx context.Context
 	// default to requiring permissions on all group/version/resources
 	resource, apiGroup, apiVersion := "*", "*", "*"
 
-	var policyErr, gvParseErr, gvrResolveErr error
-
-	var policy *admissionregistration.ValidatingAdmissionPolicy
-	policy, policyErr = v.policyGetter.GetValidatingAdmissionPolicy(ctx, binding.Spec.PolicyName)
-	if policyErr == nil && policy.Spec.ParamKind != nil {
+	if policy, err := v.policyGetter.GetValidatingAdmissionPolicy(ctx, binding.Spec.PolicyName); err == nil && policy.Spec.ParamKind != nil {
 		paramKind := policy.Spec.ParamKind
-		var gv schema.GroupVersion
-		gv, gvParseErr = schema.ParseGroupVersion(paramKind.APIVersion)
-		if gvParseErr == nil {
+		if gv, err := schema.ParseGroupVersion(paramKind.APIVersion); err == nil {
 			// we only need to authorize the parsed group/version
 			apiGroup = gv.Group
 			apiVersion = gv.Version
-			var gvr schema.GroupVersionResource
-			gvr, gvrResolveErr = v.resourceResolver.Resolve(gv.WithKind(paramKind.Kind))
-			if gvrResolveErr == nil {
+			if gvr, err := v.resourceResolver.Resolve(gv.WithKind(paramKind.Kind)); err == nil {
 				// we only need to authorize the resolved resource
 				resource = gvr.Resource
 			}
@@ -118,18 +107,9 @@ func (v *validatingAdmissionPolicyBindingStrategy) authorize(ctx context.Context
 
 	d, _, err := v.authorizer.Authorize(ctx, attrs)
 	if err != nil {
-		return fmt.Errorf(`failed to authorize request: %w`, err)
+		return err
 	}
 	if d != authorizer.DecisionAllow {
-		if policyErr != nil {
-			return fmt.Errorf(`unable to get policy %s to determine minimum required permissions and user %v does not have "%v" permission for all groups, versions and resources`, binding.Spec.PolicyName, user, verb)
-		}
-		if gvParseErr != nil {
-			return fmt.Errorf(`unable to parse paramKind %v to determine minimum required permissions and user %v does not have "%v" permission for all groups, versions and resources`, policy.Spec.ParamKind, user, verb)
-		}
-		if gvrResolveErr != nil {
-			return fmt.Errorf(`unable to resolve paramKind %v to determine minimum required permissions and user %v does not have "%v" permission for all groups, versions and resources`, policy.Spec.ParamKind, user, verb)
-		}
 		return fmt.Errorf(`user %v does not have "%v" permission on the object referenced by paramRef`, user, verb)
 	}
 

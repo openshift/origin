@@ -20,6 +20,7 @@ type ServiceCatalogControllerManager struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ServiceCatalogControllerManagerSpec `json:"spec"`
 	// +optional
@@ -48,6 +49,6 @@ type ServiceCatalogControllerManagerList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata"`
 
-	// items contains the items
+	// Items contains the items
 	Items []ServiceCatalogControllerManager `json:"items"`
 }

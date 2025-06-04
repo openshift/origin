@@ -37,7 +37,6 @@ const (
 	ErrCodeInvalidObj
 	ErrCodeUnreachable
 	ErrCodeTimeout
-	ErrCodeCorruptObj
 )
 
 var errCodeToMessage = map[int]string{
@@ -47,7 +46,6 @@ var errCodeToMessage = map[int]string{
 	ErrCodeInvalidObj:               "invalid object",
 	ErrCodeUnreachable:              "server unreachable",
 	ErrCodeTimeout:                  "request timeout",
-	ErrCodeCorruptObj:               "corrupt object",
 }
 
 func NewKeyNotFoundError(key string, rv int64) *StorageError {
@@ -84,45 +82,30 @@ func NewUnreachableError(key string, rv int64) *StorageError {
 
 func NewTimeoutError(key, msg string) *StorageError {
 	return &StorageError{
-		Code: ErrCodeTimeout,
-		Key:  key,
-		err:  errors.New(msg),
+		Code:               ErrCodeTimeout,
+		Key:                key,
+		AdditionalErrorMsg: msg,
 	}
 }
 
 func NewInvalidObjError(key, msg string) *StorageError {
 	return &StorageError{
-		Code: ErrCodeInvalidObj,
-		Key:  key,
-		err:  errors.New(msg),
-	}
-}
-
-// NewCorruptObjError returns a new StorageError, it represents a corrupt object:
-// a) object data retrieved from the storage failed to transform with the given err.
-// b) the given object failed to decode with the given err
-func NewCorruptObjError(key string, err error) *StorageError {
-	return &StorageError{
-		Code: ErrCodeCorruptObj,
-		Key:  key,
-		err:  err,
+		Code:               ErrCodeInvalidObj,
+		Key:                key,
+		AdditionalErrorMsg: msg,
 	}
 }
 
 type StorageError struct {
-	Code            int
-	Key             string
-	ResourceVersion int64
-
-	// inner error
-	err error
+	Code               int
+	Key                string
+	ResourceVersion    int64
+	AdditionalErrorMsg string
 }
 
-func (e *StorageError) Unwrap() error { return e.err }
-
 func (e *StorageError) Error() string {
-	return fmt.Sprintf("StorageError: %s, Code: %d, Key: %s, ResourceVersion: %d, AdditionalErrorMsg: %v",
-		errCodeToMessage[e.Code], e.Code, e.Key, e.ResourceVersion, e.err)
+	return fmt.Sprintf("StorageError: %s, Code: %d, Key: %s, ResourceVersion: %d, AdditionalErrorMsg: %s",
+		errCodeToMessage[e.Code], e.Code, e.Key, e.ResourceVersion, e.AdditionalErrorMsg)
 }
 
 // IsNotFound returns true if and only if err is "key" not found error.
@@ -153,21 +136,6 @@ func IsRequestTimeout(err error) bool {
 // IsInvalidObj returns true if and only if err is invalid error
 func IsInvalidObj(err error) bool {
 	return isErrCode(err, ErrCodeInvalidObj)
-}
-
-// IsCorruptObject returns true if and only if:
-// a) the given object data retrieved from the storage is not transformable, or
-// b) the given object failed to decode properly
-func IsCorruptObject(err error) bool {
-	if err == nil {
-		return false
-	}
-	var storageErr *StorageError
-	if !errors.As(err, &storageErr) {
-		return false
-	}
-
-	return storageErr.Code == ErrCodeCorruptObj
 }
 
 func isErrCode(err error, code int) bool {
@@ -204,17 +172,11 @@ func NewInvalidError(errors field.ErrorList) InvalidError {
 // not from the underlying storage backend (e.g., etcd).
 type InternalError struct {
 	Reason string
-
-	// retain the inner error to maintain the error tree, so as to enable us
-	// to do proper error checking, but we also need to be backward compatible.
-	err error
 }
 
 func (e InternalError) Error() string {
 	return e.Reason
 }
-
-func (e InternalError) Unwrap() error { return e.err }
 
 // IsInternalError returns true if and only if err is an InternalError.
 func IsInternalError(err error) bool {
@@ -222,8 +184,12 @@ func IsInternalError(err error) bool {
 	return ok
 }
 
-func NewInternalError(err error) InternalError {
-	return InternalError{Reason: err.Error(), err: err}
+func NewInternalError(reason string) InternalError {
+	return InternalError{reason}
+}
+
+func NewInternalErrorf(format string, a ...interface{}) InternalError {
+	return InternalError{fmt.Sprintf(format, a...)}
 }
 
 var tooLargeResourceVersionCauseMsg = "Too large resource version"

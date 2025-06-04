@@ -68,7 +68,7 @@ func (pl *SchedulingGates) EventsToRegister(_ context.Context) ([]framework.Clus
 	// https://github.com/kubernetes/kubernetes/pull/122234
 	return []framework.ClusterEventWithHint{
 		// Pods can be more schedulable once it's gates are removed
-		{Event: framework.ClusterEvent{Resource: framework.Pod, ActionType: framework.UpdatePodSchedulingGatesEliminated}, QueueingHintFn: pl.isSchedulableAfterUpdatePodSchedulingGatesEliminated},
+		{Event: framework.ClusterEvent{Resource: framework.Pod, ActionType: framework.Update}, QueueingHintFn: pl.isSchedulableAfterPodChange},
 	}, nil
 }
 
@@ -79,7 +79,7 @@ func New(_ context.Context, _ runtime.Object, _ framework.Handle, fts feature.Fe
 	}, nil
 }
 
-func (pl *SchedulingGates) isSchedulableAfterUpdatePodSchedulingGatesEliminated(logger klog.Logger, pod *v1.Pod, oldObj, newObj interface{}) (framework.QueueingHint, error) {
+func (pl *SchedulingGates) isSchedulableAfterPodChange(logger klog.Logger, pod *v1.Pod, oldObj, newObj interface{}) (framework.QueueingHint, error) {
 	_, modifiedPod, err := util.As[*v1.Pod](oldObj, newObj)
 	if err != nil {
 		return framework.Queue, err
@@ -90,5 +90,8 @@ func (pl *SchedulingGates) isSchedulableAfterUpdatePodSchedulingGatesEliminated(
 		return framework.QueueSkip, nil
 	}
 
-	return framework.Queue, nil
+	if len(modifiedPod.Spec.SchedulingGates) == 0 {
+		return framework.Queue, nil
+	}
+	return framework.QueueSkip, nil
 }

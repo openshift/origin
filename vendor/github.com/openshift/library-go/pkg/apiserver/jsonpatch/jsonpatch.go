@@ -2,9 +2,6 @@ package jsonpatch
 
 import (
 	"encoding/json"
-	"fmt"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 type PatchOperation struct {
@@ -37,14 +34,7 @@ func (p *PatchSet) WithTest(path string, value interface{}) *PatchSet {
 	return p
 }
 
-func (p *PatchSet) IsEmpty() bool {
-	return len(p.patches) == 0
-}
-
 func (p *PatchSet) Marshal() ([]byte, error) {
-	if err := p.validate(); err != nil {
-		return nil, err
-	}
 	jsonBytes, err := json.Marshal(p.patches)
 	if err != nil {
 		return nil, err
@@ -59,22 +49,6 @@ func (p *PatchSet) addOperation(op, path string, value interface{}) {
 		Value: value,
 	}
 	p.patches = append(p.patches, patch)
-}
-
-func (p *PatchSet) validate() error {
-	var errs []error
-	for i, patch := range p.patches {
-		if patch.Op == patchTestOperation {
-			// testing resourceVersion is fragile
-			// because it is likely to change frequently
-			// instead, test against a different field
-			// should be written.
-			if patch.Path == "/metadata/resourceVersion" {
-				errs = append(errs, fmt.Errorf("test operation at index: %d contains forbidden path: %q", i, patch.Path))
-			}
-		}
-	}
-	return utilerrors.NewAggregate(errs)
 }
 
 type TestCondition struct {

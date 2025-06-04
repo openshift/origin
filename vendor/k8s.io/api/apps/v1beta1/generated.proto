@@ -486,7 +486,8 @@ message StatefulSetSpec {
   optional int32 minReadySeconds = 9;
 
   // PersistentVolumeClaimRetentionPolicy describes the policy used for PVCs created from
-  // the StatefulSet VolumeClaimTemplates.
+  // the StatefulSet VolumeClaimTemplates. This requires the
+  // StatefulSetAutoDeletePVC feature gate to be enabled, which is alpha.
   // +optional
   optional StatefulSetPersistentVolumeClaimRetentionPolicy persistentVolumeClaimRetentionPolicy = 10;
 

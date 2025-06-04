@@ -9,10 +9,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
-
-	"github.com/openshift/origin/pkg/test/extensions"
 	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 )
 
 func testsForSuite() ([]*testCase, error) {
@@ -49,18 +47,6 @@ func testsForSuite() ([]*testCase, error) {
 
 var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 
-func externalBinaryTestsToOriginTestCases(specs extensions.ExtensionTestSpecs) []*testCase {
-	var tests []*testCase
-	for _, spec := range specs {
-		tests = append(tests, &testCase{
-			name:    spec.Name,
-			rawName: spec.Name,
-			binary:  spec.Binary,
-		})
-	}
-	return tests
-}
-
 func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
 	name := spec.Text()
 	tc := &testCase{
@@ -87,14 +73,10 @@ type testCase struct {
 	name string
 	// rawName is the name as reported by external binary
 	rawName string
-
-	// binaryName is the name of the binary to execute for internal tests
+	// binaryName is the name of the external binary
 	binaryName string
-	// binary is the reference when using an external binary
-	binary *extensions.TestBinary
-
-	spec      types.TestSpec
-	locations []types.CodeLocation
+	spec       types.TestSpec
+	locations  []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
@@ -107,12 +89,11 @@ type testCase struct {
 	duration        time.Duration
 	testOutputBytes []byte
 
-	flake               bool
-	failed              bool
-	skipped             bool
-	success             bool
-	timedOut            bool
-	extensionTestResult *extensions.ExtensionTestResult
+	flake    bool
+	failed   bool
+	skipped  bool
+	success  bool
+	timedOut bool
 
 	previous *testCase
 }

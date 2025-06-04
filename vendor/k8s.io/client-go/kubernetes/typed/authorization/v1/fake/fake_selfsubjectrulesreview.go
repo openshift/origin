@@ -19,26 +19,29 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "k8s.io/api/authorization/v1"
-	gentype "k8s.io/client-go/gentype"
-	authorizationv1 "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testing "k8s.io/client-go/testing"
 )
 
-// fakeSelfSubjectRulesReviews implements SelfSubjectRulesReviewInterface
-type fakeSelfSubjectRulesReviews struct {
-	*gentype.FakeClient[*v1.SelfSubjectRulesReview]
+// FakeSelfSubjectRulesReviews implements SelfSubjectRulesReviewInterface
+type FakeSelfSubjectRulesReviews struct {
 	Fake *FakeAuthorizationV1
 }
 
-func newFakeSelfSubjectRulesReviews(fake *FakeAuthorizationV1) authorizationv1.SelfSubjectRulesReviewInterface {
-	return &fakeSelfSubjectRulesReviews{
-		gentype.NewFakeClient[*v1.SelfSubjectRulesReview](
-			fake.Fake,
-			"",
-			v1.SchemeGroupVersion.WithResource("selfsubjectrulesreviews"),
-			v1.SchemeGroupVersion.WithKind("SelfSubjectRulesReview"),
-			func() *v1.SelfSubjectRulesReview { return &v1.SelfSubjectRulesReview{} },
-		),
-		fake,
+var selfsubjectrulesreviewsResource = v1.SchemeGroupVersion.WithResource("selfsubjectrulesreviews")
+
+var selfsubjectrulesreviewsKind = v1.SchemeGroupVersion.WithKind("SelfSubjectRulesReview")
+
+// Create takes the representation of a selfSubjectRulesReview and creates it.  Returns the server's representation of the selfSubjectRulesReview, and an error, if there is any.
+func (c *FakeSelfSubjectRulesReviews) Create(ctx context.Context, selfSubjectRulesReview *v1.SelfSubjectRulesReview, opts metav1.CreateOptions) (result *v1.SelfSubjectRulesReview, err error) {
+	emptyResult := &v1.SelfSubjectRulesReview{}
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateActionWithOptions(selfsubjectrulesreviewsResource, selfSubjectRulesReview, opts), emptyResult)
+	if obj == nil {
+		return emptyResult, err
 	}
+	return obj.(*v1.SelfSubjectRulesReview), err
 }

@@ -115,7 +115,7 @@ func (rc *reconciler) updateStates(reconstructedVolumes map[v1.UniqueVolumeName]
 				Mounter:             volume.mounter,
 				BlockVolumeMapper:   volume.blockVolumeMapper,
 				OuterVolumeSpecName: volume.outerVolumeSpecName,
-				VolumeGIDVolume:     volume.volumeGIDValue,
+				VolumeGidVolume:     volume.volumeGidValue,
 				VolumeSpec:          volume.volumeSpec,
 				VolumeMountState:    operationexecutor.VolumeMountUncertain,
 				SELinuxMountContext: volume.seLinuxMountContext,

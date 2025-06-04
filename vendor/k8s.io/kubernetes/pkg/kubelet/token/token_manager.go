@@ -102,13 +102,11 @@ type Manager struct {
 // * If refresh fails and the old token is still valid, log an error and return the old token.
 // * If refresh fails and the old token is no longer valid, return an error
 func (m *Manager) GetServiceAccountToken(namespace, name string, tr *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error) {
-	// TODO: pass ctx to GetServiceAccountToken after switching pkg/volume to contextual logging
-	ctx := context.TODO()
 	key := keyFunc(name, namespace, tr)
 
 	ctr, ok := m.get(key)
 
-	if ok && !m.requiresRefresh(ctx, ctr) {
+	if ok && !m.requiresRefresh(ctr) {
 		return ctr, nil
 	}
 
@@ -120,8 +118,7 @@ func (m *Manager) GetServiceAccountToken(namespace, name string, tr *authenticat
 		case m.expired(ctr):
 			return nil, fmt.Errorf("token %s expired and refresh failed: %v", key, err)
 		default:
-			logger := klog.FromContext(ctx)
-			logger.Error(err, "Couldn't update token", "cacheKey", key)
+			klog.ErrorS(err, "Couldn't update token", "cacheKey", key)
 			return ctr, nil
 		}
 	}
@@ -171,12 +168,11 @@ func (m *Manager) expired(t *authenticationv1.TokenRequest) bool {
 
 // requiresRefresh returns true if the token is older than 80% of its total
 // ttl, or if the token is older than 24 hours.
-func (m *Manager) requiresRefresh(ctx context.Context, tr *authenticationv1.TokenRequest) bool {
+func (m *Manager) requiresRefresh(tr *authenticationv1.TokenRequest) bool {
 	if tr.Spec.ExpirationSeconds == nil {
 		cpy := tr.DeepCopy()
 		cpy.Status.Token = ""
-		logger := klog.FromContext(ctx)
-		logger.Error(nil, "Expiration seconds was nil for token request", "tokenRequest", cpy)
+		klog.ErrorS(nil, "Expiration seconds was nil for token request", "tokenRequest", cpy)
 		return false
 	}
 	now := m.clock.Now()

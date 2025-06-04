@@ -19,7 +19,7 @@ vet:
 	go vet sigs.k8s.io/json
 
 	@echo "checking for external dependencies"
-	@deps=$$(go list -f '{{ if not (or .Standard .Module.Main) }}{{.ImportPath}}{{ end }}' -deps sigs.k8s.io/json/... || true); \
+	@deps=$$(go mod graph); \
 	if [ -n "$${deps}" ]; then \
 		echo "only stdlib dependencies allowed, found:"; \
 		echo "$${deps}"; \

@@ -5,20 +5,20 @@ package v1
 import (
 	networkv1 "github.com/openshift/api/network/v1"
 	internal "github.com/openshift/client-go/network/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // NetNamespaceApplyConfiguration represents a declarative configuration of the NetNamespace type for use
 // with apply.
 type NetNamespaceApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	NetName                              *string                          `json:"netname,omitempty"`
-	NetID                                *uint32                          `json:"netid,omitempty"`
-	EgressIPs                            []networkv1.NetNamespaceEgressIP `json:"egressIPs,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	NetName                          *string                          `json:"netname,omitempty"`
+	NetID                            *uint32                          `json:"netid,omitempty"`
+	EgressIPs                        []networkv1.NetNamespaceEgressIP `json:"egressIPs,omitempty"`
 }
 
 // NetNamespace constructs a declarative configuration of the NetNamespace type for use with
@@ -70,7 +70,7 @@ func extractNetNamespace(netNamespace *networkv1.NetNamespace, fieldManager stri
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithKind(value string) *NetNamespaceApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -78,7 +78,7 @@ func (b *NetNamespaceApplyConfiguration) WithKind(value string) *NetNamespaceApp
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithAPIVersion(value string) *NetNamespaceApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -87,7 +87,7 @@ func (b *NetNamespaceApplyConfiguration) WithAPIVersion(value string) *NetNamesp
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithName(value string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -96,7 +96,7 @@ func (b *NetNamespaceApplyConfiguration) WithName(value string) *NetNamespaceApp
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithGenerateName(value string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -105,7 +105,7 @@ func (b *NetNamespaceApplyConfiguration) WithGenerateName(value string) *NetName
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithNamespace(value string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -114,7 +114,7 @@ func (b *NetNamespaceApplyConfiguration) WithNamespace(value string) *NetNamespa
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithUID(value types.UID) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -123,7 +123,7 @@ func (b *NetNamespaceApplyConfiguration) WithUID(value types.UID) *NetNamespaceA
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithResourceVersion(value string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -132,25 +132,25 @@ func (b *NetNamespaceApplyConfiguration) WithResourceVersion(value string) *NetN
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithGeneration(value int64) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *NetNamespaceApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *NetNamespaceApplyConfiguration {
+func (b *NetNamespaceApplyConfiguration) WithCreationTimestamp(value metav1.Time) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *NetNamespaceApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *NetNamespaceApplyConfiguration {
+func (b *NetNamespaceApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -159,7 +159,7 @@ func (b *NetNamespaceApplyConfiguration) WithDeletionTimestamp(value apismetav1.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *NetNamespaceApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -169,11 +169,11 @@ func (b *NetNamespaceApplyConfiguration) WithDeletionGracePeriodSeconds(value in
 // overwriting an existing map entries in Labels field with the same key.
 func (b *NetNamespaceApplyConfiguration) WithLabels(entries map[string]string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -184,11 +184,11 @@ func (b *NetNamespaceApplyConfiguration) WithLabels(entries map[string]string) *
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *NetNamespaceApplyConfiguration) WithAnnotations(entries map[string]string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -196,13 +196,13 @@ func (b *NetNamespaceApplyConfiguration) WithAnnotations(entries map[string]stri
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *NetNamespaceApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *NetNamespaceApplyConfiguration {
+func (b *NetNamespaceApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -213,14 +213,14 @@ func (b *NetNamespaceApplyConfiguration) WithOwnerReferences(values ...*metav1.O
 func (b *NetNamespaceApplyConfiguration) WithFinalizers(values ...string) *NetNamespaceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *NetNamespaceApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -253,5 +253,5 @@ func (b *NetNamespaceApplyConfiguration) WithEgressIPs(values ...networkv1.NetNa
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *NetNamespaceApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

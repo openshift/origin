@@ -28,7 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
-	"k8s.io/component-helpers/resource"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
+	"k8s.io/kubernetes/pkg/api/v1/resource"
 	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
@@ -50,10 +51,6 @@ const (
 	// defined here:
 	// https://github.com/torvalds/linux/blob/cac03ac368fabff0122853de2422d4e17a32de08/kernel/sched/core.c#L10546
 	MinQuotaPeriod = 1000
-
-	// From the inverse of the conversion in MilliCPUToQuota:
-	// MinQuotaPeriod * MilliCPUToCPU / QuotaPeriod
-	MinMilliCPULimit = 10
 )
 
 // MilliCPUToQuota converts milliCPU to CFS quota and period values.
@@ -121,22 +118,19 @@ func HugePageLimits(resourceList v1.ResourceList) map[int64]int64 {
 }
 
 // ResourceConfigForPod takes the input pod and outputs the cgroup resource config.
-func ResourceConfigForPod(allocatedPod *v1.Pod, enforceCPULimits bool, cpuPeriod uint64, enforceMemoryQoS bool) *ResourceConfig {
-	podLevelResourcesEnabled := utilfeature.DefaultFeatureGate.Enabled(kubefeatures.PodLevelResources)
+func ResourceConfigForPod(pod *v1.Pod, enforceCPULimits bool, cpuPeriod uint64, enforceMemoryQoS bool) *ResourceConfig {
+	inPlacePodVerticalScalingEnabled := utilfeature.DefaultFeatureGate.Enabled(kubefeatures.InPlacePodVerticalScaling)
 	// sum requests and limits.
-	reqs := resource.PodRequests(allocatedPod, resource.PodResourcesOptions{
-		// SkipPodLevelResources is set to false when PodLevelResources feature is enabled.
-		SkipPodLevelResources: !podLevelResourcesEnabled,
-		UseStatusResources:    false,
+	reqs := resource.PodRequests(pod, resource.PodResourcesOptions{
+		InPlacePodVerticalScalingEnabled: inPlacePodVerticalScalingEnabled,
 	})
 	// track if limits were applied for each resource.
 	memoryLimitsDeclared := true
 	cpuLimitsDeclared := true
 
-	limits := resource.PodLimits(allocatedPod, resource.PodResourcesOptions{
-		// SkipPodLevelResources is set to false when PodLevelResources feature is enabled.
-		SkipPodLevelResources: !podLevelResourcesEnabled,
-		ContainerFn: func(res v1.ResourceList, containerType resource.ContainerType) {
+	limits := resource.PodLimits(pod, resource.PodResourcesOptions{
+		InPlacePodVerticalScalingEnabled: inPlacePodVerticalScalingEnabled,
+		ContainerFn: func(res v1.ResourceList, containerType podutil.ContainerType) {
 			if res.Cpu().IsZero() {
 				cpuLimitsDeclared = false
 			}
@@ -145,16 +139,6 @@ func ResourceConfigForPod(allocatedPod *v1.Pod, enforceCPULimits bool, cpuPeriod
 			}
 		},
 	})
-
-	if podLevelResourcesEnabled && resource.IsPodLevelResourcesSet(allocatedPod) {
-		if !allocatedPod.Spec.Resources.Limits.Cpu().IsZero() {
-			cpuLimitsDeclared = true
-		}
-
-		if !allocatedPod.Spec.Resources.Limits.Memory().IsZero() {
-			memoryLimitsDeclared = true
-		}
-	}
 	// map hugepage pagesize (bytes) to limits (bytes)
 	hugePageLimits := HugePageLimits(reqs)
 
@@ -181,7 +165,7 @@ func ResourceConfigForPod(allocatedPod *v1.Pod, enforceCPULimits bool, cpuPeriod
 	}
 
 	// determine the qos class
-	qosClass := v1qos.GetPodQOS(allocatedPod)
+	qosClass := v1qos.GetPodQOS(pod)
 
 	// build the result
 	result := &ResourceConfig{}

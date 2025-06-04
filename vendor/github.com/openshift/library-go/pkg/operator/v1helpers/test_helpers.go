@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	applyoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,8 +19,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	v1 "github.com/openshift/api/operator/v1"
-	applyoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
-	"github.com/openshift/library-go/pkg/apiserver/jsonpatch"
 )
 
 // NewFakeSharedIndexInformer returns a fake shared index informer, suitable to use in static pod controller unit tests.
@@ -85,7 +84,7 @@ func (fakeSharedIndexInformer) SetTransform(f cache.TransformFunc) error {
 func NewFakeStaticPodOperatorClient(
 	staticPodSpec *operatorv1.StaticPodOperatorSpec, staticPodStatus *operatorv1.StaticPodOperatorStatus,
 	triggerStatusErr func(rv string, status *operatorv1.StaticPodOperatorStatus) error,
-	triggerSpecErr func(rv string, spec *operatorv1.StaticPodOperatorSpec) error) *fakeStaticPodOperatorClient {
+	triggerSpecErr func(rv string, spec *operatorv1.StaticPodOperatorSpec) error) StaticPodOperatorClient {
 	return &fakeStaticPodOperatorClient{
 		fakeStaticPodOperatorSpec:   staticPodSpec,
 		fakeStaticPodOperatorStatus: staticPodStatus,
@@ -101,8 +100,6 @@ type fakeStaticPodOperatorClient struct {
 	resourceVersion             string
 	triggerStatusUpdateError    func(rv string, status *operatorv1.StaticPodOperatorStatus) error
 	triggerSpecUpdateError      func(rv string, status *operatorv1.StaticPodOperatorSpec) error
-
-	patchedOperatorStatus *jsonpatch.PatchSet
 }
 
 func (c *fakeStaticPodOperatorClient) Informer() cache.SharedIndexInformer {
@@ -167,13 +164,13 @@ func (c *fakeStaticPodOperatorClient) ApplyOperatorSpec(ctx context.Context, fie
 
 func (c *fakeStaticPodOperatorClient) ApplyOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) (err error) {
 	if c.triggerStatusUpdateError != nil {
-		operatorStatus := &operatorv1.StaticPodOperatorStatus{OperatorStatus: *mergeOperatorStatusApplyConfiguration(&c.fakeStaticPodOperatorStatus.OperatorStatus, applyConfiguration)}
+		operatorStatus := &operatorv1.StaticPodOperatorStatus{OperatorStatus: *convertOperatorStatusApplyConfiguration(applyConfiguration)}
 		if err := c.triggerStatusUpdateError("", operatorStatus); err != nil {
 			return err
 		}
 	}
 	c.fakeStaticPodOperatorStatus = &operatorv1.StaticPodOperatorStatus{
-		OperatorStatus: *mergeOperatorStatusApplyConfiguration(&c.fakeStaticPodOperatorStatus.OperatorStatus, applyConfiguration),
+		OperatorStatus: *convertOperatorStatusApplyConfiguration(applyConfiguration),
 	}
 	return nil
 }
@@ -183,30 +180,8 @@ func (c *fakeStaticPodOperatorClient) ApplyStaticPodOperatorSpec(ctx context.Con
 }
 
 func (c *fakeStaticPodOperatorClient) ApplyStaticPodOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.StaticPodOperatorStatusApplyConfiguration) (err error) {
-	if c.triggerStatusUpdateError != nil {
-		operatorStatus := mergeStaticPodOperatorStatusApplyConfiguration(&c.fakeStaticPodOperatorStatus.OperatorStatus, applyConfiguration)
-		if err := c.triggerStatusUpdateError("", operatorStatus); err != nil {
-			return err
-		}
-	}
-	c.fakeStaticPodOperatorStatus = mergeStaticPodOperatorStatusApplyConfiguration(&c.fakeStaticPodOperatorStatus.OperatorStatus, applyConfiguration)
+	c.fakeStaticPodOperatorStatus = convertStaticPodOperatorStatusApplyConfiguration(applyConfiguration)
 	return nil
-}
-
-func (c *fakeStaticPodOperatorClient) PatchOperatorStatus(ctx context.Context, jsonPatch *jsonpatch.PatchSet) (err error) {
-	return nil
-}
-
-func (c *fakeStaticPodOperatorClient) PatchStaticOperatorStatus(ctx context.Context, jsonPatch *jsonpatch.PatchSet) (err error) {
-	if c.triggerStatusUpdateError != nil {
-		return c.triggerStatusUpdateError("", nil)
-	}
-	c.patchedOperatorStatus = jsonPatch
-	return nil
-}
-
-func (c *fakeStaticPodOperatorClient) GetPatchedOperatorStatus() *jsonpatch.PatchSet {
-	return c.patchedOperatorStatus
 }
 
 func (c *fakeStaticPodOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
@@ -264,11 +239,11 @@ func (n *fakeNodeLister) Get(name string) (*corev1.Node, error) {
 }
 
 // NewFakeOperatorClient returns a fake operator client suitable to use in static pod controller unit tests.
-func NewFakeOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) *fakeOperatorClient {
+func NewFakeOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) OperatorClientWithFinalizers {
 	return NewFakeOperatorClientWithObjectMeta(nil, spec, status, triggerErr)
 }
 
-func NewFakeOperatorClientWithObjectMeta(meta *metav1.ObjectMeta, spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) *fakeOperatorClient {
+func NewFakeOperatorClientWithObjectMeta(meta *metav1.ObjectMeta, spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, triggerErr func(rv string, status *operatorv1.OperatorStatus) error) OperatorClientWithFinalizers {
 	return &fakeOperatorClient{
 		fakeOperatorSpec:         spec,
 		fakeOperatorStatus:       status,
@@ -284,8 +259,6 @@ type fakeOperatorClient struct {
 	fakeObjectMeta           *metav1.ObjectMeta
 	resourceVersion          string
 	triggerStatusUpdateError func(rv string, status *operatorv1.OperatorStatus) error
-
-	patchedOperatorStatus *jsonpatch.PatchSet
 }
 
 func (c *fakeOperatorClient) Informer() cache.SharedIndexInformer {
@@ -344,20 +317,8 @@ func (c *fakeOperatorClient) ApplyOperatorSpec(ctx context.Context, fieldManager
 }
 
 func (c *fakeOperatorClient) ApplyOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) (err error) {
-	c.fakeOperatorStatus = mergeOperatorStatusApplyConfiguration(c.fakeOperatorStatus, applyConfiguration)
+	c.fakeOperatorStatus = convertOperatorStatusApplyConfiguration(applyConfiguration)
 	return nil
-}
-
-func (c *fakeOperatorClient) PatchOperatorStatus(ctx context.Context, jsonPatch *jsonpatch.PatchSet) (err error) {
-	if c.triggerStatusUpdateError != nil {
-		return c.triggerStatusUpdateError("", nil)
-	}
-	c.patchedOperatorStatus = jsonPatch
-	return nil
-}
-
-func (c *fakeOperatorClient) GetPatchedOperatorStatus() *jsonpatch.PatchSet {
-	return c.patchedOperatorStatus
 }
 
 func (c *fakeOperatorClient) EnsureFinalizer(ctx context.Context, finalizer string) error {
@@ -389,12 +350,12 @@ func (c *fakeOperatorClient) SetObjectMeta(meta *metav1.ObjectMeta) {
 	c.fakeObjectMeta = meta
 }
 
-func mergeOperatorStatusApplyConfiguration(currentOperatorStatus *v1.OperatorStatus, applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) *v1.OperatorStatus {
+func convertOperatorStatusApplyConfiguration(applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) *v1.OperatorStatus {
 	status := &v1.OperatorStatus{
-		ObservedGeneration:      ptr.Deref(applyConfiguration.ObservedGeneration, currentOperatorStatus.ObservedGeneration),
-		Version:                 ptr.Deref(applyConfiguration.Version, currentOperatorStatus.Version),
-		ReadyReplicas:           ptr.Deref(applyConfiguration.ReadyReplicas, currentOperatorStatus.ReadyReplicas),
-		LatestAvailableRevision: ptr.Deref(applyConfiguration.LatestAvailableRevision, currentOperatorStatus.LatestAvailableRevision),
+		ObservedGeneration:      ptr.Deref(applyConfiguration.ObservedGeneration, 0),
+		Version:                 ptr.Deref(applyConfiguration.Version, ""),
+		ReadyReplicas:           ptr.Deref(applyConfiguration.ReadyReplicas, 0),
+		LatestAvailableRevision: ptr.Deref(applyConfiguration.LatestAvailableRevision, 0),
 	}
 
 	for _, condition := range applyConfiguration.Conditions {
@@ -406,20 +367,6 @@ func mergeOperatorStatusApplyConfiguration(currentOperatorStatus *v1.OperatorSta
 		}
 		status.Conditions = append(status.Conditions, newCondition)
 	}
-	var existingConditions []v1.OperatorCondition
-	for _, condition := range currentOperatorStatus.Conditions {
-		var foundCondition bool
-		for _, statusCondition := range status.Conditions {
-			if condition.Type == statusCondition.Type {
-				foundCondition = true
-				break
-			}
-		}
-		if !foundCondition {
-			existingConditions = append(existingConditions, condition)
-		}
-	}
-	status.Conditions = append(status.Conditions, existingConditions...)
 
 	for _, generation := range applyConfiguration.Generations {
 		newGeneration := operatorv1.GenerationStatus{
@@ -432,27 +379,13 @@ func mergeOperatorStatusApplyConfiguration(currentOperatorStatus *v1.OperatorSta
 		}
 		status.Generations = append(status.Generations, newGeneration)
 	}
-	var existingGenerations []v1.GenerationStatus
-	for _, generation := range currentOperatorStatus.Generations {
-		var foundGeneration bool
-		for _, statusGeneration := range status.Generations {
-			if generation.Namespace == statusGeneration.Namespace && generation.Name == statusGeneration.Name {
-				foundGeneration = true
-				break
-			}
-		}
-		if !foundGeneration {
-			existingGenerations = append(existingGenerations, generation)
-		}
-	}
-	status.Generations = append(status.Generations, existingGenerations...)
 
 	return status
 }
 
-func mergeStaticPodOperatorStatusApplyConfiguration(currentOperatorStatus *v1.OperatorStatus, applyConfiguration *applyoperatorv1.StaticPodOperatorStatusApplyConfiguration) *v1.StaticPodOperatorStatus {
+func convertStaticPodOperatorStatusApplyConfiguration(applyConfiguration *applyoperatorv1.StaticPodOperatorStatusApplyConfiguration) *v1.StaticPodOperatorStatus {
 	status := &v1.StaticPodOperatorStatus{
-		OperatorStatus: *mergeOperatorStatusApplyConfiguration(currentOperatorStatus, &applyConfiguration.OperatorStatusApplyConfiguration),
+		OperatorStatus: *convertOperatorStatusApplyConfiguration(&applyConfiguration.OperatorStatusApplyConfiguration),
 	}
 
 	for _, nodeStatus := range applyConfiguration.NodeStatuses {

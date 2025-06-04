@@ -134,8 +134,7 @@ func hasReadWriteOnce(modes []api.PersistentVolumeAccessMode) bool {
 		return false
 	}
 	for _, mode := range modes {
-		if mode == api.ReadWriteOnce ||
-			mode == api.ReadWriteOncePod {
+		if mode == api.ReadWriteOnce {
 			return true
 		}
 	}

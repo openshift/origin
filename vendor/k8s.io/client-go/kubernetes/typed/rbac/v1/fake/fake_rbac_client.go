@@ -29,19 +29,19 @@ type FakeRbacV1 struct {
 }
 
 func (c *FakeRbacV1) ClusterRoles() v1.ClusterRoleInterface {
-	return newFakeClusterRoles(c)
+	return &FakeClusterRoles{c}
 }
 
 func (c *FakeRbacV1) ClusterRoleBindings() v1.ClusterRoleBindingInterface {
-	return newFakeClusterRoleBindings(c)
+	return &FakeClusterRoleBindings{c}
 }
 
 func (c *FakeRbacV1) Roles(namespace string) v1.RoleInterface {
-	return newFakeRoles(c, namespace)
+	return &FakeRoles{c, namespace}
 }
 
 func (c *FakeRbacV1) RoleBindings(namespace string) v1.RoleBindingInterface {
-	return newFakeRoleBindings(c, namespace)
+	return &FakeRoleBindings{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -29,7 +29,7 @@ type FakeAutoscalingV1 struct {
 }
 
 func (c *FakeAutoscalingV1) HorizontalPodAutoscalers(namespace string) v1.HorizontalPodAutoscalerInterface {
-	return newFakeHorizontalPodAutoscalers(c, namespace)
+	return &FakeHorizontalPodAutoscalers{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

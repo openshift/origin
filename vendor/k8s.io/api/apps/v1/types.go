@@ -142,7 +142,7 @@ const (
 	// PersistentVolumeClaims associated with StatefulSet VolumeClaimTemplates
 	// will not be deleted.
 	RetainPersistentVolumeClaimRetentionPolicyType PersistentVolumeClaimRetentionPolicyType = "Retain"
-	// DeletePersistentVolumeClaimRetentionPolicyType specifies that
+	// RetentionPersistentVolumeClaimRetentionPolicyType specifies that
 	// PersistentVolumeClaims associated with StatefulSet VolumeClaimTemplates
 	// will be deleted in the scenario specified in
 	// StatefulSetPersistentVolumeClaimRetentionPolicy.
@@ -255,7 +255,8 @@ type StatefulSetSpec struct {
 	// volume claims are created as needed and retained until manually deleted. This
 	// policy allows the lifecycle to be altered, for example by deleting persistent
 	// volume claims when their stateful set is deleted, or when their pod is scaled
-	// down.
+	// down. This requires the StatefulSetAutoDeletePVC feature gate to be enabled,
+	// which is beta.
 	// +optional
 	PersistentVolumeClaimRetentionPolicy *StatefulSetPersistentVolumeClaimRetentionPolicy `json:"persistentVolumeClaimRetentionPolicy,omitempty" protobuf:"bytes,10,opt,name=persistentVolumeClaimRetentionPolicy"`
 

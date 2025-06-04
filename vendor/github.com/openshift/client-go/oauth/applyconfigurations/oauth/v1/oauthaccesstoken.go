@@ -5,26 +5,26 @@ package v1
 import (
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	internal "github.com/openshift/client-go/oauth/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // OAuthAccessTokenApplyConfiguration represents a declarative configuration of the OAuthAccessToken type for use
 // with apply.
 type OAuthAccessTokenApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	ClientName                           *string  `json:"clientName,omitempty"`
-	ExpiresIn                            *int64   `json:"expiresIn,omitempty"`
-	Scopes                               []string `json:"scopes,omitempty"`
-	RedirectURI                          *string  `json:"redirectURI,omitempty"`
-	UserName                             *string  `json:"userName,omitempty"`
-	UserUID                              *string  `json:"userUID,omitempty"`
-	AuthorizeToken                       *string  `json:"authorizeToken,omitempty"`
-	RefreshToken                         *string  `json:"refreshToken,omitempty"`
-	InactivityTimeoutSeconds             *int32   `json:"inactivityTimeoutSeconds,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	ClientName                       *string  `json:"clientName,omitempty"`
+	ExpiresIn                        *int64   `json:"expiresIn,omitempty"`
+	Scopes                           []string `json:"scopes,omitempty"`
+	RedirectURI                      *string  `json:"redirectURI,omitempty"`
+	UserName                         *string  `json:"userName,omitempty"`
+	UserUID                          *string  `json:"userUID,omitempty"`
+	AuthorizeToken                   *string  `json:"authorizeToken,omitempty"`
+	RefreshToken                     *string  `json:"refreshToken,omitempty"`
+	InactivityTimeoutSeconds         *int32   `json:"inactivityTimeoutSeconds,omitempty"`
 }
 
 // OAuthAccessToken constructs a declarative configuration of the OAuthAccessToken type for use with
@@ -76,7 +76,7 @@ func extractOAuthAccessToken(oAuthAccessToken *oauthv1.OAuthAccessToken, fieldMa
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithKind(value string) *OAuthAccessTokenApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -84,7 +84,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithKind(value string) *OAuthAccess
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithAPIVersion(value string) *OAuthAccessTokenApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -93,7 +93,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithAPIVersion(value string) *OAuth
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithName(value string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -102,7 +102,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithName(value string) *OAuthAccess
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithGenerateName(value string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -111,7 +111,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithGenerateName(value string) *OAu
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithNamespace(value string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -120,7 +120,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithNamespace(value string) *OAuthA
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithUID(value types.UID) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -129,7 +129,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithUID(value types.UID) *OAuthAcce
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithResourceVersion(value string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -138,25 +138,25 @@ func (b *OAuthAccessTokenApplyConfiguration) WithResourceVersion(value string) *
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithGeneration(value int64) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *OAuthAccessTokenApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *OAuthAccessTokenApplyConfiguration {
+func (b *OAuthAccessTokenApplyConfiguration) WithCreationTimestamp(value metav1.Time) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *OAuthAccessTokenApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *OAuthAccessTokenApplyConfiguration {
+func (b *OAuthAccessTokenApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -165,7 +165,7 @@ func (b *OAuthAccessTokenApplyConfiguration) WithDeletionTimestamp(value apismet
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *OAuthAccessTokenApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -175,11 +175,11 @@ func (b *OAuthAccessTokenApplyConfiguration) WithDeletionGracePeriodSeconds(valu
 // overwriting an existing map entries in Labels field with the same key.
 func (b *OAuthAccessTokenApplyConfiguration) WithLabels(entries map[string]string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -190,11 +190,11 @@ func (b *OAuthAccessTokenApplyConfiguration) WithLabels(entries map[string]strin
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *OAuthAccessTokenApplyConfiguration) WithAnnotations(entries map[string]string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -202,13 +202,13 @@ func (b *OAuthAccessTokenApplyConfiguration) WithAnnotations(entries map[string]
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *OAuthAccessTokenApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *OAuthAccessTokenApplyConfiguration {
+func (b *OAuthAccessTokenApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -219,14 +219,14 @@ func (b *OAuthAccessTokenApplyConfiguration) WithOwnerReferences(values ...*meta
 func (b *OAuthAccessTokenApplyConfiguration) WithFinalizers(values ...string) *OAuthAccessTokenApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *OAuthAccessTokenApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -307,5 +307,5 @@ func (b *OAuthAccessTokenApplyConfiguration) WithInactivityTimeoutSeconds(value 
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *OAuthAccessTokenApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

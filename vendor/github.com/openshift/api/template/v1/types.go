@@ -61,24 +61,24 @@ type TemplateList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// items is a list of templates
+	// Items is a list of templates
 	Items []Template `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // Parameter defines a name/value variable that is to be processed during
 // the Template to Config transformation.
 type Parameter struct {
-	// name must be set and it can be referenced in Template
+	// Name must be set and it can be referenced in Template
 	// Items using ${PARAMETER_NAME}. Required.
 	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
 
 	// Optional: The name that will show in UI instead of parameter 'Name'
 	DisplayName string `json:"displayName,omitempty" protobuf:"bytes,2,opt,name=displayName"`
 
-	// description of a parameter. Optional.
+	// Description of a parameter. Optional.
 	Description string `json:"description,omitempty" protobuf:"bytes,3,opt,name=description"`
 
-	// value holds the Parameter data. If specified, the generator will be
+	// Value holds the Parameter data. If specified, the generator will be
 	// ignored. The value replaces all occurrences of the Parameter ${Name}
 	// expression during the Template to Config transformation. Optional.
 	Value string `json:"value,omitempty" protobuf:"bytes,4,opt,name=value"`
@@ -103,7 +103,7 @@ type Parameter struct {
 	//
 	Generate string `json:"generate,omitempty" protobuf:"bytes,5,opt,name=generate"`
 
-	// from is an input value for the generator. Optional.
+	// From is an input value for the generator. Optional.
 	From string `json:"from,omitempty" protobuf:"bytes,6,opt,name=from"`
 
 	// Optional: Indicates the parameter must have a value.  Defaults to false.
@@ -181,24 +181,24 @@ type TemplateInstanceStatus struct {
 	// TemplateInstance's current state.
 	Conditions []TemplateInstanceCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
 
-	// objects references the objects created by the TemplateInstance.
+	// Objects references the objects created by the TemplateInstance.
 	Objects []TemplateInstanceObject `json:"objects,omitempty" protobuf:"bytes,2,rep,name=objects"`
 }
 
 // TemplateInstanceCondition contains condition information for a
 // TemplateInstance.
 type TemplateInstanceCondition struct {
-	// type of the condition, currently Ready or InstantiateFailure.
+	// Type of the condition, currently Ready or InstantiateFailure.
 	Type TemplateInstanceConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TemplateInstanceConditionType"`
-	// status of the condition, one of True, False or Unknown.
+	// Status of the condition, one of True, False or Unknown.
 	Status corev1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status"`
-	// lastTransitionTime is the last time a condition status transitioned from
+	// LastTransitionTime is the last time a condition status transitioned from
 	// one state to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
-	// reason is a brief machine readable explanation for the condition's last
+	// Reason is a brief machine readable explanation for the condition's last
 	// transition.
 	Reason string `json:"reason" protobuf:"bytes,4,opt,name=reason"`
-	// message is a human readable description of the details of the last
+	// Message is a human readable description of the details of the last
 	// transition, complementing reason.
 	Message string `json:"message" protobuf:"bytes,5,opt,name=message"`
 }
@@ -263,7 +263,7 @@ type BrokerTemplateInstance struct {
 
 // BrokerTemplateInstanceSpec describes the state of a BrokerTemplateInstance.
 type BrokerTemplateInstanceSpec struct {
-	// templateInstance is a reference to a TemplateInstance object residing
+	// templateinstance is a reference to a TemplateInstance object residing
 	// in a namespace.
 	TemplateInstance corev1.ObjectReference `json:"templateInstance" protobuf:"bytes,1,opt,name=templateInstance"`
 
@@ -271,7 +271,7 @@ type BrokerTemplateInstanceSpec struct {
 	// containing the necessary template parameters.
 	Secret corev1.ObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
 
-	// bindingIDs is a list of 'binding_id's provided during successive bind
+	// bindingids is a list of 'binding_id's provided during successive bind
 	// calls to the template service broker.
 	BindingIDs []string `json:"bindingIDs,omitempty" protobuf:"bytes,3,rep,name=bindingIDs"`
 }

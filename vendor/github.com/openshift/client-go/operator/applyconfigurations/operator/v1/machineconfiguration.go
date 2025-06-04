@@ -3,21 +3,21 @@
 package v1
 
 import (
-	operatorv1 "github.com/openshift/api/operator/v1"
+	apioperatorv1 "github.com/openshift/api/operator/v1"
 	internal "github.com/openshift/client-go/operator/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // MachineConfigurationApplyConfiguration represents a declarative configuration of the MachineConfiguration type for use
 // with apply.
 type MachineConfigurationApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *MachineConfigurationSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *MachineConfigurationStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *MachineConfigurationSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *MachineConfigurationStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // MachineConfiguration constructs a declarative configuration of the MachineConfiguration type for use with
@@ -41,18 +41,18 @@ func MachineConfiguration(name string) *MachineConfigurationApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractMachineConfiguration(machineConfiguration *operatorv1.MachineConfiguration, fieldManager string) (*MachineConfigurationApplyConfiguration, error) {
+func ExtractMachineConfiguration(machineConfiguration *apioperatorv1.MachineConfiguration, fieldManager string) (*MachineConfigurationApplyConfiguration, error) {
 	return extractMachineConfiguration(machineConfiguration, fieldManager, "")
 }
 
 // ExtractMachineConfigurationStatus is the same as ExtractMachineConfiguration except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractMachineConfigurationStatus(machineConfiguration *operatorv1.MachineConfiguration, fieldManager string) (*MachineConfigurationApplyConfiguration, error) {
+func ExtractMachineConfigurationStatus(machineConfiguration *apioperatorv1.MachineConfiguration, fieldManager string) (*MachineConfigurationApplyConfiguration, error) {
 	return extractMachineConfiguration(machineConfiguration, fieldManager, "status")
 }
 
-func extractMachineConfiguration(machineConfiguration *operatorv1.MachineConfiguration, fieldManager string, subresource string) (*MachineConfigurationApplyConfiguration, error) {
+func extractMachineConfiguration(machineConfiguration *apioperatorv1.MachineConfiguration, fieldManager string, subresource string) (*MachineConfigurationApplyConfiguration, error) {
 	b := &MachineConfigurationApplyConfiguration{}
 	err := managedfields.ExtractInto(machineConfiguration, internal.Parser().Type("com.github.openshift.api.operator.v1.MachineConfiguration"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractMachineConfiguration(machineConfiguration *operatorv1.MachineConfigu
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithKind(value string) *MachineConfigurationApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *MachineConfigurationApplyConfiguration) WithKind(value string) *Machine
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithAPIVersion(value string) *MachineConfigurationApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *MachineConfigurationApplyConfiguration) WithAPIVersion(value string) *M
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithName(value string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *MachineConfigurationApplyConfiguration) WithName(value string) *Machine
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithGenerateName(value string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *MachineConfigurationApplyConfiguration) WithGenerateName(value string) 
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithNamespace(value string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *MachineConfigurationApplyConfiguration) WithNamespace(value string) *Ma
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithUID(value types.UID) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *MachineConfigurationApplyConfiguration) WithUID(value types.UID) *Machi
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithResourceVersion(value string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *MachineConfigurationApplyConfiguration) WithResourceVersion(value strin
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithGeneration(value int64) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *MachineConfigurationApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *MachineConfigurationApplyConfiguration {
+func (b *MachineConfigurationApplyConfiguration) WithCreationTimestamp(value metav1.Time) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *MachineConfigurationApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *MachineConfigurationApplyConfiguration {
+func (b *MachineConfigurationApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *MachineConfigurationApplyConfiguration) WithDeletionTimestamp(value api
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *MachineConfigurationApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *MachineConfigurationApplyConfiguration) WithDeletionGracePeriodSeconds(
 // overwriting an existing map entries in Labels field with the same key.
 func (b *MachineConfigurationApplyConfiguration) WithLabels(entries map[string]string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *MachineConfigurationApplyConfiguration) WithLabels(entries map[string]s
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *MachineConfigurationApplyConfiguration) WithAnnotations(entries map[string]string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *MachineConfigurationApplyConfiguration) WithAnnotations(entries map[str
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *MachineConfigurationApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *MachineConfigurationApplyConfiguration {
+func (b *MachineConfigurationApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *MachineConfigurationApplyConfiguration) WithOwnerReferences(values ...*
 func (b *MachineConfigurationApplyConfiguration) WithFinalizers(values ...string) *MachineConfigurationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *MachineConfigurationApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *MachineConfigurationApplyConfiguration) WithStatus(value *MachineConfig
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *MachineConfigurationApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

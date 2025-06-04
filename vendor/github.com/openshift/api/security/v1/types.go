@@ -45,7 +45,7 @@ type SecurityContextConstraints struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// priority influences the sort order of SCCs when evaluating which SCCs to try first for
+	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
 	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
 	// higher priority. An unset value is considered a 0 priority. If scores
 	// for multiple SCCs are equal they will be sorted from most restrictive to
@@ -54,49 +54,49 @@ type SecurityContextConstraints struct {
 	// +nullable
 	Priority *int32 `json:"priority" protobuf:"varint,2,opt,name=priority"`
 
-	// allowPrivilegedContainer determines if a container can request to be run as privileged.
+	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
 	AllowPrivilegedContainer bool `json:"allowPrivilegedContainer" protobuf:"varint,3,opt,name=allowPrivilegedContainer"`
-	// defaultAddCapabilities is the default set of capabilities that will be added to the container
+	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
 	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
 	// DefaultAddCapabilities and RequiredDropCapabilities.
 	// +nullable
 	// +listType=atomic
 	DefaultAddCapabilities []corev1.Capability `json:"defaultAddCapabilities" protobuf:"bytes,4,rep,name=defaultAddCapabilities,casttype=Capability"`
-	// requiredDropCapabilities are the capabilities that will be dropped from the container.  These
+	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
 	// are required to be dropped and cannot be added.
 	// +nullable
 	// +listType=atomic
 	RequiredDropCapabilities []corev1.Capability `json:"requiredDropCapabilities" protobuf:"bytes,5,rep,name=requiredDropCapabilities,casttype=Capability"`
-	// allowedCapabilities is a list of capabilities that can be requested to add to the container.
+	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
 	// To allow all capabilities you may use '*'.
 	// +nullable
 	// +listType=atomic
 	AllowedCapabilities []corev1.Capability `json:"allowedCapabilities" protobuf:"bytes,6,rep,name=allowedCapabilities,casttype=Capability"`
-	// allowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
+	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	// +k8s:conversion-gen=false
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" protobuf:"varint,7,opt,name=allowHostDirVolumePlugin"`
-	// volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
+	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
 	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
 	// To allow no volumes, set to ["none"].
 	// +nullable
 	// +listType=atomic
 	Volumes []FSType `json:"volumes" protobuf:"bytes,8,rep,name=volumes,casttype=FSType"`
-	// allowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
+	// AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
 	// Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
 	// is allowed in the "Volumes" field.
 	// +optional
 	// +nullable
 	// +listType=atomic
 	AllowedFlexVolumes []AllowedFlexVolume `json:"allowedFlexVolumes,omitempty" protobuf:"bytes,21,rep,name=allowedFlexVolumes"`
-	// allowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
+	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool `json:"allowHostNetwork" protobuf:"varint,9,opt,name=allowHostNetwork"`
-	// allowHostPorts determines if the policy allows host ports in the containers.
+	// AllowHostPorts determines if the policy allows host ports in the containers.
 	AllowHostPorts bool `json:"allowHostPorts" protobuf:"varint,10,opt,name=allowHostPorts"`
-	// allowHostPID determines if the policy allows host pid in the containers.
+	// AllowHostPID determines if the policy allows host pid in the containers.
 	AllowHostPID bool `json:"allowHostPID" protobuf:"varint,11,opt,name=allowHostPID"`
-	// allowHostIPC determines if the policy allows host ipc in the containers.
+	// AllowHostIPC determines if the policy allows host ipc in the containers.
 	AllowHostIPC bool `json:"allowHostIPC" protobuf:"varint,12,opt,name=allowHostIPC"`
 	// userNamespaceLevel determines if the policy allows host users in containers.
 	// Valid values are "AllowHostLevel", "RequirePodLevel", and omitted.
@@ -109,29 +109,29 @@ type SecurityContextConstraints struct {
 	// +default="AllowHostLevel"
 	// +optional
 	UserNamespaceLevel NamespaceLevelType `json:"userNamespaceLevel,omitempty" protobuf:"bytes,26,opt,name=userNamespaceLevel"`
-	// defaultAllowPrivilegeEscalation controls the default setting for whether a
+	// DefaultAllowPrivilegeEscalation controls the default setting for whether a
 	// process can gain more privileges than its parent process.
 	// +optional
 	// +nullable
 	DefaultAllowPrivilegeEscalation *bool `json:"defaultAllowPrivilegeEscalation,omitempty" protobuf:"varint,22,rep,name=defaultAllowPrivilegeEscalation"`
-	// allowPrivilegeEscalation determines if a pod can request to allow
+	// AllowPrivilegeEscalation determines if a pod can request to allow
 	// privilege escalation. If unspecified, defaults to true.
 	// +optional
 	// +nullable
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty" protobuf:"varint,23,rep,name=allowPrivilegeEscalation"`
-	// seLinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
+	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	// +nullable
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" protobuf:"bytes,13,opt,name=seLinuxContext"`
-	// runAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
 	// +nullable
 	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" protobuf:"bytes,14,opt,name=runAsUser"`
-	// supplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
 	// +nullable
 	SupplementalGroups SupplementalGroupsStrategyOptions `json:"supplementalGroups,omitempty" protobuf:"bytes,15,opt,name=supplementalGroups"`
-	// fsGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
 	// +nullable
 	FSGroup FSGroupStrategyOptions `json:"fsGroup,omitempty" protobuf:"bytes,16,opt,name=fsGroup"`
-	// readOnlyRootFilesystem when set to true will force containers to run with a read only root file
+	// ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file
 	// system.  If the container specifically requests to run with a non-read only root file system
 	// the SCC should deny the pod.
 	// If set to false the container may run with a read only root file system if it wishes but it
@@ -149,7 +149,7 @@ type SecurityContextConstraints struct {
 	// +listType=atomic
 	Groups []string `json:"groups" protobuf:"bytes,19,rep,name=groups"`
 
-	// seccompProfiles lists the allowed profiles that may be set for the pod or
+	// SeccompProfiles lists the allowed profiles that may be set for the pod or
 	// container's seccomp annotations.  An unset (nil) or empty value means that no profiles may
 	// be specifid by the pod or container.	The wildcard '*' may be used to allow all profiles.  When
 	// used to generate a value for a pod the first non-wildcard profile will be used as
@@ -158,7 +158,7 @@ type SecurityContextConstraints struct {
 	// +listType=atomic
 	SeccompProfiles []string `json:"seccompProfiles,omitempty" protobuf:"bytes,20,opt,name=seccompProfiles"`
 
-	// allowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
+	// AllowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
 	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
 	// as a prefix of allowed sysctls. Single * means all unsafe sysctls are allowed.
 	// Kubelet has to whitelist all allowed unsafe sysctls explicitly to avoid rejection.
@@ -170,7 +170,7 @@ type SecurityContextConstraints struct {
 	// +nullable
 	// +listType=atomic
 	AllowedUnsafeSysctls []string `json:"allowedUnsafeSysctls,omitempty" protobuf:"bytes,24,rep,name=allowedUnsafeSysctls"`
-	// forbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
+	// ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
 	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
 	// as a prefix of forbidden sysctls. Single * means all sysctls are forbidden.
 	//
@@ -223,13 +223,13 @@ var (
 
 // AllowedFlexVolume represents a single Flexvolume that is allowed to be used.
 type AllowedFlexVolume struct {
-	// driver is the name of the Flexvolume driver.
+	// Driver is the name of the Flexvolume driver.
 	Driver string `json:"driver" protobuf:"bytes,1,opt,name=driver"`
 }
 
 // SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
 type SELinuxContextStrategyOptions struct {
-	// type is the strategy that will dictate what SELinux context is used in the SecurityContext.
+	// Type is the strategy that will dictate what SELinux context is used in the SecurityContext.
 	Type SELinuxContextStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=SELinuxContextStrategyType"`
 	// seLinuxOptions required to run as; required for MustRunAs
 	SELinuxOptions *corev1.SELinuxOptions `json:"seLinuxOptions,omitempty" protobuf:"bytes,2,opt,name=seLinuxOptions"`
@@ -237,22 +237,22 @@ type SELinuxContextStrategyOptions struct {
 
 // RunAsUserStrategyOptions defines the strategy type and any options used to create the strategy.
 type RunAsUserStrategyOptions struct {
-	// type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	// Type is the strategy that will dictate what RunAsUser is used in the SecurityContext.
 	Type RunAsUserStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=RunAsUserStrategyType"`
-	// uid is the user id that containers must run as.  Required for the MustRunAs strategy if not using
+	// UID is the user id that containers must run as.  Required for the MustRunAs strategy if not using
 	// namespace/service account allocated uids.
 	UID *int64 `json:"uid,omitempty" protobuf:"varint,2,opt,name=uid"`
-	// uidRangeMin defines the min value for a strategy that allocates by range.
+	// UIDRangeMin defines the min value for a strategy that allocates by range.
 	UIDRangeMin *int64 `json:"uidRangeMin,omitempty" protobuf:"varint,3,opt,name=uidRangeMin"`
-	// uidRangeMax defines the max value for a strategy that allocates by range.
+	// UIDRangeMax defines the max value for a strategy that allocates by range.
 	UIDRangeMax *int64 `json:"uidRangeMax,omitempty" protobuf:"varint,4,opt,name=uidRangeMax"`
 }
 
 // FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
 type FSGroupStrategyOptions struct {
-	// type is the strategy that will dictate what FSGroup is used in the SecurityContext.
+	// Type is the strategy that will dictate what FSGroup is used in the SecurityContext.
 	Type FSGroupStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=FSGroupStrategyType"`
-	// ranges are the allowed ranges of fs groups.  If you would like to force a single
+	// Ranges are the allowed ranges of fs groups.  If you would like to force a single
 	// fs group then supply a single range with the same start and end.
 	// +listType=atomic
 	Ranges []IDRange `json:"ranges,omitempty" protobuf:"bytes,2,rep,name=ranges"`
@@ -260,9 +260,9 @@ type FSGroupStrategyOptions struct {
 
 // SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
 type SupplementalGroupsStrategyOptions struct {
-	// type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
+	// Type is the strategy that will dictate what supplemental groups is used in the SecurityContext.
 	Type SupplementalGroupsStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=SupplementalGroupsStrategyType"`
-	// ranges are the allowed ranges of supplemental groups.  If you would like to force a single
+	// Ranges are the allowed ranges of supplemental groups.  If you would like to force a single
 	// supplemental group then supply a single range with the same start and end.
 	// +listType=atomic
 	Ranges []IDRange `json:"ranges,omitempty" protobuf:"bytes,2,rep,name=ranges"`
@@ -271,9 +271,9 @@ type SupplementalGroupsStrategyOptions struct {
 // IDRange provides a min/max of an allowed range of IDs.
 // TODO: this could be reused for UIDs.
 type IDRange struct {
-	// min is the start of the range, inclusive.
+	// Min is the start of the range, inclusive.
 	Min int64 `json:"min,omitempty" protobuf:"varint,1,opt,name=min"`
-	// max is the end of the range, inclusive.
+	// Max is the end of the range, inclusive.
 	Max int64 `json:"max,omitempty" protobuf:"varint,2,opt,name=max"`
 }
 

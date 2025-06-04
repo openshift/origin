@@ -38,11 +38,8 @@ type ControllerConfig struct {
 	// TODO(jkyros): inconsistent historical generation resulted in the controllerconfig CRD being
 	// generated with all fields required, while everything else was generated with optional
 
-	// spec contains the desired controller config configuration.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec ControllerConfigSpec `json:"spec"`
-
-	// status contains observed information about the controller config.
 	// +optional
 	Status ControllerConfigStatus `json:"status"`
 }
@@ -50,11 +47,11 @@ type ControllerConfig struct {
 // ControllerConfigSpec is the spec for ControllerConfig resource.
 type ControllerConfigSpec struct {
 	// clusterDNSIP is the cluster DNS IP address
-	// +required
+	// +kubebuilder:validation:Required
 	ClusterDNSIP string `json:"clusterDNSIP"`
 
 	// cloudProviderConfig is the configuration for the given cloud provider
-	// +required
+	// +kubebuilder:validation:Required
 	CloudProviderConfig string `json:"cloudProviderConfig"`
 
 	// platform is deprecated, use Infra.Status.PlatformStatus.Type instead
@@ -68,21 +65,21 @@ type ControllerConfigSpec struct {
 	// TODO: Use string for CA data
 
 	// kubeAPIServerServingCAData managed Kubelet to API Server Cert... Rotated automatically
-	// +required
+	// +kubebuilder:validation:Required
 	KubeAPIServerServingCAData []byte `json:"kubeAPIServerServingCAData"`
 
 	// rootCAData specifies the root CA data
-	// +required
+	// +kubebuilder:validation:Required
 	RootCAData []byte `json:"rootCAData"`
 
-	// cloudProviderCAData specifies the cloud provider CA data
-	// +required
+	// cloudProvider specifies the cloud provider CA data
+	// +kubebuilder:validation:Required
 	// +nullable
 	CloudProviderCAData []byte `json:"cloudProviderCAData"`
 
 	// additionalTrustBundle is a certificate bundle that will be added to the nodes
 	// trusted certificate store.
-	// +required
+	// +kubebuilder:validation:Required
 	// +nullable
 	AdditionalTrustBundle []byte `json:"additionalTrustBundle"`
 
@@ -110,44 +107,44 @@ type ControllerConfigSpec struct {
 	InternalRegistryPullSecret []byte `json:"internalRegistryPullSecret"`
 
 	// images is map of images that are used by the controller to render templates under ./templates/
-	// +required
+	// +kubebuilder:validation:Required
 	Images map[string]string `json:"images"`
 
-	// baseOSContainerImage is the new-format container image for operating system updates.
-	// +required
+	// BaseOSContainerImage is the new-format container image for operating system updates.
+	// +kubebuilder:validation:Required
 	BaseOSContainerImage string `json:"baseOSContainerImage"`
 
-	// baseOSExtensionsContainerImage is the matching extensions container for the new-format container
+	// BaseOSExtensionsContainerImage is the matching extensions container for the new-format container
 	// +optional
 	BaseOSExtensionsContainerImage string `json:"baseOSExtensionsContainerImage"`
 
-	// osImageURL is the old-format container image that contains the OS update payload.
+	// OSImageURL is the old-format container image that contains the OS update payload.
 	// +optional
 	OSImageURL string `json:"osImageURL"`
 
 	// releaseImage is the image used when installing the cluster
-	// +required
+	// +kubebuilder:validation:Required
 	ReleaseImage string `json:"releaseImage"`
 
 	// proxy holds the current proxy configuration for the nodes
-	// +required
+	// +kubebuilder:validation:Required
 	// +nullable
 	Proxy *configv1.ProxyStatus `json:"proxy"`
 
 	// infra holds the infrastructure details
 	// +kubebuilder:validation:EmbeddedResource
-	// +required
+	// +kubebuilder:validation:Required
 	// +nullable
 	Infra *configv1.Infrastructure `json:"infra"`
 
 	// dns holds the cluster dns details
 	// +kubebuilder:validation:EmbeddedResource
-	// +required
+	// +kubebuilder:validation:Required
 	// +nullable
 	DNS *configv1.DNS `json:"dns"`
 
 	// ipFamilies indicates the IP families in use by the cluster network
-	// +required
+	// +kubebuilder:validation:Required
 	IPFamilies IPFamiliesType `json:"ipFamilies"`
 
 	// networkType holds the type of network the cluster is using
@@ -158,8 +155,8 @@ type ControllerConfigSpec struct {
 	// +optional
 	NetworkType string `json:"networkType,omitempty"`
 
-	// network contains additional network related information
-	// +required
+	// Network contains additional network related information
+	// +kubebuilder:validation:Required
 	// +nullable
 	Network *NetworkInfo `json:"network"`
 }
@@ -167,10 +164,10 @@ type ControllerConfigSpec struct {
 // ImageRegistryBundle contains information for writing image registry certificates
 type ImageRegistryBundle struct {
 	// file holds the name of the file where the bundle will be written to disk
-	// +required
+	// +kubebuilder:validation:Required
 	File string `json:"file"`
 	// data holds the contents of the bundle that will be written to the file location
-	// +required
+	// +kubebuilder:validation:Required
 	Data []byte `json:"data"`
 }
 
@@ -186,8 +183,8 @@ const (
 
 // Network contains network related configuration
 type NetworkInfo struct {
-	// mtuMigration contains the MTU migration configuration.
-	// +required
+	// MTUMigration contains the MTU migration configuration.
+	// +kubebuilder:validation:Required
 	// +nullable
 	MTUMigration *configv1.MTUMigration `json:"mtuMigration"`
 }
@@ -199,8 +196,7 @@ type ControllerConfigStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// conditions represents the latest available observations of current state.
-	// +listType=map
-	// +listMapKey=type
+	// +listType=atomic
 	// +optional
 	Conditions []ControllerConfigStatusCondition `json:"conditions"`
 
@@ -213,11 +209,11 @@ type ControllerConfigStatus struct {
 // ControllerCertificate contains info about a specific cert.
 type ControllerCertificate struct {
 	// subject is the cert subject
-	// +required
+	// +kubebuilder:validation:Required
 	Subject string `json:"subject"`
 
 	// signer is the  cert Issuer
-	// +required
+	// +kubebuilder:validation:Required
 	Signer string `json:"signer"`
 
 	// notBefore is the lower boundary for validity
@@ -229,22 +225,22 @@ type ControllerCertificate struct {
 	NotAfter *metav1.Time `json:"notAfter"`
 
 	// bundleFile is the larger bundle a cert comes from
-	// +required
+	// +kubebuilder:validation:Required
 	BundleFile string `json:"bundleFile"`
 }
 
 // ControllerConfigStatusCondition contains condition information for ControllerConfigStatus
 type ControllerConfigStatusCondition struct {
 	// type specifies the state of the operator's reconciliation functionality.
-	// +required
+	// +kubebuilder:validation:Required
 	Type ControllerConfigStatusConditionType `json:"type"`
 
 	// status of the condition, one of True, False, Unknown.
-	// +required
+	// +kubebuilder:validation:Required
 	Status corev1.ConditionStatus `json:"status"`
 
 	// lastTransitionTime is the time of the last update to the current status object.
-	// +required
+	// +kubebuilder:validation:Required
 	// +nullable
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
@@ -311,17 +307,17 @@ type MachineConfig struct {
 
 // MachineConfigSpec is the spec for MachineConfig
 type MachineConfigSpec struct {
-	// osImageURL specifies the remote location that will be used to
+	// OSImageURL specifies the remote location that will be used to
 	// fetch the OS.
 	// +optional
 	OSImageURL string `json:"osImageURL"`
 
-	// baseOSExtensionsContainerImage specifies the remote location that will be used
+	// BaseOSExtensionsContainerImage specifies the remote location that will be used
 	// to fetch the extensions container matching a new-format OS image
 	// +optional
 	BaseOSExtensionsContainerImage string `json:"baseOSExtensionsContainerImage"`
 
-	// config is a Ignition Config object.
+	// Config is a Ignition Config object.
 	// +optional
 	Config runtime.RawExtension `json:"config"`
 
@@ -386,11 +382,8 @@ type MachineConfigPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec contains the desired machine config pool configuration.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec MachineConfigPoolSpec `json:"spec"`
-
-	// status contains observed information about the machine config pool.
 	// +optional
 	Status MachineConfigPoolStatus `json:"status"`
 }
@@ -465,7 +458,7 @@ type PinnedImageSetRef struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$`
-	// +required
+	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 }
 
@@ -526,26 +519,26 @@ type MachineConfigPoolStatus struct {
 // +kubebuilder:validation:XValidation:rule="self.availableMachineCount >= self.readyMachineCount", message="availableMachineCount must be greater than or equal to readyMachineCount"
 type PoolSynchronizerStatus struct {
 	// poolSynchronizerType describes the type of the pool synchronizer.
-	// +required
+	// +kubebuilder:validation:Required
 	PoolSynchronizerType PoolSynchronizerType `json:"poolSynchronizerType"`
 	// machineCount is the number of machines that are managed by the node synchronizer.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=0
 	MachineCount int64 `json:"machineCount"`
 	// updatedMachineCount is the number of machines that have been updated by the node synchronizer.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=0
 	UpdatedMachineCount int64 `json:"updatedMachineCount"`
 	// readyMachineCount is the number of machines managed by the node synchronizer that are in a ready state.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=0
 	ReadyMachineCount int64 `json:"readyMachineCount"`
 	// availableMachineCount is the number of machines managed by the node synchronizer which are available.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=0
 	AvailableMachineCount int64 `json:"availableMachineCount"`
 	// unavailableMachineCount is the number of machines managed by the node synchronizer but are unavailable.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=0
 	UnavailableMachineCount int64 `json:"unavailableMachineCount"`
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf || (self == 0 && oldSelf > 0)", message="observedGeneration must not move backwards except to zero"
@@ -569,10 +562,10 @@ const (
 // ceryExpiry contains the bundle name and the expiry date
 type CertExpiry struct {
 	// bundle is the name of the bundle in which the subject certificate resides
-	// +required
+	// +kubebuilder:validation:Required
 	Bundle string `json:"bundle"`
 	// subject is the subject of the certificate
-	// +required
+	// +kubebuilder:validation:Required
 	Subject string `json:"subject"`
 	// expiry is the date after which the certificate will no longer be valid
 	// +optional
@@ -689,11 +682,8 @@ type KubeletConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec contains the desired kubelet configuration.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec KubeletConfigSpec `json:"spec"`
-
-	// status contains observed information about the kubelet configuration.
 	// +optional
 	Status KubeletConfigStatus `json:"status"`
 }
@@ -705,7 +695,7 @@ type KubeletConfigSpec struct {
 	// +optional
 	LogLevel *int32 `json:"logLevel,omitempty"`
 
-	// machineConfigPoolSelector selects which pools the KubeletConfig shoud apply to.
+	// MachineConfigPoolSelector selects which pools the KubeletConfig shoud apply to.
 	// A nil selector will result in no pools being selected.
 	// +optional
 	MachineConfigPoolSelector *metav1.LabelSelector `json:"machineConfigPoolSelector,omitempty"`
@@ -801,24 +791,20 @@ type ContainerRuntimeConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec contains the desired container runtime configuration.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec ContainerRuntimeConfigSpec `json:"spec"`
-
-	// status contains observed information about the container runtime configuration.
 	// +optional
 	Status ContainerRuntimeConfigStatus `json:"status"`
 }
 
 // ContainerRuntimeConfigSpec defines the desired state of ContainerRuntimeConfig
 type ContainerRuntimeConfigSpec struct {
-	// machineConfigPoolSelector selects which pools the ContainerRuntimeConfig shoud apply to.
+	// MachineConfigPoolSelector selects which pools the ContainerRuntimeConfig shoud apply to.
 	// A nil selector will result in no pools being selected.
 	// +optional
 	MachineConfigPoolSelector *metav1.LabelSelector `json:"machineConfigPoolSelector,omitempty"`
 
-	// containerRuntimeConfig defines the tuneables of the container runtime.
-	// +required
+	// +kubebuilder:validation:Required
 	ContainerRuntimeConfig *ContainerRuntimeConfiguration `json:"containerRuntimeConfig,omitempty"`
 }
 

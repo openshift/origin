@@ -25,7 +25,6 @@ import (
 	storage "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/klog/v2"
 )
 
 const (
@@ -79,7 +78,7 @@ func generateToplogySelectors(key string, values []string) []v1.TopologySelector
 }
 
 // TranslateInTreeStorageClassToCSI translates InTree GCE storage class parameters to CSI storage class
-func (g *gcePersistentDiskCSITranslator) TranslateInTreeStorageClassToCSI(logger klog.Logger, sc *storage.StorageClass) (*storage.StorageClass, error) {
+func (g *gcePersistentDiskCSITranslator) TranslateInTreeStorageClassToCSI(sc *storage.StorageClass) (*storage.StorageClass, error) {
 	var generatedTopologies []v1.TopologySelectorTerm
 
 	np := map[string]string{}
@@ -163,7 +162,7 @@ func backwardCompatibleAccessModes(ams []v1.PersistentVolumeAccessMode) []v1.Per
 
 // TranslateInTreeInlineVolumeToCSI takes a Volume with GCEPersistentDisk set from in-tree
 // and converts the GCEPersistentDisk source to a CSIPersistentVolumeSource
-func (g *gcePersistentDiskCSITranslator) TranslateInTreeInlineVolumeToCSI(logger klog.Logger, volume *v1.Volume, podNamespace string) (*v1.PersistentVolume, error) {
+func (g *gcePersistentDiskCSITranslator) TranslateInTreeInlineVolumeToCSI(volume *v1.Volume, podNamespace string) (*v1.PersistentVolume, error) {
 	if volume == nil || volume.GCEPersistentDisk == nil {
 		return nil, fmt.Errorf("volume is nil or GCE PD not defined on volume")
 	}
@@ -209,7 +208,7 @@ func (g *gcePersistentDiskCSITranslator) TranslateInTreeInlineVolumeToCSI(logger
 
 // TranslateInTreePVToCSI takes a PV with GCEPersistentDisk set from in-tree
 // and converts the GCEPersistentDisk source to a CSIPersistentVolumeSource
-func (g *gcePersistentDiskCSITranslator) TranslateInTreePVToCSI(logger klog.Logger, pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
+func (g *gcePersistentDiskCSITranslator) TranslateInTreePVToCSI(pv *v1.PersistentVolume) (*v1.PersistentVolume, error) {
 	var volID string
 
 	if pv == nil || pv.Spec.GCEPersistentDisk == nil {

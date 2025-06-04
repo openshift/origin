@@ -231,7 +231,6 @@ func init() {
 	utilruntime.Must(addNamespaceMapping("openshift-service-ca-operator", "service-ca"))
 	utilruntime.Must(addNamespaceMapping("openshift-user-workload-monitoring", "Unknown"))
 	utilruntime.Must(addNamespaceMapping("openshift-vsphere-infra", "Unknown"))
-	utilruntime.Must(addNamespaceMapping("openshift-infra", "Unknown"))
 
 	KnownNamespaces = sets.StringKeySet(namespaceToBugzillaComponent)
 }

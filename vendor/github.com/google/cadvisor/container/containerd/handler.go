@@ -22,10 +22,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/errdefs"
+	"github.com/google/cadvisor/container/containerd/errdefs"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
+
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/common"

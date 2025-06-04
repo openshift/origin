@@ -85,7 +85,7 @@ func extractStorageVersionMigration(storageVersionMigration *storagemigrationv1a
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithKind(value string) *StorageVersionMigrationApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -93,7 +93,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithKind(value string) *Stor
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithAPIVersion(value string) *StorageVersionMigrationApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -102,7 +102,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithAPIVersion(value string)
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithName(value string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -111,7 +111,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithName(value string) *Stor
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithGenerateName(value string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -120,7 +120,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithGenerateName(value strin
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithNamespace(value string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -129,7 +129,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithNamespace(value string) 
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithUID(value types.UID) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -138,7 +138,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithUID(value types.UID) *St
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithResourceVersion(value string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -147,7 +147,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithResourceVersion(value st
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithGeneration(value int64) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
@@ -156,7 +156,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithGeneration(value int64) 
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithCreationTimestamp(value metav1.Time) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
@@ -165,7 +165,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithCreationTimestamp(value 
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -174,7 +174,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithDeletionTimestamp(value 
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *StorageVersionMigrationApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -184,11 +184,11 @@ func (b *StorageVersionMigrationApplyConfiguration) WithDeletionGracePeriodSecon
 // overwriting an existing map entries in Labels field with the same key.
 func (b *StorageVersionMigrationApplyConfiguration) WithLabels(entries map[string]string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -199,11 +199,11 @@ func (b *StorageVersionMigrationApplyConfiguration) WithLabels(entries map[strin
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *StorageVersionMigrationApplyConfiguration) WithAnnotations(entries map[string]string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -217,7 +217,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithOwnerReferences(values .
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -228,7 +228,7 @@ func (b *StorageVersionMigrationApplyConfiguration) WithOwnerReferences(values .
 func (b *StorageVersionMigrationApplyConfiguration) WithFinalizers(values ...string) *StorageVersionMigrationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
@@ -258,5 +258,5 @@ func (b *StorageVersionMigrationApplyConfiguration) WithStatus(value *StorageVer
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *StorageVersionMigrationApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

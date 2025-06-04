@@ -7,6 +7,7 @@ approvers:
   - deads2k
   - caesarxuchao
   - liggitt
+  - ncdc
 reviewers:
   - thockin
   - smarterclayton
@@ -22,6 +23,6 @@ reviewers:
   - jsafrane
   - dims
   - ingvagabund
+  - ncdc
 emeritus_approvers:
   - lavalamp
-  - ncdc

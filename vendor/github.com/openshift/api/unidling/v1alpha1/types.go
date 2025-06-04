@@ -32,12 +32,12 @@ type RecordedScaleReference struct {
 // namespace in the specified group.  It is similar to
 // autoscaling.CrossVersionObjectReference.
 type CrossGroupObjectReference struct {
-	// kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
+	// Kind of the referent; More info: http://releases.k8s.io/release-1.3/docs/devel/api-conventions.md#types-kinds"
 	Kind string `json:"kind" protobuf:"bytes,1,opt,name=kind"`
-	// name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names
+	// Name of the referent; More info: http://releases.k8s.io/release-1.3/docs/user-guide/identifiers.md#names
 	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
 	// API version of the referent (deprecated, prefer usng Group instead)
 	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,3,opt,name=apiVersion"`
-	// group of the referent
+	// Group of the referent
 	Group string `json:"group,omitempty" protobuf:"bytes,3,opt,name=group"`
 }

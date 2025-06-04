@@ -188,7 +188,7 @@ Apart from reports the registry is checked for requirement violations.
 
 Reports and violations mechanisms can be extended to add new requirements. To add a new 
 certificate metadata requirements developers would need to:
-* Implement [`Requirement` interface](https://github.com/openshift/origin/blob/main/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces/types.go#L9-L14):
+* Implement [`Requirement` interface](https://github.com/openshift/origin/blob/master/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces/types.go#L9-L14):
 ```golang
 type Requirement interface {
   GetName() string
@@ -220,7 +220,7 @@ func NewSupportsOfflineHostnameChange() tlsmetadatainterfaces.Requirement {
 }
 ```
 
-Markdown report can also be customized, see [example `generateOwnershipMarkdown` method](https://github.com/openshift/origin/blob/main/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata/ownership/requirement.go#L71-L160) for ownership requirement.
+Markdown report can also be customized, see [example `generateOwnershipMarkdown` method](https://github.com/openshift/origin/blob/master/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata/ownership/requirement.go#L71-L160) for ownership requirement.
 
 ## Enforcing requirements in tests
 

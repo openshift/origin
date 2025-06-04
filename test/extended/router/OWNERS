@@ -1,9 +1,25 @@
-# We use aliases defined in OWNERS_ALIASES
-
 approvers:
-- network-ingress-dns-test-case-approvers
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
 reviewers:
-- network-ingress-dns-test-case-reviewers
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
 emeritus_approvers:
   - danehans
   - sgreene570

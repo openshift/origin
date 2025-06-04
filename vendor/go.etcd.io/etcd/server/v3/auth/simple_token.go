@@ -167,7 +167,7 @@ func (t *tokenSimple) enable() {
 
 	delf := func(tk string) {
 		if username, ok := t.simpleTokens[tk]; ok {
-			t.lg.Debug(
+			t.lg.Info(
 				"deleted a simple token",
 				zap.String("user-name", username),
 				zap.String("token", tk),

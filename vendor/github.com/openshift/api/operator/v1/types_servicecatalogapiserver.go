@@ -20,6 +20,7 @@ type ServiceCatalogAPIServer struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ServiceCatalogAPIServerSpec `json:"spec"`
 	// +optional
@@ -48,6 +49,6 @@ type ServiceCatalogAPIServerList struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata"`
 
-	// items contains the items
+	// Items contains the items
 	Items []ServiceCatalogAPIServer `json:"items"`
 }

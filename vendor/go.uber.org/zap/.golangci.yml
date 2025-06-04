@@ -17,7 +17,7 @@ linters:
     - unused
 
     # Our own extras:
-    - gofumpt
+    - gofmt
     - nolintlint # lints nolint directives
     - revive
 

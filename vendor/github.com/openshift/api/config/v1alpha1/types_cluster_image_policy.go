@@ -24,7 +24,7 @@ type ClusterImagePolicy struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec contains the configuration for the cluster image policy.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec ClusterImagePolicySpec `json:"spec"`
 	// status contains the observed state of the resource.
 	// +optional
@@ -41,16 +41,15 @@ type ClusterImagePolicySpec struct {
 	// If multiple scopes match a given image, only the policy requirements for the most specific scope apply. The policy requirements for more general scopes are ignored.
 	// In addition to setting a policy appropriate for your own deployed applications, make sure that a policy on the OpenShift image repositories
 	// quay.io/openshift-release-dev/ocp-release, quay.io/openshift-release-dev/ocp-v4.0-art-dev (or on a more general scope) allows deployment of the OpenShift images required for cluster operation.
-	// If a scope is configured in both the ClusterImagePolicy and the ImagePolicy, or if the scope in ImagePolicy is nested under one of the scopes from the ClusterImagePolicy, only the policy from the ClusterImagePolicy will be applied.
 	// For additional details about the format, please refer to the document explaining the docker transport field,
 	// which can be found at: https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md#docker
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MaxItems=256
 	// +listType=set
 	Scopes []ImageScope `json:"scopes"`
 	// policy contains configuration to allow scopes to be verified, and defines how
 	// images not matching the verification policy will be treated.
-	// +required
+	// +kubebuilder:validation:Required
 	Policy Policy `json:"policy"`
 }
 
@@ -59,7 +58,6 @@ type ClusterImagePolicyStatus struct {
 	// conditions provide details on the status of this API Resource.
 	// +listType=map
 	// +listMapKey=type
-	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 

@@ -13,7 +13,6 @@ image-ocp-openshift-apiserver-operator
 images
 telepresence
 test
-test-operator-integration
 test-unit
 update
 update-bindata
@@ -22,7 +21,6 @@ update-deps-overrides
 update-generated
 update-gofmt
 update-profile-manifests
-update-test-operator-integration
 verify
 verify-bindata
 verify-codegen
