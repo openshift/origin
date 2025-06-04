@@ -402,29 +402,32 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 		}
 
 		// Apply feature gate filtering
+		featureGates := []string{}
+		matches := featureGateRegex.FindAllStringSubmatch(name, -1)
+		for _, match := range matches {
+			if len(match) < 2 {
+				panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
+			}
+			featureGate := match[1]
+			featureGates = append(featureGates, featureGate)
+		}
+
+		// If feature gates are configured, apply filtering
 		if c.EnabledFeatureGates != nil || c.DisabledFeatureGates != nil {
-			featureGates := []string{}
-			matches := featureGateRegex.FindAllStringSubmatch(name, -1)
-			for _, match := range matches {
-				if len(match) < 2 {
-					panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
-				}
-				featureGate := match[1]
-				featureGates = append(featureGates, featureGate)
-			}
-
-			// If no feature gates are configured, exclude all featuregated tests
-			if c.EnabledFeatureGates == nil && len(featureGates) > 0 {
-				return false
-			}
-
 			// If any required feature gates are disabled, exclude the test
 			if c.DisabledFeatureGates != nil && c.DisabledFeatureGates.HasAny(featureGates...) {
 				return false
 			}
 
 			// If feature gates are required, ensure they are all enabled
-			if len(featureGates) > 0 && c.EnabledFeatureGates != nil && !c.EnabledFeatureGates.HasAll(featureGates...) {
+			// Note: HasAll returns true for empty slice, so tests without feature gate requirements pass
+			if c.EnabledFeatureGates != nil && !c.EnabledFeatureGates.HasAll(featureGates...) {
+				return false
+			}
+		} else {
+			// If no feature gates are configured, exclude all featuregated tests
+			// This matches the original includeNonFeatureGateTest behavior
+			if len(featureGates) > 0 {
 				return false
 			}
 		}
