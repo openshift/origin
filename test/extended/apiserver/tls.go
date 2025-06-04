@@ -494,6 +494,12 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
 		}
 
+		ipFamily := getIPFamilyForCluster(*oc, oc.Namespace())
+
+		if ipFamily != IPv4 {
+			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
+		}
+
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
