@@ -1355,16 +1355,16 @@ func applyNNCP(oc *exutil.CLI, name, policy string) {
 	}).WithTimeout(300 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
 }
 
-func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, error) {
+func runCommandInContainers(oc *exutil.CLI, app, container, command string) (map[string]string, error) {
 	results := make(map[string]string)
 
 	// Get all FRR pods
 	out, err := runOcWithRetry(oc.AsAdmin(), "get", "pods",
-		"-n", frrNamespace,
-		"-l", "app=frr-k8s",
-		"-o", "jsonpath={range .items[*]}{.metadata.name}{\"\\t\"}{.spec.nodeName}{\"\\n\"}{end}")
+		"-A",
+		"-l", "app="+app,
+		"-o", "jsonpath={range .items[*]}{.metadata.namespace}{\"\\t\"}{.metadata.name}{\"\\t\"}{.spec.nodeName}{\"\\n\"}{end}")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get FRR pods: %v", err)
+		return nil, fmt.Errorf("failed to get %s pods: %v", app, err)
 	}
 
 	// Process each pod
@@ -1377,22 +1377,31 @@ func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, err
 
 		// Split line into pod name and node name
 		parts := strings.Split(line, "\t")
-		if len(parts) != 2 {
+		if len(parts) != 3 {
 			continue
 		}
-		podName := parts[0]
-		nodeName := parts[1]
+		namespace := parts[0]
+		podName := parts[1]
+		nodeName := parts[2]
 
 		// Execute command in pod
-		output, err := adminExecInPod(oc, frrNamespace, podName, "frr", command)
+		output, err := adminExecInPod(oc, namespace, podName, container, command)
 		if err != nil {
-			framework.Logf("Warning: Command failed in pod %s on node %s: %v", podName, nodeName, err)
+			framework.Logf("Warning: Command failed in pod %s/%s on node %s: %v", namespace, podName, nodeName, err)
 			continue
 		}
 		results[nodeName] = output
 	}
 
 	return results, nil
+}
+
+func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, error) {
+	return runCommandInContainers(oc, "frr-k8s", "frr", command)
+}
+
+func runCommandInOvnKPods(oc *exutil.CLI, command string) (map[string]string, error) {
+	return runCommandInContainers(oc, "ovnkube-node", "ovnkube-controller", command)
 }
 
 func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNamespace string, workerNodesOrderedNames []string) {
@@ -1505,6 +1514,71 @@ func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNames
 
 	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show running-config'"); err == nil {
 		framework.Logf("\nFRR Running Config:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	framework.Logf("\n=== OVN Debugging Information ===")
+
+	if results, err := runCommandInOvnKPods(oc, "ip -d address"); err == nil {
+		framework.Logf("\nInterfaces:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "ip rule"); err == nil {
+		framework.Logf("\nIPv4 rules:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "ip route show table all"); err == nil {
+		framework.Logf("\nIPv4 routing table:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "ip -6 rule"); err == nil {
+		framework.Logf("\nIPv6 rules:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "ip -6 route show table all"); err == nil {
+		framework.Logf("\nIPv6 routing table:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "iptables-save"); err == nil {
+		framework.Logf("\niptables:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "ip6tables-save"); err == nil {
+		framework.Logf("\nip6tables:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "nft list ruleset"); err == nil {
+		framework.Logf("\nnft:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInOvnKPods(oc, "ovs-ofctl dump-flows br-ex"); err == nil {
+		framework.Logf("\nbr-ex flows:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
