@@ -95,7 +95,7 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
 
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", monitorTestInfo, false)
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, o.ClusterFilters, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}

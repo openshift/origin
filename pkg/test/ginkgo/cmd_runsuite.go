@@ -148,7 +148,7 @@ func max(a, b int) int {
 	return b
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string) bool, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
 	upgrade bool) error {
 	ctx := context.Background()
 
@@ -282,7 +282,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
-	logrus.Infof("Found %d filtered tests", len(tests))
+	origCount := len(tests)
+	logrus.Infof("Filtering tests by cluster state, count=%d", origCount)
+	// Filter based on cluster environment
+	if clusterFilters != nil {
+		tests = filterTestsByClusterState(tests, clusterFilters)
+	}
+	filteredCount := len(tests)
+	logrus.Infof("Removed %d tests incompatible with current cluster state", origCount-filteredCount)
+
+	logrus.Infof("Found %d filtered tests", filteredCount)
 
 	count := o.Count
 	if count == 0 {
@@ -708,6 +717,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+func filterTestsByClusterState(tests []*testCase, filter func(string) bool) []*testCase {
+	matches := make([]*testCase, 0, len(tests))
+	for _, test := range tests {
+		if !filter(test.name) {
+			continue
+		}
+		matches = append(matches, test)
+	}
+	return matches
 }
 
 func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {

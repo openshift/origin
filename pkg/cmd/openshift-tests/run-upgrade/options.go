@@ -118,7 +118,7 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests-upgrade", monitorTestInfo, true)
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, nil, "openshift-tests-upgrade", monitorTestInfo, true)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
