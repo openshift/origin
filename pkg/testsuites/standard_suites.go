@@ -88,6 +88,20 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 		}
 	}
 
+	// Now handle setting qualifiers for parent suites once we've assembled the complete
+	// list of suites.
+	for _, e := range extensionInfos {
+		for _, s := range e.Suites {
+			for _, p := range s.Parents {
+				for _, parent := range suites {
+					if parent.Name == p {
+						parent.Qualifiers = append(parent.Qualifiers, s.Qualifiers...)
+					}
+				}
+			}
+		}
+	}
+
 	return suites, nil
 }
 
