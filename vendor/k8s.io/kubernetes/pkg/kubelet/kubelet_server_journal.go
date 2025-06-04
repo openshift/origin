@@ -384,7 +384,7 @@ func (n *nodeLogQuery) splitNativeVsFileLoggers(ctx context.Context) ([]string, 
 // copyServiceLogs invokes journalctl or Get-WinEvent with the provided args. Note that
 // services are explicitly passed here to account for the heuristics.
 func (n *nodeLogQuery) copyServiceLogs(ctx context.Context, w io.Writer, services []string, previousBoot int) {
-	cmdStr, args, cmdEnv, err := getLoggingCmd(n, services)
+	cmdStr, args, err := getLoggingCmd(n, services)
 	if err != nil {
 		fmt.Fprintf(w, "\nfailed to get logging cmd: %v\n", err)
 		return
@@ -392,7 +392,6 @@ func (n *nodeLogQuery) copyServiceLogs(ctx context.Context, w io.Writer, service
 	cmd := exec.CommandContext(ctx, cmdStr, args...)
 	cmd.Stdout = w
 	cmd.Stderr = w
-	cmd.Env = append(os.Environ(), cmdEnv...)
 
 	if err := cmd.Run(); err != nil {
 		if _, ok := err.(*exec.ExitError); ok {
@@ -412,7 +411,7 @@ func copyFileLogs(ctx context.Context, w io.Writer, services []string) {
 	}
 
 	for _, service := range services {
-		heuristicsCopyFileLogs(ctx, w, nodeLogDir, service)
+		heuristicsCopyFileLogs(ctx, w, service)
 	}
 }
 
@@ -421,7 +420,7 @@ func copyFileLogs(ctx context.Context, w io.Writer, services []string) {
 // /var/log/service.log or
 // /var/log/service/service.log or
 // in that order stopping on first success.
-func heuristicsCopyFileLogs(ctx context.Context, w io.Writer, logDir, service string) {
+func heuristicsCopyFileLogs(ctx context.Context, w io.Writer, service string) {
 	logFileNames := [3]string{
 		service,
 		fmt.Sprintf("%s.log", service),
@@ -430,7 +429,12 @@ func heuristicsCopyFileLogs(ctx context.Context, w io.Writer, logDir, service st
 
 	var err error
 	for _, logFileName := range logFileNames {
-		err = heuristicsCopyFileLog(ctx, w, logDir, logFileName)
+		var logFile string
+		logFile, err = securejoin.SecureJoin(nodeLogDir, logFileName)
+		if err != nil {
+			break
+		}
+		err = heuristicsCopyFileLog(ctx, w, logFile)
 		if err == nil {
 			break
 		} else if errors.Is(err, os.ErrNotExist) {
@@ -469,6 +473,30 @@ func newReaderCtx(ctx context.Context, r io.Reader) io.Reader {
 		ctx:    ctx,
 		Reader: r,
 	}
+}
+
+// heuristicsCopyFileLog returns the contents of the given logFile
+func heuristicsCopyFileLog(ctx context.Context, w io.Writer, logFile string) error {
+	fInfo, err := os.Stat(logFile)
+	if err != nil {
+		return err
+	}
+	// This is to account for the heuristics where logs for service foo
+	// could be in /var/log/foo/
+	if fInfo.IsDir() {
+		return os.ErrNotExist
+	}
+
+	f, err := os.Open(logFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := io.Copy(w, newReaderCtx(ctx, f)); err != nil {
+		return err
+	}
+	return nil
 }
 
 func safeServiceName(s string) error {

@@ -44,9 +44,6 @@ type Ast struct {
 
 // NativeRep converts the AST to a Go-native representation.
 func (ast *Ast) NativeRep() *celast.AST {
-	if ast == nil {
-		return nil
-	}
 	return ast.impl
 }
 
@@ -58,13 +55,16 @@ func (ast *Ast) Expr() *exprpb.Expr {
 	if ast == nil {
 		return nil
 	}
-	pbExpr, _ := celast.ExprToProto(ast.NativeRep().Expr())
+	pbExpr, _ := celast.ExprToProto(ast.impl.Expr())
 	return pbExpr
 }
 
 // IsChecked returns whether the Ast value has been successfully type-checked.
 func (ast *Ast) IsChecked() bool {
-	return ast.NativeRep().IsChecked()
+	if ast == nil {
+		return false
+	}
+	return ast.impl.IsChecked()
 }
 
 // SourceInfo returns character offset and newline position information about expression elements.
@@ -72,7 +72,7 @@ func (ast *Ast) SourceInfo() *exprpb.SourceInfo {
 	if ast == nil {
 		return nil
 	}
-	pbInfo, _ := celast.SourceInfoToProto(ast.NativeRep().SourceInfo())
+	pbInfo, _ := celast.SourceInfoToProto(ast.impl.SourceInfo())
 	return pbInfo
 }
 
@@ -95,7 +95,7 @@ func (ast *Ast) OutputType() *Type {
 	if ast == nil {
 		return types.ErrorType
 	}
-	return ast.NativeRep().GetType(ast.NativeRep().Expr().ID())
+	return ast.impl.GetType(ast.impl.Expr().ID())
 }
 
 // Source returns a view of the input used to create the Ast. This source may be complete or
@@ -218,12 +218,12 @@ func (e *Env) Check(ast *Ast) (*Ast, *Issues) {
 	if err != nil {
 		errs := common.NewErrors(ast.Source())
 		errs.ReportError(common.NoLocation, err.Error())
-		return nil, NewIssuesWithSourceInfo(errs, ast.NativeRep().SourceInfo())
+		return nil, NewIssuesWithSourceInfo(errs, ast.impl.SourceInfo())
 	}
 
-	checked, errs := checker.Check(ast.NativeRep(), ast.Source(), chk)
+	checked, errs := checker.Check(ast.impl, ast.Source(), chk)
 	if len(errs.GetErrors()) > 0 {
-		return nil, NewIssuesWithSourceInfo(errs, ast.NativeRep().SourceInfo())
+		return nil, NewIssuesWithSourceInfo(errs, ast.impl.SourceInfo())
 	}
 	// Manually create the Ast to ensure that the Ast source information (which may be more
 	// detailed than the information provided by Check), is returned to the caller.
@@ -244,7 +244,7 @@ func (e *Env) Check(ast *Ast) (*Ast, *Issues) {
 		}
 	}
 	// Apply additional validators on the type-checked result.
-	iss := NewIssuesWithSourceInfo(errs, ast.NativeRep().SourceInfo())
+	iss := NewIssuesWithSourceInfo(errs, ast.impl.SourceInfo())
 	for _, v := range e.validators {
 		v.Validate(e, vConfig, checked, iss)
 	}
@@ -309,13 +309,17 @@ func (e *Env) Extend(opts ...EnvOption) (*Env, error) {
 	copy(chkOptsCopy, e.chkOpts)
 
 	// Copy the declarations if needed.
+	varsCopy := []*decls.VariableDecl{}
 	if chk != nil {
 		// If the type-checker has already been instantiated, then the e.declarations have been
 		// validated within the chk instance.
 		chkOptsCopy = append(chkOptsCopy, checker.ValidatedDeclarations(chk))
+	} else {
+		// If the type-checker has not been instantiated, ensure the unvalidated declarations are
+		// provided to the extended Env instance.
+		varsCopy = make([]*decls.VariableDecl, len(e.variables))
+		copy(varsCopy, e.variables)
 	}
-	varsCopy := make([]*decls.VariableDecl, len(e.variables))
-	copy(varsCopy, e.variables)
 
 	// Copy macros and program options
 	macsCopy := make([]parser.Macro, len(e.macros))
@@ -412,17 +416,6 @@ func (e *Env) Libraries() []string {
 	return libraries
 }
 
-// HasFunction returns whether a specific function has been configured in the environment
-func (e *Env) HasFunction(functionName string) bool {
-	_, ok := e.functions[functionName]
-	return ok
-}
-
-// Functions returns map of Functions, keyed by function name, that have been configured in the environment.
-func (e *Env) Functions() map[string]*decls.FunctionDecl {
-	return e.functions
-}
-
 // HasValidator returns whether a specific ASTValidator has been configured in the environment.
 func (e *Env) HasValidator(name string) bool {
 	for _, v := range e.validators {
@@ -459,12 +452,6 @@ func (e *Env) ParseSource(src Source) (*Ast, *Issues) {
 
 // Program generates an evaluable instance of the Ast within the environment (Env).
 func (e *Env) Program(ast *Ast, opts ...ProgramOption) (Program, error) {
-	return e.PlanProgram(ast.NativeRep(), opts...)
-}
-
-// PlanProgram generates an evaluable instance of the AST in the go-native representation within
-// the environment (Env).
-func (e *Env) PlanProgram(a *celast.AST, opts ...ProgramOption) (Program, error) {
 	optSet := e.progOpts
 	if len(opts) != 0 {
 		mergedOpts := []ProgramOption{}
@@ -472,7 +459,7 @@ func (e *Env) PlanProgram(a *celast.AST, opts ...ProgramOption) (Program, error)
 		mergedOpts = append(mergedOpts, opts...)
 		optSet = mergedOpts
 	}
-	return newProgram(e, a, optSet)
+	return newProgram(e, ast, optSet)
 }
 
 // CELTypeAdapter returns the `types.Adapter` configured for the environment.
@@ -766,10 +753,10 @@ func (i *Issues) Append(other *Issues) *Issues {
 	if i == nil {
 		return other
 	}
-	if other == nil || i == other {
+	if other == nil {
 		return i
 	}
-	return NewIssuesWithSourceInfo(i.errs.Append(other.errs.GetErrors()), i.info)
+	return NewIssues(i.errs.Append(other.errs.GetErrors()))
 }
 
 // String converts the issues to a suitable display string.
@@ -803,7 +790,7 @@ type interopCELTypeProvider struct {
 
 // FindStructType returns a types.Type instance for the given fully-qualified typeName if one exists.
 //
-// This method proxies to the underlying ref.TypeProvider's FindType method and converts protobuf type
+// This method proxies to the underyling ref.TypeProvider's FindType method and converts protobuf type
 // into a native type representation. If the conversion fails, the type is listed as not found.
 func (p *interopCELTypeProvider) FindStructType(typeName string) (*types.Type, bool) {
 	if et, found := p.FindType(typeName); found {
@@ -826,7 +813,7 @@ func (p *interopCELTypeProvider) FindStructFieldNames(typeName string) ([]string
 // FindStructFieldType returns a types.FieldType instance for the given fully-qualified typeName and field
 // name, if one exists.
 //
-// This method proxies to the underlying ref.TypeProvider's FindFieldType method and converts protobuf type
+// This method proxies to the underyling ref.TypeProvider's FindFieldType method and converts protobuf type
 // into a native type representation. If the conversion fails, the type is listed as not found.
 func (p *interopCELTypeProvider) FindStructFieldType(structType, fieldName string) (*types.FieldType, bool) {
 	if ft, found := p.FindFieldType(structType, fieldName); found {

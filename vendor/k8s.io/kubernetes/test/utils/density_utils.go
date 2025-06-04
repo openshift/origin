@@ -18,7 +18,6 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -100,7 +99,7 @@ func VerifyLabelsRemoved(c clientset.Interface, nodeName string, labelKeys []str
 	}
 	for _, labelKey := range labelKeys {
 		if node.Labels != nil && len(node.Labels[labelKey]) != 0 {
-			return errors.New("Failed removing label " + labelKey + " of the node " + nodeName)
+			return fmt.Errorf("Failed removing label " + labelKey + " of the node " + nodeName)
 		}
 	}
 	return nil

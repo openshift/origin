@@ -321,6 +321,6 @@ var _ = g.Describe("[sig-network][Feature:CNIMigration]", g.Ordered, func() {
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
 		// 5 min timeout for operators to "settle"
-		framework.ExpectNoError(operator.WaitForOperatorsToSettle(ctx, client, 5))
+		framework.ExpectNoError(operator.WaitForOperatorsToSettle(ctx, client))
 	})
 })

@@ -19,6 +19,7 @@ package podtolerationrestriction
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -50,7 +51,7 @@ func loadConfiguration(config io.Reader) (*internalapi.Configuration, error) {
 		return internalConfig, nil
 	}
 	// we have a config so parse it.
-	data, err := io.ReadAll(config)
+	data, err := ioutil.ReadAll(config)
 	if err != nil {
 		return nil, err
 	}

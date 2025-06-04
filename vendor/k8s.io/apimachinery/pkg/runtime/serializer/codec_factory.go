@@ -17,6 +17,9 @@ limitations under the License.
 package serializer
 
 import (
+	"mime"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -25,26 +28,41 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/versioning"
 )
 
-func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, options CodecFactoryOptions) []runtime.SerializerInfo {
+// serializerExtensions are for serializers that are conditionally compiled in
+var serializerExtensions = []func(*runtime.Scheme) (serializerType, bool){}
+
+type serializerType struct {
+	AcceptContentTypes []string
+	ContentType        string
+	FileExtensions     []string
+	// EncodesAsText should be true if this content type can be represented safely in UTF-8
+	EncodesAsText bool
+
+	Serializer       runtime.Serializer
+	PrettySerializer runtime.Serializer
+	StrictSerializer runtime.Serializer
+
+	AcceptStreamContentTypes []string
+	StreamContentType        string
+
+	Framer           runtime.Framer
+	StreamSerializer runtime.Serializer
+}
+
+func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, options CodecFactoryOptions) []serializerType {
 	jsonSerializer := json.NewSerializerWithOptions(
 		mf, scheme, scheme,
 		json.SerializerOptions{Yaml: false, Pretty: false, Strict: options.Strict},
 	)
-	jsonSerializerType := runtime.SerializerInfo{
-		MediaType:        runtime.ContentTypeJSON,
-		MediaTypeType:    "application",
-		MediaTypeSubType: "json",
-		EncodesAsText:    true,
-		Serializer:       jsonSerializer,
-		StrictSerializer: json.NewSerializerWithOptions(
-			mf, scheme, scheme,
-			json.SerializerOptions{Yaml: false, Pretty: false, Strict: true},
-		),
-		StreamSerializer: &runtime.StreamSerializerInfo{
-			EncodesAsText: true,
-			Serializer:    jsonSerializer,
-			Framer:        json.Framer,
-		},
+	jsonSerializerType := serializerType{
+		AcceptContentTypes: []string{runtime.ContentTypeJSON},
+		ContentType:        runtime.ContentTypeJSON,
+		FileExtensions:     []string{"json"},
+		EncodesAsText:      true,
+		Serializer:         jsonSerializer,
+
+		Framer:           json.Framer,
+		StreamSerializer: jsonSerializer,
 	}
 	if options.Pretty {
 		jsonSerializerType.PrettySerializer = json.NewSerializerWithOptions(
@@ -52,6 +70,12 @@ func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, option
 			json.SerializerOptions{Yaml: false, Pretty: true, Strict: options.Strict},
 		)
 	}
+
+	strictJSONSerializer := json.NewSerializerWithOptions(
+		mf, scheme, scheme,
+		json.SerializerOptions{Yaml: false, Pretty: false, Strict: true},
+	)
+	jsonSerializerType.StrictSerializer = strictJSONSerializer
 
 	yamlSerializer := json.NewSerializerWithOptions(
 		mf, scheme, scheme,
@@ -64,35 +88,35 @@ func newSerializersForScheme(scheme *runtime.Scheme, mf json.MetaFactory, option
 	protoSerializer := protobuf.NewSerializer(scheme, scheme)
 	protoRawSerializer := protobuf.NewRawSerializer(scheme, scheme)
 
-	serializers := []runtime.SerializerInfo{
+	serializers := []serializerType{
 		jsonSerializerType,
 		{
-			MediaType:        runtime.ContentTypeYAML,
-			MediaTypeType:    "application",
-			MediaTypeSubType: "yaml",
-			EncodesAsText:    true,
-			Serializer:       yamlSerializer,
-			StrictSerializer: strictYAMLSerializer,
+			AcceptContentTypes: []string{runtime.ContentTypeYAML},
+			ContentType:        runtime.ContentTypeYAML,
+			FileExtensions:     []string{"yaml"},
+			EncodesAsText:      true,
+			Serializer:         yamlSerializer,
+			StrictSerializer:   strictYAMLSerializer,
 		},
 		{
-			MediaType:        runtime.ContentTypeProtobuf,
-			MediaTypeType:    "application",
-			MediaTypeSubType: "vnd.kubernetes.protobuf",
-			Serializer:       protoSerializer,
+			AcceptContentTypes: []string{runtime.ContentTypeProtobuf},
+			ContentType:        runtime.ContentTypeProtobuf,
+			FileExtensions:     []string{"pb"},
+			Serializer:         protoSerializer,
 			// note, strict decoding is unsupported for protobuf,
 			// fall back to regular serializing
 			StrictSerializer: protoSerializer,
-			StreamSerializer: &runtime.StreamSerializerInfo{
-				Serializer: protoRawSerializer,
-				Framer:     protobuf.LengthDelimitedFramer,
-			},
+
+			Framer:           protobuf.LengthDelimitedFramer,
+			StreamSerializer: protoRawSerializer,
 		},
 	}
 
-	for _, f := range options.serializers {
-		serializers = append(serializers, f(scheme, scheme))
+	for _, fn := range serializerExtensions {
+		if serializer, ok := fn(scheme); ok {
+			serializers = append(serializers, serializer)
+		}
 	}
-
 	return serializers
 }
 
@@ -112,8 +136,6 @@ type CodecFactoryOptions struct {
 	Strict bool
 	// Pretty includes a pretty serializer along with the non-pretty one
 	Pretty bool
-
-	serializers []func(runtime.ObjectCreater, runtime.ObjectTyper) runtime.SerializerInfo
 }
 
 // CodecFactoryOptionsMutator takes a pointer to an options struct and then modifies it.
@@ -140,13 +162,6 @@ func DisableStrict(options *CodecFactoryOptions) {
 	options.Strict = false
 }
 
-// WithSerializer configures a serializer to be supported in addition to the default serializers.
-func WithSerializer(f func(runtime.ObjectCreater, runtime.ObjectTyper) runtime.SerializerInfo) CodecFactoryOptionsMutator {
-	return func(options *CodecFactoryOptions) {
-		options.serializers = append(options.serializers, f)
-	}
-}
-
 // NewCodecFactory provides methods for retrieving serializers for the supported wire formats
 // and conversion wrappers to define preferred internal and external versions. In the future,
 // as the internal version is used less, callers may instead use a defaulting serializer and
@@ -169,7 +184,7 @@ func NewCodecFactory(scheme *runtime.Scheme, mutators ...CodecFactoryOptionsMuta
 }
 
 // newCodecFactory is a helper for testing that allows a different metafactory to be specified.
-func newCodecFactory(scheme *runtime.Scheme, serializers []runtime.SerializerInfo) CodecFactory {
+func newCodecFactory(scheme *runtime.Scheme, serializers []serializerType) CodecFactory {
 	decoders := make([]runtime.Decoder, 0, len(serializers))
 	var accepts []runtime.SerializerInfo
 	alreadyAccepted := make(map[string]struct{})
@@ -177,20 +192,38 @@ func newCodecFactory(scheme *runtime.Scheme, serializers []runtime.SerializerInf
 	var legacySerializer runtime.Serializer
 	for _, d := range serializers {
 		decoders = append(decoders, d.Serializer)
-		if _, ok := alreadyAccepted[d.MediaType]; ok {
-			continue
-		}
-		alreadyAccepted[d.MediaType] = struct{}{}
+		for _, mediaType := range d.AcceptContentTypes {
+			if _, ok := alreadyAccepted[mediaType]; ok {
+				continue
+			}
+			alreadyAccepted[mediaType] = struct{}{}
+			info := runtime.SerializerInfo{
+				MediaType:        d.ContentType,
+				EncodesAsText:    d.EncodesAsText,
+				Serializer:       d.Serializer,
+				PrettySerializer: d.PrettySerializer,
+				StrictSerializer: d.StrictSerializer,
+			}
 
-		acceptedSerializerShallowCopy := d
-		if d.StreamSerializer != nil {
-			cloned := *d.StreamSerializer
-			acceptedSerializerShallowCopy.StreamSerializer = &cloned
-		}
-		accepts = append(accepts, acceptedSerializerShallowCopy)
+			mediaType, _, err := mime.ParseMediaType(info.MediaType)
+			if err != nil {
+				panic(err)
+			}
+			parts := strings.SplitN(mediaType, "/", 2)
+			info.MediaTypeType = parts[0]
+			info.MediaTypeSubType = parts[1]
 
-		if d.MediaType == runtime.ContentTypeJSON {
-			legacySerializer = d.Serializer
+			if d.StreamSerializer != nil {
+				info.StreamSerializer = &runtime.StreamSerializerInfo{
+					Serializer:    d.StreamSerializer,
+					EncodesAsText: d.EncodesAsText,
+					Framer:        d.Framer,
+				}
+			}
+			accepts = append(accepts, info)
+			if mediaType == runtime.ContentTypeJSON {
+				legacySerializer = d.Serializer
+			}
 		}
 	}
 	if legacySerializer == nil {

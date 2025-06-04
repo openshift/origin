@@ -1,27 +1,21 @@
 package networking
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
-	mg "github.com/openshift/origin/test/extended/machine_config"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
-	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -40,16 +34,15 @@ const (
 	ipsecRolloutWaitDuration     = 40 * time.Minute
 	ipsecRolloutWaitInterval     = 1 * time.Minute
 	nmstateConfigureManifestFile = "nmstate.yaml"
+	nsCertMachineConfigFile      = "ipsec-nsconfig-machine-config.yaml"
 	nsCertMachineConfigName      = "99-worker-north-south-ipsec-config"
 	leftNodeIPsecPolicyName      = "left-node-ipsec-policy"
 	rightNodeIPsecPolicyName     = "right-node-ipsec-policy"
-	leftNodeIPsecNNCPYaml        = "ipsec-left-node.yaml"
-	rightNodeIPsecNNCPYaml       = "ipsec-right-node.yaml"
+	leftNodeIPsecConfigYaml      = "ipsec-left-node.yaml"
+	rightNodeIPsecConfigYaml     = "ipsec-right-node.yaml"
 	ovnNamespace                 = "openshift-ovn-kubernetes"
 	ovnIPsecDsName               = "ovn-ipsec-host"
 )
-
-var gvrNodeNetworkConfigurationPolicy = schema.GroupVersionResource{Group: "nmstate.io", Version: "v1", Resource: "nodenetworkconfigurationpolicies"}
 
 // TODO: consider bringing in the NNCP api.
 var nodeIPsecConfigManifest = `
@@ -101,6 +94,27 @@ const (
 	icmp   trafficType = "icmp"
 )
 
+// configureIPsecMode helps to rollout specified IPsec Mode on the cluster. If the cluster is already
+// configured with specified mode, then this is almost like no-op for the cluster.
+func configureIPsecMode(oc *exutil.CLI, ipsecMode v1.IPsecMode) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig == nil {
+			network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig = &v1.IPsecConfig{Mode: ipsecMode}
+		} else if network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig.Mode != ipsecMode {
+			network.Spec.DefaultNetwork.OVNKubernetesConfig.IPsecConfig.Mode = ipsecMode
+		} else {
+			// No changes to existing mode, return without updating networks.
+			return nil
+		}
+		_, err = oc.AdminOperatorClient().OperatorV1().Networks().Update(context.Background(), network, metav1.UpdateOptions{})
+		return err
+	})
+}
+
 func getIPsecMode(oc *exutil.CLI) (v1.IPsecMode, error) {
 	network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
@@ -118,10 +132,10 @@ func getIPsecMode(oc *exutil.CLI) (v1.IPsecMode, error) {
 	return mode, nil
 }
 
-// ensureIPsecFullEnabled this function ensure IPsec is enabled by making sure ovn-ipsec-host daemonset
+// ensureIPsecEnabled this function ensure IPsec is enabled by making sure ovn-ipsec-host daemonset
 // is completely ready on the cluster and cluster operators are coming back into ready state
 // once ipsec rollout is complete.
-func ensureIPsecFullEnabled(oc *exutil.CLI) error {
+func ensureIPsecEnabled(oc *exutil.CLI) error {
 	return wait.PollUntilContextTimeout(context.Background(), ipsecRolloutWaitInterval,
 		ipsecRolloutWaitDuration, true, func(ctx context.Context) (bool, error) {
 			done, err := areMachineConfigPoolsReadyWithIPsec(oc)
@@ -145,22 +159,12 @@ func ensureIPsecFullEnabled(oc *exutil.CLI) error {
 		})
 }
 
-// ensureIPsecExternalEnabled this function ensures ipsec machine config extension is rolled out
+// ensureIPsecMachineConfigRolloutComplete this function ensures ipsec machine config extension is rolled out
 // on all of master and worked nodes and cluster operators are coming back into ready state
 // once ipsec rollout is complete.
-func ensureIPsecExternalEnabled(oc *exutil.CLI) error {
+func ensureIPsecMachineConfigRolloutComplete(oc *exutil.CLI) error {
 	return wait.PollUntilContextTimeout(context.Background(), ipsecRolloutWaitInterval,
 		ipsecRolloutWaitDuration, true, func(ctx context.Context) (bool, error) {
-			// Make sure ovn-ipsec-host daemonset is not deployed. When IPsec mode
-			// is changed from Full to External mode, then it may take a while to
-			// delete daemonset.
-			ds, err := getDaemonSet(oc, ovnNamespace, ovnIPsecDsName)
-			if err != nil && !isConnResetErr(err) {
-				return false, err
-			}
-			if ds != nil {
-				return false, nil
-			}
 			done, err := areMachineConfigPoolsReadyWithIPsec(oc)
 			if err != nil && !isConnResetErr(err) {
 				return false, err
@@ -208,16 +212,15 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 	f := oc.KubeFramework()
 
 	waitForIPsecNSConfigApplied := func() {
-		g.GinkgoHelper()
-		o.Eventually(func(g o.Gomega) bool {
+		o.Eventually(func() bool {
 			out, err := oc.AsAdmin().Run("get").Args("NodeNetworkConfigurationPolicy/"+leftNodeIPsecPolicyName, "-o", "yaml").Output()
-			g.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("rendered left node network config policy:\n%s", out)
 			if !strings.Contains(out, "1/1 nodes successfully configured") {
 				return false
 			}
 			out, err = oc.AsAdmin().Run("get").Args("NodeNetworkConfigurationPolicy/"+rightNodeIPsecPolicyName, "-o", "yaml").Output()
-			g.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("rendered right node network config policy:\n%s", out)
 			return strings.Contains(out, "1/1 nodes successfully configured")
 		}, 30*time.Second).Should(o.BeTrue())
@@ -337,7 +340,6 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		}
 
 		cleanupTestPods := func(config *testConfig) {
-			g.GinkgoHelper()
 			err := e2epod.DeletePodWithWait(context.Background(), f.ClientSet, config.srcNodeConfig.pingPod)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			config.srcNodeConfig.pingPod = nil
@@ -354,7 +356,6 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		}
 
 		checkForGeneveOnlyPodTraffic := func(config *testConfig) {
-			g.GinkgoHelper()
 			err := setupTestPods(config, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
@@ -370,11 +371,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(err).To(o.HaveOccurred())
 			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
 			o.Expect(err).To(o.HaveOccurred())
-			err = nil
 		}
 
 		checkForESPOnlyPodTraffic := func(config *testConfig) {
-			g.GinkgoHelper()
 			err := setupTestPods(config, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
@@ -388,11 +387,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, geneve)
 			o.Expect(err).To(o.HaveOccurred())
-			err = nil
 		}
 
 		checkPodTraffic := func(mode v1.IPsecMode) {
-			g.GinkgoHelper()
 			if mode == v1.IPsecModeFull {
 				checkForESPOnlyPodTraffic(config)
 			} else {
@@ -401,7 +398,6 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		}
 
 		checkNodeTraffic := func(mode v1.IPsecMode) {
-			g.GinkgoHelper()
 			err := setupTestPods(config, true)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
@@ -416,7 +412,6 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
 				o.Expect(err).To(o.HaveOccurred())
-				err = nil
 				return
 			} else {
 				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
@@ -429,50 +424,10 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			// the selected nodes.
 			ipsecMode, err := getIPsecMode(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(ipsecMode).NotTo(o.Equal(v1.IPsecModeDisabled))
 
 			srcNode, dstNode := &testNodeConfig{}, &testNodeConfig{}
 			config = &testConfig{ipsecMode: ipsecMode, srcNodeConfig: srcNode,
 				dstNodeConfig: dstNode}
-
-			// Deploy nmstate handler which is used for rolling out IPsec config
-			// via NodeNetworkConfigurationPolicy.
-			g.By("deploy nmstate handler")
-			err = deployNmstateHandler(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// Update cluster machine configuration object with few more nodeDisruptionPolicy defined
-			// in test/extended/testdata/ipsec/nsconfig-reboot-none-policy.yaml file so that worker
-			// nodes don't go for a reboot while rolling out `99-worker-north-south-ipsec-config`
-			// machine config which configures certificates for testing IPsec north south traffic.
-			g.By("deploy machine configuration policy")
-			err = oc.AsAdmin().Run("apply").Args("-f", nsNodeRebootNoneFixture).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			mg.WaitForBootImageControllerToComplete(oc)
-
-			g.By("configure IPsec certs on the worker nodes")
-			// The certificates for configuring NS IPsec between two worker nodes are deployed through machine config
-			// `99-worker-north-south-ipsec-config` which is in the test/extended/testdata/ipsec/nsconfig-machine-config.yaml file.
-			// This is a butane generated file via a butane config file available with commit:
-			// https://github.com/openshift/origin/pull/28658/commits/7399006f3750c530cfef51fa1044e941ccb85087
-			// The machine config mounts cert files into node's /etc/pki/certs directory and runs ipsec-addcert.sh script
-			// to import those certs into Libreswan nss db and will be used by Libreswan for IPsec north south connection
-			// configured via NodeNetworkConfigurationPolicy on the node.
-			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
-			// so proceed with test if system date is before April 10, 2034. Otherwise fail the test.
-			if !time.Now().Before(certExpirationDate) {
-				framework.Failf("certficates in the Machine Config are expired, Please consider recreating those certificates")
-			}
-			nsCertMachineConfig, err := createIPsecCertsMachineConfig(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(nsCertMachineConfig).NotTo(o.BeNil())
-			o.Eventually(func(g o.Gomega) bool {
-				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
-				g.Expect(err).NotTo(o.HaveOccurred())
-				return areMachineConfigPoolsReadyWithMachineConfig(pools, nsCertMachineConfigName)
-			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
-			// Ensure IPsec mode is still correctly configured.
-			waitForIPsecConfigToComplete(oc, config.ipsecMode)
 		})
 
 		g.BeforeEach(func() {
@@ -503,56 +458,51 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		})
 
 		g.AfterEach(func() {
-			ipsecMode, err := getIPsecMode(oc)
+			g.By("removing IPsec certs from worker nodes")
+			err := deleteNSCertMachineConfig(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			if g.CurrentSpecReport().Failed() {
-				if ipsecMode == v1.IPsecModeFull {
-					var ipsecPods []string
-					srcIPsecPod, err := findIPsecPodonNode(oc, config.srcNodeConfig.nodeName)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					ipsecPods = append(ipsecPods, srcIPsecPod)
-					dstIPsecPod, err := findIPsecPodonNode(oc, config.dstNodeConfig.nodeName)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					ipsecPods = append(ipsecPods, dstIPsecPod)
-					for _, ipsecPod := range ipsecPods {
-						dumpPodCommand(ovnNamespace, ipsecPod, "cat /etc/ipsec.conf")
-						dumpPodCommand(ovnNamespace, ipsecPod, "cat /etc/ipsec.d/openshift.conf")
-						dumpPodCommand(ovnNamespace, ipsecPod, "ipsec status")
-						dumpPodCommand(ovnNamespace, ipsecPod, "ipsec trafficstatus")
-						dumpPodCommand(ovnNamespace, ipsecPod, "ip xfrm state")
-						dumpPodCommand(ovnNamespace, ipsecPod, "ip xfrm policy")
-					}
-				}
-				exutil.DumpPodStatesInNamespace(nmstateNamespace, oc)
-				exutil.DumpPodLogsStartingWithInNamespace("nmstate-handler", nmstateNamespace, oc)
-				exutil.DumpPodLogsStartingWithInNamespace("nmstate-operator", nmstateNamespace, oc)
-			}
-			g.By("remove left node ipsec configuration")
-			oc.AsAdmin().Run("delete").Args("-f", leftNodeIPsecNNCPYaml).Execute()
-			o.Eventually(func(g o.Gomega) bool {
-				_, err := oc.AdminDynamicClient().Resource(gvrNodeNetworkConfigurationPolicy).Get(context.Background(),
-					leftNodeIPsecPolicyName, metav1.GetOptions{})
-				if err != nil && apierrors.IsNotFound(err) {
-					return true
-				}
-				g.Expect(err).NotTo(o.HaveOccurred())
-				return false
-			}).Should(o.Equal(true))
+			o.Eventually(func() bool {
+				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return areMachineConfigPoolsReadyWithoutMachineConfig(pools, nsCertMachineConfigName)
+			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
 
 			g.By("remove right node ipsec configuration")
-			oc.AsAdmin().Run("delete").Args("-f", rightNodeIPsecNNCPYaml).Execute()
-			o.Eventually(func(g o.Gomega) bool {
-				_, err := oc.AdminDynamicClient().Resource(gvrNodeNetworkConfigurationPolicy).Get(context.Background(),
-					rightNodeIPsecPolicyName, metav1.GetOptions{})
-				if err != nil && apierrors.IsNotFound(err) {
-					return true
-				}
-				g.Expect(err).NotTo(o.HaveOccurred())
-				return false
-			}).Should(o.Equal(true))
+			oc.AsAdmin().Run("delete").Args("-f", rightNodeIPsecConfigYaml).Execute()
+
+			g.By("remove left node ipsec configuration")
+			oc.AsAdmin().Run("delete").Args("-f", leftNodeIPsecConfigYaml).Execute()
+
+			g.By("undeploy nmstate handler")
+			undeployNmstateHandler(oc)
+
+			// Restore the cluster back into original state after running all the tests.
+			g.By("restoring ipsec config into original state")
+			err = configureIPsecMode(oc, config.ipsecMode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			waitForIPsecConfigToComplete(oc, config.ipsecMode)
 		})
 
-		g.It("check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
+		g.DescribeTable("check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
+			o.Expect(config).NotTo(o.BeNil())
+			g.By("validate traffic before changing IPsec configuration")
+			checkPodTraffic(config.ipsecMode)
+			// This test does not enable N/S ipsec config, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
+			g.By(fmt.Sprintf("configure IPsec in %s mode and validate traffic", mode))
+			err := configureIPsecMode(oc, mode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			waitForIPsecConfigToComplete(oc, mode)
+			checkPodTraffic(mode)
+			// This test does not enable N/S ipsec config, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
+		},
+			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
+			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
+			g.Entry("with IPsec in disabled mode", v1.IPsecModeDisabled),
+		)
+
+		g.DescribeTable("check traffic for north south IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
 			o.Expect(config).NotTo(o.BeNil())
 
 			g.By("validate traffic before changing IPsec configuration")
@@ -560,29 +510,52 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
 			checkNodeTraffic(v1.IPsecModeDisabled)
 
-			// TODO: remove this block when https://issues.redhat.com/browse/RHEL-67307 is fixed.
-			if config.ipsecMode == v1.IPsecModeFull {
-				g.By(fmt.Sprintf("skip testing IPsec NS configuration with %s mode due to nmstate bug RHEL-67307", config.ipsecMode))
-				return
+			g.By(fmt.Sprintf("configure IPsec in %s mode and validate traffic", mode))
+			// Change IPsec mode to External and packet capture on the node's interface
+			// must be geneve encapsulated ones.
+			err := configureIPsecMode(oc, mode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			waitForIPsecConfigToComplete(oc, mode)
+			checkPodTraffic(mode)
+			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
+
+			g.By("configure IPsec certs on the worker nodes")
+			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
+			// so proceed with test if system date is before April 10, 2034. Otherwise fail the test.
+			if !time.Now().Before(certExpirationDate) {
+				framework.Failf("certficates in the Machine Config are expired, Please consider recreating those certificates")
 			}
+			nsCertMachineConfig, err := createIPsecCertsMachineConfig(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(nsCertMachineConfig).NotTo(o.BeNil())
+			o.Eventually(func() bool {
+				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				return areMachineConfigPoolsReadyWithMachineConfig(pools, nsCertMachineConfigName)
+			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
+
+			// Deploy nmstate handler which is used for rolling out IPsec config
+			// via NodeNetworkConfigurationPolicy.
+			g.By("deploy nmstate handler")
+			err = deployNmstateHandler(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("rollout IPsec configuration via nmstate")
-			err := ensureNmstateHandlerRunning(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
 			leftConfig := fmt.Sprintf(nodeIPsecConfigManifest, leftNodeIPsecPolicyName, config.srcNodeConfig.nodeName,
 				config.srcNodeConfig.nodeIP, leftServerCertName, config.dstNodeConfig.nodeIP)
-			err = os.WriteFile(leftNodeIPsecNNCPYaml, []byte(leftConfig), 0644)
+			err = os.WriteFile(leftNodeIPsecConfigYaml, []byte(leftConfig), 0644)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("desired left node network config policy:\n%s", leftConfig)
-			err = oc.AsAdmin().Run("apply").Args("-f", leftNodeIPsecNNCPYaml).Execute()
+			err = oc.AsAdmin().Run("apply").Args("-f", leftNodeIPsecConfigYaml).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			rightConfig := fmt.Sprintf(nodeIPsecConfigManifest, rightNodeIPsecPolicyName, config.dstNodeConfig.nodeName,
 				config.dstNodeConfig.nodeIP, rightServerCertName, config.srcNodeConfig.nodeIP)
-			err = os.WriteFile(rightNodeIPsecNNCPYaml, []byte(rightConfig), 0644)
+			err = os.WriteFile(rightNodeIPsecConfigYaml, []byte(rightConfig), 0644)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("desired right node network config policy:\n%s", rightConfig)
-			err = oc.AsAdmin().Run("apply").Args("-f", rightNodeIPsecNNCPYaml).Execute()
+			err = oc.AsAdmin().Run("apply").Args("-f", rightNodeIPsecConfigYaml).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("wait for nmstate to roll out")
@@ -591,56 +564,24 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			g.By("validate IPsec traffic between nodes")
 			// Pod traffic will be encrypted as a result N/S encryption being enabled between this two nodes
 			checkPodTraffic(v1.IPsecModeFull)
-			checkNodeTraffic(v1.IPsecModeExternal)
-		})
+			checkNodeTraffic(mode)
+		},
+			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
+			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
+		)
 	})
 })
 
 func waitForIPsecConfigToComplete(oc *exutil.CLI, ipsecMode v1.IPsecMode) {
-	g.GinkgoHelper()
 	switch ipsecMode {
 	case v1.IPsecModeDisabled:
 		err := ensureIPsecDisabled(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	case v1.IPsecModeExternal:
-		err := ensureIPsecExternalEnabled(oc)
+		err := ensureIPsecMachineConfigRolloutComplete(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	case v1.IPsecModeFull:
-		err := ensureIPsecFullEnabled(oc)
+		err := ensureIPsecEnabled(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
-}
-
-func findIPsecPodonNode(oc *exutil.CLI, nodeName string) (string, error) {
-	out, err := runOcWithRetry(oc.AsAdmin(), "get",
-		"pods",
-		"-o", "name",
-		"-n", ovnNamespace,
-		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
-		"-l", "app=ovn-ipsec")
-	if err != nil {
-		return "", err
-	}
-	outReader := bufio.NewScanner(strings.NewReader(out))
-	re := regexp.MustCompile("^pod/(.*)")
-	var podName string
-	for outReader.Scan() {
-		match := re.FindSubmatch([]byte(outReader.Text()))
-		if len(match) != 2 {
-			continue
-		}
-		podName = string(match[1])
-		break
-	}
-	if podName == "" {
-		return "", fmt.Errorf("could not find a valid ovn-ipsec-host pod on node '%s'", nodeName)
-	}
-	return podName, nil
-}
-
-func dumpPodCommand(namespace, name, cmd string) {
-	g.GinkgoHelper()
-	stdout, err := e2eoutput.RunHostCmdWithRetries(namespace, name, cmd, statefulset.StatefulSetPoll, statefulset.StatefulPodTimeout)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	framework.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 }

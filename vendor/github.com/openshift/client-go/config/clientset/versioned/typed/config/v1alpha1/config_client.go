@@ -3,10 +3,10 @@
 package v1alpha1
 
 import (
-	http "net/http"
+	"net/http"
 
-	configv1alpha1 "github.com/openshift/api/config/v1alpha1"
-	scheme "github.com/openshift/client-go/config/clientset/versioned/scheme"
+	v1alpha1 "github.com/openshift/api/config/v1alpha1"
+	"github.com/openshift/client-go/config/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -14,7 +14,6 @@ type ConfigV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BackupsGetter
 	ClusterImagePoliciesGetter
-	ClusterMonitoringsGetter
 	ImagePoliciesGetter
 	InsightsDataGathersGetter
 }
@@ -30,10 +29,6 @@ func (c *ConfigV1alpha1Client) Backups() BackupInterface {
 
 func (c *ConfigV1alpha1Client) ClusterImagePolicies() ClusterImagePolicyInterface {
 	return newClusterImagePolicies(c)
-}
-
-func (c *ConfigV1alpha1Client) ClusterMonitorings() ClusterMonitoringInterface {
-	return newClusterMonitorings(c)
 }
 
 func (c *ConfigV1alpha1Client) ImagePolicies(namespace string) ImagePolicyInterface {
@@ -89,10 +84,10 @@ func New(c rest.Interface) *ConfigV1alpha1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	gv := configv1alpha1.SchemeGroupVersion
+	gv := v1alpha1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = rest.CodecFactoryForGeneratedClient(scheme.Scheme, scheme.Codecs).WithoutConversion()
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

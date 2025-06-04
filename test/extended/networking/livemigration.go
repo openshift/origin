@@ -31,10 +31,8 @@ import (
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
-	// disable automatic namespace creation, we need to add the required UDN label
-	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
+	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e", admissionapi.LevelBaseline)
 	f := oc.KubeFramework()
-	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 	InOVNKubernetesContext(func() {
 		var (
@@ -56,11 +54,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 		Context("with user defined networks and persistent ips configured", func() {
 			const (
 				nadName           = "blue"
-				bindingName       = "l2bridge"
-				udnCrReadyTimeout = 60 * time.Second
-				// TODO(trozet): lower this timeout once https://issues.redhat.com/browse/OCPBUGS-49727 is fixed
-				udnNetworkReadyTimeout = 5 * time.Minute
-				vmName                 = "myvm"
+				bindingName       = "passt"
+				udnCrReadyTimeout = 5 * time.Second
+				vmName            = "myvm"
 			)
 			var (
 				cidrIPv4 = "203.203.0.0/16"
@@ -68,22 +64,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			)
 
 			DescribeTableSubtree("created using",
-				func(createNetworkFn func(netConfig networkAttachmentConfigParams) networkAttachmentConfig) {
+				func(createNetworkFn func(netConfig networkAttachmentConfigParams)) {
 
 					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string)) {
 						var err error
-						l := map[string]string{
-							"e2e-framework": f.BaseName,
-						}
-						if netConfig.role == "primary" {
-							l[RequiredUDNNamespaceLabel] = ""
-						}
-						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, l)
-						Expect(err).NotTo(HaveOccurred())
-						err = udnWaitForOpenShift(oc, ns.Name)
-						Expect(err).NotTo(HaveOccurred())
-
-						f.Namespace = ns
 						netConfig.namespace = f.Namespace.Name
 						// correctCIDRFamily makes use of the ginkgo framework so it needs to be in the testcase
 						netConfig.cidr = correctCIDRFamily(oc, cidrIPv4, cidrIPv6)
@@ -91,21 +75,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						Expect(err).NotTo(HaveOccurred())
 						Expect(len(workerNodes)).To(BeNumerically(">=", 2))
 
-						isDualStack := false
-						if strings.Contains(netConfig.cidr, ",") {
-							isDualStack = true
-						}
+						isDualStack := getIPFamilyForCluster(f) == DualStack
 
-						provisionedNetConfig := createNetworkFn(netConfig)
-
-						for _, node := range workerNodes {
-							Eventually(func() bool {
-								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName)
-								return err == nil && isNetProvisioned
-							}).WithPolling(time.Second).WithTimeout(udnNetworkReadyTimeout).Should(
-								BeTrueBecause("the network must be ready before creating workloads"),
-							)
-						}
+						createNetworkFn(netConfig)
 
 						httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
 						vmCreationParams := kubevirt.CreationTemplateParams{
@@ -123,19 +95,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						waitForVMReadiness(virtClient, vmCreationParams.VMNamespace, vmCreationParams.VMName)
 
 						By("Retrieving addresses before test operation")
-						var initialAddresses []string
-						Eventually(func(g Gomega) []string {
-							GinkgoHelper()
-
-							var err error
-							initialAddresses, err = obtainAddresses(virtClient, vmName)
-							g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain IP addresses for VM")
-							return initialAddresses
-						}).
-							WithPolling(time.Second).
-							WithTimeout(5 * time.Minute).
-							ShouldNot(BeEmpty())
-
+						initialAddresses := obtainAddresses(virtClient, netConfig, vmName)
 						expectedNumberOfAddresses := 1
 						if isDualStack {
 							expectedNumberOfAddresses = 2
@@ -144,31 +104,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 
 						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
 
-						By(fmt.Sprintf("Check east/west traffic before test operation using IPs: %v", httpServerPodsIPs))
+						By("Check east/west traffic before test operation")
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 
 						opCmd(virtClient, f.Namespace.Name, vmName)
 
 						By("Retrieving addresses after test operation")
-						var obtainedAddresses []string
-						Eventually(func(g Gomega) []string {
-							GinkgoHelper()
-
-							var err error
-							obtainedAddresses, err = obtainAddresses(virtClient, vmName)
-							g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain IP addresses for VM after the migrate or restart operation")
-							return obtainedAddresses
-						}).
-							WithPolling(time.Second).
-							WithTimeout(5 * time.Minute).
-							ShouldNot(BeEmpty())
+						obtainedAddresses := obtainAddresses(virtClient, netConfig, vmName)
 						Expect(obtainedAddresses).To(ConsistOf(initialAddresses))
 
 						By("Check east/west after test operation")
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 					},
 						Entry(
-							"[OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is migrated between nodes",
+							"when the VM attached to a primary UDN is migrated between nodes",
 							networkAttachmentConfigParams{
 								name:               nadName,
 								topology:           "layer2",
@@ -179,7 +128,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							migrateVM,
 						),
 						Entry(
-							"[OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes",
+							"when the VMI attached to a primary UDN is migrated between nodes",
 							networkAttachmentConfigParams{
 								name:               nadName,
 								topology:           "layer2",
@@ -190,7 +139,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							migrateVM,
 						),
 						Entry(
-							"[OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted",
+							"when the VM attached to a primary UDN is restarted",
 							networkAttachmentConfigParams{
 								name:               nadName,
 								topology:           "layer2",
@@ -234,97 +183,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							restartVM,
 						))
 				},
-				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
 					netConfig := newNetworkAttachmentConfig(c)
 					nad := generateNAD(netConfig)
 					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
-					Expect(err).NotTo(HaveOccurred())
-					return netConfig
+					Expect(err).NotTo((HaveOccurred()))
 				}),
-				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
-					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
-
-					nad, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
-						context.Background(), c.name, metav1.GetOptions{},
-					)
-					Expect(err).NotTo(HaveOccurred())
-					return networkAttachmentConfig{networkAttachmentConfigParams{networkName: networkName(nad.Spec.Config)}}
+					Expect(waitForUserDefinedNetworkReady(c.namespace, c.name, udnCrReadyTimeout)).To(Succeed())
 				}))
 		})
-	})
-})
-
-var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test", func() {
-	// disable automatic namespace creation, we need to add the required UDN label
-	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
-	f := oc.KubeFramework()
-	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
-
-	const (
-		nadName  = "blue"
-		cidrIPv4 = "203.203.0.0/16"
-		cidrIPv6 = "2014:100:200::0/60"
-	)
-
-	InOVNKubernetesContext(func() {
-		var (
-			cs        clientset.Interface
-			nadClient nadclient.K8sCniCncfIoV1Interface
-		)
-
-		BeforeEach(func() {
-			cs = f.ClientSet
-
-			ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
-				"e2e-framework":           f.BaseName,
-				RequiredUDNNamespaceLabel: "",
-			})
-			err = udnWaitForOpenShift(oc, ns.Name)
-			Expect(err).NotTo(HaveOccurred())
-			f.Namespace = ns
-			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("assert the primary UDN feature works as expected", func() {
-			netConfig := networkAttachmentConfigParams{
-				name:               nadName,
-				topology:           "layer2",
-				role:               "primary",
-				allowPersistentIPs: true,
-				namespace:          f.Namespace.Name,
-				cidr:               correctCIDRFamily(oc, cidrIPv4, cidrIPv6),
-			}
-
-			nad := generateNAD(newNetworkAttachmentConfig(netConfig))
-			By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
-			_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
-				context.Background(),
-				nad,
-				metav1.CreateOptions{},
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			workerNodes, err := getWorkerNodesOrdered(cs)
-			Expect(err).NotTo(HaveOccurred())
-
-			httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
-			Expect(httpServerPods).NotTo(BeEmpty())
-			Expect(podNetworkStatus(httpServerPods[0])).To(
-				HaveLen(2),
-				"the pod network status must feature both the cluster default network and the primary UDN attachment",
-			)
-		})
-	})
-})
-
-var _ = Describe("[sig-network][Feature:Layer2LiveMigration][Suite:openshift/network/virtualization] Kubevirt Virtual Machines", func() {
-	It("Placeholder test for GA", func() {
-		Expect(1).To(Equal(1)) // we just need a test to run to ensure the platform comes up correctly
 	})
 })
 
@@ -384,28 +256,50 @@ func waitForVMIMSuccess(vmClient *kubevirt.Client, namespace, vmName string) {
 		return migrationCompletedStr
 	}).WithPolling(time.Second).WithTimeout(5 * time.Minute).Should(Equal("true"))
 	migrationFailedStr, err := vmClient.GetJSONPath("vmim", vmName, "{@.status.migrationState.failed}")
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo((HaveOccurred()))
 	Expect(migrationFailedStr).To(BeEmpty())
 }
 
-func addressFromStatus(cli *kubevirt.Client, vmName string) ([]string, error) {
-	var addresses []string
+func addressFromStatus(cli *kubevirt.Client, vmName string) []string {
+	GinkgoHelper()
 	addressesStr, err := cli.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].ipAddresses}")
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract the IP addresses from VM %q: %w", vmName, err)
-	}
-
-	if addressesStr == "" {
-		return nil, nil
-	}
-
-	if err := json.Unmarshal([]byte(addressesStr), &addresses); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal addresses %q: %w", addressesStr, err)
-	}
-	return addresses, nil
+	Expect(err).NotTo((HaveOccurred()))
+	var addresses []string
+	Expect(json.Unmarshal([]byte(addressesStr), &addresses)).To(Succeed())
+	return addresses
 }
 
-func obtainAddresses(virtClient *kubevirt.Client, vmName string) ([]string, error) {
+func addressFromGuest(cli *kubevirt.Client, vmName string) []string {
+	GinkgoHelper()
+	Expect(cli.Login(vmName, vmName)).To(Succeed())
+	output, err := cli.Console(vmName, "ip -j a show dev eth0")
+	Expect(err).NotTo((HaveOccurred()))
+	// [{"ifindex":2,"ifname":"eth0","flags":["BROADCAST","MULTICAST","UP","LOWER_UP"],"mtu":1300,"qdisc":"fq_codel","operstate":"UP","group":"default","txqlen":1000,"link_type":"ether","address":"02:ba:c3:00:00:0a","broadcast":"ff:ff:ff:ff:ff:ff","altnames":["enp1s0"],"addr_info":[{"family":"inet","local":"100.10.0.1","prefixlen":24,"broadcast":"100.10.0.255","scope":"global","dynamic":true,"noprefixroute":true,"label":"eth0","valid_life_time":86313548,"preferred_life_time":86313548},{"family":"inet6","local":"fe80::ba:c3ff:fe00:a","prefixlen":64,"scope":"link","valid_life_time":4294967295,"preferred_life_time":4294967295}]}]
+	type address struct {
+		IP    string `json:"local,omitempty"`
+		Scope string `json:"scope,omitempty"`
+	}
+	type iface struct {
+		Name      string    `json:"ifname,omitempty"`
+		Addresses []address `json:"addr_info,omitempty"`
+	}
+	ifaces := []iface{}
+	Expect(json.Unmarshal([]byte(output), &ifaces)).To(Succeed())
+	addresses := []string{}
+	Expect(ifaces).NotTo((BeEmpty()))
+	for _, address := range ifaces[0].Addresses {
+		if address.Scope == "link" {
+			continue
+		}
+		addresses = append(addresses, address.IP)
+	}
+	return addresses
+}
+
+func obtainAddresses(virtClient *kubevirt.Client, netConfig networkAttachmentConfigParams, vmName string) []string {
+	if netConfig.role == "primary" {
+		return addressFromGuest(virtClient, vmName)
+	}
 	return addressFromStatus(virtClient, vmName)
 }
 
@@ -478,9 +372,6 @@ func podNetworkStatus(pod *v1.Pod, predicates ...func(nadapi.NetworkStatus) bool
 		return nil, err
 	}
 
-	if len(predicates) == 0 {
-		return netStatus, nil
-	}
 	var netStatusMeetingPredicates []nadapi.NetworkStatus
 	for i := range netStatus {
 		for _, predicate := range predicates {
@@ -570,41 +461,4 @@ func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByN
 				Should(Succeed(), func() string { return podName + ": " + output })
 		}
 	}
-}
-
-func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName string) (bool, error) {
-	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
-	if err != nil {
-		return false, err
-	}
-
-	lsName := logicalSwitchName(networkName)
-	out, err := adminExecInPod(
-		oc,
-		"openshift-ovn-kubernetes",
-		ovnkubePodInfo.podName,
-		ovnkubePodInfo.containerName,
-		fmt.Sprintf("ovn-nbctl list logical-switch %s", lsName),
-	)
-	if err != nil {
-		return false, fmt.Errorf("failed to find a logical switch for network %q: %w", networkName, err)
-	}
-
-	return strings.Contains(out, lsName), nil
-}
-
-func logicalSwitchName(networkName string) string {
-	netName := strings.ReplaceAll(networkName, "-", ".")
-	netName = strings.ReplaceAll(netName, "/", ".")
-	return fmt.Sprintf("%s_ovn_layer2_switch", netName)
-}
-
-func networkName(netSpecConfig string) string {
-	GinkgoHelper()
-	type netConfig struct {
-		Name string `json:"name,omitempty"`
-	}
-	var nc netConfig
-	Expect(json.Unmarshal([]byte(netSpecConfig), &nc)).To(Succeed())
-	return nc.Name
 }

@@ -50,7 +50,7 @@ func init() {
 	Scheme = runtime.NewScheme()
 	utilruntime.Must(api.AddToScheme(Scheme))
 	utilruntime.Must(v1.AddToScheme(Scheme))
-	yamlSerializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, Scheme, Scheme, json.SerializerOptions{Yaml: true})
+	yamlSerializer := json.NewYAMLSerializer(json.DefaultMetaFactory, Scheme, Scheme)
 	Codec = versioning.NewDefaultingCodecForScheme(
 		Scheme,
 		yamlSerializer,

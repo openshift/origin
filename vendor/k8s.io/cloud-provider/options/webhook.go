@@ -151,16 +151,12 @@ func (o *WebhookServingOptions) Validate() []error {
 	return allErrors
 }
 
-func (o *WebhookServingOptions) ApplyTo(cfg **server.SecureServingInfo, webhookCfg config.WebhookConfiguration) error {
+func (o *WebhookServingOptions) ApplyTo(cfg **server.SecureServingInfo) error {
 	if o == nil {
 		return nil
 	}
 
 	if o.BindPort <= 0 {
-		return nil
-	}
-	// no need to bind to the address if there are no webhook enabled.
-	if len(webhookCfg.Webhooks) == 0 {
 		return nil
 	}
 

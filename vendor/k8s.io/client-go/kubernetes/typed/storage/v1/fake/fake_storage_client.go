@@ -29,23 +29,23 @@ type FakeStorageV1 struct {
 }
 
 func (c *FakeStorageV1) CSIDrivers() v1.CSIDriverInterface {
-	return newFakeCSIDrivers(c)
+	return &FakeCSIDrivers{c}
 }
 
 func (c *FakeStorageV1) CSINodes() v1.CSINodeInterface {
-	return newFakeCSINodes(c)
+	return &FakeCSINodes{c}
 }
 
 func (c *FakeStorageV1) CSIStorageCapacities(namespace string) v1.CSIStorageCapacityInterface {
-	return newFakeCSIStorageCapacities(c, namespace)
+	return &FakeCSIStorageCapacities{c, namespace}
 }
 
 func (c *FakeStorageV1) StorageClasses() v1.StorageClassInterface {
-	return newFakeStorageClasses(c)
+	return &FakeStorageClasses{c}
 }
 
 func (c *FakeStorageV1) VolumeAttachments() v1.VolumeAttachmentInterface {
-	return newFakeVolumeAttachments(c)
+	return &FakeVolumeAttachments{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

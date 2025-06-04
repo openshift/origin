@@ -27,7 +27,6 @@ import (
 
 	"k8s.io/apiserver/pkg/audit"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
-	authenticationtokenjwt "k8s.io/apiserver/pkg/authentication/token/jwt"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/apis/core"
@@ -287,6 +286,6 @@ func (v *validator) Validate(ctx context.Context, _ string, public *jwt.Claims, 
 		PodUID:       podUID,
 		NodeName:     nodeName,
 		NodeUID:      nodeUID,
-		CredentialID: authenticationtokenjwt.CredentialIDForJTI(jti),
+		CredentialID: apiserverserviceaccount.CredentialIDForJTI(jti),
 	}, nil
 }

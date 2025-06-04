@@ -3,10 +3,13 @@ package ginkgo
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -17,25 +20,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
+
+	"github.com/onsi/ginkgo/v2"
 	"github.com/spf13/pflag"
-	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
-	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -56,16 +55,6 @@ type GinkgoRunSuiteOptions struct {
 	FailFast    bool
 	Timeout     time.Duration
 	JUnitDir    string
-
-	// ShardCount is the total number of partitions the test suite is divided into.
-	// Each executor runs one of these partitions.
-	ShardCount int
-
-	// ShardStrategy is which strategy we'll use for dividing tests.
-	ShardStrategy string
-
-	// ShardID is the 1-based index of the shard this instance is responsible for running.
-	ShardID int
 
 	// SyntheticEventTests allows the caller to translate events or outside
 	// context into a failure.
@@ -89,8 +78,7 @@ type GinkgoRunSuiteOptions struct {
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		IOStreams:     streams,
-		ShardStrategy: "hash",
+		IOStreams: streams,
 	}
 }
 
@@ -110,10 +98,6 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&o.ExactMonitorTests, "monitor", o.ExactMonitorTests,
 		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
 	flags.StringSliceVar(&o.DisableMonitorTests, "disable-monitor", o.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
-
-	flags.IntVar(&o.ShardID, "shard-id", o.ShardID, "When tests are sharded across instances, which instance we are")
-	flags.IntVar(&o.ShardCount, "shard-count", o.ShardCount, "Number of shards used to run tests across multiple instances")
-	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -143,8 +127,37 @@ func max(a, b int) int {
 	return b
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
-	upgrade bool) error {
+type RunMatchFunc func(run *RunInformation) bool
+
+type RunInformation struct {
+	// jobType may be nil for topologies without
+	// platform identification.
+	*platformidentification.JobType
+	suite *TestSuite
+}
+
+type externalBinaryStruct struct {
+	// The payload image tag in which an external binary path can be found
+	imageTag string
+	// The binary path to extract from the image
+	binaryPath string
+
+	// nil, nil - run for all suites
+	// (), nil, - run for only those matched by include
+	// nil, () - run for all except excluded
+	// (), () - include overridden by exclude
+	includeForRun RunMatchFunc
+	excludeForRun RunMatchFunc
+}
+
+type externalBinaryResult struct {
+	err            error
+	skipReason     string
+	externalBinary *externalBinaryStruct
+	externalTests  []*testCase
+}
+
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) error {
 	ctx := context.Background()
 
 	tests, err := testsForSuite()
@@ -152,97 +165,186 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
 
-	var sharder Sharder
-	switch o.ShardStrategy {
-	default:
-		sharder = &HashSharder{}
-	}
-
-	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary", len(tests))
+	fmt.Fprintf(o.Out, "Found %d tests for in openshift-tests binary for suite %q\n", len(tests), suite.Name)
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
-	var externalTestCases []*testCase
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		// Extract all test binaries
-		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+		// A registry of available external binaries and in which image
+		// they reside in the payload.
+		externalBinaries := []externalBinaryStruct{
+			{
+				imageTag:   "hyperkube",
+				binaryPath: "/usr/bin/k8s-tests",
+			},
+		}
+
+		var (
+			externalTests []*testCase
+			wg            sync.WaitGroup
+			resultCh      = make(chan externalBinaryResult, len(externalBinaries))
+			err           error
+		)
+
+		// Lines logged to this logger will be included in the junit output for the
+		// external binary usage synthetic.
+		var extractDetailsBuffer bytes.Buffer
+		extractLogger := log.New(&extractDetailsBuffer, "", log.LstdFlags|log.Lmicroseconds)
+
+		oc := util.NewCLIWithoutNamespace("default")
+		jobType, err := platformidentification.GetJobType(context.Background(), oc.AdminConfig())
 		if err != nil {
-			return err
-		}
-		defer cleanUpFn()
-
-		defaultBinaryParallelism := 10
-
-		// Learn about the extension binaries available
-		// TODO(stbenjam): we'll eventually use this information to get suite information -- but not yet in this iteration
-		infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer infoContextCancel()
-		extensionsInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
-		if err != nil {
-			return err
-		}
-		logrus.Infof("Discovered %d extensions", len(extensionsInfo))
-		for _, e := range extensionsInfo {
-			id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
-			logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
+			// Microshift does not permit identification. External binaries must
+			// tolerate nil jobType.
+			extractLogger.Printf("Failed determining job type: %v", err)
 		}
 
-		// List tests from all available binaries and convert them to origin's testCase format
-		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer listContextCancel()
-
-		envFlags, err := determineEnvironmentFlags(upgrade, o.DryRun)
-		if err != nil {
-			return fmt.Errorf("could not determine environment flags: %w", err)
+		runInformation := &RunInformation{
+			JobType: jobType,
+			suite:   suite,
 		}
-		logrus.WithField("flags", envFlags.String()).Infof("Determined all potential environment flags")
 
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
-		if err != nil {
-			return err
-		}
-		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
+		// To extract binaries bearing external tests, we must inspect the release
+		// payload under tests as well as extract content from component images
+		// referenced by that payload.
+		// openshift-tests is frequently run in the context of a CI job, within a pod.
+		// CI sets $RELEASE_IMAGE_LATEST to a pullspec for the release payload under test. This
+		// pull spec resolve to:
+		// 1. A build farm ci-op-* namespace / imagestream location (anonymous access permitted).
+		// 2. A quay.io/openshift-release-dev location (for tests against promoted ART payloads -- anonymous access permitted).
+		// 3. A registry.ci.openshift.org/ocp-<arch>/release:<tag> (request registry.ci.openshift.org token).
+		// Within the pod, we don't necessarily have a pull-secret for #3 OR the component images
+		// a payload references (which are private, unless in a ci-op-* imagestream).
+		// We try the following options:
+		// 1. If set, use the REGISTRY_AUTH_FILE environment variable to an auths file with
+		//    pull secrets capable of reading appropriate payload & component image
+		//    information.
+		// 2. If it exists, use a file /run/secrets/ci.openshift.io/cluster-profile/pull-secret
+		//    (conventional location for pull-secret information for CI cluster profile).
+		// 3. Use openshift-config secret/pull-secret from the cluster-under-test, if it exists
+		//    (Microshift does not).
+		// 4. Use unauthenticated access to the payload image and component images.
+		registryAuthFilePath := os.Getenv("REGISTRY_AUTH_FILE")
 
-		var filteredTests []*testCase
-		for _, test := range tests {
-			// tests contains all the tests "registered" in openshift-tests binary,
-			// this also includes vendored k8s tests, since this path assumes we're
-			// using external binary to run these tests we need to remove them
-			// from the final lists, which contains:
-			// 1. origin tests, only
-			// 2. k8s tests, coming from external binary
-			if !strings.Contains(test.name, "[Suite:k8s]") {
-				filteredTests = append(filteredTests, test)
+		// if the environment variable is not set, extract the target cluster's
+		// platform pull secret.
+		if len(registryAuthFilePath) != 0 {
+			extractLogger.Printf("Using REGISTRY_AUTH_FILE environment variable: %v", registryAuthFilePath)
+		} else {
+
+			// See if the cluster-profile has stored a pull-secret at the conventional location.
+			ciProfilePullSecretPath := "/run/secrets/ci.openshift.io/cluster-profile/pull-secret"
+			_, err = os.Stat(ciProfilePullSecretPath)
+			if !os.IsNotExist(err) {
+				extractLogger.Printf("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
+				registryAuthFilePath = ciProfilePullSecretPath
+			} else {
+				// Inspect the cluster-under-test and read its cluster pull-secret dockerconfigjson value.
+				clusterPullSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
+				if err != nil {
+					if kapierrs.IsNotFound(err) {
+						extractLogger.Printf("Cluster has no openshift-config secret/pull-secret; falling back to unauthenticated image access")
+					} else {
+						return fmt.Errorf("unable to read ephemeral cluster pull secret: %w", err)
+					}
+				} else {
+					tmpDir, err := os.MkdirTemp("", "external-binary")
+					clusterDockerConfig := clusterPullSecret.Data[".dockerconfigjson"]
+					registryAuthFilePath = filepath.Join(tmpDir, ".dockerconfigjson")
+					err = os.WriteFile(registryAuthFilePath, clusterDockerConfig, 0600)
+					if err != nil {
+						return fmt.Errorf("unable to serialize target cluster pull-secret locally: %w", err)
+					}
+
+					defer os.Remove(registryAuthFilePath)
+					extractLogger.Printf("Using target cluster pull-secrets for registry auth")
+				}
 			}
 		}
-		logrus.Infof("Discovered %d internal tests, %d external tests - %d total unique tests",
-			len(tests), len(externalTestCases), len(filteredTests)+len(externalTestCases))
-		tests = append(filteredTests, externalTestCases...)
+
+		releaseImageReferences, err := extractReleaseImageStream(extractLogger, registryAuthFilePath)
+		if err != nil {
+			return fmt.Errorf("unable to extract image references from release payload: %w", err)
+		}
+
+		for _, externalBinary := range externalBinaries {
+			wg.Add(1)
+			go func(externalBinary externalBinaryStruct) {
+				defer wg.Done()
+
+				var skipReason string
+				if (externalBinary.includeForRun != nil && !externalBinary.includeForRun(runInformation)) ||
+					(externalBinary.excludeForRun != nil && externalBinary.excludeForRun(runInformation)) {
+					skipReason = "excluded by suite selection functions"
+				}
+
+				var tagTestSet []*testCase
+				var tagErr error
+				if len(skipReason) == 0 {
+					tagTestSet, tagErr = externalTestsForSuite(ctx, extractLogger, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath, registryAuthFilePath)
+				}
+
+				resultCh <- externalBinaryResult{
+					err:            tagErr,
+					skipReason:     skipReason,
+					externalBinary: &externalBinary,
+					externalTests:  tagTestSet,
+				}
+
+			}(externalBinary)
+		}
+
+		wg.Wait()
+		close(resultCh)
+
+		for result := range resultCh {
+			if result.skipReason != "" {
+				extractLogger.Printf("Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
+			} else if result.err != nil {
+				extractLogger.Printf("Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
+				err = result.err
+			} else {
+				extractLogger.Printf("Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
+				externalTests = append(externalTests, result.externalTests...)
+			}
+		}
+
+		if err == nil {
+			var filteredTests []*testCase
+			for _, test := range tests {
+				// tests contains all the tests "registered" in openshift-tests binary,
+				// this also includes vendored k8s tests, since this path assumes we're
+				// using external binary to run these tests we need to remove them
+				// from the final lists, which contains:
+				// 1. origin tests, only
+				// 2. k8s tests, coming from external binary
+				if !strings.Contains(test.name, "[Suite:k8s]") {
+					filteredTests = append(filteredTests, test)
+				}
+			}
+			tests = append(filteredTests, externalTests...)
+			extractLogger.Printf("Discovered a total of %v external tests and will run a total of %v\n", len(externalTests), len(tests))
+		} else {
+			extractLogger.Printf("Errors encountered while extracting one or more external test suites; Falling back to built-in suite: %v\n", err)
+			// adding this test twice (one failure here, and success below) will
+			// ensure it gets picked as flake further down in synthetic tests processing
+			fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
+				Name:      "[sig-arch] External binary usage",
+				SystemOut: extractDetailsBuffer.String(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: extractDetailsBuffer.String(),
+				},
+			})
+		}
+		fmt.Fprintf(o.Out, extractDetailsBuffer.String())
+		fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
+			Name:      "[sig-arch] External binary usage",
+			SystemOut: extractDetailsBuffer.String(),
+		})
 	} else {
-		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
 
-	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
-	// begins to pass we can remove the annotation logic
-	var annotatedSkipped []string
-	for _, t := range externalTestCases {
-		if strings.Contains(t.name, "[Skipped") {
-			annotatedSkipped = append(annotatedSkipped, t.name)
-		}
-	}
-	var skippedAnnotationSyntheticTestResults []*junitapi.JUnitTestCase
-	skippedAnnotationSyntheticTestResult := junitapi.JUnitTestCase{
-		Name: "[sig-trt] Skipped annotations present",
-	}
-	if len(annotatedSkipped) > 0 {
-		skippedAnnotationSyntheticTestResult.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("Skipped Annotations present in tests: %s", strings.Join(annotatedSkipped, ", ")),
-		}
-	}
-	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &skippedAnnotationSyntheticTestResult)
-	// If this fails, this additional run will make it flake
-	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &junitapi.JUnitTestCase{Name: skippedAnnotationSyntheticTestResult.Name})
+	fmt.Fprintf(o.Out, "Found %d tests (including externals)\n", len(tests))
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
@@ -255,7 +357,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
-	logrus.Infof("Found %d filtered tests", len(tests))
+	fmt.Fprintf(o.Out, "found %d filtered tests\n", len(tests))
 
 	count := o.Count
 	if count == 0 {
@@ -323,10 +425,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		logrus.Error("Interrupted, terminating tests")
+		fmt.Fprintf(o.ErrOut, "Interrupted, terminating tests\n")
 		cancelFn()
 		sig := <-abortCh
-		logrus.Errorf("Interrupted twice, exiting (%s)", sig)
+		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -335,12 +437,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		}
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
-
-	logrus.Infof("Waiting for all cluster operators to become stable")
-	stableClusterTestResults, err := clusterinfo.WaitForStableCluster(ctx, restConfig)
-	if err != nil {
-		logrus.Errorf("Error waiting for stable cluster: %v", err)
-	}
 
 	monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 	if err != nil {
@@ -377,20 +473,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
 	})
-	logrus.Infof("Found %d early tests", len(early))
 
 	late, primaryTests := splitTests(notEarly, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Late]")
 	})
-	logrus.Infof("Found %d late tests", len(late))
-
-	// Sharding always runs early and late tests in every invocation. I think this
-	// makes sense, because these tests may collect invariant data we want to know about
-	// every run.
-	primaryTests, err = sharder.Shard(primaryTests, o.ShardCount, o.ShardID)
-	if err != nil {
-		return err
-	}
 
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Suite:k8s]")
@@ -403,11 +489,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
-
-	logrus.Infof("Found %d openshift tests", len(openshiftTests))
-	logrus.Infof("Found %d kube tests", len(kubeTests))
-	logrus.Infof("Found %d storage tests", len(storageTests))
-	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
@@ -476,15 +557,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		pc.ComputePodTransitions()
 		data, err := pc.JsonDump()
 		if err != nil {
-			logrus.Errorf("Unable to dump pod placement data: %v", err)
+			fmt.Fprintf(o.ErrOut, "Unable to dump pod placement data: %v\n", err)
 		} else {
 			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
-				logrus.Errorf("Unable to write pod placement data: %v", err)
+				fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
 			}
 		}
 		chains := pc.PodDisplacements().Dump(minChainLen)
 		if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
-			logrus.Errorf("Unable to write pod placement data: %v", err)
+			fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
 		}
 	}
 
@@ -513,7 +594,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			}
 		}
 
-		logrus.Warningf("Retry count: %d", len(retries))
+		fmt.Fprintf(o.Out, "Retry count: %d\n", len(retries))
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
@@ -569,8 +650,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
-	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
-	syntheticTestResults = append(syntheticTestResults, skippedAnnotationSyntheticTestResults...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
@@ -648,10 +727,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, o.ErrOut); err != nil {
-			fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
-		}
-
 		if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
@@ -673,48 +748,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
-}
-
-func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
-	// Ensure the directory exists
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		fmt.Fprintf(out, "Failed to create directory %s: %v\n", dir, err)
-		return err
-	}
-
-	// Collect results into a slice
-	var results extensions.ExtensionTestResults
-	for _, test := range tests {
-		if test.extensionTestResult != nil {
-			results = append(results, test.extensionTestResult)
-		}
-	}
-
-	// Marshal results to JSON
-	data, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		fmt.Fprintf(out, "Failed to marshal test results to JSON: %v\n", err)
-		return err
-	}
-
-	// Write JSON data to file
-	filePath := filepath.Join(dir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
-	file, err := os.Create(filePath)
-	if err != nil {
-		fmt.Fprintf(out, "Failed to create file %s: %v\n", filePath, err)
-		return err
-	}
-	defer file.Close()
-
-	fmt.Fprintf(out, "Writing extension test results JSON to %s\n", filePath)
-	_, err = file.Write(data)
-	if err != nil {
-		fmt.Fprintf(out, "Failed to write to file %s: %v\n", filePath, err)
-		return err
-	}
-
-	return nil
 }
 
 func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, tests []*testCase) ([]*testCase, error) {
@@ -751,88 +784,4 @@ outerLoop:
 		matches = append(matches, test)
 	}
 	return matches, nil
-}
-
-func determineEnvironmentFlags(upgrade bool, dryRun bool) (extensions.EnvironmentFlags, error) {
-	clientConfig, err := e2e.LoadConfig(true)
-	if err != nil {
-		logrus.WithError(err).Error("error calling e2e.LoadConfig")
-		return nil, err
-	}
-	clusterState, err := clusterdiscovery.DiscoverClusterState(clientConfig)
-	if err != nil {
-		logrus.WithError(err).Warn("error Discovering Cluster State, flags requiring it will not be present")
-	}
-	provider := os.Getenv("TEST_PROVIDER")
-	if clusterState == nil { // If we know we cannot discover the clusterState, the provider must be set to "none" in order for the config to be loaded without error
-		provider = "none"
-	}
-	config, err := clusterdiscovery.DecodeProvider(provider, dryRun, true, clusterState)
-	if err != nil {
-		logrus.WithError(err).Error("error determining information about the cluster")
-		return nil, err
-	}
-
-	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
-	envFlagBuilder.
-		AddPlatform(config.ProviderName).
-		AddNetwork(config.NetworkPlugin).
-		AddNetworkStack(config.IPFamily).
-		AddExternalConnectivity(determineExternalConnectivity(config))
-
-	//Additional flags can only be determined if we are able to obtain the clusterState
-	if clusterState != nil {
-		upgradeType := "None"
-		if upgrade {
-			upgradeType = determineUpgradeType(clusterState.Version.Status)
-		}
-		envFlagBuilder.AddUpgrade(upgradeType)
-
-		arch := "Unknown"
-		if len(clusterState.Masters.Items) > 0 {
-			//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
-			arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
-		}
-		envFlagBuilder.AddArchitecture(arch)
-
-		for _, optionalCapability := range clusterState.OptionalCapabilities {
-			envFlagBuilder.AddOptionalCapability(string(optionalCapability))
-		}
-
-		envFlagBuilder.
-			AddTopology(clusterState.ControlPlaneTopology).
-			AddVersion(clusterState.Version.Status.Desired.Version)
-	}
-
-	return envFlagBuilder.Build(), nil
-}
-
-func determineUpgradeType(versionStatus configv1.ClusterVersionStatus) string {
-	history := versionStatus.History
-	version := versionStatus.Desired.Version
-	if len(history) > 1 { // If there aren't at least 2 versions in the history we don't have any way to determine the upgrade type
-		mostRecent := history[1] // history[0] will be the desired version, so check one further back
-		current := fmt.Sprintf("v%s", version)
-		last := fmt.Sprintf("v%s", mostRecent.Version)
-		if semver.Compare(semver.Major(current), semver.Major(last)) > 0 {
-			return "Major"
-		}
-		if semver.Compare(semver.MajorMinor(current), semver.MajorMinor(last)) > 0 {
-			return "Minor"
-		}
-
-		return "Micro"
-	}
-
-	return "Unknown"
-}
-
-func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfiguration) string {
-	if clusterConfig.Disconnected {
-		return "Disconnected"
-	}
-	if clusterConfig.IsProxied {
-		return "Proxied"
-	}
-	return "Direct"
 }

@@ -29,7 +29,7 @@ type FakeCertificatesV1alpha1 struct {
 }
 
 func (c *FakeCertificatesV1alpha1) ClusterTrustBundles() v1alpha1.ClusterTrustBundleInterface {
-	return newFakeClusterTrustBundles(c)
+	return &FakeClusterTrustBundles{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

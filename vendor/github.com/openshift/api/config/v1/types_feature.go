@@ -26,6 +26,7 @@ type FeatureGate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	// +kubebuilder:validation:XValidation:rule="has(oldSelf.featureSet) ? has(self.featureSet) : true",message=".spec.featureSet cannot be removed"
 	Spec FeatureGateSpec `json:"spec"`
@@ -99,7 +100,6 @@ type FeatureGateStatus struct {
 	// Known .status.conditions.type are: "DeterminationDegraded"
 	// +listType=map
 	// +listMapKey=type
-	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// featureGates contains a list of enabled and disabled featureGates that are keyed by payloadVersion.
@@ -117,6 +117,7 @@ type FeatureGateStatus struct {
 
 type FeatureGateDetails struct {
 	// version matches the version provided by the ClusterVersion and in the ClusterOperator.Status.Versions field.
+	// +kubebuilder:validation:Required
 	// +required
 	Version string `json:"version"`
 	// enabled is a list of all feature gates that are enabled in the cluster for the named version.
@@ -129,7 +130,7 @@ type FeatureGateDetails struct {
 
 type FeatureGateAttributes struct {
 	// name is the name of the FeatureGate.
-	// +required
+	// +kubebuilder:validation:Required
 	Name FeatureGateName `json:"name"`
 
 	// possible (probable?) future additions include

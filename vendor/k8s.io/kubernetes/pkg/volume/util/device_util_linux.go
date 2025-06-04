@@ -31,13 +31,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// FindMultipathDeviceForDevice given a device name like /dev/sdx, find the devicemapper parent. If called with a device
-// already resolved to devicemapper, do nothing.
+// FindMultipathDeviceForDevice given a device name like /dev/sdx, find the devicemapper parent
 func (handler *deviceHandler) FindMultipathDeviceForDevice(device string) string {
-	if strings.HasPrefix(device, "/dev/dm-") {
-		return device
-	}
-
 	io := handler.getIo
 	disk, err := findDeviceForPath(device, io)
 	if err != nil {

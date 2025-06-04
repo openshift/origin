@@ -3,19 +3,18 @@
 package v1
 
 import (
-	machinev1 "github.com/openshift/api/machine/v1"
+	v1 "github.com/openshift/api/machine/v1"
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ControlPlaneMachineSetSpecApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetSpec type for use
 // with apply.
 type ControlPlaneMachineSetSpecApplyConfiguration struct {
-	MachineNamePrefix *string                                           `json:"machineNamePrefix,omitempty"`
-	State             *machinev1.ControlPlaneMachineSetState            `json:"state,omitempty"`
-	Replicas          *int32                                            `json:"replicas,omitempty"`
-	Strategy          *ControlPlaneMachineSetStrategyApplyConfiguration `json:"strategy,omitempty"`
-	Selector          *metav1.LabelSelectorApplyConfiguration           `json:"selector,omitempty"`
-	Template          *ControlPlaneMachineSetTemplateApplyConfiguration `json:"template,omitempty"`
+	State    *v1.ControlPlaneMachineSetState                   `json:"state,omitempty"`
+	Replicas *int32                                            `json:"replicas,omitempty"`
+	Strategy *ControlPlaneMachineSetStrategyApplyConfiguration `json:"strategy,omitempty"`
+	Selector *metav1.LabelSelectorApplyConfiguration           `json:"selector,omitempty"`
+	Template *ControlPlaneMachineSetTemplateApplyConfiguration `json:"template,omitempty"`
 }
 
 // ControlPlaneMachineSetSpecApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetSpec type for use with
@@ -24,18 +23,10 @@ func ControlPlaneMachineSetSpec() *ControlPlaneMachineSetSpecApplyConfiguration 
 	return &ControlPlaneMachineSetSpecApplyConfiguration{}
 }
 
-// WithMachineNamePrefix sets the MachineNamePrefix field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the MachineNamePrefix field is set to the value of the last call.
-func (b *ControlPlaneMachineSetSpecApplyConfiguration) WithMachineNamePrefix(value string) *ControlPlaneMachineSetSpecApplyConfiguration {
-	b.MachineNamePrefix = &value
-	return b
-}
-
 // WithState sets the State field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the State field is set to the value of the last call.
-func (b *ControlPlaneMachineSetSpecApplyConfiguration) WithState(value machinev1.ControlPlaneMachineSetState) *ControlPlaneMachineSetSpecApplyConfiguration {
+func (b *ControlPlaneMachineSetSpecApplyConfiguration) WithState(value v1.ControlPlaneMachineSetState) *ControlPlaneMachineSetSpecApplyConfiguration {
 	b.State = &value
 	return b
 }

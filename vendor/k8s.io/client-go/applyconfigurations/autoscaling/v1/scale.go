@@ -19,18 +19,18 @@ limitations under the License.
 package v1
 
 import (
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ScaleApplyConfiguration represents a declarative configuration of the Scale type for use
 // with apply.
 type ScaleApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ScaleSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ScaleStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ScaleSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *ScaleStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ScaleApplyConfiguration constructs a declarative configuration of the Scale type for use with
@@ -46,7 +46,7 @@ func Scale() *ScaleApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithKind(value string) *ScaleApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -54,7 +54,7 @@ func (b *ScaleApplyConfiguration) WithKind(value string) *ScaleApplyConfiguratio
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithAPIVersion(value string) *ScaleApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -63,7 +63,7 @@ func (b *ScaleApplyConfiguration) WithAPIVersion(value string) *ScaleApplyConfig
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithName(value string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -72,7 +72,7 @@ func (b *ScaleApplyConfiguration) WithName(value string) *ScaleApplyConfiguratio
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithGenerateName(value string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -81,7 +81,7 @@ func (b *ScaleApplyConfiguration) WithGenerateName(value string) *ScaleApplyConf
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithNamespace(value string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -90,7 +90,7 @@ func (b *ScaleApplyConfiguration) WithNamespace(value string) *ScaleApplyConfigu
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithUID(value types.UID) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -99,7 +99,7 @@ func (b *ScaleApplyConfiguration) WithUID(value types.UID) *ScaleApplyConfigurat
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithResourceVersion(value string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -108,25 +108,25 @@ func (b *ScaleApplyConfiguration) WithResourceVersion(value string) *ScaleApplyC
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithGeneration(value int64) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ScaleApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ScaleApplyConfiguration {
+func (b *ScaleApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ScaleApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ScaleApplyConfiguration {
+func (b *ScaleApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -135,7 +135,7 @@ func (b *ScaleApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ScaleApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -145,11 +145,11 @@ func (b *ScaleApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *S
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ScaleApplyConfiguration) WithLabels(entries map[string]string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -160,11 +160,11 @@ func (b *ScaleApplyConfiguration) WithLabels(entries map[string]string) *ScaleAp
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ScaleApplyConfiguration) WithAnnotations(entries map[string]string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -172,13 +172,13 @@ func (b *ScaleApplyConfiguration) WithAnnotations(entries map[string]string) *Sc
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ScaleApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ScaleApplyConfiguration {
+func (b *ScaleApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -189,14 +189,14 @@ func (b *ScaleApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerRef
 func (b *ScaleApplyConfiguration) WithFinalizers(values ...string) *ScaleApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ScaleApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -219,5 +219,5 @@ func (b *ScaleApplyConfiguration) WithStatus(value *ScaleStatusApplyConfiguratio
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ScaleApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

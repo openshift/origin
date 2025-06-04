@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	clocktesting "k8s.io/utils/clock/testing"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -33,7 +32,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", func() {
 		var originalPasswordHash []byte
 		secretExists := true
-		recorder := events.NewInMemoryRecorder("", clocktesting.NewFakePassiveClock(time.Now()))
+		recorder := events.NewInMemoryRecorder("")
 
 		// always restore cluster to original state at the end
 		defer func() {

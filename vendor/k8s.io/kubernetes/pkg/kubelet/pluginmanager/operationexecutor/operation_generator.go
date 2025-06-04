@@ -27,7 +27,6 @@ import (
 	"net"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 
 	"google.golang.org/grpc"
@@ -63,7 +62,7 @@ type OperationGenerator interface {
 	// Generates the RegisterPlugin function needed to perform the registration of a plugin
 	GenerateRegisterPluginFunc(
 		socketPath string,
-		UUID types.UID,
+		timestamp time.Time,
 		pluginHandlers map[string]cache.PluginHandler,
 		actualStateOfWorldUpdater ActualStateOfWorldUpdater) func() error
 
@@ -75,7 +74,7 @@ type OperationGenerator interface {
 
 func (og *operationGenerator) GenerateRegisterPluginFunc(
 	socketPath string,
-	pluginUUID types.UID,
+	timestamp time.Time,
 	pluginHandlers map[string]cache.PluginHandler,
 	actualStateOfWorldUpdater ActualStateOfWorldUpdater) func() error {
 
@@ -115,7 +114,7 @@ func (og *operationGenerator) GenerateRegisterPluginFunc(
 		// so that if we receive a delete event during Register Plugin, we can process it as a DeRegister call.
 		err = actualStateOfWorldUpdater.AddPlugin(cache.PluginInfo{
 			SocketPath: socketPath,
-			UUID:       pluginUUID,
+			Timestamp:  timestamp,
 			Handler:    handler,
 			Name:       infoResp.Name,
 		})

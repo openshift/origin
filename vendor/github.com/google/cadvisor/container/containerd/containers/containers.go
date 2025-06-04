@@ -33,7 +33,7 @@ import (
 	"context"
 	"time"
 
-	"google.golang.org/protobuf/types/known/anypb"
+	"github.com/gogo/protobuf/types"
 )
 
 // Container represents the set of data pinned by a container. Unless otherwise
@@ -66,7 +66,7 @@ type Container struct {
 	// container.
 	//
 	// This field is required but mutable.
-	Spec *anypb.Any
+	Spec *types.Any
 
 	// SnapshotKey specifies the snapshot key to use for the container's root
 	// filesystem. When starting a task from this container, a caller should
@@ -88,13 +88,13 @@ type Container struct {
 	UpdatedAt time.Time
 
 	// Extensions stores client-specified metadata
-	Extensions map[string]*anypb.Any
+	Extensions map[string]types.Any
 }
 
 // RuntimeInfo holds runtime specific information
 type RuntimeInfo struct {
 	Name    string
-	Options *anypb.Any
+	Options *types.Any
 }
 
 // Store interacts with the underlying container storage

@@ -221,7 +221,7 @@ func assertCleanup(ns string, selectors ...string) {
 	}
 	err := wait.PollImmediate(500*time.Millisecond, 1*time.Minute, verifyCleanupFunc)
 	if err != nil {
-		framework.Fail(e.Error())
+		framework.Failf(e.Error())
 	}
 }
 
@@ -396,7 +396,7 @@ var _ = SIGDescribe("Kubectl client", func() {
 			})
 			ginkgo.By("creating all guestbook components")
 			forEachGBFile(func(contents string) {
-				framework.Logf("%s", contents)
+				framework.Logf(contents)
 				e2ekubectl.RunKubectlOrDieInput(ns, contents, "create", "-f", "-")
 			})
 
@@ -497,16 +497,6 @@ var _ = SIGDescribe("Kubectl client", func() {
 				if !strings.Contains(proxyLog, expectedProxyLog) {
 					framework.Failf("Missing expected log result on proxy server for %s. Expected: %q, got %q", proxyVar, expectedProxyLog, proxyLog)
 				}
-			}
-		})
-
-		// https://issues.k8s.io/128314
-		f.It(f.WithSlow(), "should support exec idle connections", func(ctx context.Context) {
-			ginkgo.By("executing a command in the container")
-
-			execOutput := e2ekubectl.RunKubectlOrDie(ns, "exec", podRunningTimeoutArg, simplePodName, "--", "/bin/sh", "-c", "sleep 320 && echo running in container")
-			if expected, got := "running in container", strings.TrimSpace(execOutput); expected != got {
-				framework.Failf("Unexpected kubectl exec output. Wanted %q, got %q", expected, got)
 			}
 		})
 
@@ -1245,7 +1235,7 @@ metadata:
 
 		ginkgo.It("should detect unknown metadata fields in both the root and embedded object of a CR", func(ctx context.Context) {
 			ginkgo.By("prepare CRD with x-kubernetes-embedded-resource: true")
-			testCRD, err := crd.CreateTestCRD(f, func(crd *apiextensionsv1.CustomResourceDefinition) {
+			opt := func(crd *apiextensionsv1.CustomResourceDefinition) {
 				props := &apiextensionsv1.JSONSchemaProps{}
 				if err := yaml.Unmarshal(schemaFooEmbedded, props); err != nil {
 					framework.Failf("failed to unmarshal schema: %v", err)
@@ -1260,7 +1250,10 @@ metadata:
 						},
 					},
 				}
-			})
+			}
+
+			group := fmt.Sprintf("%s.example.com", f.BaseName)
+			testCRD, err := crd.CreateMultiVersionTestCRD(f, group, opt)
 			if err != nil {
 				framework.Failf("failed to create test CRD: %v", err)
 			}
@@ -1637,7 +1630,7 @@ metadata:
 			ginkgo.By("verifying the pod has the label " + labelName + " with the value " + labelValue)
 			output := e2ekubectl.RunKubectlOrDie(ns, "get", "pod", pausePodName, "-L", labelName)
 			if !strings.Contains(output, labelValue) {
-				framework.Fail("Failed updating label " + labelName + " to the pod " + pausePodName)
+				framework.Failf("Failed updating label " + labelName + " to the pod " + pausePodName)
 			}
 
 			ginkgo.By("removing the label " + labelName + " of a pod")
@@ -1645,7 +1638,7 @@ metadata:
 			ginkgo.By("verifying the pod doesn't have the label " + labelName)
 			output = e2ekubectl.RunKubectlOrDie(ns, "get", "pod", pausePodName, "-L", labelName)
 			if strings.Contains(output, labelValue) {
-				framework.Fail("Failed removing label " + labelName + " of the pod " + pausePodName)
+				framework.Failf("Failed removing label " + labelName + " of the pod " + pausePodName)
 			}
 		})
 	})
@@ -1922,7 +1915,7 @@ metadata:
 			ginkgo.By("verifying the node doesn't have the taint " + testTaint.Key)
 			output = runKubectlRetryOrDie(ns, "describe", "node", nodeName)
 			if strings.Contains(output, testTaint.Key) {
-				framework.Fail("Failed removing taint " + testTaint.Key + " of the node " + nodeName)
+				framework.Failf("Failed removing taint " + testTaint.Key + " of the node " + nodeName)
 			}
 		})
 
@@ -1990,7 +1983,7 @@ metadata:
 			ginkgo.By("verifying the node doesn't have the taints that have the same key " + testTaint.Key)
 			output = runKubectlRetryOrDie(ns, "describe", "node", nodeName)
 			if strings.Contains(output, testTaint.Key) {
-				framework.Fail("Failed removing taints " + testTaint.Key + " of the node " + nodeName)
+				framework.Failf("Failed removing taints " + testTaint.Key + " of the node " + nodeName)
 			}
 		})
 	})
@@ -2337,7 +2330,7 @@ const applyTestLabel = "kubectl.kubernetes.io/apply-test"
 func readReplicationControllerFromString(contents string) *v1.ReplicationController {
 	rc := v1.ReplicationController{}
 	if err := yaml.Unmarshal([]byte(contents), &rc); err != nil {
-		framework.Fail(err.Error())
+		framework.Failf(err.Error())
 	}
 
 	return &rc

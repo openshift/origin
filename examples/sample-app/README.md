@@ -7,11 +7,11 @@ This example assumes you have successfully built the `openshift` binary
 executable (normally located under origin/\_output/local/bin/linux/amd64, or the
 equivalent for your host platform/architecture), you have that and its
 symlink/copy `oc` in your `PATH` and root's, and Docker is installed and
-working. See https://github.com/openshift/origin/blob/main/CONTRIBUTING.adoc.
+working. See https://github.com/openshift/origin/blob/master/CONTRIBUTING.adoc.
 
 Alternatively, if you are using the openshift/origin container, please
 make sure you follow these instructions first:
-https://github.com/openshift/origin/blob/main/examples/sample-app/container-setup.md
+https://github.com/openshift/origin/blob/master/examples/sample-app/container-setup.md
 
 Security Warning
 ----------------
@@ -84,7 +84,7 @@ Firewalld will start again on your next reboot, but you can manually restart it 
 
 ### Still Having Trouble? ###
 
-If you hit any snags while taking the sample app for a spin, check out the [troubleshooting guide](https://github.com/openshift/origin/blob/main/docs/debugging-openshift.md).
+If you hit any snags while taking the sample app for a spin, check out the [troubleshooting guide](https://github.com/openshift/origin/blob/master/docs/debugging-openshift.md).
 
 Application Build, Deploy, and Update Flow
 ------------------------------------------

@@ -51,7 +51,7 @@ func (c *Client) ListVolumes(opts ListVolumesOptions) ([]Volume, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	m := make(map[string]any)
+	m := make(map[string]interface{})
 	if err = json.NewDecoder(resp.Body).Decode(&m); err != nil {
 		return nil, err
 	}

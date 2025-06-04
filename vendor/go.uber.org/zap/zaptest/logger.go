@@ -82,7 +82,7 @@ func NewLogger(t TestingT, opts ...LoggerOption) *zap.Logger {
 		o.applyLoggerOption(&cfg)
 	}
 
-	writer := NewTestingWriter(t)
+	writer := newTestingWriter(t)
 	zapOptions := []zap.Option{
 		// Send zap errors to the same writer and mark the test as failed if
 		// that happens.
@@ -100,43 +100,27 @@ func NewLogger(t TestingT, opts ...LoggerOption) *zap.Logger {
 	)
 }
 
-// TestingWriter is a WriteSyncer that writes to the given testing.TB.
-type TestingWriter struct {
+// testingWriter is a WriteSyncer that writes to the given testing.TB.
+type testingWriter struct {
 	t TestingT
 
-	// If true, the test will be marked as failed if this TestingWriter is
+	// If true, the test will be marked as failed if this testingWriter is
 	// ever used.
 	markFailed bool
 }
 
-// NewTestingWriter builds a new TestingWriter that writes to the given
-// testing.TB.
-//
-// Use this if you need more flexibility when creating *zap.Logger
-// than zaptest.NewLogger() provides.
-//
-// E.g., if you want to use custom core with zaptest.TestingWriter:
-//
-//	encoder := newCustomEncoder()
-//	writer := zaptest.NewTestingWriter(t)
-//	level := zap.NewAtomicLevelAt(zapcore.DebugLevel)
-//
-//	core := newCustomCore(encoder, writer, level)
-//
-//	logger := zap.New(core, zap.AddCaller())
-func NewTestingWriter(t TestingT) TestingWriter {
-	return TestingWriter{t: t}
+func newTestingWriter(t TestingT) testingWriter {
+	return testingWriter{t: t}
 }
 
-// WithMarkFailed returns a copy of this TestingWriter with markFailed set to
+// WithMarkFailed returns a copy of this testingWriter with markFailed set to
 // the provided value.
-func (w TestingWriter) WithMarkFailed(v bool) TestingWriter {
+func (w testingWriter) WithMarkFailed(v bool) testingWriter {
 	w.markFailed = v
 	return w
 }
 
-// Write writes bytes from p to the underlying testing.TB.
-func (w TestingWriter) Write(p []byte) (n int, err error) {
+func (w testingWriter) Write(p []byte) (n int, err error) {
 	n = len(p)
 
 	// Strip trailing newline because t.Log always adds one.
@@ -151,7 +135,6 @@ func (w TestingWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-// Sync commits the current contents (a no-op for TestingWriter).
-func (w TestingWriter) Sync() error {
+func (w testingWriter) Sync() error {
 	return nil
 }

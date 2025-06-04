@@ -232,20 +232,7 @@ var authzLib = &authz{}
 type authz struct{}
 
 func (*authz) LibraryName() string {
-	return "kubernetes.authz"
-}
-
-func (*authz) Types() []*cel.Type {
-	return []*cel.Type{
-		AuthorizerType,
-		PathCheckType,
-		GroupCheckType,
-		ResourceCheckType,
-		DecisionType}
-}
-
-func (*authz) declarations() map[string][]cel.FunctionOpt {
-	return authzLibraryDecls
+	return "k8s.authz"
 }
 
 var authzLibraryDecls = map[string][]cel.FunctionOpt{
@@ -337,15 +324,7 @@ var authzSelectorsLib = &authzSelectors{}
 type authzSelectors struct{}
 
 func (*authzSelectors) LibraryName() string {
-	return "kubernetes.authzSelectors"
-}
-
-func (*authzSelectors) Types() []*cel.Type {
-	return []*cel.Type{ResourceCheckType}
-}
-
-func (*authzSelectors) declarations() map[string][]cel.FunctionOpt {
-	return authzSelectorsLibraryDecls
+	return "k8s.authzSelectors"
 }
 
 var authzSelectorsLibraryDecls = map[string][]cel.FunctionOpt{

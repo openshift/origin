@@ -29,7 +29,7 @@ type FakeAuthenticationV1alpha1 struct {
 }
 
 func (c *FakeAuthenticationV1alpha1) SelfSubjectReviews() v1alpha1.SelfSubjectReviewInterface {
-	return newFakeSelfSubjectReviews(c)
+	return &FakeSelfSubjectReviews{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

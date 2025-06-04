@@ -18,7 +18,6 @@ package volumemanager
 
 import (
 	"context"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/kubelet/config"
@@ -30,14 +29,10 @@ import (
 type FakeVolumeManager struct {
 	volumes       map[v1.UniqueVolumeName]bool
 	reportedInUse map[v1.UniqueVolumeName]bool
-	unmountDelay  time.Duration
-	unmountError  error
 }
 
-var _ VolumeManager = &FakeVolumeManager{}
-
 // NewFakeVolumeManager creates a new VolumeManager test instance
-func NewFakeVolumeManager(initialVolumes []v1.UniqueVolumeName, unmountDelay time.Duration, unmountError error) *FakeVolumeManager {
+func NewFakeVolumeManager(initialVolumes []v1.UniqueVolumeName) *FakeVolumeManager {
 	volumes := map[v1.UniqueVolumeName]bool{}
 	for _, v := range initialVolumes {
 		volumes[v] = true
@@ -45,13 +40,11 @@ func NewFakeVolumeManager(initialVolumes []v1.UniqueVolumeName, unmountDelay tim
 	return &FakeVolumeManager{
 		volumes:       volumes,
 		reportedInUse: map[v1.UniqueVolumeName]bool{},
-		unmountDelay:  unmountDelay,
-		unmountError:  unmountError,
 	}
 }
 
 // Run is not implemented
-func (f *FakeVolumeManager) Run(ctx context.Context, sourcesReady config.SourcesReady) {
+func (f *FakeVolumeManager) Run(sourcesReady config.SourcesReady, stopCh <-chan struct{}) {
 }
 
 // WaitForAttachAndMount is not implemented
@@ -62,15 +55,6 @@ func (f *FakeVolumeManager) WaitForAttachAndMount(ctx context.Context, pod *v1.P
 // WaitForUnmount is not implemented
 func (f *FakeVolumeManager) WaitForUnmount(ctx context.Context, pod *v1.Pod) error {
 	return nil
-}
-
-func (f *FakeVolumeManager) WaitForAllPodsUnmount(ctx context.Context, pods []*v1.Pod) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(f.unmountDelay):
-		return f.unmountError
-	}
 }
 
 // GetMountedVolumesForPod is not implemented

@@ -23,17 +23,15 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 	}
 	exceptions := []exceptionVariants{
 		{
-			// snapshot controller operator seems to fail on SNO during kube api upgrades
-			// the error from the pod is the inability to connect to the kas to get volumesnapshots on startup.
-			containerName:     "container/snapshot-controller", // https://issues.redhat.com/browse/OCPBUGS-43113
+			// ingress operator seems to only fail on the single topology.
+			// platform did not matter.
+			containerName:     "container/ingress-operator", // https://issues.redhat.com/browse/OCPBUGS-39315
 			topologyToExclude: "single",
 		},
 		{
-			// prod-bearer-token is part of the opeshift-e2e-loki deployment
-			// (see https://github.com/openshift/release/tree/master/ci-operator/step-registry/ipi/install/hosted-loki)
-			// the error from the pod is the inability to resolve sso.redhat.com due to dns being unavailable
-			// briefly during the upgrade
-			containerName:     "container/prod-bearer-token", // https://issues.redhat.com/browse/OCPBUGS-44970
+			// snapshot controller operator seems to fail on SNO during kube api upgrades
+			// the error from the pod is the inability to connect to the kas to get volumesnapshots on startup.
+			containerName:     "container/snapshot-controller", // https://issues.redhat.com/browse/OCPBUGS-43113
 			topologyToExclude: "single",
 		},
 		{
@@ -41,6 +39,9 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 		},
 		{
 			containerName: "container/ovn-acl-logging", // https://issues.redhat.com/browse/OCPBUGS-42344
+		},
+		{
+			containerName: "container/managed-upgrade-operator", // https://issues.redhat.com/browse/OSD-26270
 		},
 		{
 			// Managed services like ROSA. This is expected.

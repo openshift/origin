@@ -23,12 +23,10 @@ const (
 
 // User visible keys for managing node allocatable enforcement on the node.
 const (
-	NodeAllocatableEnforcementKey            = "pods"
-	SystemReservedEnforcementKey             = "system-reserved"
-	SystemReservedCompressibleEnforcementKey = "system-reserved-compressible"
-	KubeReservedEnforcementKey               = "kube-reserved"
-	KubeReservedCompressibleEnforcementKey   = "kube-reserved-compressible"
-	NodeAllocatableNoneKey                   = "none"
+	NodeAllocatableEnforcementKey = "pods"
+	SystemReservedEnforcementKey  = "system-reserved"
+	KubeReservedEnforcementKey    = "kube-reserved"
+	NodeAllocatableNoneKey        = "none"
 )
 
 // SwapBehavior types

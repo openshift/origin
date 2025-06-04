@@ -68,7 +68,7 @@ func extractImageContentSourcePolicy(imageContentSourcePolicy *operatorv1alpha1.
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithKind(value string) *ImageContentSourcePolicyApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -76,7 +76,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithKind(value string) *Ima
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithAPIVersion(value string) *ImageContentSourcePolicyApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -85,7 +85,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithAPIVersion(value string
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithName(value string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -94,7 +94,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithName(value string) *Ima
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithGenerateName(value string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -103,7 +103,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithGenerateName(value stri
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithNamespace(value string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -112,7 +112,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithNamespace(value string)
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithUID(value types.UID) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -121,7 +121,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithUID(value types.UID) *I
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithResourceVersion(value string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -130,7 +130,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithResourceVersion(value s
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithGeneration(value int64) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
@@ -139,7 +139,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithGeneration(value int64)
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
@@ -148,7 +148,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithCreationTimestamp(value
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -157,7 +157,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithDeletionTimestamp(value
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -167,11 +167,11 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithDeletionGracePeriodSeco
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithLabels(entries map[string]string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -182,11 +182,11 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithLabels(entries map[stri
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ImageContentSourcePolicyApplyConfiguration) WithAnnotations(entries map[string]string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -200,7 +200,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithOwnerReferences(values 
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -211,7 +211,7 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithOwnerReferences(values 
 func (b *ImageContentSourcePolicyApplyConfiguration) WithFinalizers(values ...string) *ImageContentSourcePolicyApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
@@ -233,5 +233,5 @@ func (b *ImageContentSourcePolicyApplyConfiguration) WithSpec(value *ImageConten
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ImageContentSourcePolicyApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

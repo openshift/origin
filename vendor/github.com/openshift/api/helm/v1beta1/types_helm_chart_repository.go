@@ -27,6 +27,7 @@ type HelmChartRepository struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec HelmChartRepositorySpec `json:"spec"`
 
@@ -99,7 +100,5 @@ type HelmChartRepositoryStatus struct {
 
 	// conditions is a list of conditions and their statuses
 	// +optional
-	// +listType=map
-	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }

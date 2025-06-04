@@ -19,26 +19,29 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1beta1 "k8s.io/api/authorization/v1beta1"
-	gentype "k8s.io/client-go/gentype"
-	authorizationv1beta1 "k8s.io/client-go/kubernetes/typed/authorization/v1beta1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testing "k8s.io/client-go/testing"
 )
 
-// fakeSelfSubjectAccessReviews implements SelfSubjectAccessReviewInterface
-type fakeSelfSubjectAccessReviews struct {
-	*gentype.FakeClient[*v1beta1.SelfSubjectAccessReview]
+// FakeSelfSubjectAccessReviews implements SelfSubjectAccessReviewInterface
+type FakeSelfSubjectAccessReviews struct {
 	Fake *FakeAuthorizationV1beta1
 }
 
-func newFakeSelfSubjectAccessReviews(fake *FakeAuthorizationV1beta1) authorizationv1beta1.SelfSubjectAccessReviewInterface {
-	return &fakeSelfSubjectAccessReviews{
-		gentype.NewFakeClient[*v1beta1.SelfSubjectAccessReview](
-			fake.Fake,
-			"",
-			v1beta1.SchemeGroupVersion.WithResource("selfsubjectaccessreviews"),
-			v1beta1.SchemeGroupVersion.WithKind("SelfSubjectAccessReview"),
-			func() *v1beta1.SelfSubjectAccessReview { return &v1beta1.SelfSubjectAccessReview{} },
-		),
-		fake,
+var selfsubjectaccessreviewsResource = v1beta1.SchemeGroupVersion.WithResource("selfsubjectaccessreviews")
+
+var selfsubjectaccessreviewsKind = v1beta1.SchemeGroupVersion.WithKind("SelfSubjectAccessReview")
+
+// Create takes the representation of a selfSubjectAccessReview and creates it.  Returns the server's representation of the selfSubjectAccessReview, and an error, if there is any.
+func (c *FakeSelfSubjectAccessReviews) Create(ctx context.Context, selfSubjectAccessReview *v1beta1.SelfSubjectAccessReview, opts v1.CreateOptions) (result *v1beta1.SelfSubjectAccessReview, err error) {
+	emptyResult := &v1beta1.SelfSubjectAccessReview{}
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateActionWithOptions(selfsubjectaccessreviewsResource, selfSubjectAccessReview, opts), emptyResult)
+	if obj == nil {
+		return emptyResult, err
 	}
+	return obj.(*v1beta1.SelfSubjectAccessReview), err
 }

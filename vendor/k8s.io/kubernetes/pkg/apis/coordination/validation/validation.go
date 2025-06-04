@@ -111,9 +111,7 @@ func ValidateLeaseCandidateSpec(spec *coordination.LeaseCandidateSpec, fldPath *
 		}
 	}
 	bv := semver.Version{}
-	if spec.BinaryVersion == "" {
-		allErrs = append(allErrs, field.Required(fldPath.Child("binaryVersion"), ""))
-	} else {
+	if spec.BinaryVersion != "" {
 		var err error
 		bv, err = semver.Parse(spec.BinaryVersion)
 		if err != nil {
@@ -126,18 +124,29 @@ func ValidateLeaseCandidateSpec(spec *coordination.LeaseCandidateSpec, fldPath *
 		allErrs = append(allErrs, field.Invalid(fld, spec.BinaryVersion, "must be greater than or equal to `emulationVersion`"))
 	}
 
-	if spec.Strategy == "" {
-		allErrs = append(allErrs, field.Required(fldPath.Child("strategy"), ""))
-	} else {
-		fld := fldPath.Child("strategy")
-		if spec.Strategy == coordination.OldestEmulationVersion {
-			zeroVersion := semver.Version{}
-			if ev.EQ(zeroVersion) {
-				allErrs = append(allErrs, field.Required(fldPath.Child("emulationVersion"), "must be specified when `strategy` is 'OldestEmulationVersion'"))
-			}
-		}
+	if len(spec.PreferredStrategies) > 0 {
+		for i, strategy := range spec.PreferredStrategies {
+			fld := fldPath.Child("preferredStrategies").Index(i)
 
-		allErrs = append(allErrs, ValidateCoordinatedLeaseStrategy(spec.Strategy, fld)...)
+			strategySeen := make(map[coordination.CoordinatedLeaseStrategy]bool)
+			if _, ok := strategySeen[strategy]; ok {
+				allErrs = append(allErrs, field.Duplicate(fld, strategy))
+			} else {
+				strategySeen[strategy] = true
+			}
+
+			if strategy == coordination.OldestEmulationVersion {
+				zeroVersion := semver.Version{}
+				if bv.EQ(zeroVersion) {
+					allErrs = append(allErrs, field.Required(fldPath.Child("binaryVersion"), "must be specified when `strategy` is 'OldestEmulationVersion'"))
+				}
+				if ev.EQ(zeroVersion) {
+					allErrs = append(allErrs, field.Required(fldPath.Child("emulationVersion"), "must be specified when `strategy` is 'OldestEmulationVersion'"))
+				}
+			}
+
+			allErrs = append(allErrs, ValidateCoordinatedLeaseStrategy(strategy, fld)...)
+		}
 	}
 	// spec.PingTime is a MicroTime and doesn't need further validation
 	// spec.RenewTime is a MicroTime and doesn't need further validation

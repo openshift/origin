@@ -56,7 +56,3 @@ func (g *groupversion) Schema(contentType string) ([]byte, error) {
 
 	return cachedInfo.data, cachedInfo.err
 }
-
-func (c *groupversion) ServerRelativeURL() string {
-	return c.delegate.ServerRelativeURL()
-}

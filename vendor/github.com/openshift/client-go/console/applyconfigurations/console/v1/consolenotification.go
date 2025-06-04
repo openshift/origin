@@ -3,20 +3,20 @@
 package v1
 
 import (
-	consolev1 "github.com/openshift/api/console/v1"
+	apiconsolev1 "github.com/openshift/api/console/v1"
 	internal "github.com/openshift/client-go/console/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ConsoleNotificationApplyConfiguration represents a declarative configuration of the ConsoleNotification type for use
 // with apply.
 type ConsoleNotificationApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ConsoleNotificationSpecApplyConfiguration `json:"spec,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ConsoleNotificationSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // ConsoleNotification constructs a declarative configuration of the ConsoleNotification type for use with
@@ -40,18 +40,18 @@ func ConsoleNotification(name string) *ConsoleNotificationApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractConsoleNotification(consoleNotification *consolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
+func ExtractConsoleNotification(consoleNotification *apiconsolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
 	return extractConsoleNotification(consoleNotification, fieldManager, "")
 }
 
 // ExtractConsoleNotificationStatus is the same as ExtractConsoleNotification except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractConsoleNotificationStatus(consoleNotification *consolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
+func ExtractConsoleNotificationStatus(consoleNotification *apiconsolev1.ConsoleNotification, fieldManager string) (*ConsoleNotificationApplyConfiguration, error) {
 	return extractConsoleNotification(consoleNotification, fieldManager, "status")
 }
 
-func extractConsoleNotification(consoleNotification *consolev1.ConsoleNotification, fieldManager string, subresource string) (*ConsoleNotificationApplyConfiguration, error) {
+func extractConsoleNotification(consoleNotification *apiconsolev1.ConsoleNotification, fieldManager string, subresource string) (*ConsoleNotificationApplyConfiguration, error) {
 	b := &ConsoleNotificationApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleNotification, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleNotification"), fieldManager, b, subresource)
 	if err != nil {
@@ -68,7 +68,7 @@ func extractConsoleNotification(consoleNotification *consolev1.ConsoleNotificati
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithKind(value string) *ConsoleNotificationApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -76,7 +76,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithKind(value string) *ConsoleN
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithAPIVersion(value string) *ConsoleNotificationApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -85,7 +85,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithAPIVersion(value string) *Co
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithName(value string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -94,7 +94,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithName(value string) *ConsoleN
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithGenerateName(value string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -103,7 +103,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithGenerateName(value string) *
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithNamespace(value string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -112,7 +112,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithNamespace(value string) *Con
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithUID(value types.UID) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -121,7 +121,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithUID(value types.UID) *Consol
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithResourceVersion(value string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -130,25 +130,25 @@ func (b *ConsoleNotificationApplyConfiguration) WithResourceVersion(value string
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithGeneration(value int64) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ConsoleNotificationApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ConsoleNotificationApplyConfiguration {
+func (b *ConsoleNotificationApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ConsoleNotificationApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ConsoleNotificationApplyConfiguration {
+func (b *ConsoleNotificationApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -157,7 +157,7 @@ func (b *ConsoleNotificationApplyConfiguration) WithDeletionTimestamp(value apis
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ConsoleNotificationApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -167,11 +167,11 @@ func (b *ConsoleNotificationApplyConfiguration) WithDeletionGracePeriodSeconds(v
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ConsoleNotificationApplyConfiguration) WithLabels(entries map[string]string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -182,11 +182,11 @@ func (b *ConsoleNotificationApplyConfiguration) WithLabels(entries map[string]st
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ConsoleNotificationApplyConfiguration) WithAnnotations(entries map[string]string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -194,13 +194,13 @@ func (b *ConsoleNotificationApplyConfiguration) WithAnnotations(entries map[stri
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ConsoleNotificationApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ConsoleNotificationApplyConfiguration {
+func (b *ConsoleNotificationApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -211,14 +211,14 @@ func (b *ConsoleNotificationApplyConfiguration) WithOwnerReferences(values ...*m
 func (b *ConsoleNotificationApplyConfiguration) WithFinalizers(values ...string) *ConsoleNotificationApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ConsoleNotificationApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -233,5 +233,5 @@ func (b *ConsoleNotificationApplyConfiguration) WithSpec(value *ConsoleNotificat
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ConsoleNotificationApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

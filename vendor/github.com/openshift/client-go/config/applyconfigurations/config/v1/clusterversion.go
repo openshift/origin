@@ -3,21 +3,21 @@
 package v1
 
 import (
-	configv1 "github.com/openshift/api/config/v1"
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	internal "github.com/openshift/client-go/config/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ClusterVersionApplyConfiguration represents a declarative configuration of the ClusterVersion type for use
 // with apply.
 type ClusterVersionApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ClusterVersionSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ClusterVersionStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ClusterVersionSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *ClusterVersionStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ClusterVersion constructs a declarative configuration of the ClusterVersion type for use with
@@ -41,18 +41,18 @@ func ClusterVersion(name string) *ClusterVersionApplyConfiguration {
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
+func ExtractClusterVersion(clusterVersion *apiconfigv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
 	return extractClusterVersion(clusterVersion, fieldManager, "")
 }
 
 // ExtractClusterVersionStatus is the same as ExtractClusterVersion except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractClusterVersionStatus(clusterVersion *configv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
+func ExtractClusterVersionStatus(clusterVersion *apiconfigv1.ClusterVersion, fieldManager string) (*ClusterVersionApplyConfiguration, error) {
 	return extractClusterVersion(clusterVersion, fieldManager, "status")
 }
 
-func extractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager string, subresource string) (*ClusterVersionApplyConfiguration, error) {
+func extractClusterVersion(clusterVersion *apiconfigv1.ClusterVersion, fieldManager string, subresource string) (*ClusterVersionApplyConfiguration, error) {
 	b := &ClusterVersionApplyConfiguration{}
 	err := managedfields.ExtractInto(clusterVersion, internal.Parser().Type("com.github.openshift.api.config.v1.ClusterVersion"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractClusterVersion(clusterVersion *configv1.ClusterVersion, fieldManager
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithKind(value string) *ClusterVersionApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *ClusterVersionApplyConfiguration) WithKind(value string) *ClusterVersio
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithAPIVersion(value string) *ClusterVersionApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *ClusterVersionApplyConfiguration) WithAPIVersion(value string) *Cluster
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithName(value string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *ClusterVersionApplyConfiguration) WithName(value string) *ClusterVersio
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithGenerateName(value string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *ClusterVersionApplyConfiguration) WithGenerateName(value string) *Clust
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithNamespace(value string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ClusterVersionApplyConfiguration) WithNamespace(value string) *ClusterV
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithUID(value types.UID) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *ClusterVersionApplyConfiguration) WithUID(value types.UID) *ClusterVers
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithResourceVersion(value string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *ClusterVersionApplyConfiguration) WithResourceVersion(value string) *Cl
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithGeneration(value int64) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ClusterVersionApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ClusterVersionApplyConfiguration {
+func (b *ClusterVersionApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ClusterVersionApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ClusterVersionApplyConfiguration {
+func (b *ClusterVersionApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *ClusterVersionApplyConfiguration) WithDeletionTimestamp(value apismetav
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ClusterVersionApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *ClusterVersionApplyConfiguration) WithDeletionGracePeriodSeconds(value 
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ClusterVersionApplyConfiguration) WithLabels(entries map[string]string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *ClusterVersionApplyConfiguration) WithLabels(entries map[string]string)
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ClusterVersionApplyConfiguration) WithAnnotations(entries map[string]string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *ClusterVersionApplyConfiguration) WithAnnotations(entries map[string]st
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ClusterVersionApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ClusterVersionApplyConfiguration {
+func (b *ClusterVersionApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *ClusterVersionApplyConfiguration) WithOwnerReferences(values ...*metav1
 func (b *ClusterVersionApplyConfiguration) WithFinalizers(values ...string) *ClusterVersionApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ClusterVersionApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *ClusterVersionApplyConfiguration) WithStatus(value *ClusterVersionStatu
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ClusterVersionApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

@@ -3,8 +3,6 @@ package operators
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -14,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"strings"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -160,7 +159,11 @@ var (
 			"CSISnapshotControllerUpgradeable",
 			"CSISnapshotGuestStaticResourceControllerDegraded",
 			"CSISnapshotStaticResourceControllerDegraded",
+			"CSISnapshotWebhookControllerAvailable",
+			"CSISnapshotWebhookControllerDegraded",
+			"CSISnapshotWebhookControllerProgressing",
 			"ManagementStateDegraded",
+			"WebhookControllerDegraded",
 		},
 		//{Group: "operator.openshift.io", Version: "v1", Resource: "dnses"}:                       {}, // different name
 		{Group: "operator.openshift.io", Version: "v1", Resource: "etcds"}: {

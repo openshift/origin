@@ -25,7 +25,7 @@ const (
 	egressFWE2E          = "egress-firewall-e2e"
 	wcEgressFWE2E        = "wildcard-egress-firewall-e2e"
 	noEgressFWE2E        = "no-egress-firewall-e2e"
-	egressFWTestImage    = "registry.k8s.io/e2e-test-images/agnhost:2.53"
+	egressFWTestImage    = "registry.k8s.io/e2e-test-images/agnhost:2.52"
 	oVNKManifest         = "ovnk-egressfirewall-test.yaml"
 	oVNKWCManifest       = "ovnk-egressfirewall-wildcard-test.yaml"
 	openShiftSDNManifest = "sdn-egressnetworkpolicy-test.yaml"
@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			_, err = noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 			expectNoError(err)
 		}
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://redhat.com").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://docs.openshift.com").Output()
 		expectNoError(err)
 
 		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.google.com:80").Output()
@@ -148,10 +148,10 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 		_, err = oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 		expectError(err)
 	}
-	// Test curl to redhat.com should pass
-	// because we have allow dns rule for redhat.com
+	// Test curl to docs.openshift.com should pass
+	// because we have allow dns rule for docs.openshift.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://redhat.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://docs.openshift.com").Output()
 	expectNoError(err)
 
 	if checkWildcard {

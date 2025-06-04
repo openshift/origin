@@ -24,6 +24,7 @@ import (
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	runtimeutil "k8s.io/kubernetes/pkg/kubelet/kuberuntime/util"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 const (
@@ -56,7 +57,7 @@ func GenerateContainersReadyCondition(spec *v1.PodSpec, containerStatuses []v1.C
 	unreadyContainers := []string{}
 
 	for _, container := range spec.InitContainers {
-		if !podutil.IsRestartableInitContainer(&container) {
+		if !kubetypes.IsRestartableInitContainer(&container) {
 			continue
 		}
 
@@ -158,7 +159,7 @@ func GeneratePodReadyCondition(spec *v1.PodSpec, conditions []v1.PodCondition, c
 }
 
 func isInitContainerInitialized(initContainer *v1.Container, containerStatus *v1.ContainerStatus) bool {
-	if podutil.IsRestartableInitContainer(initContainer) {
+	if kubetypes.IsRestartableInitContainer(initContainer) {
 		if containerStatus.Started == nil || !*containerStatus.Started {
 			return false
 		}

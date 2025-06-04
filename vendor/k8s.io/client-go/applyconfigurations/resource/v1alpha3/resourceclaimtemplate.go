@@ -86,7 +86,7 @@ func extractResourceClaimTemplate(resourceClaimTemplate *resourcev1alpha3.Resour
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithKind(value string) *ResourceClaimTemplateApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -94,7 +94,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithKind(value string) *Resour
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithAPIVersion(value string) *ResourceClaimTemplateApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -103,7 +103,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithAPIVersion(value string) *
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithName(value string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -112,7 +112,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithName(value string) *Resour
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithGenerateName(value string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -121,7 +121,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithGenerateName(value string)
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithNamespace(value string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -130,7 +130,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithNamespace(value string) *R
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithUID(value types.UID) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -139,7 +139,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithUID(value types.UID) *Reso
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithResourceVersion(value string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -148,7 +148,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithResourceVersion(value stri
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithGeneration(value int64) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
@@ -157,7 +157,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithGeneration(value int64) *R
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
@@ -166,7 +166,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithCreationTimestamp(value me
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -175,7 +175,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithDeletionTimestamp(value me
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ResourceClaimTemplateApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -185,11 +185,11 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithDeletionGracePeriodSeconds
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ResourceClaimTemplateApplyConfiguration) WithLabels(entries map[string]string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -200,11 +200,11 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithLabels(entries map[string]
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ResourceClaimTemplateApplyConfiguration) WithAnnotations(entries map[string]string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -218,7 +218,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithOwnerReferences(values ...
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -229,7 +229,7 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithOwnerReferences(values ...
 func (b *ResourceClaimTemplateApplyConfiguration) WithFinalizers(values ...string) *ResourceClaimTemplateApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
@@ -251,5 +251,5 @@ func (b *ResourceClaimTemplateApplyConfiguration) WithSpec(value *ResourceClaimT
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ResourceClaimTemplateApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

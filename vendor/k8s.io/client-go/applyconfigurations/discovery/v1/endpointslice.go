@@ -20,21 +20,21 @@ package v1
 
 import (
 	discoveryv1 "k8s.io/api/discovery/v1"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
 	internal "k8s.io/client-go/applyconfigurations/internal"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // EndpointSliceApplyConfiguration represents a declarative configuration of the EndpointSlice type for use
 // with apply.
 type EndpointSliceApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	AddressType                          *discoveryv1.AddressType         `json:"addressType,omitempty"`
-	Endpoints                            []EndpointApplyConfiguration     `json:"endpoints,omitempty"`
-	Ports                                []EndpointPortApplyConfiguration `json:"ports,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	AddressType                      *discoveryv1.AddressType         `json:"addressType,omitempty"`
+	Endpoints                        []EndpointApplyConfiguration     `json:"endpoints,omitempty"`
+	Ports                            []EndpointPortApplyConfiguration `json:"ports,omitempty"`
 }
 
 // EndpointSlice constructs a declarative configuration of the EndpointSlice type for use with
@@ -88,7 +88,7 @@ func extractEndpointSlice(endpointSlice *discoveryv1.EndpointSlice, fieldManager
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithKind(value string) *EndpointSliceApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -96,7 +96,7 @@ func (b *EndpointSliceApplyConfiguration) WithKind(value string) *EndpointSliceA
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithAPIVersion(value string) *EndpointSliceApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -105,7 +105,7 @@ func (b *EndpointSliceApplyConfiguration) WithAPIVersion(value string) *Endpoint
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithName(value string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -114,7 +114,7 @@ func (b *EndpointSliceApplyConfiguration) WithName(value string) *EndpointSliceA
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithGenerateName(value string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -123,7 +123,7 @@ func (b *EndpointSliceApplyConfiguration) WithGenerateName(value string) *Endpoi
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithNamespace(value string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -132,7 +132,7 @@ func (b *EndpointSliceApplyConfiguration) WithNamespace(value string) *EndpointS
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithUID(value types.UID) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -141,7 +141,7 @@ func (b *EndpointSliceApplyConfiguration) WithUID(value types.UID) *EndpointSlic
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithResourceVersion(value string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -150,25 +150,25 @@ func (b *EndpointSliceApplyConfiguration) WithResourceVersion(value string) *End
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithGeneration(value int64) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *EndpointSliceApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *EndpointSliceApplyConfiguration {
+func (b *EndpointSliceApplyConfiguration) WithCreationTimestamp(value metav1.Time) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *EndpointSliceApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *EndpointSliceApplyConfiguration {
+func (b *EndpointSliceApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -177,7 +177,7 @@ func (b *EndpointSliceApplyConfiguration) WithDeletionTimestamp(value apismetav1
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *EndpointSliceApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -187,11 +187,11 @@ func (b *EndpointSliceApplyConfiguration) WithDeletionGracePeriodSeconds(value i
 // overwriting an existing map entries in Labels field with the same key.
 func (b *EndpointSliceApplyConfiguration) WithLabels(entries map[string]string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -202,11 +202,11 @@ func (b *EndpointSliceApplyConfiguration) WithLabels(entries map[string]string) 
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *EndpointSliceApplyConfiguration) WithAnnotations(entries map[string]string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -214,13 +214,13 @@ func (b *EndpointSliceApplyConfiguration) WithAnnotations(entries map[string]str
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *EndpointSliceApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *EndpointSliceApplyConfiguration {
+func (b *EndpointSliceApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -231,14 +231,14 @@ func (b *EndpointSliceApplyConfiguration) WithOwnerReferences(values ...*metav1.
 func (b *EndpointSliceApplyConfiguration) WithFinalizers(values ...string) *EndpointSliceApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *EndpointSliceApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -279,5 +279,5 @@ func (b *EndpointSliceApplyConfiguration) WithPorts(values ...*EndpointPortApply
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *EndpointSliceApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

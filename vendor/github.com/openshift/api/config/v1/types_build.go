@@ -29,13 +29,14 @@ type Build struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// spec holds user-settable values for the build controller configuration
+	// Spec holds user-settable values for the build controller configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec BuildSpec `json:"spec"`
 }
 
 type BuildSpec struct {
-	// additionalTrustedCA is a reference to a ConfigMap containing additional CAs that
+	// AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that
 	// should be trusted for image pushes and pulls during builds.
 	// The namespace for this config map is openshift-config.
 	//
@@ -44,16 +45,16 @@ type BuildSpec struct {
 	//
 	// +optional
 	AdditionalTrustedCA ConfigMapNameReference `json:"additionalTrustedCA"`
-	// buildDefaults controls the default information for Builds
+	// BuildDefaults controls the default information for Builds
 	// +optional
 	BuildDefaults BuildDefaults `json:"buildDefaults"`
-	// buildOverrides controls override settings for builds
+	// BuildOverrides controls override settings for builds
 	// +optional
 	BuildOverrides BuildOverrides `json:"buildOverrides"`
 }
 
 type BuildDefaults struct {
-	// defaultProxy contains the default proxy settings for all build operations, including image pull/push
+	// DefaultProxy contains the default proxy settings for all build operations, including image pull/push
 	// and source download.
 	//
 	// Values can be overrode by setting the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables
@@ -61,55 +62,55 @@ type BuildDefaults struct {
 	// +optional
 	DefaultProxy *ProxySpec `json:"defaultProxy,omitempty"`
 
-	// gitProxy contains the proxy settings for git operations only. If set, this will override
+	// GitProxy contains the proxy settings for git operations only. If set, this will override
 	// any Proxy settings for all git commands, such as git clone.
 	//
 	// Values that are not set here will be inherited from DefaultProxy.
 	// +optional
 	GitProxy *ProxySpec `json:"gitProxy,omitempty"`
 
-	// env is a set of default environment variables that will be applied to the
+	// Env is a set of default environment variables that will be applied to the
 	// build if the specified variables do not exist on the build
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
-	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// ImageLabels is a list of docker labels that are applied to the resulting image.
 	// User can override a default label by providing a label with the same name in their
 	// Build/BuildConfig.
 	// +optional
 	ImageLabels []ImageLabel `json:"imageLabels,omitempty"`
 
-	// resources defines resource requirements to execute the build.
+	// Resources defines resource requirements to execute the build.
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources"`
 }
 
 type ImageLabel struct {
-	// name defines the name of the label. It must have non-zero length.
+	// Name defines the name of the label. It must have non-zero length.
 	Name string `json:"name"`
 
-	// value defines the literal value of the label.
+	// Value defines the literal value of the label.
 	// +optional
 	Value string `json:"value,omitempty"`
 }
 
 type BuildOverrides struct {
-	// imageLabels is a list of docker labels that are applied to the resulting image.
+	// ImageLabels is a list of docker labels that are applied to the resulting image.
 	// If user provided a label in their Build/BuildConfig with the same name as one in this
 	// list, the user's label will be overwritten.
 	// +optional
 	ImageLabels []ImageLabel `json:"imageLabels,omitempty"`
 
-	// nodeSelector is a selector which must be true for the build pod to fit on a node
+	// NodeSelector is a selector which must be true for the build pod to fit on a node
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// tolerations is a list of Tolerations that will override any existing
+	// Tolerations is a list of Tolerations that will override any existing
 	// tolerations set on a build pod.
 	// +optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
-	// forcePull overrides, if set, the equivalent value in the builds,
+	// ForcePull overrides, if set, the equivalent value in the builds,
 	// i.e. false disables force pull for all builds,
 	// true enables force pull for all builds,
 	// independently of what each build specifies itself

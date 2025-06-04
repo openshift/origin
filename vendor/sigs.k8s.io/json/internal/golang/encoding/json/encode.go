@@ -12,13 +12,12 @@ package json
 
 import (
 	"bytes"
-	"cmp"
 	"encoding"
 	"encoding/base64"
 	"fmt"
 	"math"
 	"reflect"
-	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,30 +28,29 @@ import (
 // Marshal returns the JSON encoding of v.
 //
 // Marshal traverses the value v recursively.
-// If an encountered value implements [Marshaler]
-// and is not a nil pointer, Marshal calls [Marshaler.MarshalJSON]
-// to produce JSON. If no [Marshaler.MarshalJSON] method is present but the
-// value implements [encoding.TextMarshaler] instead, Marshal calls
-// [encoding.TextMarshaler.MarshalText] and encodes the result as a JSON string.
+// If an encountered value implements the Marshaler interface
+// and is not a nil pointer, Marshal calls its MarshalJSON method
+// to produce JSON. If no MarshalJSON method is present but the
+// value implements encoding.TextMarshaler instead, Marshal calls
+// its MarshalText method and encodes the result as a JSON string.
 // The nil pointer exception is not strictly necessary
 // but mimics a similar, necessary exception in the behavior of
-// [Unmarshaler.UnmarshalJSON].
+// UnmarshalJSON.
 //
 // Otherwise, Marshal uses the following type-dependent default encodings:
 //
 // Boolean values encode as JSON booleans.
 //
-// Floating point, integer, and [Number] values encode as JSON numbers.
-// NaN and +/-Inf values will return an [UnsupportedValueError].
+// Floating point, integer, and Number values encode as JSON numbers.
 //
 // String values encode as JSON strings coerced to valid UTF-8,
 // replacing invalid bytes with the Unicode replacement rune.
 // So that the JSON will be safe to embed inside HTML <script> tags,
-// the string is encoded using [HTMLEscape],
+// the string is encoded using HTMLEscape,
 // which replaces "<", ">", "&", U+2028, and U+2029 are escaped
 // to "\u003c","\u003e", "\u0026", "\u2028", and "\u2029".
-// This replacement can be disabled when using an [Encoder],
-// by calling [Encoder.SetEscapeHTML](false).
+// This replacement can be disabled when using an Encoder,
+// by calling SetEscapeHTML(false).
 //
 // Array and slice values encode as JSON arrays, except that
 // []byte encodes as a base64-encoded string, and a nil slice
@@ -109,7 +107,7 @@ import (
 // only Unicode letters, digits, and ASCII punctuation except quotation
 // marks, backslash, and comma.
 //
-// Embedded struct fields are usually marshaled as if their inner exported fields
+// Anonymous struct fields are usually marshaled as if their inner exported fields
 // were fields in the outer struct, subject to the usual Go visibility rules amended
 // as described in the next paragraph.
 // An anonymous struct field with a name given in its JSON tag is treated as
@@ -136,11 +134,11 @@ import (
 // a JSON tag of "-".
 //
 // Map values encode as JSON objects. The map's key type must either be a
-// string, an integer type, or implement [encoding.TextMarshaler]. The map keys
+// string, an integer type, or implement encoding.TextMarshaler. The map keys
 // are sorted and used as JSON object keys by applying the following rules,
 // subject to the UTF-8 coercion described for string values above:
 //   - keys of any string type are used directly
-//   - keys that implement [encoding.TextMarshaler] are marshaled
+//   - encoding.TextMarshalers are marshaled
 //   - integer keys are converted to strings
 //
 // Pointer values encode as the value pointed to.
@@ -151,14 +149,13 @@ import (
 //
 // Channel, complex, and function values cannot be encoded in JSON.
 // Attempting to encode such a value causes Marshal to return
-// an [UnsupportedTypeError].
+// an UnsupportedTypeError.
 //
 // JSON cannot represent cyclic data structures and Marshal does not
 // handle them. Passing cyclic structures to Marshal will result in
 // an error.
 func Marshal(v any) ([]byte, error) {
 	e := newEncodeState()
-	defer encodeStatePool.Put(e)
 
 	err := e.marshal(v, encOpts{escapeHTML: true})
 	if err != nil {
@@ -166,10 +163,12 @@ func Marshal(v any) ([]byte, error) {
 	}
 	buf := append([]byte(nil), e.Bytes()...)
 
+	encodeStatePool.Put(e)
+
 	return buf, nil
 }
 
-// MarshalIndent is like [Marshal] but applies [Indent] to format the output.
+// MarshalIndent is like Marshal but applies Indent to format the output.
 // Each JSON element in the output will begin on a new line beginning with prefix
 // followed by one or more copies of indent according to the indentation nesting.
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
@@ -177,12 +176,47 @@ func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b2 := make([]byte, 0, indentGrowthFactor*len(b))
-	b2, err = appendIndent(b2, b, prefix, indent)
+	var buf bytes.Buffer
+	err = Indent(&buf, b, prefix, indent)
 	if err != nil {
 		return nil, err
 	}
-	return b2, nil
+	return buf.Bytes(), nil
+}
+
+// HTMLEscape appends to dst the JSON-encoded src with <, >, &, U+2028 and U+2029
+// characters inside string literals changed to \u003c, \u003e, \u0026, \u2028, \u2029
+// so that the JSON will be safe to embed inside HTML <script> tags.
+// For historical reasons, web browsers don't honor standard HTML
+// escaping within <script> tags, so an alternative JSON encoding must
+// be used.
+func HTMLEscape(dst *bytes.Buffer, src []byte) {
+	// The characters can only appear in string literals,
+	// so just scan the string one byte at a time.
+	start := 0
+	for i, c := range src {
+		if c == '<' || c == '>' || c == '&' {
+			if start < i {
+				dst.Write(src[start:i])
+			}
+			dst.WriteString(`\u00`)
+			dst.WriteByte(hex[c>>4])
+			dst.WriteByte(hex[c&0xF])
+			start = i + 1
+		}
+		// Convert U+2028 and U+2029 (E2 80 A8 and E2 80 A9).
+		if c == 0xE2 && i+2 < len(src) && src[i+1] == 0x80 && src[i+2]&^1 == 0xA8 {
+			if start < i {
+				dst.Write(src[start:i])
+			}
+			dst.WriteString(`\u202`)
+			dst.WriteByte(hex[src[i+2]&0xF])
+			start = i + 3
+		}
+	}
+	if start < len(src) {
+		dst.Write(src[start:])
+	}
 }
 
 // Marshaler is the interface implemented by types that
@@ -191,7 +225,7 @@ type Marshaler interface {
 	MarshalJSON() ([]byte, error)
 }
 
-// An UnsupportedTypeError is returned by [Marshal] when attempting
+// An UnsupportedTypeError is returned by Marshal when attempting
 // to encode an unsupported value type.
 type UnsupportedTypeError struct {
 	Type reflect.Type
@@ -201,7 +235,7 @@ func (e *UnsupportedTypeError) Error() string {
 	return "json: unsupported type: " + e.Type.String()
 }
 
-// An UnsupportedValueError is returned by [Marshal] when attempting
+// An UnsupportedValueError is returned by Marshal when attempting
 // to encode an unsupported value.
 type UnsupportedValueError struct {
 	Value reflect.Value
@@ -212,9 +246,9 @@ func (e *UnsupportedValueError) Error() string {
 	return "json: unsupported value: " + e.Str
 }
 
-// Before Go 1.2, an InvalidUTF8Error was returned by [Marshal] when
+// Before Go 1.2, an InvalidUTF8Error was returned by Marshal when
 // attempting to encode a string value with invalid UTF-8 sequences.
-// As of Go 1.2, [Marshal] instead coerces the string to valid UTF-8 by
+// As of Go 1.2, Marshal instead coerces the string to valid UTF-8 by
 // replacing invalid bytes with the Unicode replacement rune U+FFFD.
 //
 // Deprecated: No longer used; kept for compatibility.
@@ -226,8 +260,7 @@ func (e *InvalidUTF8Error) Error() string {
 	return "json: invalid UTF-8 in string: " + strconv.Quote(e.S)
 }
 
-// A MarshalerError represents an error from calling a
-// [Marshaler.MarshalJSON] or [encoding.TextMarshaler.MarshalText] method.
+// A MarshalerError represents an error from calling a MarshalJSON or MarshalText method.
 type MarshalerError struct {
 	Type       reflect.Type
 	Err        error
@@ -247,11 +280,12 @@ func (e *MarshalerError) Error() string {
 // Unwrap returns the underlying error.
 func (e *MarshalerError) Unwrap() error { return e.Err }
 
-const hex = "0123456789abcdef"
+var hex = "0123456789abcdef"
 
 // An encodeState encodes JSON into a bytes.Buffer.
 type encodeState struct {
 	bytes.Buffer // accumulated output
+	scratch      [64]byte
 
 	// Keep track of what pointers we've seen in the current recursive call
 	// path, to avoid cycles that could lead to a stack overflow. Only do
@@ -307,12 +341,16 @@ func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return v.Len() == 0
-	case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-		reflect.Float32, reflect.Float64,
-		reflect.Interface, reflect.Pointer:
-		return v.IsZero()
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Pointer:
+		return v.IsNil()
 	}
 	return false
 }
@@ -369,8 +407,8 @@ func typeEncoder(t reflect.Type) encoderFunc {
 }
 
 var (
-	marshalerType     = reflect.TypeFor[Marshaler]()
-	textMarshalerType = reflect.TypeFor[encoding.TextMarshaler]()
+	marshalerType     = reflect.TypeOf((*Marshaler)(nil)).Elem()
+	textMarshalerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
 )
 
 // newTypeEncoder constructs an encoderFunc for a type.
@@ -439,10 +477,8 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	}
 	b, err := m.MarshalJSON()
 	if err == nil {
-		e.Grow(len(b))
-		out := e.AvailableBuffer()
-		out, err = appendCompact(out, b, opts.escapeHTML)
-		e.Buffer.Write(out)
+		// copy JSON into buffer, checking validity.
+		err = compact(&e.Buffer, b, opts.escapeHTML)
 	}
 	if err != nil {
 		e.error(&MarshalerError{v.Type(), err, "MarshalJSON"})
@@ -458,10 +494,8 @@ func addrMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	m := va.Interface().(Marshaler)
 	b, err := m.MarshalJSON()
 	if err == nil {
-		e.Grow(len(b))
-		out := e.AvailableBuffer()
-		out, err = appendCompact(out, b, opts.escapeHTML)
-		e.Buffer.Write(out)
+		// copy JSON into buffer, checking validity.
+		err = compact(&e.Buffer, b, opts.escapeHTML)
 	}
 	if err != nil {
 		e.error(&MarshalerError{v.Type(), err, "MarshalJSON"})
@@ -482,7 +516,7 @@ func textMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	if err != nil {
 		e.error(&MarshalerError{v.Type(), err, "MarshalText"})
 	}
-	e.Write(appendString(e.AvailableBuffer(), b, opts.escapeHTML))
+	e.stringBytes(b, opts.escapeHTML)
 }
 
 func addrTextMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
@@ -496,31 +530,43 @@ func addrTextMarshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	if err != nil {
 		e.error(&MarshalerError{v.Type(), err, "MarshalText"})
 	}
-	e.Write(appendString(e.AvailableBuffer(), b, opts.escapeHTML))
+	e.stringBytes(b, opts.escapeHTML)
 }
 
 func boolEncoder(e *encodeState, v reflect.Value, opts encOpts) {
-	b := e.AvailableBuffer()
-	b = mayAppendQuote(b, opts.quoted)
-	b = strconv.AppendBool(b, v.Bool())
-	b = mayAppendQuote(b, opts.quoted)
-	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
+	if v.Bool() {
+		e.WriteString("true")
+	} else {
+		e.WriteString("false")
+	}
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 }
 
 func intEncoder(e *encodeState, v reflect.Value, opts encOpts) {
-	b := e.AvailableBuffer()
-	b = mayAppendQuote(b, opts.quoted)
-	b = strconv.AppendInt(b, v.Int(), 10)
-	b = mayAppendQuote(b, opts.quoted)
+	b := strconv.AppendInt(e.scratch[:0], v.Int(), 10)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 }
 
 func uintEncoder(e *encodeState, v reflect.Value, opts encOpts) {
-	b := e.AvailableBuffer()
-	b = mayAppendQuote(b, opts.quoted)
-	b = strconv.AppendUint(b, v.Uint(), 10)
-	b = mayAppendQuote(b, opts.quoted)
+	b := strconv.AppendUint(e.scratch[:0], v.Uint(), 10)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 }
 
 type floatEncoder int // number of bits
@@ -536,8 +582,7 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	// See golang.org/issue/6384 and golang.org/issue/14135.
 	// Like fmt %g, but the exponent cutoffs are different
 	// and exponents themselves are not padded to two digits.
-	b := e.AvailableBuffer()
-	b = mayAppendQuote(b, opts.quoted)
+	b := e.scratch[:0]
 	abs := math.Abs(f)
 	fmt := byte('f')
 	// Note: Must use float32 comparisons for underlying float32 value to get precise cutoffs right.
@@ -555,8 +600,14 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 			b = b[:n-1]
 		}
 	}
-	b = mayAppendQuote(b, opts.quoted)
+
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 	e.Write(b)
+	if opts.quoted {
+		e.WriteByte('"')
+	}
 }
 
 var (
@@ -575,18 +626,24 @@ func stringEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		if !isValidNumber(numStr) {
 			e.error(fmt.Errorf("json: invalid number literal %q", numStr))
 		}
-		b := e.AvailableBuffer()
-		b = mayAppendQuote(b, opts.quoted)
-		b = append(b, numStr...)
-		b = mayAppendQuote(b, opts.quoted)
-		e.Write(b)
+		if opts.quoted {
+			e.WriteByte('"')
+		}
+		e.WriteString(numStr)
+		if opts.quoted {
+			e.WriteByte('"')
+		}
 		return
 	}
 	if opts.quoted {
-		b := appendString(nil, v.String(), opts.escapeHTML)
-		e.Write(appendString(e.AvailableBuffer(), b, false)) // no need to escape again since it is already escaped
+		e2 := newEncodeState()
+		// Since we encode the string twice, we only need to escape HTML
+		// the first time.
+		e2.string(v.String(), opts.escapeHTML)
+		e.stringBytes(e2.Bytes(), false)
+		encodeStatePool.Put(e2)
 	} else {
-		e.Write(appendString(e.AvailableBuffer(), v.String(), opts.escapeHTML))
+		e.string(v.String(), opts.escapeHTML)
 	}
 }
 
@@ -667,9 +724,8 @@ type structEncoder struct {
 }
 
 type structFields struct {
-	list         []field
-	byExactName  map[string]*field
-	byFoldedName map[string]*field
+	list      []field
+	nameIndex map[string]int
 }
 
 func (se structEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
@@ -737,26 +793,22 @@ func (me mapEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	e.WriteByte('{')
 
 	// Extract and sort the keys.
-	var (
-		sv  = make([]reflectWithString, v.Len())
-		mi  = v.MapRange()
-		err error
-	)
+	sv := make([]reflectWithString, v.Len())
+	mi := v.MapRange()
 	for i := 0; mi.Next(); i++ {
-		if sv[i].ks, err = resolveKeyName(mi.Key()); err != nil {
+		sv[i].k = mi.Key()
+		sv[i].v = mi.Value()
+		if err := sv[i].resolve(); err != nil {
 			e.error(fmt.Errorf("json: encoding error for type %q: %q", v.Type().String(), err.Error()))
 		}
-		sv[i].v = mi.Value()
 	}
-	slices.SortFunc(sv, func(i, j reflectWithString) int {
-		return strings.Compare(i.ks, j.ks)
-	})
+	sort.Slice(sv, func(i, j int) bool { return sv[i].ks < sv[j].ks })
 
 	for i, kv := range sv {
 		if i > 0 {
 			e.WriteByte(',')
 		}
-		e.Write(appendString(e.AvailableBuffer(), kv.ks, opts.escapeHTML))
+		e.string(kv.ks, opts.escapeHTML)
 		e.WriteByte(':')
 		me.elemEnc(e, kv.v, opts)
 	}
@@ -783,13 +835,29 @@ func encodeByteSlice(e *encodeState, v reflect.Value, _ encOpts) {
 		e.WriteString("null")
 		return
 	}
-
 	s := v.Bytes()
-	b := e.AvailableBuffer()
-	b = append(b, '"')
-	b = base64.StdEncoding.AppendEncode(b, s)
-	b = append(b, '"')
-	e.Write(b)
+	e.WriteByte('"')
+	encodedLen := base64.StdEncoding.EncodedLen(len(s))
+	if encodedLen <= len(e.scratch) {
+		// If the encoded bytes fit in e.scratch, avoid an extra
+		// allocation and use the cheaper Encoding.Encode.
+		dst := e.scratch[:encodedLen]
+		base64.StdEncoding.Encode(dst, s)
+		e.Write(dst)
+	} else if encodedLen <= 1024 {
+		// The encoded bytes are short enough to allocate for, and
+		// Encoding.Encode is still cheaper.
+		dst := make([]byte, encodedLen)
+		base64.StdEncoding.Encode(dst, s)
+		e.Write(dst)
+	} else {
+		// The encoded bytes are too long to cheaply allocate, and
+		// Encoding.Encode is no longer noticeably cheaper.
+		enc := base64.NewEncoder(base64.StdEncoding, e)
+		enc.Write(s)
+		enc.Close()
+	}
+	e.WriteByte('"')
 }
 
 // sliceEncoder just wraps an arrayEncoder, checking to make sure the value isn't nil.
@@ -929,77 +997,78 @@ func typeByIndex(t reflect.Type, index []int) reflect.Type {
 }
 
 type reflectWithString struct {
+	k  reflect.Value
 	v  reflect.Value
 	ks string
 }
 
-func resolveKeyName(k reflect.Value) (string, error) {
-	if k.Kind() == reflect.String {
-		return k.String(), nil
+func (w *reflectWithString) resolve() error {
+	if w.k.Kind() == reflect.String {
+		w.ks = w.k.String()
+		return nil
 	}
-	if tm, ok := k.Interface().(encoding.TextMarshaler); ok {
-		if k.Kind() == reflect.Pointer && k.IsNil() {
-			return "", nil
+	if tm, ok := w.k.Interface().(encoding.TextMarshaler); ok {
+		if w.k.Kind() == reflect.Pointer && w.k.IsNil() {
+			return nil
 		}
 		buf, err := tm.MarshalText()
-		return string(buf), err
+		w.ks = string(buf)
+		return err
 	}
-	switch k.Kind() {
+	switch w.k.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(k.Int(), 10), nil
+		w.ks = strconv.FormatInt(w.k.Int(), 10)
+		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return strconv.FormatUint(k.Uint(), 10), nil
+		w.ks = strconv.FormatUint(w.k.Uint(), 10)
+		return nil
 	}
 	panic("unexpected map key type")
 }
 
-func appendString[Bytes []byte | string](dst []byte, src Bytes, escapeHTML bool) []byte {
-	dst = append(dst, '"')
+// NOTE: keep in sync with stringBytes below.
+func (e *encodeState) string(s string, escapeHTML bool) {
+	e.WriteByte('"')
 	start := 0
-	for i := 0; i < len(src); {
-		if b := src[i]; b < utf8.RuneSelf {
+	for i := 0; i < len(s); {
+		if b := s[i]; b < utf8.RuneSelf {
 			if htmlSafeSet[b] || (!escapeHTML && safeSet[b]) {
 				i++
 				continue
 			}
-			dst = append(dst, src[start:i]...)
+			if start < i {
+				e.WriteString(s[start:i])
+			}
+			e.WriteByte('\\')
 			switch b {
 			case '\\', '"':
-				dst = append(dst, '\\', b)
-			case '\b':
-				dst = append(dst, '\\', 'b')
-			case '\f':
-				dst = append(dst, '\\', 'f')
+				e.WriteByte(b)
 			case '\n':
-				dst = append(dst, '\\', 'n')
+				e.WriteByte('n')
 			case '\r':
-				dst = append(dst, '\\', 'r')
+				e.WriteByte('r')
 			case '\t':
-				dst = append(dst, '\\', 't')
+				e.WriteByte('t')
 			default:
-				// This encodes bytes < 0x20 except for \b, \f, \n, \r and \t.
+				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
 				// because they can lead to security holes when
 				// user-controlled strings are rendered into JSON
 				// and served to some browsers.
-				dst = append(dst, '\\', 'u', '0', '0', hex[b>>4], hex[b&0xF])
+				e.WriteString(`u00`)
+				e.WriteByte(hex[b>>4])
+				e.WriteByte(hex[b&0xF])
 			}
 			i++
 			start = i
 			continue
 		}
-		// TODO(https://go.dev/issue/56948): Use generic utf8 functionality.
-		// For now, cast only a small portion of byte slices to a string
-		// so that it can be stack allocated. This slows down []byte slightly
-		// due to the extra copy, but keeps string performance roughly the same.
-		n := len(src) - i
-		if n > utf8.UTFMax {
-			n = utf8.UTFMax
-		}
-		c, size := utf8.DecodeRuneInString(string(src[i : i+n]))
+		c, size := utf8.DecodeRuneInString(s[i:])
 		if c == utf8.RuneError && size == 1 {
-			dst = append(dst, src[start:i]...)
-			dst = append(dst, `\ufffd`...)
+			if start < i {
+				e.WriteString(s[start:i])
+			}
+			e.WriteString(`\ufffd`)
 			i += size
 			start = i
 			continue
@@ -1010,27 +1079,102 @@ func appendString[Bytes []byte | string](dst []byte, src Bytes, escapeHTML bool)
 		// but don't work in JSONP, which has to be evaluated as JavaScript,
 		// and can lead to security holes there. It is valid JSON to
 		// escape them, so we do so unconditionally.
-		// See https://en.wikipedia.org/wiki/JSON#Safety.
+		// See http://timelessrepo.com/json-isnt-a-javascript-subset for discussion.
 		if c == '\u2028' || c == '\u2029' {
-			dst = append(dst, src[start:i]...)
-			dst = append(dst, '\\', 'u', '2', '0', '2', hex[c&0xF])
+			if start < i {
+				e.WriteString(s[start:i])
+			}
+			e.WriteString(`\u202`)
+			e.WriteByte(hex[c&0xF])
 			i += size
 			start = i
 			continue
 		}
 		i += size
 	}
-	dst = append(dst, src[start:]...)
-	dst = append(dst, '"')
-	return dst
+	if start < len(s) {
+		e.WriteString(s[start:])
+	}
+	e.WriteByte('"')
+}
+
+// NOTE: keep in sync with string above.
+func (e *encodeState) stringBytes(s []byte, escapeHTML bool) {
+	e.WriteByte('"')
+	start := 0
+	for i := 0; i < len(s); {
+		if b := s[i]; b < utf8.RuneSelf {
+			if htmlSafeSet[b] || (!escapeHTML && safeSet[b]) {
+				i++
+				continue
+			}
+			if start < i {
+				e.Write(s[start:i])
+			}
+			e.WriteByte('\\')
+			switch b {
+			case '\\', '"':
+				e.WriteByte(b)
+			case '\n':
+				e.WriteByte('n')
+			case '\r':
+				e.WriteByte('r')
+			case '\t':
+				e.WriteByte('t')
+			default:
+				// This encodes bytes < 0x20 except for \t, \n and \r.
+				// If escapeHTML is set, it also escapes <, >, and &
+				// because they can lead to security holes when
+				// user-controlled strings are rendered into JSON
+				// and served to some browsers.
+				e.WriteString(`u00`)
+				e.WriteByte(hex[b>>4])
+				e.WriteByte(hex[b&0xF])
+			}
+			i++
+			start = i
+			continue
+		}
+		c, size := utf8.DecodeRune(s[i:])
+		if c == utf8.RuneError && size == 1 {
+			if start < i {
+				e.Write(s[start:i])
+			}
+			e.WriteString(`\ufffd`)
+			i += size
+			start = i
+			continue
+		}
+		// U+2028 is LINE SEPARATOR.
+		// U+2029 is PARAGRAPH SEPARATOR.
+		// They are both technically valid characters in JSON strings,
+		// but don't work in JSONP, which has to be evaluated as JavaScript,
+		// and can lead to security holes there. It is valid JSON to
+		// escape them, so we do so unconditionally.
+		// See http://timelessrepo.com/json-isnt-a-javascript-subset for discussion.
+		if c == '\u2028' || c == '\u2029' {
+			if start < i {
+				e.Write(s[start:i])
+			}
+			e.WriteString(`\u202`)
+			e.WriteByte(hex[c&0xF])
+			i += size
+			start = i
+			continue
+		}
+		i += size
+	}
+	if start < len(s) {
+		e.Write(s[start:])
+	}
+	e.WriteByte('"')
 }
 
 // A field represents a single field found in a struct.
 type field struct {
 	name      string
-	nameBytes []byte // []byte(name)
-
-	listIndex int // tracks the index of this field in the list of fields for a struct
+	nameBytes []byte                 // []byte(name)
+	equalFold func(s, t []byte) bool // bytes.EqualFold or equivalent
 
 	nameNonEsc  string // `"` + name + `":`
 	nameEscHTML string // `"` + HTMLEscape(name) + `":`
@@ -1042,6 +1186,25 @@ type field struct {
 	quoted    bool
 
 	encoder encoderFunc
+}
+
+// byIndex sorts field by index sequence.
+type byIndex []field
+
+func (x byIndex) Len() int { return len(x) }
+
+func (x byIndex) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+
+func (x byIndex) Less(i, j int) bool {
+	for k, xik := range x[i].index {
+		if k >= len(x[j].index) {
+			return false
+		}
+		if xik != x[j].index[k] {
+			return xik < x[j].index[k]
+		}
+	}
+	return len(x[i].index) < len(x[j].index)
 }
 
 // typeFields returns a list of fields that JSON should recognize for the given type.
@@ -1061,8 +1224,8 @@ func typeFields(t reflect.Type) structFields {
 	// Fields found.
 	var fields []field
 
-	// Buffer to run appendHTMLEscape on field names.
-	var nameEscBuf []byte
+	// Buffer to run HTMLEscape on field names.
+	var nameEscBuf bytes.Buffer
 
 	for len(next) > 0 {
 		current, next = next, current[:0]
@@ -1138,17 +1301,21 @@ func typeFields(t reflect.Type) structFields {
 						quoted:    quoted,
 					}
 					field.nameBytes = []byte(field.name)
+					field.equalFold = foldFunc(field.nameBytes)
 
 					// Build nameEscHTML and nameNonEsc ahead of time.
-					nameEscBuf = appendHTMLEscape(nameEscBuf[:0], field.nameBytes)
-					field.nameEscHTML = `"` + string(nameEscBuf) + `":`
+					nameEscBuf.Reset()
+					nameEscBuf.WriteString(`"`)
+					HTMLEscape(&nameEscBuf, field.nameBytes)
+					nameEscBuf.WriteString(`":`)
+					field.nameEscHTML = nameEscBuf.String()
 					field.nameNonEsc = `"` + field.name + `":`
 
 					fields = append(fields, field)
 					if count[f.typ] > 1 {
 						// If there were multiple instances, add a second,
 						// so that the annihilation code will see a duplicate.
-						// It only cares about the distinction between 1 and 2,
+						// It only cares about the distinction between 1 or 2,
 						// so don't bother generating any more copies.
 						fields = append(fields, fields[len(fields)-1])
 					}
@@ -1164,23 +1331,21 @@ func typeFields(t reflect.Type) structFields {
 		}
 	}
 
-	slices.SortFunc(fields, func(a, b field) int {
+	sort.Slice(fields, func(i, j int) bool {
+		x := fields
 		// sort field by name, breaking ties with depth, then
 		// breaking ties with "name came from json tag", then
 		// breaking ties with index sequence.
-		if c := strings.Compare(a.name, b.name); c != 0 {
-			return c
+		if x[i].name != x[j].name {
+			return x[i].name < x[j].name
 		}
-		if c := cmp.Compare(len(a.index), len(b.index)); c != 0 {
-			return c
+		if len(x[i].index) != len(x[j].index) {
+			return len(x[i].index) < len(x[j].index)
 		}
-		if a.tag != b.tag {
-			if a.tag {
-				return -1
-			}
-			return +1
+		if x[i].tag != x[j].tag {
+			return x[i].tag
 		}
-		return slices.Compare(a.index, b.index)
+		return byIndex(x).Less(i, j)
 	})
 
 	// Delete all fields that are hidden by the Go rules for embedded fields,
@@ -1212,25 +1377,17 @@ func typeFields(t reflect.Type) structFields {
 	}
 
 	fields = out
-	slices.SortFunc(fields, func(i, j field) int {
-		return slices.Compare(i.index, j.index)
-	})
+	sort.Sort(byIndex(fields))
 
 	for i := range fields {
 		f := &fields[i]
 		f.encoder = typeEncoder(typeByIndex(t, f.index))
 	}
-	exactNameIndex := make(map[string]*field, len(fields))
-	foldedNameIndex := make(map[string]*field, len(fields))
+	nameIndex := make(map[string]int, len(fields))
 	for i, field := range fields {
-		fields[i].listIndex = i
-		exactNameIndex[field.name] = &fields[i]
-		// For historical reasons, first folded match takes precedence.
-		if _, ok := foldedNameIndex[string(foldName(field.nameBytes))]; !ok {
-			foldedNameIndex[string(foldName(field.nameBytes))] = &fields[i]
-		}
+		nameIndex[field.name] = i
 	}
-	return structFields{fields, exactNameIndex, foldedNameIndex}
+	return structFields{fields, nameIndex}
 }
 
 // dominantField looks through the fields, all of which are known to
@@ -1258,11 +1415,4 @@ func cachedTypeFields(t reflect.Type) structFields {
 	}
 	f, _ := fieldCache.LoadOrStore(t, typeFields(t))
 	return f.(structFields)
-}
-
-func mayAppendQuote(b []byte, quoted bool) []byte {
-	if quoted {
-		b = append(b, '"')
-	}
-	return b
 }

@@ -24,6 +24,7 @@ type DNS struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +kubebuilder:validation:Required
 	// +required
 	Spec DNSSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -120,7 +121,7 @@ type DNSPlatformSpec struct {
 	// and must handle unrecognized platforms with best-effort defaults.
 	//
 	// +unionDiscriminator
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self in ['','AWS']",message="allowed values are '' and 'AWS'"
 	Type PlatformType `json:"type"`
 

@@ -6,9 +6,3 @@ metadata:
 spec:
   logLevel: Normal
   operatorLogLevel: Normal
-  managedBootImages:
-    machineManagers:
-      - resource: machinesets
-        apiGroup: machine.openshift.io
-        selection:
-          mode: None

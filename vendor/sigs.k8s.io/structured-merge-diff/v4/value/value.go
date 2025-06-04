@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	jsoniter "github.com/json-iterator/go"
-	yaml "sigs.k8s.io/yaml/goyaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var (

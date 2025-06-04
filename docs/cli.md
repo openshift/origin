@@ -640,7 +640,7 @@ In both cases, the top-level field is `spec` and its value is another map expres
 This processes a Template into a valid Config resource. The processing
 will take care of generating values for parameters specified in the Template and
 substituting the values in the corresponding places. An example Template can be
-found in [examples/sample-app/application-template-stibuild.json](https://github.com/openshift/origin/blob/main/examples/sample-app/application-template-stibuild.json).
+found in [examples/sample-app/application-template-stibuild.json](https://github.com/openshift/origin/blob/master/examples/sample-app/application-template-stibuild.json).
 
 ```bash
 $ oc process -f examples/sample-app/application-template-stibuild.json > config.json

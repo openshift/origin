@@ -20,8 +20,6 @@ limitations under the License.
 package cadvisor
 
 import (
-	"context"
-
 	cadvisorapi "github.com/google/cadvisor/info/v1"
 	cadvisorapiv2 "github.com/google/cadvisor/info/v2"
 	"k8s.io/kubernetes/pkg/kubelet/winstats"
@@ -64,11 +62,11 @@ func (cu *cadvisorClient) VersionInfo() (*cadvisorapi.VersionInfo, error) {
 	return cu.winStatsClient.WinVersionInfo()
 }
 
-func (cu *cadvisorClient) ImagesFsInfo(context.Context) (cadvisorapiv2.FsInfo, error) {
+func (cu *cadvisorClient) ImagesFsInfo() (cadvisorapiv2.FsInfo, error) {
 	return cadvisorapiv2.FsInfo{}, nil
 }
 
-func (cu *cadvisorClient) ContainerFsInfo(context.Context) (cadvisorapiv2.FsInfo, error) {
+func (cu *cadvisorClient) ContainerFsInfo() (cadvisorapiv2.FsInfo, error) {
 	return cadvisorapiv2.FsInfo{}, nil
 }
 

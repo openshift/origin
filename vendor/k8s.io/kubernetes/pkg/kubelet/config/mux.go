@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 )
 
 type merger interface {
@@ -76,8 +75,6 @@ func (m *mux) ChannelWithContext(ctx context.Context, source string) chan interf
 
 func (m *mux) listen(source string, listenChannel <-chan interface{}) {
 	for update := range listenChannel {
-		if err := m.merger.Merge(source, update); err != nil {
-			klog.InfoS("failed merging update", "err", err)
-		}
+		m.merger.Merge(source, update)
 	}
 }

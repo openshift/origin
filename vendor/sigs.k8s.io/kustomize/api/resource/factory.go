@@ -202,10 +202,7 @@ func (rf *Factory) inlineAnyEmbeddedLists(
 		}
 		items, ok := m["items"]
 		if !ok {
-			// Items field is not present.
-			// This is not a collections resource.
-			// read more https://kubernetes.io/docs/reference/using-api/api-concepts/#collections
-			result = append(result, n0)
+			// treat as an empty list
 			continue
 		}
 		slice, ok := items.([]interface{})

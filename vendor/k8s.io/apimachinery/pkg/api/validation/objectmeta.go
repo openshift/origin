@@ -50,7 +50,7 @@ func ValidateAnnotations(annotations map[string]string, fldPath *field.Path) fie
 		}
 	}
 	if err := ValidateAnnotationsSize(annotations); err != nil {
-		allErrs = append(allErrs, field.TooLong(fldPath, "" /*unused*/, TotalAnnotationSizeLimitB))
+		allErrs = append(allErrs, field.TooLong(fldPath, "", TotalAnnotationSizeLimitB))
 	}
 	return allErrs
 }

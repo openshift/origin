@@ -8,17 +8,17 @@ package v1
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'ARN' ?  has(self.arn) : !has(self.arn)",message="arn is required when type is ARN, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Filters' ?  has(self.filters) : !has(self.filters)",message="filters is required when type is Filters, and forbidden otherwise"
 type AWSResourceReference struct {
-	// type determines how the reference will fetch the AWS resource.
+	// Type determines how the reference will fetch the AWS resource.
 	// +unionDiscriminator
-	// +required
+	// +kubebuilder:validation:Required
 	Type AWSResourceReferenceType `json:"type"`
-	// id of resource.
+	// ID of resource.
 	// +optional
 	ID *string `json:"id,omitempty"`
-	// arn of resource.
+	// ARN of resource.
 	// +optional
 	ARN *string `json:"arn,omitempty"`
-	// filters is a set of filters used to identify a resource.
+	// Filters is a set of filters used to identify a resource.
 	// +optional
 	// +listType=atomic
 	Filters *[]AWSResourceFilter `json:"filters,omitempty"`
@@ -41,10 +41,10 @@ const (
 
 // AWSResourceFilter is a filter used to identify an AWS resource
 type AWSResourceFilter struct {
-	// name of the filter. Filter names are case-sensitive.
-	// +required
+	// Name of the filter. Filter names are case-sensitive.
+	// +kubebuilder:validation:Required
 	Name string `json:"name"`
-	// values includes one or more filter values. Filter values are case-sensitive.
+	// Values includes one or more filter values. Filter values are case-sensitive.
 	// +optional
 	// +listType=atomic
 	Values []string `json:"values,omitempty"`

@@ -182,7 +182,7 @@ type ResourceSchema struct {
 	Schema *spec.Schema
 }
 
-// IsMissingOrNull returns true if the ResourceSchema is missing or null
+// IsEmpty returns true if the ResourceSchema is empty
 func (rs *ResourceSchema) IsMissingOrNull() bool {
 	if rs == nil || rs.Schema == nil {
 		return true

@@ -361,19 +361,12 @@ var _ = common.SIGDescribe("KubeProxy", func() {
 		// our target metric should be updated by now
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 2*time.Minute, true, func(_ context.Context) (bool, error) {
 			metrics, err := metricsGrabber.GrabFromKubeProxy(ctx, nodeName)
-			if err != nil {
-				return false, fmt.Errorf("failed to fetch metrics: %w", err)
-			}
+			framework.ExpectNoError(err)
 			targetMetricAfter, err := metrics.GetCounterMetricValue(metricName)
-			if err != nil {
-				return false, fmt.Errorf("failed to fetch metric: %w", err)
-			}
+			framework.ExpectNoError(err)
 			return targetMetricAfter > targetMetricBefore, nil
 		}); err != nil {
-			if wait.Interrupted(err) {
-				framework.Failf("expected %s metric to be updated after accessing endpoints via localhost nodeports", metricName)
-			}
-			framework.ExpectNoError(err)
+			framework.Failf("expected %s metric to be updated after accessing endpoints via localhost nodeports", metricName)
 		}
 	})
 })

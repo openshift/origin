@@ -19,16 +19,16 @@ limitations under the License.
 package v1
 
 import (
-	context "context"
+	"context"
 	time "time"
 
-	apiflowcontrolv1 "k8s.io/api/flowcontrol/v1"
+	flowcontrolv1 "k8s.io/api/flowcontrol/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	internalinterfaces "k8s.io/client-go/informers/internalinterfaces"
 	kubernetes "k8s.io/client-go/kubernetes"
-	flowcontrolv1 "k8s.io/client-go/listers/flowcontrol/v1"
+	v1 "k8s.io/client-go/listers/flowcontrol/v1"
 	cache "k8s.io/client-go/tools/cache"
 )
 
@@ -36,7 +36,7 @@ import (
 // PriorityLevelConfigurations.
 type PriorityLevelConfigurationInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() flowcontrolv1.PriorityLevelConfigurationLister
+	Lister() v1.PriorityLevelConfigurationLister
 }
 
 type priorityLevelConfigurationInformer struct {
@@ -70,7 +70,7 @@ func NewFilteredPriorityLevelConfigurationInformer(client kubernetes.Interface, 
 				return client.FlowcontrolV1().PriorityLevelConfigurations().Watch(context.TODO(), options)
 			},
 		},
-		&apiflowcontrolv1.PriorityLevelConfiguration{},
+		&flowcontrolv1.PriorityLevelConfiguration{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,9 +81,9 @@ func (f *priorityLevelConfigurationInformer) defaultInformer(client kubernetes.I
 }
 
 func (f *priorityLevelConfigurationInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiflowcontrolv1.PriorityLevelConfiguration{}, f.defaultInformer)
+	return f.factory.InformerFor(&flowcontrolv1.PriorityLevelConfiguration{}, f.defaultInformer)
 }
 
-func (f *priorityLevelConfigurationInformer) Lister() flowcontrolv1.PriorityLevelConfigurationLister {
-	return flowcontrolv1.NewPriorityLevelConfigurationLister(f.Informer().GetIndexer())
+func (f *priorityLevelConfigurationInformer) Lister() v1.PriorityLevelConfigurationLister {
+	return v1.NewPriorityLevelConfigurationLister(f.Informer().GetIndexer())
 }

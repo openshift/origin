@@ -3,13 +3,13 @@
 package v1
 
 import (
-	context "context"
+	"context"
 	time "time"
 
-	apiconfigv1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	versioned "github.com/openshift/client-go/config/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/config/informers/externalversions/internalinterfaces"
-	configv1 "github.com/openshift/client-go/config/listers/config/v1"
+	v1 "github.com/openshift/client-go/config/listers/config/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -20,7 +20,7 @@ import (
 // Images.
 type ImageInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() configv1.ImageLister
+	Lister() v1.ImageLister
 }
 
 type imageInformer struct {
@@ -54,7 +54,7 @@ func NewFilteredImageInformer(client versioned.Interface, resyncPeriod time.Dura
 				return client.ConfigV1().Images().Watch(context.TODO(), options)
 			},
 		},
-		&apiconfigv1.Image{},
+		&configv1.Image{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,9 +65,9 @@ func (f *imageInformer) defaultInformer(client versioned.Interface, resyncPeriod
 }
 
 func (f *imageInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apiconfigv1.Image{}, f.defaultInformer)
+	return f.factory.InformerFor(&configv1.Image{}, f.defaultInformer)
 }
 
-func (f *imageInformer) Lister() configv1.ImageLister {
-	return configv1.NewImageLister(f.Informer().GetIndexer())
+func (f *imageInformer) Lister() v1.ImageLister {
+	return v1.NewImageLister(f.Informer().GetIndexer())
 }

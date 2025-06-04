@@ -119,8 +119,7 @@ const (
 //	'hello mellow'.indexOf('jello')    // returns -1
 //	'hello mellow'.indexOf('', 2)      // returns 2
 //	'hello mellow'.indexOf('ello', 2)  // returns 7
-//	'hello mellow'.indexOf('ello', 20) // returns -1
-//	'hello mellow'.indexOf('ello', -1) // error
+//	'hello mellow'.indexOf('ello', 20) // error
 //
 // # Join
 //
@@ -156,7 +155,6 @@ const (
 //	'hello mellow'.lastIndexOf('ello')     // returns 7
 //	'hello mellow'.lastIndexOf('jello')    // returns -1
 //	'hello mellow'.lastIndexOf('ello', 6)  // returns 1
-//	'hello mellow'.lastIndexOf('ello', 20) // returns -1
 //	'hello mellow'.lastIndexOf('ello', -1) // error
 //
 // # LowerAscii
@@ -522,7 +520,7 @@ func (lib *stringLib) CompileOptions() []cel.EnvOption {
 	if lib.version >= 3 {
 		opts = append(opts,
 			cel.Function("reverse",
-				cel.MemberOverload("string_reverse", []*cel.Type{cel.StringType}, cel.StringType,
+				cel.MemberOverload("reverse", []*cel.Type{cel.StringType}, cel.StringType,
 					cel.UnaryBinding(func(str ref.Val) ref.Val {
 						s := str.(types.String)
 						return stringOrError(reverse(string(s)))
@@ -563,12 +561,8 @@ func indexOfOffset(str, substr string, offset int64) (int64, error) {
 	off := int(offset)
 	runes := []rune(str)
 	subrunes := []rune(substr)
-	if off < 0 {
+	if off < 0 || off >= len(runes) {
 		return -1, fmt.Errorf("index out of range: %d", off)
-	}
-	// If the offset exceeds the length, return -1 rather than error.
-	if off >= len(runes) {
-		return -1, nil
 	}
 	for i := off; i < len(runes)-(len(subrunes)-1); i++ {
 		found := true
@@ -600,12 +594,8 @@ func lastIndexOfOffset(str, substr string, offset int64) (int64, error) {
 	off := int(offset)
 	runes := []rune(str)
 	subrunes := []rune(substr)
-	if off < 0 {
+	if off < 0 || off >= len(runes) {
 		return -1, fmt.Errorf("index out of range: %d", off)
-	}
-	// If the offset is far greater than the length return -1
-	if off >= len(runes) {
-		return -1, nil
 	}
 	if off > len(runes)-len(subrunes) {
 		off = len(runes) - len(subrunes)

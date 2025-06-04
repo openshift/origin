@@ -18,7 +18,7 @@ func KubeSchedulerStatus() *KubeSchedulerStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *KubeSchedulerStatusApplyConfiguration) WithObservedGeneration(value int64) *KubeSchedulerStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
+	b.ObservedGeneration = &value
 	return b
 }
 
@@ -30,7 +30,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithConditions(values ...*Operat
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
+		b.Conditions = append(b.Conditions, *values[i])
 	}
 	return b
 }
@@ -39,7 +39,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithConditions(values ...*Operat
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *KubeSchedulerStatusApplyConfiguration) WithVersion(value string) *KubeSchedulerStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.Version = &value
+	b.Version = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithVersion(value string) *KubeS
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *KubeSchedulerStatusApplyConfiguration) WithReadyReplicas(value int32) *KubeSchedulerStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
+	b.ReadyReplicas = &value
 	return b
 }
 
@@ -55,7 +55,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithReadyReplicas(value int32) *
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *KubeSchedulerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *KubeSchedulerStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
+	b.LatestAvailableRevision = &value
 	return b
 }
 
@@ -67,7 +67,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithGenerations(values ...*Gener
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
+		b.Generations = append(b.Generations, *values[i])
 	}
 	return b
 }
@@ -76,7 +76,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithGenerations(values ...*Gener
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevisionReason field is set to the value of the last call.
 func (b *KubeSchedulerStatusApplyConfiguration) WithLatestAvailableRevisionReason(value string) *KubeSchedulerStatusApplyConfiguration {
-	b.StaticPodOperatorStatusApplyConfiguration.LatestAvailableRevisionReason = &value
+	b.LatestAvailableRevisionReason = &value
 	return b
 }
 
@@ -88,7 +88,7 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithNodeStatuses(values ...*Node
 		if values[i] == nil {
 			panic("nil value passed to WithNodeStatuses")
 		}
-		b.StaticPodOperatorStatusApplyConfiguration.NodeStatuses = append(b.StaticPodOperatorStatusApplyConfiguration.NodeStatuses, *values[i])
+		b.NodeStatuses = append(b.NodeStatuses, *values[i])
 	}
 	return b
 }

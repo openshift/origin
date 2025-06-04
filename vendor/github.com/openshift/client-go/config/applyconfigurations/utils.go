@@ -46,8 +46,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.AWSDNSSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AWSIngressSpec"):
 		return &configv1.AWSIngressSpecApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("AWSKMSConfig"):
-		return &configv1.AWSKMSConfigApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AWSPlatformSpec"):
 		return &configv1.AWSPlatformSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("AWSPlatformStatus"):
@@ -148,8 +146,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.ExternalPlatformSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("ExternalPlatformStatus"):
 		return &configv1.ExternalPlatformStatusApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("ExtraMapping"):
-		return &configv1.ExtraMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FeatureGate"):
 		return &configv1.FeatureGateApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FeatureGateAttributes"):
@@ -168,8 +164,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.GCPResourceLabelApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPResourceTag"):
 		return &configv1.GCPResourceTagApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("GCPServiceEndpoint"):
-		return &configv1.GCPServiceEndpointApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GitHubIdentityProvider"):
 		return &configv1.GitHubIdentityProviderApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GitLabIdentityProvider"):
@@ -182,8 +176,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.HubSourceApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("HubSourceStatus"):
 		return &configv1.HubSourceStatusApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("IBMCloudPlatformSpec"):
-		return &configv1.IBMCloudPlatformSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IBMCloudPlatformStatus"):
 		return &configv1.IBMCloudPlatformStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IBMCloudServiceEndpoint"):
@@ -232,8 +224,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.IngressStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KeystoneIdentityProvider"):
 		return &configv1.KeystoneIdentityProviderApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("KMSConfig"):
-		return &configv1.KMSConfigApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KubevirtPlatformStatus"):
 		return &configv1.KubevirtPlatformStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("LDAPAttributeMapping"):
@@ -378,8 +368,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.TokenClaimMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenClaimMappings"):
 		return &configv1.TokenClaimMappingsApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("TokenClaimOrExpressionMapping"):
-		return &configv1.TokenClaimOrExpressionMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenClaimValidationRule"):
 		return &configv1.TokenClaimValidationRuleApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TokenConfig"):
@@ -396,12 +384,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.UsernameClaimMappingApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("UsernamePrefix"):
 		return &configv1.UsernamePrefixApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("VSphereFailureDomainHostGroup"):
-		return &configv1.VSphereFailureDomainHostGroupApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("VSphereFailureDomainRegionAffinity"):
-		return &configv1.VSphereFailureDomainRegionAffinityApplyConfiguration{}
-	case v1.SchemeGroupVersion.WithKind("VSphereFailureDomainZoneAffinity"):
-		return &configv1.VSphereFailureDomainZoneAffinityApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("VSpherePlatformFailureDomainSpec"):
 		return &configv1.VSpherePlatformFailureDomainSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("VSpherePlatformLoadBalancer"):
@@ -432,10 +414,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.ClusterImagePolicySpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ClusterImagePolicyStatus"):
 		return &configv1alpha1.ClusterImagePolicyStatusApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("ClusterMonitoring"):
-		return &configv1alpha1.ClusterMonitoringApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("ClusterMonitoringSpec"):
-		return &configv1alpha1.ClusterMonitoringSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("EtcdBackupSpec"):
 		return &configv1alpha1.EtcdBackupSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("FulcioCAWithRekor"):
@@ -452,14 +430,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.InsightsDataGatherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("InsightsDataGatherSpec"):
 		return &configv1alpha1.InsightsDataGatherSpecApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("PersistentVolumeClaimReference"):
-		return &configv1alpha1.PersistentVolumeClaimReferenceApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("PersistentVolumeConfig"):
-		return &configv1alpha1.PersistentVolumeConfigApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("PKI"):
-		return &configv1alpha1.PKIApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("PKICertificateSubject"):
-		return &configv1alpha1.PKICertificateSubjectApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Policy"):
 		return &configv1alpha1.PolicyApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PolicyFulcioSubject"):
@@ -480,10 +450,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.RetentionPolicyApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("RetentionSizeConfig"):
 		return &configv1alpha1.RetentionSizeConfigApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Storage"):
-		return &configv1alpha1.StorageApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("UserDefinedMonitoring"):
-		return &configv1alpha1.UserDefinedMonitoringApplyConfiguration{}
 
 	}
 	return nil

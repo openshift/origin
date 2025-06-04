@@ -3,21 +3,21 @@
 package v1
 
 import (
-	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
+	apimachineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
 	internal "github.com/openshift/client-go/machineconfiguration/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ContainerRuntimeConfigApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfig type for use
 // with apply.
 type ContainerRuntimeConfigApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ContainerRuntimeConfigSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ContainerRuntimeConfigStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ContainerRuntimeConfigSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *ContainerRuntimeConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ContainerRuntimeConfig constructs a declarative configuration of the ContainerRuntimeConfig type for use with
@@ -41,18 +41,18 @@ func ContainerRuntimeConfig(name string) *ContainerRuntimeConfigApplyConfigurati
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
+func ExtractContainerRuntimeConfig(containerRuntimeConfig *apimachineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
 	return extractContainerRuntimeConfig(containerRuntimeConfig, fieldManager, "")
 }
 
 // ExtractContainerRuntimeConfigStatus is the same as ExtractContainerRuntimeConfig except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractContainerRuntimeConfigStatus(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
+func ExtractContainerRuntimeConfigStatus(containerRuntimeConfig *apimachineconfigurationv1.ContainerRuntimeConfig, fieldManager string) (*ContainerRuntimeConfigApplyConfiguration, error) {
 	return extractContainerRuntimeConfig(containerRuntimeConfig, fieldManager, "status")
 }
 
-func extractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv1.ContainerRuntimeConfig, fieldManager string, subresource string) (*ContainerRuntimeConfigApplyConfiguration, error) {
+func extractContainerRuntimeConfig(containerRuntimeConfig *apimachineconfigurationv1.ContainerRuntimeConfig, fieldManager string, subresource string) (*ContainerRuntimeConfigApplyConfiguration, error) {
 	b := &ContainerRuntimeConfigApplyConfiguration{}
 	err := managedfields.ExtractInto(containerRuntimeConfig, internal.Parser().Type("com.github.openshift.api.machineconfiguration.v1.ContainerRuntimeConfig"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractContainerRuntimeConfig(containerRuntimeConfig *machineconfigurationv
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithKind(value string) *ContainerRuntimeConfigApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithKind(value string) *Conta
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithAPIVersion(value string) *ContainerRuntimeConfigApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithAPIVersion(value string) 
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithName(value string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithName(value string) *Conta
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithGenerateName(value string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithGenerateName(value string
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithNamespace(value string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithNamespace(value string) *
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithUID(value types.UID) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithUID(value types.UID) *Con
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithResourceVersion(value string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithResourceVersion(value str
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithGeneration(value int64) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ContainerRuntimeConfigApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ContainerRuntimeConfigApplyConfiguration {
+func (b *ContainerRuntimeConfigApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ContainerRuntimeConfigApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ContainerRuntimeConfigApplyConfiguration {
+func (b *ContainerRuntimeConfigApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithDeletionTimestamp(value a
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithDeletionGracePeriodSecond
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithLabels(entries map[string]string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithLabels(entries map[string
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ContainerRuntimeConfigApplyConfiguration) WithAnnotations(entries map[string]string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithAnnotations(entries map[s
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ContainerRuntimeConfigApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ContainerRuntimeConfigApplyConfiguration {
+func (b *ContainerRuntimeConfigApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithOwnerReferences(values ..
 func (b *ContainerRuntimeConfigApplyConfiguration) WithFinalizers(values ...string) *ContainerRuntimeConfigApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ContainerRuntimeConfigApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *ContainerRuntimeConfigApplyConfiguration) WithStatus(value *ContainerRu
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ContainerRuntimeConfigApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

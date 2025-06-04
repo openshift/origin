@@ -19,7 +19,6 @@ package scheduler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -288,7 +287,7 @@ func (h *HTTPExtender) Filter(
 		return nil, nil, nil, err
 	}
 	if result.Error != "" {
-		return nil, nil, nil, errors.New(result.Error)
+		return nil, nil, nil, fmt.Errorf(result.Error)
 	}
 
 	if h.nodeCacheCapable && result.NodeNames != nil {
@@ -374,7 +373,7 @@ func (h *HTTPExtender) Bind(binding *v1.Binding) error {
 		return err
 	}
 	if result.Error != "" {
-		return errors.New(result.Error)
+		return fmt.Errorf(result.Error)
 	}
 	return nil
 }

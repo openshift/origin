@@ -47,8 +47,6 @@ import (
 	"sync"
 )
 
-const DefaultConfigzPath = "/configz"
-
 var (
 	configsGuard sync.RWMutex
 	configs      = map[string]*Config{}
@@ -63,7 +61,7 @@ type Config struct {
 // InstallHandler adds an HTTP handler on the given mux for the "/configz"
 // endpoint which serves all registered ComponentConfigs in JSON format.
 func InstallHandler(m mux) {
-	m.Handle(DefaultConfigzPath, http.HandlerFunc(handle))
+	m.Handle("/configz", http.HandlerFunc(handle))
 }
 
 type mux interface {

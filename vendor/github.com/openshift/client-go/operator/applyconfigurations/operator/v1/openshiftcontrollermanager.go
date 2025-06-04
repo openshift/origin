@@ -3,21 +3,21 @@
 package v1
 
 import (
-	operatorv1 "github.com/openshift/api/operator/v1"
+	apioperatorv1 "github.com/openshift/api/operator/v1"
 	internal "github.com/openshift/client-go/operator/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // OpenShiftControllerManagerApplyConfiguration represents a declarative configuration of the OpenShiftControllerManager type for use
 // with apply.
 type OpenShiftControllerManagerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *OpenShiftControllerManagerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *OpenShiftControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *OpenShiftControllerManagerSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *OpenShiftControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // OpenShiftControllerManager constructs a declarative configuration of the OpenShiftControllerManager type for use with
@@ -41,18 +41,18 @@ func OpenShiftControllerManager(name string) *OpenShiftControllerManagerApplyCon
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractOpenShiftControllerManager(openShiftControllerManager *operatorv1.OpenShiftControllerManager, fieldManager string) (*OpenShiftControllerManagerApplyConfiguration, error) {
+func ExtractOpenShiftControllerManager(openShiftControllerManager *apioperatorv1.OpenShiftControllerManager, fieldManager string) (*OpenShiftControllerManagerApplyConfiguration, error) {
 	return extractOpenShiftControllerManager(openShiftControllerManager, fieldManager, "")
 }
 
 // ExtractOpenShiftControllerManagerStatus is the same as ExtractOpenShiftControllerManager except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractOpenShiftControllerManagerStatus(openShiftControllerManager *operatorv1.OpenShiftControllerManager, fieldManager string) (*OpenShiftControllerManagerApplyConfiguration, error) {
+func ExtractOpenShiftControllerManagerStatus(openShiftControllerManager *apioperatorv1.OpenShiftControllerManager, fieldManager string) (*OpenShiftControllerManagerApplyConfiguration, error) {
 	return extractOpenShiftControllerManager(openShiftControllerManager, fieldManager, "status")
 }
 
-func extractOpenShiftControllerManager(openShiftControllerManager *operatorv1.OpenShiftControllerManager, fieldManager string, subresource string) (*OpenShiftControllerManagerApplyConfiguration, error) {
+func extractOpenShiftControllerManager(openShiftControllerManager *apioperatorv1.OpenShiftControllerManager, fieldManager string, subresource string) (*OpenShiftControllerManagerApplyConfiguration, error) {
 	b := &OpenShiftControllerManagerApplyConfiguration{}
 	err := managedfields.ExtractInto(openShiftControllerManager, internal.Parser().Type("com.github.openshift.api.operator.v1.OpenShiftControllerManager"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractOpenShiftControllerManager(openShiftControllerManager *operatorv1.Op
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithKind(value string) *OpenShiftControllerManagerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithKind(value string) *O
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithAPIVersion(value string) *OpenShiftControllerManagerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithAPIVersion(value stri
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithName(value string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithName(value string) *O
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithGenerateName(value string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithGenerateName(value st
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithNamespace(value string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithNamespace(value strin
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithUID(value types.UID) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithUID(value types.UID) 
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithResourceVersion(value string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithResourceVersion(value
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithGeneration(value int64) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *OpenShiftControllerManagerApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *OpenShiftControllerManagerApplyConfiguration {
+func (b *OpenShiftControllerManagerApplyConfiguration) WithCreationTimestamp(value metav1.Time) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *OpenShiftControllerManagerApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *OpenShiftControllerManagerApplyConfiguration {
+func (b *OpenShiftControllerManagerApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithDeletionTimestamp(val
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithDeletionGracePeriodSe
 // overwriting an existing map entries in Labels field with the same key.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithLabels(entries map[string]string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithLabels(entries map[st
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *OpenShiftControllerManagerApplyConfiguration) WithAnnotations(entries map[string]string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithAnnotations(entries m
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *OpenShiftControllerManagerApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *OpenShiftControllerManagerApplyConfiguration {
+func (b *OpenShiftControllerManagerApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithOwnerReferences(value
 func (b *OpenShiftControllerManagerApplyConfiguration) WithFinalizers(values ...string) *OpenShiftControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *OpenShiftControllerManagerApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *OpenShiftControllerManagerApplyConfiguration) WithStatus(value *OpenShi
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *OpenShiftControllerManagerApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

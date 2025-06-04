@@ -29,19 +29,19 @@ type FakeAuthorizationV1 struct {
 }
 
 func (c *FakeAuthorizationV1) LocalSubjectAccessReviews(namespace string) v1.LocalSubjectAccessReviewInterface {
-	return newFakeLocalSubjectAccessReviews(c, namespace)
+	return &FakeLocalSubjectAccessReviews{c, namespace}
 }
 
 func (c *FakeAuthorizationV1) SelfSubjectAccessReviews() v1.SelfSubjectAccessReviewInterface {
-	return newFakeSelfSubjectAccessReviews(c)
+	return &FakeSelfSubjectAccessReviews{c}
 }
 
 func (c *FakeAuthorizationV1) SelfSubjectRulesReviews() v1.SelfSubjectRulesReviewInterface {
-	return newFakeSelfSubjectRulesReviews(c)
+	return &FakeSelfSubjectRulesReviews{c}
 }
 
 func (c *FakeAuthorizationV1) SubjectAccessReviews() v1.SubjectAccessReviewInterface {
-	return newFakeSubjectAccessReviews(c)
+	return &FakeSubjectAccessReviews{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

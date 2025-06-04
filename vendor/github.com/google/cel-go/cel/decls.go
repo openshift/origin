@@ -23,7 +23,6 @@ import (
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 
-	celpb "cel.dev/expr"
 	exprpb "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 )
 
@@ -313,34 +312,20 @@ func ExprTypeToType(t *exprpb.Type) (*Type, error) {
 
 // ExprDeclToDeclaration converts a protobuf CEL declaration to a CEL-native declaration, either a Variable or Function.
 func ExprDeclToDeclaration(d *exprpb.Decl) (EnvOption, error) {
-	return AlphaProtoAsDeclaration(d)
-}
-
-// AlphaProtoAsDeclaration converts a v1alpha1.Decl value describing a variable or function into an EnvOption.
-func AlphaProtoAsDeclaration(d *exprpb.Decl) (EnvOption, error) {
-	canonical := &celpb.Decl{}
-	if err := convertProto(d, canonical); err != nil {
-		return nil, err
-	}
-	return ProtoAsDeclaration(canonical)
-}
-
-// ProtoAsDeclaration converts a canonical celpb.Decl value describing a variable or function into an EnvOption.
-func ProtoAsDeclaration(d *celpb.Decl) (EnvOption, error) {
 	switch d.GetDeclKind().(type) {
-	case *celpb.Decl_Function:
+	case *exprpb.Decl_Function:
 		overloads := d.GetFunction().GetOverloads()
 		opts := make([]FunctionOpt, len(overloads))
 		for i, o := range overloads {
 			args := make([]*Type, len(o.GetParams()))
 			for j, p := range o.GetParams() {
-				a, err := types.ProtoAsType(p)
+				a, err := types.ExprTypeToType(p)
 				if err != nil {
 					return nil, err
 				}
 				args[j] = a
 			}
-			res, err := types.ProtoAsType(o.GetResultType())
+			res, err := types.ExprTypeToType(o.GetResultType())
 			if err != nil {
 				return nil, err
 			}
@@ -351,15 +336,15 @@ func ProtoAsDeclaration(d *celpb.Decl) (EnvOption, error) {
 			}
 		}
 		return Function(d.GetName(), opts...), nil
-	case *celpb.Decl_Ident:
-		t, err := types.ProtoAsType(d.GetIdent().GetType())
+	case *exprpb.Decl_Ident:
+		t, err := types.ExprTypeToType(d.GetIdent().GetType())
 		if err != nil {
 			return nil, err
 		}
 		if d.GetIdent().GetValue() == nil {
 			return Variable(d.GetName(), t), nil
 		}
-		val, err := ast.ProtoConstantAsVal(d.GetIdent().GetValue())
+		val, err := ast.ConstantToVal(d.GetIdent().GetValue())
 		if err != nil {
 			return nil, err
 		}

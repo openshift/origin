@@ -13,38 +13,38 @@ type AWSMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// ami is the reference to the AMI from which to create the machine instance.
+	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami"`
-	// instanceType is the type of instance to create. Example: m4.xlarge
+	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType"`
-	// tags is the set of tags to add to apply to an instance, in addition to the ones
+	// Tags is the set of tags to add to apply to an instance, in addition to the ones
 	// added by default by the actuator. These tags are additive. The actuator will ensure
 	// these tags are present, but will not remove any other tags that may exist on the
 	// instance.
 	// +optional
 	Tags []TagSpecification `json:"tags,omitempty"`
-	// iamInstanceProfile is a reference to an IAM role to assign to the instance
+	// IAMInstanceProfile is a reference to an IAM role to assign to the instance
 	// +optional
 	IAMInstanceProfile *AWSResourceReference `json:"iamInstanceProfile,omitempty"`
-	// userDataSecret contains a local reference to a secret that contains the
+	// UserDataSecret contains a local reference to a secret that contains the
 	// UserData to apply to the instance
 	// +optional
 	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
-	// credentialsSecret is a reference to the secret with AWS credentials. Otherwise, defaults to permissions
+	// CredentialsSecret is a reference to the secret with AWS credentials. Otherwise, defaults to permissions
 	// provided by attached IAM role where the actuator is running.
 	// +optional
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
-	// keyName is the name of the KeyPair to use for SSH
+	// KeyName is the name of the KeyPair to use for SSH
 	// +optional
 	KeyName *string `json:"keyName,omitempty"`
-	// deviceIndex is the index of the device on the instance for the network interface attachment.
+	// DeviceIndex is the index of the device on the instance for the network interface attachment.
 	// Defaults to 0.
 	DeviceIndex int64 `json:"deviceIndex"`
-	// publicIp specifies whether the instance should get a public IP. If not present,
+	// PublicIP specifies whether the instance should get a public IP. If not present,
 	// it should use the default of its subnet.
 	// +optional
 	PublicIP *bool `json:"publicIp,omitempty"`
-	// networkInterfaceType specifies the type of network interface to be used for the primary
+	// NetworkInterfaceType specifies the type of network interface to be used for the primary
 	// network interface.
 	// Valid values are "ENA", "EFA", and omitted, which means no opinion and the platform
 	// chooses a good default which may change over time.
@@ -54,32 +54,32 @@ type AWSMachineProviderConfig struct {
 	// +kubebuilder:validation:Enum:="ENA";"EFA"
 	// +optional
 	NetworkInterfaceType AWSNetworkInterfaceType `json:"networkInterfaceType,omitempty"`
-	// securityGroups is an array of references to security groups that should be applied to the
+	// SecurityGroups is an array of references to security groups that should be applied to the
 	// instance.
 	// +optional
 	SecurityGroups []AWSResourceReference `json:"securityGroups,omitempty"`
-	// subnet is a reference to the subnet to use for this instance
+	// Subnet is a reference to the subnet to use for this instance
 	Subnet AWSResourceReference `json:"subnet"`
-	// placement specifies where to create the instance in AWS
+	// Placement specifies where to create the instance in AWS
 	Placement Placement `json:"placement"`
-	// loadBalancers is the set of load balancers to which the new instance
+	// LoadBalancers is the set of load balancers to which the new instance
 	// should be added once it is created.
 	// +optional
 	LoadBalancers []LoadBalancerReference `json:"loadBalancers,omitempty"`
-	// blockDevices is the set of block device mapping associated to this instance,
+	// BlockDevices is the set of block device mapping associated to this instance,
 	// block device without a name will be used as a root device and only one device without a name is allowed
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
 	// +optional
 	BlockDevices []BlockDeviceMappingSpec `json:"blockDevices,omitempty"`
-	// spotMarketOptions allows users to configure instances to be run using AWS Spot instances.
+	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
 	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
-	// metadataServiceOptions allows users to configure instance metadata service interaction options.
+	// MetadataServiceOptions allows users to configure instance metadata service interaction options.
 	// If nothing specified, default AWS IMDS settings will be applied.
 	// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_InstanceMetadataOptionsRequest.html
 	// +optional
 	MetadataServiceOptions MetadataServiceOptions `json:"metadataServiceOptions,omitempty"`
-	// placementGroupName specifies the name of the placement group in which to launch the instance.
+	// PlacementGroupName specifies the name of the placement group in which to launch the instance.
 	// The placement group must already be created and may use any placement strategy.
 	// When omitted, no placement group is used when creating the EC2 instance.
 	// +optional
@@ -95,18 +95,6 @@ type AWSMachineProviderConfig struct {
 	// The field size should be greater than 0 and the field input must start with cr-***
 	// +optional
 	CapacityReservationID string `json:"capacityReservationId"`
-	// marketType specifies the type of market for the EC2 instance.
-	// Valid values are OnDemand, Spot, CapacityBlock and omitted.
-	//
-	// Defaults to OnDemand.
-	// When SpotMarketOptions is provided, the marketType defaults to "Spot".
-	//
-	// When set to OnDemand the instance runs as a standard OnDemand instance.
-	// When set to Spot the instance runs as a Spot instance.
-	// When set to CapacityBlock the instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-	// If this value is selected, capacityReservationID must be specified to identify the target reservation.
-	// +optional
-	MarketType MarketType `json:"marketType,omitempty"`
 }
 
 // BlockDeviceMappingSpec describes a block device mapping
@@ -206,7 +194,7 @@ const (
 // MetadataServiceOptions defines the options available to a user when configuring
 // Instance Metadata Service (IMDS) Options.
 type MetadataServiceOptions struct {
-	// authentication determines whether or not the host requires the use of authentication when interacting with the metadata service.
+	// Authentication determines whether or not the host requires the use of authentication when interacting with the metadata service.
 	// When using authentication, this enforces v2 interaction method (IMDSv2) with the metadata service.
 	// When omitted, this means the user has no opinion and the value is left to the platform to choose a good
 	// default, which is subject to change over time. The current default is optional.
@@ -221,26 +209,26 @@ type MetadataServiceOptions struct {
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.
 type AWSResourceReference struct {
-	// id of resource
+	// ID of resource
 	// +optional
 	ID *string `json:"id,omitempty"`
-	// arn of resource
+	// ARN of resource
 	// +optional
 	ARN *string `json:"arn,omitempty"`
-	// filters is a set of filters used to identify a resource
+	// Filters is a set of filters used to identify a resource
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
 }
 
 // Placement indicates where to create the instance in AWS
 type Placement struct {
-	// region is the region to use to create the instance
+	// Region is the region to use to create the instance
 	// +optional
 	Region string `json:"region,omitempty"`
-	// availabilityZone is the availability zone of the instance
+	// AvailabilityZone is the availability zone of the instance
 	// +optional
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
-	// tenancy indicates if instance should run on shared or single-tenant hardware. There are
+	// Tenancy indicates if instance should run on shared or single-tenant hardware. There are
 	// supported 3 options: default, dedicated and host.
 	// +optional
 	Tenancy InstanceTenancy `json:"tenancy,omitempty"`
@@ -248,18 +236,18 @@ type Placement struct {
 
 // Filter is a filter used to identify an AWS resource
 type Filter struct {
-	// name of the filter. Filter names are case-sensitive.
+	// Name of the filter. Filter names are case-sensitive.
 	Name string `json:"name"`
-	// values includes one or more filter values. Filter values are case-sensitive.
+	// Values includes one or more filter values. Filter values are case-sensitive.
 	// +optional
 	Values []string `json:"values,omitempty"`
 }
 
 // TagSpecification is the name/value pair for a tag
 type TagSpecification struct {
-	// name of the tag
+	// Name of the tag
 	Name string `json:"name"`
-	// value of the tag
+	// Value of the tag
 	Value string `json:"value"`
 }
 
@@ -321,35 +309,14 @@ const (
 // +openshift:compatibility-gen:level=2
 type AWSMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
-	// instanceId is the instance ID of the machine created in AWS
+	// InstanceID is the instance ID of the machine created in AWS
 	// +optional
 	InstanceID *string `json:"instanceId,omitempty"`
-	// instanceState is the state of the AWS instance for this machine
+	// InstanceState is the state of the AWS instance for this machine
 	// +optional
 	InstanceState *string `json:"instanceState,omitempty"`
-	// conditions is a set of conditions associated with the Machine to indicate
+	// Conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
 	// +optional
-	// +listType=map
-	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
-
-// MarketType describes the market type of an EC2 Instance
-// +kubebuilder:validation:Enum:=OnDemand;Spot;CapacityBlock
-type MarketType string
-
-const (
-
-	// MarketTypeOnDemand is a MarketType enum value
-	// When set to OnDemand the instance runs as a standard OnDemand instance.
-	MarketTypeOnDemand MarketType = "OnDemand"
-
-	// MarketTypeSpot is a MarketType enum value
-	// When set to Spot the instance runs as a Spot instance.
-	MarketTypeSpot MarketType = "Spot"
-
-	// MarketTypeCapacityBlock is a MarketType enum value
-	// When set to CapacityBlock the instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-	MarketTypeCapacityBlock MarketType = "CapacityBlock"
-)

@@ -114,10 +114,6 @@ const (
 	LocatorTypeStatefulSet     LocatorType = "StatefulSet"
 
 	LocatorTypeAPIUnreachableFromClient LocatorType = "APIUnreachableFromClient"
-
-	LocatorTypeKubeletSyncLoopProbe LocatorType = "KubeletSyncLoopProbe"
-	LocatorTypeKubeletSyncLoopPLEG  LocatorType = "KubeletSyncLoopPLEG"
-	LocatorTypeStaticPodInstall     LocatorType = "StaticPodInstall"
 )
 
 type LocatorKey string
@@ -131,7 +127,6 @@ const (
 	LocatorStatefulSetKey     LocatorKey = "statefulset"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorMachineKey         LocatorKey = "machine"
-	LocatorNodeRoleKey        LocatorKey = "node-role"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
@@ -157,12 +152,7 @@ const (
 	LocatorMetricKey                LocatorKey = "metric"
 
 	LocatorAPIUnreachableHostKey                  LocatorKey = "host"
-	LocatorAPIUnreachableComponentKey             LocatorKey = "component"
 	LocatorOnPremKubeapiUnreachableFromHaproxyKey LocatorKey = "onprem-haproxy"
-
-	LocatorTypeKubeletSyncLoopProbeType LocatorKey = "probe"
-	LocatorTypeKubeletSyncLoopPLEGType  LocatorKey = "plegType"
-	LocatorStaticPodInstallType         LocatorKey = "podType"
 )
 
 type Locator struct {
@@ -195,8 +185,6 @@ const (
 	PodReasonEvicted               IntervalReason = "Evicted"
 	PodReasonPreempted             IntervalReason = "Preempted"
 	PodReasonFailed                IntervalReason = "Failed"
-	PodReasonReady                 IntervalReason = "PodReady"
-	PodReasonNotReady              IntervalReason = "PodNotReady"
 
 	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
 	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
@@ -264,8 +252,6 @@ const (
 
 	ReasonHighGeneration    IntervalReason = "HighGeneration"
 	ReasonInvalidGeneration IntervalReason = "GenerationViolation"
-
-	ReasonEtcdBootstrap IntervalReason = "EtcdBootstrap"
 )
 
 type AnnotationKey string
@@ -368,8 +354,6 @@ const (
 	SourceMachine                  IntervalSource = "MachineMonitor"
 
 	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
-
-	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
 )
 
 type Interval struct {

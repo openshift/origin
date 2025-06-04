@@ -73,8 +73,3 @@ func NormalizePath(path string) string {
 	}
 	return path
 }
-
-// IsCgroup2UnifiedMode is a no-op for Windows for now
-func IsCgroup2UnifiedMode() bool {
-	return false
-}

@@ -49,11 +49,11 @@ func podRequests(pod *corev1.Pod) corev1.ResourceList {
 	for _, container := range pod.Spec.Containers {
 		containerReqs := container.Resources.Requests
 		cs, found := containerStatuses[container.Name]
-		if found && cs.Resources != nil {
+		if found {
 			if pod.Status.Resize == corev1.PodResizeStatusInfeasible {
-				containerReqs = cs.Resources.Requests.DeepCopy()
+				containerReqs = cs.AllocatedResources.DeepCopy()
 			} else {
-				containerReqs = max(container.Resources.Requests, cs.Resources.Requests)
+				containerReqs = max(container.Resources.Requests, cs.AllocatedResources)
 			}
 		}
 		addResourceList(reqs, containerReqs)

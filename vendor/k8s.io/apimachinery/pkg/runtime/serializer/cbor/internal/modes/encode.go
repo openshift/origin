@@ -105,7 +105,7 @@ var Encode = EncMode{
 var EncodeNondeterministic = EncMode{
 	delegate: func() cbor.UserBufferEncMode {
 		opts := Encode.options()
-		opts.Sort = cbor.SortFastShuffle
+		opts.Sort = cbor.SortNone // TODO: Use cbor.SortFastShuffle after bump to v2.7.0.
 		em, err := opts.UserBufferEncMode()
 		if err != nil {
 			panic(err)

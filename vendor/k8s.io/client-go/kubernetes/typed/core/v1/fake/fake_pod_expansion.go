@@ -33,11 +33,11 @@ import (
 	core "k8s.io/client-go/testing"
 )
 
-func (c *fakePods) Bind(ctx context.Context, binding *v1.Binding, opts metav1.CreateOptions) error {
+func (c *FakePods) Bind(ctx context.Context, binding *v1.Binding, opts metav1.CreateOptions) error {
 	action := core.CreateActionImpl{}
 	action.Verb = "create"
 	action.Namespace = binding.Namespace
-	action.Resource = c.Resource()
+	action.Resource = podsResource
 	action.Subresource = "binding"
 	action.Object = binding
 
@@ -45,9 +45,9 @@ func (c *fakePods) Bind(ctx context.Context, binding *v1.Binding, opts metav1.Cr
 	return err
 }
 
-func (c *fakePods) GetBinding(name string) (result *v1.Binding, err error) {
+func (c *FakePods) GetBinding(name string) (result *v1.Binding, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetSubresourceAction(c.Resource(), c.Namespace(), "binding", name), &v1.Binding{})
+		Invokes(core.NewGetSubresourceAction(podsResource, c.ns, "binding", name), &v1.Binding{})
 
 	if obj == nil {
 		return nil, err
@@ -55,11 +55,11 @@ func (c *fakePods) GetBinding(name string) (result *v1.Binding, err error) {
 	return obj.(*v1.Binding), err
 }
 
-func (c *fakePods) GetLogs(name string, opts *v1.PodLogOptions) *restclient.Request {
+func (c *FakePods) GetLogs(name string, opts *v1.PodLogOptions) *restclient.Request {
 	action := core.GenericActionImpl{}
 	action.Verb = "get"
-	action.Namespace = c.Namespace()
-	action.Resource = c.Resource()
+	action.Namespace = c.ns
+	action.Resource = podsResource
 	action.Subresource = "log"
 	action.Value = opts
 
@@ -73,21 +73,21 @@ func (c *fakePods) GetLogs(name string, opts *v1.PodLogOptions) *restclient.Requ
 			return resp, nil
 		}),
 		NegotiatedSerializer: scheme.Codecs.WithoutConversion(),
-		GroupVersion:         c.Kind().GroupVersion(),
-		VersionedAPIPath:     fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/log", c.Namespace(), name),
+		GroupVersion:         podsKind.GroupVersion(),
+		VersionedAPIPath:     fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/log", c.ns, name),
 	}
 	return fakeClient.Request()
 }
 
-func (c *fakePods) Evict(ctx context.Context, eviction *policyv1beta1.Eviction) error {
+func (c *FakePods) Evict(ctx context.Context, eviction *policyv1beta1.Eviction) error {
 	return c.EvictV1beta1(ctx, eviction)
 }
 
-func (c *fakePods) EvictV1(ctx context.Context, eviction *policyv1.Eviction) error {
+func (c *FakePods) EvictV1(ctx context.Context, eviction *policyv1.Eviction) error {
 	action := core.CreateActionImpl{}
 	action.Verb = "create"
-	action.Namespace = c.Namespace()
-	action.Resource = c.Resource()
+	action.Namespace = c.ns
+	action.Resource = podsResource
 	action.Subresource = "eviction"
 	action.Object = eviction
 
@@ -95,11 +95,11 @@ func (c *fakePods) EvictV1(ctx context.Context, eviction *policyv1.Eviction) err
 	return err
 }
 
-func (c *fakePods) EvictV1beta1(ctx context.Context, eviction *policyv1beta1.Eviction) error {
+func (c *FakePods) EvictV1beta1(ctx context.Context, eviction *policyv1beta1.Eviction) error {
 	action := core.CreateActionImpl{}
 	action.Verb = "create"
-	action.Namespace = c.Namespace()
-	action.Resource = c.Resource()
+	action.Namespace = c.ns
+	action.Resource = podsResource
 	action.Subresource = "eviction"
 	action.Object = eviction
 
@@ -107,6 +107,6 @@ func (c *fakePods) EvictV1beta1(ctx context.Context, eviction *policyv1beta1.Evi
 	return err
 }
 
-func (c *fakePods) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
-	return c.Fake.InvokesProxy(core.NewProxyGetAction(c.Resource(), c.Namespace(), scheme, name, port, path, params))
+func (c *FakePods) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
+	return c.Fake.InvokesProxy(core.NewProxyGetAction(podsResource, c.ns, scheme, name, port, path, params))
 }

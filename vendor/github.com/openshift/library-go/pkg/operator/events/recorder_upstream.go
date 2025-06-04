@@ -3,7 +3,6 @@ package events
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/clock"
 	"strings"
 	"sync"
 
@@ -17,19 +16,19 @@ import (
 )
 
 // NewKubeRecorder returns new event recorder with tweaked correlator options.
-func NewKubeRecorderWithOptions(client corev1client.EventInterface, options record.CorrelatorOptions, sourceComponentName string, involvedObjectRef *corev1.ObjectReference, clock clock.PassiveClock) Recorder {
+func NewKubeRecorderWithOptions(client corev1client.EventInterface, options record.CorrelatorOptions, sourceComponentName string, involvedObjectRef *corev1.ObjectReference) Recorder {
 	return (&upstreamRecorder{
 		client:            client,
 		component:         sourceComponentName,
 		involvedObjectRef: involvedObjectRef,
 		options:           options,
-		fallbackRecorder:  NewRecorder(client, sourceComponentName, involvedObjectRef, clock),
+		fallbackRecorder:  NewRecorder(client, sourceComponentName, involvedObjectRef),
 	}).ForComponent(sourceComponentName)
 }
 
 // NewKubeRecorder returns new event recorder with default correlator options.
-func NewKubeRecorder(client corev1client.EventInterface, sourceComponentName string, involvedObjectRef *corev1.ObjectReference, clock clock.PassiveClock) Recorder {
-	return NewKubeRecorderWithOptions(client, record.CorrelatorOptions{}, sourceComponentName, involvedObjectRef, clock)
+func NewKubeRecorder(client corev1client.EventInterface, sourceComponentName string, involvedObjectRef *corev1.ObjectReference) Recorder {
+	return NewKubeRecorderWithOptions(client, record.CorrelatorOptions{}, sourceComponentName, involvedObjectRef)
 }
 
 // upstreamRecorder is an implementation of Recorder interface.

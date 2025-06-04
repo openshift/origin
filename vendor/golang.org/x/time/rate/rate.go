@@ -99,9 +99,8 @@ func (lim *Limiter) Tokens() float64 {
 // bursts of at most b tokens.
 func NewLimiter(r Limit, b int) *Limiter {
 	return &Limiter{
-		limit:  r,
-		burst:  b,
-		tokens: float64(b),
+		limit: r,
+		burst: b,
 	}
 }
 
@@ -343,6 +342,18 @@ func (lim *Limiter) reserveN(t time.Time, n int, maxFutureReserve time.Duration)
 			ok:        true,
 			lim:       lim,
 			tokens:    n,
+			timeToAct: t,
+		}
+	} else if lim.limit == 0 {
+		var ok bool
+		if lim.burst >= n {
+			ok = true
+			lim.burst -= n
+		}
+		return Reservation{
+			ok:        ok,
+			lim:       lim,
+			tokens:    lim.burst,
 			timeToAct: t,
 		}
 	}

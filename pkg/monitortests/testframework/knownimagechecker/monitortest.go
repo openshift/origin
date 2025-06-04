@@ -85,8 +85,6 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 
 		// ROSA
 		"default-route-openshift-image-registry.apps.ci-rosa",
-		// OSD GCP
-		"default-route-openshift-image-registry.apps.ci-osd-gcp",
 
 		// installed alongside OLM and managed externally
 		"registry.redhat.io/redhat/community-operator-index",
@@ -102,10 +100,6 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		// TODO: will not work for a disconnected test environment and should be emulated by launching
 		//   an authenticated registry in a pod on cluster
 		"registry.redhat.io/ubi8/nodejs-14:latest",
-
-		// used by builds tests.
-		// For OKD, samples imports mysql from quay.io. including this prevents the test from failing
-		"registry.redhat.io/rhel8/mysql-80:latest",
 	)
 	if len(fromRepository) > 0 {
 		allowedPrefixes.Insert(fromRepository)

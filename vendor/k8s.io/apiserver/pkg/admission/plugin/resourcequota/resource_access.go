@@ -48,9 +48,6 @@ type quotaAccessor struct {
 	// lister can list/get quota objects from a shared informer's cache
 	lister corev1listers.ResourceQuotaLister
 
-	// hasSynced indicates whether the lister has completed its initial sync
-	hasSynced func() bool
-
 	// liveLookups holds the last few live lookups we've done to help ammortize cost on repeated lookup failures.
 	// This lets us handle the case of latent caches, by looking up actual results for a namespace on cache miss/no results.
 	// We track the lookup result here so that for repeated requests, we don't look it up very often.
@@ -115,8 +112,8 @@ func (e *quotaAccessor) GetQuotas(namespace string) ([]corev1.ResourceQuota, err
 		return nil, fmt.Errorf("error resolving quota: %v", err)
 	}
 
-	// if there are no items held in our unsynced lister, check our live-lookup LRU, if that misses, do the live lookup to prime it.
-	if len(items) == 0 && !e.hasSynced() {
+	// if there are no items held in our indexer, check our live-lookup LRU, if that misses, do the live lookup to prime it.
+	if len(items) == 0 {
 		lruItemObj, ok := e.liveLookupCache.Get(namespace)
 		if !ok || lruItemObj.(liveLookupEntry).expiry.Before(time.Now()) {
 			// use singleflight.Group to avoid flooding the apiserver with repeated

@@ -466,14 +466,7 @@ func (t *multiVolumeTestSuite) DefineTests(driver storageframework.TestDriver, p
 
 		// Create volume
 		testVolumeSizeRange := t.GetTestSuiteInfo().SupportedSizeRange
-		resource := storageframework.CreateVolumeResourceWithAccessModes(
-			ctx,
-			l.driver,
-			l.config,
-			pattern,
-			testVolumeSizeRange,
-			[]v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
-			nil /* vacName */)
+		resource := storageframework.CreateVolumeResource(ctx, l.driver, l.config, pattern, testVolumeSizeRange)
 		l.resources = append(l.resources, resource)
 
 		// Test access to the volume from pods on different node
@@ -769,7 +762,7 @@ func ensureTopologyRequirements(ctx context.Context, nodeSelection *e2epod.NodeS
 	nodes, err := e2enode.GetReadySchedulableNodes(ctx, cs)
 	framework.ExpectNoError(err)
 	if len(nodes.Items) < minCount {
-		e2eskipper.Skipf("Number of available nodes is less than %d - skipping", minCount)
+		e2eskipper.Skipf(fmt.Sprintf("Number of available nodes is less than %d - skipping", minCount))
 	}
 
 	topologyKeys := driverInfo.TopologyKeys

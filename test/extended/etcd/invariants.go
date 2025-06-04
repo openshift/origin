@@ -25,36 +25,26 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 	g.It("cluster has the same number of master nodes and voting members from the endpoints configmap [Early][apigroup:config.openshift.io]", func() {
 		exutil.SkipIfExternalControlplaneTopology(oc, "clusters with external controlplane topology don't have master nodes")
 		masterNodeLabelSelectorString := "node-role.kubernetes.io/master"
-		controlPlaneNodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: masterNodeLabelSelectorString})
+		masterNodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: masterNodeLabelSelectorString})
 		o.Expect(err).ToNot(o.HaveOccurred())
-
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-		o.Expect(err).ToNot(o.HaveOccurred())
-
-		if *controlPlaneTopology == configv1.HighlyAvailableArbiterMode {
-			arbiterNodeLabelSelectorString := "node-role.kubernetes.io/arbiter"
-			arbiterNodeList, err := oc.KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: arbiterNodeLabelSelectorString})
-			o.Expect(err).ToNot(o.HaveOccurred())
-			controlPlaneNodeList.Items = append(controlPlaneNodeList.Items, arbiterNodeList.Items...)
-		}
 
 		ipFamily := getCurrentNetworkTopology(oc)
-		currentControlPlaneNodesIPListSet := sets.NewString()
-		for _, controlPlaneNode := range controlPlaneNodeList.Items {
-			for _, nodeAddress := range controlPlaneNode.Status.Addresses {
-				if nodeAddress.Type == corev1.NodeInternalIP {
+		currentMasterNodesIPListSet := sets.NewString()
+		for _, masterNode := range masterNodeList.Items {
+			for _, masterNodeAddress := range masterNode.Status.Addresses {
+				if masterNodeAddress.Type == corev1.NodeInternalIP {
 					switch ipFamily {
 					case "tcp4":
-						isIPv4, err := isIPv4(nodeAddress.Address)
+						isIPv4, err := isIPv4(masterNodeAddress.Address)
 						o.Expect(err).ToNot(o.HaveOccurred())
 						if isIPv4 {
-							currentControlPlaneNodesIPListSet.Insert(nodeAddress.Address)
+							currentMasterNodesIPListSet.Insert(masterNodeAddress.Address)
 						}
 					case "tcp6":
-						isIPv4, err := isIPv4(nodeAddress.Address)
+						isIPv4, err := isIPv4(masterNodeAddress.Address)
 						o.Expect(err).ToNot(o.HaveOccurred())
 						if !isIPv4 {
-							currentControlPlaneNodesIPListSet.Insert(nodeAddress.Address)
+							currentMasterNodesIPListSet.Insert(masterNodeAddress.Address)
 						}
 					default:
 						g.GinkgoT().Fatalf("unexpected ip family: %q", ipFamily)
@@ -62,6 +52,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 				}
 			}
 		}
+
 		etcdEndpointsConfigMap, err := oc.KubeClient().CoreV1().ConfigMaps("openshift-etcd").Get(context.TODO(), "etcd-endpoints", metav1.GetOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 		currentVotingMemberIPListSet := sets.NewString()
@@ -69,16 +60,16 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 			currentVotingMemberIPListSet.Insert(votingMemberIP)
 		}
 
-		if currentVotingMemberIPListSet.Len() != currentControlPlaneNodesIPListSet.Len() {
+		if currentVotingMemberIPListSet.Len() != currentMasterNodesIPListSet.Len() {
 			g.GinkgoT().Fatalf(
 				"incorrect number of voting members found in openshift-etcd/etcd-endpoints, expected it to match the number of master nodes = %d, members from the cm = %v, master nodes = %v",
-				currentControlPlaneNodesIPListSet.Len(),
+				currentMasterNodesIPListSet.Len(),
 				currentVotingMemberIPListSet.List(),
-				currentControlPlaneNodesIPListSet.List())
+				currentMasterNodesIPListSet.List())
 		}
 
-		if !currentVotingMemberIPListSet.Equal(currentControlPlaneNodesIPListSet) {
-			g.GinkgoT().Fatalf("IPs of voting members from openshift-etcd/etcd-endpoints =%v don't match master nodes IPs = %v ", currentVotingMemberIPListSet.List(), currentControlPlaneNodesIPListSet.List())
+		if !currentVotingMemberIPListSet.Equal(currentMasterNodesIPListSet) {
+			g.GinkgoT().Fatalf("IPs of voting members from openshift-etcd/etcd-endpoints =%v don't match master nodes IPs = %v ", currentVotingMemberIPListSet.List(), currentMasterNodesIPListSet.List())
 		}
 	})
 })

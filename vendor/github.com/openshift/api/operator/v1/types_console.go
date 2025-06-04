@@ -26,6 +26,7 @@ type Console struct {
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:Required
 	// +required
 	Spec ConsoleSpec `json:"spec,omitempty"`
 	// +optional
@@ -127,7 +128,7 @@ type CapabilityVisibility struct {
 	// Disabling the capability in the console UI is represented by the "Disabled" value.
 	// +unionDiscriminator
 	// +kubebuilder:validation:Enum:="Enabled";"Disabled"
-	// +required
+	// +kubebuilder:validation:Required
 	State CapabilityState `json:"state"`
 }
 
@@ -136,148 +137,15 @@ type Capability struct {
 	// name is the unique name of a capability.
 	// Available capabilities are LightspeedButton and GettingStartedBanner.
 	// +kubebuilder:validation:Enum:="LightspeedButton";"GettingStartedBanner"
-	// +required
+	// +kubebuilder:validation:Required
 	Name ConsoleCapabilityName `json:"name"`
 	// visibility defines the visibility state of the capability.
-	// +required
+	// +kubebuilder:validation:Required
 	Visibility CapabilityVisibility `json:"visibility"`
 }
 
-// ThemeMode is the value of the logo theme mode that determines the theme mode in the console UI.
-// +kubebuilder:validation:Enum="Dark";"Light"
-// +enum
-type ThemeMode string
-
-// ThemeMode values
-const (
-	// ThemeModeDark represents the dark mode for a console theme.
-	ThemeModeDark ThemeMode = "Dark"
-
-	// ThemeModeLight represents the light mode for a console theme.
-	ThemeModeLight ThemeMode = "Light"
-)
-
-// LogoType is the value of the logo type that determines if the logo is for the masthead or the favicon in the console UI.
-// The masthead logo is displayed in the masthead and about modal of the console UI.
-// +kubebuilder:validation:Enum="Masthead";"Favicon"
-// +enum
-type LogoType string
-
-const (
-	// Masthead represents the logo in the masthead.
-	LogoTypeMasthead LogoType = "Masthead"
-
-	// Favicon represents the favicon logo.
-	LogoTypeFavicon LogoType = "Favicon"
-)
-
-// SourceType defines the source type of the file reference.
-// +kubebuilder:validation:Enum="ConfigMap"
-// +enum
-type SourceType string
-
-const (
-	// SourceTypeConfigMap represents a ConfigMap source.
-	SourceTypeConfigMap SourceType = "ConfigMap"
-)
-
-// ConfigMapFileReference references a specific file within a ConfigMap.
-type ConfigMapFileReference struct {
-	// name is the name of the ConfigMap.
-	// name is a required field.
-	// Must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
-	// Must be at most 253 characters in length.
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
-	// +required
-	Name string `json:"name"`
-
-	// key is the logo key inside the referenced ConfigMap.
-	// Must consist only of alphanumeric characters, dashes (-), underscores (_), and periods (.).
-	// Must be at most 253 characters in length.
-	// Must end in a valid file extension.
-	// A valid file extension must consist of a period followed by 2 to 5 alpha characters.
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="self.matches('^[a-zA-Z0-9._-]+$')",message="The ConfigMap key must consist only of alphanumeric characters, dashes (-), underscores (_), and periods (.)."
-	// +kubebuilder:validation:XValidation:rule="self.matches('.*\\\\.[a-zA-Z]{2,5}$')",message="The ConfigMap key must end with a valid file extension (2 to 5 letters)."
-	// +required
-	Key string `json:"key"`
-}
-// FileReferenceSource is used by the console to locate the specified file containing a custom logo.
-// +kubebuilder:validation:XValidation:rule="has(self.from) && self.from == 'ConfigMap' ? has(self.configMap) : !has(self.configMap)",message="configMap is required when from is 'ConfigMap', and forbidden otherwise."
-type FileReferenceSource struct {
-	// from is a required field to specify the source type of the file reference.
-	// Allowed values are ConfigMap.
-	// When set to ConfigMap, the file will be sourced from a ConfigMap in the openshift-config namespace. The configMap field must be set when from is set to ConfigMap.
-	// +required
-	From SourceType `json:"from"`
-
-	// configMap specifies the ConfigMap sourcing details such as the name of the ConfigMap and the key for the file.
-	// The ConfigMap must exist in the openshift-config namespace.
-	// Required when from is "ConfigMap", and forbidden otherwise.
-	// +optional
-	ConfigMap *ConfigMapFileReference `json:"configMap"`
-}
-
-// Theme defines a theme mode for the console UI.
-type Theme struct {
-	// mode is used to specify what theme mode a logo will apply to in the console UI.
-	// mode is a required field that allows values of Dark and Light.
-	// When set to Dark, the logo file referenced in the 'file' field will be used when an end-user of the console UI enables the Dark mode.
-	// When set to Light, the logo file referenced in the 'file' field will be used when an end-user of the console UI enables the Light mode.
-	// +required
-	Mode ThemeMode `json:"mode"`
-
-	// source is used by the console to locate the specified file containing a custom logo.
-	// source is a required field that references a ConfigMap name and key that contains the custom logo file in the openshift-config namespace.
-	// You can create it with a command like:
-	// - 'oc create configmap custom-logos-config --namespace=openshift-config --from-file=/path/to/file'
-	// The ConfigMap key must include the file extension so that the console serves the file with the correct MIME type.
-	// The recommended file format for the Masthead and Favicon logos is SVG, but other file formats are allowed if supported by the browser.
-	// The logo image size must be less than 1 MB due to constraints on the ConfigMap size.
-	// For more information, see the documentation: https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/web_console/customizing-web-console#customizing-web-console
-	// +required
-	Source FileReferenceSource `json:"source"`
-}
-
-// Logo defines a configuration based on theme modes for the console UI logo.
-type Logo struct {
-	// type specifies the type of the logo for the console UI. It determines whether the logo is for the masthead or favicon.
-	// type is a required field that allows values of Masthead and Favicon.
-	// When set to "Masthead", the logo will be used in the masthead and about modal of the console UI.
-	// When set to "Favicon", the logo will be used as the favicon of the console UI.
-	// +required
-	Type LogoType `json:"type"`
-
-	// themes specifies the themes for the console UI logo.
-	// themes is a required field that allows a list of themes. Each item in the themes list must have a unique mode and a source field.
-	// Each mode determines whether the logo is for the dark or light mode of the console UI.
-	// If a theme is not specified, the default OpenShift logo will be displayed for that theme.
-	// There must be at least one entry and no more than 2 entries.
-	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=2
-	// +listType=map
-	// +listMapKey=mode
-	// +required
-	Themes []Theme `json:"themes"`
-}
-
 // ConsoleCustomization defines a list of optional configuration for the console UI.
-// Ensure that Logos and CustomLogoFile cannot be set at the same time.
-// +kubebuilder:validation:XValidation:rule="!(has(self.logos) && has(self.customLogoFile))",message="Only one of logos or customLogoFile can be set."
 type ConsoleCustomization struct {
-	// logos is used to replace the OpenShift Masthead and Favicon logos in the console UI with custom logos.
-	// logos is an optional field that allows a list of logos.
-	// Only one of logos or customLogoFile can be set at a time.
-	// If logos is set, customLogoFile must be unset.
-	// When specified, there must be at least one entry and no more than 2 entries.
-	// Each type must appear only once in the list.
-	// +kubebuilder:validation:MaxItems=2
-	// +listType=map
-	// +listMapKey=type
-	// +optional
-	Logos []Logo `json:"logos"`
-
 	// capabilities defines an array of capabilities that can be interacted with in the console UI.
 	// Each capability defines a visual state that can be interacted with the console to render in the UI.
 	// Available capabilities are LightspeedButton and GettingStartedBanner.
@@ -305,28 +173,32 @@ type ConsoleCustomization struct {
 	// +optional
 	CustomProductName string `json:"customProductName,omitempty"`
 	// customLogoFile replaces the default OpenShift logo in the masthead and about dialog. It is a reference to a
-	// Only one of customLogoFile or logos can be set at a time.
 	// ConfigMap in the openshift-config namespace. This can be created with a command like
 	// 'oc create configmap custom-logo --from-file=/path/to/file -n openshift-config'.
 	// Image size must be less than 1 MB due to constraints on the ConfigMap size.
 	// The ConfigMap key should include a file extension so that the console serves the file
 	// with the correct MIME type.
-	// The recommended file format for the logo is SVG, but other file formats are allowed if supported by the browser.
-	// Deprecated: Use logos instead.
+	// Recommended logo specifications:
+	// Dimensions: Max height of 68px and max width of 200px
+	// SVG format preferred
 	// +optional
 	CustomLogoFile configv1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
 	// developerCatalog allows to configure the shown developer catalog categories (filters) and types (sub-catalogs).
+	// +kubebuilder:validation:Optional
 	// +optional
 	DeveloperCatalog DeveloperConsoleCatalogCustomization `json:"developerCatalog,omitempty"`
 	// projectAccess allows customizing the available list of ClusterRoles in the Developer perspective
 	// Project access page which can be used by a project admin to specify roles to other users and
 	// restrict access within the project. If set, the list will replace the default ClusterRole options.
+	// +kubebuilder:validation:Optional
 	// +optional
 	ProjectAccess ProjectAccess `json:"projectAccess,omitempty"`
 	// quickStarts allows customization of available ConsoleQuickStart resources in console.
+	// +kubebuilder:validation:Optional
 	// +optional
 	QuickStarts QuickStarts `json:"quickStarts,omitempty"`
 	// addPage allows customizing actions on the Add page in developer perspective.
+	// +kubebuilder:validation:Optional
 	// +optional
 	AddPage AddPage `json:"addPage,omitempty"`
 	// perspectives allows enabling/disabling of perspective(s) that user can see in the Perspective switcher dropdown.
@@ -340,6 +212,7 @@ type ConsoleCustomization struct {
 type ProjectAccess struct {
 	// availableClusterRoles is the list of ClusterRole names that are assignable to users
 	// through the project access tab.
+	// +kubebuilder:validation:Optional
 	// +optional
 	AvailableClusterRoles []string `json:"availableClusterRoles,omitempty"`
 }
@@ -362,7 +235,7 @@ type DeveloperConsoleCatalogTypes struct {
 	// +kubebuilder:validation:Enum:="Enabled";"Disabled";
 	// +kubebuilder:default:="Enabled"
 	// +default="Enabled"
-	// +required
+	// +kubebuilder:validation:Required
 	State CatalogTypesState `json:"state,omitempty"`
 	// enabled is a list of developer catalog types (sub-catalogs IDs) that will be shown to users.
 	// Types (sub-catalogs) are added via console plugins, the available types (sub-catalog IDs) are available
@@ -386,6 +259,7 @@ type DeveloperConsoleCatalogTypes struct {
 // DeveloperConsoleCatalogCustomization allow cluster admin to configure developer catalog.
 type DeveloperConsoleCatalogCustomization struct {
 	// categories which are shown in the developer catalog.
+	// +kubebuilder:validation:Optional
 	// +optional
 	Categories []DeveloperConsoleCatalogCategory `json:"categories,omitempty"`
 	// types allows enabling or disabling of sub-catalog types that user can see in the Developer catalog.
@@ -396,20 +270,23 @@ type DeveloperConsoleCatalogCustomization struct {
 
 // DeveloperConsoleCatalogCategoryMeta are the key identifiers of a developer catalog category.
 type DeveloperConsoleCatalogCategoryMeta struct {
-	// id is an identifier used in the URL to enable deep linking in console.
+	// ID is an identifier used in the URL to enable deep linking in console.
 	// ID is required and must have 1-32 URL safe (A-Z, a-z, 0-9, - and _) characters.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=32
 	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9-_]+$`
 	// +required
 	ID string `json:"id"`
 	// label defines a category display label. It is required and must have 1-64 characters.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
 	// +required
 	Label string `json:"label"`
 	// tags is a list of strings that will match the category. A selected category
 	// show all items which has at least one overlapping tag between category and item.
+	// +kubebuilder:validation:Optional
 	// +optional
 	Tags []string `json:"tags,omitempty"`
 }
@@ -419,6 +296,7 @@ type DeveloperConsoleCatalogCategory struct {
 	// defines top level category ID, label and filter tags.
 	DeveloperConsoleCatalogCategoryMeta `json:",inline"`
 	// subcategories defines a list of child categories.
+	// +kubebuilder:validation:Optional
 	// +optional
 	Subcategories []DeveloperConsoleCatalogCategoryMeta `json:"subcategories,omitempty"`
 }
@@ -426,6 +304,7 @@ type DeveloperConsoleCatalogCategory struct {
 // QuickStarts allow cluster admins to customize available ConsoleQuickStart resources.
 type QuickStarts struct {
 	// disabled is a list of ConsoleQuickStart resource names that are not shown to users.
+	// +kubebuilder:validation:Optional
 	// +optional
 	Disabled []string `json:"disabled,omitempty"`
 }
@@ -434,6 +313,7 @@ type QuickStarts struct {
 type AddPage struct {
 	// disabledActions is a list of actions that are not shown to users.
 	// Each action in the list is represented by its ID.
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinItems=1
 	// +optional
 	DisabledActions []string `json:"disabledActions,omitempty"`
@@ -470,7 +350,7 @@ type PerspectiveVisibility struct {
 	// state defines the perspective is enabled or disabled or access review check is required.
 	// +unionDiscriminator
 	// +kubebuilder:validation:Enum:="Enabled";"Disabled";"AccessReview"
-	// +required
+	// +kubebuilder:validation:Required
 	State PerspectiveState `json:"state"`
 	// accessReview defines required and missing access review checks.
 	// +optional
@@ -485,10 +365,10 @@ type Perspective struct {
 	// Example: "dev", "admin".
 	// The available perspective ids can be found in the code snippet section next to the yaml editor.
 	// Incorrect or unknown ids will be ignored.
-	// +required
+	// +kubebuilder:validation:Required
 	ID string `json:"id"`
 	// visibility defines the state of perspective along with access review checks if needed for that perspective.
-	// +required
+	// +kubebuilder:validation:Required
 	Visibility PerspectiveVisibility `json:"visibility"`
 	// pinnedResources defines the list of default pinned resources that users will see on the perspective navigation if they have not customized these pinned resources themselves.
 	// The list of available Kubernetes resources could be read via `kubectl api-resources`.
@@ -506,20 +386,20 @@ type PinnedResourceReference struct {
 	// This value should consist of only lowercase alphanumeric characters, hyphens and periods.
 	// Example: "", "apps", "build.openshift.io", etc.
 	// +kubebuilder:validation:Pattern:="^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
-	// +required
+	// +kubebuilder:validation:Required
 	Group string `json:"group"`
 	// version is the API Version of the Resource.
 	// This value should consist of only lowercase alphanumeric characters.
 	// Example: "v1", "v1beta1", etc.
 	// +kubebuilder:validation:Pattern:="^[a-z0-9]+$"
-	// +required
+	// +kubebuilder:validation:Required
 	Version string `json:"version"`
 	// resource is the type that is being referenced.
 	// It is normally the plural form of the resource kind in lowercase.
 	// This value should consist of only lowercase alphanumeric characters and hyphens.
 	// Example: "deployments", "deploymentconfigs", "pods", etc.
 	// +kubebuilder:validation:Pattern:="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
-	// +required
+	// +kubebuilder:validation:Required
 	Resource string `json:"resource"`
 }
 

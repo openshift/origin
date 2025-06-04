@@ -48,6 +48,7 @@ type fakeClockWaiter struct {
 	stepInterval  time.Duration
 	skipIfBlocked bool
 	destChan      chan time.Time
+	fired         bool
 	afterFunc     func()
 }
 
@@ -197,10 +198,12 @@ func (f *FakeClock) setTimeLocked(t time.Time) {
 			if w.skipIfBlocked {
 				select {
 				case w.destChan <- t:
+					w.fired = true
 				default:
 				}
 			} else {
 				w.destChan <- t
+				w.fired = true
 			}
 
 			if w.afterFunc != nil {
@@ -302,48 +305,44 @@ func (f *fakeTimer) C() <-chan time.Time {
 	return f.waiter.destChan
 }
 
-// Stop prevents the Timer from firing. It returns true if the call stops the
-// timer, false if the timer has already expired or been stopped.
+// Stop stops the timer and returns true if the timer has not yet fired, or false otherwise.
 func (f *fakeTimer) Stop() bool {
 	f.fakeClock.lock.Lock()
 	defer f.fakeClock.lock.Unlock()
 
-	active := false
 	newWaiters := make([]*fakeClockWaiter, 0, len(f.fakeClock.waiters))
 	for i := range f.fakeClock.waiters {
 		w := f.fakeClock.waiters[i]
 		if w != &f.waiter {
 			newWaiters = append(newWaiters, w)
-			continue
 		}
-		// If timer is found, it has not been fired yet.
-		active = true
 	}
 
 	f.fakeClock.waiters = newWaiters
 
-	return active
+	return !f.waiter.fired
 }
 
-// Reset changes the timer to expire after duration d. It returns true if the
-// timer had been active, false if the timer had expired or been stopped.
+// Reset resets the timer to the fake clock's "now" + d. It returns true if the timer has not yet
+// fired, or false otherwise.
 func (f *fakeTimer) Reset(d time.Duration) bool {
 	f.fakeClock.lock.Lock()
 	defer f.fakeClock.lock.Unlock()
 
-	active := false
+	active := !f.waiter.fired
 
+	f.waiter.fired = false
 	f.waiter.targetTime = f.fakeClock.time.Add(d)
 
+	var isWaiting bool
 	for i := range f.fakeClock.waiters {
 		w := f.fakeClock.waiters[i]
 		if w == &f.waiter {
-			// If timer is found, it has not been fired yet.
-			active = true
+			isWaiting = true
 			break
 		}
 	}
-	if !active {
+	if !isWaiting {
 		f.fakeClock.waiters = append(f.fakeClock.waiters, &f.waiter)
 	}
 

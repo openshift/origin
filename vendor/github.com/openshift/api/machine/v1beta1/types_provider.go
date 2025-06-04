@@ -11,7 +11,7 @@ type ProviderSpec struct {
 
 	// No more than one of the following may be specified.
 
-	// value is an inlined, serialized representation of the resource
+	// Value is an inlined, serialized representation of the resource
 	// configuration. It is recommended that providers maintain their own
 	// versioned API types that should be serialized/deserialized from this
 	// field, akin to component config.
@@ -42,7 +42,7 @@ type ProviderSpec struct {
 // In future versions, controller-tools@v2 might allow overriding the type and validation for embedded
 // types. When that happens, this hack should be revisited.
 type ObjectMeta struct {
-	// name must be unique within a namespace. Is required when creating resources, although
+	// Name must be unique within a namespace. Is required when creating resources, although
 	// some resources may allow a client to request the generation of an appropriate name
 	// automatically. Name is primarily intended for creation idempotence and configuration
 	// definition.
@@ -51,7 +51,7 @@ type ObjectMeta struct {
 	// +optional
 	Name string `json:"name,omitempty"`
 
-	// generateName is an optional prefix, used by the server, to generate a unique
+	// GenerateName is an optional prefix, used by the server, to generate a unique
 	// name ONLY IF the Name field has not been provided.
 	// If this field is used, the name returned to the client will be different
 	// than the name passed. This value will also be combined with a unique suffix.
@@ -69,7 +69,7 @@ type ObjectMeta struct {
 	// +optional
 	GenerateName string `json:"generateName,omitempty"`
 
-	// namespace defines the space within each name must be unique. An empty namespace is
+	// Namespace defines the space within each name must be unique. An empty namespace is
 	// equivalent to the "default" namespace, but "default" is the canonical representation.
 	// Not all objects are required to be scoped to a namespace - the value of this field for
 	// those objects will be empty.
@@ -87,7 +87,7 @@ type ObjectMeta struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// annotations is an unstructured key value map stored with a resource that may be
+	// Annotations is an unstructured key value map stored with a resource that may be
 	// set by external tools to store and retrieve arbitrary metadata. They are not
 	// queryable and should be preserved when modifying objects.
 	// More info: http://kubernetes.io/docs/user-guide/annotations
@@ -193,17 +193,18 @@ const (
 
 // Condition defines an observation of a Machine API resource operational state.
 type Condition struct {
-	// type of condition in CamelCase or in foo.example.com/CamelCase.
+	// Type of condition in CamelCase or in foo.example.com/CamelCase.
 	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
 	// can be useful (see .node.status.conditions), the ability to deconflict is important.
 	// +required
+	// +kubebuilder:validation:Required
 	Type ConditionType `json:"type"`
 
-	// status of the condition, one of True, False, Unknown.
+	// Status of the condition, one of True, False, Unknown.
 	// +required
 	Status corev1.ConditionStatus `json:"status"`
 
-	// severity provides an explicit classification of Reason code, so the users or machines can immediately
+	// Severity provides an explicit classification of Reason code, so the users or machines can immediately
 	// understand the current situation and act accordingly.
 	// The Severity field MUST be set only when Status=False.
 	// +optional

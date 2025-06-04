@@ -11,7 +11,7 @@ This repo was previously the core Kubernetes tracking repo for
 2020, the purpose and maintenance strategy of the repo varies by
 branch.
 
-## Maintenance of `main` and `release-x.x` branches for 4.6 and above
+## Maintenance of `master` and `release-x.x` branches for 4.6 and above
 
 These branches no longer include the code required to produce
 `hyperkube` binaries, and are limited to maintaining the `openshift-tests`
@@ -27,9 +27,9 @@ to `origin` that bumps the vendoring.
 Branch names are correlated across the 2 repositories such that
 changes merged to a given branch in `openshift/kubernetes` should be
 vendored into the same branch in `origin` (e.g. `master` in
-`openshift/kubernetes` is vendored into `main` in `origin`).
+`openshift/kubernetes` is vendored into `master` in `origin`).
 
-**NOTE:** Vendoring of the `main` and `release-x.x` branches of
+**NOTE:** Vendoring of the `master` and `release-x.x` branches of
 `openshift/kubernetes` into the equivalent branches in `origin` is
 intended to be temporary. At some point in the near future, `origin`
 will switch to vendoring origin-specific branches (e.g
@@ -55,7 +55,7 @@ https://github.com/openshift/kubernetes/blob/master/openshift-hack/e2e/annotate/
 
 Test annotation rules for openshift e2e tests are maintained in:
 
-https://github.com/openshift/origin/blob/main/test/extended/util/annotate/rules.go
+https://github.com/openshift/origin/blob/master/test/extended/util/annotate/rules.go
 
 Origin vendors the kube rules and applies both the kube and openshift
 rules to the set of tests included in the `openshift-tests` binary.
@@ -136,7 +136,7 @@ All e2e tests are compiled into the `openshift-tests` binary.
 To build the test binary, run `make`.
 
 To run a specific test, or an entire suite of tests, read
-[test/extended/README](https://github.com/openshift/origin/blob/main/test/extended/README.md)
+[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md)
 for more information.
 
 ## Updating external examples

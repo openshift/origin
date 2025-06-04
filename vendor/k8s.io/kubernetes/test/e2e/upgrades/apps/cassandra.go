@@ -19,7 +19,6 @@ package apps
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -132,14 +131,13 @@ func (t *CassandraUpgradeTest) listUsers() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, errors.New(string(b))
+		return nil, fmt.Errorf(string(b))
 	}
 	var names []string
 	if err := json.NewDecoder(r.Body).Decode(&names); err != nil {
 		return nil, err
 	}
 	return names, nil
-
 }
 
 // addUser adds a user to the db via the tester services.
@@ -155,7 +153,7 @@ func (t *CassandraUpgradeTest) addUser(name string) error {
 		if err != nil {
 			return err
 		}
-		return errors.New(string(b))
+		return fmt.Errorf(string(b))
 	}
 	return nil
 }

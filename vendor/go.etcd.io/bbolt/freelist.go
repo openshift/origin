@@ -252,14 +252,6 @@ func (f *freelist) rollback(txid txid) {
 	}
 	// Remove pages from pending list and mark as free if allocated by txid.
 	delete(f.pending, txid)
-
-	// Remove pgids which are allocated by this txid
-	for pgid, tid := range f.allocs {
-		if tid == txid {
-			delete(f.allocs, pgid)
-		}
-	}
-
 	f.mergeSpans(m)
 }
 
@@ -290,8 +282,9 @@ func (f *freelist) read(p *page) {
 	if count == 0 {
 		f.ids = nil
 	} else {
-		data := unsafeIndex(unsafe.Pointer(p), unsafe.Sizeof(*p), unsafe.Sizeof(pgid(0)), idx)
-		ids := unsafe.Slice((*pgid)(data), count)
+		var ids []pgid
+		data := unsafeIndex(unsafe.Pointer(p), unsafe.Sizeof(*p), unsafe.Sizeof(ids[0]), idx)
+		unsafeSlice(unsafe.Pointer(&ids), data, count)
 
 		// copy the ids, so we don't modify on the freelist page directly
 		idsCopy := make([]pgid, count)
@@ -329,13 +322,15 @@ func (f *freelist) write(p *page) error {
 		p.count = uint16(l)
 	} else if l < 0xFFFF {
 		p.count = uint16(l)
+		var ids []pgid
 		data := unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p))
-		ids := unsafe.Slice((*pgid)(data), l)
+		unsafeSlice(unsafe.Pointer(&ids), data, l)
 		f.copyall(ids)
 	} else {
 		p.count = 0xFFFF
+		var ids []pgid
 		data := unsafeAdd(unsafe.Pointer(p), unsafe.Sizeof(*p))
-		ids := unsafe.Slice((*pgid)(data), l+1)
+		unsafeSlice(unsafe.Pointer(&ids), data, l+1)
 		ids[0] = pgid(l)
 		f.copyall(ids[1:])
 	}

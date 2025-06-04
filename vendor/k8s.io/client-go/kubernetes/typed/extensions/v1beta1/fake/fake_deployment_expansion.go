@@ -24,10 +24,10 @@ import (
 	core "k8s.io/client-go/testing"
 )
 
-func (c *fakeDeployments) Rollback(ctx context.Context, deploymentRollback *v1beta1.DeploymentRollback, opts metav1.CreateOptions) error {
+func (c *FakeDeployments) Rollback(ctx context.Context, deploymentRollback *v1beta1.DeploymentRollback, opts metav1.CreateOptions) error {
 	action := core.CreateActionImpl{}
 	action.Verb = "create"
-	action.Resource = c.Resource()
+	action.Resource = deploymentsResource
 	action.Subresource = "rollback"
 	action.Object = deploymentRollback
 

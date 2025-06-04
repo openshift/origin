@@ -30,8 +30,6 @@ func Resource(resource string) schema.GroupResource {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
-		&ClusterMonitoring{},
-		&ClusterMonitoringList{},
 		&InsightsDataGather{},
 		&InsightsDataGatherList{},
 		&Backup{},

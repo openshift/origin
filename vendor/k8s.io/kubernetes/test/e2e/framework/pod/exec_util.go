@@ -58,6 +58,8 @@ func ExecWithOptionsContext(ctx context.Context, f *framework.Framework, options
 	if !options.Quiet {
 		framework.Logf("ExecWithOptions %+v", options)
 	}
+	config, err := framework.LoadConfig()
+	framework.ExpectNoError(err, "failed to load restclient config")
 
 	const tty = false
 
@@ -66,7 +68,8 @@ func ExecWithOptionsContext(ctx context.Context, f *framework.Framework, options
 		Resource("pods").
 		Name(options.PodName).
 		Namespace(options.Namespace).
-		SubResource("exec")
+		SubResource("exec").
+		Param("container", options.ContainerName)
 	req.VersionedParams(&v1.PodExecOptions{
 		Container: options.ContainerName,
 		Command:   options.Command,
@@ -78,7 +81,7 @@ func ExecWithOptionsContext(ctx context.Context, f *framework.Framework, options
 
 	var stdout, stderr bytes.Buffer
 	framework.Logf("ExecWithOptions: execute(POST %s)", req.URL())
-	err := execute(ctx, "POST", req.URL(), f.ClientConfig(), options.Stdin, &stdout, &stderr, tty)
+	err = execute(ctx, "POST", req.URL(), config, options.Stdin, &stdout, &stderr, tty)
 
 	if options.PreserveWhitespace {
 		return stdout.String(), stderr.String(), err

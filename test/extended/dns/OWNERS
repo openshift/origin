@@ -1,6 +1,0 @@
-# We use aliases defined in OWNERS_ALIASES
-
-approvers:
-- network-ingress-dns-test-case-approvers
-reviewers:
-- network-ingress-dns-test-case-reviewers

@@ -23,7 +23,7 @@ func InsightsOperatorSpec() *InsightsOperatorSpecApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ManagementState field is set to the value of the last call.
 func (b *InsightsOperatorSpecApplyConfiguration) WithManagementState(value operatorv1.ManagementState) *InsightsOperatorSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.ManagementState = &value
+	b.ManagementState = &value
 	return b
 }
 
@@ -31,7 +31,7 @@ func (b *InsightsOperatorSpecApplyConfiguration) WithManagementState(value opera
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LogLevel field is set to the value of the last call.
 func (b *InsightsOperatorSpecApplyConfiguration) WithLogLevel(value operatorv1.LogLevel) *InsightsOperatorSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.LogLevel = &value
+	b.LogLevel = &value
 	return b
 }
 
@@ -39,7 +39,7 @@ func (b *InsightsOperatorSpecApplyConfiguration) WithLogLevel(value operatorv1.L
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the OperatorLogLevel field is set to the value of the last call.
 func (b *InsightsOperatorSpecApplyConfiguration) WithOperatorLogLevel(value operatorv1.LogLevel) *InsightsOperatorSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.OperatorLogLevel = &value
+	b.OperatorLogLevel = &value
 	return b
 }
 
@@ -47,7 +47,7 @@ func (b *InsightsOperatorSpecApplyConfiguration) WithOperatorLogLevel(value oper
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UnsupportedConfigOverrides field is set to the value of the last call.
 func (b *InsightsOperatorSpecApplyConfiguration) WithUnsupportedConfigOverrides(value runtime.RawExtension) *InsightsOperatorSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.UnsupportedConfigOverrides = &value
+	b.UnsupportedConfigOverrides = &value
 	return b
 }
 
@@ -55,6 +55,6 @@ func (b *InsightsOperatorSpecApplyConfiguration) WithUnsupportedConfigOverrides(
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedConfig field is set to the value of the last call.
 func (b *InsightsOperatorSpecApplyConfiguration) WithObservedConfig(value runtime.RawExtension) *InsightsOperatorSpecApplyConfiguration {
-	b.OperatorSpecApplyConfiguration.ObservedConfig = &value
+	b.ObservedConfig = &value
 	return b
 }

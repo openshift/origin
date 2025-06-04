@@ -61,10 +61,6 @@ func (s *containerScope) Admit(pod *v1.Pod) lifecycle.PodAdmitResult {
 			metrics.TopologyManagerAdmissionErrorsTotal.Inc()
 			return admission.GetPodAdmitResult(err)
 		}
-
-		if IsAlignmentGuaranteed(s.policy) {
-			metrics.ContainerAlignedComputeResources.WithLabelValues(metrics.AlignScopeContainer, metrics.AlignedNUMANode).Inc()
-		}
 	}
 	return admission.GetPodAdmitResult(nil)
 }

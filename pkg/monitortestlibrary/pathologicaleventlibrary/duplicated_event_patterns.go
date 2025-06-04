@@ -434,7 +434,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(controller-manager|route-controller-manager)`),
 		},
 		messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
-		messageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ from [0-9]+ to [0-9]+`),
+		messageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ to [0-9]+`),
 	})
 
 	// Match pod sandbox errors as "interesting" so they get charted, but we do not ever allow them to repeat
@@ -443,6 +443,19 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		name:              "PodSandbox",
 		messageHumanRegex: regexp.MustCompile(`pod sandbox`),
 		neverAllow:        true,
+	})
+
+	// Repeating events about pod creation are expected for snapshot options tests in vsphere csi driver.
+	// The tests change clusterCSIDriver object and have to rollout new pods to load new configuration.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "VsphereConfigurationTestsRollOutTooOften",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
+			monitorapi.LocatorE2ETestKey:   regexp.MustCompile(`.*snapshot options in clusterCSIDriver.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`(^SuccessfulCreate$|^SuccessfulDelete$)`),
+		messageHumanRegex:  regexp.MustCompile(`(^Created pod.*vmware-vsphere-csi-driver.*|^Deleted pod.*vmware-vsphere-csi-driver.*)`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
 	})
 
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
@@ -483,9 +496,6 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	singleNodeKubeAPIServerProgressingMatcher := newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeKubeAPIServerProgressingMatcher)
-
-	vsphereConfigurationTestsRollOutTooOftenMatcher := newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(vsphereConfigurationTestsRollOutTooOftenMatcher)
 
 	return registry
 }
@@ -936,32 +946,6 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 	}
 
 	return matcher
-}
-
-// Repeating events about pod creation are expected for snapshot options tests in vsphere csi driver.
-// The tests change clusterCSIDriver object and have to rollout new pods to load new configuration.
-func newVsphereConfigurationTestsRollOutTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	configurationTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceE2ETest &&
-			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "snapshot options in clusterCSIDriver")
-	})
-	for i := range configurationTestIntervals {
-		configurationTestIntervals[i].To = configurationTestIntervals[i].To.Add(time.Minute * 10)
-		configurationTestIntervals[i].From = configurationTestIntervals[i].From.Add(time.Minute * -10)
-	}
-
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name: "VsphereConfigurationTestsRollOutTooOften",
-			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
-			},
-			messageReasonRegex: regexp.MustCompile(`(^SuccessfulCreate$|^SuccessfulDelete$)`),
-			messageHumanRegex:  regexp.MustCompile(`(Created pod.*vmware-vsphere-csi-driver.*|Deleted pod.*vmware-vsphere-csi-driver.*)`),
-			jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
-		},
-		allowIfWithinIntervals: configurationTestIntervals,
-	}
 }
 
 // Ignore connection refused events during OCP APIServer or OAuth APIServer being down

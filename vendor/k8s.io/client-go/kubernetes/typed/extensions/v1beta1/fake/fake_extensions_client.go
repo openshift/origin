@@ -29,23 +29,23 @@ type FakeExtensionsV1beta1 struct {
 }
 
 func (c *FakeExtensionsV1beta1) DaemonSets(namespace string) v1beta1.DaemonSetInterface {
-	return newFakeDaemonSets(c, namespace)
+	return &FakeDaemonSets{c, namespace}
 }
 
 func (c *FakeExtensionsV1beta1) Deployments(namespace string) v1beta1.DeploymentInterface {
-	return newFakeDeployments(c, namespace)
+	return &FakeDeployments{c, namespace}
 }
 
 func (c *FakeExtensionsV1beta1) Ingresses(namespace string) v1beta1.IngressInterface {
-	return newFakeIngresses(c, namespace)
+	return &FakeIngresses{c, namespace}
 }
 
 func (c *FakeExtensionsV1beta1) NetworkPolicies(namespace string) v1beta1.NetworkPolicyInterface {
-	return newFakeNetworkPolicies(c, namespace)
+	return &FakeNetworkPolicies{c, namespace}
 }
 
 func (c *FakeExtensionsV1beta1) ReplicaSets(namespace string) v1beta1.ReplicaSetInterface {
-	return newFakeReplicaSets(c, namespace)
+	return &FakeReplicaSets{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

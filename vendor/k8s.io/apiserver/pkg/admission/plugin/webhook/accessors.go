@@ -50,7 +50,7 @@ type WebhookAccessor interface {
 	GetRESTClient(clientManager *webhookutil.ClientManager) (*rest.RESTClient, error)
 
 	// GetCompiledMatcher gets the compiled matcher object
-	GetCompiledMatcher(compiler cel.ConditionCompiler) matchconditions.Matcher
+	GetCompiledMatcher(compiler cel.FilterCompiler) matchconditions.Matcher
 
 	// GetName gets the webhook Name field. Note that the name is scoped to the webhook
 	// configuration and does not provide a globally unique identity, if a unique identity is
@@ -132,7 +132,7 @@ func (m *mutatingWebhookAccessor) GetType() string {
 	return "admit"
 }
 
-func (m *mutatingWebhookAccessor) GetCompiledMatcher(compiler cel.ConditionCompiler) matchconditions.Matcher {
+func (m *mutatingWebhookAccessor) GetCompiledMatcher(compiler cel.FilterCompiler) matchconditions.Matcher {
 	m.compileMatcher.Do(func() {
 		expressions := make([]cel.ExpressionAccessor, len(m.MutatingWebhook.MatchConditions))
 		for i, matchCondition := range m.MutatingWebhook.MatchConditions {
@@ -145,7 +145,7 @@ func (m *mutatingWebhookAccessor) GetCompiledMatcher(compiler cel.ConditionCompi
 		if utilfeature.DefaultFeatureGate.Enabled(features.StrictCostEnforcementForWebhooks) {
 			strictCost = true
 		}
-		m.compiledMatcher = matchconditions.NewMatcher(compiler.CompileCondition(
+		m.compiledMatcher = matchconditions.NewMatcher(compiler.Compile(
 			expressions,
 			cel.OptionalVariableDeclarations{
 				HasParams:     false,
@@ -265,7 +265,7 @@ func (v *validatingWebhookAccessor) GetRESTClient(clientManager *webhookutil.Cli
 	return v.client, v.clientErr
 }
 
-func (v *validatingWebhookAccessor) GetCompiledMatcher(compiler cel.ConditionCompiler) matchconditions.Matcher {
+func (v *validatingWebhookAccessor) GetCompiledMatcher(compiler cel.FilterCompiler) matchconditions.Matcher {
 	v.compileMatcher.Do(func() {
 		expressions := make([]cel.ExpressionAccessor, len(v.ValidatingWebhook.MatchConditions))
 		for i, matchCondition := range v.ValidatingWebhook.MatchConditions {
@@ -278,7 +278,7 @@ func (v *validatingWebhookAccessor) GetCompiledMatcher(compiler cel.ConditionCom
 		if utilfeature.DefaultFeatureGate.Enabled(features.StrictCostEnforcementForWebhooks) {
 			strictCost = true
 		}
-		v.compiledMatcher = matchconditions.NewMatcher(compiler.CompileCondition(
+		v.compiledMatcher = matchconditions.NewMatcher(compiler.Compile(
 			expressions,
 			cel.OptionalVariableDeclarations{
 				HasParams:     false,

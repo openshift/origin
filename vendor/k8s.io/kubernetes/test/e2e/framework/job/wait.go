@@ -21,13 +21,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/utils/format"
 	"k8s.io/utils/ptr"
@@ -43,45 +42,29 @@ type JobState func(job *batchv1.Job) string
 // WaitForJobPodsRunning wait for all pods for the Job named JobName in namespace ns to become Running.  Only use
 // when pods will run for a long time, or it will be racy.
 func WaitForJobPodsRunning(ctx context.Context, c clientset.Interface, ns, jobName string, expectedCount int32) error {
-	return waitForJobPodsInPhase(ctx, c, ns, jobName, expectedCount, v1.PodRunning, JobTimeout)
-}
-
-// WaitForJobPodsRunningWithTimeout wait for all pods for the Job named JobName in namespace ns to become Running.  Only use
-// when pods will run for a long time, or it will be racy. same as WaitForJobPodsRunning but with an additional timeout parameter
-func WaitForJobPodsRunningWithTimeout(ctx context.Context, c clientset.Interface, ns, jobName string, expectedCount int32, timeout time.Duration) error {
-	return waitForJobPodsInPhase(ctx, c, ns, jobName, expectedCount, v1.PodRunning, timeout)
+	return waitForJobPodsInPhase(ctx, c, ns, jobName, expectedCount, v1.PodRunning)
 }
 
 // WaitForJobPodsSucceeded wait for all pods for the Job named JobName in namespace ns to become Succeeded.
 func WaitForJobPodsSucceeded(ctx context.Context, c clientset.Interface, ns, jobName string, expectedCount int32) error {
-	return waitForJobPodsInPhase(ctx, c, ns, jobName, expectedCount, v1.PodSucceeded, JobTimeout)
+	return waitForJobPodsInPhase(ctx, c, ns, jobName, expectedCount, v1.PodSucceeded)
 }
 
 // waitForJobPodsInPhase wait for all pods for the Job named JobName in namespace ns to be in a given phase.
-func waitForJobPodsInPhase(ctx context.Context, c clientset.Interface, ns, jobName string, expectedCount int32, phase v1.PodPhase, timeout time.Duration) error {
-	get := func(ctx context.Context) (*v1.PodList, error) {
-		return GetJobPods(ctx, c, ns, jobName)
-	}
-	match := func(pods *v1.PodList) (func() string, error) {
+func waitForJobPodsInPhase(ctx context.Context, c clientset.Interface, ns, jobName string, expectedCount int32, phase v1.PodPhase) error {
+	return wait.PollUntilContextTimeout(ctx, framework.Poll, JobTimeout, false, func(ctx context.Context) (bool, error) {
+		pods, err := GetJobPods(ctx, c, ns, jobName)
+		if err != nil {
+			return false, err
+		}
 		count := int32(0)
 		for _, p := range pods.Items {
 			if p.Status.Phase == phase {
 				count++
 			}
 		}
-		if count == expectedCount {
-			return nil, nil
-		}
-		return func() string {
-			return fmt.Sprintf("job %q expected %d pods in %q phase, but got %d:\n%s",
-				klog.KRef(ns, jobName), expectedCount, phase, count, format.Object(pods, 1))
-		}, nil
-	}
-	return framework.Gomega().
-		Eventually(ctx, framework.HandleRetry(get)).
-		WithPolling(framework.Poll).
-		WithTimeout(timeout).
-		Should(framework.MakeMatcher(match))
+		return count == expectedCount, nil
+	})
 }
 
 // WaitForJobComplete uses c to wait for completions to complete for the Job jobName in namespace ns.
@@ -93,33 +76,14 @@ func waitForJobPodsInPhase(ctx context.Context, c clientset.Interface, ns, jobNa
 // both conformance CI jobs with GA-only features and e2e CI jobs with all default-enabled features.
 // So, we need to skip "Complete" condition reason verifications in the e2e conformance test cases.
 func WaitForJobComplete(ctx context.Context, c clientset.Interface, ns, jobName string, reason *string, completions int32) error {
-	// This function is called by HandleRetry, which will retry
-	// on transient API errors or stop polling in the case of other errors.
-	get := func(ctx context.Context) (*batchv1.Job, error) {
-		job, err := c.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
+	if err := wait.PollUntilContextTimeout(ctx, framework.Poll, JobTimeout, false, func(ctx context.Context) (bool, error) {
+		curr, err := c.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return false, err
 		}
-		if isJobFailed(job) {
-			return nil, gomega.StopTrying("job failed while waiting for its completion").Attach("job", job)
-		}
-		return job, nil
-	}
-	match := func(job *batchv1.Job) (func() string, error) {
-		if job.Status.Succeeded == completions {
-			return nil, nil
-		}
-		return func() string {
-			return fmt.Sprintf("expected job %q to have %v successful pods. got %v", klog.KObj(job), completions, job.Status.Succeeded)
-		}, nil
-	}
-	err := framework.Gomega().
-		Eventually(ctx, framework.HandleRetry(get)).
-		WithTimeout(JobTimeout).
-		WithPolling(framework.Poll).
-		Should(framework.MakeMatcher(match))
-	if err != nil {
-		return err
+		return curr.Status.Succeeded == completions, nil
+	}); err != nil {
+		return nil
 	}
 	return WaitForJobCondition(ctx, c, ns, jobName, batchv1.JobComplete, reason)
 }
@@ -147,93 +111,65 @@ func WaitForJobSuspend(ctx context.Context, c clientset.Interface, ns, jobName s
 }
 
 // WaitForJobFailed uses c to wait for the Job jobName in namespace ns to fail
-func WaitForJobFailed(ctx context.Context, c clientset.Interface, ns, jobName string) error {
-	// This function is called by HandleRetry, which will retry
-	// on transient API errors or stop polling in the case of other errors.
-	get := func(ctx context.Context) (*batchv1.Job, error) {
-		job, err := c.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
+func WaitForJobFailed(c clientset.Interface, ns, jobName string) error {
+	return wait.PollImmediate(framework.Poll, JobTimeout, func() (bool, error) {
+		curr, err := c.BatchV1().Jobs(ns).Get(context.TODO(), jobName, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return false, err
 		}
-		if isJobCompleted(job) {
-			return nil, gomega.StopTrying("job completed while waiting for its failure").Attach("job", job)
-		}
-		return job, nil
-	}
-	match := func(job *batchv1.Job) (func() string, error) {
-		if isJobFailed(job) {
-			return nil, nil
-		}
-		return func() string {
-			return fmt.Sprintf("expected job %q to fail", klog.KObj(job))
-		}, nil
-	}
-	return framework.Gomega().
-		Eventually(ctx, framework.HandleRetry(get)).
-		WithTimeout(JobTimeout).
-		WithPolling(framework.Poll).
-		Should(framework.MakeMatcher(match))
+
+		return isJobFailed(curr), nil
+	})
 }
 
 // WaitForJobCondition waits for the specified Job to have the expected condition with the specific reason.
 // When the nil reason is passed, the "reason" string in the condition is
 // not checked.
 func WaitForJobCondition(ctx context.Context, c clientset.Interface, ns, jobName string, cType batchv1.JobConditionType, reason *string) error {
-	match := func(job *batchv1.Job) (func() string, error) {
-		for _, c := range job.Status.Conditions {
+	err := wait.PollUntilContextTimeout(ctx, framework.Poll, JobTimeout, false, func(ctx context.Context) (bool, error) {
+		curr, err := c.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		for _, c := range curr.Status.Conditions {
 			if c.Type == cType && c.Status == v1.ConditionTrue {
 				if reason == nil || *reason == c.Reason {
-					return nil, nil
+					return true, nil
 				}
 			}
 		}
-		return func() string {
-			return fmt.Sprintf("expected job %q to reach the expected condition %q with reason %q", klog.KObj(job), cType, ptr.Deref(reason, "<nil>"))
-		}, nil
+		return false, nil
+	})
+	if err != nil {
+		return fmt.Errorf("waiting for Job %q to have the condition %q with reason: %v: %w", jobName, cType, reason, err)
 	}
-	return framework.Gomega().
-		Eventually(ctx, framework.GetObject(c.BatchV1().Jobs(ns).Get, jobName, metav1.GetOptions{})).
-		WithTimeout(JobTimeout).
-		WithPolling(framework.Poll).
-		Should(framework.MakeMatcher(match))
+	return nil
+}
+
+func isJobFailed(j *batchv1.Job) bool {
+	for _, c := range j.Status.Conditions {
+		if (c.Type == batchv1.JobFailed) && c.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
 
 // WaitForJobFinish uses c to wait for the Job jobName in namespace ns to finish (either Failed or Complete).
 func WaitForJobFinish(ctx context.Context, c clientset.Interface, ns, jobName string) error {
-	return WaitForJobFinishWithTimeout(ctx, c, ns, jobName, JobTimeout)
-}
+	return wait.PollUntilContextTimeout(ctx, framework.Poll, JobTimeout, true, func(ctx context.Context) (bool, error) {
+		curr, err := c.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
 
-// WaitForJobFinishWithTimeout uses c to wait for the Job jobName in namespace ns to finish (either Failed or Complete).
-func WaitForJobFinishWithTimeout(ctx context.Context, c clientset.Interface, ns, jobName string, timeout time.Duration) error {
-	return framework.Gomega().
-		Eventually(ctx, framework.GetObject(c.BatchV1().Jobs(ns).Get, jobName, metav1.GetOptions{})).
-		WithPolling(framework.Poll).
-		WithTimeout(timeout).
-		Should(framework.MakeMatcher(func(job *batchv1.Job) (func() string, error) {
-			if isJobFinished(job) {
-				return nil, nil
-			}
-			return func() string {
-				return fmt.Sprintf("expected job %q to be finished\n%s", klog.KObj(job), format.Object(job, 1))
-			}, nil
-		}))
+		return isJobFinished(curr), nil
+	})
 }
 
 func isJobFinished(j *batchv1.Job) bool {
-	return isJobCompleted(j) || isJobFailed(j)
-}
-
-func isJobFailed(j *batchv1.Job) bool {
-	return isConditionTrue(j, batchv1.JobFailed)
-}
-
-func isJobCompleted(j *batchv1.Job) bool {
-	return isConditionTrue(j, batchv1.JobComplete)
-}
-
-func isConditionTrue(j *batchv1.Job, condition batchv1.JobConditionType) bool {
 	for _, c := range j.Status.Conditions {
-		if c.Type == condition && c.Status == v1.ConditionTrue {
+		if (c.Type == batchv1.JobComplete || c.Type == batchv1.JobFailed) && c.Status == v1.ConditionTrue {
 			return true
 		}
 	}
@@ -243,33 +179,32 @@ func isConditionTrue(j *batchv1.Job, condition batchv1.JobConditionType) bool {
 
 // WaitForJobGone uses c to wait for up to timeout for the Job named jobName in namespace ns to be removed.
 func WaitForJobGone(ctx context.Context, c clientset.Interface, ns, jobName string, timeout time.Duration) error {
-	return framework.Gomega().
-		Eventually(ctx, func(ctx context.Context) error {
-			_, err := framework.GetObject(c.BatchV1().Jobs(ns).Get, jobName, metav1.GetOptions{})(ctx)
-			return err
-		}).
-		WithPolling(framework.Poll).
-		WithTimeout(timeout).
-		Should(gomega.MatchError(apierrors.IsNotFound, fmt.Sprintf("that expected job %q to be gone", klog.KRef(ns, jobName))))
+	return wait.PollUntilContextTimeout(ctx, framework.Poll, timeout, false, func(ctx context.Context) (bool, error) {
+		_, err := c.BatchV1().Jobs(ns).Get(ctx, jobName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, err
+	})
 }
 
 // WaitForAllJobPodsGone waits for all pods for the Job named jobName in namespace ns
 // to be deleted.
 func WaitForAllJobPodsGone(ctx context.Context, c clientset.Interface, ns, jobName string) error {
-	get := func(ctx context.Context) (*v1.PodList, error) {
-		return GetJobPods(ctx, c, ns, jobName)
-	}
-	return framework.Gomega().
-		Eventually(ctx, framework.HandleRetry(get)).
-		WithPolling(framework.Poll).
-		WithTimeout(JobTimeout).
-		Should(gomega.HaveField("Items", gomega.BeEmpty()))
+	return wait.PollUntilContextTimeout(ctx, framework.Poll, JobTimeout, true, func(ctx context.Context) (bool, error) {
+		pods, err := GetJobPods(ctx, c, ns, jobName)
+		if err != nil {
+			return false, err
+		}
+		return len(pods.Items) == 0, nil
+	})
 }
 
-// WaitForJobState waits for a job to be matched to the given state function.
+// WaitForJobState waits for a job to be matched to the given condition.
+// The condition callback may use gomega.StopTrying to abort early.
 func WaitForJobState(ctx context.Context, c clientset.Interface, ns, jobName string, timeout time.Duration, state JobState) error {
 	return framework.Gomega().
-		Eventually(ctx, framework.GetObject(c.BatchV1().Jobs(ns).Get, jobName, metav1.GetOptions{})).
+		Eventually(ctx, framework.RetryNotFound(framework.GetObject(c.BatchV1().Jobs(ns).Get, jobName, metav1.GetOptions{}))).
 		WithTimeout(timeout).
 		Should(framework.MakeMatcher(func(job *batchv1.Job) (func() string, error) {
 			matches := state(job)

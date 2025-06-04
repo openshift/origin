@@ -22,18 +22,18 @@ import (
 	"sync"
 	"time"
 
-	containersapi "github.com/containerd/containerd/api/services/containers/v1"
-	tasksapi "github.com/containerd/containerd/api/services/tasks/v1"
-	versionapi "github.com/containerd/containerd/api/services/version/v1"
-	tasktypes "github.com/containerd/containerd/api/types/task"
-	"github.com/containerd/errdefs"
+	ptypes "github.com/gogo/protobuf/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/google/cadvisor/container/containerd/containers"
+	"github.com/google/cadvisor/container/containerd/errdefs"
 	"github.com/google/cadvisor/container/containerd/pkg/dialer"
+	containersapi "github.com/google/cadvisor/third_party/containerd/api/services/containers/v1"
+	tasksapi "github.com/google/cadvisor/third_party/containerd/api/services/tasks/v1"
+	versionapi "github.com/google/cadvisor/third_party/containerd/api/services/version/v1"
+	tasktypes "github.com/google/cadvisor/third_party/containerd/api/types/task"
 )
 
 type client struct {
@@ -78,7 +78,6 @@ func Client(address, namespace string) (ContainerdClient, error) {
 		}
 		connParams.Backoff.BaseDelay = baseBackoffDelay
 		connParams.Backoff.MaxDelay = maxBackoffDelay
-		//nolint:staticcheck // SA1019
 		gopts := []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithContextDialer(dialer.ContextDialer),
@@ -94,7 +93,6 @@ func Client(address, namespace string) (ContainerdClient, error) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), connectionTimeout)
 		defer cancel()
-		//nolint:staticcheck // SA1019
 		conn, err := grpc.DialContext(ctx, dialer.DialAddress(address), gopts...)
 		if err != nil {
 			retErr = err
@@ -126,23 +124,22 @@ func (c *client) TaskPid(ctx context.Context, id string) (uint32, error) {
 	if err != nil {
 		return 0, errdefs.FromGRPC(err)
 	}
-	if response.Process.Status == tasktypes.Status_UNKNOWN {
+	if response.Process.Status == tasktypes.StatusUnknown {
 		return 0, ErrTaskIsInUnknownState
 	}
 	return response.Process.Pid, nil
 }
 
 func (c *client) Version(ctx context.Context) (string, error) {
-	response, err := c.versionService.Version(ctx, &emptypb.Empty{})
+	response, err := c.versionService.Version(ctx, &ptypes.Empty{})
 	if err != nil {
 		return "", errdefs.FromGRPC(err)
 	}
 	return response.Version, nil
 }
 
-func containerFromProto(containerpb *containersapi.Container) *containers.Container {
+func containerFromProto(containerpb containersapi.Container) *containers.Container {
 	var runtime containers.RuntimeInfo
-	// TODO: is nil check required for containerpb
 	if containerpb.Runtime != nil {
 		runtime = containers.RuntimeInfo{
 			Name:    containerpb.Runtime.Name,

@@ -19,7 +19,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
+	v1beta1 "k8s.io/api/policy/v1beta1"
 	gentype "k8s.io/client-go/gentype"
 	scheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -37,19 +37,17 @@ type EvictionInterface interface {
 
 // evictions implements EvictionInterface
 type evictions struct {
-	*gentype.Client[*policyv1beta1.Eviction]
+	*gentype.Client[*v1beta1.Eviction]
 }
 
 // newEvictions returns a Evictions
 func newEvictions(c *PolicyV1beta1Client, namespace string) *evictions {
 	return &evictions{
-		gentype.NewClient[*policyv1beta1.Eviction](
+		gentype.NewClient[*v1beta1.Eviction](
 			"evictions",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *policyv1beta1.Eviction { return &policyv1beta1.Eviction{} },
-			gentype.PrefersProtobuf[*policyv1beta1.Eviction](),
-		),
+			func() *v1beta1.Eviction { return &v1beta1.Eviction{} }),
 	}
 }

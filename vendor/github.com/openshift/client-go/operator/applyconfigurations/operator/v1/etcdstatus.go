@@ -23,7 +23,7 @@ func EtcdStatus() *EtcdStatusApplyConfiguration {
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ObservedGeneration field is set to the value of the last call.
 func (b *EtcdStatusApplyConfiguration) WithObservedGeneration(value int64) *EtcdStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.ObservedGeneration = &value
+	b.ObservedGeneration = &value
 	return b
 }
 
@@ -35,7 +35,7 @@ func (b *EtcdStatusApplyConfiguration) WithConditions(values ...*OperatorConditi
 		if values[i] == nil {
 			panic("nil value passed to WithConditions")
 		}
-		b.OperatorStatusApplyConfiguration.Conditions = append(b.OperatorStatusApplyConfiguration.Conditions, *values[i])
+		b.Conditions = append(b.Conditions, *values[i])
 	}
 	return b
 }
@@ -44,7 +44,7 @@ func (b *EtcdStatusApplyConfiguration) WithConditions(values ...*OperatorConditi
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Version field is set to the value of the last call.
 func (b *EtcdStatusApplyConfiguration) WithVersion(value string) *EtcdStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.Version = &value
+	b.Version = &value
 	return b
 }
 
@@ -52,7 +52,7 @@ func (b *EtcdStatusApplyConfiguration) WithVersion(value string) *EtcdStatusAppl
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *EtcdStatusApplyConfiguration) WithReadyReplicas(value int32) *EtcdStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.ReadyReplicas = &value
+	b.ReadyReplicas = &value
 	return b
 }
 
@@ -60,7 +60,7 @@ func (b *EtcdStatusApplyConfiguration) WithReadyReplicas(value int32) *EtcdStatu
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
 func (b *EtcdStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *EtcdStatusApplyConfiguration {
-	b.OperatorStatusApplyConfiguration.LatestAvailableRevision = &value
+	b.LatestAvailableRevision = &value
 	return b
 }
 
@@ -72,7 +72,7 @@ func (b *EtcdStatusApplyConfiguration) WithGenerations(values ...*GenerationStat
 		if values[i] == nil {
 			panic("nil value passed to WithGenerations")
 		}
-		b.OperatorStatusApplyConfiguration.Generations = append(b.OperatorStatusApplyConfiguration.Generations, *values[i])
+		b.Generations = append(b.Generations, *values[i])
 	}
 	return b
 }
@@ -81,7 +81,7 @@ func (b *EtcdStatusApplyConfiguration) WithGenerations(values ...*GenerationStat
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the LatestAvailableRevisionReason field is set to the value of the last call.
 func (b *EtcdStatusApplyConfiguration) WithLatestAvailableRevisionReason(value string) *EtcdStatusApplyConfiguration {
-	b.StaticPodOperatorStatusApplyConfiguration.LatestAvailableRevisionReason = &value
+	b.LatestAvailableRevisionReason = &value
 	return b
 }
 
@@ -93,7 +93,7 @@ func (b *EtcdStatusApplyConfiguration) WithNodeStatuses(values ...*NodeStatusApp
 		if values[i] == nil {
 			panic("nil value passed to WithNodeStatuses")
 		}
-		b.StaticPodOperatorStatusApplyConfiguration.NodeStatuses = append(b.StaticPodOperatorStatusApplyConfiguration.NodeStatuses, *values[i])
+		b.NodeStatuses = append(b.NodeStatuses, *values[i])
 	}
 	return b
 }

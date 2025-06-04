@@ -17,12 +17,11 @@ limitations under the License.
 package kuberuntime
 
 import (
-	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 
-	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
+	"k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 // terminationOrdering is used to enforce a termination ordering for sidecar containers.  It sets up
@@ -35,8 +34,6 @@ type terminationOrdering struct {
 	// prereqs is a map from container name to a list of channel that the container
 	// must wait on to ensure termination ordering
 	prereqs map[string][]chan struct{}
-
-	lock sync.Mutex
 }
 
 // newTerminationOrdering constructs a terminationOrdering based on the pod spec and the currently running containers.
@@ -80,7 +77,7 @@ func newTerminationOrdering(pod *v1.Pod, runningContainerNames []string) *termin
 			close(channel)
 		}
 
-		if podutil.IsRestartableInitContainer(&ic) {
+		if types.IsRestartableInitContainer(&ic) {
 			// sidecars need to wait for all main containers to exit
 			to.prereqs[ic.Name] = append(to.prereqs[ic.Name], mainContainerChannels...)
 
@@ -117,12 +114,9 @@ func (o *terminationOrdering) waitForTurn(name string, gracePeriod int64) float6
 	return time.Since(start).Seconds()
 }
 
-// containerTerminated should be called once the container with the specified name has exited.
+// containerTerminated should be called once the container with the speecified name has exited.
 func (o *terminationOrdering) containerTerminated(name string) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
 	if ch, ok := o.terminated[name]; ok {
 		close(ch)
-		delete(o.terminated, name)
 	}
 }

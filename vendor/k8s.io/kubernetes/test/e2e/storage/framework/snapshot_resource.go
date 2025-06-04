@@ -111,7 +111,6 @@ func CreateSnapshotResource(ctx context.Context, sDriver SnapshottableTestDriver
 		framework.Logf("Recording snapshot content annotations: %v", snapshotContentAnnotations)
 		csiDriverName := r.Vsclass.Object["driver"].(string)
 		framework.Logf("Recording snapshot driver: %s", csiDriverName)
-		snapshotClassName := r.Vsclass.GetName()
 
 		// If the deletion policy is retain on vscontent:
 		// when vs is deleted vscontent will not be deleted
@@ -144,7 +143,7 @@ func CreateSnapshotResource(ctx context.Context, sDriver SnapshottableTestDriver
 		snapName := getPreProvisionedSnapshotName(uuid)
 		snapcontentName := getPreProvisionedSnapshotContentName(uuid)
 
-		r.Vscontent = getPreProvisionedSnapshotContent(snapcontentName, snapshotClassName, snapshotContentAnnotations, snapName, pvcNamespace, snapshotHandle, pattern.SnapshotDeletionPolicy.String(), csiDriverName)
+		r.Vscontent = getPreProvisionedSnapshotContent(snapcontentName, snapshotContentAnnotations, snapName, pvcNamespace, snapshotHandle, pattern.SnapshotDeletionPolicy.String(), csiDriverName)
 		r.Vscontent, err = dc.Resource(utils.SnapshotContentGVR).Create(ctx, r.Vscontent, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
@@ -303,7 +302,7 @@ func getPreProvisionedSnapshot(snapName, ns, snapshotContentName string) *unstru
 
 	return snapshot
 }
-func getPreProvisionedSnapshotContent(snapcontentName, snapshotClassName string, snapshotContentAnnotations map[string]string, snapshotName, snapshotNamespace, snapshotHandle, deletionPolicy, csiDriverName string) *unstructured.Unstructured {
+func getPreProvisionedSnapshotContent(snapcontentName string, snapshotContentAnnotations map[string]string, snapshotName, snapshotNamespace, snapshotHandle, deletionPolicy, csiDriverName string) *unstructured.Unstructured {
 	snapshotContent := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"kind":       "VolumeSnapshotContent",
@@ -316,7 +315,6 @@ func getPreProvisionedSnapshotContent(snapcontentName, snapshotClassName string,
 				"source": map[string]interface{}{
 					"snapshotHandle": snapshotHandle,
 				},
-				"volumeSnapshotClassName": snapshotClassName,
 				"volumeSnapshotRef": map[string]interface{}{
 					"name":      snapshotName,
 					"namespace": snapshotNamespace,

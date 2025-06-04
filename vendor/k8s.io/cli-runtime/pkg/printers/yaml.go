@@ -17,7 +17,6 @@ limitations under the License.
 package printers
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -43,7 +42,7 @@ func (p *YAMLPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	// we need an actual value in order to retrieve the package path for an object.
 	// using reflect.Indirect indiscriminately is valid here, as all runtime.Objects are supposed to be pointers.
 	if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj)).Type().PkgPath()) {
-		return errors.New(InternalObjectPrinterErr)
+		return fmt.Errorf(InternalObjectPrinterErr)
 	}
 
 	count := atomic.AddInt64(&p.printCount, 1)
@@ -56,7 +55,7 @@ func (p *YAMLPrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	switch obj := obj.(type) {
 	case *metav1.WatchEvent:
 		if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj.Object.Object)).Type().PkgPath()) {
-			return errors.New(InternalObjectPrinterErr)
+			return fmt.Errorf(InternalObjectPrinterErr)
 		}
 		data, err := yaml.Marshal(obj)
 		if err != nil {

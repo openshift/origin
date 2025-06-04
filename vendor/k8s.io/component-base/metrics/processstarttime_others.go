@@ -25,7 +25,7 @@ import (
 	"github.com/prometheus/procfs"
 )
 
-func GetProcessStart() (float64, error) {
+func getProcessStart() (float64, error) {
 	pid := os.Getpid()
 	p, err := procfs.NewProc(pid)
 	if err != nil {

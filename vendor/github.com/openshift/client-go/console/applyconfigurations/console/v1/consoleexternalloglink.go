@@ -3,20 +3,20 @@
 package v1
 
 import (
-	consolev1 "github.com/openshift/api/console/v1"
+	apiconsolev1 "github.com/openshift/api/console/v1"
 	internal "github.com/openshift/client-go/console/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ConsoleExternalLogLinkApplyConfiguration represents a declarative configuration of the ConsoleExternalLogLink type for use
 // with apply.
 type ConsoleExternalLogLinkApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ConsoleExternalLogLinkSpecApplyConfiguration `json:"spec,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ConsoleExternalLogLinkSpecApplyConfiguration `json:"spec,omitempty"`
 }
 
 // ConsoleExternalLogLink constructs a declarative configuration of the ConsoleExternalLogLink type for use with
@@ -40,18 +40,18 @@ func ConsoleExternalLogLink(name string) *ConsoleExternalLogLinkApplyConfigurati
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
+func ExtractConsoleExternalLogLink(consoleExternalLogLink *apiconsolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
 	return extractConsoleExternalLogLink(consoleExternalLogLink, fieldManager, "")
 }
 
 // ExtractConsoleExternalLogLinkStatus is the same as ExtractConsoleExternalLogLink except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractConsoleExternalLogLinkStatus(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
+func ExtractConsoleExternalLogLinkStatus(consoleExternalLogLink *apiconsolev1.ConsoleExternalLogLink, fieldManager string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
 	return extractConsoleExternalLogLink(consoleExternalLogLink, fieldManager, "status")
 }
 
-func extractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExternalLogLink, fieldManager string, subresource string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
+func extractConsoleExternalLogLink(consoleExternalLogLink *apiconsolev1.ConsoleExternalLogLink, fieldManager string, subresource string) (*ConsoleExternalLogLinkApplyConfiguration, error) {
 	b := &ConsoleExternalLogLinkApplyConfiguration{}
 	err := managedfields.ExtractInto(consoleExternalLogLink, internal.Parser().Type("com.github.openshift.api.console.v1.ConsoleExternalLogLink"), fieldManager, b, subresource)
 	if err != nil {
@@ -68,7 +68,7 @@ func extractConsoleExternalLogLink(consoleExternalLogLink *consolev1.ConsoleExte
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithKind(value string) *ConsoleExternalLogLinkApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -76,7 +76,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithKind(value string) *Conso
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithAPIVersion(value string) *ConsoleExternalLogLinkApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -85,7 +85,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithAPIVersion(value string) 
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithName(value string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -94,7 +94,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithName(value string) *Conso
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithGenerateName(value string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -103,7 +103,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithGenerateName(value string
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithNamespace(value string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -112,7 +112,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithNamespace(value string) *
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithUID(value types.UID) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -121,7 +121,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithUID(value types.UID) *Con
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithResourceVersion(value string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -130,25 +130,25 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithResourceVersion(value str
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithGeneration(value int64) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ConsoleExternalLogLinkApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ConsoleExternalLogLinkApplyConfiguration {
+func (b *ConsoleExternalLogLinkApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ConsoleExternalLogLinkApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ConsoleExternalLogLinkApplyConfiguration {
+func (b *ConsoleExternalLogLinkApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -157,7 +157,7 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithDeletionTimestamp(value a
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -167,11 +167,11 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithDeletionGracePeriodSecond
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithLabels(entries map[string]string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -182,11 +182,11 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithLabels(entries map[string
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithAnnotations(entries map[string]string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -194,13 +194,13 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithAnnotations(entries map[s
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ConsoleExternalLogLinkApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ConsoleExternalLogLinkApplyConfiguration {
+func (b *ConsoleExternalLogLinkApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -211,14 +211,14 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithOwnerReferences(values ..
 func (b *ConsoleExternalLogLinkApplyConfiguration) WithFinalizers(values ...string) *ConsoleExternalLogLinkApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ConsoleExternalLogLinkApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -233,5 +233,5 @@ func (b *ConsoleExternalLogLinkApplyConfiguration) WithSpec(value *ConsoleExtern
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ConsoleExternalLogLinkApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

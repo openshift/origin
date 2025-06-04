@@ -43,7 +43,7 @@ message EgressRouter {
   optional .k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Specification of the desired egress router.
-  // +required
+  // +kubebuilder:validation:Required
   optional EgressRouterSpec spec = 2;
 
   // Observed status of EgressRouter.
@@ -53,8 +53,8 @@ message EgressRouter {
 // EgressRouterAddress contains a pair of IP CIDR and gateway to be configured on the router's interface
 // +kubebuilder:validation:Required
 message EgressRouterAddress {
-  // ip is the address to configure on the router's interface. Can be IPv4 or IPv6.
-  // +required
+  // IP is the address to configure on the router's interface. Can be IPv4 or IPv6.
+  // +kubebuilder:validation:Required
   optional string ip = 1;
 
   // IP address of the next-hop gateway, if it cannot be automatically determined. Can be IPv4 or IPv6.
@@ -86,32 +86,30 @@ message EgressRouterList {
 // +k8s:openapi-gen=true
 // +kubebuilder:validation:Required
 message EgressRouterSpec {
-  // mode depicts the mode that is used for the egress router. The default mode is "Redirect" and is the only supported mode currently.
-  // +required
+  // Mode depicts the mode that is used for the egress router. The default mode is "Redirect" and is the only supported mode currently.
+  // +kubebuilder:validation:Required
   // +kubebuilder:validation:Enum="Redirect"
   // +kubebuilder:default:="Redirect"
   optional string mode = 1;
 
-  // redirect represents the configuration parameters specific to redirect mode.
+  // Redirect represents the configuration parameters specific to redirect mode.
   optional RedirectConfig redirect = 2;
 
   // Specification of interface to create/use. The default is macvlan.
   // Currently only macvlan is supported.
-  // +required
+  // +kubebuilder:validation:Required
   // +kubebuilder:default:={macvlan: {mode: Bridge}}
   optional EgressRouterInterface networkInterface = 3;
 
   // List of IP addresses to configure on the pod's secondary interface.
-  // +required
+  // +kubebuilder:validation:Required
   repeated EgressRouterAddress addresses = 4;
 }
 
 // EgressRouterStatus contains the observed status of EgressRouter. Read-only.
 message EgressRouterStatus {
   // Observed status of the egress router
-  // +required
-  // +listType=map
-  // +listMapKey=type
+  // +kubebuilder:validation:Required
   repeated EgressRouterStatusCondition conditions = 1;
 }
 
@@ -119,25 +117,28 @@ message EgressRouterStatus {
 // managed and monitored components.
 // +k8s:deepcopy-gen=true
 message EgressRouterStatusCondition {
-  // type specifies the aspect reported by this condition; one of Available, Progressing, Degraded
+  // Type specifies the aspect reported by this condition; one of Available, Progressing, Degraded
+  // +kubebuilder:validation:Required
   // +kubebuilder:validation:Enum="Available";"Progressing";"Degraded"
   // +required
   optional string type = 1;
 
-  // status of the condition, one of True, False, Unknown.
+  // Status of the condition, one of True, False, Unknown.
+  // +kubebuilder:validation:Required
   // +kubebuilder:validation:Enum="True";"False";"Unknown"
   // +required
   optional string status = 2;
 
-  // lastTransitionTime is the time of the last update to the current status property.
+  // LastTransitionTime is the time of the last update to the current status property.
+  // +kubebuilder:validation:Required
   // +required
   // +nullable
   optional .k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
 
-  // reason is the CamelCase reason for the condition's current status.
+  // Reason is the CamelCase reason for the condition's current status.
   optional string reason = 4;
 
-  // message provides additional information about the current condition.
+  // Message provides additional information about the current condition.
   // This is only to be consumed by humans.  It may contain Line Feed
   // characters (U+000A), which should be rendered as new lines.
   optional string message = 5;
@@ -146,21 +147,21 @@ message EgressRouterStatusCondition {
 // L4RedirectRule defines a DNAT redirection from a given port to a destination IP and port.
 message L4RedirectRule {
   // IP specifies the remote destination's IP address. Can be IPv4 or IPv6.
-  // +required
+  // +kubebuilder:validation:Required
   optional string destinationIP = 1;
 
-  // port is the port number to which clients should send traffic to be redirected.
-  // +required
+  // Port is the port number to which clients should send traffic to be redirected.
+  // +kubebuilder:validation:Required
   // +kubebuilder:validation:Maximum:=65535
   // +kubebuilder:validation:Minimum:=1
   optional int32 port = 2;
 
-  // protocol can be TCP, SCTP or UDP.
-  // +required
+  // Protocol can be TCP, SCTP or UDP.
+  // +kubebuilder:validation:Required
   // +kubebuilder:validation:Enum="TCP";"UDP";"SCTP"
   optional string protocol = 3;
 
-  // targetPort allows specifying the port number on the remote destination to which the traffic gets redirected to.
+  // TargetPort allows specifying the port number on the remote destination to which the traffic gets redirected to.
   // If unspecified, the value from "Port" is used.
   // +kubebuilder:validation:Maximum:=65535
   // +kubebuilder:validation:Minimum:=1
@@ -169,8 +170,8 @@ message L4RedirectRule {
 
 // MacvlanConfig consists of arguments specific to the macvlan EgressRouterInterfaceType
 message MacvlanConfig {
-  // mode depicts the mode that is used for the macvlan interface; one of Bridge|Private|VEPA|Passthru. The default mode is "Bridge".
-  // +required
+  // Mode depicts the mode that is used for the macvlan interface; one of Bridge|Private|VEPA|Passthru. The default mode is "Bridge".
+  // +kubebuilder:validation:Required
   // +kubebuilder:validation:Enum="Bridge";"Private";"VEPA";"Passthru"
   // +kubebuilder:default:="Bridge"
   optional string mode = 1;
@@ -184,7 +185,7 @@ message RedirectConfig {
   // List of L4RedirectRules that define the DNAT redirection from the pod to the destination in redirect mode.
   repeated L4RedirectRule redirectRules = 1;
 
-  // fallbackIP specifies the remote destination's IP address. Can be IPv4 or IPv6.
+  // FallbackIP specifies the remote destination's IP address. Can be IPv4 or IPv6.
   // If no redirect rules are specified, all traffic from the router are redirected to this IP.
   // If redirect rules are specified, then any connections on any other port (undefined in the rules) on the router will be redirected to this IP.
   // If redirect rules are specified and no fallback IP is provided, connections on other ports will simply be rejected.

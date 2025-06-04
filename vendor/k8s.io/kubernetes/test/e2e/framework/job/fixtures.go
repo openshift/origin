@@ -136,47 +136,27 @@ func NewTestJobOnNode(behavior, name string, rPol v1.RestartPolicy, parallelism,
 				exit 1
 			fi
 		`}
-	case "failOncePerIndex":
-		// Use marker files per index. If the given marker file already exists
-		// then terminate successfully. Otherwise create the marker file and
-		// fail with exit code 42.
-		setupHostPathDirectory(job)
-		job.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c"}
-		job.Spec.Template.Spec.Containers[0].Args = []string{`
-			if [[ -r /data/foo-$JOB_COMPLETION_INDEX ]]
-			then
-				exit 0
-			else
-				touch /data/foo-$JOB_COMPLETION_INDEX
-				exit 42
-			fi
-		`}
-	case "notTerminateOncePerIndex":
-		// Use marker files per index. If the given marker file already exists
-		// then terminate successfully. Otherwise create the marker file and
-		// sleep "forever" awaiting delete request.
+	case "notTerminateOnce":
+		// Do not terminate the 0-indexed pod in the first run and
+		// succeed the second time. Fail the non-0-indexed pods until
+		// the marker file is created by the 0-indexed pod. The fact that
+		// the non-0-indexed pods are succeeded is used to determine that the
+		// 0th indexed pod already created the marker file.
 		setupHostPathDirectory(job)
 		job.Spec.Template.Spec.TerminationGracePeriodSeconds = ptr.To(int64(1))
 		job.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c"}
 		job.Spec.Template.Spec.Containers[0].Args = []string{`
-			if [[ -r /data/foo-$JOB_COMPLETION_INDEX ]]
+			if [[ -r /data/foo ]]
 			then
 				exit 0
-			else
-				touch /data/foo-$JOB_COMPLETION_INDEX
+			elif [[ $JOB_COMPLETION_INDEX -eq 0 ]]
+			then
+				touch /data/foo
 				sleep 1000000
+			else
+				exit 1
 			fi
 		`}
-		// Add readiness probe to allow the test client to check if the marker
-		// file is already created before evicting the Pod.
-		job.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
-			PeriodSeconds: 1,
-			ProbeHandler: v1.ProbeHandler{
-				Exec: &v1.ExecAction{
-					Command: []string{"/bin/sh", "-c", "cat /data/foo-$JOB_COMPLETION_INDEX"},
-				},
-			},
-		}
 	}
 	return job
 }

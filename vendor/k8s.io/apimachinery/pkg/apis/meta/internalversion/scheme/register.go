@@ -24,16 +24,16 @@ import (
 )
 
 // Scheme is the registry for any type that adheres to the meta API spec.
-var Scheme = runtime.NewScheme()
+var scheme = runtime.NewScheme()
 
 // Codecs provides access to encoding and decoding for the scheme.
-var Codecs = serializer.NewCodecFactory(Scheme)
+var Codecs = serializer.NewCodecFactory(scheme)
 
 // ParameterCodec handles versioning of objects that are converted to query parameters.
-var ParameterCodec = runtime.NewParameterCodec(Scheme)
+var ParameterCodec = runtime.NewParameterCodec(scheme)
 
 // Unlike other API groups, meta internal knows about all meta external versions, but keeps
 // the logic for conversion private.
 func init() {
-	utilruntime.Must(internalversion.AddToScheme(Scheme))
+	utilruntime.Must(internalversion.AddToScheme(scheme))
 }

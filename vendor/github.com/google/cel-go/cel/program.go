@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/cel-go/common/ast"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/interpreter"
@@ -152,7 +151,7 @@ func (p *prog) clone() *prog {
 // ProgramOption values.
 //
 // If the program cannot be configured the prog will be nil, with a non-nil error response.
-func newProgram(e *Env, a *ast.AST, opts []ProgramOption) (Program, error) {
+func newProgram(e *Env, a *Ast, opts []ProgramOption) (Program, error) {
 	// Build the dispatcher, interpreter, and default program value.
 	disp := interpreter.NewDispatcher()
 
@@ -188,13 +187,10 @@ func newProgram(e *Env, a *ast.AST, opts []ProgramOption) (Program, error) {
 
 	// Set the attribute factory after the options have been set.
 	var attrFactory interpreter.AttributeFactory
-	attrFactorOpts := []interpreter.AttrFactoryOption{
-		interpreter.EnableErrorOnBadPresenceTest(p.HasFeature(featureEnableErrorOnBadPresenceTest)),
-	}
 	if p.evalOpts&OptPartialEval == OptPartialEval {
-		attrFactory = interpreter.NewPartialAttributeFactory(e.Container, e.adapter, e.provider, attrFactorOpts...)
+		attrFactory = interpreter.NewPartialAttributeFactory(e.Container, e.adapter, e.provider)
 	} else {
-		attrFactory = interpreter.NewAttributeFactory(e.Container, e.adapter, e.provider, attrFactorOpts...)
+		attrFactory = interpreter.NewAttributeFactory(e.Container, e.adapter, e.provider)
 	}
 	interp := interpreter.NewInterpreter(disp, e.Container, e.provider, e.adapter, attrFactory)
 	p.interpreter = interp
@@ -256,9 +252,9 @@ func newProgram(e *Env, a *ast.AST, opts []ProgramOption) (Program, error) {
 	return p.initInterpretable(a, decorators)
 }
 
-func (p *prog) initInterpretable(a *ast.AST, decs []interpreter.InterpretableDecorator) (*prog, error) {
+func (p *prog) initInterpretable(a *Ast, decs []interpreter.InterpretableDecorator) (*prog, error) {
 	// When the AST has been exprAST it contains metadata that can be used to speed up program execution.
-	interpretable, err := p.interpreter.NewInterpretable(a, decs...)
+	interpretable, err := p.interpreter.NewInterpretable(a.impl, decs...)
 	if err != nil {
 		return nil, err
 	}

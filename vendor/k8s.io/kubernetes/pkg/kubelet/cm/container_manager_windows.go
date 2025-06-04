@@ -25,11 +25,6 @@ package cm
 import (
 	"context"
 	"fmt"
-	"sync"
-
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	kubefeatures "k8s.io/kubernetes/pkg/features"
-	"k8s.io/kubernetes/pkg/kubelet/cm/memorymanager"
 
 	"k8s.io/klog/v2"
 	"k8s.io/mount-utils"
@@ -37,15 +32,15 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apiserver/pkg/server/healthz"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	internalapi "k8s.io/cri-api/pkg/apis"
-	pluginwatcherapi "k8s.io/kubelet/pkg/apis/pluginregistration/v1"
 	podresourcesapi "k8s.io/kubelet/pkg/apis/podresources/v1"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
+	"k8s.io/kubernetes/pkg/kubelet/cm/admission"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/devicemanager"
+	"k8s.io/kubernetes/pkg/kubelet/cm/memorymanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/resourceupdates"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/config"
@@ -67,22 +62,21 @@ type containerManagerImpl struct {
 	deviceManager devicemanager.Manager
 	// Interface for Topology resource co-ordination
 	topologyManager topologymanager.Manager
-	cpuManager      cpumanager.Manager
-	memoryManager   memorymanager.Manager
-	nodeInfo        *v1.Node
-	sync.RWMutex
 }
 
-func (cm *containerManagerImpl) Start(ctx context.Context, node *v1.Node,
+type noopWindowsResourceAllocator struct{}
+
+func (ra *noopWindowsResourceAllocator) Admit(attrs *lifecycle.PodAdmitAttributes) lifecycle.PodAdmitResult {
+	return admission.GetPodAdmitResult(nil)
+}
+
+func (cm *containerManagerImpl) Start(node *v1.Node,
 	activePods ActivePodsFunc,
-	getNode GetNodeFunc,
 	sourcesReady config.SourcesReady,
 	podStatusProvider status.PodStatusProvider,
 	runtimeService internalapi.RuntimeService,
 	localStorageCapacityIsolation bool) error {
 	klog.V(2).InfoS("Starting Windows container manager")
-
-	cm.nodeInfo = node
 
 	if localStorageCapacityIsolation {
 		rootfs, err := cm.cadvisorInterface.RootFsInfo()
@@ -94,23 +88,11 @@ func (cm *containerManagerImpl) Start(ctx context.Context, node *v1.Node,
 		}
 	}
 
+	ctx := context.Background()
 	containerMap, containerRunningSet := buildContainerMapAndRunningSetFromRuntime(ctx, runtimeService)
 
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.WindowsCPUAndMemoryAffinity) {
-		err := cm.cpuManager.Start(cpumanager.ActivePodsFunc(activePods), sourcesReady, podStatusProvider, runtimeService, containerMap.Clone())
-		if err != nil {
-			return fmt.Errorf("start cpu manager error: %v", err)
-		}
-
-		// Initialize memory manager
-		err = cm.memoryManager.Start(memorymanager.ActivePodsFunc(activePods), sourcesReady, podStatusProvider, runtimeService, containerMap.Clone())
-		if err != nil {
-			return fmt.Errorf("start memory manager error: %v", err)
-		}
-	}
-
 	// Starts device manager.
-	if err := cm.deviceManager.Start(devicemanager.ActivePodsFunc(activePods), sourcesReady, containerMap.Clone(), containerRunningSet); err != nil {
+	if err := cm.deviceManager.Start(devicemanager.ActivePodsFunc(activePods), sourcesReady, containerMap, containerRunningSet); err != nil {
 		return err
 	}
 
@@ -135,52 +117,6 @@ func NewContainerManager(mountUtil mount.Interface, cadvisorInterface cadvisor.I
 	}
 
 	cm.topologyManager = topologymanager.NewFakeManager()
-	cm.cpuManager = cpumanager.NewFakeManager()
-	cm.memoryManager = memorymanager.NewFakeManager()
-
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.WindowsCPUAndMemoryAffinity) {
-		klog.InfoS("Creating topology manager")
-		cm.topologyManager, err = topologymanager.NewManager(machineInfo.Topology,
-			nodeConfig.TopologyManagerPolicy,
-			nodeConfig.TopologyManagerScope,
-			nodeConfig.TopologyManagerPolicyOptions)
-		if err != nil {
-			klog.ErrorS(err, "Failed to initialize topology manager")
-			return nil, err
-		}
-
-		klog.InfoS("Creating cpu manager")
-		cm.cpuManager, err = cpumanager.NewManager(
-			nodeConfig.CPUManagerPolicy,
-			nodeConfig.CPUManagerPolicyOptions,
-			nodeConfig.CPUManagerReconcilePeriod,
-			machineInfo,
-			nodeConfig.NodeAllocatableConfig.ReservedSystemCPUs,
-			cm.GetNodeAllocatableReservation(),
-			nodeConfig.KubeletRootDir,
-			cm.topologyManager,
-		)
-		if err != nil {
-			klog.ErrorS(err, "Failed to initialize cpu manager")
-			return nil, err
-		}
-		cm.topologyManager.AddHintProvider(cm.cpuManager)
-
-		klog.InfoS("Creating memory manager")
-		cm.memoryManager, err = memorymanager.NewManager(
-			nodeConfig.ExperimentalMemoryManagerPolicy,
-			machineInfo,
-			cm.GetNodeAllocatableReservation(),
-			nodeConfig.ExperimentalMemoryManagerReservedMemory,
-			nodeConfig.KubeletRootDir,
-			cm.topologyManager,
-		)
-		if err != nil {
-			klog.ErrorS(err, "Failed to initialize memory manager")
-			return nil, err
-		}
-		cm.topologyManager.AddHintProvider(cm.memoryManager)
-	}
 
 	klog.InfoS("Creating device plugin manager")
 	cm.deviceManager, err = devicemanager.NewManagerImpl(nil, cm.topologyManager)
@@ -197,9 +133,7 @@ func (cm *containerManagerImpl) SystemCgroupsLimit() v1.ResourceList {
 }
 
 func (cm *containerManagerImpl) GetNodeConfig() NodeConfig {
-	cm.RLock()
-	defer cm.RUnlock()
-	return cm.nodeConfig
+	return NodeConfig{}
 }
 
 func (cm *containerManagerImpl) GetMountedSubsystems() *CgroupSubsystems {
@@ -243,13 +177,8 @@ func (cm *containerManagerImpl) GetCapacity(localStorageCapacityIsolation bool) 
 	return cm.capacity
 }
 
-func (cm *containerManagerImpl) GetPluginRegistrationHandlers() map[string]cache.PluginHandler {
-	// DRA is not supported on Windows, only device plugin is supported
-	return map[string]cache.PluginHandler{pluginwatcherapi.DevicePlugin: cm.deviceManager.GetWatcherHandler()}
-}
-
-func (cm *containerManagerImpl) GetHealthCheckers() []healthz.HealthChecker {
-	return []healthz.HealthChecker{cm.deviceManager.GetHealthChecker()}
+func (cm *containerManagerImpl) GetPluginRegistrationHandler() cache.PluginHandler {
+	return cm.deviceManager.GetWatcherHandler()
 }
 
 func (cm *containerManagerImpl) GetDevicePluginResourceCapacity() (v1.ResourceList, v1.ResourceList, []string) {
@@ -260,7 +189,7 @@ func (cm *containerManagerImpl) NewPodContainerManager() PodContainerManager {
 	return &podContainerManagerStub{}
 }
 
-func (cm *containerManagerImpl) GetResources(ctx context.Context, pod *v1.Pod, container *v1.Container) (*kubecontainer.RunContainerOptions, error) {
+func (cm *containerManagerImpl) GetResources(pod *v1.Pod, container *v1.Container) (*kubecontainer.RunContainerOptions, error) {
 	opts := &kubecontainer.RunContainerOptions{}
 	// Allocate should already be called during predicateAdmitHandler.Admit(),
 	// just try to fetch device runtime information from cached state here
@@ -295,7 +224,7 @@ func (cm *containerManagerImpl) UpdatePluginResources(node *schedulerframework.N
 }
 
 func (cm *containerManagerImpl) InternalContainerLifecycle() InternalContainerLifecycle {
-	return &internalContainerLifecycleImpl{cm.cpuManager, cm.memoryManager, cm.topologyManager}
+	return &internalContainerLifecycleImpl{cpumanager.NewFakeManager(), memorymanager.NewFakeManager(), topologymanager.NewFakeManager()}
 }
 
 func (cm *containerManagerImpl) GetPodCgroupRoot() string {
@@ -315,30 +244,18 @@ func (cm *containerManagerImpl) ShouldResetExtendedResourceCapacity() bool {
 }
 
 func (cm *containerManagerImpl) GetAllocateResourcesPodAdmitHandler() lifecycle.PodAdmitHandler {
-	return cm.topologyManager
+	return &noopWindowsResourceAllocator{}
 }
 
 func (cm *containerManagerImpl) UpdateAllocatedDevices() {
 	return
 }
 
-func (cm *containerManagerImpl) GetCPUs(podUID, containerName string) []int64 {
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.WindowsCPUAndMemoryAffinity) {
-		if cm.cpuManager != nil {
-			return int64Slice(cm.cpuManager.GetExclusiveCPUs(podUID, containerName).UnsortedList())
-		}
-		return []int64{}
-	}
+func (cm *containerManagerImpl) GetCPUs(_, _ string) []int64 {
 	return nil
 }
 
 func (cm *containerManagerImpl) GetAllocatableCPUs() []int64 {
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.WindowsCPUAndMemoryAffinity) {
-		if cm.cpuManager != nil {
-			return int64Slice(cm.cpuManager.GetAllocatableCPUs().UnsortedList())
-		}
-		return []int64{}
-	}
 	return nil
 }
 
@@ -358,11 +275,11 @@ func (cm *containerManagerImpl) GetDynamicResources(pod *v1.Pod, container *v1.C
 	return nil
 }
 
-func (cm *containerManagerImpl) PrepareDynamicResources(ctx context.Context, pod *v1.Pod) error {
+func (cm *containerManagerImpl) PrepareDynamicResources(pod *v1.Pod) error {
 	return nil
 }
 
-func (cm *containerManagerImpl) UnprepareDynamicResources(ctx context.Context, pod *v1.Pod) error {
+func (cm *containerManagerImpl) UnprepareDynamicResources(*v1.Pod) error {
 	return nil
 }
 

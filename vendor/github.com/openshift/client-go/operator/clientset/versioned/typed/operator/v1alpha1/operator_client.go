@@ -3,16 +3,15 @@
 package v1alpha1
 
 import (
-	http "net/http"
+	"net/http"
 
-	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
-	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
+	v1alpha1 "github.com/openshift/api/operator/v1alpha1"
+	"github.com/openshift/client-go/operator/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
 type OperatorV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	ClusterVersionOperatorsGetter
 	EtcdBackupsGetter
 	ImageContentSourcePoliciesGetter
 	OLMsGetter
@@ -21,10 +20,6 @@ type OperatorV1alpha1Interface interface {
 // OperatorV1alpha1Client is used to interact with features provided by the operator.openshift.io group.
 type OperatorV1alpha1Client struct {
 	restClient rest.Interface
-}
-
-func (c *OperatorV1alpha1Client) ClusterVersionOperators() ClusterVersionOperatorInterface {
-	return newClusterVersionOperators(c)
 }
 
 func (c *OperatorV1alpha1Client) EtcdBackups() EtcdBackupInterface {
@@ -84,10 +79,10 @@ func New(c rest.Interface) *OperatorV1alpha1Client {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	gv := operatorv1alpha1.SchemeGroupVersion
+	gv := v1alpha1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = rest.CodecFactoryForGeneratedClient(scheme.Scheme, scheme.Codecs).WithoutConversion()
+	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()

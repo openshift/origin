@@ -255,68 +255,8 @@ func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (strin
 	return defaultRoutes[0].Dev, nil
 }
 
-type ovnKubePodInfo struct {
-	podName       string
-	containerName string
-}
-
 // findBridgePhysicalInterface returns the name of the physical interface that belogs to <bridgeName> on node <nodeName>.
 func findBridgePhysicalInterface(oc *exutil.CLI, nodeName, bridgeName string) (string, error) {
-	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
-	if err != nil {
-		return "", err
-	}
-
-	out, err := adminExecInPod(
-		oc,
-		"openshift-ovn-kubernetes",
-		ovnkubePodInfo.podName,
-		ovnkubePodInfo.containerName,
-		fmt.Sprintf("ovs-vsctl list-ports %s", bridgeName),
-	)
-	if err != nil {
-		return "", fmt.Errorf("failed to get list of ports on bridge %s:, error: %v",
-			bridgeName, err)
-	}
-	for _, port := range strings.Split(out, "\n") {
-		out, err = adminExecInPod(
-			oc,
-			"openshift-ovn-kubernetes",
-			ovnkubePodInfo.podName,
-			ovnkubePodInfo.containerName,
-			fmt.Sprintf("ovs-vsctl get Port %s Interfaces", port),
-		)
-		if err != nil {
-			return "", fmt.Errorf("failed to get port %s on bridge %s: error: %v",
-				bridgeName, port, err)
-
-		}
-		// remove brackets on list of interfaces
-		ifaces := strings.TrimPrefix(strings.TrimSuffix(out, "]"), "[")
-		for _, iface := range strings.Split(ifaces, ",") {
-			out, err = adminExecInPod(
-				oc,
-				"openshift-ovn-kubernetes",
-				ovnkubePodInfo.podName,
-				ovnkubePodInfo.containerName,
-				fmt.Sprintf("ovs-vsctl get Interface %s Type", strings.TrimSpace(iface)),
-			)
-			if err != nil {
-				return "", fmt.Errorf("failed to get Interface %q Type on bridge %q:, error: %v",
-					iface, bridgeName, err)
-
-			}
-			// If system Type we know this is the OVS port is the NIC
-			if out == "system" {
-				return port, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("Could not find a physical interface connected to bridge %s on node %s (pod %s)",
-		bridgeName, nodeName, ovnkubePodInfo.podName)
-}
-
-func ovnkubePod(oc *exutil.CLI, nodeName string) (ovnKubePodInfo, error) {
 	var podName string
 	var out string
 	var err error
@@ -328,7 +268,7 @@ func ovnkubePod(oc *exutil.CLI, nodeName string) (ovnKubePodInfo, error) {
 		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
 		"-l", "app=ovnkube-node")
 	if err != nil {
-		return ovnKubePodInfo{}, err
+		return "", err
 	}
 	outReader := bufio.NewScanner(strings.NewReader(out))
 	re := regexp.MustCompile("^pod/(.*)")
@@ -341,13 +281,13 @@ func ovnkubePod(oc *exutil.CLI, nodeName string) (ovnKubePodInfo, error) {
 		break
 	}
 	if podName == "" {
-		return ovnKubePodInfo{}, fmt.Errorf("Could not find a valid ovnkube-node pod on node '%s'", nodeName)
+		return "", fmt.Errorf("Could not find a valid ovnkube-node pod on node '%s'", nodeName)
 	}
 
 	ovnkubePod, err := oc.AdminKubeClient().CoreV1().Pods("openshift-ovn-kubernetes").Get(context.Background(),
 		podName, metav1.GetOptions{})
 	if err != nil {
-		return ovnKubePodInfo{}, fmt.Errorf("couldn't get %s pod in openshift-ovn-kubernetes namespace: %v", podName, err)
+		return "", fmt.Errorf("couldn't get %s pod in openshift-ovn-kubernetes namespace: %v", podName, err)
 	}
 
 	ovnkubeContainerName := ""
@@ -359,12 +299,42 @@ func ovnkubePod(oc *exutil.CLI, nodeName string) (ovnKubePodInfo, error) {
 		}
 	}
 	if ovnkubeContainerName == "" {
-		return ovnKubePodInfo{}, fmt.Errorf("didn't find ovnkube-node or ovnkube-controller container in %s pod", podName)
+		return "", fmt.Errorf("didn't find ovnkube-node or ovnkube-controller container in %s pod", podName)
 	}
-	return ovnKubePodInfo{
-		podName:       podName,
-		containerName: ovnkubeContainerName,
-	}, nil
+
+	out, err = adminExecInPod(oc, "openshift-ovn-kubernetes", podName, ovnkubeContainerName, fmt.Sprintf("ovs-vsctl list-ports %s", bridgeName))
+	if err != nil {
+		return "", fmt.Errorf("failed to get list of ports on bridge %s:, error: %v",
+			bridgeName, err)
+	}
+	for _, port := range strings.Split(out, "\n") {
+		out, err = adminExecInPod(
+			oc, "openshift-ovn-kubernetes", podName, ovnkubeContainerName,
+			fmt.Sprintf("ovs-vsctl get Port %s Interfaces", port))
+		if err != nil {
+			return "", fmt.Errorf("failed to get port %s on bridge %s: error: %v",
+				bridgeName, port, err)
+
+		}
+		// remove brackets on list of interfaces
+		ifaces := strings.TrimPrefix(strings.TrimSuffix(out, "]"), "[")
+		for _, iface := range strings.Split(ifaces, ",") {
+			out, err = adminExecInPod(
+				oc, "openshift-ovn-kubernetes", podName, ovnkubeContainerName,
+				fmt.Sprintf("ovs-vsctl get Interface %s Type", strings.TrimSpace(iface)))
+			if err != nil {
+				return "", fmt.Errorf("failed to get Interface %q Type on bridge %q:, error: %v",
+					iface, bridgeName, err)
+
+			}
+			// If system Type we know this is the OVS port is the NIC
+			if out == "system" {
+				return port, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("Could not find a physical interface connected to bridge %s on node %s (pod %s)",
+		bridgeName, nodeName, podName)
 }
 
 // adminExecInPod runs a command as admin in the provides pod inside the provided namespace.
@@ -404,7 +374,7 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 	}
 
 	var ds *appsv1.DaemonSet
-	retries := 48
+	retries := 12
 	pollInterval := 5
 	for i := 0; i < retries; i++ {
 		// Get the DS
@@ -415,9 +385,7 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 
 		// Check if NumberReady == DesiredNumberScheduled.
 		// In that case, simply return as all went well.
-		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled &&
-			ds.Status.CurrentNumberScheduled == ds.Status.DesiredNumberScheduled &&
-			ds.Status.DesiredNumberScheduled > 0 {
+		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled {
 			return ds, nil
 		}
 		// If no port conflict error was found, simply sleep for pollInterval and then
@@ -428,14 +396,15 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 	// The DaemonSet is not ready, but this is not because of a port conflict.
 	// This shouldn't happen and other parts of the code will likely report this error
 	// as a CI failure.
-	return ds, fmt.Errorf("Daemonset still not ready after %d tries: ready=%d, scheduled=%d, desired=%d", retries, ds.Status.NumberReady, ds.Status.CurrentNumberScheduled, ds.Status.DesiredNumberScheduled)
+	return ds, fmt.Errorf("Daemonset still not ready after %d tries", retries)
 }
 
 const (
 	// The tcpCaptureScript runs tcpdump and extracts all GET request strings from the packets.
 	// The resulting lines will be something like:
-	// Parsed 05:38:34.307832 10.128.2.15.36749  /f8f721fa-53c9-444f-bc96-69c7388fcb5a
-	tcpCaptureScript = `tcpdump -nn -i %s -l -s 0 -A 'tcp and port %d' | awk 'match($0,/IP6?[[:space:]]+([0-9a-fA-F:\.]+[0-9a-fA-F])/,arr) {ts=$1; ip=arr[1]} $0 !~ /HTTP.*GET/ && match($0,/GET[[:space:]]+([^[:space:]]+)/,arr) {print "Parsed", ts, ip, arr[1]} // {print $0}'
+	// 10.128.2.15.36749  /f8f721fa-53c9-444f-bc96-69c7388fcb5a
+	tcpCaptureScript = `#!/bin/bash
+tcpdump -nne -i %s -l -s 0  'port %d and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420' | awk '{print $10 " " $(NF-1)}'
 `
 
 	// The udpCaptureScript runs tcpdump with option -xx and then decodes the hexadecimal information.
@@ -444,8 +413,8 @@ const (
 	// that's captured).
 	// tshark would definitely be the better tool here, but that would introduce another dependency. Hence,
 	// decode the hexadecimal information and look for payload that is marked with 'START(.*)EOF$' and extract
-	// the '(.*)' part. The resulting lines will be `"Parsed " + timestamp + " " + sourceIP + "  " + z.group(1) + "_" + z.group(2)`, hence something like:
-	// Parsed 05:38:34.307832 10.128.2.15.36749 f8f721fa-53c9-444f-bc96-69c7388fcb5a_1
+	// the '(.*)' part. The resulting lines will be `sourceIP + "  " + z.group(1)`, hence something like:
+	// 10.128.2.15.36749 f8f721fa-53c9-444f-bc96-69c7388fcb5a
 	udpCaptureScript = `#!/bin/bash
 
 cat <<'EOF' > capture-python.py
@@ -467,7 +436,6 @@ udpPayloadOffset = 0
 # globals
 fullHex = []
 sourceIP = ""
-timeStamp = ""
 
 def decodePayload(hexArray):
     payloadStr = ""
@@ -484,9 +452,9 @@ def printLine():
     global fullHex
     if sourceIP != "" and fullHex != []:
         decodedPayload = decodePayload(fullHex)
-        z = re.search(r'START(.*)EOF_(\d+)', decodedPayload)
+        z = re.search(r'START(.*)EOF$', decodedPayload)
         if z:
-            print("Parsed " + timeStamp + " " + sourceIP + " " + z.group(1) + "_" + z.group(2))
+            print(sourceIP + "  " + z.group(1))
             fullHex = []
             sourceIP = ""
 
@@ -499,7 +467,6 @@ for line in sys.stdin:
         printLine()
     elif not re.match(r'^$', line):
         printLine()
-        timeStamp = line.split()[0]
         sourceIP = line.split()[sourceIPOffset]
 
 printLine()
@@ -548,6 +515,16 @@ func createHostNetworkedPacketSnifferDaemonSet(clientset kubernetes.Interface, n
 			},
 		},
 	}
+	readinessProbe := &v1.Probe{
+		ProbeHandler: v1.ProbeHandler{
+			Exec: &v1.ExecAction{
+				Command: []string{
+					"echo",
+					"ready",
+				},
+			},
+		},
+	}
 	runAsUser := int64(0)
 	securityContext := &v1.SecurityContext{
 		RunAsUser: &runAsUser,
@@ -575,12 +552,6 @@ func createHostNetworkedPacketSnifferDaemonSet(clientset kubernetes.Interface, n
 					Labels: podLabels,
 				},
 				Spec: corev1.PodSpec{
-					Tolerations: []v1.Toleration{
-						{
-							Key:    "node-role.kubernetes.io/master",
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
 					Affinity:    &nodeAffinity,
 					HostNetwork: true,
 					Containers: []v1.Container{
@@ -588,6 +559,7 @@ func createHostNetworkedPacketSnifferDaemonSet(clientset kubernetes.Interface, n
 							Name:            "tcpdump",
 							Image:           networkPacketSnifferImage,
 							Command:         podCommand,
+							ReadinessProbe:  readinessProbe,
 							SecurityContext: securityContext,
 							TTY:             true, // needed for immediate log propagation
 							Stdin:           true, // needed for immediate log propagation
@@ -634,7 +606,7 @@ func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, tar
 		req := clientset.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &logOptions)
 		logs, err := req.Stream(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("Error in opening log stream: %v", err)
+			return nil, fmt.Errorf("Error in opening log stream")
 		}
 		defer logs.Close()
 
@@ -649,33 +621,31 @@ func scanPacketSnifferDaemonSetPodLogs(oc *exutil.CLI, ds *appsv1.DaemonSet, tar
 		scanner := bufio.NewScanner(buf)
 		for scanner.Scan() {
 			logLine := scanner.Text()
-
-			if !strings.HasPrefix(logLine, "Parsed") || !strings.Contains(logLine, searchString) {
-				continue
+			if strings.Contains(logLine, searchString) {
+				// Currently, it is not necessary to discriminate by protocol.
+				// a log line should look like this for http:
+				// 10.0.144.5.33226 /bed729aa-4e83-482d-a433-db798e569147
+				// a log line should look like this for udp:
+				// 10.0.144.5.33226 bed729aa-4e83-482d-a433-db798e569147
+				// Should it ever be necessary, the targetProtocol to this method (which is currently
+				// not used) serves this purpose.
+				framework.Logf("Found hit in log line: %s", logLine)
+				logLineExploded := strings.Fields(logLine)
+				if len(logLineExploded) != 2 {
+					return nil, fmt.Errorf("Unexpected logline content: %s", logLine)
+				}
+				ipAddressPortExploded := strings.Split(logLineExploded[0], ".")
+				if len(ipAddressPortExploded) == 2 {
+					// ipv6
+					ip = ipAddressPortExploded[0]
+				} else if len(ipAddressPortExploded) == 5 {
+					// ipv4
+					ip = strings.Join(ipAddressPortExploded[:len(ipAddressPortExploded)-1], ".")
+				} else {
+					return nil, fmt.Errorf("Unexpected logline content, invalid IP/Port: %s", logLine)
+				}
+				matchedIPs[ip]++
 			}
-			// Currently, it is not necessary to discriminate by protocol.
-			// a log line should look like this for http:
-			// 10.0.144.5.33226 /bed729aa-4e83-482d-a433-db798e569147
-			// a log line should look like this for udp:
-			// 10.0.144.5.33226 bed729aa-4e83-482d-a433-db798e569147
-			// Should it ever be necessary, the targetProtocol to this method (which is currently
-			// not used) serves this purpose.
-			framework.Logf("Found hit in log line for node %s: %s", pod.Spec.NodeName, logLine)
-			logLineExploded := strings.Fields(logLine)
-			if len(logLineExploded) != 4 {
-				return nil, fmt.Errorf("Unexpected logline content %s", logLine)
-			}
-			ipAddressPortExploded := strings.Split(logLineExploded[2], ".")
-			if len(ipAddressPortExploded) == 2 {
-				// ipv6
-				ip = ipAddressPortExploded[0]
-			} else if len(ipAddressPortExploded) == 5 {
-				// ipv4
-				ip = strings.Join(ipAddressPortExploded[:len(ipAddressPortExploded)-1], ".")
-			} else {
-				return nil, fmt.Errorf("Unexpected logline content, invalid IP/Port: %s", logLine)
-			}
-			matchedIPs[ip]++
 		}
 	}
 	return matchedIPs, nil
@@ -1271,28 +1241,26 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 	request := fmt.Sprintf("http://%s/dial?protocol=%s&host=%s&port=%d&request=%s", url, targetProtocol, targetHost, targetPort, randomIDStr)
 	var wg sync.WaitGroup
 	errChan := make(chan error, iterations)
-
 	for i := 0; i < iterations; i++ {
 		// Make sure that we don´t reuse the i variable when passing it to the go func.
-		interval := i
+		i := i
 		// Randomize the start time a little bit per go routine.
 		// Max of 250 ms * current iteration counter
-		n := rand.Intn(250) * interval
-		framework.Logf("Sleeping for %d ms for iteration %d", n, interval)
+		n := rand.Intn(250) * i
+		framework.Logf("Sleeping for %d ms for iteration %d", n, i)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			time.Sleep(time.Duration(n) * time.Millisecond)
-			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "--max-time", "15", "-s", fmt.Sprintf("%s_%d", request, i))
-			framework.Logf("Probed with output: %s", output)
+			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "--max-time", "15", "-s", request)
 			// Report errors.
 			if err != nil {
 				errChan <- fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
 			}
+			return
 		}()
 	}
 	wg.Wait()
-	close(errChan) // Close the channel after all goroutines finish
 
 	// If the above yielded any errors, then append them to a list and report them.
 	if len(errChan) > 0 {
@@ -1731,21 +1699,21 @@ func cloudPrivateIpConfigExists(oc *exutil.CLI, cloudNetworkClientset cloudnetwo
 }
 
 // egressIPStatusHasIP returns if a given ip was found in a given EgressIP object's status field.
-func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, string, error) {
+func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (bool, error) {
 	eip, err := getEgressIP(oc, egressIPObjectName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return false, "", nil
+			return false, nil
 		}
-		return false, "", fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
+		return false, fmt.Errorf("Error looking up EgressIP %s, err: %v", egressIPObjectName, err)
 	}
 	for _, egressIPStatusItem := range eip.Status.Items {
 		if egressIPStatusItem.EgressIP == ip {
-			return true, egressIPStatusItem.Node, nil
+			return true, nil
 		}
 	}
 
-	return false, "", nil
+	return false, nil
 }
 
 // sdnNamespaceAddEgressIP adds EgressIP <egressip> to netnamespace <namespace>.

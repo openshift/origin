@@ -93,7 +93,7 @@ based on the verification results.
 
 #### Example of using Jenkins
 
-As a user I have a Jenkins server running in my project by following the instructions from the [Jenkins example](https://github.com/openshift/origin/blob/main/examples/jenkins/README.md).
+As a user I have a Jenkins server running in my project by following the instructions from the [Jenkins example](https://github.com/openshift/origin/blob/master/examples/jenkins/README.md).
 Then I create the *frontend-production* DeploymentConfig in my *Prod* project.
 
 This DeploymentConfig has the ImageChangeTrigger set to watch changes in the "prod-ready" ImageStreamTag:

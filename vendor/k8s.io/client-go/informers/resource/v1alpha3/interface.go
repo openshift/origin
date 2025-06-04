@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// DeviceClasses returns a DeviceClassInformer.
 	DeviceClasses() DeviceClassInformer
+	// PodSchedulingContexts returns a PodSchedulingContextInformer.
+	PodSchedulingContexts() PodSchedulingContextInformer
 	// ResourceClaims returns a ResourceClaimInformer.
 	ResourceClaims() ResourceClaimInformer
 	// ResourceClaimTemplates returns a ResourceClaimTemplateInformer.
@@ -48,6 +50,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // DeviceClasses returns a DeviceClassInformer.
 func (v *version) DeviceClasses() DeviceClassInformer {
 	return &deviceClassInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// PodSchedulingContexts returns a PodSchedulingContextInformer.
+func (v *version) PodSchedulingContexts() PodSchedulingContextInformer {
+	return &podSchedulingContextInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ResourceClaims returns a ResourceClaimInformer.

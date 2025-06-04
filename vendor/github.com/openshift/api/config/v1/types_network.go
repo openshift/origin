@@ -30,6 +30,7 @@ type Network struct {
 	// As a general rule, this SHOULD NOT be read directly. Instead, you should
 	// consume the NetworkStatus, as it indicates the currently deployed configuration.
 	// Currently, most spec fields are immutable after installation. Please view the individual ones for further details on each.
+	// +kubebuilder:validation:Required
 	// +required
 	Spec NetworkSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -54,7 +55,7 @@ type NetworkSpec struct {
 	// +listType=atomic
 	ServiceNetwork []string `json:"serviceNetwork"`
 
-	// networkType is the plugin that is to be deployed (e.g. OVNKubernetes).
+	// NetworkType is the plugin that is to be deployed (e.g. OVNKubernetes).
 	// This should match a value that the cluster-network-operator understands,
 	// or else no networking will be installed.
 	// Currently supported values are:
@@ -100,22 +101,24 @@ type NetworkStatus struct {
 	// +listType=atomic
 	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
 
-	// networkType is the plugin that is deployed (e.g. OVNKubernetes).
+	// NetworkType is the plugin that is deployed (e.g. OVNKubernetes).
 	NetworkType string `json:"networkType,omitempty"`
 
-	// clusterNetworkMTU is the MTU for inter-pod networking.
+	// ClusterNetworkMTU is the MTU for inter-pod networking.
 	ClusterNetworkMTU int `json:"clusterNetworkMTU,omitempty"`
 
-	// migration contains the cluster network migration configuration.
+	// Migration contains the cluster network migration configuration.
 	Migration *NetworkMigration `json:"migration,omitempty"`
 
 	// conditions represents the observations of a network.config current state.
 	// Known .status.conditions.type are: "NetworkDiagnosticsAvailable"
 	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	// +openshift:enable:FeatureGate=NetworkDiagnosticsConfig
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
 
 // ClusterNetworkEntry is a contiguous block of IP addresses from which pod IPs
@@ -182,35 +185,35 @@ type NetworkList struct {
 
 // NetworkMigration represents the network migration status.
 type NetworkMigration struct {
-	// networkType is the target plugin that is being deployed.
+	// NetworkType is the target plugin that is being deployed.
 	// DEPRECATED: network type migration is no longer supported,
 	// so this should always be unset.
 	// +optional
 	NetworkType string `json:"networkType,omitempty"`
 
-	// mtu is the MTU configuration that is being deployed.
+	// MTU is the MTU configuration that is being deployed.
 	// +optional
 	MTU *MTUMigration `json:"mtu,omitempty"`
 }
 
 // MTUMigration contains infomation about MTU migration.
 type MTUMigration struct {
-	// network contains MTU migration configuration for the default network.
+	// Network contains MTU migration configuration for the default network.
 	// +optional
 	Network *MTUMigrationValues `json:"network,omitempty"`
 
-	// machine contains MTU migration configuration for the machine's uplink.
+	// Machine contains MTU migration configuration for the machine's uplink.
 	// +optional
 	Machine *MTUMigrationValues `json:"machine,omitempty"`
 }
 
 // MTUMigrationValues contains the values for a MTU migration.
 type MTUMigrationValues struct {
-	// to is the MTU to migrate to.
+	// To is the MTU to migrate to.
 	// +kubebuilder:validation:Minimum=0
 	To *uint32 `json:"to"`
 
-	// from is the MTU to migrate from.
+	// From is the MTU to migrate from.
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	From *uint32 `json:"from,omitempty"`

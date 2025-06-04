@@ -82,6 +82,7 @@ var (
 	requiredReadyzChecks = sets.NewString(
 		"[+]ping ok",
 		"[+]log ok",
+		"[+]etcd ok",
 		"[+]informer-sync ok",
 		"[+]poststarthook/start-apiserver-admission-initializer ok",
 		"[+]poststarthook/generic-apiserver-start-informers ok",

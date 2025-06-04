@@ -18,13 +18,14 @@ package library
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/google/cel-go/checker"
 	"github.com/google/cel-go/common"
 	"github.com/google/cel-go/common/ast"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/common/types/traits"
-	"math"
 
 	"k8s.io/apiserver/pkg/cel"
 )
@@ -35,25 +36,16 @@ var panicOnUnknown = false
 
 // builtInFunctions is a list of functions used in cost tests that are not handled by CostEstimator.
 var knownUnhandledFunctions = map[string]bool{
-	"@not_strictly_false": true,
-	"uint":                true,
-	"duration":            true,
-	"bytes":               true,
-	"cel.@mapInsert":      true,
-	"timestamp":           true,
-	"strings.quote":       true,
-	"value":               true,
-	"_==_":                true,
-	"_&&_":                true,
-	"_||_":                true,
-	"_>_":                 true,
-	"_>=_":                true,
-	"_<_":                 true,
-	"_<=_":                true,
-	"!_":                  true,
-	"_?_:_":               true,
-	"_+_":                 true,
-	"_-_":                 true,
+	"uint":          true,
+	"duration":      true,
+	"bytes":         true,
+	"timestamp":     true,
+	"value":         true,
+	"_==_":          true,
+	"_&&_":          true,
+	"_>_":           true,
+	"!_":            true,
+	"strings.quote": true,
 }
 
 // CostEstimator implements CEL's interpretable.ActualCostEstimator and checker.CostEstimator.
@@ -106,7 +98,7 @@ func (l *CostEstimator) CallCost(function, overloadId string, args []ref.Val, re
 			cost += traversalCost(args[0]) // these O(n) operations all cost roughly the cost of a single traversal
 		}
 		return &cost
-	case "url", "lowerAscii", "upperAscii", "substring", "trim", "jsonpatch.escapeKey":
+	case "url", "lowerAscii", "upperAscii", "substring", "trim":
 		if len(args) >= 1 {
 			cost := uint64(math.Ceil(float64(actualSize(args[0])) * common.StringTraversalCostFactor))
 			return &cost
@@ -209,7 +201,7 @@ func (l *CostEstimator) CallCost(function, overloadId string, args []ref.Val, re
 		}
 	case "validate":
 		if len(args) >= 2 {
-			format, isFormat := args[0].Value().(cel.Format)
+			format, isFormat := args[0].Value().(*cel.Format)
 			if isFormat {
 				strSize := actualSize(args[1])
 
@@ -243,26 +235,6 @@ func (l *CostEstimator) CallCost(function, overloadId string, args []ref.Val, re
 		// url accessors
 		cost := uint64(1)
 		return &cost
-	case "_==_":
-		if len(args) == 2 {
-			unitCost := uint64(1)
-			lhs := args[0]
-			switch lhs.(type) {
-			case *cel.Quantity, cel.Quantity,
-				*cel.IP, cel.IP,
-				*cel.CIDR, cel.CIDR,
-				*cel.Format, cel.Format, // Formats have a small max size. Format takes pointer receiver.
-				*cel.URL, cel.URL, // TODO: Computing the actual cost is expensive, and changing this would be a breaking change
-				*cel.Semver, cel.Semver,
-				*authorizerVal, authorizerVal, *pathCheckVal, pathCheckVal, *groupCheckVal, groupCheckVal,
-				*resourceCheckVal, resourceCheckVal, *decisionVal, decisionVal:
-				return &unitCost
-			default:
-				if panicOnUnknown && lhs.Type() != nil && isRegisteredType(lhs.Type().TypeName()) {
-					panic(fmt.Errorf("CallCost: unhandled equality for Kubernetes type %T", lhs))
-				}
-			}
-		}
 	}
 	if panicOnUnknown && !knownUnhandledFunctions[function] {
 		panic(fmt.Errorf("CallCost: unhandled function %q or args %v", function, args))
@@ -303,10 +275,10 @@ func (l *CostEstimator) EstimateCallCost(function, overloadId string, target *ch
 				return &checker.CallEstimate{CostEstimate: l.sizeEstimate(*target).MultiplyByCostFactor(common.StringTraversalCostFactor)}
 			}
 		}
-	case "url", "jsonpatch.escapeKey":
+	case "url":
 		if len(args) == 1 {
 			sz := l.sizeEstimate(args[0])
-			return &checker.CallEstimate{CostEstimate: sz.MultiplyByCostFactor(common.StringTraversalCostFactor), ResultSize: &sz}
+			return &checker.CallEstimate{CostEstimate: sz.MultiplyByCostFactor(common.StringTraversalCostFactor)}
 		}
 	case "lowerAscii", "upperAscii", "substring", "trim":
 		if target != nil {
@@ -503,40 +475,6 @@ func (l *CostEstimator) EstimateCallCost(function, overloadId string, target *ch
 	case "getScheme", "getHostname", "getHost", "getPort", "getEscapedPath", "getQuery":
 		// url accessors
 		return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: 1}}
-	case "_==_":
-		if len(args) == 2 {
-			lhs := args[0]
-			rhs := args[1]
-			if lhs.Type().Equal(rhs.Type()) == types.True {
-				t := lhs.Type()
-				if t.Kind() == types.OpaqueKind {
-					switch t.TypeName() {
-					case cel.IPType.TypeName(), cel.CIDRType.TypeName():
-						return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: 1}}
-					}
-				}
-				if t.Kind() == types.StructKind {
-					switch t {
-					case cel.QuantityType, AuthorizerType, PathCheckType, // O(1) cost equality checks
-						GroupCheckType, ResourceCheckType, DecisionType, cel.SemverType:
-						return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: 1}}
-					case cel.FormatType:
-						return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: cel.MaxFormatSize}.MultiplyByCostFactor(common.StringTraversalCostFactor)}
-					case cel.URLType:
-						size := checker.SizeEstimate{Min: 1, Max: 1}
-						rhSize := rhs.ComputedSize()
-						lhSize := rhs.ComputedSize()
-						if rhSize != nil && lhSize != nil {
-							size = rhSize.Union(*lhSize)
-						}
-						return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: size.Max}.MultiplyByCostFactor(common.StringTraversalCostFactor)}
-					}
-				}
-				if panicOnUnknown && isRegisteredType(t.TypeName()) {
-					panic(fmt.Errorf("EstimateCallCost: unhandled equality for Kubernetes type %v", t))
-				}
-			}
-		}
 	}
 	if panicOnUnknown && !knownUnhandledFunctions[function] {
 		panic(fmt.Errorf("EstimateCallCost: unhandled function %q, target %v, args %v", function, target, args))

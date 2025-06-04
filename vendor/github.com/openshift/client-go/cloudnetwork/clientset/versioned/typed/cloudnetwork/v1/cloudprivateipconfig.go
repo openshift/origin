@@ -3,10 +3,10 @@
 package v1
 
 import (
-	context "context"
+	"context"
 
-	cloudnetworkv1 "github.com/openshift/api/cloudnetwork/v1"
-	applyconfigurationscloudnetworkv1 "github.com/openshift/client-go/cloudnetwork/applyconfigurations/cloudnetwork/v1"
+	v1 "github.com/openshift/api/cloudnetwork/v1"
+	cloudnetworkv1 "github.com/openshift/client-go/cloudnetwork/applyconfigurations/cloudnetwork/v1"
 	scheme "github.com/openshift/client-go/cloudnetwork/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -22,37 +22,36 @@ type CloudPrivateIPConfigsGetter interface {
 
 // CloudPrivateIPConfigInterface has methods to work with CloudPrivateIPConfig resources.
 type CloudPrivateIPConfigInterface interface {
-	Create(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, opts metav1.CreateOptions) (*cloudnetworkv1.CloudPrivateIPConfig, error)
-	Update(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, opts metav1.UpdateOptions) (*cloudnetworkv1.CloudPrivateIPConfig, error)
+	Create(ctx context.Context, cloudPrivateIPConfig *v1.CloudPrivateIPConfig, opts metav1.CreateOptions) (*v1.CloudPrivateIPConfig, error)
+	Update(ctx context.Context, cloudPrivateIPConfig *v1.CloudPrivateIPConfig, opts metav1.UpdateOptions) (*v1.CloudPrivateIPConfig, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfig, opts metav1.UpdateOptions) (*cloudnetworkv1.CloudPrivateIPConfig, error)
+	UpdateStatus(ctx context.Context, cloudPrivateIPConfig *v1.CloudPrivateIPConfig, opts metav1.UpdateOptions) (*v1.CloudPrivateIPConfig, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*cloudnetworkv1.CloudPrivateIPConfig, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*cloudnetworkv1.CloudPrivateIPConfigList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.CloudPrivateIPConfig, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.CloudPrivateIPConfigList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *cloudnetworkv1.CloudPrivateIPConfig, err error)
-	Apply(ctx context.Context, cloudPrivateIPConfig *applyconfigurationscloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *cloudnetworkv1.CloudPrivateIPConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CloudPrivateIPConfig, err error)
+	Apply(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudPrivateIPConfig, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, cloudPrivateIPConfig *applyconfigurationscloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *cloudnetworkv1.CloudPrivateIPConfig, err error)
+	ApplyStatus(ctx context.Context, cloudPrivateIPConfig *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudPrivateIPConfig, err error)
 	CloudPrivateIPConfigExpansion
 }
 
 // cloudPrivateIPConfigs implements CloudPrivateIPConfigInterface
 type cloudPrivateIPConfigs struct {
-	*gentype.ClientWithListAndApply[*cloudnetworkv1.CloudPrivateIPConfig, *cloudnetworkv1.CloudPrivateIPConfigList, *applyconfigurationscloudnetworkv1.CloudPrivateIPConfigApplyConfiguration]
+	*gentype.ClientWithListAndApply[*v1.CloudPrivateIPConfig, *v1.CloudPrivateIPConfigList, *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration]
 }
 
 // newCloudPrivateIPConfigs returns a CloudPrivateIPConfigs
 func newCloudPrivateIPConfigs(c *CloudV1Client) *cloudPrivateIPConfigs {
 	return &cloudPrivateIPConfigs{
-		gentype.NewClientWithListAndApply[*cloudnetworkv1.CloudPrivateIPConfig, *cloudnetworkv1.CloudPrivateIPConfigList, *applyconfigurationscloudnetworkv1.CloudPrivateIPConfigApplyConfiguration](
+		gentype.NewClientWithListAndApply[*v1.CloudPrivateIPConfig, *v1.CloudPrivateIPConfigList, *cloudnetworkv1.CloudPrivateIPConfigApplyConfiguration](
 			"cloudprivateipconfigs",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *cloudnetworkv1.CloudPrivateIPConfig { return &cloudnetworkv1.CloudPrivateIPConfig{} },
-			func() *cloudnetworkv1.CloudPrivateIPConfigList { return &cloudnetworkv1.CloudPrivateIPConfigList{} },
-		),
+			func() *v1.CloudPrivateIPConfig { return &v1.CloudPrivateIPConfig{} },
+			func() *v1.CloudPrivateIPConfigList { return &v1.CloudPrivateIPConfigList{} }),
 	}
 }

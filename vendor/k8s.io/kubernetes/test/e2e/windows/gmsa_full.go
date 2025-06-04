@@ -112,19 +112,19 @@ var _ = sigDescribe(feature.Windows, "GMSA Full", framework.WithSerial(), framew
 			ginkgo.By("deploying the GMSA webhook")
 			err := deployGmsaWebhook(ctx, f)
 			if err != nil {
-				framework.Fail(err.Error())
+				framework.Failf(err.Error())
 			}
 
 			ginkgo.By("creating the GMSA custom resource")
 			err = createGmsaCustomResource(f.Namespace.Name, crdManifestContents)
 			if err != nil {
-				framework.Fail(err.Error())
+				framework.Failf(err.Error())
 			}
 
 			ginkgo.By("creating an RBAC role to grant use access to that GMSA resource")
 			rbacRoleName, err := createRBACRoleForGmsa(ctx, f)
 			if err != nil {
-				framework.Fail(err.Error())
+				framework.Failf(err.Error())
 			}
 
 			ginkgo.By("creating a service account")
@@ -141,23 +141,26 @@ var _ = sigDescribe(feature.Windows, "GMSA Full", framework.WithSerial(), framew
 			// and authenticating with it.
 			ginkgo.By("checking that nltest /QUERY returns successfully")
 			var output string
-			gomega.Eventually(ctx, func() error {
-				output, err = runKubectlExecInNamespace(f.Namespace.Name, podName, "--", "nltest", "/QUERY")
+			gomega.Eventually(ctx, func() bool {
+				output, err = runKubectlExecInNamespace(f.Namespace.Name, podName, "nltest", "/QUERY")
 				if err != nil {
-					return fmt.Errorf("unable to run command in container via exec: %w", err)
+					framework.Logf("unable to run command in container via exec: %s", err)
+					return false
 				}
 
 				if !isValidOutput(output) {
 					// try repairing the secure channel by running reset command
 					// https://kubernetes.io/docs/tasks/configure-pod-container/configure-gmsa/#troubleshooting
-					output, err = runKubectlExecInNamespace(f.Namespace.Name, podName, "--", "nltest", fmt.Sprintf("/sc_reset:%s", gmsaDomain))
+					output, err = runKubectlExecInNamespace(f.Namespace.Name, podName, "nltest", fmt.Sprintf("/sc_reset:%s", gmsaDomain))
 					if err != nil {
-						return fmt.Errorf("unable to run command in container via exec: %w", err)
+						framework.Logf("unable to run command in container via exec: %s", err)
+						return false
 					}
-					return fmt.Errorf("failed to connect to domain; tried resetting the domain, output:\n%v", string(output))
+					framework.Logf("failed to connect to domain; tried resetting the domain, output:\n%s", string(output))
+					return false
 				}
-				return nil
-			}, 1*time.Minute, 1*time.Second).Should(gomega.Succeed())
+				return true
+			}, 1*time.Minute, 1*time.Second).Should(gomega.BeTrue())
 		})
 
 		ginkgo.It("can read and write file to remote SMB folder", func(ctx context.Context) {
@@ -176,19 +179,19 @@ var _ = sigDescribe(feature.Windows, "GMSA Full", framework.WithSerial(), framew
 			ginkgo.By("deploying the GMSA webhook")
 			err := deployGmsaWebhook(ctx, f)
 			if err != nil {
-				framework.Fail(err.Error())
+				framework.Failf(err.Error())
 			}
 
 			ginkgo.By("creating the GMSA custom resource")
 			err = createGmsaCustomResource(f.Namespace.Name, crdManifestContents)
 			if err != nil {
-				framework.Fail(err.Error())
+				framework.Failf(err.Error())
 			}
 
 			ginkgo.By("creating an RBAC role to grant use access to that GMSA resource")
 			rbacRoleName, err := createRBACRoleForGmsa(ctx, f)
 			if err != nil {
-				framework.Fail(err.Error())
+				framework.Failf(err.Error())
 			}
 
 			ginkgo.By("creating a service account")
@@ -205,16 +208,16 @@ var _ = sigDescribe(feature.Windows, "GMSA Full", framework.WithSerial(), framew
 
 			ginkgo.By("checking that file can be read and write from the remote folder successfully")
 			filePath := fmt.Sprintf("\\\\%s\\%s\\write-test-%s.txt", gmsaDomainIP, gmsaSharedFolder, string(uuid.NewUUID())[0:4])
-
-			gomega.Eventually(ctx, func() error {
+			gomega.Eventually(ctx, func() bool {
 				// The filePath is a remote folder, do not change the format of it
 				_, _ = runKubectlExecInNamespace(f.Namespace.Name, podName, "--", "powershell.exe", "-Command", "echo 'This is a test file.' > "+filePath)
-				_, err := runKubectlExecInNamespace(f.Namespace.Name, podName, "powershell.exe", "--", "cat", filePath)
+				output, err := runKubectlExecInNamespace(f.Namespace.Name, podName, "powershell.exe", "--", "cat", filePath)
 				if err != nil {
-					return err
+					framework.Logf("unable to get file from AD server: %s", err)
+					return false
 				}
-				return nil
-			}, 1*time.Minute, 1*time.Second).Should(gomega.Succeed())
+				return strings.Contains(output, "This is a test file.")
+			}, 1*time.Minute, 1*time.Second).Should(gomega.BeTrue())
 
 		})
 	})
@@ -283,7 +286,7 @@ func retrieveCRDManifestFileContents(ctx context.Context, f *framework.Framework
 	}
 	e2epod.NewPodClient(f).CreateSync(ctx, pod)
 
-	output, err := runKubectlExecInNamespace(f.Namespace.Name, podName, "--", "cmd", "/S", "/C", fmt.Sprintf("type %s", gmsaCrdManifestPath))
+	output, err := runKubectlExecInNamespace(f.Namespace.Name, podName, "cmd", "/S", "/C", fmt.Sprintf("type %s", gmsaCrdManifestPath))
 	if err != nil {
 		framework.Failf("failed to retrieve the contents of %q on node %q: %v", gmsaCrdManifestPath, node.Name, err)
 	}

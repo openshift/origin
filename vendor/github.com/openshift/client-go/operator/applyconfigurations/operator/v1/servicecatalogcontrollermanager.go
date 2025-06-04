@@ -3,21 +3,21 @@
 package v1
 
 import (
-	operatorv1 "github.com/openshift/api/operator/v1"
+	apioperatorv1 "github.com/openshift/api/operator/v1"
 	internal "github.com/openshift/client-go/operator/applyconfigurations/internal"
-	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ServiceCatalogControllerManagerApplyConfiguration represents a declarative configuration of the ServiceCatalogControllerManager type for use
 // with apply.
 type ServiceCatalogControllerManagerApplyConfiguration struct {
-	metav1.TypeMetaApplyConfiguration    `json:",inline"`
-	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *ServiceCatalogControllerManagerSpecApplyConfiguration   `json:"spec,omitempty"`
-	Status                               *ServiceCatalogControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
+	v1.TypeMetaApplyConfiguration    `json:",inline"`
+	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
+	Spec                             *ServiceCatalogControllerManagerSpecApplyConfiguration   `json:"spec,omitempty"`
+	Status                           *ServiceCatalogControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
 // ServiceCatalogControllerManager constructs a declarative configuration of the ServiceCatalogControllerManager type for use with
@@ -41,18 +41,18 @@ func ServiceCatalogControllerManager(name string) *ServiceCatalogControllerManag
 // Note that an extracted apply configuration will contain fewer fields than what the fieldManager previously
 // applied if another fieldManager has updated or force applied any of the previously applied fields.
 // Experimental!
-func ExtractServiceCatalogControllerManager(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
+func ExtractServiceCatalogControllerManager(serviceCatalogControllerManager *apioperatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
 	return extractServiceCatalogControllerManager(serviceCatalogControllerManager, fieldManager, "")
 }
 
 // ExtractServiceCatalogControllerManagerStatus is the same as ExtractServiceCatalogControllerManager except
 // that it extracts the status subresource applied configuration.
 // Experimental!
-func ExtractServiceCatalogControllerManagerStatus(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
+func ExtractServiceCatalogControllerManagerStatus(serviceCatalogControllerManager *apioperatorv1.ServiceCatalogControllerManager, fieldManager string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
 	return extractServiceCatalogControllerManager(serviceCatalogControllerManager, fieldManager, "status")
 }
 
-func extractServiceCatalogControllerManager(serviceCatalogControllerManager *operatorv1.ServiceCatalogControllerManager, fieldManager string, subresource string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
+func extractServiceCatalogControllerManager(serviceCatalogControllerManager *apioperatorv1.ServiceCatalogControllerManager, fieldManager string, subresource string) (*ServiceCatalogControllerManagerApplyConfiguration, error) {
 	b := &ServiceCatalogControllerManagerApplyConfiguration{}
 	err := managedfields.ExtractInto(serviceCatalogControllerManager, internal.Parser().Type("com.github.openshift.api.operator.v1.ServiceCatalogControllerManager"), fieldManager, b, subresource)
 	if err != nil {
@@ -69,7 +69,7 @@ func extractServiceCatalogControllerManager(serviceCatalogControllerManager *ope
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithKind(value string) *ServiceCatalogControllerManagerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.Kind = &value
+	b.Kind = &value
 	return b
 }
 
@@ -77,7 +77,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithKind(value strin
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithAPIVersion(value string) *ServiceCatalogControllerManagerApplyConfiguration {
-	b.TypeMetaApplyConfiguration.APIVersion = &value
+	b.APIVersion = &value
 	return b
 }
 
@@ -86,7 +86,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithAPIVersion(value
 // If called multiple times, the Name field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithName(value string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Name = &value
+	b.Name = &value
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithName(value strin
 // If called multiple times, the GenerateName field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithGenerateName(value string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.GenerateName = &value
+	b.GenerateName = &value
 	return b
 }
 
@@ -104,7 +104,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithGenerateName(val
 // If called multiple times, the Namespace field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithNamespace(value string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Namespace = &value
+	b.Namespace = &value
 	return b
 }
 
@@ -113,7 +113,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithNamespace(value 
 // If called multiple times, the UID field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithUID(value types.UID) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.UID = &value
+	b.UID = &value
 	return b
 }
 
@@ -122,7 +122,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithUID(value types.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithResourceVersion(value string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
+	b.ResourceVersion = &value
 	return b
 }
 
@@ -131,25 +131,25 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithResourceVersion(
 // If called multiple times, the Generation field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithGeneration(value int64) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.Generation = &value
+	b.Generation = &value
 	return b
 }
 
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ServiceCatalogControllerManagerApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ServiceCatalogControllerManagerApplyConfiguration {
+func (b *ServiceCatalogControllerManagerApplyConfiguration) WithCreationTimestamp(value metav1.Time) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
+	b.CreationTimestamp = &value
 	return b
 }
 
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ServiceCatalogControllerManagerApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ServiceCatalogControllerManagerApplyConfiguration {
+func (b *ServiceCatalogControllerManagerApplyConfiguration) WithDeletionTimestamp(value metav1.Time) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
+	b.DeletionTimestamp = &value
 	return b
 }
 
@@ -158,7 +158,7 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithDeletionTimestam
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
+	b.DeletionGracePeriodSeconds = &value
 	return b
 }
 
@@ -168,11 +168,11 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithDeletionGracePer
 // overwriting an existing map entries in Labels field with the same key.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithLabels(entries map[string]string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
+	if b.Labels == nil && len(entries) > 0 {
+		b.Labels = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Labels[k] = v
+		b.Labels[k] = v
 	}
 	return b
 }
@@ -183,11 +183,11 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithLabels(entries m
 // overwriting an existing map entries in Annotations field with the same key.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithAnnotations(entries map[string]string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
-	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
-		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
+	if b.Annotations == nil && len(entries) > 0 {
+		b.Annotations = make(map[string]string, len(entries))
 	}
 	for k, v := range entries {
-		b.ObjectMetaApplyConfiguration.Annotations[k] = v
+		b.Annotations[k] = v
 	}
 	return b
 }
@@ -195,13 +195,13 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithAnnotations(entr
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ServiceCatalogControllerManagerApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ServiceCatalogControllerManagerApplyConfiguration {
+func (b *ServiceCatalogControllerManagerApplyConfiguration) WithOwnerReferences(values ...*v1.OwnerReferenceApplyConfiguration) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
 			panic("nil value passed to WithOwnerReferences")
 		}
-		b.ObjectMetaApplyConfiguration.OwnerReferences = append(b.ObjectMetaApplyConfiguration.OwnerReferences, *values[i])
+		b.OwnerReferences = append(b.OwnerReferences, *values[i])
 	}
 	return b
 }
@@ -212,14 +212,14 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithOwnerReferences(
 func (b *ServiceCatalogControllerManagerApplyConfiguration) WithFinalizers(values ...string) *ServiceCatalogControllerManagerApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
-		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
+		b.Finalizers = append(b.Finalizers, values[i])
 	}
 	return b
 }
 
 func (b *ServiceCatalogControllerManagerApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
-		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
+		b.ObjectMetaApplyConfiguration = &v1.ObjectMetaApplyConfiguration{}
 	}
 }
 
@@ -242,5 +242,5 @@ func (b *ServiceCatalogControllerManagerApplyConfiguration) WithStatus(value *Se
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ServiceCatalogControllerManagerApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
-	return b.ObjectMetaApplyConfiguration.Name
+	return b.Name
 }

@@ -26,8 +26,6 @@ import (
 const (
 	projectName  = "csi-driver-configuration"
 	providerName = "csi.vsphere.vmware.com"
-	pollTimeout  = 5 * time.Minute
-	pollInterval = 5 * time.Second
 )
 
 // This is [Serial] because it modifies ClusterCSIDriver.
@@ -38,6 +36,9 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 		oc                       = exutil.NewCLI(projectName)
 		originalDriverConfigSpec *opv1.CSIDriverConfigSpec
 	)
+
+	o.SetDefaultEventuallyTimeout(5 * time.Minute)
+	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	g.BeforeEach(func() {
 		if !framework.ProviderIs("vsphere") {
@@ -142,7 +143,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 				setClusterCSIDriverSnapshotOptions(ctx, oc, t.clusterCSIDriverOptions)
 				o.Eventually(func() error {
 					return loadAndCheckCloudConf(ctx, oc, "Snapshot", t.cloudConfigOptions, t.clusterCSIDriverOptions)
-				}, pollTimeout, pollInterval).Should(o.Succeed())
+				}).Should(o.Succeed())
 
 				validateSnapshotCreation(ctx, oc, t.successfulSnapshotsCreated)
 			})
@@ -230,7 +231,7 @@ func validateSnapshotCreation(ctx context.Context, oc *exutil.CLI, successfulSna
 		pvc, err := oc.AdminKubeClient().CoreV1().PersistentVolumeClaims(oc.Namespace()).Get(ctx, "test-pvc", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		return pvc.Status.Phase
-	}, pollTimeout, pollInterval).Should(o.Equal(v1.ClaimBound))
+	}).Should(o.Equal(v1.ClaimBound))
 
 	var wg sync.WaitGroup
 	var snapshotsCreated = make([]string, 0, successfulSnapshotsCreated)
@@ -268,7 +269,7 @@ func validateSnapshotCreation(ctx context.Context, oc *exutil.CLI, successfulSna
 		}
 		e2e.Logf("Snapshots ready: %d/%d", snapshotsReady, successfulSnapshotsCreated)
 		return snapshotsReady
-	}, pollTimeout, pollInterval).Should(o.Equal(successfulSnapshotsCreated), "not all snapshots are ready")
+	}).Should(o.Equal(successfulSnapshotsCreated), "not all snapshots are ready")
 
 	// Next snapshot creation should be over the set limit and fail.
 	failedSnapshotName := "test-snapshot-failed"
@@ -288,7 +289,7 @@ func validateSnapshotCreation(ctx context.Context, oc *exutil.CLI, successfulSna
 		}
 		e2e.Logf("Error validation successful - snapshot: %s readyToUse: %t, error message: %s", failedSnapshotName, ready, errMsg)
 		return strings.Contains(errMsg, "reaches the configured maximum") && !ready
-	}, pollTimeout, pollInterval).Should(o.BeTrue(), "snapshot creation should fail")
+	}).Should(o.BeTrue(), "snapshot creation should fail")
 }
 
 func createTestPod(ctx context.Context, oc *exutil.CLI, pvcName string, namespace string) (*v1.Pod, error) {

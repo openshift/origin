@@ -25,7 +25,7 @@ type PinnedImageSet struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec describes the configuration of this pinned image set.
-	// +required
+	// +kubebuilder:validation:Required
 	Spec PinnedImageSetSpec `json:"spec"`
 
 	// status describes the last observed state of this pinned image set.
@@ -36,10 +36,11 @@ type PinnedImageSet struct {
 // PinnedImageSetStatus describes the current state of a PinnedImageSet.
 type PinnedImageSetStatus struct {
 	// conditions represent the observations of a pinned image set's current state.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
-	// +optional
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
 
 // PinnedImageSetSpec defines the desired state of a PinnedImageSet.
@@ -57,7 +58,7 @@ type PinnedImageSetSpec struct {
 	//      ]
 	//
 	// These image references should all be by digest, tags aren't allowed.
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=500
 	// +listType=map
@@ -70,7 +71,7 @@ type PinnedImageRef struct {
 	//
 	// The format of the image ref is:
 	// host[:port][/namespace]/name@sha256:<digest>
-	// +required
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=447
 	// +kubebuilder:validation:XValidation:rule=`self.split('@').size() == 2 && self.split('@')[1].matches('^sha256:[a-f0-9]{64}$')`,message="the OCI Image reference must end with a valid '@sha256:<digest>' suffix, where '<digest>' is 64 characters long"

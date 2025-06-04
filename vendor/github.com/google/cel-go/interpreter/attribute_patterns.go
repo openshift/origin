@@ -178,8 +178,10 @@ func numericValueEquals(value any, celValue ref.Val) bool {
 
 // NewPartialAttributeFactory returns an AttributeFactory implementation capable of performing
 // AttributePattern matches with PartialActivation inputs.
-func NewPartialAttributeFactory(container *containers.Container, adapter types.Adapter, provider types.Provider, opts ...AttrFactoryOption) AttributeFactory {
-	fac := NewAttributeFactory(container, adapter, provider, opts...)
+func NewPartialAttributeFactory(container *containers.Container,
+	adapter types.Adapter,
+	provider types.Provider) AttributeFactory {
+	fac := NewAttributeFactory(container, adapter, provider)
 	return &partialAttributeFactory{
 		AttributeFactory: fac,
 		container:        container,

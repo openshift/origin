@@ -20,7 +20,6 @@ limitations under the License.
 package cadvisor
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -40,7 +39,7 @@ import (
 	"github.com/google/cadvisor/manager"
 	"github.com/google/cadvisor/utils/sysfs"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
+	"k8s.io/utils/pointer"
 )
 
 type cadvisorClient struct {
@@ -79,8 +78,7 @@ func init() {
 			f.DefValue = defaultValue
 			f.Value.Set(defaultValue)
 		} else {
-			ctx := context.Background()
-			klog.FromContext(ctx).Error(nil, "Expected cAdvisor flag not found", "flag", name)
+			klog.ErrorS(nil, "Expected cAdvisor flag not found", "flag", name)
 		}
 	}
 }
@@ -107,7 +105,7 @@ func New(imageFsInfoProvider ImageFsInfoProvider, rootPath string, cgroupRoots [
 	duration := maxHousekeepingInterval
 	housekeepingConfig := manager.HousekeepingConfig{
 		Interval:     &duration,
-		AllowDynamic: ptr.To(allowDynamicHousekeeping),
+		AllowDynamic: pointer.Bool(allowDynamicHousekeeping),
 	}
 
 	// Create the cAdvisor container manager.
@@ -149,19 +147,19 @@ func (cc *cadvisorClient) MachineInfo() (*cadvisorapi.MachineInfo, error) {
 	return cc.GetMachineInfo()
 }
 
-func (cc *cadvisorClient) ImagesFsInfo(ctx context.Context) (cadvisorapiv2.FsInfo, error) {
+func (cc *cadvisorClient) ImagesFsInfo() (cadvisorapiv2.FsInfo, error) {
 	label, err := cc.imageFsInfoProvider.ImageFsInfoLabel()
 	if err != nil {
 		return cadvisorapiv2.FsInfo{}, err
 	}
-	return cc.getFsInfo(ctx, label)
+	return cc.getFsInfo(label)
 }
 
 func (cc *cadvisorClient) RootFsInfo() (cadvisorapiv2.FsInfo, error) {
 	return cc.GetDirFsInfo(cc.rootPath)
 }
 
-func (cc *cadvisorClient) getFsInfo(ctx context.Context, label string) (cadvisorapiv2.FsInfo, error) {
+func (cc *cadvisorClient) getFsInfo(label string) (cadvisorapiv2.FsInfo, error) {
 	res, err := cc.GetFsInfo(label)
 	if err != nil {
 		return cadvisorapiv2.FsInfo{}, err
@@ -171,16 +169,16 @@ func (cc *cadvisorClient) getFsInfo(ctx context.Context, label string) (cadvisor
 	}
 	// TODO(vmarmol): Handle this better when a label has more than one image filesystem.
 	if len(res) > 1 {
-		klog.FromContext(ctx).Info("More than one filesystem labeled. Only using the first one", "label", label, "fileSystem", res)
+		klog.InfoS("More than one filesystem labeled. Only using the first one", "label", label, "fileSystem", res)
 	}
 
 	return res[0], nil
 }
 
-func (cc *cadvisorClient) ContainerFsInfo(ctx context.Context) (cadvisorapiv2.FsInfo, error) {
+func (cc *cadvisorClient) ContainerFsInfo() (cadvisorapiv2.FsInfo, error) {
 	label, err := cc.imageFsInfoProvider.ContainerFsInfoLabel()
 	if err != nil {
 		return cadvisorapiv2.FsInfo{}, err
 	}
-	return cc.getFsInfo(ctx, label)
+	return cc.getFsInfo(label)
 }

@@ -112,7 +112,6 @@ func (nim *nodeInfoManager) InstallCSIDriver(driverName string, driverNodeID str
 	}
 
 	nodeUpdateFuncs := []nodeUpdateFunc{
-		removeMaxAttachLimit(driverName), // remove in 1.35 due to the version skew policy, we have to keep it for 3 releases
 		updateNodeIDInNode(driverName, driverNodeID),
 		updateTopologyLabels(topology),
 	}
@@ -141,7 +140,7 @@ func (nim *nodeInfoManager) UninstallCSIDriver(driverName string) error {
 	}
 
 	err = nim.updateNode(
-		removeMaxAttachLimit(driverName), // remove it when this function is removed from nodeUpdateFuncs
+		removeMaxAttachLimit(driverName),
 		removeNodeIDFromNode(driverName),
 	)
 	if err != nil {
