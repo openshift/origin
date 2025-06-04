@@ -67,6 +67,7 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 	if len(f.TestFile) > 0 && len(args) == 0 {
 		suite = &testginkgo.TestSuite{
 			Name: "files",
+			Kind: testginkgo.KindInternal,
 		}
 	}
 	if suite == nil && len(args) == 0 {

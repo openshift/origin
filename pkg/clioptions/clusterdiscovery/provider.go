@@ -105,7 +105,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		"dryRun":       dryRun,
 		"discover":     discover,
 		"clusterState": clusterState,
-	}).Info("Decoding provider")
+	}).Debug("Decoding provider")
 	switch providerTypeOrJSON {
 	case "none":
 		config := &ClusterConfiguration{

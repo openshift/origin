@@ -6,13 +6,9 @@ import (
 
 	"github.com/onsi/ginkgo/v2/types"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
-
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
-
 	"github.com/openshift/origin/pkg/test/extensions"
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 func testsForSuite(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([]*testCase, error) {
@@ -20,16 +16,6 @@ func testsForSuite(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([
 	var errs []error
 
 	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-		// we need to ensure the default path always annotates both
-		// origin and k8s tests accordingly, since each of these
-		// currently have their own annotations which are not
-		// merged anywhere else but applied here
-		if append, ok := origingenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
 		tc := &testCase{
 			name:    spec.Name,
 			rawName: spec.Name,
@@ -42,11 +28,6 @@ func testsForSuite(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([
 	})
 	if len(errs) > 0 {
 		return nil, errors.NewAggregate(errs)
-	}
-
-	// Filter tests by origin's suite matcher
-	if suite != nil && suite.SuiteMatcher != nil {
-		tests = suite.Filter(tests)
 	}
 
 	return tests, nil
@@ -150,9 +131,17 @@ var (
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 )
 
+type Kind int
+
+const (
+	KindInternal Kind = iota
+	KindExternal
+)
+
 type TestSuite struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Kind        Kind   `json:"kind"`
 
 	SuiteMatcher TestMatchFunc `json:"-"`
 

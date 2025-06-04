@@ -82,6 +82,7 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 			suites = append(suites, &ginkgo.TestSuite{
 				Name:        s.Name,
 				Description: s.Description,
+				Kind:        ginkgo.KindExternal,
 				Extension:   e,
 				Qualifiers:  s.Qualifiers,
 			})
@@ -122,8 +123,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
+		Qualifiers: []string{
+			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/parallel')"),
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
@@ -462,4 +463,28 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 120 * time.Minute,
 	},
+}
+
+func withExcludedTestsFilter(baseExpr string) string {
+	excluded := []string{
+		"[Disabled:",
+		"[Disruptive]",
+		"[Skipped]",
+		"[Slow]",
+		"[Flaky]",
+		"[Local]",
+	}
+
+	filter := ""
+	for i, s := range excluded {
+		if i > 0 {
+			filter += " && "
+		}
+		filter += fmt.Sprintf("!name.contains('%s')", s)
+	}
+
+	if baseExpr != "" {
+		return fmt.Sprintf("(%s) && (%s)", baseExpr, filter)
+	}
+	return filter
 }
