@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	corev1 "k8s.io/api/core/v1"
@@ -169,6 +170,7 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	state.OptionalCapabilities = clusterVersion.Status.Capabilities.EnabledCapabilities
 
 	// Discover available API groups
+	logrus.Infof("Discovering API Groups...")
 	discoveryClient := coreClient.Discovery()
 	groups, err := discoveryClient.ServerGroups()
 	if err != nil {
@@ -182,10 +184,14 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 		}
 		state.AvailableAPIGroups.Insert(apiGroup.Name)
 	}
+	logrus.Infof("Discovered %d API Groups", state.AvailableAPIGroups.Len())
 
 	// Discover feature gates
+	logrus.Infof("Discovering feature gates...")
 	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err == nil {
+	if err != nil {
+		logrus.Warningf("Encountered an error while discovering feature gates: %+v", err)
+	} else {
 		desiredVersion := clusterVersion.Status.Desired.Version
 		if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
 			desiredVersion = clusterVersion.Status.History[0].Version
@@ -195,6 +201,7 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 		state.DisabledFeatureGates = sets.New[string]()
 		for _, featureGateValues := range featureGate.Status.FeatureGates {
 			if featureGateValues.Version != desiredVersion {
+				logrus.Warningf("Feature gates for version %s not found, skipping", desiredVersion)
 				continue
 			}
 			for _, enabledGate := range featureGateValues.Enabled {
@@ -205,8 +212,8 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 			}
 			break
 		}
+		logrus.Infof("Discovered %d enabled feature gates and %d disabled feature gates", state.EnabledFeatureGates.Len(), state.DisabledFeatureGates.Len())
 	}
-	// If feature gates are not found, leave the sets nil which will exclude all featuregated tests
 
 	return state, nil
 }
