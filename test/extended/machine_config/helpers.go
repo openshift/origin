@@ -550,11 +550,83 @@ func WaitForMCPToBeReady(oc *exutil.CLI, machineConfigClient *machineconfigclien
 		}
 		// Check if the pool is in an updated state with the correct number of ready machines
 		if IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && mcp.Status.UpdatedMachineCount == readyMachineCount {
+			framework.Logf("MCP '%v' has the desired %v ready machines.", poolName, mcp.Status.UpdatedMachineCount)
 			return true
 		}
-		framework.Logf("MCP '%v' has %v ready machines. Waiting for the desired ready machine count of %v.", poolName, mcp.Status.UpdatedMachineCount, readyMachineCount)
+		// Log details of what is outstanding for the pool to be considered ready
+		if mcp.Status.UpdatedMachineCount == readyMachineCount {
+			framework.Logf("MCP '%v' has the desired %v ready machines, but is not in an 'Updated' state.", poolName, mcp.Status.UpdatedMachineCount)
+		} else {
+			framework.Logf("MCP '%v' has %v ready machines. Waiting for the desired ready machine count of %v.", poolName, mcp.Status.UpdatedMachineCount, readyMachineCount)
+		}
 		return false
 	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for MCP '%v' to be in 'Updated' state with %v ready machines.", poolName, readyMachineCount)
+}
+
+// `CleanupCustomMCP` cleans up a custom MCP through the following steps:
+//  1. Remove the custom MCP role label from the node
+//  2. Wait for the custom MCP to be updated with no ready machines
+//  3. Optionally, if a MC has been provided, delete it; if none has been provided, skip to step 4
+//  4. Wait for the node to have a current config version equal to the config version of the worker MCP
+//  5. Remove the custom MCP
+func CleanupCustomMCP(oc *exutil.CLI, clientSet *machineconfigclient.Clientset, customMCPName string, nodeName string, mcName *string) error {
+	// Unlabel node
+	framework.Logf("Removing label node-role.kubernetes.io/%v from node %v", customMCPName, nodeName)
+	unlabelErr := oc.Run("label").Args(fmt.Sprintf("node/%s", nodeName), fmt.Sprintf("node-role.kubernetes.io/%s-", customMCPName)).Execute()
+	if unlabelErr != nil {
+		return fmt.Errorf("could not remove label 'node-role.kubernetes.io/%v' from node '%v'; err: %v", customMCPName, nodeName, unlabelErr)
+	}
+
+	// Wait for custom MCP to report no ready nodes
+	framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", customMCPName, 0)
+	WaitForMCPToBeReady(oc, clientSet, customMCPName, 0)
+
+	// Delete the MC, if one was provided
+	if mcName != nil {
+		deleteMCErr := oc.Run("delete").Args("machineconfig", *mcName).Execute()
+		if deleteMCErr != nil {
+			return fmt.Errorf("could delete MachineConfig '%v'; err: %v", mcName, deleteMCErr)
+
+		}
+	}
+
+	// Wait for node to have a current config version equal to the worker MCP's config version
+	workerMcp, workerMcpErr := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
+	if workerMcpErr != nil {
+		return fmt.Errorf("could not get worker MCP; err: %v", workerMcpErr)
+	}
+	workerMcpConfig := workerMcp.Spec.Configuration.Name
+	framework.Logf("Waiting for %v node to be updated with %v config version.", nodeName, workerMcpConfig)
+	WaitForNodeCurrentConfig(oc, nodeName, workerMcpConfig)
+
+	// Delete custom MCP
+	framework.Logf("Deleting MCP %v", customMCPName)
+	deleteMCPErr := oc.Run("delete").Args("mcp", customMCPName).Execute()
+	if deleteMCPErr != nil {
+		return fmt.Errorf("error deleting MCP '%v': %v", customMCPName, deleteMCPErr)
+	}
+
+	return nil
+}
+
+// `WaitForNodeCurrentConfig` waits up to 5 minutes for a input node to have a current config equal to the `config` parameter
+func WaitForNodeCurrentConfig(oc *exutil.CLI, nodeName string, config string) {
+	o.Eventually(func() bool {
+		node, nodeErr := oc.AsAdmin().KubeClient().CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		if nodeErr != nil {
+			framework.Logf("Failed to get node '%v', error :%v", nodeName, nodeErr)
+			return false
+		}
+
+		// Check if the node's current config matches the input config version
+		nodeCurrentConfig := node.Annotations[currentConfigAnnotationKey]
+		if nodeCurrentConfig == config {
+			framework.Logf("Node '%v' has successfully updated and has a current config version of '%v'.", nodeName, nodeCurrentConfig)
+			return true
+		}
+		framework.Logf("Node '%v' has a current config version of '%v'. Waiting for the node's current config version to be '%v'.", nodeName, nodeCurrentConfig, config)
+		return false
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue(), "Timed out waiting for node '%v' to have a current config version of '%v'.", nodeName, config)
 }
 
 // `GetUpdatingNodeSNO` returns the SNO node when the `master` MCP of the cluster starts updating

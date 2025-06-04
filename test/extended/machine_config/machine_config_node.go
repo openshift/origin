@@ -137,32 +137,14 @@ func ValidateMCNPropertiesCustomMCP(oc *exutil.CLI, fixture string) {
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
-	// Get starting state of default worker MCP, so we know what the correct number of nodes is during cleanup
-	workerMcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Could not get worker MCP.")
-	workerMcpMachines := workerMcp.Status.MachineCount
-
 	// Grab a random node from each default pool
 	workerNode := GetRandomNode(oc, worker)
 	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
 
 	// Cleanup custom MCP on test completion or failure
 	defer func() {
-		// Unlabel node
-		framework.Logf("Removing label node-role.kubernetes.io/%v from node %v", custom, workerNode.Name)
-		unlabelErr := oc.Run("label").Args(fmt.Sprintf("node/%s", workerNode.Name), fmt.Sprintf("node-role.kubernetes.io/%s-", custom)).Execute()
-		o.Expect(unlabelErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Could not remove label 'node-role.kubernetes.io/%s' from node '%v'.", custom, workerNode.Name))
-
-		// Wait for infra pool to report no nodes & for worker MCP to be ready
-		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", custom, 0)
-		WaitForMCPToBeReady(oc, clientSet, custom, 0)
-		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", worker, workerMcpMachines)
-		WaitForMCPToBeReady(oc, clientSet, worker, workerMcpMachines)
-
-		// Delete custom MCP
-		framework.Logf("Deleting MCP %v", custom)
-		deleteMCPErr := oc.Run("delete").Args("mcp", custom).Execute()
-		o.Expect(deleteMCPErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deleting MCP '%v': %v", custom, deleteMCPErr))
+		cleanupErr := CleanupCustomMCP(oc, clientSet, custom, workerNode.Name, nil)
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Failed cleaning up '%v' MCP: %v.", custom, cleanupErr))
 	}()
 
 	// Apply the fixture to create a custom MCP called "infra" & label the worker node accordingly
@@ -197,11 +179,6 @@ func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, nodeDisru
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
 
-	// Get starting state of default worker MCP, so we know what the correct number of nodes is during cleanup
-	workerMcp, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), worker, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Could not get worker MCP.")
-	workerMcpMachines := workerMcp.Status.MachineCount
-
 	// Grab a random worker node
 	workerNode := GetRandomNode(oc, worker)
 	o.Expect(workerNode.Name).NotTo(o.Equal(""), "Could not get a worker node.")
@@ -218,27 +195,8 @@ func ValidateMCNConditionTransitionsOnRebootlessUpdate(oc *exutil.CLI, nodeDisru
 
 	// Cleanup custom MCP, and delete MC on test completion or failure
 	defer func() {
-		// Unlabel node
-		framework.Logf("Removing label node-role.kubernetes.io/%v from node %v", custom, workerNode.Name)
-		unlabelErr := oc.Run("label").Args(fmt.Sprintf("node/%s", workerNode.Name), fmt.Sprintf("node-role.kubernetes.io/%s-", custom)).Execute()
-		o.Expect(unlabelErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Could not remove label 'node-role.kubernetes.io/%s' from node '%v'.", custom, workerNode.Name))
-
-		// Wait for infra MCP to report no ready nodes
-		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", custom, 0)
-		WaitForMCPToBeReady(oc, clientSet, custom, 0)
-
-		// Delete applied MC
-		deleteMCErr := oc.Run("delete").Args("machineconfig", mcName).Execute()
-		o.Expect(deleteMCErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Could not delete MachineConfig '%v'.", mcName))
-
-		// Wait for worker MCP to be ready
-		framework.Logf("Waiting for %v MCP to be updated with %v ready machines.", worker, workerMcpMachines)
-		WaitForMCPToBeReady(oc, clientSet, worker, workerMcpMachines)
-
-		// Delete custom MCP
-		framework.Logf("Deleting MCP %v", custom)
-		deleteMCPErr := oc.Run("delete").Args("mcp", custom).Execute()
-		o.Expect(deleteMCPErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error deleting MCP '%v': %v", custom, deleteMCPErr))
+		cleanupErr := CleanupCustomMCP(oc, clientSet, custom, workerNode.Name, &mcName)
+		o.Expect(cleanupErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Failed cleaning up '%v' MCP: %v.", custom, cleanupErr))
 	}()
 
 	// Apply the fixture to create a custom MCP called "infra" & label the worker node accordingly
