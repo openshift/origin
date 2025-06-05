@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/pkg/errors"
@@ -29,6 +31,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
@@ -41,6 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 const (
@@ -147,14 +151,9 @@ func max(a, b int) int {
 	return b
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string) bool, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
 	upgrade bool) error {
 	ctx := context.Background()
-
-	tests, err := testsForSuite()
-	if err != nil {
-		return fmt.Errorf("failed reading origin test suites: %w", err)
-	}
 
 	var sharder Sharder
 	switch o.ShardStrategy {
@@ -162,7 +161,50 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		sharder = &HashSharder{}
 	}
 
-	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary", len(tests))
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		return err
+	}
+
+	// Apply annotations to test names
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+		// we need to ensure the default path always annotates both
+		// origin and k8s tests accordingly, since each of these
+		// currently have their own annotations which are not
+		// merged anywhere else but applied here
+		if append, ok := origingenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+	})
+
+	// Filter out kube tests, vendor filtering isn't working within origin
+	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+		return !strings.Contains(spec.Name, "[Suite:k8s")
+	})
+
+	totalInternal := len(specs)
+	logrus.Infof("Found %d total internal tests", totalInternal)
+
+	// Filter internal tests by qualifiers
+	if len(suite.Qualifiers) > 0 {
+		logrus.Infof("Filtering internal tests by suite qualifiers, total=%d", totalInternal)
+		specs, err = specs.Filter(suite.Qualifiers)
+		if err != nil {
+			return err
+		}
+		logrus.Infof("Filtered %d internal tests by suite qualifiers, total=%d", totalInternal-len(specs), len(specs))
+	}
+
+	// Convert internal tests to origin's testCase format
+	internalTestCases, err := testsForSuite(suite, specs)
+	if err != nil {
+		return err
+	}
+
+	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary for this suite", len(internalTestCases))
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	var externalTestCases []*testCase
@@ -206,26 +248,26 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		if err != nil {
 			return err
 		}
+
+		if len(suite.Qualifiers) > 0 {
+			total := len(externalTestSpecs)
+			logrus.Infof("Filtering external tests by OTE suite qualifiers, total=%d", total)
+			externalTestSpecs, err = extensions.FilterWrappedSpecs(externalTestSpecs, suite.Qualifiers)
+			if err != nil {
+				return err
+			}
+			logrus.Infof("Filtered %d external tests by OTE suite qualifiers", total-len(externalTestSpecs))
+		}
+
 		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
 
-		var filteredTests []*testCase
-		for _, test := range tests {
-			// tests contains all the tests "registered" in openshift-tests binary,
-			// this also includes vendored k8s tests, since this path assumes we're
-			// using external binary to run these tests we need to remove them
-			// from the final lists, which contains:
-			// 1. origin tests, only
-			// 2. k8s tests, coming from external binary
-			if !strings.Contains(test.name, "[Suite:k8s]") {
-				filteredTests = append(filteredTests, test)
-			}
-		}
-		logrus.Infof("Discovered %d internal tests, %d external tests - %d total unique tests",
-			len(tests), len(externalTestCases), len(filteredTests)+len(externalTestCases))
-		tests = append(filteredTests, externalTestCases...)
+		logrus.Infof("Discovered %d internal tests, %d external tests - %d total tests",
+			len(internalTestCases), len(externalTestCases), len(internalTestCases)+len(externalTestCases))
 	} else {
 		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 	}
+
+	tests := append(internalTestCases, externalTestCases...)
 
 	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
 	// begins to pass we can remove the annotation logic
@@ -254,12 +296,27 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
-	tests = suite.Filter(tests)
-	if len(tests) == 0 {
-		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
+	// skip tests due to newer k8s
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
+	if err != nil {
+		return err
 	}
 
-	logrus.Infof("Found %d filtered tests", len(tests))
+	tests, err = o.filterOutRebaseTests(restConfig, tests)
+	if err != nil {
+		return err
+	}
+
+	origCount := len(tests)
+	logrus.Infof("Filtering tests by cluster state, count=%d", origCount)
+	// Filter based on cluster environment
+	if clusterFilters != nil {
+		tests = filterTestsByClusterState(tests, clusterFilters)
+	}
+	filteredCount := len(tests)
+	logrus.Infof("Removed %d tests incompatible with current cluster state", origCount-filteredCount)
+
+	logrus.Infof("Found %d filtered tests for this suite", filteredCount)
 
 	count := o.Count
 	if count == 0 {
@@ -290,17 +347,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			fmt.Fprintf(o.Out, "%q\n", test.name)
 		}
 		return nil
-	}
-
-	restConfig, err := clusterinfo.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
-
-	// skip tests due to newer k8s
-	tests, err = o.filterOutRebaseTests(restConfig, tests)
-	if err != nil {
-		return err
 	}
 
 	if len(o.JUnitDir) > 0 {
@@ -685,6 +731,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+func filterTestsByClusterState(tests []*testCase, filter func(string) bool) []*testCase {
+	matches := make([]*testCase, 0, len(tests))
+	for _, test := range tests {
+		if !filter(test.name) {
+			continue
+		}
+		matches = append(matches, test)
+	}
+	return matches
 }
 
 func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {

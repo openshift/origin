@@ -1,16 +1,14 @@
 package run
 
 import (
-	"fmt"
+	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
-	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
 	"github.com/openshift/origin/pkg/clioptions/suiteselection"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -49,7 +47,7 @@ func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string
 // SuiteWithKubeTestInitializationPreSuite
 //  1. invokes the Kube suite in order to populate data from the environment for the CSI suite (originally, but now everything).
 //  2. ensures that the suite filters out tests from providers that aren't relevant (see exutilcluster.ClusterConfig.MatchFn) by
-//     loading the provider info from the cluster or flags.
+//     loading the provider info from the cluster or flags, including API groups and feature gates.
 func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdiscovery.ClusterConfiguration, error) {
 	providerConfig, err := clusterdiscovery.DecodeProvider(f.ProviderTypeOrJSON, f.GinkgoRunSuiteOptions.DryRun, true, nil)
 	if err != nil {
@@ -59,6 +57,7 @@ func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdisco
 	if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, providerConfig, f.GinkgoRunSuiteOptions.DryRun); err != nil {
 		return nil, err
 	}
+
 	return providerConfig, nil
 }
 
@@ -76,15 +75,6 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 }
 
 func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
-	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
-	switch {
-	case err != nil && f.GinkgoRunSuiteOptions.DryRun:
-		fmt.Fprintf(f.ErrOut, "Unable to get admin rest config, skipping apigroup check in the dry-run mode: %v\n", err)
-		adminRESTConfig = &rest.Config{}
-	case err != nil && !f.GinkgoRunSuiteOptions.DryRun:
-		return nil, fmt.Errorf("unable to get admin rest config, %w", err)
-	}
-
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -99,12 +89,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	}
 	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
 		f.AvailableSuites,
-		args,
-		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
-		kubeconfig.NewConfigClientGetter(adminRESTConfig),
-		f.GinkgoRunSuiteOptions.DryRun,
-		providerConfig.MatchFn(),
-	)
+		args)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +97,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	o := &RunSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,
+		ClusterFilters:        providerConfig.MatchFn(),
 		FromRepository:        f.FromRepository,
 		CloudProviderJSON:     providerConfig.ToJSONString(),
 		CloseFn:               closeFn,

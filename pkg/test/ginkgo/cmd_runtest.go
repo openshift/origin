@@ -3,11 +3,13 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 
@@ -15,10 +17,11 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ExitError struct {
@@ -61,7 +64,11 @@ func (o *TestOptions) Run(args []string) error {
 
 	// Ignore the upstream suite behavior within test execution
 	ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
-	tests, err := testsForSuite()
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		return err
+	}
+	tests, err := testsForSuite(nil, specs)
 	if err != nil {
 		return err
 	}

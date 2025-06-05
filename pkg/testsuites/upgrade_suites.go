@@ -24,7 +24,7 @@ var upgradeSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run all tests.
 		`),
-		Matches: func(name string) bool {
+		SuiteMatcher: func(name string) bool {
 			if isStandardEarlyTest(name) {
 				return true
 			}
@@ -37,7 +37,7 @@ var upgradeSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run only the tests that verify the platform remains available.
 		`),
-		Matches: func(name string) bool {
+		SuiteMatcher: func(name string) bool {
 			if isStandardEarlyTest(name) {
 				return true
 			}
@@ -50,7 +50,7 @@ var upgradeSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 	Don't run disruption tests.
 		`),
-		Matches: func(name string) bool {
+		SuiteMatcher: func(name string) bool {
 			if isStandardEarlyTest(name) {
 				return true
 			}

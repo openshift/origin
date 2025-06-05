@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,6 +23,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
+
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
@@ -70,6 +72,13 @@ type ClusterConfiguration struct {
 
 	// IsNoOptionalCapabilities indicates the cluster has no optional capabilities enabled
 	HasNoOptionalCapabilities bool
+
+	// APIGroups contains the set of API groups available in the cluster
+	APIGroups sets.Set[string] `json:"-"`
+	// EnabledFeatureGates contains the set of enabled feature gates in the cluster
+	EnabledFeatureGates sets.Set[string] `json:"-"`
+	// DisabledFeatureGates contains the set of disabled feature gates in the cluster
+	DisabledFeatureGates sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -91,6 +100,9 @@ type ClusterState struct {
 	ControlPlaneTopology *configv1.TopologyMode
 	OptionalCapabilities []configv1.ClusterVersionCapability
 	Version              *configv1.ClusterVersion
+	AvailableAPIGroups   sets.Set[string]
+	EnabledFeatureGates  sets.Set[string]
+	DisabledFeatureGates sets.Set[string]
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -155,6 +167,46 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	}
 	state.Version = clusterVersion
 	state.OptionalCapabilities = clusterVersion.Status.Capabilities.EnabledCapabilities
+
+	// Discover available API groups
+	discoveryClient := coreClient.Discovery()
+	groups, err := discoveryClient.ServerGroups()
+	if err != nil {
+		return nil, err
+	}
+	state.AvailableAPIGroups = sets.New[string]()
+	for _, apiGroup := range groups.Groups {
+		// ignore the empty group
+		if apiGroup.Name == "" {
+			continue
+		}
+		state.AvailableAPIGroups.Insert(apiGroup.Name)
+	}
+
+	// Discover feature gates
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err == nil {
+		desiredVersion := clusterVersion.Status.Desired.Version
+		if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
+			desiredVersion = clusterVersion.Status.History[0].Version
+		}
+
+		state.EnabledFeatureGates = sets.New[string]()
+		state.DisabledFeatureGates = sets.New[string]()
+		for _, featureGateValues := range featureGate.Status.FeatureGates {
+			if featureGateValues.Version != desiredVersion {
+				continue
+			}
+			for _, enabledGate := range featureGateValues.Enabled {
+				state.EnabledFeatureGates.Insert(string(enabledGate.Name))
+			}
+			for _, disabledGate := range featureGateValues.Disabled {
+				state.DisabledFeatureGates.Insert(string(disabledGate.Name))
+			}
+			break
+		}
+	}
+	// If feature gates are not found, leave the sets nil which will exclude all featuregated tests
 
 	return state, nil
 }
@@ -271,6 +323,11 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	// have to scan MachineConfig objects to figure this out? For now, callers can
 	// can just manually override with --provider...
 
+	// Copy API groups and feature gates from cluster state
+	config.APIGroups = state.AvailableAPIGroups
+	config.EnabledFeatureGates = state.EnabledFeatureGates
+	config.DisabledFeatureGates = state.DisabledFeatureGates
+
 	return config, nil
 }
 
@@ -327,7 +384,61 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 				return false
 			}
 		}
+
+		// Apply API group filtering
+		if c.APIGroups != nil {
+			requiredGroups := []string{}
+			matches := apiGroupRegex.FindAllStringSubmatch(name, -1)
+			for _, match := range matches {
+				if len(match) < 2 {
+					panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
+				}
+				apigroup := match[1]
+				requiredGroups = append(requiredGroups, apigroup)
+			}
+			if !c.APIGroups.HasAll(requiredGroups...) {
+				return false
+			}
+		}
+
+		// Apply feature gate filtering
+		featureGates := []string{}
+		matches := featureGateRegex.FindAllStringSubmatch(name, -1)
+		for _, match := range matches {
+			if len(match) < 2 {
+				panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
+			}
+			featureGate := match[1]
+			featureGates = append(featureGates, featureGate)
+		}
+
+		// If feature gates are configured, apply filtering
+		if c.EnabledFeatureGates != nil || c.DisabledFeatureGates != nil {
+			// If any required feature gates are disabled, exclude the test
+			if c.DisabledFeatureGates != nil && c.DisabledFeatureGates.HasAny(featureGates...) {
+				return false
+			}
+
+			// If feature gates are required, ensure they are all enabled
+			// Note: HasAll returns true for empty slice, so tests without feature gate requirements pass
+			if c.EnabledFeatureGates != nil && !c.EnabledFeatureGates.HasAll(featureGates...) {
+				return false
+			}
+		} else {
+			// If no feature gates are configured, exclude all featuregated tests
+			// This matches the original includeNonFeatureGateTest behavior
+			if len(featureGates) > 0 {
+				return false
+			}
+		}
+
 		return true
 	}
 	return matchFn
 }
+
+// Regular expressions for parsing test labels
+var (
+	apiGroupRegex    = regexp.MustCompile(`\[apigroup:([^]]*)\]`)
+	featureGateRegex = regexp.MustCompile(`\[OCPFeatureGate:([^]]*)\]`)
+)

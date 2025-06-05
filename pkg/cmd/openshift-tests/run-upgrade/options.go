@@ -8,6 +8,10 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
+	k8simage "k8s.io/kubernetes/test/utils/image"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
@@ -16,9 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/klog/v2"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -117,7 +118,7 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests-upgrade", monitorTestInfo, true)
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, nil, "openshift-tests-upgrade", monitorTestInfo, true)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}

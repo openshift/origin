@@ -4,46 +4,32 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
-
 	"github.com/openshift/origin/pkg/test/extensions"
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
-func testsForSuite() ([]*testCase, error) {
+func testsForSuite(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([]*testCase, error) {
 	var tests []*testCase
 	var errs []error
 
-	// Don't build the tree multiple times, it results in multiple initing of tests
-	if !ginkgo.GetSuite().InPhaseBuildTree() {
-		ginkgo.GetSuite().BuildTree()
-	}
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+		tc := &testCase{
+			name:    spec.Name,
+			rawName: spec.Name,
+		}
+		if suite != nil && suite.TestTimeout > 0 {
+			tc.testTimeout = suite.TestTimeout
+		}
 
-	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
-		// we need to ensure the default path always annotates both
-		// origin and k8s tests accordingly, since each of these
-		// currently have their own annotations which are not
-		// merged anywhere else but applied here
-		if append, ok := origingenerated.Annotations[name]; ok {
-			spec.AppendText(append)
-		}
-		if append, ok := k8sgenerated.Annotations[name]; ok {
-			spec.AppendText(append)
-		}
-		tc, err := newTestCaseFromGinkgoSpec(spec)
-		if err != nil {
-			errs = append(errs, err)
-		}
 		tests = append(tests, tc)
 	})
 	if len(errs) > 0 {
 		return nil, errors.NewAggregate(errs)
 	}
+
 	return tests, nil
 }
 
@@ -145,30 +131,46 @@ var (
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 )
 
-type TestSuite struct {
-	Name        string
-	Description string
+type Kind int
 
-	Matches TestMatchFunc
+const (
+	KindInternal Kind = iota
+	KindExternal
+)
+
+type TestSuite struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Kind        Kind   `json:"kind"`
+
+	SuiteMatcher TestMatchFunc `json:"-"`
 
 	// The number of times to execute each test in this suite.
-	Count int
+	Count int `json:"count,omitempty"`
 	// The maximum parallelism of this suite.
-	Parallelism int
+	Parallelism int `json:"parallelism,omitempty"`
 	// The number of flakes that may occur before this test is marked as a failure.
-	MaximumAllowedFlakes int
+	MaximumAllowedFlakes int `json:"maximumAllowedFlakes,omitempty"`
 
-	ClusterStabilityDuringTest ClusterStabilityDuringTest
+	ClusterStabilityDuringTest ClusterStabilityDuringTest `json:"clusterStabilityDuringTest,omitempty"`
 
-	TestTimeout time.Duration
+	TestTimeout time.Duration `json:"testTimeout,omitempty"`
+
+	// OTE
+	Qualifiers []string              `json:"qualifiers,omitempty"`
+	Extension  *extensions.Extension `json:"-"`
 }
 
 type TestMatchFunc func(name string) bool
 
 func (s *TestSuite) Filter(tests []*testCase) []*testCase {
+	if s.SuiteMatcher == nil {
+		return tests
+	}
+
 	matches := make([]*testCase, 0, len(tests))
 	for _, test := range tests {
-		if !s.Matches(test.name) {
+		if !s.SuiteMatcher(test.name) {
 			continue
 		}
 		matches = append(matches, test)
@@ -180,13 +182,13 @@ func (s *TestSuite) AddRequiredMatchFunc(matchFn TestMatchFunc) {
 	if matchFn == nil {
 		return
 	}
-	if s.Matches == nil {
-		s.Matches = matchFn
+	if s.SuiteMatcher == nil {
+		s.SuiteMatcher = matchFn
 		return
 	}
 
-	originalMatchFn := s.Matches
-	s.Matches = func(name string) bool {
+	originalMatchFn := s.SuiteMatcher
+	s.SuiteMatcher = func(name string) bool {
 		return originalMatchFn(name) && matchFn(name)
 	}
 }

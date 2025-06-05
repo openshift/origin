@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
@@ -80,6 +81,7 @@ func main() {
 
 	root.AddCommand(
 		run.NewRunCommand(ioStreams),
+		list.NewListCommand(ioStreams),
 		run_upgrade.NewRunUpgradeCommand(ioStreams),
 		images.NewImagesCommand(),
 		run_test.NewRunTestCommand(ioStreams),

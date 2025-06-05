@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+
 	"github.com/openshift/origin/pkg/test/extensions"
 
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -312,12 +314,12 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 			fmt.Fprintf(os.Stderr, "warning: expected 1 result from external binary; received %d", len(results))
 		}
 		switch results[0].Result {
-		case extensions.ResultFailed:
+		case extensiontests.ResultFailed:
 			ret.testState = TestFailed
 			ret.testOutputBytes = []byte(fmt.Sprintf("%s\n%s", results[0].Output, results[0].Error))
-		case extensions.ResultPassed:
+		case extensiontests.ResultPassed:
 			ret.testState = TestSucceeded
-		case extensions.ResultSkipped:
+		case extensiontests.ResultSkipped:
 			ret.testState = TestSkipped
 		}
 		ret.start = extensions.Time(results[0].StartTime)
