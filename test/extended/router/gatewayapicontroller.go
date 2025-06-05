@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/pointer"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -245,6 +248,90 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Validating the http connectivity to the backend application")
 		assertHttpRouteConnection(defaultRoutename)
+	})
+
+	g.It("Ensure OSSM subscription, istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
+		const (
+			operatorNamespace      = "openshift-operators"
+			ingressNamespace       = "openshift-ingress"
+			ossmSubscriptionName   = "servicemeshoperator3"
+			csvName                = "servicemeshoperator3.v3.0.0"
+			ossmOperatorDeployment = "servicemesh-operator3"
+			istiodDeployment       = "istiod-openshift-gateway"
+			istioName              = "openshift-gateway"
+		)
+
+		// deleted the OSSM subscription and then checked if it was restored
+		g.By(fmt.Sprintf("Try to delete the subscription %s", ossmSubscriptionName))
+		_, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", operatorNamespace, "subscription/"+ossmSubscriptionName).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the the OSSM subscription %s is automatically created successfully", ossmSubscriptionName))
+		pollWaitSubscriptionCreated(oc, operatorNamespace, ossmSubscriptionName)
+
+		g.By(fmt.Sprintf("Wait until the the OSSM csv %s is automatically created successfully", csvName))
+		pollWaitOssmCsvCreated(oc, operatorNamespace, csvName)
+
+		// deleted the istiod deployment and then checked if it was restored
+		deleteDeploymentAndWaitAvailableAgain(oc, istiodDeployment, ingressNamespace)
+
+		// deleted the istio and check if it was restored
+		g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
+		output, err := oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ingressNamespace, "istio/"+istioName).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(output).To(o.ContainSubstring("deleted"))
+
+		g.By(fmt.Sprintf("Wait until the the istiod %s is automatically created successfully", istioName))
+		pollWaitIstioCreated(oc, ingressNamespace, istioName)
+	})
+
+	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]", func() {
+		const (
+			operatorNamespace = "openshift-operators"
+			ingressNamespace  = "openshift-ingress"
+		)
+
+		g.By("Getting the default domain for creating a custom Gateway")
+		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find default domain name")
+		customDomain := strings.Replace(defaultIngressDomain, "apps.", "gw-custom.", 1)
+
+		g.By("Create a custom Gateway")
+		gw := names.SimpleNameGenerator.GenerateName("gateway-")
+		gateways = append(gateways, gw)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
+		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
+
+		// verify the gateway's LoadBalancer service
+		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		gatewayLbService := gw + "-openshift-default"
+
+		// make sure the DNSRecord is ready to use.
+		assertDNSRecordStatus(oc, gw)
+
+		g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		createdTime1 := lbService.ObjectMeta.CreationTimestamp
+		err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
+		pollWaitGWLBServiceRecreated(oc, ingressNamespace, gatewayLbService, createdTime1)
+
+		// deleted the gateway dnsrecords then checked if it was restored
+		g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dnsrecordName := dnsrecordList.Items[0].ObjectMeta.Name
+		targets := dnsrecordList.Items[0].Spec.Targets
+		targetsList1 := getSortedString(targets)
+
+		err = oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecordName, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
+		pollWaitGWDnsrecordsRecreated(oc, ingressNamespace, targetsList1)
 	})
 })
 
@@ -672,4 +759,165 @@ func isOKD(oc *exutil.CLI) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// used to wait a subscription is created successfully by checking its CatalogSourcesUnhealthy
+func pollWaitSubscriptionCreated(oc *exutil.CLI, operatorNamespace, ossmSubscriptionName string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		unhealthy, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", operatorNamespace, "subscription", ossmSubscriptionName, `-o=jsonpath={.status.conditions[?(@.type=="CatalogSourcesUnhealthy")].status}`).Output()
+
+		if err != nil {
+			e2e.Logf("Failed to check %s, error: %v, retrying...", ossmSubscriptionName, err)
+			return false, nil
+		}
+
+		if unhealthy != "False" {
+			e2e.Logf("Wait CatalogSourcesUnhealthy status to be False, and got %s", unhealthy)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait an OSSM csv is automatically created successfully
+func pollWaitOssmCsvCreated(oc *exutil.CLI, operatorNamespace, csvName string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		phase, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", operatorNamespace, "csv", csvName, `-o=jsonpath={.status.phase}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to check %s, error: %v, retrying...", csvName, err)
+			return false, nil
+		}
+		if phase != "Succeeded" {
+			e2e.Logf(fmt.Sprintf("Wait for phase to be Succeeded, and got %s", phase))
+			return false, nil
+		}
+		return true, nil
+
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to delete a deployment and wait for it is automatically recreated again
+func deleteDeploymentAndWaitAvailableAgain(oc *exutil.CLI, deploymentName, ns string) {
+	g.By(fmt.Sprintf("Try to delete the deployment %s in %s namespace", deploymentName, ns))
+	err := oc.AdminKubeClient().AppsV1().Deployments(ns).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By(fmt.Sprintf("Wait until the deployment %s in %s namespace is recreated and returns back healthy", deploymentName, ns))
+	err = wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			e2e.Logf("Error getting %s deployment: %v, retrying", deploymentName, err)
+			return false, nil
+		}
+
+		readyReplicas := deployment.Status.ReadyReplicas
+		e2e.Logf("The ready replicas is %v", readyReplicas)
+		if readyReplicas != 1 {
+			e2e.Logf(`The deployment %s in %s namespace is not ready(AvailableReplicas: %v), retrying`, deploymentName, ns, deployment.Status.AvailableReplicas)
+			return false, nil
+		}
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait the istio is created successfully by checking its readyReplicas
+func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		readyReplicas, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.status.revisions.ready}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to check istio %s, error: %v, retrying...", istioName, err)
+			return false, nil
+		}
+
+		if readyReplicas != "1" {
+			e2e.Logf("Wait for the ready replicas to be 1, and got %s", readyReplicas)
+			return false, nil
+		}
+		return true, nil
+
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for the gateway lb service is automatically recreated successfully
+func pollWaitGWLBServiceRecreated(oc *exutil.CLI, ingressNamespace, gatewayLbService string, createdTime1 metav1.Time) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			e2e.Logf("Error getting the gateway lb service %s: %v, retrying...", gatewayLbService, err)
+			return false, nil
+		}
+
+		createdTime2 := lbService.ObjectMeta.CreationTimestamp
+		if createdTime2 == createdTime1 {
+			return false, nil
+		}
+
+		lb := lbService.Status.LoadBalancer
+		searchInfo := regexp.MustCompile("(IP:([0-9\\.a-fA-F:]+))|(Hostname:([0-9\\.\\-a-zA-Z]+))").FindStringSubmatch(lb.String())
+		if len(searchInfo) > 0 {
+			if gwlb := searchInfo[2]; len(gwlb) > 0 {
+				e2e.Logf("New load balancer ip %s is available", gwlb)
+				return true, nil
+			}
+			if gwlb := searchInfo[4]; len(gwlb) > 0 {
+				e2e.Logf("New load balancer hostname %s is available", gwlb)
+				return true, nil
+			}
+		}
+		e2e.Logf("Failed to get the new IP or hostname of the gateway lb service %s, retrying...", gatewayLbService)
+		return false, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for the gateway dnsrecords is automatically recreated successfully
+func pollWaitGWDnsrecordsRecreated(oc *exutil.CLI, ingressNamespace, targetsList1 string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		targetsList2 := getSortedString(dnsrecordList.Items[0].Spec.Targets)
+
+		if targetsList2 != targetsList1 {
+			e2e.Logf("The gateway dnsrecords has not a targetsIP or a different one %s with %s, retrying...", getSortedString(targetsList2), targetsList1)
+			return false, nil
+		}
+
+		e2e.Logf("gwapi dnsrecords targetsList2 is %v", targetsList2)
+
+		for _, zone := range dnsrecordList.Items[0].Status.Zones {
+			for _, condition := range zone.Conditions {
+				if condition.Status != "True" || condition.Reason != "ProviderSuccess" {
+					return false, nil
+				}
+			}
+		}
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to sort string type of slice or string which can be split to the slice by the space character
+func getSortedString(obj interface{}) string {
+	objList := []string{}
+	str, ok := obj.(string)
+	if ok {
+		objList = strings.Split(str, " ")
+	}
+	strList, ok := obj.([]string)
+	if ok {
+		objList = strList
+	}
+	sort.Strings(objList)
+	return strings.Join(objList, " ")
 }
