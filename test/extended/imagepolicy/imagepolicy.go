@@ -215,7 +215,7 @@ func cleanupImageConfig(oc *exutil.CLI) error {
 }
 
 func launchTestPod(ctx context.Context, f *e2e.Framework, podName, image string) (*kapiv1.Pod, error) {
-	g.By(fmt.Sprintf("launching the pod: %s", podName))
+	g.By(fmt.Sprintf("launching the testing pod: %s", podName))
 	contName := fmt.Sprintf("%s-container", podName)
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
