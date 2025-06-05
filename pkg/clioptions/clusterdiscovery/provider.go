@@ -110,7 +110,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		config := &ClusterConfiguration{
 			ProviderName: "skeleton",
 		}
-		// Add NoOptionalCapabilities for MicroShift
+		// Add special configurations for MicroShift
 		coreClient, err := e2e.LoadClientset(true)
 		if err != nil {
 			log.WithError(err).Error("error in LoadClientset")
@@ -123,6 +123,8 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		}
 		if isMicroShift {
 			config.HasNoOptionalCapabilities = true
+			// Currently, for the sake of testing, MicroShift can always be assumed to be using OVNKubernetes
+			config.NetworkPlugin = "OVNKubernetes"
 		}
 
 		return config, nil
