@@ -8,6 +8,8 @@ import (
 	"github.com/distribution/distribution/v3"
 	"github.com/distribution/distribution/v3/manifest"
 	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/image-spec/specs-go"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -33,52 +35,67 @@ const (
 	MediaTypeUncompressedLayer = "application/vnd.docker.image.rootfs.diff.tar"
 )
 
+const (
+	defaultSchemaVersion = 2
+	defaultMediaType     = MediaTypeManifest
+)
+
 // SchemaVersion provides a pre-initialized version structure for this
 // packages version of the manifest.
+//
+// Deprecated: use [specs.Versioned] and set MediaType on the manifest
+// to [MediaTypeManifest].
+//
+//nolint:staticcheck // ignore SA1019: manifest.Versioned is deprecated:
 var SchemaVersion = manifest.Versioned{
-	SchemaVersion: 2,
-	MediaType:     MediaTypeManifest,
+	SchemaVersion: defaultSchemaVersion,
+	MediaType:     defaultMediaType,
 }
 
 func init() {
-	schema2Func := func(b []byte) (distribution.Manifest, distribution.Descriptor, error) {
-		m := new(DeserializedManifest)
-		err := m.UnmarshalJSON(b)
-		if err != nil {
-			return nil, distribution.Descriptor{}, err
-		}
-
-		dgst := digest.FromBytes(b)
-		return m, distribution.Descriptor{Digest: dgst, Size: int64(len(b)), MediaType: MediaTypeManifest}, err
-	}
-	err := distribution.RegisterManifestSchema(MediaTypeManifest, schema2Func)
-	if err != nil {
+	if err := distribution.RegisterManifestSchema(defaultMediaType, unmarshalSchema2); err != nil {
 		panic(fmt.Sprintf("Unable to register manifest: %s", err))
 	}
 }
 
+func unmarshalSchema2(b []byte) (distribution.Manifest, v1.Descriptor, error) {
+	m := &DeserializedManifest{}
+	if err := m.UnmarshalJSON(b); err != nil {
+		return nil, v1.Descriptor{}, err
+	}
+
+	return m, v1.Descriptor{
+		Digest:    digest.FromBytes(b),
+		Size:      int64(len(b)),
+		MediaType: defaultMediaType,
+	}, nil
+}
+
 // Manifest defines a schema2 manifest.
 type Manifest struct {
-	manifest.Versioned
+	specs.Versioned
+
+	// MediaType is the media type of this schema.
+	MediaType string `json:"mediaType,omitempty"`
 
 	// Config references the image configuration as a blob.
-	Config distribution.Descriptor `json:"config"`
+	Config v1.Descriptor `json:"config"`
 
 	// Layers lists descriptors for the layers referenced by the
 	// configuration.
-	Layers []distribution.Descriptor `json:"layers"`
+	Layers []v1.Descriptor `json:"layers"`
 }
 
 // References returns the descriptors of this manifests references.
-func (m Manifest) References() []distribution.Descriptor {
-	references := make([]distribution.Descriptor, 0, 1+len(m.Layers))
+func (m Manifest) References() []v1.Descriptor {
+	references := make([]v1.Descriptor, 0, 1+len(m.Layers))
 	references = append(references, m.Config)
 	references = append(references, m.Layers...)
 	return references
 }
 
 // Target returns the target of this manifest.
-func (m Manifest) Target() distribution.Descriptor {
+func (m Manifest) Target() v1.Descriptor {
 	return m.Config
 }
 
@@ -114,9 +131,8 @@ func (m *DeserializedManifest) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	if mfst.MediaType != MediaTypeManifest {
-		return fmt.Errorf("mediaType in manifest should be '%s' not '%s'",
-			MediaTypeManifest, mfst.MediaType)
+	if mfst.MediaType != defaultMediaType {
+		return fmt.Errorf("mediaType in manifest should be '%s' not '%s'", defaultMediaType, mfst.MediaType)
 	}
 
 	m.Manifest = mfst
