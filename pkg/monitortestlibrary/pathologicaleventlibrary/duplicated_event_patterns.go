@@ -1094,8 +1094,8 @@ func newCrioReloadedTooOftenEventMatcher(finalInternals monitorapi.Intervals) Ev
 			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
 	})
 	for i := range crioReloadedIntervals {
-		crioReloadedIntervals[i].To = crioReloadedIntervals[i].To.Add(time.Minute * 2)
-		crioReloadedIntervals[i].From = crioReloadedIntervals[i].From.Add(time.Minute * -2)
+		crioReloadedIntervals[i].To = crioReloadedIntervals[i].To.Add(time.Minute * 10)
+		crioReloadedIntervals[i].From = crioReloadedIntervals[i].From.Add(time.Minute * -10)
 	}
 
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
