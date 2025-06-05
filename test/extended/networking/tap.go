@@ -35,7 +35,15 @@ var _ = g.Describe("[sig-network][Feature:tap]", func() {
 		if len(workerNodes.Items) == 0 {
 			e2e.Failf("cluster should have nodes")
 		}
-		worker = &workerNodes.Items[0]
+		// Preventing to select worker nodes in variants which applies NoSchedule taints
+		// to some worker nodes, preventing this test to fail to schedule.
+		for idx, wk := range workerNodes.Items {
+			if len(wk.Spec.Taints) == 0 {
+				worker = &workerNodes.Items[idx]
+				break
+			}
+		}
+		o.Expect(worker).NotTo(o.BeNil())
 
 		// Load tun module.
 		_, err = exutil.ExecCommandOnMachineConfigDaemon(f.ClientSet, oc, worker, []string{
