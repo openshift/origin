@@ -171,7 +171,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 
 			// Skip if test requires validCert but kubeconfig doesn't have one
 			if test.certKey == "validCert" && len(validCert.CertData) == 0 && validCert.CertFile == "" {
-				e2e.Logf("🧪 Skipping test '%s': no available client certificate key in kubeconfig", name)
+				e2e.Logf("Skipping test '%s': no available client certificate in kubeconfig", name)
 				continue
 			}
 
@@ -184,20 +184,20 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 			if strings.HasPrefix(test.token, "sha256~") && len(test.token) > len("sha256~")+6 {
 				tokenPrefix = test.token[:len("sha256~")+6] + "..."
 			}
-			e2e.Logf("🔍 Test case '%s': token='%s', using cert='%s'\n", name, tokenPrefix, test.certKey)
+			e2e.Logf("Test case '%s': token='%s', using cert='%s'\n", name, tokenPrefix, test.certKey)
 			if len(adminConfig.TLSClientConfig.CertData) > 0 {
 				certs, err := crypto.CertsFromPEM(adminConfig.TLSClientConfig.CertData)
 				if err != nil {
-					e2e.Logf("❌ Failed to parse cert: %v\n", err)
+					e2e.Logf("Failed to parse cert: %v\n", err)
 				} else {
 					for i, cert := range certs {
 						fingerprint := sha256.Sum256(cert.Raw)
-						e2e.Logf("🔐 Cert[%d]: Subject=%s, Issuer=%s, SHA256=%x\n",
+						e2e.Logf("Cert[%d]: Subject=%s, Issuer=%s, SHA256=%x\n",
 							i, cert.Subject.String(), cert.Issuer.String(), fingerprint[:8])
 					}
 				}
 			} else {
-				e2e.Logf("🚫 no available client certificate key in kubeconfig\n")
+				e2e.Logf("no available client certificate in kubeconfig\n")
 			}
 
 			userClient := userv1client.NewForConfigOrDie(adminConfig)
