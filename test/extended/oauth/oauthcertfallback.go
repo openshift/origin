@@ -192,8 +192,8 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 				} else {
 					for i, cert := range certs {
 						fingerprint := sha256.Sum256(cert.Raw)
-						e2e.Logf("Cert[%d]: Subject=%s, Issuer=%s, SHA256=%x\n",
-							i, cert.Subject.String(), cert.Issuer.String(), fingerprint[:8])
+						e2e.Logf("Cert[%d]: Subject=%s, Issuer=%s, SHA256=%x%s\n",
+							i, cert.Subject.String(), cert.Issuer.String(), fingerprint[:3], "xxxxxx")
 					}
 				}
 			} else {
