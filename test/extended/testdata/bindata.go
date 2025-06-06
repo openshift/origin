@@ -43528,6 +43528,9 @@ spec:
   - type: Allow
     to:
       dnsName: redhat.com
+  - type: Allow
+    to:
+      dnsName: AMAZON.COM
   - type: Deny
     to:
       dnsName: www.google.com
@@ -43573,6 +43576,9 @@ spec:
       dnsName: redhat.com
   - type: Allow
     to:
+      dnsName: AMAZON.COM
+  - type: Allow
+    to:
       dnsName: "*.google.com"
   - type: Allow
     to:
@@ -43611,6 +43617,9 @@ spec:
   - type: Allow
     to:
       dnsName: redhat.com
+  - type: Allow
+    to:
+      dnsName: amazon.com
   - type: Allow
     to:
       cidrSelector: 8.8.8.8/32
