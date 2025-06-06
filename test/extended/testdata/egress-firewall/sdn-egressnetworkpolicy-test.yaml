@@ -9,6 +9,9 @@ spec:
       dnsName: redhat.com
   - type: Allow
     to:
+      dnsName: amazon.com
+  - type: Allow
+    to:
       cidrSelector: 8.8.8.8/32
   - type: Deny
     to:

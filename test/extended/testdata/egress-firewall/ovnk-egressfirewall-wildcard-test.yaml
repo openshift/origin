@@ -9,6 +9,9 @@ spec:
       dnsName: redhat.com
   - type: Allow
     to:
+      dnsName: AMAZON.COM
+  - type: Allow
+    to:
       dnsName: "*.google.com"
   - type: Allow
     to:
