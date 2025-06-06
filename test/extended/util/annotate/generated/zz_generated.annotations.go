@@ -989,6 +989,8 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode] ClusterVersion API desired.architecture field in the CV should be multi or empty depending on the 'release.openshift.io/architecture' field being set in the release payload's metadata [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
