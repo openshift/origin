@@ -4,8 +4,6 @@ cel.dev/expr
 # git.sr.ht/~sbinet/gg v0.5.0
 ## explicit; go 1.19
 git.sr.ht/~sbinet/gg
-# github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
-## explicit; go 1.20
 # github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
 ## explicit
 github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2022-08-01/compute
@@ -307,7 +305,7 @@ github.com/distribution/distribution/v3/reference
 # github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
-# github.com/docker/docker v27.1.2+incompatible
+# github.com/docker/docker v27.3.1+incompatible
 ## explicit
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/container
@@ -371,9 +369,10 @@ github.com/felixge/fgprof
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
-# github.com/fsnotify/fsnotify v1.7.0
+# github.com/fsnotify/fsnotify v1.8.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
+github.com/fsnotify/fsnotify/internal
 # github.com/fsouza/go-dockerclient v1.12.0
 ## explicit; go 1.22
 github.com/fsouza/go-dockerclient
@@ -565,7 +564,7 @@ github.com/google/goexpect
 # github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f
 ## explicit
 github.com/google/goterm/term
-# github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db
+# github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad
 ## explicit; go 1.22
 github.com/google/pprof/profile
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -719,7 +718,7 @@ github.com/mitchellh/go-homedir
 # github.com/mitchellh/go-wordwrap v1.0.1
 ## explicit; go 1.14
 github.com/mitchellh/go-wordwrap
-# github.com/mitchellh/mapstructure v1.4.1
+# github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
 # github.com/moby/docker-image-spec v1.3.1
@@ -769,7 +768,7 @@ github.com/munnerz/goautoneg
 # github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 ## explicit
 github.com/mxk/go-flowrate/flowrate
-# github.com/onsi/ginkgo/v2 v2.21.0 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
+# github.com/onsi/ginkgo/v2 v2.22.2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
 ## explicit; go 1.22.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -791,8 +790,8 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.35.1
-## explicit; go 1.22
+# github.com/onsi/gomega v1.36.2
+## explicit; go 1.22.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/gcustom
@@ -803,6 +802,7 @@ github.com/onsi/gomega/gstruct/errors
 github.com/onsi/gomega/internal
 github.com/onsi/gomega/internal/gutil
 github.com/onsi/gomega/matchers
+github.com/onsi/gomega/matchers/internal/miter
 github.com/onsi/gomega/matchers/support/goraph/bipartitegraph
 github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
@@ -863,7 +863,7 @@ github.com/openshift-kni/commatrix/pkg/matrix-diff
 github.com/openshift-kni/commatrix/pkg/types
 github.com/openshift-kni/commatrix/pkg/utils
 github.com/openshift-kni/commatrix/test/pkg/cluster
-# github.com/openshift/api v0.0.0-20250710004639-926605d3338b
+# github.com/openshift/api v3.9.0+incompatible => github.com/openshift/api v0.0.0-20250710004639-926605d3338b
 ## explicit; go 1.24.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -1173,6 +1173,18 @@ github.com/openshift/library-go/pkg/template/templateprocessingclient
 github.com/openshift/library-go/test/library
 github.com/openshift/library-go/test/library/apiserver
 github.com/openshift/library-go/test/library/metrics
+# github.com/operator-framework/api v0.27.0
+## explicit; go 1.22.0
+github.com/operator-framework/api/pkg/lib/version
+github.com/operator-framework/api/pkg/operators
+github.com/operator-framework/api/pkg/operators/v1
+github.com/operator-framework/api/pkg/operators/v1alpha1
+github.com/operator-framework/api/pkg/operators/v1alpha2
+github.com/operator-framework/api/pkg/operators/v2
+# github.com/operator-framework/operator-lifecycle-manager v0.30.1-0.20250114164243-1b6752ec65fa
+## explicit; go 1.23.0
+github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/scheme
+github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1
 # github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 ## explicit; go 1.22.0
 github.com/ovn-org/ovn-kubernetes/go-controller/pkg/crd/routeadvertisements/v1
@@ -1548,8 +1560,8 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-## explicit; go 1.20
+# golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
+## explicit; go 1.22.0
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
 golang.org/x/exp/slices
@@ -1570,7 +1582,7 @@ golang.org/x/image/math/fixed
 golang.org/x/image/tiff
 golang.org/x/image/tiff/lzw
 golang.org/x/image/vector
-# golang.org/x/mod v0.21.0
+# golang.org/x/mod v0.22.0
 ## explicit; go 1.22.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.38.0
@@ -1642,7 +1654,7 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.9.0
 ## explicit; go 1.18
 golang.org/x/time/rate
-# golang.org/x/tools v0.26.0
+# golang.org/x/tools v0.28.0
 ## explicit; go 1.22.0
 golang.org/x/tools/container/intsets
 golang.org/x/tools/cover
@@ -1666,7 +1678,7 @@ gonum.org/v1/plot/vg/vgimg
 gonum.org/v1/plot/vg/vgpdf
 gonum.org/v1/plot/vg/vgsvg
 gonum.org/v1/plot/vg/vgtex
-# google.golang.org/genproto v0.0.0-20240123012728-ef4313101c80
+# google.golang.org/genproto v0.0.0-20240227224415-6ceb2ff114de
 ## explicit; go 1.19
 google.golang.org/genproto/protobuf/field_mask
 # google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576
@@ -3862,7 +3874,7 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient/virtualnetworklinkclient
 # sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16
 ## explicit; go 1.22.0
 sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader
-# sigs.k8s.io/controller-runtime v0.19.0
+# sigs.k8s.io/controller-runtime v0.19.4
 ## explicit; go 1.22.0
 sigs.k8s.io/controller-runtime
 sigs.k8s.io/controller-runtime/pkg/builder
@@ -4058,3 +4070,4 @@ sigs.k8s.io/yaml/goyaml.v3
 # k8s.io/sample-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250716113245-b94367cabf3e
 # k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250716113245-b94367cabf3e
 # k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250716113245-b94367cabf3e
+# github.com/openshift/api => github.com/openshift/api v0.0.0-20250710004639-926605d3338b
