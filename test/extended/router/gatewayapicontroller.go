@@ -430,6 +430,10 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 			e2e.Logf("Failed to get service %q: %v, retrying...", gwServiceName, err)
 			return false, nil
 		}
+		if len(lbService.Status.LoadBalancer.Ingress) == 0 {
+			e2e.Logf("Service %q has no load balancer; retrying...", gwServiceName)
+			return false, nil
+		}
 		if lbService.Status.LoadBalancer.Ingress[0].Hostname != "" {
 			lbAddress = lbService.Status.LoadBalancer.Ingress[0].Hostname
 		} else {
@@ -523,10 +527,12 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 4*time.Minute, false, func(context context.Context) (bool, error) {
 		checkHttpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Get(context, httpRoute.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, condition := range checkHttpRoute.Status.Parents[0].Conditions {
-			if condition.Type == string(gatewayapiv1.RouteConditionAccepted) {
-				if condition.Status == metav1.ConditionTrue {
-					return true, nil
+		if len(checkHttpRoute.Status.Parents) > 0 {
+			for _, condition := range checkHttpRoute.Status.Parents[0].Conditions {
+				if condition.Type == string(gatewayapiv1.RouteConditionAccepted) {
+					if condition.Status == metav1.ConditionTrue {
+						return true, nil
+					}
 				}
 			}
 		}
