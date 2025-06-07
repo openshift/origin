@@ -890,7 +890,7 @@ func patchRouteToRemoveExternalCertificate(oc *exutil.CLI, routeName string) err
 
 // isOnPremJob checks if the current job is running on an on-prem platform.
 func isOnPremJob(oc *exutil.CLI) (bool, error) {
-	onPremPlatforms := sets.NewString("metal", "openstack", "kubevirt")
+	onPremPlatforms := sets.NewString("metal", "openstack", "kubevirt", "none")
 
 	jobType, err := platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
 	if err != nil {
