@@ -7,6 +7,9 @@ spec:
   - type: Allow
     to:
       dnsName: redhat.com
+  - type: Allow
+    to:
+      dnsName: AMAZON.COM
   - type: Deny
     to:
       dnsName: www.google.com
