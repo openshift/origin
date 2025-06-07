@@ -48,7 +48,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -77,7 +77,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -105,7 +105,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -134,7 +134,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -162,7 +162,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue

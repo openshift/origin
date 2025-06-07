@@ -40,28 +40,28 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 
 		g.By("waiting for created resources to be ready for testing")
 		err = wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
-			err := oc.Run("get").Args("imagestreamtags", "ruby:3.1-ubi8").Execute()
+			err := oc.Run("get").Args("imagestreamtags", "ruby:3.3-ubi8").Execute()
 			return err == nil, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("testing --local flag validation")
-		out, err := oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.1-ubi8", "--local").Output()
+		out, err := oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.3-ubi8", "--local").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("you must specify resources by --filename when --local is set."))
 
 		g.By("testing --dry-run=client with -o flags")
-		out, err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag", "--dry-run=client").Output()
+		out, err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag", "--dry-run=client").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("test-deployment-config"))
 		o.Expect(out).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/test-deployment-config image updated (dry run)"))
 
-		out, err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag", "--dry-run=client", "-o", "name").Output()
+		out, err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag", "--dry-run=client", "-o", "name").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("deploymentconfig.apps.openshift.io/test-deployment-config"))
 
 		g.By("testing basic image updates")
-		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag").Execute()
+		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		out, err = oc.Run("get").Args("dc/test-deployment-config", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		o.Expect(out).To(o.ContainSubstring("/ruby@sha256:"))
 
 		g.By("repeating basic image updates to ensure nothing changed")
-		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag").Execute()
+		err = oc.Run("set").Args("image", "dc/test-deployment-config", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		out, err = oc.Run("get").Args("dc/test-deployment-config", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 
 		g.By("setting a different, valid image on multiple resources")
 		err = wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
-			err := oc.Run("set").Args("image", "pods,dc", "*=ruby:3.1-ubi8", "--all", "--source=imagestreamtag").Execute()
+			err := oc.Run("set").Args("image", "pods,dc", "*=ruby:3.3-ubi8", "--all", "--source=imagestreamtag").Execute()
 			if err != nil {
 				klog.Warningf("one of pods failed when setting image %v", err)
 				return false, nil
@@ -146,28 +146,28 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 
 		g.By("waiting for created resources to be ready for testing")
 		err = wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
-			err := oc.Run("get").Args("imagestreamtags", "ruby:3.1-ubi8").Execute()
+			err := oc.Run("get").Args("imagestreamtags", "ruby:3.3-ubi8").Execute()
 			return err == nil, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("testing --local flag validation")
-		out, err := oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.1-ubi8", "--local").Output()
+		out, err := oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.3-ubi8", "--local").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("you must specify resources by --filename when --local is set."))
 
 		g.By("testing --dry-run=client with -o flags")
-		out, err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag", "--dry-run=client").Output()
+		out, err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag", "--dry-run=client").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("test-deployment"))
 		o.Expect(out).To(o.ContainSubstring("deployment.apps/test-deployment image updated (dry run)"))
 
-		out, err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag", "--dry-run=client", "-o", "name").Output()
+		out, err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag", "--dry-run=client", "-o", "name").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("deployment.apps/test-deployment"))
 
 		g.By("testing basic image updates")
-		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag").Execute()
+		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		out, err = oc.Run("get").Args("deployment/test-deployment", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
@@ -176,7 +176,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		o.Expect(out).To(o.ContainSubstring("/ruby@sha256:"))
 
 		g.By("repeating basic image updates to ensure nothing changed")
-		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.1-ubi8", "--source=istag").Execute()
+		err = oc.Run("set").Args("image", "deployment/test-deployment", "ruby-helloworld=ruby:3.3-ubi8", "--source=istag").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		out, err = oc.Run("get").Args("deployment/test-deployment", "-o", "jsonpath='{.spec.template.spec.containers[0].image}'").Output()
@@ -216,7 +216,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 
 		g.By("setting a different, valid image on multiple resources")
 		err = wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
-			err := oc.Run("set").Args("image", "pods,deployments", "*=ruby:3.1-ubi8", "--all", "--source=imagestreamtag").Execute()
+			err := oc.Run("set").Args("image", "pods,deployments", "*=ruby:3.3-ubi8", "--all", "--source=imagestreamtag").Execute()
 			if err != nil {
 				klog.Warningf("one of pods failed when setting image %v", err)
 				return false, nil
