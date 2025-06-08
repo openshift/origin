@@ -120,6 +120,26 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		}
 	})
 
+	g.It("the Machine provider spec zone should match the label on the paired node", func() {
+		exutil.SkipIfNotPlatform(oc, v1.AWSPlatformType)
+		g.By("Listing all Machines ...")
+		machineClient := dc.Resource(schema.GroupVersionResource{Group: "machine.openshift.io", Resource: "machines", Version: "v1beta1"})
+		obj, err := machineClient.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+		machines := objx.Map(obj.UnstructuredContent())
+		items := objects(machines.Get("items"))
+		for _, machine := range items {
+			machineProviderSpecZone := machine.Get("spec.providerSpec.value.placement.availabilityZone").String()
+			if machineProviderSpecZone == "" {
+				continue
+			}
+			nodeName := nodeNameFromNodeRef(machine)
+			labelOnTheNode, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", nodeName, "-o=jsonpath={.metadata.labels.topology\\.kubernetes\\.io\\/zone}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get node label")
+			o.Expect(labelOnTheNode).To(o.Equal(machineProviderSpecZone))
+		}
+	})
+
 	g.It("[sig-scheduling][Early] control plane machine set operator should not cause an early rollout", func() {
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
