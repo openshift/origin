@@ -519,10 +519,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			}
 
 			retry := test.Retry()
-			retries = append(retries, retry)
-			if len(retries) > suite.MaximumAllowedFlakes {
-				break
+			// retry an additional 9 times when an e2e fails to generate more signal
+			// TODO: only if test did not run too long?
+			logrus.Infof("Retrying failed test %s (duration: %v) an additional 9x to generate more signal", test.name, test.duration)
+			for i := 0; i < 9; i++ {
+				retries = append(retries, retry)
 			}
+			/*
+				if len(retries) > suite.MaximumAllowedFlakes {
+					break
+				}
+
+			*/
 		}
 
 		logrus.Warningf("%d tests failed, %d origin-sourced tests will be retried; %d extension tests will not", len(failing), len(retries), failedExtensionTestCount)
