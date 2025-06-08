@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -17,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/pkg/errors"
@@ -250,9 +248,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
-	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
+	//suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	//r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	//r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
