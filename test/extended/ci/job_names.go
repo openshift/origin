@@ -111,7 +111,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 				if isPeriodic {
 					e2e.Fail(failMessage)
 				} else {
-					result.Flakef(failMessage)
+					result.Flakef("%s", failMessage)
 				}
 			}
 		case "OVNKubernetes":
@@ -122,7 +122,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 				if isPeriodic {
 					e2e.Fail(failMessage)
 				} else {
-					result.Flakef(failMessage)
+					result.Flakef("%s", failMessage)
 				}
 			}
 		default:

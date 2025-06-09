@@ -204,7 +204,7 @@ func prettyPrintReviewResponse(resp *authorizationv1.ResourceAccessReviewRespons
 		groupsStr = fmt.Sprintf("  groups:\n%s", strings.Join(groupStrList, ""))
 	}
 
-	return fmt.Sprintf(nsStr + usersStr + groupsStr)
+	return fmt.Sprintf("%s", nsStr+usersStr+groupsStr)
 }
 
 // This list includes the admins from above, plus users or groups known to have global view access

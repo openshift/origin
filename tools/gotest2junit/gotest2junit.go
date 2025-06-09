@@ -196,7 +196,7 @@ func stream(r io.Reader, summarize, verbose bool) (map[string]*testSuite, error)
 			defaultTest.SystemOut += line
 			defaultTest.SystemOut += out
 			defaultTest.FailureOutput = &api.FailureOutput{}
-			fmt.Fprintf(os.Stderr, out)
+			fmt.Fprint(os.Stderr, out)
 		}
 	}
 

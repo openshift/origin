@@ -283,7 +283,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 			return nil
 		})
 		if err != nil {
-			e2e.Failf(err.Error())
+			e2e.Fail(err.Error())
 		}
 	})
 
@@ -313,7 +313,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 			return violations
 		})
 		if err != nil {
-			e2e.Failf(err.Error())
+			e2e.Fail(err.Error())
 		}
 	})
 
@@ -336,7 +336,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 			return violations
 		})
 		if err != nil {
-			e2e.Failf(err.Error())
+			e2e.Fail(err.Error())
 		}
 	})
 
@@ -357,7 +357,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 			return violations
 		})
 		if err != nil {
-			e2e.Failf(err.Error())
+			e2e.Fail(err.Error())
 		}
 	})
 
@@ -381,7 +381,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		if err != nil {
 			// We can't fail the test because the runbook URLs might be temporarily unavailable.
 			// At least we can manually check the CI logs to identify buggy URLs.
-			testresult.Flakef(err.Error())
+			testresult.Flakef("%s", err.Error())
 		}
 	})
 })
@@ -507,7 +507,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 			if err != nil {
 				// Making the test flaky until monitoring team fixes the rate limit issue.
-				testresult.Flakef(err.Error())
+				testresult.Flakef("%s", err.Error())
 			}
 		})
 
