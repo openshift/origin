@@ -2,7 +2,10 @@ package networking
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
@@ -13,8 +16,6 @@ import (
 
 	netattdefv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -24,14 +25,13 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/dynamic"
@@ -42,11 +42,13 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2edeployment "k8s.io/kubernetes/test/e2e/framework/deployment"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
-	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	utilnet "k8s.io/utils/net"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 type NodeType int
@@ -60,10 +62,6 @@ const (
 
 	// How often to poll pods and nodes.
 	poll = 5 * time.Second
-
-	// How wide to print pod names, by default. Useful for aligning printing to
-	// quickly scan through output.
-	podPrintWidth = 55
 
 	// Indicator for same or different node
 	SAME_NODE      NodeType = iota
@@ -209,7 +207,7 @@ func createWebserverLBService(client k8sclient.Interface, namespace, serviceName
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPod := pod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 	})
 	defer func() {
@@ -222,7 +220,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	e2e.Logf("Waiting up to %v to wget %s", timeout, host)
 	cmd := fmt.Sprintf("wget -T 30 -qO- %s", host)
 	var err error
-	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2 * time.Second) {
 		stdout, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 		if err != nil {
 			e2e.Logf("got err: %v, retry until timeout", err)
@@ -331,7 +329,7 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 		if err == nil {
 			return
 		}
-		if kapierrs.IsConflict(err) {
+		if apierrors.IsConflict(err) {
 			continue
 		}
 		expectNoError(err)
@@ -616,7 +614,7 @@ func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
 	return getIPFamily(podIPs)
 }
 
-func getIPFamily(podIPs []v1.PodIP) IPFamily {
+func getIPFamily(podIPs []corev1.PodIP) IPFamily {
 	switch len(podIPs) {
 	case 1:
 		ip := net.ParseIP(podIPs[0].IP)
@@ -641,7 +639,7 @@ func getIPFamily(podIPs []v1.PodIP) IPFamily {
 }
 
 func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
-	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
+	pod := e2epod.NewAgnhostPod(ns, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
 	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	expectNoError(err, "failed to create new pod in namespace: %s", ns)
@@ -821,13 +819,13 @@ func deleteNSCertMachineConfig(oc *exutil.CLI) error {
 	return nil
 }
 
-func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, generateName string) (*v1.Pod, error) {
+func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, generateName string) (*corev1.Pod, error) {
 	contName := fmt.Sprintf("%s-container", generateName)
 	runAsUser := int64(0)
-	securityContext := &v1.SecurityContext{
+	securityContext := &corev1.SecurityContext{
 		RunAsUser: &runAsUser,
-		Capabilities: &v1.Capabilities{
-			Add: []v1.Capability{
+		Capabilities: &corev1.Capabilities{
+			Add: []corev1.Capability{
 				"SETFCAP",
 				"CAP_NET_RAW",
 				"CAP_NET_ADMIN",
@@ -835,15 +833,15 @@ func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, 
 		},
 	}
 
-	pod := &v1.Pod{
+	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Pod",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: generateName,
 		},
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{
 					Name:            contName,
 					Image:           tcpdumpImage,
@@ -852,7 +850,7 @@ func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, 
 				},
 			},
 			NodeName:      nodeName,
-			RestartPolicy: v1.RestartPolicyNever,
+			RestartPolicy: corev1.RestartPolicyNever,
 			HostNetwork:   true,
 		},
 	}
@@ -1007,10 +1005,183 @@ func hasNetworkConfigWriteAccess(oc *exutil.CLI) (bool, error) {
 		metav1.PatchOptions{FieldManager: oc.Namespace(), DryRun: []string{metav1.DryRunAll}})
 
 	if err != nil {
-		if kapierrs.IsInvalid(err) || kapierrs.IsForbidden(err) {
+		if apierrors.IsInvalid(err) || apierrors.IsForbidden(err) {
 			return false, nil
 		}
 		return false, err
 	}
 	return true, nil
+}
+
+// allocateIPs generates, reserves and returns (n4) v4 and (n6) v6 IPs (or
+// subnets) following the provided templates (t4, t6) over the provided
+// [min,max] range for the expected single template parameter (non validated) in
+// the context of the provided (namespace, name, key) config map data key:
+// consecutive calls on this method with the same context will return
+// non-colliding IPs. Call deallocateIPs to free.
+func allocateIPs(oc *exutil.CLI, namespace, name, key, t4, t6 string, n4, n6, min, max int) ([]string, []string, error) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: allocationConfigMapName,
+		},
+	}
+	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(allocationConfigMapNamespace).Create(context.Background(), cm, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return nil, nil, fmt.Errorf("failed to create config map %v: %w", cm, err)
+	}
+
+	allocationFull := errors.New("no IPs available to allocate")
+	allocate := func(template string, n, min, max int, existing sets.Set[string]) ([]string, error) {
+		ips := sets.New[string]()
+		for {
+			if ips.Len() == n {
+				// all requested IPs allocated
+				break
+			}
+			// for each IP to allocate, we take a random start and consecutively
+			// try from there
+			from := rand.Intn(max - min + 1)
+			to := from + max - min
+			var i int
+			for i = from; i < to; i = i + 1 {
+				ip := fmt.Sprintf(template, min+(i%(max-min)))
+				if !ips.Has(ip) && !existing.Has(ip) {
+					ips.Insert(ip)
+					break
+				}
+			}
+			if i == to {
+				return nil, allocationFull
+			}
+		}
+		return ips.UnsortedList(), nil
+	}
+
+	var ipsv4, ipsv6 []string
+	err = retry.OnError(
+		wait.Backoff{Steps: 30, Duration: time.Second},
+		func(err error) bool {
+			return apierrors.IsConflict(err) || errors.Is(err, allocationFull)
+		},
+		func() error {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(allocationConfigMapNamespace).Get(context.Background(), allocationConfigMapName, metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to get config map %q: %w", allocationConfigMapName, err)
+			}
+
+			existing := []string{}
+			if cm.Data == nil {
+				cm.Data = map[string]string{}
+			}
+			if cm.Data[key] != "" {
+				err := json.Unmarshal([]byte(cm.Data[key]), &existing)
+				if err != nil {
+					return err
+				}
+			}
+			existingSet := sets.New(existing...)
+			ipsv4, err = allocate(t4, n4, min, max, existingSet)
+			if err != nil {
+				return fmt.Errorf("could not allocate %d IPv4 from pool %s with existing allocations %v: %w", n4, key, existing, err)
+			}
+			ipsv6, err = allocate(t6, n6, min, max, existingSet)
+			if err != nil {
+				return fmt.Errorf("could not allocate %d IPv6 from pool %s with existing allocations %v: %w", n6, key, existing, err)
+			}
+			if len(ipsv4)+len(IPv6) == 0 {
+				return nil
+			}
+			existingSet.Insert(ipsv4...)
+			existingSet.Insert(ipsv6...)
+
+			data, err := json.Marshal(existingSet.UnsortedList())
+			if err != nil {
+				return err
+			}
+
+			cm.Data[key] = string(data)
+			_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(allocationConfigMapNamespace).Update(context.Background(), cm, metav1.UpdateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to update config map %v: %w", cm, err)
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to allocate %s/%s/%s IPs: %w", namespace, name, key, err)
+	}
+	return ipsv4, ipsv6, nil
+}
+
+// deallocateIPs frees IPs previously allocated with allocateIPs
+func deallocateIPs(oc *exutil.CLI, namespace, name, key string, ips ...string) error {
+	err := retry.RetryOnConflict(
+		wait.Backoff{Steps: 30, Duration: time.Second},
+		func() error {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(allocationConfigMapNamespace).Get(context.Background(), allocationConfigMapName, metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to get config map %q: %w", allocationConfigMapName, err)
+			}
+			existing := []string{}
+			if cm.Data[key] == "" {
+				return nil
+			}
+			err = json.Unmarshal([]byte(cm.Data[key]), &existing)
+			if err != nil {
+				return err
+			}
+			existingSet := sets.New(existing...)
+			existingSet.Delete(ips...)
+			data, err := json.Marshal(existingSet.UnsortedList())
+			if err != nil {
+				return err
+			}
+
+			cm.Data[key] = string(data)
+			_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(allocationConfigMapNamespace).Update(context.Background(), cm, metav1.UpdateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to update config map %v: %w", cm, err)
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to deallocate %s/%s/%s IPs %v: %w", namespace, name, key, ips, err)
+	}
+	return nil
+}
+
+// runOcWithRetry runs the oc command with up to 5 retries if a timeout error occurred while running the command.
+func runOcWithRetry(oc *exutil.CLI, cmd string, args ...string) (string, error) {
+	var err error
+	var stdout string
+	maxRetries := 5
+
+	for numRetries := 0; numRetries < maxRetries; numRetries++ {
+		if numRetries > 0 {
+			e2e.Logf("Retrying oc command (retry count=%v/%v)", numRetries+1, maxRetries)
+		}
+
+		// stderrr can have spurious logs that can disrupt parsing done by
+		// callers, ignore it
+		stdout, _, err = oc.Run(cmd).Args(args...).Outputs()
+		// If an error was found, either return the error, or retry if a timeout error was found.
+		if err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
+				// Retry on "i/o timeout" errors
+				e2e.Logf("Warning: oc command encountered i/o timeout.\nerr=%v\n)", err)
+				continue
+			}
+			return stdout, err
+		}
+
+		// Break out of loop if no error.
+		break
+	}
+	return stdout, err
+}
+
+func runOcWithRetryIgnoreOutput(oc *exutil.CLI, cmd string, args ...string) error {
+	_, err := runOcWithRetry(oc, cmd, args...)
+	return err
 }

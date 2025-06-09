@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"regexp"
@@ -51,6 +51,22 @@ const (
 
 	frrNamespace = "openshift-frr-k8s"
 	raLabel      = "k8s.ovn.org/route-advertisements"
+
+	// IP allocation parameters
+	// The pools being defined here for the BGP test cases should not be used by
+	// any other tests in the same suite
+	allocationConfigMapNamespace = "default"
+	allocationConfigMapName      = "e2e-test-ovn-bgp-allocations"
+	subnetAllocationKey          = "allocated-subnets"
+	subnetAllocationTemplatev4   = "203.%d.0.0/16"
+	subnetAllocationTemplatev6   = "2014:100:200:%02x0::0/60"
+	subnetAllocationMin          = 110
+	subnetAllocationMax          = 140
+	eipAllocationKey             = "allocated-eips"
+	eipAllocationTemplatev4      = "192.168.111.%d"
+	eipAllocationTemplatev6      = "fd2e:6f44:5dd8:c956::%0x"
+	eipAllocationMin             = 110
+	eipAllocationMax             = 170
 
 	// These variables are specific to VRF Lite testing. Thay make assumptions
 	// that are aligned to how the job itself configures the infra environment.
@@ -203,8 +219,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 		// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
 		g.AfterEach(func() {
-			g.By("Removing the temp directory")
-			os.RemoveAll(tmpDirBGP)
+			o.Expect(os.RemoveAll(tmpDirBGP)).To(o.Succeed())
 		})
 
 		g.JustAfterEach(func() {
@@ -284,6 +299,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 		g.Describe("[PodNetwork] Advertising a cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
 			var testCUDNName, testTargetVRF, testCUDNTopology, testSnifferInterface string
+			var userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet string
 			var cleanup func()
 
 			isTargetVRFLite := func(targetVRF string) bool {
@@ -408,8 +424,12 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					role:      "primary",
 					namespace: targetNamespace,
 				}
-				userDefinedNetworkIPv4Subnet := generateRandomSubnet(IPv4)
-				userDefinedNetworkIPv6Subnet := generateRandomSubnet(IPv6)
+
+				g.By("Allocating subnets for a CUDN")
+				userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, err = allocateSubnets(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				framework.Logf("Allocated subnets %s %s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+
 				nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 				cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
 				cleanup, err = createManifest("", cudnManifest)
@@ -445,14 +465,15 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				v4PodIPSet, v6PodIPSet = extractPodUdnIPs(podList, nc, targetNamespace, clientset)
 			}
 
-			afterEach := func() {
-				g.GinkgoHelper()
-
-				runOcWithRetry(oc.AsAdmin(), "delete", "deploy", deployName)
-				runOcWithRetry(oc.AsAdmin(), "delete", "pod", "--all")
-				runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName)
-				runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "delete", "clusteruserdefinednetwork", testCUDNName)
+			afterEach := func() error {
+				err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "deploy", deployName)
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "pod", "--all"))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "clusteruserdefinednetwork", testCUDNName))
+				errors.Join(err, deallocateSubnets(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet))
 				cleanup()
+				return err
 			}
 
 			g.DescribeTableSubtree("Over the default VRF",
@@ -461,7 +482,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 						beforeEach(randomNetworkMetaName(), "", topology, "")
 					})
 					g.AfterEach(func() {
-						afterEach()
+						o.Expect(afterEach()).To(o.Succeed())
 					})
 					g.It("Pods should communicate with external host without being SNATed", toExternalCheck)
 					g.It("External host should be able to query route advertised pods by the pod IP", fromExternalCheck)
@@ -496,8 +517,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				})
 
 				g.AfterEach(func() {
-					runOcWithRetry(oc.AsAdmin(), "delete", "nncp", "extranet")
-					afterEach()
+					o.Expect(func() error {
+						err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "nncp", "extranet")
+						errors.Join(err, afterEach())
+						return err
+					}()).To(o.Succeed())
 				})
 
 				test := func(topology string) {
@@ -552,14 +576,16 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 		g.Describe("[EgressIP] Advertising EgressIP [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
 			var err error
 			var egressIPYamlPath, egressIPObjectName string
+			var egressIPSet, newEgressIPSet map[string]string
 
 			g.BeforeEach(func() {
 				egressIPYamlPath = tmpDirBGP + "/" + egressIPYaml
 				g.By("Setting the EgressIP nodes as EgressIP assignable")
-				_, err = runOcWithRetry(oc.AsAdmin(), "create", "configmap", "egressip-test")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = runOcWithRetry(oc.AsAdmin(), "label", "configmap", "egressip-test", "app=egressip-test")
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// in order for these tests to run in parallel, they  all use
+				// the same egress nodes (all ordered worker nodes but the
+				// first), so we will label as necessary but not unlabel. There
+				// shouldn't be any other tests in the suite labeling a
+				// different set of nodes, or unlabeling any nodes.
 				for _, node := range egressIPNodes {
 					_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -570,26 +596,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			})
 
 			g.AfterEach(func() {
-				g.By("Deleting the EgressIP object if it exists for OVN Kubernetes")
-				if _, err := os.Stat(egressIPYamlPath); err == nil {
-					_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirBGP+"/"+egressIPYaml)
-				}
-				output, _ := runOcWithRetry(oc.AsAdmin(), "get", "egressip", "--no-headers")
-				if strings.TrimSpace(output) != "No resources found" {
-					framework.Logf("don't unlabel the nodes if there are still EgressIP objects: %s", output)
-					return
-				}
-				runOcWithRetry(oc.AsAdmin(), "delete", "configmap", "egressip-test")
-				output, _ = runOcWithRetry(oc.AsAdmin(), "get", "configmap", "--no-headers", "-A", "-l", "app=egressip-test")
-				if !strings.Contains(output, "NotFound") {
-					framework.Logf("don't unlabel the nodes if other egress ip test is running: %s", output)
-					return
-				}
-
-				g.By("Removing the EgressIP assignable annotation for OVN Kubernetes")
-				for _, nodeName := range egressIPNodes {
-					_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
-				}
+				o.Expect(func() error {
+					err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground", "--ignore-not-found=true")
+					errors.Join(err, deallocateEgressIPSets(oc, egressIPSet, newEgressIPSet))
+					return err
+				}()).To(o.Succeed())
 			})
 
 			g.Describe("For the default network", func() {
@@ -617,9 +628,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							skipper.Skipf("Skipping test for IPFamily: %s", ipFamily)
 							return
 						}
-						g.By("Selected EgressIP set for the test")
-						egressIPSet, newEgressIPSet := getEgressIPSet(ipFamily, egressIPNodes)
-						framework.Logf("egressIPSet: %v", egressIPSet)
+
+						g.By("Allocating an EgressIP sets for the test")
+						egressIPSet, newEgressIPSet, err = allocateEgressIPSet(oc, ipFamily, egressIPNodes)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						framework.Logf("Allocated EgressIP sets: %v %v", egressIPSet, newEgressIPSet)
 
 						g.By("Deploy the test pods")
 						deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
@@ -688,6 +701,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			g.DescribeTableSubtree("For cluster user defined networks",
 				func(udnTopology string) {
 					var testCUDNName string
+					var userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet string
 					var cleanup func()
 
 					g.BeforeEach(func() {
@@ -711,10 +725,12 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							role:      "primary",
 							namespace: targetNamespace,
 						}
-						userDefinedNetworkIPv4Subnet := generateRandomSubnet(IPv4)
-						userDefinedNetworkIPv6Subnet := generateRandomSubnet(IPv6)
-						framework.Logf("userDefinedNetworkIPv4Subnet: %s", userDefinedNetworkIPv4Subnet)
-						framework.Logf("userDefinedNetworkIPv6Subnet: %s", userDefinedNetworkIPv6Subnet)
+
+						g.By("Allocating subnets for a CUDN")
+						userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, err = allocateSubnets(oc)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						framework.Logf("Allocated subnets %s %s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+
 						nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 						cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
 						cleanup, err = createManifest(targetNamespace, cudnManifest)
@@ -735,10 +751,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					})
 
 					g.AfterEach(func() {
-						runOcWithRetry(oc.AsAdmin(), "delete", "deploy", deployName)
-						runOcWithRetry(oc.AsAdmin(), "delete", "ra", testCUDNName)
-						runOcWithRetry(oc.AsAdmin(), "delete", "pod", "--all")
-						runOcWithRetry(oc.AsAdmin(), "delete", "clusteruserdefinednetwork", testCUDNName)
+						o.Expect(func() error {
+							err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "deploy", deployName)
+							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "ra", testCUDNName))
+							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "pod", "--all"))
+							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "clusteruserdefinednetwork", testCUDNName))
+							errors.Join(err, deallocateSubnets(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet))
+							return err
+						}()).To(o.Succeed())
 						cleanup()
 					})
 
@@ -749,9 +769,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 								return
 							}
 
-							g.By("Selecte EgressIP set for the test")
-							egressIPSet, newEgressIPSet := getEgressIPSet(ipFamily, egressIPNodes)
-							framework.Logf("egressIPSet: %v", egressIPSet)
+							g.By("Allocating EgressIP sets for the test")
+							egressIPSet, newEgressIPSet, err = allocateEgressIPSet(oc, ipFamily, egressIPNodes)
+							o.Expect(err).NotTo(o.HaveOccurred())
+							framework.Logf("Allocated EgressIP sets: %v %v", egressIPSet, newEgressIPSet)
 
 							g.By("Deploy the test pods")
 							deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
@@ -825,43 +846,82 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 	})
 })
 
-func IntnRange(min, max int) int {
-	return rand.Intn(max-min+1) + min
-}
-
-func generateRandomSubnet(ipFamily IPFamily) string {
-	var subnet string
-	switch ipFamily {
-	case IPv4:
-		subnet = fmt.Sprintf("203.%d.0.0/16", IntnRange(0, 255))
-	case IPv6:
-		subnet = fmt.Sprintf("2014:100:200:%02x0::0/60", IntnRange(0, 255))
-	default:
-		o.Expect(false).To(o.BeTrue())
+func allocateSubnets(oc *exutil.CLI) (string, string, error) {
+	subnetsv4, subnetsv6, err := allocateIPs(
+		oc,
+		allocationConfigMapNamespace,
+		allocationConfigMapName,
+		subnetAllocationKey,
+		subnetAllocationTemplatev4,
+		subnetAllocationTemplatev6,
+		1, // allocate 1 IPv4 subnet
+		1, // allocate 1 IPv6 subnet
+		subnetAllocationMin,
+		subnetAllocationMax)
+	if err != nil {
+		return "", "", err
 	}
-	return subnet
+	return subnetsv4[0], subnetsv6[0], nil
 }
 
-func getEgressIPSet(ipFamily IPFamily, eipNodes []string) (map[string]string, map[string]string) {
+func deallocateSubnets(oc *exutil.CLI, subnets ...string) error {
+	return deallocateIPs(oc, allocationConfigMapNamespace, allocationConfigMapName, subnetAllocationKey, subnets...)
+}
+
+func allocateEgressIPSet(oc *exutil.CLI, ipFamily IPFamily, eipNodes []string) (map[string]string, map[string]string, error) {
 	egressIPSet := make(map[string]string)
 	newEgressIPSet := make(map[string]string)
-	for range eipNodes {
-		switch ipFamily {
-		case IPv4:
-			eip := fmt.Sprintf("192.168.111.%d", IntnRange(30, 254))
-			egressIPSet[eip] = ""
-			neip := fmt.Sprintf("192.168.111.%d", IntnRange(30, 254))
-			newEgressIPSet[neip] = ""
-		case IPv6:
-			eip := fmt.Sprintf("fd2e:6f44:5dd8:c956::%0x", IntnRange(30, 254))
-			egressIPSet[eip] = ""
-			neip := fmt.Sprintf("fd2e:6f44:5dd8:c956::%0x", IntnRange(30, 254))
-			newEgressIPSet[neip] = ""
-		default:
-			o.Expect(false).To(o.BeTrue())
+	n := len(eipNodes)
+	var ips []string
+	var err error
+	switch ipFamily {
+	case IPv4:
+		ips, _, err = allocateIPs(
+			oc,
+			allocationConfigMapNamespace,
+			allocationConfigMapName,
+			eipAllocationKey,
+			eipAllocationTemplatev4,
+			"",  // no IPv6 allocation
+			n*2, // allocate this many IPv4 EIPs
+			0,   // no IPv6 allocation
+			eipAllocationMin,
+			eipAllocationMax,
+		)
+	case IPv6:
+		_, ips, err = allocateIPs(
+			oc,
+			allocationConfigMapNamespace,
+			allocationConfigMapName,
+			eipAllocationKey,
+			"", // no IPv4 allocation
+			eipAllocationTemplatev6,
+			0,   // no IPv4 allocation
+			n*2, // allocate this many IPv6 EIPs
+			eipAllocationMin,
+			eipAllocationMax,
+		)
+	default:
+		return nil, nil, fmt.Errorf("unknown IP family")
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := 0; i < len(ips); i = i + 2 {
+		egressIPSet[ips[i]] = ""
+		newEgressIPSet[ips[i+1]] = ""
+	}
+	return egressIPSet, newEgressIPSet, nil
+}
+
+func deallocateEgressIPSets(oc *exutil.CLI, eipsets ...map[string]string) error {
+	var eips []string
+	for _, set := range eipsets {
+		for eip := range set {
+			eips = append(eips, eip)
 		}
 	}
-	return egressIPSet, newEgressIPSet
+	return deallocateIPs(oc, allocationConfigMapNamespace, allocationConfigMapName, eipAllocationKey, eips...)
 }
 
 // isRouteToEgressIPPresent checks that routes to the egress IPs are being advertised by FRR.
