@@ -1918,36 +1918,6 @@ func sdnHostsubnetFlushEgressCIDRs(oc *exutil.CLI, nodeName string) error {
 	return nil
 }
 
-// runOcWithRetry runs the oc command with up to 5 retries if a timeout error occurred while running the command.
-func runOcWithRetry(oc *exutil.CLI, cmd string, args ...string) (string, error) {
-	var err error
-	var stdout string
-	maxRetries := 5
-
-	for numRetries := 0; numRetries < maxRetries; numRetries++ {
-		if numRetries > 0 {
-			framework.Logf("Retrying oc command (retry count=%v/%v)", numRetries+1, maxRetries)
-		}
-
-		// stderrr can have spurious logs that can disrupt parsing done by
-		// callers, ignore it
-		stdout, _, err = oc.Run(cmd).Args(args...).Outputs()
-		// If an error was found, either return the error, or retry if a timeout error was found.
-		if err != nil {
-			if strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
-				// Retry on "i/o timeout" errors
-				framework.Logf("Warning: oc command encountered i/o timeout.\nerr=%v\n)", err)
-				continue
-			}
-			return stdout, err
-		}
-
-		// Break out of loop if no error.
-		break
-	}
-	return stdout, err
-}
-
 // listEgressIPs uses the dynamic admin client to return a pointer to
 // a list of existing EgressIPs, or error.
 func listEgressIPs(oc *exutil.CLI) (*EgressIPList, error) {
