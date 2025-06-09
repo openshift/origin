@@ -80,7 +80,7 @@ func NewImagesCommand() *cobra.Command {
 			if err := imagesetup.VerifyImages(); err != nil {
 				return err
 			}
-			lines, err := createImageMirrorForInternalImages(prefix, ref, !o.Upstream)
+			lines, err := createImageMirrorForInternalImages(prefix, ref, !o.Upstream, o.ComponentExtensions)
 			if err != nil {
 				return err
 			}
@@ -95,13 +95,15 @@ func NewImagesCommand() *cobra.Command {
 	// this is a private flag for debugging only
 	cmd.Flags().BoolVar(&o.Verify, "verify", o.Verify, "Verify the contents of the image mappings")
 	cmd.Flags().MarkHidden("verify")
+	cmd.Flags().Var(extensions.NewStringToMap(&o.ComponentExtensions), "component-extension", "Set extension which is used for the component as <component tag>=<component extension id> pairs (e.g. --component-extension=tag1:id1,tag2=id2 or --component-extension=tag1:id1 --component-extension=tag2=id2)")
 	return cmd
 }
 
 type imagesOptions struct {
-	Repository string
-	Upstream   bool
-	Verify     bool
+	Repository          string
+	Upstream            bool
+	Verify              bool
+	ComponentExtensions map[string]string
 }
 
 // createImageMirrorForInternalImages returns a list of 'oc image mirror' mappings from source to
@@ -110,7 +112,7 @@ type imagesOptions struct {
 // of the original internal name and the index of the image in the array. Otherwise the mappings will
 // be set to mirror the location as defined in the test code into our official mirror, where the target
 // TAG is the hash described above.
-func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
+func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool, compExts map[string]string) ([]string, error) {
 	source := ref.Exact()
 
 	initialImageSets := []extensions.ImageSet{
@@ -122,7 +124,7 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10, compExts)
 		if err != nil {
 			return nil, err
 		}

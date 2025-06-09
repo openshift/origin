@@ -79,6 +79,8 @@ type GinkgoRunSuiteOptions struct {
 
 	IncludeSuccessOutput bool
 
+	ComponentExtensions map[string]string
+
 	CommandEnv []string
 
 	DryRun        bool
@@ -118,6 +120,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.IntVar(&o.ShardID, "shard-id", o.ShardID, "When tests are sharded across instances, which instance we are")
 	flags.IntVar(&o.ShardCount, "shard-count", o.ShardCount, "Number of shards used to run tests across multiple instances")
 	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
+	flags.Var(extensions.NewStringToMap(&o.ComponentExtensions), "component-extension", "Set extension which is used for the component as <component tag>=<component extension id> pairs (e.g. --component-extension=tag1:id1,tag2=id2 or --component-extension=tag1:id1 --component-extension=tag2=id2)")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -170,7 +173,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10, o.ComponentExtensions)
 		if err != nil {
 			return err
 		}
