@@ -162,7 +162,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		}
 
 		if len(errMsgs) > 0 {
-			combinedErr := fmt.Errorf(strings.Join(errMsgs, "; "))
+			combinedErr := fmt.Errorf("%s", strings.Join(errMsgs, "; "))
 			o.Expect(combinedErr).NotTo(o.HaveOccurred())
 		}
 	})

@@ -326,7 +326,7 @@ func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildRes
 			return "", err
 		}
 		bldURI = strings.Trim(url.Path, "/")
-		return j.WaitForContent(match, 200, 10*time.Minute, bldURI)
+		return j.WaitForContent(match, 200, 10*time.Minute, "%s", bldURI)
 	}
 	return "", fmt.Errorf("build %#v is missing the build uri annontation", br.Build)
 }
@@ -374,7 +374,7 @@ func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 		return "", err
 	}
 	jenkinsRef := NewRef(oc)
-	log, _, err := jenkinsRef.GetResource(jenkinsLogURL.Path)
+	log, _, err := jenkinsRef.GetResource("%s", jenkinsLogURL.Path)
 	if err != nil {
 		return "", fmt.Errorf("cannot get jenkins log: %v", err)
 	}

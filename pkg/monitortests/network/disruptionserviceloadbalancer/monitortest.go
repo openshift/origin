@@ -19,6 +19,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -192,28 +193,28 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 	svcPort := int(tcpService.Spec.Ports[0].Port)
 
 	fmt.Fprintf(os.Stderr, "creating RC to be part of service %v\n", serviceName)
-	rc, err := jig.Run(ctx, func(rc *corev1.ReplicationController) {
+	rc, err := jig.Run(ctx, func(deployment *appsv1.Deployment) {
 		// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
 		// must be longer than the worst load balancer above (GCP at 32s)
-		rc.Spec.MinReadySeconds = 33
+		deployment.Spec.MinReadySeconds = 33
 
 		// use a readiness endpoint that will go not ready before the pod terminates.
 		// the probe will go false when the sig-term is sent.
-		rc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Path = "/readyz"
+		deployment.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Path = "/readyz"
 
 		// delay shutdown long enough to go readyz=false before the process exits when the pod is deleted.
 		// 80 second delay was found to not show disruption in testing
-		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
+		deployment.Spec.Template.Spec.Containers[0].Args = append(deployment.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
 
 		// force the image to use the "normal" global mapping.
 		originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
-		rc.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
+		deployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
 
 		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
 		minuteAndAHalf := int64(90)
-		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minuteAndAHalf
+		deployment.Spec.Template.Spec.TerminationGracePeriodSeconds = &minuteAndAHalf
 
-		jig.AddRCAntiAffinity(rc)
+		jig.AddDeploymentAntiAffinity(deployment)
 	})
 	if err != nil {
 		return fmt.Errorf("error waiting for replicaset: %w", err)

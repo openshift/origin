@@ -269,7 +269,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			}
 			// TODO: uncomment when test no longer fails and enhancement is merged
 			//g.Fail(fmt.Sprintf("Unregistered TLS certificates:\n%s", registryString))
-			testresult.Flakef(fmt.Sprintf("Unregistered TLS certificates found:\n%s\nSee tls/ownership/README.md in origin repo", registryString))
+			testresult.Flakef("Unregistered TLS certificates found:\n%s\nSee tls/ownership/README.md in origin repo", registryString)
 		}
 	})
 
@@ -281,7 +281,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if len(messages) > 0 {
 			// TODO: uncomment when test no longer fails and enhancement is merged
 			//g.Fail(strings.Join(messages, "\n"))
-			testresult.Flakef(strings.Join(messages, "\n"))
+			testresult.Flakef("%s", strings.Join(messages, "\n"))
 		}
 	})
 

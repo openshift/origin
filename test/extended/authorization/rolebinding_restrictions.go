@@ -127,7 +127,7 @@ var _ = g.Describe("[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestr
 func generateAllowUserRolebindingRestriction(ns string, users []string) *authorizationv1.RoleBindingRestriction {
 	var userstr string
 	for _, s := range users {
-		userstr = fmt.Sprintf(userstr + strings.Replace(s, ":", "", -1))
+		userstr = fmt.Sprint(userstr + strings.Replace(s, ":", "", -1))
 	}
 	return &authorizationv1.RoleBindingRestriction{
 		ObjectMeta: metav1.ObjectMeta{

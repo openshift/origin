@@ -623,7 +623,7 @@ func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, host, podName st
 	for i := 1; i <= iterations; i++ {
 		testResults, err := runConformanceTests(oc, host, podName, 10*time.Minute)
 		if err != nil {
-			e2e.Logf(err.Error())
+			e2e.Logf("%s", err.Error())
 			continue
 		}
 		failures := failingTests(testResults)

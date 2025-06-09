@@ -235,8 +235,8 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 }
 
 func processScanError(log string) error {
-	e2e.Logf(log)
-	return fmt.Errorf(log)
+	e2e.Logf("%s", log)
+	return fmt.Errorf("%s", log)
 }
 
 // getImageStreamObj returns the updated spec for imageStream object
@@ -394,7 +394,7 @@ func WaitForSamplesImagestream(ctx context.Context, oc *CLI, imagestream string,
 		strbuf.WriteString(" - check status at https://status.redhat.com (catalog.redhat.com) for reported outages\n")
 		strbuf.WriteString(" - if no outages are reported there, email Terms-Based-Registry-Team@redhat.com with a report of the error\n")
 		strbuf.WriteString("   and prepare to work with the test platform team to get the current set of tokens for CI\n")
-		e2e.Logf(strbuf.String())
+		e2e.Logf("%s", strbuf.String())
 	}
 	return pollErr
 }
@@ -585,7 +585,7 @@ func DumpPodStates(oc *CLI) {
 		e2e.Logf("Error dumping pod states: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 }
 
 // DumpPodStatesInNamespace dumps the state of all pods in the provided namespace.
@@ -596,7 +596,7 @@ func DumpPodStatesInNamespace(namespace string, oc *CLI) {
 		e2e.Logf("Error dumping pod states: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 }
 
 // DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
@@ -680,7 +680,7 @@ func DumpPodsCommand(c kubernetes.Interface, ns string, selector labels.Selector
 	}
 	for name, stdout := range values {
 		stdout = strings.TrimSuffix(stdout, "\n")
-		e2e.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
+		e2e.Logf("%s: %s", name, strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 	}
 }
 
@@ -692,7 +692,7 @@ func DumpConfigMapStates(oc *CLI) {
 		e2e.Logf("Error dumping configMap states: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 }
 
 // GetMasterThreadDump will get a golang thread stack dump
@@ -2190,7 +2190,7 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 	controlPlaneTopology, err := GetControlPlaneTopology(oc)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 	if *controlPlaneTopology == configv1.ExternalTopologyMode {
-		skipper.Skipf(reason)
+		skipper.Skip(reason)
 	}
 }
 

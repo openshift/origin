@@ -98,9 +98,9 @@ func testNode(oc *exutil.CLI, kubeconfig, masterName string) error {
 	framework.Logf("Verifying kubeconfig %q on master %q", kubeconfig, masterName)
 	out, err := oc.AsAdmin().Run("debug").Args("node/"+masterName, "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c",
 		fmt.Sprintf(`oc --kubeconfig "%s" get namespace kube-system`, kubeconfigPath)).Output()
-	framework.Logf(out)
+	framework.Logf("%s", out)
 	if err != nil {
-		return fmt.Errorf(out)
+		return fmt.Errorf("%s", out)
 	}
 	return nil
 }
@@ -115,17 +115,17 @@ func testKubeApiserverContainer(oc *exutil.CLI, kubeconfig, masterName string) e
 	framework.Logf("Copying oc binary from host to kube-apiserver container in master %q", masterName)
 	out, err := oc.AsAdmin().Run("debug").Args("node/"+masterName, "--", "chroot", "/host", "/bin/bash", "-euxo", "pipefail", "-c",
 		fmt.Sprintf(`oc --kubeconfig /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig -n openshift-kube-apiserver cp /usr/bin/oc kube-apiserver-%s:/tmp`, masterName)).Output()
-	framework.Logf(out)
+	framework.Logf("%s", out)
 	if err != nil {
-		return fmt.Errorf(out)
+		return fmt.Errorf("%s", out)
 	}
 
 	framework.Logf("Verifying kubeconfig %q in kube-apiserver container in master %q", kubeconfig, masterName)
 	out, err = oc.AsAdmin().Run("exec").Args("-n", "openshift-kube-apiserver", "kube-apiserver-"+masterName, "--", "/bin/bash", "-euxo", "pipefail", "-c",
 		fmt.Sprintf(`/tmp/oc --kubeconfig "%s" get nodes`, kubeconfigPath)).Output()
-	framework.Logf(out)
+	framework.Logf("%s", out)
 	if err != nil {
-		return fmt.Errorf(out)
+		return fmt.Errorf("%s", out)
 	}
 	return nil
 }

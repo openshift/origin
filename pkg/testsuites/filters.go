@@ -12,7 +12,7 @@ import (
 // printed at the beginning of the output.
 func SuitesString(suites []*ginkgo.TestSuite, prefix string) string {
 	buf := &bytes.Buffer{}
-	fmt.Fprintf(buf, prefix)
+	fmt.Fprint(buf, prefix)
 	for _, suite := range suites {
 		fmt.Fprintf(buf, "%s\n", suite.Name)
 

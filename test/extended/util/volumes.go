@@ -40,7 +40,7 @@ func DumpPersistentVolumeInfo(oc *CLI) {
 		e2e.Logf("Error dumping persistent volume info: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 	out, err = oc.AsAdmin().Run("get").Args("pvc", "-n", oc.Namespace()).Output()
 	if err != nil {
 		e2e.Logf("Error dumping persistent volume claim info: %v", err)
@@ -52,6 +52,6 @@ func DumpPersistentVolumeInfo(oc *CLI) {
 		e2e.Logf("Error dumping persistent volume claim info: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 
 }
