@@ -258,7 +258,7 @@ github.com/containerd/containerd/api/services/tasks/v1
 github.com/containerd/containerd/api/services/version/v1
 github.com/containerd/containerd/api/types
 github.com/containerd/containerd/api/types/task
-# github.com/containerd/errdefs v1.0.0 => github.com/containerd/errdefs v0.1.0
+# github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
 # github.com/containerd/errdefs/pkg v0.3.0
@@ -3976,4 +3976,3 @@ sigs.k8s.io/yaml/goyaml.v3
 # k8s.io/sample-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250609160300-f33aa2593c38
 # k8s.io/sample-cli-plugin => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250609160300-f33aa2593c38
 # k8s.io/sample-controller => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250609160300-f33aa2593c38
-# github.com/containerd/errdefs => github.com/containerd/errdefs v0.1.0
