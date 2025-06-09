@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
 		if err != nil && !apierrors.IsAlreadyExists(err) {
-			e2e.Failf("Failed to create GatewayClass %q", gatewayClassName)
+			e2e.Failf("Failed to create GatewayClass %q: %v", gatewayClassName, err)
 		}
 	})
 
@@ -169,7 +169,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("Failed to get OSSM operator deployment %q, retrying...", deploymentOSSMName)
+				e2e.Logf("Failed to get OSSM operator deployment %q: %v; retrying...", deploymentOSSMName, err)
 				return false, nil
 			}
 			if deployOSSM.Status.ReadyReplicas < 1 {
@@ -199,7 +199,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gatewayClass := buildGatewayClass(customGatewayClassName, gatewayClassControllerName)
 		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
 		if err != nil {
-			e2e.Logf("Gateway Class \"custom-gatewayclass\" already exists, or has failed to be created, checking its status")
+			e2e.Logf("Failed to create GatewayClass %q: %v; checking its status...", customGatewayClassName, err)
 		}
 		errCheck := checkGatewayClass(oc, customGatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gwc.Name)
@@ -355,7 +355,7 @@ func checkGatewayClass(oc *exutil.CLI, name string) error {
 	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Failed to get gatewayclass %s, retrying...", name)
+			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
 			return false, nil
 		}
 		for _, condition := range gwc.Status.Conditions {
@@ -471,7 +471,7 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 
 		gw, err := oc.AdminGatewayApiClient().GatewayV1().Gateways("openshift-ingress").Get(context, gwName, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Failed to get gateway %q, retrying...", gwName)
+			e2e.Logf("Failed to get gateway %q: %v; retrying...", err, gwName)
 			return false, nil
 		}
 		for _, gwAddr := range gw.Status.Addresses {
