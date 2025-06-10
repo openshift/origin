@@ -17,8 +17,6 @@ var legacyFeatureGates = sets.New(
 	// never add to this list, if you think you have an exception ask @deads2k
 	"AzureWorkloadIdentity",
 	// never add to this list, if you think you have an exception ask @deads2k
-	"BareMetalLoadBalancer",
-	// never add to this list, if you think you have an exception ask @deads2k
 	"BootcNodeManagement",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"BuildCSIVolumes",
@@ -102,8 +100,6 @@ var legacyFeatureGates = sets.New(
 	"PersistentIPsForVirtualization",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"PinnedImages",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"PlatformOperators",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"PrivateHostedZoneAWS",
 	// never add to this list, if you think you have an exception ask @deads2k

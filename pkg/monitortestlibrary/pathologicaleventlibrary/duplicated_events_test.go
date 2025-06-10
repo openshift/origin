@@ -407,7 +407,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
 					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output") {
-						t.Logf(junit.FailureOutput.Output)
+						t.Log(junit.FailureOutput.Output)
 					}
 				}
 			}
@@ -658,7 +658,7 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
 					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output for junit: %s", junit.Name) {
-						t.Logf(junit.FailureOutput.Output)
+						t.Log(junit.FailureOutput.Output)
 					}
 				}
 			}

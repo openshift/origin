@@ -622,7 +622,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 
 			// start a new interval with the new error
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
-			framework.Logf(message.BuildString())
+			framework.Logf("%s", message.BuildString())
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
 				v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
@@ -654,7 +654,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			}
 
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
-			framework.Logf(message.BuildString())
+			framework.Logf("%s", message.BuildString())
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
 				v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())

@@ -3468,6 +3468,11 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+    unions:
+    - discriminator: prefixPolicy
+      fields:
+      - fieldName: prefix
+        discriminatorValue: Prefix
 - name: com.github.openshift.api.config.v1.UsernamePrefix
   map:
     fields:
