@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -284,12 +285,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	}
 
 	origCount := len(tests)
+	logrus.Infof("Filtering disabled tests, before=%d", origCount)
+	tests = filterDisabledTests(tests)
+	filteredCount := len(tests)
+	logrus.Infof("Removed %d disabled tests, before=%d after=%d", origCount-filteredCount, origCount, filteredCount)
+
+	origCount = len(tests)
 	logrus.Infof("Filtering tests by cluster state, count=%d", origCount)
 	// Filter based on cluster environment
 	if clusterFilters != nil {
 		tests = filterTestsByClusterState(tests, clusterFilters)
 	}
-	filteredCount := len(tests)
+	filteredCount = len(tests)
 	logrus.Infof("Removed %d tests incompatible with current cluster state", origCount-filteredCount)
 
 	logrus.Infof("Found %d filtered tests for this suite", filteredCount)
@@ -883,4 +890,55 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
+}
+
+func filterDisabledTests(tests []*testCase) []*testCase {
+	matches := make([]*testCase, 0, len(tests))
+	for _, test := range tests {
+		if isDisabled(test.name) {
+			continue
+		}
+		matches = append(matches, test)
+	}
+	return matches
+}
+
+func isDisabled(name string) bool {
+	if strings.Contains(name, "[Disabled") {
+		return true
+	}
+
+	return shouldSkipUntil(name)
+}
+
+// shouldSkipUntil allows a test to be skipped with a time limit.
+// the test should be annotated with the 'SkippedUntil' tag, as shown below.
+//
+//	[SkippedUntil:05092022:blocker-bz/123456]
+//
+// - the specified date should conform to the 'MMDDYYYY' format.
+// - a valid blocker BZ must be specified
+// if the specified date in the tag has not passed yet, the test
+// will be skipped by the runner.
+func shouldSkipUntil(name string) bool {
+	re, err := regexp.Compile(`\[SkippedUntil:(\d{8}):blocker-bz\/([a-zA-Z0-9]+)\]`)
+	if err != nil {
+		// it should only happen with a programmer error and unit
+		// test will prevent that
+		return false
+	}
+	matches := re.FindStringSubmatch(name)
+	if len(matches) != 3 {
+		return false
+	}
+
+	skipUntil, err := time.Parse("01022006", matches[1])
+	if err != nil {
+		return false
+	}
+
+	if skipUntil.After(time.Now()) {
+		return true
+	}
+	return false
 }
