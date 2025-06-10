@@ -143,7 +143,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		// check Subscription
 		waitVersionErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get Subscription %q: %v; retrying...", expectedSubscriptionName, err)
+				return false, nil
+			}
 			if csvName == "" {
 				e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
 				return false, nil
