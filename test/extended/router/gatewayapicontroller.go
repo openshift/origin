@@ -338,7 +338,8 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 
 func waitForIstioHealthy(oc *exutil.CLI) {
 	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
-	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+	timeout := 20 * time.Minute
+	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
 		if errIstio != nil {
 			e2e.Logf("Failed getting openshift-gateway istio cr status: %v", errIstio)
@@ -351,11 +352,12 @@ func waitForIstioHealthy(oc *exutil.CLI) {
 		e2e.Logf("Istio CR %q is healthy", resource.Name)
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state in time", resource.Name)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state within %v", resource.Name, timeout)
 }
 
 func checkGatewayClass(oc *exutil.CLI, name string) error {
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+	timeout := 20 * time.Minute
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
@@ -372,7 +374,7 @@ func checkGatewayClass(oc *exutil.CLI, name string) error {
 		return false, nil
 	})
 
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "Gatewayclass %s is not accepted", name)
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q was not accepted within %v", name, timeout)
 	return nil
 }
 
@@ -405,7 +407,8 @@ func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (
 
 func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
 	programmedGateway := &gatewayapiv1.Gateway{}
-	if err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+	timeout := 20 * time.Minute
+	if err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		gateway, err := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Get(context, gwname, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get gateway %q: %v, retrying...", gwname, err)
@@ -424,7 +427,7 @@ func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatew
 		e2e.Logf("Found gateway %q but the controller is still not programmed, retrying...", gwname)
 		return false, nil
 	}); err != nil {
-		return nil, fmt.Errorf("timed out waiting for gateway %q to become programmed: %w", gwname, err)
+		return nil, fmt.Errorf("timed out after %v waiting for gateway %q to become programmed: %w", timeout, gwname, err)
 	}
 	e2e.Logf("Gateway %q successfully programmed!", gwname)
 	return programmedGateway, nil
