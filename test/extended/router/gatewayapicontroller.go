@@ -142,6 +142,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		// check Subscription
 		waitVersionErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
+			if err != nil && strings.Contains(err.Error(), "not found") {
+				e2e.Logf("Subscription %q not found; retrying...", expectedSubscriptionName)
+				return false, nil
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if csvName == "" {
 				e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
@@ -292,6 +296,14 @@ func waitForIstioHealthy(oc *exutil.CLI) {
 	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
+		if errIstio != nil && strings.Contains(errIstio.Error(), `the server doesn't have a resource type "istio"`) {
+			e2e.Logf("Istio CRD does not exist; retrying...")
+			return false, nil
+		}
+		if errIstio != nil && strings.Contains(errIstio.Error(), "not found") {
+			e2e.Logf("Istio %q is not found; retrying...", resource.Name)
+			return false, nil
+		}
 		o.Expect(errIstio).NotTo(o.HaveOccurred())
 		if istioStatus != "Healthy" {
 			e2e.Logf("Istio CR %q is not healthy, retrying...", resource.Name)
