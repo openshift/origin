@@ -142,7 +142,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		// check Subscription
 		waitVersionErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get Subscription %q: %v; retrying...", expectedSubscriptionName, err)
+				return false, nil
+			}
 			if csvName == "" {
 				e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
 				return false, nil
@@ -292,7 +295,10 @@ func waitForIstioHealthy(oc *exutil.CLI) {
 	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
-		o.Expect(errIstio).NotTo(o.HaveOccurred())
+		if errIstio != nil {
+			e2e.Logf("Failed to get Istio CR %q: %v; retrying...", resource.Name, errIstio)
+			return false, nil
+		}
 		if istioStatus != "Healthy" {
 			e2e.Logf("Istio CR %q is not healthy, retrying...", resource.Name)
 			return false, nil
