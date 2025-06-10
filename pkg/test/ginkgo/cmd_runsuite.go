@@ -156,23 +156,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	}
 
 	specs := o.Extension.GetSpecs()
-	totalInternal := len(specs)
 
-	// Filter internal tests by qualifiers
-	var err error
-	if len(suite.Qualifiers) > 0 {
-		logrus.WithField("initial", totalInternal).Infof("Filtering internal tests by suite qualifiers")
-		specs, err = specs.Filter(suite.Qualifiers)
-		if err != nil {
-			return err
-		}
-		logrus.WithField("initial", totalInternal).
-			WithField("filtered", totalInternal-len(specs)).
-			WithField("suiteCount", len(specs)).
-			Infof("Filtered internal tests by suite qualifiers")
-	}
-
-	// Convert internal tests to origin's testCase format
+	// Convert internal tests to origin's testCase format (qualifiers will be applied later in pipeline)
 	internalTestCases, err := testsForSuite(suite, specs)
 	if err != nil {
 		return err
@@ -223,18 +208,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 			return err
 		}
 
-		if len(suite.Qualifiers) > 0 {
-			totalExternal := len(externalTestSpecs)
-			logrus.WithField("initial", totalExternal).Infof("Filtering external tests by suite qualifiers")
-			externalTestSpecs, err = extensions.FilterWrappedSpecs(externalTestSpecs, suite.Qualifiers)
-			if err != nil {
-				return err
-			}
-			logrus.WithField("initial", totalExternal).
-				WithField("filtered", totalExternal-len(externalTestSpecs)).
-				WithField("suiteCount", len(externalTestSpecs)).
-				Infof("Filtered external tests by suite qualifiers")
-		}
+		// Convert external tests to origin's testCase format (qualifiers will be applied later in pipeline)
 		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
 
 		logrus.Infof("Discovered %d internal tests, %d external tests - %d total tests",
@@ -278,35 +252,20 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 		return err
 	}
 
-	tests, err = o.filterOutRebaseTests(restConfig, tests)
+	// Apply all test filters using the filter chain -- origin previously filtered tests a ton
+	// of places, and co-mingled suite, annotation, and cluster state filters in odd ways. This filter
+	// chain is the ONLY place tests should be filtered down for determining the final execution set.
+	testFilterChain := NewFilterChain(logrus.WithField("component", "test-filter")).
+		AddFilter(NewSuiteQualifiersFilter(suite, o.Extension)).
+		AddFilter(NewKubeRebaseTestsFilter(o, restConfig)).
+		AddFilter(&DisabledTestsFilter{}).
+		AddFilter(NewSuiteMatcherFilter(suite)). // only used for "files" suite, not reccomended for anything else - use CEL qualifiers
+		AddFilter(NewClusterStateFilter(clusterFilters))
+
+	tests, err = testFilterChain.Apply(ctx, tests)
 	if err != nil {
 		return err
 	}
-
-	origCount := len(tests)
-	logrus.Infof("Filtering disabled tests, before=%d", origCount)
-	tests = filterDisabledTests(tests)
-	filteredCount := len(tests)
-	logrus.Infof("Removed %d disabled tests, before=%d after=%d", origCount-filteredCount, origCount, filteredCount)
-
-	origCount = len(tests)
-	logrus.Infof("Filtering tests by suite matcher (used for file suite), before=%d", origCount)
-	if suite.SuiteMatcher != nil {
-		tests = suite.Filter(tests)
-	}
-	filteredCount = len(tests)
-	logrus.Infof("Removed %d tests incompatible with suite matcher, before=%d after=%d", origCount-filteredCount, origCount, filteredCount)
-
-	origCount = len(tests)
-	logrus.Infof("Filtering tests by cluster state, count=%d", origCount)
-	// Filter based on cluster environment
-	if clusterFilters != nil {
-		tests = filterTestsByClusterState(tests, clusterFilters)
-	}
-	filteredCount = len(tests)
-	logrus.Infof("Removed %d tests incompatible with current cluster state", origCount-filteredCount)
-
-	logrus.Infof("Found %d filtered tests for this suite", filteredCount)
 
 	count := o.Count
 	if count == 0 {
@@ -723,17 +682,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	return ctx.Err()
 }
 
-func filterTestsByClusterState(tests []*testCase, filter func(string) bool) []*testCase {
-	matches := make([]*testCase, 0, len(tests))
-	for _, test := range tests {
-		if !filter(test.name) {
-			continue
-		}
-		matches = append(matches, test)
-	}
-	return matches
-}
-
 func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
 	// Ensure the directory exists
 	err := os.MkdirAll(dir, 0755)
@@ -897,15 +845,4 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
-}
-
-func filterDisabledTests(tests []*testCase) []*testCase {
-	matches := make([]*testCase, 0, len(tests))
-	for _, test := range tests {
-		if isDisabled(test.name) {
-			continue
-		}
-		matches = append(matches, test)
-	}
-	return matches
 }
