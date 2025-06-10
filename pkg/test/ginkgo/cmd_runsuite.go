@@ -792,6 +792,13 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		AddNetworkStack(config.IPFamily).
 		AddExternalConnectivity(determineExternalConnectivity(config))
 
+	if config.SingleReplicaTopology {
+		// In cases like Microshift, we will not be able to determine the clusterState,
+		// so topology will be unset unless we default it properly here
+		singleReplicaTopology := configv1.SingleReplicaTopologyMode
+		envFlagBuilder.AddTopology(&singleReplicaTopology)
+	}
+
 	clientConfig, err := clientconfigv1.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
