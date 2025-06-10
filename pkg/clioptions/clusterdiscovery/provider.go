@@ -191,7 +191,9 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 			if clusterState != nil {
 				var err error
 				config, err = LoadConfig(clusterState)
-				log.WithError(err).Warn("ignoring error from LoadConfig for discovery")
+				if err != nil {
+					log.WithError(err).Warn("ignoring error from LoadConfig for discovery")
+				}
 			}
 		}
 		if config == nil {

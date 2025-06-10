@@ -20,12 +20,9 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	configv1 "github.com/openshift/api/config/v1"
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/mod/semver"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
@@ -34,7 +31,6 @@ import (
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -829,31 +825,11 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		AddNetworkStack(config.IPFamily).
 		AddExternalConnectivity(determineExternalConnectivity(config))
 
-	clientConfig, err := clientconfigv1.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	discoveryClient, err := kubeconfig.NewDiscoveryGetter(restConfig).GetDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-	apiGroups, err := determineEnabledAPIGroups(discoveryClient)
-	if err != nil {
-		return nil, errors.WithMessage(err, "couldn't determine api groups")
-	}
-	envFlagBuilder.AddAPIGroups(apiGroups.UnsortedList()...)
-
-	if apiGroups.Has("config.openshift.io") {
-		featureGates, err := determineEnabledFeatureGates(ctx, clientConfig)
-		if err != nil {
-			return nil, errors.WithMessage(err, "couldn't determine feature gates")
-		}
-		envFlagBuilder.AddFeatureGates(featureGates...)
-	}
-
 	//Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
+		envFlagBuilder.AddAPIGroups(clusterState.AvailableAPIGroups.UnsortedList()...).
+			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
+
 		upgradeType := "None"
 		if upgrade {
 			upgradeType = determineUpgradeType(clusterState.Version.Status)
@@ -907,56 +883,4 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
-}
-
-func determineEnabledAPIGroups(discoveryClient discovery.AggregatedDiscoveryInterface) (sets.Set[string], error) {
-	groups, err := discoveryClient.ServerGroups()
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve served resources: %v", err)
-	}
-	apiGroups := sets.New[string]()
-	for _, apiGroup := range groups.Groups {
-		// ignore the empty group
-		if apiGroup.Name == "" {
-			continue
-		}
-		apiGroups.Insert(apiGroup.Name)
-	}
-
-	return apiGroups, nil
-}
-
-func determineEnabledFeatureGates(ctx context.Context, configClient clientconfigv1.Interface) ([]string, error) {
-	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	desiredVersion := clusterVersion.Status.Desired.Version
-	if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
-		desiredVersion = clusterVersion.Status.History[0].Version
-	}
-
-	ret := sets.NewString()
-	found := false
-	for _, featureGateValues := range featureGate.Status.FeatureGates {
-		if featureGateValues.Version != desiredVersion {
-			continue
-		}
-		found = true
-		for _, enabled := range featureGateValues.Enabled {
-			ret.Insert(string(enabled.Name))
-		}
-		break
-	}
-	if !found {
-		logrus.Warning("no feature gates found")
-		return nil, nil
-	}
-
-	return ret.List(), nil
 }

@@ -1,6 +1,8 @@
 package run
 
 import (
+	"os"
+
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -62,7 +64,7 @@ func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdisco
 
 func (f *RunSuiteFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
-	flags.StringVar(&f.ProviderTypeOrJSON, "provider", f.ProviderTypeOrJSON, "The cluster infrastructure provider. Will automatically default to the correct value.")
+	flags.StringVar(&f.ProviderTypeOrJSON, "provider", os.Getenv("TEST_PROVIDER"), "The cluster infrastructure provider. Will automatically default to the correct value.")
 	f.GinkgoRunSuiteOptions.BindFlags(flags)
 	f.TestSuiteSelectionFlags.BindFlags(flags)
 	f.OutputFlags.BindFlags(flags)
