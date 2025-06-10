@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -407,8 +406,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate user namespace functionality.
 		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/usernamespace")
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/usernamespace")`,
 		},
 		TestTimeout: 60 * time.Minute,
 	},
@@ -417,8 +416,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate machine-config-operator functionality.
 		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/machine-config-operator/disruptive")
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/machine-config-operator/disruptive")`,
 		},
 		TestTimeout: 120 * time.Minute,
 	},

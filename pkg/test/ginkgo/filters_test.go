@@ -1,4 +1,4 @@
-package testsuites
+package ginkgo
 
 import (
 	"fmt"
