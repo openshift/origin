@@ -1,6 +1,7 @@
 package run
 
 import (
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -72,7 +73,7 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 	f.GinkgoRunSuiteOptions.SetIOStreams(streams)
 }
 
-func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.TestSuite) (*RunSuiteOptions, error) {
+func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.TestSuite, internalExtension *extension.Extension) (*RunSuiteOptions, error) {
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -95,6 +96,7 @@ func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.T
 	o := &RunSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,
+		Extension:             internalExtension,
 		ClusterFilters:        providerConfig.MatchFn(),
 		FromRepository:        f.FromRepository,
 		CloudProviderJSON:     providerConfig.ToJSONString(),

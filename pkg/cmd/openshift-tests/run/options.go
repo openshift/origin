@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
@@ -32,6 +33,9 @@ type RunSuiteOptions struct {
 	// ClusterFilters is a test matcher that filters on cluster-specific data like available API groups, feature gates,
 	// network CNI provider, etc.
 	ClusterFilters func(string) bool
+
+	// Extension is the internal origin extension of its own test specs.
+	Extension *extension.Extension
 }
 
 func (o *RunSuiteOptions) TestCommandEnvironment() []string {
@@ -94,6 +98,8 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
+
+	o.GinkgoRunSuiteOptions.Extension = o.Extension
 
 	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, o.ClusterFilters, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {

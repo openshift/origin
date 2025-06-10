@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -12,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/testsuites"
 )
 
-func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
+func NewRunCommand(streams genericclioptions.IOStreams, internalExtension *extension.Extension) *cobra.Command {
 	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
@@ -40,7 +41,7 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 				panic(err) // TODO fix me
 			}
 
-			o, err := f.ToOptions(args, allSuites)
+			o, err := f.ToOptions(args, allSuites, internalExtension)
 			if err != nil {
 				fmt.Fprintf(f.IOStreams.ErrOut, "error converting to options: %v", err)
 				return err

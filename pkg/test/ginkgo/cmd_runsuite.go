@@ -18,8 +18,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
-	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/pkg/errors"
@@ -31,7 +30,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
@@ -44,7 +42,6 @@ import (
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 const (
@@ -93,6 +90,7 @@ type GinkgoRunSuiteOptions struct {
 
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+	Extension           *extension.Extension
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -161,41 +159,21 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 		sharder = &HashSharder{}
 	}
 
-	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
-	if err != nil {
-		return err
-	}
-
-	// Apply annotations to test names
-	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-		// we need to ensure the default path always annotates both
-		// origin and k8s tests accordingly, since each of these
-		// currently have their own annotations which are not
-		// merged anywhere else but applied here
-		if append, ok := origingenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-	})
-
-	// Filter out kube tests, vendor filtering isn't working within origin
-	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
-		return !strings.Contains(spec.Name, "[Suite:k8s")
-	})
-
+	specs := o.Extension.GetSpecs()
 	totalInternal := len(specs)
-	logrus.Infof("Found %d total internal tests", totalInternal)
 
 	// Filter internal tests by qualifiers
+	var err error
 	if len(suite.Qualifiers) > 0 {
-		logrus.Infof("Filtering internal tests by suite qualifiers, total=%d", totalInternal)
+		logrus.WithField("initial", totalInternal).Infof("Filtering internal tests by suite qualifiers")
 		specs, err = specs.Filter(suite.Qualifiers)
 		if err != nil {
 			return err
 		}
-		logrus.Infof("Filtered %d internal tests by suite qualifiers, total=%d", totalInternal-len(specs), len(specs))
+		logrus.WithField("initial", totalInternal).
+			WithField("filtered", totalInternal-len(specs)).
+			WithField("suiteCount", len(specs)).
+			Infof("Filtered internal tests by suite qualifiers")
 	}
 
 	// Convert internal tests to origin's testCase format
@@ -250,15 +228,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 		}
 
 		if len(suite.Qualifiers) > 0 {
-			total := len(externalTestSpecs)
-			logrus.Infof("Filtering external tests by OTE suite qualifiers, total=%d", total)
+			totalExternal := len(externalTestSpecs)
+			logrus.WithField("initial", totalExternal).Infof("Filtering external tests by suite qualifiers")
 			externalTestSpecs, err = extensions.FilterWrappedSpecs(externalTestSpecs, suite.Qualifiers)
 			if err != nil {
 				return err
 			}
-			logrus.Infof("Filtered %d external tests by OTE suite qualifiers", total-len(externalTestSpecs))
+			logrus.WithField("initial", totalExternal).
+				WithField("filtered", totalExternal-len(externalTestSpecs)).
+				WithField("suiteCount", len(externalTestSpecs)).
+				Infof("Filtered external tests by suite qualifiers")
 		}
-
 		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
 
 		logrus.Infof("Discovered %d internal tests, %d external tests - %d total tests",
