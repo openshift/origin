@@ -106,3 +106,29 @@ func isStandardEarlyOrLateTest(name string) bool {
 	}
 	return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 }
+
+// withStandardEarlyOrLateTests combines a CEL expression with the standard early/late test logic.
+// It returns a CEL expression that matches tests that either satisfy the provided expression
+// OR are standard early/late tests.
+func withStandardEarlyOrLateTests(expr string) string {
+	earlyLateExpr := `(name.contains("[Early]") || name.contains("[Late]")) && name.contains("[Suite:openshift/conformance/parallel")`
+
+	if expr == "" {
+		return earlyLateExpr
+	}
+
+	return fmt.Sprintf("(%s) || (%s)", expr, earlyLateExpr)
+}
+
+// withStandardEarlyTests combines a CEL expression with the standard early test logic.
+// It returns a CEL expression that matches tests that either satisfy the provided expression
+// OR are standard early tests.
+func withStandardEarlyTests(expr string) string {
+	earlyExpr := `name.contains("[Early]") && name.contains("[Suite:openshift/conformance/parallel")`
+
+	if expr == "" {
+		return earlyExpr
+	}
+
+	return fmt.Sprintf("(%s) || (%s)", expr, earlyExpr)
+}

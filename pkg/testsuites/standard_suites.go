@@ -113,8 +113,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Tests that ensure an OpenShift cluster and components are working properly.
 		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/conformance/")
+		Qualifiers: []string{
+			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/')"),
 		},
 		Parallelism: 30,
 	},
@@ -136,8 +136,7 @@ var staticSuites = []ginkgo.TestSuite{
 		`),
 		Qualifiers: []string{
 			// Standard early and late tests are included in the serial suite
-			withExcludedTestsFilter(`(name.contains("[Early]") || name.contains("[Late]")) && name.contains("[Suite:openshift/conformance/parallel")`),
-			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/serial')"),
+			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')")),
 		},
 		TestTimeout: 40 * time.Minute,
 	},
@@ -147,35 +146,20 @@ var staticSuites = []ginkgo.TestSuite{
 		The disruptive test suite.  Disruptive tests interrupt the cluster function such as by stopping/restarting the control plane or 
 		changing the global cluster configuration in a way that can affect other tests.
 		`),
-		SuiteMatcher: func(name string) bool {
-			// excluded due to stopped instance handling until https://bugzilla.redhat.com/show_bug.cgi?id=1905709 is fixed
-			if strings.Contains(name, "Cluster should survive master and worker failure and recover with machine health checks") {
-				return false
-			}
-			return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]") || isStandardEarlyTest(name)
-
+		Qualifiers: []string{
+			withStandardEarlyTests(`name.contains("[Feature:EtcdRecovery]") || name.contains("[Feature:NodeRecovery]")`),
 		},
 		// Duration of the quorum restore test exceeds 60 minutes.
 		TestTimeout:                90 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
-		Name: "kubernetes/conformance",
-		Description: templates.LongDesc(`
-		The default Kubernetes conformance suite.
-		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Suite:k8s]") && strings.Contains(name, "[Conformance]")
-		},
-		Parallelism: 30,
-	},
-	{
 		Name: "openshift/build",
 		Description: templates.LongDesc(`
 		Tests that exercise the OpenShift build functionality.
 		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Feature:Builds]") || isStandardEarlyOrLateTest(name)
+		Qualifiers: []string{
+			withStandardEarlyOrLateTests("name.contains('[Feature:builds]')"),
 		},
 		Parallelism: 7,
 		// TODO: Builds are really flaky right now, remove when we land perf updates and fix io on workers

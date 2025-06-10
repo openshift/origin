@@ -109,9 +109,6 @@ func main() {
 
 	originExtension.AddSpecs(specs)
 
-	totalInternal := len(specs)
-	logrus.Infof("Found %d total internal tests", totalInternal)
-
 	root := &cobra.Command{
 		Long: templates.LongDesc(`This command verifies behavior of an OpenShift cluster by running remote tests against
 		the cluster API that exercise functionality. In general these tests may be disruptive
