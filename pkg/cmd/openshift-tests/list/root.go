@@ -1,29 +1,28 @@
 package list
 
 import (
+	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdlist"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/kubectl/pkg/util/templates"
 )
 
-func NewListCommand(streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List available resources",
-		Long: templates.LongDesc(`
-		List various resources available in openshift-tests.
+func NewListCommand(streams genericclioptions.IOStreams, extensionRegistry *extension.Registry) *cobra.Command {
 
-		This command provides subcommands to list different types of resources
-		such as test suites, tests, and other information.
-		`),
-		SilenceUsage:  true,
-		SilenceErrors: true,
+	oteListCmd := cmdlist.NewListCommand(extensionRegistry)
+
+	// Remove OTE's own suites command (maybe put it back later, if we can register all the
+	// extension suites here too).
+	for _, c := range oteListCmd.Commands() {
+		if c.Use == "suites" {
+			oteListCmd.RemoveCommand(c)
+		}
 	}
 
-	cmd.AddCommand(
+	oteListCmd.AddCommand(
 		NewListSuitesCommand(streams),
 		NewListExtensionsCommand(streams),
 	)
 
-	return cmd
+	return oteListCmd
 }

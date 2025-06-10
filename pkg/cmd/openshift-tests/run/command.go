@@ -13,12 +13,7 @@ import (
 )
 
 func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
-	allSuites, err := testsuites.AllTestSuites(context.Background())
-	if err != nil {
-		panic(err) // TODO fix me
-	}
-
-	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation, allSuites)
+	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -40,7 +35,12 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			o, err := f.ToOptions(args)
+			allSuites, err := testsuites.AllTestSuites(context.Background())
+			if err != nil {
+				panic(err) // TODO fix me
+			}
+
+			o, err := f.ToOptions(args, allSuites)
 			if err != nil {
 				fmt.Fprintf(f.IOStreams.ErrOut, "error converting to options: %v", err)
 				return err

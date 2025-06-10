@@ -134,8 +134,10 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Only the portion of the openshift/conformance test suite that run serially.
 		`),
-		SuiteMatcher: func(name string) bool {
-			return strings.Contains(name, "[Suite:openshift/conformance/serial") || isStandardEarlyOrLateTest(name)
+		Qualifiers: []string{
+			// Standard early and late tests are included in the serial suite
+			withExcludedTestsFilter(`(name.contains("[Early]") || name.contains("[Late]")) && name.contains("[Suite:openshift/conformance/parallel")`),
+			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/serial')"),
 		},
 		TestTimeout: 40 * time.Minute,
 	},

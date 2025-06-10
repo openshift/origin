@@ -10,6 +10,18 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	e "github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	v "github.com/openshift-eng/openshift-tests-extension/pkg/version"
+
 	"github.com/openshift/origin/pkg/cmd"
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
@@ -28,14 +40,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
 	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/kubectl/pkg/util/templates"
 )
 
 func main() {
@@ -62,6 +68,24 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
+	originVersion := version.Get()
+	v.GitTreeState = originVersion.GitTreeState
+	v.BuildDate = originVersion.BuildDate
+	v.CommitFromGit = originVersion.GitCommit
+
+	// Create our registry of openshift-tests extensions
+	extensionRegistry := e.NewRegistry()
+	originExtension := e.NewExtension("openshift", "payload", "origin")
+	extensionRegistry.Register(originExtension)
+
+	// Build our specs from ginkgo
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		panic(err)
+	}
+
+	originExtension.AddSpecs(specs)
+
 	root := &cobra.Command{
 		Long: templates.LongDesc(`This command verifies behavior of an OpenShift cluster by running remote tests against
 		the cluster API that exercise functionality. In general these tests may be disruptive
@@ -81,7 +105,7 @@ func main() {
 
 	root.AddCommand(
 		run.NewRunCommand(ioStreams),
-		list.NewListCommand(ioStreams),
+		list.NewListCommand(ioStreams, extensionRegistry),
 		run_upgrade.NewRunUpgradeCommand(ioStreams),
 		images.NewImagesCommand(),
 		run_test.NewRunTestCommand(ioStreams),

@@ -16,7 +16,6 @@ type RunSuiteFlags struct {
 	GinkgoRunSuiteOptions   *testginkgo.GinkgoRunSuiteOptions
 	TestSuiteSelectionFlags *suiteselection.TestSuiteSelectionFlags
 	OutputFlags             *iooptions.OutputFlags
-	AvailableSuites         []*testginkgo.TestSuite
 
 	FromRepository     string
 	ProviderTypeOrJSON string
@@ -32,12 +31,11 @@ type RunSuiteFlags struct {
 	genericclioptions.IOStreams
 }
 
-func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteFlags {
+func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string) *RunSuiteFlags {
 	return &RunSuiteFlags{
 		GinkgoRunSuiteOptions:   testginkgo.NewGinkgoRunSuiteOptions(streams),
 		TestSuiteSelectionFlags: suiteselection.NewTestSuiteSelectionFlags(streams),
 		OutputFlags:             iooptions.NewOutputOptions(),
-		AvailableSuites:         availableSuites,
 
 		FromRepository: fromRepository,
 		IOStreams:      streams,
@@ -74,7 +72,7 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 	f.GinkgoRunSuiteOptions.SetIOStreams(streams)
 }
 
-func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
+func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.TestSuite) (*RunSuiteOptions, error) {
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -88,7 +86,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 		return nil, err
 	}
 	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
-		f.AvailableSuites,
+		availableSuites,
 		args)
 	if err != nil {
 		return nil, err
