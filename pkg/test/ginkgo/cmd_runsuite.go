@@ -158,7 +158,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	specs := o.Extension.GetSpecs()
 
 	// Convert internal tests to origin's testCase format (qualifiers will be applied later in pipeline)
-	internalTestCases, err := testsForSuite(suite, specs)
+	internalTestCases, err := internalTestSpecsToOriginTestCases(suite, specs)
 	if err != nil {
 		return err
 	}

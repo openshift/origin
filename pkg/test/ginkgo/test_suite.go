@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/test/extensions"
 )
 
-func testsForSuite(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([]*testCase, error) {
+func internalTestSpecsToOriginTestCases(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([]*testCase, error) {
 	var tests []*testCase
 	var errs []error
 

@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/errors"
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
@@ -64,14 +66,11 @@ func (o *TestOptions) Run(args []string) error {
 
 	// Ignore the upstream suite behavior within test execution
 	ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
-	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	tests, err := getGinkgoTestCases()
 	if err != nil {
 		return err
 	}
-	tests, err := testsForSuite(nil, specs)
-	if err != nil {
-		return err
-	}
+
 	var test *testCase
 	for _, t := range tests {
 		if t.name == args[0] {
@@ -199,4 +198,36 @@ func lastFilenameSegment(filename string) string {
 		return parts[len(parts)-1]
 	}
 	return filename
+}
+
+func getGinkgoTestCases() ([]*testCase, error) {
+	var tests []*testCase
+	var errs []error
+
+	// Don't build the tree multiple times, it results in multiple initing of tests
+	if !ginkgo.GetSuite().InPhaseBuildTree() {
+		ginkgo.GetSuite().BuildTree()
+	}
+
+	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
+		// we need to ensure the default path always annotates both
+		// origin and k8s tests accordingly, since each of these
+		// currently have their own annotations which are not
+		// merged anywhere else but applied here
+		if append, ok := origingenerated.Annotations[name]; ok {
+			spec.AppendText(append)
+		}
+		if append, ok := k8sgenerated.Annotations[name]; ok {
+			spec.AppendText(append)
+		}
+		tc, err := newTestCaseFromGinkgoSpec(spec)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		tests = append(tests, tc)
+	})
+	if len(errs) > 0 {
+		return nil, errors.NewAggregate(errs)
+	}
+	return tests, nil
 }
