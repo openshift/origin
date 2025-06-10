@@ -77,8 +77,8 @@ type ClusterConfiguration struct {
 
 	// APIGroups contains the set of API groups available in the cluster
 	APIGroups sets.Set[string] `json:"-"`
-	// EnabledFeatureGates contains the set of enabled feature gates in the cluster
-	EnabledFeatureGates sets.Set[string] `json:"-"`
+	// FeatureGates contains the set of enabled feature gates in the cluster
+	FeatureGates sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -100,8 +100,8 @@ type ClusterState struct {
 	ControlPlaneTopology *configv1.TopologyMode
 	OptionalCapabilities []configv1.ClusterVersionCapability
 	Version              *configv1.ClusterVersion
-	AvailableAPIGroups   sets.Set[string]
-	EnabledFeatureGates  sets.Set[string]
+	APIGroups            sets.Set[string]
+	FeatureGates         sets.Set[string]
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -174,15 +174,15 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	if err != nil {
 		return nil, err
 	}
-	state.AvailableAPIGroups = sets.New[string]()
+	state.APIGroups = sets.New[string]()
 	for _, apiGroup := range groups.Groups {
 		// ignore the empty group
 		if apiGroup.Name == "" {
 			continue
 		}
-		state.AvailableAPIGroups.Insert(apiGroup.Name)
+		state.APIGroups.Insert(apiGroup.Name)
 	}
-	logrus.Infof("Discovered %d API Groups", state.AvailableAPIGroups.Len())
+	logrus.Infof("Discovered %d API Groups", state.APIGroups.Len())
 
 	// Discover feature gates
 	logrus.Infof("Discovering feature gates...")
@@ -195,24 +195,24 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 			desiredVersion = clusterVersion.Status.History[0].Version
 		}
 
-		state.EnabledFeatureGates = sets.New[string]()
+		state.FeatureGates = sets.New[string]()
 		for _, featureGateValues := range featureGate.Status.FeatureGates {
 			if featureGateValues.Version != desiredVersion {
 				logrus.Warningf("Feature gates for version %s not found, skipping", desiredVersion)
 				continue
 			}
 			for _, enabledGate := range featureGateValues.Enabled {
-				state.EnabledFeatureGates.Insert(string(enabledGate.Name))
+				state.FeatureGates.Insert(string(enabledGate.Name))
 			}
 			break
 		}
 
-		sortedEnabledGates := state.EnabledFeatureGates.UnsortedList()
+		sortedEnabledGates := state.FeatureGates.UnsortedList()
 		slices.Sort(sortedEnabledGates)
 
 		logrus.WithField("enabled", sortedEnabledGates).
 			Infof("Discovered %d enabled feature gates",
-				state.EnabledFeatureGates.Len())
+				state.FeatureGates.Len())
 	}
 
 	return state, nil
@@ -331,8 +331,8 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	// can just manually override with --provider...
 
 	// Copy API groups and feature gates from cluster state
-	config.APIGroups = state.AvailableAPIGroups
-	config.EnabledFeatureGates = state.EnabledFeatureGates
+	config.APIGroups = state.APIGroups
+	config.FeatureGates = state.FeatureGates
 
 	return config, nil
 }
@@ -418,13 +418,13 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 			featureGates = append(featureGates, featureGate)
 		}
 
-		if c.EnabledFeatureGates != nil && !c.EnabledFeatureGates.HasAll(featureGates...) {
+		if c.FeatureGates != nil && !c.FeatureGates.HasAll(featureGates...) {
 			return false
 		}
 
 		// If no feature gates are configured, exclude all featuregated tests
 		// This matches the original includeNonFeatureGateTest behavior
-		if c.EnabledFeatureGates == nil && len(featureGates) > 0 {
+		if c.FeatureGates == nil && len(featureGates) > 0 {
 			return false
 		}
 

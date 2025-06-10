@@ -789,8 +789,8 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 
 	//Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
-		envFlagBuilder.AddAPIGroups(clusterState.AvailableAPIGroups.UnsortedList()...).
-			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
+		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
+			AddFeatureGates(clusterState.FeatureGates.UnsortedList()...)
 
 		upgradeType := "None"
 		if upgrade {
