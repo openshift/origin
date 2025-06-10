@@ -12,7 +12,7 @@ spec:
 
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.3-ubi8
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
