@@ -44,19 +44,12 @@ var s2iImages = map[string][]tc{
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
-			Version:  "31",
+			Version:  "33",
 			Cmd:      "ruby --version",
-			Expected: "ruby 3.1",
-			Tag:      "3.1-ubi9",
+			Expected: "ruby 3.3",
+			Tag:      "3.3-ubi9",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
-		// {
-		// 	Version:  "33",
-		// 	Cmd:      "ruby --version",
-		// 	Expected: "ruby 3.3",
-		// 	Tag:      "3.3-ubi9",
-		// 	Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		// },
 		{
 			Version:  "25",
 			Cmd:      "ruby --version",
@@ -125,24 +118,10 @@ var s2iImages = map[string][]tc{
 	},
 	"nodejs": {
 		{
-			Version:  "18",
-			Cmd:      "node --version",
-			Expected: "v18",
-			Tag:      "18-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
 			Version:  "20",
 			Cmd:      "node --version",
 			Expected: "v20",
 			Tag:      "20-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "18",
-			Cmd:      "node --version",
-			Expected: "v18",
-			Tag:      "18-ubi9",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
