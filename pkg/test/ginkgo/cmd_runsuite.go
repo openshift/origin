@@ -290,6 +290,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	logrus.Infof("Removed %d disabled tests, before=%d after=%d", origCount-filteredCount, origCount, filteredCount)
 
 	origCount = len(tests)
+	logrus.Infof("Filtering tests by suite matcher (used for file suite), before=%d", origCount)
+	if suite.SuiteMatcher != nil {
+		tests = suite.Filter(tests)
+	}
+	filteredCount = len(tests)
+	logrus.Infof("Removed %d tests incompatible with suite matcher, before=%d after=%d", origCount-filteredCount, origCount, filteredCount)
+
+	origCount = len(tests)
 	logrus.Infof("Filtering tests by cluster state, count=%d", origCount)
 	// Filter based on cluster environment
 	if clusterFilters != nil {
