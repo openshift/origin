@@ -30,6 +30,9 @@ import (
 	"github.com/openshift/origin/test/extended/util"
 )
 
+// OriginBinary is the openshift-tests binary itself, which also implements the extension
+// interface. We don't extract it from the tests image because we already have the binary
+// available.
 var OriginBinary = &TestBinary{
 	imageTag:   "tests",
 	binaryPath: os.Args[0],
@@ -80,15 +83,17 @@ type Image struct {
 	Version  string `json:"version"`
 }
 
+// extensionBinaries is the registry of additional test binaries to use as extension tests. Members
+// of the registry must be part of the release payload.
 var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "hyperkube",
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
-	/*{
+	{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
-	},*/
+	},
 }
 
 // Info returns information about this particular extension.

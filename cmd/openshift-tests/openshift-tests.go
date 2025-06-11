@@ -47,7 +47,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
 	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
 	"github.com/openshift/origin/pkg/test/extensions"
-	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
@@ -191,10 +190,6 @@ func main() {
 		defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 		return root.Execute()
 	}(); err != nil {
-		if ex, ok := err.(testginkgo.ExitError); ok {
-			fmt.Fprintf(os.Stderr, "Ginkgo exit error %d: %v\n", ex.Code, err)
-			os.Exit(ex.Code)
-		}
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
