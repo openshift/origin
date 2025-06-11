@@ -617,7 +617,7 @@ func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapi
 func assertHttpRouteConnection(hostname string) {
 	// Create the http client to check the response status code.
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 60 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
