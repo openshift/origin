@@ -110,7 +110,7 @@ type ClusterState struct {
 
 // discoverAPIGroups discovers available API groups in the cluster
 func discoverAPIGroups(coreClient clientset.Interface) (sets.Set[string], error) {
-	logrus.Infof("Discovering API Groups...")
+	logrus.Debugf("Discovering API Groups...")
 	discoveryClient := coreClient.Discovery()
 	groups, err := discoveryClient.ServerGroups()
 	if err != nil {
@@ -130,14 +130,14 @@ func discoverAPIGroups(coreClient clientset.Interface) (sets.Set[string], error)
 	slices.Sort(sortedAPIGroups)
 
 	logrus.WithField("apiGroups", strings.Join(sortedAPIGroups, ", ")).
-		Infof("Discovered %d API Groups", apiGroups.Len())
+		Debugf("Discovered %d API Groups", apiGroups.Len())
 
 	return apiGroups, nil
 }
 
 // discoverFeatureGates discovers feature gates in the cluster
 func discoverFeatureGates(configClient configclient.Interface, clusterVersion *configv1.ClusterVersion) (enabled, disabled sets.Set[string], err error) {
-	logrus.Infof("Discovering feature gates...")
+	logrus.Debugf("Discovering feature gates...")
 	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "encountered an error while discovering feature gates")
@@ -168,13 +168,13 @@ func discoverFeatureGates(configClient configclient.Interface, clusterVersion *c
 	slices.Sort(sortedEnabledGates)
 
 	logrus.WithField("featureGates", strings.Join(sortedEnabledGates, ", ")).
-		Infof("Discovered %d enabled feature gates", enabled.Len())
+		Debugf("Discovered %d enabled feature gates", enabled.Len())
 
 	sortedDisabledGates := disabled.UnsortedList()
 	slices.Sort(sortedDisabledGates)
 
 	logrus.WithField("featureGates", strings.Join(sortedDisabledGates, ", ")).
-		Infof("Discovered %d disabled feature gates", disabled.Len())
+		Debugf("Discovered %d disabled feature gates", disabled.Len())
 
 	return enabled, disabled, nil
 }
