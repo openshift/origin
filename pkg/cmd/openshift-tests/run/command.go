@@ -2,9 +2,9 @@ package run
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -38,20 +38,18 @@ func NewRunCommand(streams genericclioptions.IOStreams, internalExtension *exten
 		RunE: func(cmd *cobra.Command, args []string) error {
 			allSuites, err := testsuites.AllTestSuites(context.Background())
 			if err != nil {
-				panic(err) // TODO fix me
+				return errors.WithMessage(err, "couldn't retrieve test suites")
 			}
 
 			o, err := f.ToOptions(args, allSuites, internalExtension)
 			if err != nil {
-				fmt.Fprintf(f.IOStreams.ErrOut, "error converting to options: %v", err)
-				return err
+				return errors.WithMessage(err, "error converting to options")
 			}
 
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			if err := o.Run(ctx); err != nil {
-				fmt.Fprintf(f.IOStreams.ErrOut, "error running options: %v", err)
-				return err
+				return errors.WithMessage(err, "error running a test suite")
 			}
 			return nil
 		},
