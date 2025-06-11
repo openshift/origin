@@ -25,7 +25,6 @@ import (
 	"k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -46,6 +45,8 @@ const (
 	// ingressNamespace is the name of the "openshift-ingress" operand
 	// namespace.
 	ingressNamespace = "openshift-ingress"
+	// istioName is the name of the Istio CR.
+	istioName = "openshift-gateway"
 )
 
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
@@ -340,22 +341,21 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 }
 
 func waitForIstioHealthy(oc *exutil.CLI) {
-	resource := types.NamespacedName{Name: "openshift-gateway"}
 	timeout := 20 * time.Minute
 	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
-		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
+		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("istio", istioName, "-o=jsonpath={.status.state}").Output()
 		if errIstio != nil {
-			e2e.Logf("Failed getting openshift-gateway istio cr status: %v", errIstio)
+			e2e.Logf("Failed to get Istio CR %q: %v; retrying...", istioName, errIstio)
 			return false, nil
 		}
 		if istioStatus != "Healthy" {
-			e2e.Logf("Istio CR %q is not healthy, retrying...", resource.Name)
+			e2e.Logf("Istio CR %q is not healthy, retrying...", istioName)
 			return false, nil
 		}
-		e2e.Logf("Istio CR %q is healthy", resource.Name)
+		e2e.Logf("Istio CR %q is healthy", istioName)
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state within %v", resource.Name, timeout)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state within %v", istioName, timeout)
 }
 
 func checkGatewayClass(oc *exutil.CLI, name string) error {
