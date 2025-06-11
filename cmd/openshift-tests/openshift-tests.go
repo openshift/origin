@@ -28,6 +28,7 @@ import (
 	v "github.com/openshift-eng/openshift-tests-extension/pkg/version"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	"github.com/openshift/origin/pkg/cmd"
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
@@ -50,6 +51,7 @@ import (
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 func main() {
@@ -123,14 +125,19 @@ func main() {
 
 		exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
 
-		// allow upgrade test to pass some parameters here, although this may be
-		// better handled as an env var within the test itself in the future
+		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+
+		if err := imagesetup.VerifyImages(); err != nil {
+			panic(err)
+		}
+
+		// Handle upgrade options
 		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
 		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
 		if err != nil {
 			panic(err)
 		}
-		// TODO this is called from run-upgrade and run-test.  At least one of these ought not need it.
+
 		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
 			panic(err)
 		}
