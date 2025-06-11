@@ -170,6 +170,12 @@ func discoverFeatureGates(configClient configclient.Interface, clusterVersion *c
 	logrus.WithField("featureGates", strings.Join(sortedEnabledGates, ", ")).
 		Infof("Discovered %d enabled feature gates", enabled.Len())
 
+	sortedDisabledGates := disabled.UnsortedList()
+	slices.Sort(sortedDisabledGates)
+
+	logrus.WithField("featureGates", strings.Join(sortedDisabledGates, ", ")).
+		Infof("Discovered %d disabled feature gates", disabled.Len())
+
 	return enabled, disabled, nil
 }
 
@@ -250,6 +256,7 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 		}
 	} else {
 		state.EnabledFeatureGates = sets.New[string]()
+		state.DisabledFeatureGates = sets.New[string]()
 		logrus.Infof("config.openshift.io API group not found, skipping feature gate discovery")
 	}
 
@@ -461,11 +468,7 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 			return false
 		}
 
-		// It is important that we always return true if we don't know the status of the gate.
-		// This generally means we have no opinion on whether the feature is on or off.
-		// We expect the default case to be on, as this is what would happen after a feature is promoted,
-		// and the gate is removed.
-		return true
+		return c.EnabledFeatureGates == nil || c.EnabledFeatureGates.HasAll(featureGates...)
 	}
 	return matchFn
 }
