@@ -104,6 +104,68 @@ type ClusterState struct {
 	FeatureGates         sets.Set[string]
 }
 
+// discoverAPIGroups discovers available API groups in the cluster
+func discoverAPIGroups(coreClient clientset.Interface) (sets.Set[string], error) {
+	logrus.Infof("Discovering API Groups...")
+	discoveryClient := coreClient.Discovery()
+	groups, err := discoveryClient.ServerGroups()
+	if err != nil {
+		return nil, err
+	}
+
+	apiGroups := sets.New[string]()
+	for _, apiGroup := range groups.Groups {
+		// ignore the empty group
+		if apiGroup.Name == "" {
+			continue
+		}
+		apiGroups.Insert(apiGroup.Name)
+	}
+
+	sortedAPIGroups := apiGroups.UnsortedList()
+	slices.Sort(sortedAPIGroups)
+
+	logrus.WithField("apiGroups", strings.Join(sortedAPIGroups, ", ")).
+		Infof("Discovered %d API Groups", apiGroups.Len())
+
+	return apiGroups, nil
+}
+
+// discoverFeatureGates discovers enabled feature gates in the cluster
+func discoverFeatureGates(configClient configclient.Interface, clusterVersion *configv1.ClusterVersion) (sets.Set[string], error) {
+	logrus.Infof("Discovering feature gates...")
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		logrus.Warningf("Encountered an error while discovering feature gates: %+v", err)
+		return nil, nil // Return nil set instead of error to maintain existing behavior
+	}
+
+	desiredVersion := clusterVersion.Status.Desired.Version
+	if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
+		desiredVersion = clusterVersion.Status.History[0].Version
+	}
+
+	featureGates := sets.New[string]()
+	for _, featureGateValues := range featureGate.Status.FeatureGates {
+		if featureGateValues.Version != desiredVersion {
+			logrus.Warningf("Feature gates for version %s not found, skipping", desiredVersion)
+			continue
+		}
+		for _, enabledGate := range featureGateValues.Enabled {
+			featureGates.Insert(string(enabledGate.Name))
+		}
+		break
+	}
+
+	sortedEnabledGates := featureGates.UnsortedList()
+	slices.Sort(sortedEnabledGates)
+
+	logrus.WithField("featureGates", strings.Join(sortedEnabledGates, ", ")).
+		Infof("Discovered %d enabled feature gates", featureGates.Len())
+
+	return featureGates, nil
+}
+
 // DiscoverClusterState creates a ClusterState based on a live cluster
 func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	coreClient, err := clientset.NewForConfig(clientConfig)
@@ -168,51 +230,20 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	state.OptionalCapabilities = clusterVersion.Status.Capabilities.EnabledCapabilities
 
 	// Discover available API groups
-	logrus.Infof("Discovering API Groups...")
-	discoveryClient := coreClient.Discovery()
-	groups, err := discoveryClient.ServerGroups()
+	state.APIGroups, err = discoverAPIGroups(coreClient)
 	if err != nil {
 		return nil, err
 	}
-	state.APIGroups = sets.New[string]()
-	for _, apiGroup := range groups.Groups {
-		// ignore the empty group
-		if apiGroup.Name == "" {
-			continue
-		}
-		state.APIGroups.Insert(apiGroup.Name)
-	}
-	logrus.Infof("Discovered %d API Groups", state.APIGroups.Len())
 
 	// Discover feature gates
-	logrus.Infof("Discovering feature gates...")
-	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		logrus.Warningf("Encountered an error while discovering feature gates: %+v", err)
+	if state.APIGroups.Has("config.openshift.io") {
+		state.FeatureGates, err = discoverFeatureGates(configClient, clusterVersion)
+		if err != nil {
+			logrus.WithError(err).Warn("ignoring error from discoverFeatureGates")
+		}
 	} else {
-		desiredVersion := clusterVersion.Status.Desired.Version
-		if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
-			desiredVersion = clusterVersion.Status.History[0].Version
-		}
-
 		state.FeatureGates = sets.New[string]()
-		for _, featureGateValues := range featureGate.Status.FeatureGates {
-			if featureGateValues.Version != desiredVersion {
-				logrus.Warningf("Feature gates for version %s not found, skipping", desiredVersion)
-				continue
-			}
-			for _, enabledGate := range featureGateValues.Enabled {
-				state.FeatureGates.Insert(string(enabledGate.Name))
-			}
-			break
-		}
-
-		sortedEnabledGates := state.FeatureGates.UnsortedList()
-		slices.Sort(sortedEnabledGates)
-
-		logrus.WithField("enabled", sortedEnabledGates).
-			Infof("Discovered %d enabled feature gates",
-				state.FeatureGates.Len())
+		logrus.Infof("config.openshift.io API group not found, skipping feature gate discovery")
 	}
 
 	return state, nil
