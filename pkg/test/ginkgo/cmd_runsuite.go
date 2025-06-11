@@ -25,8 +25,6 @@ import (
 	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
@@ -37,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/pkg/test/filters"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -145,7 +144,7 @@ func max(a, b int) int {
 	return b
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string) bool, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
 	upgrade bool) error {
 	ctx := context.Background()
 	var sharder Sharder
@@ -227,12 +226,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	// Apply all test filters using the filter chain -- origin previously filtered tests a ton
 	// of places, and co-mingled suite, annotation, and cluster state filters in odd ways. This filter
 	// chain is the ONLY place tests should be filtered down for determining the final execution set.
-	testFilterChain := NewFilterChain(logrus.WithField("component", "test-filter")).
-		AddFilter(NewSuiteQualifiersFilter(suite, o.Extension)).
-		AddFilter(NewKubeRebaseTestsFilter(o, restConfig)).
-		AddFilter(&DisabledTestsFilter{}).
-		AddFilter(NewSuiteMatcherFilter(suite)). // only used for "files" suite, not reccomended for anything else - use CEL qualifiers
-		AddFilter(NewClusterStateFilter(clusterFilters))
+	testFilterChain := filters.NewFilterChain(logrus.WithField("component", "test-filter")).
+		AddFilter(filters.NewQualifiersFilter(suite.Qualifiers)).
+		AddFilter(filters.NewKubeRebaseTestsFilter(restConfig)).
+		AddFilter(&filters.DisabledTestsFilter{}).
+		AddFilter(filters.NewMatchFnFilter(suite.SuiteMatcher)). // used for file or regexp cli filter on test names
+		AddFilter(filters.NewClusterStateFilter(clusterConfig))
 
 	specs, err = testFilterChain.Apply(ctx, specs)
 	if err != nil {
@@ -702,78 +701,6 @@ func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix st
 	}
 
 	return nil
-}
-
-func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, tests []*testCase) ([]*testCase, error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-	serverVersion, err := discoveryClient.ServerVersion()
-	if err != nil {
-		return nil, err
-	}
-	// TODO: this version along with below exclusions lists needs to be updated
-	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "31") {
-		return tests, nil
-	}
-
-	// Below list should only be filled in when we're trying to land k8s rebase.
-	// Don't pile them up!
-	exclusions := []string{
-		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
-		`[sig-api-machinery] health handlers should contain necessary checks`,
-	}
-
-	matches := make([]*testCase, 0, len(tests))
-outerLoop:
-	for _, test := range tests {
-		for _, excl := range exclusions {
-			if strings.Contains(test.name, excl) {
-				fmt.Fprintf(o.Out, "Skipping %q due to rebase in-progress\n", test.name)
-				continue outerLoop
-			}
-		}
-		matches = append(matches, test)
-	}
-	return matches, nil
-}
-
-func (o *GinkgoRunSuiteOptions) filterOutRebaseTestsFromSpecs(restConfig *rest.Config, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-	serverVersion, err := discoveryClient.ServerVersion()
-	if err != nil {
-		return nil, err
-	}
-	// TODO: this version along with below exclusions lists needs to be updated
-	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "31") {
-		return tests, nil
-	}
-
-	// Below list should only be filled in when we're trying to land k8s rebase.
-	// Don't pile them up!
-	exclusions := []string{
-		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
-		`[sig-api-machinery] health handlers should contain necessary checks`,
-	}
-
-	matches := make(extensions.ExtensionTestSpecs, 0, len(tests))
-outerLoop:
-	for _, test := range tests {
-		for _, excl := range exclusions {
-			if strings.Contains(test.Name, excl) {
-				fmt.Fprintf(o.Out, "Skipping %q due to rebase in-progress\n", test.Name)
-				continue outerLoop
-			}
-		}
-		matches = append(matches, test)
-	}
-	return matches, nil
 }
 
 func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (extensions.EnvironmentFlags, error) {

@@ -1,4 +1,4 @@
-package ginkgo
+package filters
 
 import (
 	"fmt"

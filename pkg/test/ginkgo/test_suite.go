@@ -161,6 +161,8 @@ type TestSuite struct {
 	Extension  *extensions.Extension `json:"-"`
 }
 
+
+
 type TestMatchFunc func(name string) bool
 
 func (s *TestSuite) Filter(tests []*testCase) []*testCase {

@@ -99,7 +99,7 @@ func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.T
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,
 		Extension:             internalExtension,
-		ClusterFilters:        providerConfig.MatchFn(),
+		ClusterConfig:         providerConfig,
 		FromRepository:        f.FromRepository,
 		CloudProviderJSON:     providerConfig.ToJSONString(),
 		CloseFn:               closeFn,

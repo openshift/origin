@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -30,9 +31,8 @@ type RunSuiteOptions struct {
 	CloseFn iooptions.CloseFunc
 	genericclioptions.IOStreams
 
-	// ClusterFilters is a test matcher that filters on cluster-specific data like available API groups, feature gates,
-	// network CNI provider, etc.
-	ClusterFilters func(string) bool
+	// ClusterConfig contains cluster-specific configuration for filtering tests
+	ClusterConfig *clusterdiscovery.ClusterConfiguration
 
 	// Extension is the internal origin extension of its own test specs.
 	Extension *extension.Extension
@@ -101,7 +101,7 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 
 	o.GinkgoRunSuiteOptions.Extension = o.Extension
 
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, o.ClusterFilters, "openshift-tests", monitorTestInfo, false)
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, o.ClusterConfig, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
