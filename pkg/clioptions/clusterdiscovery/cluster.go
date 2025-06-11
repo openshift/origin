@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -77,8 +78,10 @@ type ClusterConfiguration struct {
 
 	// APIGroups contains the set of API groups available in the cluster
 	APIGroups sets.Set[string] `json:"-"`
-	// FeatureGates contains the set of enabled feature gates in the cluster
-	FeatureGates sets.Set[string] `json:"-"`
+	// EnabledFeatureGates contains the set of enabled feature gates in the cluster
+	EnabledFeatureGates sets.Set[string] `json:"-"`
+	// DisabledFeatureGates contains the set of disabled feature gates in the cluster
+	DisabledFeatureGates sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -101,7 +104,8 @@ type ClusterState struct {
 	OptionalCapabilities []configv1.ClusterVersionCapability
 	Version              *configv1.ClusterVersion
 	APIGroups            sets.Set[string]
-	FeatureGates         sets.Set[string]
+	EnabledFeatureGates  sets.Set[string]
+	DisabledFeatureGates sets.Set[string]
 }
 
 // discoverAPIGroups discovers available API groups in the cluster
@@ -131,13 +135,12 @@ func discoverAPIGroups(coreClient clientset.Interface) (sets.Set[string], error)
 	return apiGroups, nil
 }
 
-// discoverFeatureGates discovers enabled feature gates in the cluster
-func discoverFeatureGates(configClient configclient.Interface, clusterVersion *configv1.ClusterVersion) (sets.Set[string], error) {
+// discoverFeatureGates discovers feature gates in the cluster
+func discoverFeatureGates(configClient configclient.Interface, clusterVersion *configv1.ClusterVersion) (enabled, disabled sets.Set[string], err error) {
 	logrus.Infof("Discovering feature gates...")
 	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		logrus.Warningf("Encountered an error while discovering feature gates: %+v", err)
-		return nil, nil // Return nil set instead of error to maintain existing behavior
+		return nil, nil, errors.WithMessage(err, "encountered an error while discovering feature gates")
 	}
 
 	desiredVersion := clusterVersion.Status.Desired.Version
@@ -145,25 +148,29 @@ func discoverFeatureGates(configClient configclient.Interface, clusterVersion *c
 		desiredVersion = clusterVersion.Status.History[0].Version
 	}
 
-	featureGates := sets.New[string]()
+	enabled = sets.New[string]()
+	disabled = sets.New[string]()
 	for _, featureGateValues := range featureGate.Status.FeatureGates {
 		if featureGateValues.Version != desiredVersion {
 			logrus.Warningf("Feature gates for version %s not found, skipping", desiredVersion)
 			continue
 		}
 		for _, enabledGate := range featureGateValues.Enabled {
-			featureGates.Insert(string(enabledGate.Name))
+			enabled.Insert(string(enabledGate.Name))
+		}
+		for _, disabledGate := range featureGateValues.Disabled {
+			disabled.Insert(string(disabledGate.Name))
 		}
 		break
 	}
 
-	sortedEnabledGates := featureGates.UnsortedList()
+	sortedEnabledGates := enabled.UnsortedList()
 	slices.Sort(sortedEnabledGates)
 
 	logrus.WithField("featureGates", strings.Join(sortedEnabledGates, ", ")).
-		Infof("Discovered %d enabled feature gates", featureGates.Len())
+		Infof("Discovered %d enabled feature gates", enabled.Len())
 
-	return featureGates, nil
+	return enabled, disabled, nil
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -237,12 +244,12 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 
 	// Discover feature gates
 	if state.APIGroups.Has("config.openshift.io") {
-		state.FeatureGates, err = discoverFeatureGates(configClient, clusterVersion)
+		state.EnabledFeatureGates, state.DisabledFeatureGates, err = discoverFeatureGates(configClient, clusterVersion)
 		if err != nil {
 			logrus.WithError(err).Warn("ignoring error from discoverFeatureGates")
 		}
 	} else {
-		state.FeatureGates = sets.New[string]()
+		state.EnabledFeatureGates = sets.New[string]()
 		logrus.Infof("config.openshift.io API group not found, skipping feature gate discovery")
 	}
 
@@ -363,7 +370,8 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 
 	// Copy API groups and feature gates from cluster state
 	config.APIGroups = state.APIGroups
-	config.FeatureGates = state.FeatureGates
+	config.EnabledFeatureGates = state.EnabledFeatureGates
+	config.DisabledFeatureGates = state.DisabledFeatureGates
 
 	return config, nil
 }
@@ -449,16 +457,14 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 			featureGates = append(featureGates, featureGate)
 		}
 
-		if c.FeatureGates != nil && !c.FeatureGates.HasAll(featureGates...) {
+		if c.DisabledFeatureGates != nil && c.DisabledFeatureGates.HasAny(featureGates...) {
 			return false
 		}
 
-		// If no feature gates are configured, exclude all featuregated tests
-		// This matches the original includeNonFeatureGateTest behavior
-		if c.FeatureGates == nil && len(featureGates) > 0 {
-			return false
-		}
-
+		// It is important that we always return true if we don't know the status of the gate.
+		// This generally means we have no opinion on whether the feature is on or off.
+		// We expect the default case to be on, as this is what would happen after a feature is promoted,
+		// and the gate is removed.
 		return true
 	}
 	return matchFn
