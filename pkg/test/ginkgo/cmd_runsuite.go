@@ -153,22 +153,27 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		sharder = &HashSharder{}
 	}
 
-	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
-	// Extract all test binaries
-	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer extractionContextCancel()
-	cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
-	if err != nil {
-		return err
+	allBinaries := extensions.TestBinaries{extensions.OriginBinary}
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+	} else {
+		// Extract all test binaries
+		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+		defer extractionContextCancel()
+		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+		if err != nil {
+			return err
+		}
+		defer cleanUpFn()
+		allBinaries = append(allBinaries, externalBinaries...)
 	}
-	defer cleanUpFn()
 
 	defaultBinaryParallelism := 10
 
 	// Learn about the extension binaries available
 	infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer infoContextCancel()
-	extensionsInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
+	extensionsInfo, err := allBinaries.Info(infoContext, defaultBinaryParallelism)
 	if err != nil {
 		return err
 	}
@@ -189,7 +194,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	}
 	logrus.WithFields(envFlags.LogFields()).Infof("Determined all potential environment flags")
 
-	specs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
+	specs, err := allBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
 	if err != nil {
 		return err
 	}
@@ -204,6 +209,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			annotatedSkipped = append(annotatedSkipped, t.Name)
 		}
 	}
+	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	var skippedAnnotationSyntheticTestResults []*junitapi.JUnitTestCase
 	skippedAnnotationSyntheticTestResult := junitapi.JUnitTestCase{
 		Name: "[sig-trt] Skipped annotations present",

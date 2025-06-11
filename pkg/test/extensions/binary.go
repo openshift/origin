@@ -371,9 +371,6 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		}
 	}()
 
-	// Ensure origin's internal extension is added
-	binaries = append(binaries, OriginBinary)
-
 	// Consumer workers: extract test binaries concurrently
 	for i := 0; i < parallelism; i++ {
 		wg.Add(1)
