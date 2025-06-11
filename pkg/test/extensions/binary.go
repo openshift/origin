@@ -26,21 +26,34 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	v "github.com/openshift/origin/pkg/version"
 	"github.com/openshift/origin/test/extended/util"
 )
 
-var OriginExtension = &TestBinary{
+var OriginBinary = &TestBinary{
 	imageTag:   "tests",
 	binaryPath: os.Args[0],
-	info: &Extension{
-		Extension: &extension.Extension{
-			Component: extension.Component{
-				Product: "openshift",
-				Kind:    "payload",
-				Name:    "origin",
-			},
-			APIVersion: extension.CurrentExtensionAPIVersion,
+	info:       OriginExtension,
+}
+
+var OriginExtension = &Extension{
+	Extension: &extension.Extension{
+		Component: extension.Component{
+			Product: "openshift",
+			Kind:    "payload",
+			Name:    "origin",
 		},
+		APIVersion: extension.CurrentExtensionAPIVersion,
+	},
+	Source: Source{
+		Source: &extension.Source{
+			Commit:       v.Get().GitCommit,
+			GitTreeState: v.Get().GitTreeState,
+			BuildDate:    v.Get().BuildDate,
+			SourceURL:    "https://github.com/openshift/origin",
+		},
+		SourceBinary: os.Args[0],
+		SourceImage:  "tests",
 	},
 }
 
@@ -359,7 +372,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 	}()
 
 	// Ensure origin's internal extension is added
-	binaries = append(binaries, OriginExtension)
+	binaries = append(binaries, OriginBinary)
 
 	// Consumer workers: extract test binaries concurrently
 	for i := 0; i < parallelism; i++ {

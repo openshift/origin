@@ -45,6 +45,7 @@ import (
 	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
 	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
+	"github.com/openshift/origin/pkg/test/extensions"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -82,7 +83,7 @@ func main() {
 
 	// Create our registry of openshift-tests extensions
 	extensionRegistry := e.NewRegistry()
-	originExtension := e.NewExtension("openshift", "payload", "origin")
+	originExtension := extensions.OriginExtension.Extension
 	extensionRegistry.Register(originExtension)
 
 	// Build our specs from ginkgo
