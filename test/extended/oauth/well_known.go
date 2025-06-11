@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"path"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -46,10 +45,12 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			u, err := url.Parse("https://" + route.Spec.Host)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			u.Path = path.Join(u.Path, "oauth/authorize")
+			u.Path = u.ResolveReference(&url.URL{Path: "/oauth/authorize"}).Path
 			authEndpointFromRoute := u.String()
-			o.Expect(metadata.AuthorizationEndpoint).To(o.Equal(authEndpointFromRoute))
+			o.Expect(metadata.AuthorizationEndpoint).To(o.Equal(authEndpointFromRoute), "authorization endpoint does not match route")
+
 		}
+
 		tlsClientConfig, err := rest.TLSConfigFor(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -63,6 +64,15 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func()
 
 		resp, err := rt.RoundTrip(req)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(resp.StatusCode).To(o.Equal(200))
+		defer resp.Body.Close()
+
+		// When a Bearer token is present in the kubeconfig,
+		// Go’s HTTP client (via rest.TLSConfigFor) uses it in the Authorization: Bearer <token> header.
+		// The request is no longer anonymous — it's now authenticated as that user or service account.
+		if oc.AdminConfig().BearerToken != "" {
+			o.Expect(resp.StatusCode).To(o.Equal(403), "expected 403 when BearerToken is present")
+		} else {
+			o.Expect(resp.StatusCode).To(o.Equal(200), "expected 200 when no BearerToken is present")
+		}
 	})
 })
