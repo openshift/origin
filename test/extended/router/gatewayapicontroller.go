@@ -340,7 +340,7 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 }
 
 func waitForIstioHealthy(oc *exutil.CLI) {
-	resource := types.NamespacedName{Namespace: ingressNamespace, Name: "openshift-gateway"}
+	resource := types.NamespacedName{Name: "openshift-gateway"}
 	timeout := 20 * time.Minute
 	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
