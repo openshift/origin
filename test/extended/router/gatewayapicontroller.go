@@ -43,6 +43,9 @@ const (
 	dnsResolutionTimeout = 10 * time.Minute
 	// Max time duration for the Load balancer address
 	loadBalancerReadyTimeout = 10 * time.Minute
+	// ingressNamespace is the name of the "openshift-ingress" operand
+	// namespace.
+	ingressNamespace = "openshift-ingress"
 )
 
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
@@ -100,7 +103,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Deleting the gateways")
 
 		for _, name := range gateways {
-			err = oc.AdminGatewayApiClient().GatewayV1().Gateways("openshift-ingress").Delete(context.Background(), name, metav1.DeleteOptions{})
+			err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
 		}
 
@@ -337,7 +340,7 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 }
 
 func waitForIstioHealthy(oc *exutil.CLI) {
-	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
+	resource := types.NamespacedName{Namespace: ingressNamespace, Name: "openshift-gateway"}
 	timeout := 20 * time.Minute
 	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
@@ -390,19 +393,17 @@ func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 
 // createAndCheckGateway build and creates the Gateway.
 func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (*gatewayapiv1.Gateway, error) {
-	ingressNameSpace := "openshift-ingress"
-
 	// Build the gateway object
-	gatewaybuild := buildGateway(gwname, ingressNameSpace, gwclassname, "All", domain)
+	gatewaybuild := buildGateway(gwname, ingressNamespace, gwclassname, "All", domain)
 
 	// Create the gateway object
-	_, errGwObj := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
+	_, errGwObj := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
 	if errGwObj != nil {
 		return nil, errGwObj
 	}
 
 	// Confirm the gateway is up and running
-	return checkGatewayStatus(oc, gwname, ingressNameSpace)
+	return checkGatewayStatus(oc, gwname, ingressNamespace)
 }
 
 func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
@@ -455,7 +456,7 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 	// check gateway LB service, note that External-IP might be hostname (AWS) or IP (Azure/GCP)
 	var lbAddress string
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, loadBalancerReadyTimeout, false, func(context context.Context) (bool, error) {
-		lbService, err := oc.AdminKubeClient().CoreV1().Services("openshift-ingress").Get(context, gwServiceName, metav1.GetOptions{})
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context, gwServiceName, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get service %q: %v, retrying...", gwServiceName, err)
 			return false, nil
@@ -475,7 +476,7 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 		}
 		e2e.Logf("Got load balancer address for service %q: %v", gwServiceName, lbAddress)
 
-		gw, err := oc.AdminGatewayApiClient().GatewayV1().Gateways("openshift-ingress").Get(context, gwName, metav1.GetOptions{})
+		gw, err := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(context, gwName, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get gateway %q: %v; retrying...", err, gwName)
 			return false, nil
@@ -497,7 +498,7 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 	// find the DNS Record and confirm its zone status is True
 	err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		gatewayDNSRecord := &operatoringressv1.DNSRecord{}
-		gatewayDNSRecords, err := oc.AdminIngressClient().IngressV1().DNSRecords("openshift-ingress").List(context, metav1.ListOptions{})
+		gatewayDNSRecords, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context, metav1.ListOptions{})
 		if err != nil {
 			e2e.Logf("Failed to list DNS records for gateway %q: %v, retrying...", gatewayName, err)
 			return false, nil
@@ -529,8 +530,7 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 // If it can't an error is returned.
 func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname string) (*gatewayapiv1.HTTPRoute, error) {
 	namespace := oc.Namespace()
-	ingressNameSpace := "openshift-ingress"
-	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Get(context.TODO(), gwName, metav1.GetOptions{})
+	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(context.TODO(), gwName, metav1.GetOptions{})
 	if errGwStatus != nil || gateway == nil {
 		e2e.Failf("Unable to create httpRoute, no gateway available during route assertion %v", errGwStatus)
 	}
@@ -549,7 +549,7 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 	o.Expect(echoServiceErr).NotTo(o.HaveOccurred())
 
 	// Create the HTTPRoute
-	buildHTTPRoute := buildHTTPRoute(routeName, namespace, gateway.Name, ingressNameSpace, hostname, backendRefname)
+	buildHTTPRoute := buildHTTPRoute(routeName, namespace, gateway.Name, ingressNamespace, hostname, backendRefname)
 	httpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Create(context.Background(), buildHTTPRoute, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -670,8 +670,7 @@ func buildHTTPRoute(routeName, namespace, parentgateway, parentNamespace, hostna
 func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapiv1.HTTPRoute, error) {
 	namespace := oc.Namespace()
 	checkHttpRoute := &gatewayapiv1.HTTPRoute{}
-	ingressNameSpace := "openshift-ingress"
-	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Get(context.TODO(), gwName, metav1.GetOptions{})
+	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(context.TODO(), gwName, metav1.GetOptions{})
 	if errGwStatus != nil || gateway == nil {
 		e2e.Failf("Unable to assert httproute, no gateway available, error %v", errGwStatus)
 	}
