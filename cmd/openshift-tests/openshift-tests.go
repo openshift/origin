@@ -19,6 +19,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/util/templates"
 	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 
@@ -26,6 +27,8 @@ import (
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	v "github.com/openshift-eng/openshift-tests-extension/pkg/version"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	"github.com/openshift/origin/pkg/cmd"
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
@@ -105,6 +108,31 @@ func main() {
 	// Filter out kube tests, vendor filtering isn't working within origin
 	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
 		return !strings.Contains(spec.Name, "[Suite:k8s")
+	})
+
+	specs.AddBeforeAll(func() {
+		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
+		if err != nil {
+			panic(err)
+		}
+		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
+			panic(err)
+		}
+		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
+
+		exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+		// allow upgrade test to pass some parameters here, although this may be
+		// better handled as an env var within the test itself in the future
+		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
+		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
+		if err != nil {
+			panic(err)
+		}
+		// TODO this is called from run-upgrade and run-test.  At least one of these ought not need it.
+		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
+			panic(err)
+		}
 	})
 
 	originExtension.AddSpecs(specs)
