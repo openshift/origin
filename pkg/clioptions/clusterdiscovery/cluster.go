@@ -468,7 +468,7 @@ func (c *ClusterConfiguration) MatchFn() func(string) bool {
 			return false
 		}
 
-		return c.EnabledFeatureGates == nil || c.EnabledFeatureGates.HasAll(featureGates...)
+		return c.EnabledFeatureGates != nil && c.EnabledFeatureGates.HasAll(featureGates...)
 	}
 	return matchFn
 }
