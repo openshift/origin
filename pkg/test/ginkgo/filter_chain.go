@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
-	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 
@@ -18,7 +17,7 @@ type TestFilter interface {
 	Name() string
 
 	// Filter applies the filtering logic and returns the filtered tests
-	Filter(ctx context.Context, tests []*testCase) ([]*testCase, error)
+	Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error)
 
 	// ShouldApply returns true if this filter should be applied
 	ShouldApply() bool
@@ -48,7 +47,7 @@ func (p *TestFilterChain) AddFilter(filter TestFilter) *TestFilterChain {
 }
 
 // Apply runs all filters in sequence, logging each step
-func (p *TestFilterChain) Apply(ctx context.Context, tests []*testCase) ([]*testCase, error) {
+func (p *TestFilterChain) Apply(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
 	current := tests
 
 	for _, filter := range p.filters {
@@ -92,10 +91,10 @@ func (f *DisabledTestsFilter) Name() string {
 	return "disabled-tests"
 }
 
-func (f *DisabledTestsFilter) Filter(ctx context.Context, tests []*testCase) ([]*testCase, error) {
-	enabled := make([]*testCase, 0, len(tests))
+func (f *DisabledTestsFilter) Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
+	enabled := make(extensions.ExtensionTestSpecs, 0, len(tests))
 	for _, test := range tests {
-		if isDisabled(test.name) {
+		if isDisabled(test.Name) {
 			continue
 		}
 		enabled = append(enabled, test)
@@ -120,8 +119,19 @@ func (f *SuiteMatcherFilter) Name() string {
 	return "suite-matcher"
 }
 
-func (f *SuiteMatcherFilter) Filter(ctx context.Context, tests []*testCase) ([]*testCase, error) {
-	return f.suite.Filter(tests), nil
+func (f *SuiteMatcherFilter) Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
+	if f.suite.SuiteMatcher == nil {
+		return tests, nil
+	}
+
+	matches := make(extensions.ExtensionTestSpecs, 0, len(tests))
+	for _, test := range tests {
+		if !f.suite.SuiteMatcher(test.Name) {
+			continue
+		}
+		matches = append(matches, test)
+	}
+	return matches, nil
 }
 
 func (f *SuiteMatcherFilter) ShouldApply() bool {
@@ -141,15 +151,15 @@ func (f *ClusterStateFilter) Name() string {
 	return "cluster-state"
 }
 
-func (f *ClusterStateFilter) Filter(ctx context.Context, tests []*testCase) ([]*testCase, error) {
-	matches := make([]*testCase, 0, len(tests))
+func (f *ClusterStateFilter) Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
+	filtered := make(extensions.ExtensionTestSpecs, 0, len(tests))
 	for _, test := range tests {
-		if !f.clusterFilters(test.name) {
+		if !f.clusterFilters(test.Name) {
 			continue
 		}
-		matches = append(matches, test)
+		filtered = append(filtered, test)
 	}
-	return matches, nil
+	return filtered, nil
 }
 
 func (f *ClusterStateFilter) ShouldApply() bool {
@@ -173,8 +183,8 @@ func (f *KubeRebaseTestsFilter) Name() string {
 	return "kube-rebase-tests"
 }
 
-func (f *KubeRebaseTestsFilter) Filter(ctx context.Context, tests []*testCase) ([]*testCase, error) {
-	return f.options.filterOutRebaseTests(f.restConfig, tests)
+func (f *KubeRebaseTestsFilter) Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
+	return f.options.filterOutRebaseTestsFromSpecs(f.restConfig, tests)
 }
 
 func (f *KubeRebaseTestsFilter) ShouldApply() bool {
@@ -198,102 +208,19 @@ func (f *SuiteQualifiersFilter) Name() string {
 	return "suite-qualifiers"
 }
 
-// Filter filters tests based on suite qualifying CEL expressions.  Because origin wraps ExtensionTestSpecs, we have
-// to do some unfortunate gymnastics to make it work.  Eventually it'd be great to deprecate testCase and use native
-// ExtensionTestSpecs everywhere in origin, but that's a ways off.
-func (f *SuiteQualifiersFilter) Filter(ctx context.Context, tests []*testCase) ([]*testCase, error) {
+// Filter filters tests based on suite qualifying CEL expressions.
+func (f *SuiteQualifiersFilter) Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
 	if len(f.suite.Qualifiers) == 0 {
 		return tests, nil
 	}
 
-	// Separate internal and external tests for different filtering approaches
-	var internalTests, externalTests []*testCase
-	for _, test := range tests {
-		if test.binary != nil {
-			externalTests = append(externalTests, test)
-		} else {
-			internalTests = append(internalTests, test)
-		}
+	// Apply qualifier filtering directly to the ExtensionTestSpecs
+	filteredSpecs, err := extensions.FilterWrappedSpecs(tests, f.suite.Qualifiers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter tests by qualifiers: %w", err)
 	}
 
-	// Filter internal tests using extension specs
-	if len(internalTests) > 0 && f.extension != nil {
-		specs := f.extension.GetSpecs()
-
-		// Create a map from test name to spec for efficient lookup
-		specMap := make(map[string]*extensiontests.ExtensionTestSpec)
-		specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-			specMap[spec.Name] = spec
-		})
-
-		// Convert internal tests back to specs for filtering
-		var testSpecs extensiontests.ExtensionTestSpecs
-		for _, test := range internalTests {
-			if spec, exists := specMap[test.name]; exists {
-				testSpecs = append(testSpecs, spec)
-			}
-		}
-
-		// Apply qualifier filtering
-		filteredSpecs, err := testSpecs.Filter(f.suite.Qualifiers)
-		if err != nil {
-			return nil, fmt.Errorf("failed to filter internal tests by qualifiers: %w", err)
-		}
-
-		// Convert back to test cases
-		filteredSpecNames := make(map[string]bool)
-		for _, spec := range filteredSpecs {
-			filteredSpecNames[spec.Name] = true
-		}
-
-		var filteredInternalTests []*testCase
-		for _, test := range internalTests {
-			if filteredSpecNames[test.name] {
-				filteredInternalTests = append(filteredInternalTests, test)
-			}
-		}
-		internalTests = filteredInternalTests
-	}
-
-	// Filter external tests using wrapped specs
-	if len(externalTests) > 0 {
-		// Convert external tests to wrapped specs
-		var externalSpecs extensions.ExtensionTestSpecs
-		for _, test := range externalTests {
-			if test.binary != nil {
-				externalSpecs = append(externalSpecs, &extensions.ExtensionTestSpec{
-					ExtensionTestSpec: &extensiontests.ExtensionTestSpec{
-						Name: test.name,
-					},
-					Binary: test.binary,
-				})
-			}
-		}
-
-		// Apply qualifier filtering
-		filteredExternalSpecs, err := extensions.FilterWrappedSpecs(externalSpecs, f.suite.Qualifiers)
-		if err != nil {
-			return nil, fmt.Errorf("failed to filter external tests by qualifiers: %w", err)
-		}
-
-		// Convert back to test cases
-		filteredSpecNames := make(map[string]bool)
-		for _, spec := range filteredExternalSpecs {
-			filteredSpecNames[spec.Name] = true
-		}
-
-		var filteredExternalTests []*testCase
-		for _, test := range externalTests {
-			if filteredSpecNames[test.name] {
-				filteredExternalTests = append(filteredExternalTests, test)
-			}
-		}
-		externalTests = filteredExternalTests
-	}
-
-	// Combine filtered results
-	result := append(internalTests, externalTests...)
-	return result, nil
+	return filteredSpecs, nil
 }
 
 func (f *SuiteQualifiersFilter) ShouldApply() bool {

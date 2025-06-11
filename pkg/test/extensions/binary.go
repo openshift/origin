@@ -29,6 +29,21 @@ import (
 	"github.com/openshift/origin/test/extended/util"
 )
 
+var OriginExtension = &TestBinary{
+	imageTag:   "tests",
+	binaryPath: os.Args[0],
+	info: &Extension{
+		Extension: &extension.Extension{
+			Component: extension.Component{
+				Product: "openshift",
+				Kind:    "payload",
+				Name:    "origin",
+			},
+			APIVersion: extension.CurrentExtensionAPIVersion,
+		},
+	},
+}
+
 // TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
 type TestBinary struct {
 	// The payload image tag in which an external binary path can be found
@@ -342,6 +357,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 			}
 		}
 	}()
+
+	// Ensure origin's internal extension is added
+	binaries = append(binaries, OriginExtension)
 
 	// Consumer workers: extract test binaries concurrently
 	for i := 0; i < parallelism; i++ {

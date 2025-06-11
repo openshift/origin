@@ -148,83 +148,61 @@ func max(a, b int) int {
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string) bool, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
 	upgrade bool) error {
 	ctx := context.Background()
-
 	var sharder Sharder
 	switch o.ShardStrategy {
 	default:
 		sharder = &HashSharder{}
 	}
 
-	specs := o.Extension.GetSpecs()
+	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
+	// Extract all test binaries
+	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer extractionContextCancel()
+	cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
+	if err != nil {
+		return err
+	}
+	defer cleanUpFn()
 
-	// Convert internal tests to origin's testCase format (qualifiers will be applied later in pipeline)
-	internalTestCases, err := internalTestSpecsToOriginTestCases(suite, specs)
+	defaultBinaryParallelism := 10
+
+	// Learn about the extension binaries available
+	infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer infoContextCancel()
+	extensionsInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
 	if err != nil {
 		return err
 	}
 
-	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary for this suite", len(internalTestCases))
-
-	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
-	var externalTestCases []*testCase
-	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		// Extract all test binaries
-		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
-		if err != nil {
-			return err
-		}
-		defer cleanUpFn()
-
-		defaultBinaryParallelism := 10
-
-		// Learn about the extension binaries available
-		// TODO(stbenjam): we'll eventually use this information to get suite information -- but not yet in this iteration
-		infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer infoContextCancel()
-		extensionsInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
-		if err != nil {
-			return err
-		}
-		logrus.Infof("Discovered %d extensions", len(extensionsInfo))
-		for _, e := range extensionsInfo {
-			id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
-			logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
-		}
-
-		// List tests from all available binaries and convert them to origin's testCase format
-		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer listContextCancel()
-
-		envFlags, err := determineEnvironmentFlags(ctx, upgrade, o.DryRun)
-		if err != nil {
-			return fmt.Errorf("could not determine environment flags: %w", err)
-		}
-		logrus.WithFields(envFlags.LogFields()).Infof("Determined all potential environment flags")
-
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
-		if err != nil {
-			return err
-		}
-
-		// Convert external tests to origin's testCase format (qualifiers will be applied later in pipeline)
-		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
-
-		logrus.Infof("Discovered %d internal tests, %d external tests - %d total tests",
-			len(internalTestCases), len(externalTestCases), len(internalTestCases)+len(externalTestCases))
-	} else {
-		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+	logrus.Infof("Discovered %d extensions", len(extensionsInfo))
+	for _, e := range extensionsInfo {
+		id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
+		logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
 	}
 
-	tests := append(internalTestCases, externalTestCases...)
+	// List tests from all available binaries and convert them to origin's testCase format
+	listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer listContextCancel()
+
+	envFlags, err := determineEnvironmentFlags(ctx, upgrade, o.DryRun)
+	if err != nil {
+		return fmt.Errorf("could not determine environment flags: %w", err)
+	}
+	logrus.WithFields(envFlags.LogFields()).Infof("Determined all potential environment flags")
+
+	specs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Discovered %d total tests", len(specs))
 
 	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
 	// begins to pass we can remove the annotation logic
 	var annotatedSkipped []string
-	for _, t := range externalTestCases {
-		if strings.Contains(t.name, "[Skipped") {
-			annotatedSkipped = append(annotatedSkipped, t.name)
+	for _, t := range specs {
+		if strings.Contains(t.Name, "[Skipped") {
+			annotatedSkipped = append(annotatedSkipped, t.Name)
 		}
 	}
 	var skippedAnnotationSyntheticTestResults []*junitapi.JUnitTestCase
@@ -239,12 +217,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &skippedAnnotationSyntheticTestResult)
 	// If this fails, this additional run will make it flake
 	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &junitapi.JUnitTestCase{Name: skippedAnnotationSyntheticTestResult.Name})
-
-	// this ensures the tests are always run in random order to avoid
-	// any intra-tests dependencies
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
-	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	// skip tests due to newer k8s
 	restConfig, err := clusterinfo.GetMonitorRESTConfig()
@@ -262,10 +234,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterFilters func(string
 		AddFilter(NewSuiteMatcherFilter(suite)). // only used for "files" suite, not reccomended for anything else - use CEL qualifiers
 		AddFilter(NewClusterStateFilter(clusterFilters))
 
-	tests, err = testFilterChain.Apply(ctx, tests)
+	specs, err = testFilterChain.Apply(ctx, specs)
 	if err != nil {
 		return err
 	}
+
+	tests := externalBinaryTestsToOriginTestCases(specs)
+
+	// this ensures the tests are always run in random order to avoid
+	// any intra-tests dependencies
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	count := o.Count
 	if count == 0 {
@@ -752,6 +732,42 @@ outerLoop:
 		for _, excl := range exclusions {
 			if strings.Contains(test.name, excl) {
 				fmt.Fprintf(o.Out, "Skipping %q due to rebase in-progress\n", test.name)
+				continue outerLoop
+			}
+		}
+		matches = append(matches, test)
+	}
+	return matches, nil
+}
+
+func (o *GinkgoRunSuiteOptions) filterOutRebaseTestsFromSpecs(restConfig *rest.Config, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	serverVersion, err := discoveryClient.ServerVersion()
+	if err != nil {
+		return nil, err
+	}
+	// TODO: this version along with below exclusions lists needs to be updated
+	// for the rebase in-progress.
+	if !strings.HasPrefix(serverVersion.Minor, "31") {
+		return tests, nil
+	}
+
+	// Below list should only be filled in when we're trying to land k8s rebase.
+	// Don't pile them up!
+	exclusions := []string{
+		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
+		`[sig-api-machinery] health handlers should contain necessary checks`,
+	}
+
+	matches := make(extensions.ExtensionTestSpecs, 0, len(tests))
+outerLoop:
+	for _, test := range tests {
+		for _, excl := range exclusions {
+			if strings.Contains(test.Name, excl) {
+				fmt.Fprintf(o.Out, "Skipping %q due to rebase in-progress\n", test.Name)
 				continue outerLoop
 			}
 		}

@@ -5,20 +5,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openshift/origin/pkg/test/extensions"
 )
 
 func TestFilters(t *testing.T) {
 	logger := logrus.NewEntry(logrus.New())
 	logger.Logger.SetLevel(logrus.FatalLevel)
 
-	tests := []*testCase{
-		{name: "normal test"},
-		{name: "test [Disabled:reason]"},
-		{name: "another normal test"},
-		{name: "test [Skipped:reason]"},
+	tests := extensions.ExtensionTestSpecs{
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "normal test"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [Disabled:reason]"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "another normal test"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [Skipped:reason]"}},
 	}
 
 	suite := &TestSuite{
@@ -36,25 +39,25 @@ func TestFilters(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Len(t, result, 1)
-	assert.Equal(t, "normal test", result[0].name)
+	assert.Equal(t, "normal test", result[0].Name)
 }
 
 func TestDisabledTestsFilter(t *testing.T) {
 	filter := &DisabledTestsFilter{}
 
-	tests := []*testCase{
-		{name: "normal test"},
-		{name: "test [Disabled:reason]"},
-		{name: "another normal test"},
-		{name: "test [Skipped:reason]"}, // This won't be filtered by isDisabled
+	tests := extensions.ExtensionTestSpecs{
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "normal test"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [Disabled:reason]"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "another normal test"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [Skipped:reason]"}}, // This won't be filtered by isDisabled
 	}
 
 	result, err := filter.Filter(context.Background(), tests)
 	require.NoError(t, err)
 	assert.Len(t, result, 3) // Only [Disabled:reason] is filtered out
-	assert.Equal(t, "normal test", result[0].name)
-	assert.Equal(t, "another normal test", result[1].name)
-	assert.Equal(t, "test [Skipped:reason]", result[2].name)
+	assert.Equal(t, "normal test", result[0].Name)
+	assert.Equal(t, "another normal test", result[1].Name)
+	assert.Equal(t, "test [Skipped:reason]", result[2].Name)
 }
 
 func TestClusterStateFilter(t *testing.T) {
@@ -64,17 +67,17 @@ func TestClusterStateFilter(t *testing.T) {
 
 	filter := NewClusterStateFilter(clusterFilters)
 
-	tests := []*testCase{
-		{name: "test one"},
-		{name: "test two [Skipped:Disconnected]"},
-		{name: "test three"},
+	tests := extensions.ExtensionTestSpecs{
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test one"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test two [Skipped:Disconnected]"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test three"}},
 	}
 
 	result, err := filter.Filter(context.Background(), tests)
 	require.NoError(t, err)
 	assert.Len(t, result, 2)
-	assert.Equal(t, "test one", result[0].name)
-	assert.Equal(t, "test three", result[1].name)
+	assert.Equal(t, "test one", result[0].Name)
+	assert.Equal(t, "test three", result[1].Name)
 }
 
 func TestClusterStateFilterShouldApply(t *testing.T) {
@@ -94,7 +97,9 @@ func TestFilterPipelineErrorHandling(t *testing.T) {
 	pipeline := NewFilterChain(logger).
 		AddFilter(errorFilter)
 
-	tests := []*testCase{{name: "test"}}
+	tests := extensions.ExtensionTestSpecs{
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test"}},
+	}
 
 	result, err := pipeline.Apply(context.Background(), tests)
 
@@ -109,7 +114,7 @@ func (f *testErrorFilter) Name() string {
 	return "test-error-filter"
 }
 
-func (f *testErrorFilter) Filter(ctx context.Context, tests []*testCase) ([]*testCase, error) {
+func (f *testErrorFilter) Filter(ctx context.Context, tests extensions.ExtensionTestSpecs) (extensions.ExtensionTestSpecs, error) {
 	return nil, assert.AnError
 }
 

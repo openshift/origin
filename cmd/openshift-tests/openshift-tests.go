@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdrun"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/sirupsen/logrus"
@@ -38,7 +39,6 @@ import (
 	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run"
 	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
-	run_test "github.com/openshift/origin/pkg/cmd/openshift-tests/run-test"
 	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
 	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
@@ -131,7 +131,7 @@ func main() {
 		list.NewListCommand(ioStreams, extensionRegistry),
 		run_upgrade.NewRunUpgradeCommand(ioStreams),
 		images.NewImagesCommand(),
-		run_test.NewRunTestCommand(ioStreams),
+		cmdrun.NewRunTestCommand(extensionRegistry),
 		dev.NewDevCommand(),
 		run_monitor.NewRunMonitorCommand(ioStreams),
 		monitor.NewMonitorCommand(ioStreams),
