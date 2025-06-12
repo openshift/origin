@@ -137,7 +137,7 @@ func TestClusterStateFilter(t *testing.T) {
 
 func TestKubeRebaseFilter(t *testing.T) {
 	// Test with nil config (should pass all tests through)
-	filter := NewKubeRebaseTestsFilter(nil, nil)
+	filter := NewKubeRebaseTestsFilter(nil)
 
 	tests := extensions.ExtensionTestSpecs{
 		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "normal test"}},
