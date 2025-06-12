@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -382,99 +381,3 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 
 	return config, nil
 }
-
-// MatchFn returns a function that tests if a named function should be run based on
-// the cluster configuration
-func (c *ClusterConfiguration) MatchFn() func(string) bool {
-	var skips []string
-	skips = append(skips, fmt.Sprintf("[Skipped:%s]", c.ProviderName))
-
-	if c.IsIBMROKS {
-		skips = append(skips, "[Skipped:ibmroks]")
-	}
-	if c.NetworkPlugin != "" {
-		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", c.NetworkPlugin))
-		if c.NetworkPluginMode != "" {
-			skips = append(skips, fmt.Sprintf("[Skipped:Network/%s/%s]", c.NetworkPlugin, c.NetworkPluginMode))
-		}
-	}
-
-	if c.Disconnected {
-		skips = append(skips, "[Skipped:Disconnected]")
-	}
-
-	if c.IsProxied {
-		skips = append(skips, "[Skipped:Proxy]")
-	}
-
-	if c.SingleReplicaTopology {
-		skips = append(skips, "[Skipped:SingleReplicaTopology]")
-	}
-
-	if !c.HasIPv4 {
-		skips = append(skips, "[Feature:Networking-IPv4]")
-	}
-	if !c.HasIPv6 {
-		skips = append(skips, "[Feature:Networking-IPv6]")
-	}
-	if !c.HasIPv4 || !c.HasIPv6 {
-		// lack of "]" is intentional; this matches multiple tags
-		skips = append(skips, "[Feature:IPv6DualStack")
-	}
-
-	if !c.HasSCTP {
-		skips = append(skips, "[Feature:SCTPConnectivity]")
-	}
-
-	if c.HasNoOptionalCapabilities {
-		skips = append(skips, "[Skipped:NoOptionalCapabilities]")
-	}
-
-	matchFn := func(name string) bool {
-		for _, skip := range skips {
-			if strings.Contains(name, skip) {
-				return false
-			}
-		}
-
-		// Apply API group filtering
-		if c.APIGroups != nil {
-			requiredGroups := []string{}
-			matches := apiGroupRegex.FindAllStringSubmatch(name, -1)
-			for _, match := range matches {
-				if len(match) < 2 {
-					panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
-				}
-				apigroup := match[1]
-				requiredGroups = append(requiredGroups, apigroup)
-			}
-			if !c.APIGroups.HasAll(requiredGroups...) {
-				return false
-			}
-		}
-
-		// Apply feature gate filtering
-		featureGates := []string{}
-		matches := featureGateRegex.FindAllStringSubmatch(name, -1)
-		for _, match := range matches {
-			if len(match) < 2 {
-				panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
-			}
-			featureGate := match[1]
-			featureGates = append(featureGates, featureGate)
-		}
-
-		if c.DisabledFeatureGates != nil && c.DisabledFeatureGates.HasAny(featureGates...) {
-			return false
-		}
-
-		return c.EnabledFeatureGates != nil && c.EnabledFeatureGates.HasAll(featureGates...)
-	}
-	return matchFn
-}
-
-// Regular expressions for parsing test labels
-var (
-	apiGroupRegex    = regexp.MustCompile(`\[apigroup:([^]]*)\]`)
-	featureGateRegex = regexp.MustCompile(`\[OCPFeatureGate:([^]]*)\]`)
-)
