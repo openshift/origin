@@ -5,65 +5,37 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2/types"
-	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
-	"k8s.io/apimachinery/pkg/util/errors"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/test/extensions"
 )
 
-func internalTestSpecsToOriginTestCases(suite *TestSuite, specs extensiontests.ExtensionTestSpecs) ([]*testCase, error) {
-	var tests []*testCase
-	var errs []error
+var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
 
-	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+func extensionTestSpecsToOriginTestCases(specs extensions.ExtensionTestSpecs) ([]*testCase, error) {
+	var tests []*testCase
+	for _, spec := range specs {
 		tc := &testCase{
 			name:    spec.Name,
 			rawName: spec.Name,
+			binary:  spec.Binary,
 		}
-		if suite != nil && suite.TestTimeout > 0 {
-			tc.testTimeout = suite.TestTimeout
+
+		// Override timeout from suite with `[Timeout:X]` duration
+		if match := re.FindStringSubmatch(tc.name); match != nil {
+			testTimeOut, err := time.ParseDuration(match[1])
+			if err != nil {
+				return nil, errors.WithMessage(err, "failed to parse test timeout")
+			}
+			logrus.WithField("test", tc.name).Debugf("Overriding test timeout to %s", testTimeOut)
+			tc.testTimeout = testTimeOut
 		}
 
 		tests = append(tests, tc)
-	})
-	if len(errs) > 0 {
-		return nil, errors.NewAggregate(errs)
 	}
 
 	return tests, nil
-}
-
-var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
-
-func externalBinaryTestsToOriginTestCases(specs extensions.ExtensionTestSpecs) []*testCase {
-	var tests []*testCase
-	for _, spec := range specs {
-		tests = append(tests, &testCase{
-			name:    spec.Name,
-			rawName: spec.Name,
-			binary:  spec.Binary,
-		})
-	}
-	return tests
-}
-
-func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
-	name := spec.Text()
-	tc := &testCase{
-		name:      name,
-		locations: spec.CodeLocations(),
-		spec:      spec,
-	}
-
-	if match := re.FindStringSubmatch(name); match != nil {
-		testTimeOut, err := time.ParseDuration(match[1])
-		if err != nil {
-			return nil, err
-		}
-		tc.testTimeout = testTimeOut
-	}
-
-	return tc, nil
 }
 
 type testCase struct {
@@ -160,8 +132,6 @@ type TestSuite struct {
 	Qualifiers []string              `json:"qualifiers,omitempty"`
 	Extension  *extensions.Extension `json:"-"`
 }
-
-
 
 type TestMatchFunc func(name string) bool
 

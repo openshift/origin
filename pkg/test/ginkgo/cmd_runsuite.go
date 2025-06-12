@@ -20,6 +20,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/mod/semver"
@@ -244,7 +245,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	tests := externalBinaryTestsToOriginTestCases(specs)
+	tests, err := extensionTestSpecsToOriginTestCases(specs)
+	if err != nil {
+		return errors.WithMessage(err, "could not convert test specs to origin test cases")
+	}
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies

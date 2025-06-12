@@ -313,7 +313,12 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 		return ret
 	}
 
-	results := test.binary.RunTests(ctx, c.timeout, testEnv, test.name)
+	timeout := c.timeout
+	if test.testTimeout > 0 {
+		timeout = test.testTimeout
+	}
+
+	results := test.binary.RunTests(ctx, timeout, testEnv, test.name)
 	if len(results) != 1 {
 		fmt.Fprintf(os.Stderr, "warning: expected 1 result from external binary; received %d", len(results))
 	}
