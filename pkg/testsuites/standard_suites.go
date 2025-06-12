@@ -191,7 +191,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Tests that exercise language and tooling images shipped as part of OpenShift.
 		`),
 		Qualifiers: []string{
-			withStandardEarlyOrLateTests("name.contains('[Feature:ImageEcosystem] && !name.contains('[Local]')"),
+			withStandardEarlyOrLateTests("name.contains('[Feature:ImageEcosystem]') && !name.contains('[Local]')"),
 		},
 		Parallelism: 7,
 		TestTimeout: 20 * time.Minute,
@@ -273,7 +273,7 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite performs IPsec e2e tests covering control plane and data plane for east west and north south traffic scenarios.
 		`),
 		Qualifiers: []string{
-			`name.Contains("[Suite:openshift/network/ipsec")`,
+			`name.contains("[Suite:openshift/network/ipsec")`,
 		},
 		Parallelism: 1,
 		TestTimeout: 60 * time.Minute,
