@@ -345,10 +345,6 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
-// test/extended/testdata/imagepolicy/invalid-public-key-cluster-image-policy.yaml
-// test/extended/testdata/imagepolicy/invalid-public-key-image-policy.yaml
-// test/extended/testdata/imagepolicy/public-key-rekor-cluster-image-policy.yaml
-// test/extended/testdata/imagepolicy/public-key-rekor-image-policy.yaml
 // test/extended/testdata/ipsec/nmstate.yaml
 // test/extended/testdata/ipsec/nsconfig-machine-config.yaml
 // test/extended/testdata/ipsec/nsconfig-reboot-none-policy.yaml
@@ -45767,124 +45763,6 @@ func testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson() (*asset, error) 
 	return a, nil
 }
 
-var _testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYaml = []byte(`apiVersion: config.openshift.io/v1alpha1
-kind: ClusterImagePolicy 
-metadata:
-  name: invalid-public-key-cluster-image-policy
-spec:
-  scopes:
-    - quay.io/openshift-release-dev/ocp-release@sha256:fbad931c725b2e5b937b295b58345334322bdabb0b67da1c800a53686d7397da
-  policy:
-    rootOfTrust:
-      policyType: PublicKey
-      publicKey:
-        keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFVW9GVW9ZQVJlS1hHeTU5eGU1U1FPazJhSjhvKwoyL1l6NVk4R2NOM3pGRTZWaUl2a0duSGhNbEFoWGFYL2JvME05UjYyczAvNnErK1Q3dXdORnVPZzhBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCgo=
-`)
-
-func testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYaml, nil
-}
-
-func testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/imagepolicy/invalid-public-key-cluster-image-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYaml = []byte(`apiVersion: config.openshift.io/v1alpha1
-kind: ImagePolicy 
-metadata:
-  name: invalid-public-key-image-policy
-spec:
-  scopes:
-    - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:4db234f37ae6712e2f7ed8d13f7fb49971c173d0e4f74613d0121672fa2e01f5
-  policy:
-    rootOfTrust:
-      policyType: PublicKey
-      publicKey:
-        keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFVW9GVW9ZQVJlS1hHeTU5eGU1U1FPazJhSjhvKwoyL1l6NVk4R2NOM3pGRTZWaUl2a0duSGhNbEFoWGFYL2JvME05UjYyczAvNnErK1Q3dXdORnVPZzhBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCgo=
-`)
-
-func testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYaml, nil
-}
-
-func testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/imagepolicy/invalid-public-key-image-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYaml = []byte(`apiVersion: config.openshift.io/v1alpha1
-kind: ClusterImagePolicy 
-metadata:
-  name: public-key-rekor-cluster-image-policy
-spec:
-  scopes:
-    - quay.io/openshift-release-dev/ocp-release@sha256:fbad931c725b2e5b937b295b58345334322bdabb0b67da1c800a53686d7397da
-  policy:
-    rootOfTrust:
-      policyType: PublicKey
-      publicKey:
-        keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUEzQzJlVGdJQUo3aGxveDdDSCtIcE1qdDEvbW5lYXcyejlHdE9NUmlSaEgya09ZalRadGVLSEtnWUJHcGViajRBcUpWYnVRaWJYZTZKYVFHQUFER0VOZXozTldsVXpCby9FUUEwaXJDRnN6dlhVbTE2cWFZMG8zOUZpbWpsVVovaG1VNVljSHhxMzR2OTh4bGtRbUVxekowR0VJMzNtWTFMbWFEM3ZhYmd3WWcwb3lzSTk1Z1V1Tk81TmdZUHA4WDREaFNoSmtyVEl5dDJLTEhYWW5BMExzOEJlbG9PWVJlTnJhZmxKRHNzaE5VRFh4MDJhQVZSd2RjMXhJUDArRTlZaTY1ZE4zKzlReVhEOUZ6K3MrTDNjZzh3bDdZd3ZZb1Z2NDhndklmTHlJbjJUaHY2Uzk2R0V6bXBoazRjWDBIeitnUkdocWpyajU4U2hSZzlteitrcnVhR0VuVGcyS3BWR0gzd3I4Z09UdUFZMmtqMnY1YWhnZWt4V1pFN05vazNiNTBKNEpnYXlpSnVSL2R0cmFQMWVMMjlFMG52akdsMXptUXlGNlZnNGdIVXYwaktrcnJ2QUQ4c1dNY2NBS00zbXNXU01uRVpOTnljTTRITlNobGNReG5xU1lFSXR6MGZjajdYamtKbnAxME51Z2lVWlNLeVNXOHc0R3hTaFNraGRGbzByRDlkVElRZkJoeS91ZHRQWUkrK2VoK243QTV2UVV4Wk5BTmZqOUhRbC81Z3lFbFV6TTJOekJ2RHpHellSNVdVZEVEaDlJQ1I4ZlFpMVIxNUtZU0h2Tlc3RW5ucDdZT2d5dmtoSkdwRU5PQkF3c1pLMUhhMkJZYXZMMk05NDJzSkhxOUQ1eEsrZyszQU81eXp6V2NqaUFDMWU4RURPcUVpY01Ud05LOENBd0VBQVE9PQotLS0tLUVORCBQVUJMSUMgS0VZLS0tLS0K
-        rekorKeyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUhZd0VBWUhLb1pJemowQ0FRWUZLNEVFQUNJRFlnQUVEazBFbGdHdk1yc0pVTGtnL2ppMVhYN0VuZ0RsMldZNwpjNzVrS0t5L1N3V1E4bjNaeW1vbXk0RHRrWHpqc2p1MjA0TWdqdGRjN2RWU1BHU0JuN1ZMTGRESXpxU2QxbUxFCjJ5YlBSelk4Zzc0Mk1uLzVoZ0g0ZUJ6TktCalozd3YxCi0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==
-`)
-
-func testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYaml, nil
-}
-
-func testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/imagepolicy/public-key-rekor-cluster-image-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYaml = []byte(`apiVersion: config.openshift.io/v1alpha1
-kind: ImagePolicy 
-metadata:
-  name: public-key-rekor-image-policy
-spec:
-  scopes:
-    - quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:4db234f37ae6712e2f7ed8d13f7fb49971c173d0e4f74613d0121672fa2e01f5
-  policy:
-    rootOfTrust:
-      policyType: PublicKey
-      publicKey:
-        keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQ0lqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FnOEFNSUlDQ2dLQ0FnRUEzQzJlVGdJQUo3aGxveDdDSCtIcE1qdDEvbW5lYXcyejlHdE9NUmlSaEgya09ZalRadGVLSEtnWUJHcGViajRBcUpWYnVRaWJYZTZKYVFHQUFER0VOZXozTldsVXpCby9FUUEwaXJDRnN6dlhVbTE2cWFZMG8zOUZpbWpsVVovaG1VNVljSHhxMzR2OTh4bGtRbUVxekowR0VJMzNtWTFMbWFEM3ZhYmd3WWcwb3lzSTk1Z1V1Tk81TmdZUHA4WDREaFNoSmtyVEl5dDJLTEhYWW5BMExzOEJlbG9PWVJlTnJhZmxKRHNzaE5VRFh4MDJhQVZSd2RjMXhJUDArRTlZaTY1ZE4zKzlReVhEOUZ6K3MrTDNjZzh3bDdZd3ZZb1Z2NDhndklmTHlJbjJUaHY2Uzk2R0V6bXBoazRjWDBIeitnUkdocWpyajU4U2hSZzlteitrcnVhR0VuVGcyS3BWR0gzd3I4Z09UdUFZMmtqMnY1YWhnZWt4V1pFN05vazNiNTBKNEpnYXlpSnVSL2R0cmFQMWVMMjlFMG52akdsMXptUXlGNlZnNGdIVXYwaktrcnJ2QUQ4c1dNY2NBS00zbXNXU01uRVpOTnljTTRITlNobGNReG5xU1lFSXR6MGZjajdYamtKbnAxME51Z2lVWlNLeVNXOHc0R3hTaFNraGRGbzByRDlkVElRZkJoeS91ZHRQWUkrK2VoK243QTV2UVV4Wk5BTmZqOUhRbC81Z3lFbFV6TTJOekJ2RHpHellSNVdVZEVEaDlJQ1I4ZlFpMVIxNUtZU0h2Tlc3RW5ucDdZT2d5dmtoSkdwRU5PQkF3c1pLMUhhMkJZYXZMMk05NDJzSkhxOUQ1eEsrZyszQU81eXp6V2NqaUFDMWU4RURPcUVpY01Ud05LOENBd0VBQVE9PQotLS0tLUVORCBQVUJMSUMgS0VZLS0tLS0K
-        rekorKeyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUhZd0VBWUhLb1pJemowQ0FRWUZLNEVFQUNJRFlnQUVEazBFbGdHdk1yc0pVTGtnL2ppMVhYN0VuZ0RsMldZNwpjNzVrS0t5L1N3V1E4bjNaeW1vbXk0RHRrWHpqc2p1MjA0TWdqdGRjN2RWU1BHU0JuN1ZMTGRESXpxU2QxbUxFCjJ5YlBSelk4Zzc0Mk1uLzVoZ0g0ZUJ6TktCalozd3YxCi0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==
-`)
-
-func testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYaml, nil
-}
-
-func testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/imagepolicy/public-key-rekor-image-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataIpsecNmstateYaml = []byte(`apiVersion: nmstate.io/v1
 kind: NMState
 metadata:
@@ -59176,10 +59054,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                                         testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                                   testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                                        testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
-	"test/extended/testdata/imagepolicy/invalid-public-key-cluster-image-policy.yaml":                        testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYaml,
-	"test/extended/testdata/imagepolicy/invalid-public-key-image-policy.yaml":                                testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYaml,
-	"test/extended/testdata/imagepolicy/public-key-rekor-cluster-image-policy.yaml":                          testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYaml,
-	"test/extended/testdata/imagepolicy/public-key-rekor-image-policy.yaml":                                  testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYaml,
 	"test/extended/testdata/ipsec/nmstate.yaml":                                                              testExtendedTestdataIpsecNmstateYaml,
 	"test/extended/testdata/ipsec/nsconfig-machine-config.yaml":                                              testExtendedTestdataIpsecNsconfigMachineConfigYaml,
 	"test/extended/testdata/ipsec/nsconfig-reboot-none-policy.yaml":                                          testExtendedTestdataIpsecNsconfigRebootNonePolicyYaml,
@@ -59939,12 +59813,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 						"perl.json": {testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
 					}},
-				}},
-				"imagepolicy": {nil, map[string]*bintree{
-					"invalid-public-key-cluster-image-policy.yaml": {testExtendedTestdataImagepolicyInvalidPublicKeyClusterImagePolicyYaml, map[string]*bintree{}},
-					"invalid-public-key-image-policy.yaml":         {testExtendedTestdataImagepolicyInvalidPublicKeyImagePolicyYaml, map[string]*bintree{}},
-					"public-key-rekor-cluster-image-policy.yaml":   {testExtendedTestdataImagepolicyPublicKeyRekorClusterImagePolicyYaml, map[string]*bintree{}},
-					"public-key-rekor-image-policy.yaml":           {testExtendedTestdataImagepolicyPublicKeyRekorImagePolicyYaml, map[string]*bintree{}},
 				}},
 				"ipsec": {nil, map[string]*bintree{
 					"nmstate.yaml":                     {testExtendedTestdataIpsecNmstateYaml, map[string]*bintree{}},

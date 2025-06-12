@@ -1,0 +1,5 @@
+reviewers:
+  - cluster-version-operator-test-case-reviewers
+  - Prashanth684
+approvers:
+  - cluster-version-operator-test-case-approvers
