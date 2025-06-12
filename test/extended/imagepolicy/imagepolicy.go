@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 
 	g.It("Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification", func() {
-		// Ensure allowedRegistries do not skip signature verification by adding testReleaseImageScope to the list
+		// Ensure allowedRegistries do not skip signature verification by adding testReleaseImageScope to the list.
 		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testReleaseImageScope}
 		updateImageConfig(oc, allowedRegistries)
 		g.DeferCleanup(cleanupImageConfig, oc)
