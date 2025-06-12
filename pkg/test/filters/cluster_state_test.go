@@ -89,9 +89,9 @@ func extractTestNames(specs extensions.ExtensionTestSpecs, testNames map[string]
 
 func TestClusterStateFilterComprehensive(t *testing.T) {
 	testCases := []struct {
-		name       string
-		config     *clusterdiscovery.ClusterConfiguration
-		runTests   sets.Set[string]
+		name     string
+		config   *clusterdiscovery.ClusterConfiguration
+		runTests sets.Set[string]
 	}{
 		{
 			name: "simple GCE",
@@ -231,7 +231,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 
 			require.NoError(t, err)
 			runTests := extractTestNames(result, e2eTestNames)
-			assert.True(t, runTests.Equal(tc.runTests), 
+			assert.True(t, runTests.Equal(tc.runTests),
 				"Expected tests: %v, got: %v", tc.runTests.UnsortedList(), runTests.UnsortedList())
 		})
 	}
