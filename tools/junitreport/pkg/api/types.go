@@ -36,7 +36,7 @@ type TestSuite struct {
 	Duration float64 `xml:"time,attr"`
 
 	// Properties holds other properties of the test suite as a mapping of name to value
-	Properties []*TestSuiteProperty `xml:"properties,omitempty"`
+	Properties []*TestSuiteProperty `xml:"properties>property,omitempty"`
 
 	// TestCases are the test cases contained in the test suite
 	TestCases []*TestCase `xml:"testcase"`
