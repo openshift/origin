@@ -1,4 +1,4 @@
-package testsuites
+package filters
 
 import (
 	"fmt"

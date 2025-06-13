@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
@@ -24,8 +26,39 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	v "github.com/openshift/origin/pkg/version"
 	"github.com/openshift/origin/test/extended/util"
 )
+
+// OriginBinary is the openshift-tests binary itself, which also implements the extension
+// interface. We don't extract it from the tests image because we already have the binary
+// available.
+var OriginBinary = &TestBinary{
+	imageTag:   "tests",
+	binaryPath: os.Args[0],
+	info:       OriginExtension,
+}
+
+var OriginExtension = &Extension{
+	Extension: &extension.Extension{
+		Component: extension.Component{
+			Product: "openshift",
+			Kind:    "payload",
+			Name:    "origin",
+		},
+		APIVersion: extension.CurrentExtensionAPIVersion,
+	},
+	Source: Source{
+		Source: &extension.Source{
+			Commit:       v.Get().GitCommit,
+			GitTreeState: v.Get().GitTreeState,
+			BuildDate:    v.Get().BuildDate,
+			SourceURL:    "https://github.com/openshift/origin",
+		},
+		SourceBinary: os.Args[0],
+		SourceImage:  "tests",
+	},
+}
 
 // TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
 type TestBinary struct {
@@ -35,7 +68,7 @@ type TestBinary struct {
 	binaryPath string
 
 	// Cache the info after gathering it
-	info *ExtensionInfo
+	info *Extension
 }
 
 // ImageSet maps a Kubernetes image ID to its corresponding configuration.
@@ -50,6 +83,8 @@ type Image struct {
 	Version  string `json:"version"`
 }
 
+// extensionBinaries is the registry of additional test binaries to use as extension tests. Members
+// of the registry must be part of the release payload.
 var extensionBinaries = []TestBinary{
 	{
 		imageTag:   "hyperkube",
@@ -62,7 +97,7 @@ var extensionBinaries = []TestBinary{
 }
 
 // Info returns information about this particular extension.
-func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
+func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 	if b.info != nil {
 		return b.info, nil
 	}
@@ -78,7 +113,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
-	var info ExtensionInfo
+	var info Extension
 	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
 	if err != nil {
 		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
@@ -86,6 +121,7 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	b.info = &info
 
 	// Set fields origin knows or calculates:
+	b.info.Binary = b
 	b.info.Source.SourceBinary = binName
 	b.info.Source.SourceImage = b.imageTag
 	b.info.ExtensionArtifactDir = path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&b.info.Component))
@@ -187,7 +223,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		//  - we got a test result we didn't expect at all (maybe the external binary improperly
 		//    mutated the name, or otherwise did something weird)
 		if !expectedTests.Has(result.Name) {
-			result.Result = ResultFailed
+			result.Result = extensiontests.ResultFailed
 			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
 		}
 		expectedTests.Delete(result.Name)
@@ -200,12 +236,13 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	// we didn't get results for them.
 	for _, expectedTest := range expectedTests.UnsortedList() {
 		results = append(results, &ExtensionTestResult{
-			Name:   expectedTest,
-			Result: ResultFailed,
-			Output: string(testResult),
-			Error:  "external binary did not produce a result for this test",
-
-			Source: b.info.Source,
+			&extensiontests.ExtensionTestResult{
+				Name:   expectedTest,
+				Result: extensiontests.ResultFailed,
+				Output: string(testResult),
+				Error:  "external binary did not produce a result for this test",
+			},
+			b.info.Source,
 		})
 	}
 
@@ -386,9 +423,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 type TestBinaries []*TestBinary
 
 // Info fetches the info from all TestBinaries using the specified parallelism.
-func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*ExtensionInfo, error) {
+func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Extension, error) {
 	var (
-		infos []*ExtensionInfo
+		infos []*Extension
 		mu    sync.Mutex
 		wg    sync.WaitGroup
 		errCh = make(chan error, len(binaries))
@@ -605,7 +642,7 @@ func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]
 var safePathRegexp = regexp.MustCompile(`[<>:"/\\|?*\s]+`)
 
 // safeComponentPath sanitizes a component identifier to be safe for use as a file or directory name.
-func safeComponentPath(c *Component) string {
+func safeComponentPath(c *extension.Component) string {
 	return path.Join(
 		safePathRegexp.ReplaceAllString(c.Product, "_"),
 		safePathRegexp.ReplaceAllString(c.Kind, "_"),

@@ -6,15 +6,36 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdrun"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
+
+	e "github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	v "github.com/openshift-eng/openshift-tests-extension/pkg/version"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	"github.com/openshift/origin/pkg/cmd"
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
@@ -22,19 +43,14 @@ import (
 	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run"
 	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
-	run_test "github.com/openshift/origin/pkg/cmd/openshift-tests/run-test"
 	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
 	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
-	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/kubectl/pkg/util/templates"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 func main() {
@@ -61,6 +77,73 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
+	originVersion := version.Get()
+	v.GitTreeState = originVersion.GitTreeState
+	v.BuildDate = originVersion.BuildDate
+	v.CommitFromGit = originVersion.GitCommit
+
+	// Create our registry of openshift-tests extensions
+	extensionRegistry := e.NewRegistry()
+	originExtension := extensions.OriginExtension.Extension
+	extensionRegistry.Register(originExtension)
+
+	// Build our specs from ginkgo
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		panic(err)
+	}
+
+	// Apply annotations to test names
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+		// we need to ensure the default path always annotates both
+		// origin and k8s tests accordingly, since each of these
+		// currently have their own annotations which are not
+		// merged anywhere else but applied here
+		if append, ok := origingenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+	})
+
+	// Filter out kube tests, vendor filtering isn't working within origin
+	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+		return !strings.Contains(spec.Name, "[Suite:k8s")
+	})
+
+	specs.AddBeforeAll(func() {
+		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
+		if err != nil {
+			panic(err)
+		}
+		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
+			panic(err)
+		}
+		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
+
+		exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+
+		if err := imagesetup.VerifyImages(); err != nil {
+			panic(err)
+		}
+
+		// Handle upgrade options
+		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
+		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
+		if err != nil {
+			panic(err)
+		}
+
+		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
+			panic(err)
+		}
+	})
+
+	originExtension.AddSpecs(specs)
+
 	root := &cobra.Command{
 		Long: templates.LongDesc(`This command verifies behavior of an OpenShift cluster by running remote tests against
 		the cluster API that exercise functionality. In general these tests may be disruptive
@@ -79,10 +162,11 @@ func main() {
 	}
 
 	root.AddCommand(
-		run.NewRunCommand(ioStreams),
+		run.NewRunCommand(ioStreams, originExtension),
+		list.NewListCommand(ioStreams, extensionRegistry),
 		run_upgrade.NewRunUpgradeCommand(ioStreams),
 		images.NewImagesCommand(),
-		run_test.NewRunTestCommand(ioStreams),
+		cmdrun.NewRunTestCommand(extensionRegistry),
 		dev.NewDevCommand(),
 		run_monitor.NewRunMonitorCommand(ioStreams),
 		monitor.NewMonitorCommand(ioStreams),
@@ -106,10 +190,6 @@ func main() {
 		defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 		return root.Execute()
 	}(); err != nil {
-		if ex, ok := err.(testginkgo.ExitError); ok {
-			fmt.Fprintf(os.Stderr, "Ginkgo exit error %d: %v\n", ex.Code, err)
-			os.Exit(ex.Code)
-		}
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
