@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/test/extensions"
 )
@@ -13,10 +15,59 @@ import (
 // ClusterStateFilter filters tests based on cluster environment
 type ClusterStateFilter struct {
 	config *clusterdiscovery.ClusterConfiguration
+	skips  []string
 }
 
 func NewClusterStateFilter(config *clusterdiscovery.ClusterConfiguration) *ClusterStateFilter {
-	return &ClusterStateFilter{config: config}
+	skips := []string{fmt.Sprintf("[Skipped:%s]", config.ProviderName)}
+
+	if config.IsIBMROKS {
+		skips = append(skips, "[Skipped:ibmroks]")
+	}
+	if config.NetworkPlugin != "" {
+		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", config.NetworkPlugin))
+		if config.NetworkPluginMode != "" {
+			skips = append(skips, fmt.Sprintf("[Skipped:Network/%s/%s]", config.NetworkPlugin, config.NetworkPluginMode))
+		}
+	}
+
+	if config.Disconnected {
+		skips = append(skips, "[Skipped:Disconnected]")
+	}
+
+	if config.IsProxied {
+		skips = append(skips, "[Skipped:Proxy]")
+	}
+
+	if config.SingleReplicaTopology {
+		skips = append(skips, "[Skipped:SingleReplicaTopology]")
+	}
+
+	if !config.HasIPv4 {
+		skips = append(skips, "[Feature:Networking-IPv4]")
+	}
+	if !config.HasIPv6 {
+		skips = append(skips, "[Feature:Networking-IPv6]")
+	}
+	if !config.HasIPv4 || !config.HasIPv6 {
+		// lack of "]" is intentional; this matches multiple tags
+		skips = append(skips, "[Feature:IPv6DualStack")
+	}
+
+	if !config.HasSCTP {
+		skips = append(skips, "[Feature:SCTPConnectivity]")
+	}
+
+	if config.HasNoOptionalCapabilities {
+		skips = append(skips, "[Skipped:NoOptionalCapabilities]")
+	}
+
+	logrus.WithField("skips", skips).Info("Generated skips for cluster state")
+
+	return &ClusterStateFilter{
+		config: config,
+		skips:  skips,
+	}
 }
 
 func (f *ClusterStateFilter) Name() string {
@@ -43,53 +94,10 @@ func (f *ClusterStateFilter) ShouldApply() bool {
 
 // matchTest implements the cluster-based test matching logic
 func (f *ClusterStateFilter) matchTest(name string) bool {
-	var skips []string
-	skips = append(skips, fmt.Sprintf("[Skipped:%s]", f.config.ProviderName))
-
-	if f.config.IsIBMROKS {
-		skips = append(skips, "[Skipped:ibmroks]")
-	}
-	if f.config.NetworkPlugin != "" {
-		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", f.config.NetworkPlugin))
-		if f.config.NetworkPluginMode != "" {
-			skips = append(skips, fmt.Sprintf("[Skipped:Network/%s/%s]", f.config.NetworkPlugin, f.config.NetworkPluginMode))
-		}
-	}
-
-	if f.config.Disconnected {
-		skips = append(skips, "[Skipped:Disconnected]")
-	}
-
-	if f.config.IsProxied {
-		skips = append(skips, "[Skipped:Proxy]")
-	}
-
-	if f.config.SingleReplicaTopology {
-		skips = append(skips, "[Skipped:SingleReplicaTopology]")
-	}
-
-	if !f.config.HasIPv4 {
-		skips = append(skips, "[Feature:Networking-IPv4]")
-	}
-	if !f.config.HasIPv6 {
-		skips = append(skips, "[Feature:Networking-IPv6]")
-	}
-	if !f.config.HasIPv4 || !f.config.HasIPv6 {
-		// lack of "]" is intentional; this matches multiple tags
-		skips = append(skips, "[Feature:IPv6DualStack")
-	}
-
-	if !f.config.HasSCTP {
-		skips = append(skips, "[Feature:SCTPConnectivity]")
-	}
-
-	if f.config.HasNoOptionalCapabilities {
-		skips = append(skips, "[Skipped:NoOptionalCapabilities]")
-	}
-
 	// Check skip conditions
-	for _, skip := range skips {
+	for _, skip := range f.skips {
 		if strings.Contains(name, skip) {
+			logrus.WithField("test", name).WithField("skip", skip).Debug("Skipping test")
 			return false
 		}
 	}
@@ -106,6 +114,10 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 			requiredGroups = append(requiredGroups, apigroup)
 		}
 		if !f.config.APIGroups.HasAll(requiredGroups...) {
+			logrus.WithField("test", name).
+				WithField("requiredGroups", requiredGroups).
+				WithField("availableGroups", f.config.APIGroups.UnsortedList()).
+				Debug("Skipping test")
 			return false
 		}
 	}
@@ -122,6 +134,10 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 	}
 
 	if f.config.DisabledFeatureGates != nil && f.config.DisabledFeatureGates.HasAny(featureGates...) {
+		logrus.WithField("test", name).
+			WithField("disabledFeatureGates", f.config.DisabledFeatureGates.UnsortedList()).
+			WithField("requiredFeatureGates", featureGates).
+			Debug("Skipping test")
 		return false
 	}
 
