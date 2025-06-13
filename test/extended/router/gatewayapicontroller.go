@@ -114,6 +114,26 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
 		}
 
+		g.By("Deleting the Istio CR")
+
+		// Explicitly deleting the Istio CR should not strictly be
+		// necessary; the Istio CR has an owner reference on the
+		// gatewayclass, and so deleting the gatewayclass should cause
+		// the garbage collector to delete the Istio CR.  However, it
+		// has been observed that the Istio CR sometimes does not get
+		// deleted, and so we have an explicit delete command here just
+		// in case.  The --ignore-not-found option should prevent errors
+		// if garbage collection has already deleted the object.
+		o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
+
+		g.By("Waiting for the istiod pod to be deleted")
+
+		o.Eventually(func(g o.Gomega) {
+			podsList, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app=istiod"})
+			g.Expect(err).NotTo(o.HaveOccurred())
+			g.Expect(podsList.Items).Should(o.BeEmpty())
+		}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
 		g.By("Deleting the OSSM Operator resources")
 
 		operator, err := operatorsv1.NewForConfigOrDie(oc.AsAdmin().UserConfig()).Operators().Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
