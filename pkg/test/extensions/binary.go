@@ -34,6 +34,11 @@ type TestBinary struct {
 	// The binary path to extract from the image
 	binaryPath string
 
+	// the extension from which the openshift-tests selects case of the external binary.
+	// if it is empty (do not set parameter "--component-extension"), the "default" extension is used.
+	// if you do not want "default" extension, need to set it with parmater "--component-extension"
+	extension string
+
 	// Cache the info after gathering it
 	info *ExtensionInfo
 }
@@ -72,6 +77,9 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 
 	logrus.Infof("Fetching info for %s", binName)
 	command := exec.Command(b.binaryPath, "info")
+	if len(b.extension) != 0 {
+		command.Args = append(command.Args, fmt.Sprintf("--component=%s", b.extension))
+	}
 	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
@@ -108,6 +116,9 @@ func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (
 	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
 	binLogger.Infof("Adding the following applicable flags to the list command: %s", envFlags.String())
 	command.Args = append(command.Args, envFlags.ArgStrings()...)
+	if len(b.extension) != 0 {
+		command.Args = append(command.Args, fmt.Sprintf("--component=%s", b.extension))
+	}
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, testList)
@@ -158,6 +169,9 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	}
 	args = append(args, "-o", "jsonl")
 	command := exec.Command(b.binaryPath, args...)
+	if len(b.extension) != 0 {
+		command.Args = append(command.Args, fmt.Sprintf("--component=%s", b.extension))
+	}
 	if len(env) == 0 {
 		env = os.Environ()
 	}
@@ -218,6 +232,9 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 
 	logrus.Infof("Listing images for %q", binName)
 	command := exec.Command(b.binaryPath, "images")
+	if len(b.extension) != 0 {
+		command.Args = append(command.Args, fmt.Sprintf("--component=%s", b.extension))
+	}
 	output, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
@@ -244,7 +261,7 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it, and returns a slice of them.
-func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
+func ExtractAllTestBinaries(ctx context.Context, parallelism int, compExts map[string]string) (func(), TestBinaries, error) {
 	if parallelism < 1 {
 		return nil, nil, errors.New("parallelism must be greater than zero")
 	}
@@ -352,7 +369,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 					if !ok {
 						return // Channel is closed
 					}
-					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath)
+					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath, compExts)
 					if err != nil {
 						errCh <- err
 						continue

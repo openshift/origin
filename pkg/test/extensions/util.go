@@ -7,7 +7,6 @@ import (
 	"debug/elf"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"os/exec"
@@ -17,6 +16,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -259,4 +260,46 @@ func extractReleaseImageStream(extractPath, releaseImage string,
 	}
 
 	return is, releaseImage, nil
+}
+
+type StringToMap struct {
+	e *map[string]string
+}
+
+func NewStringToMap(p *map[string]string) *StringToMap {
+	if *p == nil {
+		*p = make(map[string]string)
+	}
+	return &StringToMap{e: p}
+}
+
+func (s2m *StringToMap) String() string {
+	var sb strings.Builder
+	first := true
+	for k, v := range *s2m.e {
+		if !first {
+			sb.WriteString(",")
+		}
+		sb.WriteString(fmt.Sprintf("%s=%s", k, v))
+		first = false
+	}
+	return sb.String()
+}
+
+func (s2m *StringToMap) Set(s string) error {
+	items := strings.Split(s, ",")
+	for _, item := range items {
+		kv := strings.SplitN(item, "=", 2)
+		if len(kv) != 2 {
+			return fmt.Errorf("invalid component-extenstion format, expected key=value: %q", item)
+		}
+		k := strings.TrimSpace(kv[0])
+		v := strings.TrimSpace(kv[1])
+		(*s2m.e)[k] = v
+	}
+	return nil
+}
+
+func (s *StringToMap) Type() string {
+	return "stringToMap"
 }
