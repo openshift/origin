@@ -235,9 +235,10 @@ func generateAWSProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string,
 	err := unmarshalProviderSpec(&machineSet, providerSpec)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	// Modify the boot image to a "fake" value
+	// Modify the boot image to an older known AMI value
+	// See: https://issues.redhat.com/browse/OCPBUGS-57426
 	originalBootImage := *providerSpec.AMI.ID
-	newBootImage := originalBootImage + "-fake-update"
+	newBootImage := "ami-000145e5a91e9ac22"
 	newProviderSpec := providerSpec.DeepCopy()
 	newProviderSpec.AMI.ID = &newBootImage
 
@@ -256,9 +257,10 @@ func generateGCPProviderSpecPatch(machineSet machinev1beta1.MachineSet) (string,
 	err := unmarshalProviderSpec(&machineSet, providerSpec)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	// Modify the boot image to a "fake" value
+	// Modify the boot image to a older known value.
+	// See: https://issues.redhat.com/browse/OCPBUGS-57426
 	originalBootImage := providerSpec.Disks[0].Image
-	newBootImage := "projects/centos-cloud/global/images/family/centos-stream-9"
+	newBootImage := "projects/rhcos-cloud/global/images/rhcos-410-84-202210040010-0-gcp-x86-64"
 	newProviderSpec := providerSpec.DeepCopy()
 	for idx := range newProviderSpec.Disks {
 		if newProviderSpec.Disks[idx].Boot {
