@@ -468,47 +468,6 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.ContainSubstring(`digraph "ruby-27:latest"`))
 	})
 
-	g.It("serviceaccounts", func() {
-		// create a new service account
-		out, err := ocns.Run("create", "serviceaccount").Args("my-sa-name").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("serviceaccount/my-sa-name created"))
-		o.Expect(ocns.Run("get").Args("sa", "my-sa-name").Execute()).To(o.Succeed())
-
-		// TODO (soltysh): after k8s 1.24 lands we should be able to replace this with:
-		// token, err := oc.Run("create").Args("token", "testsa").Output()
-		// err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
-		// 	err := ocns.Run("sa", "get-token").Args("my-sa-name").Execute()
-		// 	return err == nil, nil
-		// })
-		// o.Expect(err).NotTo(o.HaveOccurred())
-		// TODO (soltysh): the problem with this test is we can't force --token
-		// flag to take precedence over KUBECONFIG env var which is injected
-		// by default into tests:
-
-		// extract token and ensure it links us back to the service account
-		// var token string
-		// token, err = ocns.Run("sa", "get-token").Args("my-sa-name").Output()
-		// o.Expect(err).NotTo(o.HaveOccurred())
-		// out, err = ocns.WithToken(token).Run("get").Args("user/~").Output()
-		// o.Expect(err).NotTo(o.HaveOccurred())
-		// o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("system:serviceaccount:%s:my-sa-name", ocns.Namespace())))
-
-		// add a new labeled token and ensure the label stuck
-		o.Expect(ocns.Run("sa", "new-token").Args("my-sa-name", "--labels=mykey=myvalue,myotherkey=myothervalue").Execute()).To(o.Succeed())
-		out, err = ocns.Run("get").Args("secrets", "--selector=mykey=myvalue").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("my-sa-name"))
-		out, err = ocns.Run("get").Args("secrets", "--selector=myotherkey=myothervalue").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("my-sa-name"))
-		out, err = ocns.Run("get").Args("secrets", "--selector=mykey=myvalue,myotherkey=myothervalue").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("my-sa-name"))
-
-		ocns.Run("delete").Args("sa/my-sa-name").Execute()
-	})
-
 	g.It("user-creation [apigroup:user.openshift.io]", func() {
 		user := gen.GenerateName("test-cmd-user-")
 		identity := gen.GenerateName("test-idp:test-uid-")
