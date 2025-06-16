@@ -224,11 +224,11 @@ type OIDCProvider struct {
 	// +optional
 	OIDCClients []OIDCClientConfig `json:"oidcClients"`
 
-	// claimMappings is an optional field that configures the rules to be used by
+	// claimMappings is a required field that configures the rules to be used by
 	// the Kubernetes API server for translating claims in a JWT token, issued
 	// by the identity provider, to a cluster identity.
 	//
-	// +optional
+	// +required
 	ClaimMappings TokenClaimMappings `json:"claimMappings"`
 
 	// claimValidationRules is an optional field that configures the rules to
@@ -284,11 +284,11 @@ type TokenIssuer struct {
 }
 
 type TokenClaimMappings struct {
-	// username is an optional field that configures how the username of a cluster identity
+	// username is a required field that configures how the username of a cluster identity
 	// should be constructed from the claims in a JWT token issued by the identity provider.
 	//
-	// +optional
-	Username UsernameClaimMapping `json:"username,omitempty"`
+	// +required
+	Username UsernameClaimMapping `json:"username"`
 
 	// groups is an optional field that configures how the groups of a cluster identity
 	// should be constructed from the claims in a JWT token issued
@@ -607,7 +607,16 @@ type OIDCClientReference struct {
 // +kubebuilder:validation:XValidation:rule="has(self.prefixPolicy) && self.prefixPolicy == 'Prefix' ? (has(self.prefix) && size(self.prefix.prefixString) > 0) : !has(self.prefix)",message="prefix must be set if prefixPolicy is 'Prefix', but must remain unset otherwise"
 // +union
 type UsernameClaimMapping struct {
-	TokenClaimMapping `json:",inline"`
+	// claim is a required field that configures the JWT token
+	// claim whose value is assigned to the cluster identity
+	// field associated with this mapping.
+	//
+	// claim must not be an empty string ("") and must not exceed 256 characters.
+	//
+	// +required
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=256
+	Claim string `json:"claim"`
 
 	// prefixPolicy is an optional field that configures how a prefix should be
 	// applied to the value of the JWT claim specified in the 'claim' field.

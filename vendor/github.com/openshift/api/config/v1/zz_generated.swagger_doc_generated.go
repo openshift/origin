@@ -447,7 +447,7 @@ var map_OIDCProvider = map[string]string{
 	"name":                 "name is a required field that configures the unique human-readable identifier associated with the identity provider. It is used to distinguish between multiple identity providers and has no impact on token validation or authentication mechanics.\n\nname must not be an empty string (\"\").",
 	"issuer":               "issuer is a required field that configures how the platform interacts with the identity provider and how tokens issued from the identity provider are evaluated by the Kubernetes API server.",
 	"oidcClients":          "oidcClients is an optional field that configures how on-cluster, platform clients should request tokens from the identity provider. oidcClients must not exceed 20 entries and entries must have unique namespace/name pairs.",
-	"claimMappings":        "claimMappings is an optional field that configures the rules to be used by the Kubernetes API server for translating claims in a JWT token, issued by the identity provider, to a cluster identity.",
+	"claimMappings":        "claimMappings is a required field that configures the rules to be used by the Kubernetes API server for translating claims in a JWT token, issued by the identity provider, to a cluster identity.",
 	"claimValidationRules": "claimValidationRules is an optional field that configures the rules to be used by the Kubernetes API server for validating the claims in a JWT token issued by the identity provider.\n\nValidation rules are joined via an AND operation.",
 }
 
@@ -474,7 +474,7 @@ func (TokenClaimMapping) SwaggerDoc() map[string]string {
 }
 
 var map_TokenClaimMappings = map[string]string{
-	"username": "username is an optional field that configures how the username of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider.",
+	"username": "username is a required field that configures how the username of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider.",
 	"groups":   "groups is an optional field that configures how the groups of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider. When referencing a claim, if the claim is present in the JWT token, its value must be a list of groups separated by a comma (','). For example - '\"example\"' and '\"exampleOne\", \"exampleTwo\", \"exampleThree\"' are valid claim values.",
 	"uid":      "uid is an optional field for configuring the claim mapping used to construct the uid for the cluster identity.\n\nWhen using uid.claim to specify the claim it must be a single string value. When using uid.expression the expression must result in a single string value.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose a default, which is subject to change over time. The current default is to use the 'sub' claim.",
 	"extra":    "extra is an optional field for configuring the mappings used to construct the extra attribute for the cluster identity. When omitted, no extra attributes will be present on the cluster identity. key values for extra mappings must be unique. A maximum of 64 extra attribute mappings may be provided.",
@@ -523,6 +523,7 @@ func (TokenRequiredClaim) SwaggerDoc() map[string]string {
 }
 
 var map_UsernameClaimMapping = map[string]string{
+	"claim":        "claim is a required field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.\n\nclaim must not be an empty string (\"\") and must not exceed 256 characters.",
 	"prefixPolicy": "prefixPolicy is an optional field that configures how a prefix should be applied to the value of the JWT claim specified in the 'claim' field.\n\nAllowed values are 'Prefix', 'NoPrefix', and omitted (not provided or an empty string).\n\nWhen set to 'Prefix', the value specified in the prefix field will be prepended to the value of the JWT claim. The prefix field must be set when prefixPolicy is 'Prefix'.\n\nWhen set to 'NoPrefix', no prefix will be prepended to the value of the JWT claim.\n\nWhen omitted, this means no opinion and the platform is left to choose any prefixes that are applied which is subject to change over time. Currently, the platform prepends `{issuerURL}#` to the value of the JWT claim when the claim is not 'email'. As an example, consider the following scenario:\n   `prefix` is unset, `issuerURL` is set to `https://myoidc.tld`,\n   the JWT claims include \"username\":\"userA\" and \"email\":\"userA@myoidc.tld\",\n   and `claim` is set to:\n   - \"username\": the mapped value will be \"https://myoidc.tld#userA\"\n   - \"email\": the mapped value will be \"userA@myoidc.tld\"",
 	"prefix":       "prefix configures the prefix that should be prepended to the value of the JWT claim.\n\nprefix must be set when prefixPolicy is set to 'Prefix' and must be unset otherwise.",
 }

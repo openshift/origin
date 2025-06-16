@@ -32,12 +32,12 @@ require (
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20250602173126-76848cf965af
-	github.com/openshift/apiserver-library-go v0.0.0-20250602174734-144bd7851ada
+	github.com/openshift/api v0.0.0-20250611172808-15aabcacfd98
+	github.com/openshift/apiserver-library-go v0.0.0-20250611182509-0bc90c7bcc20
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
-	github.com/openshift/client-go v0.0.0-20250602174124-2f2eda98a59a
+	github.com/openshift/client-go v0.0.0-20250611180416-69b3cb286bcb
 	github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
-	github.com/openshift/library-go v0.0.0-20250602174500-1a5cb48c538c
+	github.com/openshift/library-go v0.0.0-20250611181538-cc99973e938e
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -118,7 +118,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
 	github.com/JeffAshton/win_pdh v0.0.0-20161109143554-76bb4ee9f0ab // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/Microsoft/hnslib v0.0.8 // indirect
+	github.com/Microsoft/hnslib v0.1.1 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
@@ -320,40 +320,40 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54
-	github.com/openshift/api => github.com/bertinatto/api v0.0.0-20250602173126-76848cf965af
-	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20250602174734-144bd7851ada
-	github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20250602174124-2f2eda98a59a
-	github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20250602174500-1a5cb48c538c
+	github.com/openshift/api => github.com/bertinatto/api v0.0.0-20250611172808-15aabcacfd98
+	github.com/openshift/apiserver-library-go => github.com/bertinatto/apiserver-library-go v0.0.0-20250611182509-0bc90c7bcc20
+	github.com/openshift/client-go => github.com/bertinatto/client-go v0.0.0-20250611180416-69b3cb286bcb
+	github.com/openshift/library-go => github.com/bertinatto/library-go v0.0.0-20250611181538-cc99973e938e
 
-	k8s.io/api => github.com/bertinatto/kubernetes/staging/src/k8s.io/api v0.0.0-20250610101956-d330de6e7484
-	k8s.io/apiextensions-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250610101956-d330de6e7484
-	k8s.io/apimachinery => github.com/bertinatto/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250610101956-d330de6e7484
-	k8s.io/apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20250610101956-d330de6e7484
-	k8s.io/cli-runtime => github.com/bertinatto/kubernetes/staging/src/k8s.io/cli-runtime v0.0.0-20250610101956-d330de6e7484
-	k8s.io/client-go => github.com/bertinatto/kubernetes/staging/src/k8s.io/client-go v0.0.0-20250610101956-d330de6e7484
-	k8s.io/cloud-provider => github.com/bertinatto/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20250610101956-d330de6e7484
-	k8s.io/cluster-bootstrap => github.com/bertinatto/kubernetes/staging/src/k8s.io/cluster-bootstrap v0.0.0-20250610101956-d330de6e7484
-	k8s.io/code-generator => github.com/bertinatto/kubernetes/staging/src/k8s.io/code-generator v0.0.0-20250610101956-d330de6e7484
-	k8s.io/component-base => github.com/bertinatto/kubernetes/staging/src/k8s.io/component-base v0.0.0-20250610101956-d330de6e7484
-	k8s.io/component-helpers => github.com/bertinatto/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20250610101956-d330de6e7484
-	k8s.io/controller-manager => github.com/bertinatto/kubernetes/staging/src/k8s.io/controller-manager v0.0.0-20250610101956-d330de6e7484
-	k8s.io/cri-api => github.com/bertinatto/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20250610101956-d330de6e7484
-	k8s.io/cri-client => github.com/bertinatto/kubernetes/staging/src/k8s.io/cri-client v0.0.0-20250610101956-d330de6e7484
-	k8s.io/csi-translation-lib => github.com/bertinatto/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20250610101956-d330de6e7484
-	k8s.io/dynamic-resource-allocation => github.com/bertinatto/kubernetes/staging/src/k8s.io/dynamic-resource-allocation v0.0.0-20250610101956-d330de6e7484
-	k8s.io/endpointslice => github.com/bertinatto/kubernetes/staging/src/k8s.io/endpointslice v0.0.0-20250610101956-d330de6e7484
-	k8s.io/externaljwt => github.com/bertinatto/kubernetes/staging/src/k8s.io/externaljwt v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kube-aggregator => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kube-controller-manager => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-controller-manager v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kube-proxy => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-proxy v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kube-scheduler => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kubectl => github.com/bertinatto/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kubelet => github.com/bertinatto/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20250610101956-d330de6e7484
-	k8s.io/kubernetes => github.com/bertinatto/kubernetes v1.11.0-alpha.0.0.20250610101956-d330de6e7484
-	k8s.io/metrics => github.com/bertinatto/kubernetes/staging/src/k8s.io/metrics v0.0.0-20250610101956-d330de6e7484
-	k8s.io/mount-utils => github.com/bertinatto/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20250610101956-d330de6e7484
-	k8s.io/pod-security-admission => github.com/bertinatto/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20250610101956-d330de6e7484
-	k8s.io/sample-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250610101956-d330de6e7484
-	k8s.io/sample-cli-plugin => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250610101956-d330de6e7484
-	k8s.io/sample-controller => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250610101956-d330de6e7484
+	k8s.io/api => github.com/bertinatto/kubernetes/staging/src/k8s.io/api v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/apiextensions-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/apimachinery => github.com/bertinatto/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/cli-runtime => github.com/bertinatto/kubernetes/staging/src/k8s.io/cli-runtime v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/client-go => github.com/bertinatto/kubernetes/staging/src/k8s.io/client-go v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/cloud-provider => github.com/bertinatto/kubernetes/staging/src/k8s.io/cloud-provider v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/cluster-bootstrap => github.com/bertinatto/kubernetes/staging/src/k8s.io/cluster-bootstrap v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/code-generator => github.com/bertinatto/kubernetes/staging/src/k8s.io/code-generator v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/component-base => github.com/bertinatto/kubernetes/staging/src/k8s.io/component-base v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/component-helpers => github.com/bertinatto/kubernetes/staging/src/k8s.io/component-helpers v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/controller-manager => github.com/bertinatto/kubernetes/staging/src/k8s.io/controller-manager v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/cri-api => github.com/bertinatto/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/cri-client => github.com/bertinatto/kubernetes/staging/src/k8s.io/cri-client v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/csi-translation-lib => github.com/bertinatto/kubernetes/staging/src/k8s.io/csi-translation-lib v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/dynamic-resource-allocation => github.com/bertinatto/kubernetes/staging/src/k8s.io/dynamic-resource-allocation v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/endpointslice => github.com/bertinatto/kubernetes/staging/src/k8s.io/endpointslice v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/externaljwt => github.com/bertinatto/kubernetes/staging/src/k8s.io/externaljwt v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kube-aggregator => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-aggregator v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kube-controller-manager => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-controller-manager v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kube-proxy => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-proxy v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kube-scheduler => github.com/bertinatto/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kubectl => github.com/bertinatto/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kubelet => github.com/bertinatto/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/kubernetes => github.com/bertinatto/kubernetes v1.11.0-alpha.0.0.20250612172820-6dca016ad8bf
+	k8s.io/metrics => github.com/bertinatto/kubernetes/staging/src/k8s.io/metrics v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/mount-utils => github.com/bertinatto/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/pod-security-admission => github.com/bertinatto/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/sample-apiserver => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/sample-cli-plugin => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250612172820-6dca016ad8bf
+	k8s.io/sample-controller => github.com/bertinatto/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250612172820-6dca016ad8bf
 )

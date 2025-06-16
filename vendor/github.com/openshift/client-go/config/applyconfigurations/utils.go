@@ -5,8 +5,10 @@ package applyconfigurations
 import (
 	v1 "github.com/openshift/api/config/v1"
 	v1alpha1 "github.com/openshift/api/config/v1alpha1"
+	v1alpha2 "github.com/openshift/api/config/v1alpha2"
 	configv1 "github.com/openshift/client-go/config/applyconfigurations/config/v1"
 	configv1alpha1 "github.com/openshift/client-go/config/applyconfigurations/config/v1alpha1"
+	configv1alpha2 "github.com/openshift/client-go/config/applyconfigurations/config/v1alpha2"
 	internal "github.com/openshift/client-go/config/applyconfigurations/internal"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -484,6 +486,26 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.StorageApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("UserDefinedMonitoring"):
 		return &configv1alpha1.UserDefinedMonitoringApplyConfiguration{}
+
+		// Group=config.openshift.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithKind("Custom"):
+		return &configv1alpha2.CustomApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("GatherConfig"):
+		return &configv1alpha2.GatherConfigApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("GathererConfig"):
+		return &configv1alpha2.GathererConfigApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("Gatherers"):
+		return &configv1alpha2.GatherersApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("InsightsDataGather"):
+		return &configv1alpha2.InsightsDataGatherApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("InsightsDataGatherSpec"):
+		return &configv1alpha2.InsightsDataGatherSpecApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("PersistentVolumeClaimReference"):
+		return &configv1alpha2.PersistentVolumeClaimReferenceApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("PersistentVolumeConfig"):
+		return &configv1alpha2.PersistentVolumeConfigApplyConfiguration{}
+	case v1alpha2.SchemeGroupVersion.WithKind("Storage"):
+		return &configv1alpha2.StorageApplyConfiguration{}
 
 	}
 	return nil

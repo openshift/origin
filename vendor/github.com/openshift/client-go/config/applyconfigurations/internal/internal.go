@@ -3471,6 +3471,8 @@ var schemaYAML = typed.YAMLObject(`types:
     unions:
     - discriminator: prefixPolicy
       fields:
+      - fieldName: claim
+        discriminatorValue: Claim
       - fieldName: prefix
         discriminatorValue: Prefix
 - name: com.github.openshift.api.config.v1.UsernamePrefix
@@ -4149,6 +4151,121 @@ var schemaYAML = typed.YAMLObject(`types:
   map:
     fields:
     - name: mode
+      type:
+        scalar: string
+      default: ""
+- name: com.github.openshift.api.config.v1alpha2.Custom
+  map:
+    fields:
+    - name: configs
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.config.v1alpha2.GathererConfig
+          elementRelationship: associative
+          keys:
+          - name
+- name: com.github.openshift.api.config.v1alpha2.GatherConfig
+  map:
+    fields:
+    - name: dataPolicy
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: gatherers
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.Gatherers
+      default: {}
+    - name: storage
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.Storage
+- name: com.github.openshift.api.config.v1alpha2.GathererConfig
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+      default: ""
+    - name: state
+      type:
+        scalar: string
+      default: ""
+- name: com.github.openshift.api.config.v1alpha2.Gatherers
+  map:
+    fields:
+    - name: custom
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.Custom
+    - name: mode
+      type:
+        scalar: string
+      default: ""
+- name: com.github.openshift.api.config.v1alpha2.InsightsDataGather
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.InsightsDataGatherSpec
+      default: {}
+    - name: status
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.InsightsDataGatherStatus
+      default: {}
+- name: com.github.openshift.api.config.v1alpha2.InsightsDataGatherSpec
+  map:
+    fields:
+    - name: gatherConfig
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.GatherConfig
+      default: {}
+- name: com.github.openshift.api.config.v1alpha2.InsightsDataGatherStatus
+  map:
+    elementType:
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
+- name: com.github.openshift.api.config.v1alpha2.PersistentVolumeClaimReference
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+      default: ""
+- name: com.github.openshift.api.config.v1alpha2.PersistentVolumeConfig
+  map:
+    fields:
+    - name: claim
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.PersistentVolumeClaimReference
+      default: {}
+    - name: mountPath
+      type:
+        scalar: string
+- name: com.github.openshift.api.config.v1alpha2.Storage
+  map:
+    fields:
+    - name: persistentVolume
+      type:
+        namedType: com.github.openshift.api.config.v1alpha2.PersistentVolumeConfig
+    - name: type
       type:
         scalar: string
       default: ""
