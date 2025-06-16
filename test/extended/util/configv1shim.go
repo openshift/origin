@@ -11,6 +11,7 @@ import (
 	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1alpha1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha1"
+	configv1alpha2 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha2"
 
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 
@@ -272,8 +273,13 @@ func (c *ConfigClientShim) ConfigV1() configv1.ConfigV1Interface {
 		fakeConfigV1Client: c.fakeClient.ConfigV1(),
 	}
 }
+
 func (c *ConfigClientShim) ConfigV1alpha1() configv1alpha1.ConfigV1alpha1Interface {
 	return c.configClient.ConfigV1alpha1()
+}
+
+func (c *ConfigClientShim) ConfigV1alpha2() configv1alpha2.ConfigV1alpha2Interface {
+	return c.configClient.ConfigV1alpha2()
 }
 
 var _ configv1client.Interface = &ConfigClientShim{}
