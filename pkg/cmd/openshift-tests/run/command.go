@@ -10,13 +10,14 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/cmd"
 	"github.com/openshift/origin/pkg/testsuites"
 )
 
 func NewRunCommand(streams genericclioptions.IOStreams, internalExtension *extension.Extension) *cobra.Command {
 	f := NewRunSuiteFlags(streams, imagesetup.DefaultTestImageMirrorLocation)
 
-	cmd := &cobra.Command{
+	runCmd := &cobra.Command{
 		Use:   "run SUITE",
 		Short: "Run a test suite",
 		Long: templates.LongDesc(`
@@ -35,6 +36,7 @@ func NewRunCommand(streams genericclioptions.IOStreams, internalExtension *exten
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PreRunE:       cmd.RequireClusterAccess,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			allSuites, err := testsuites.AllTestSuites(context.Background())
 			if err != nil {
@@ -54,6 +56,6 @@ func NewRunCommand(streams genericclioptions.IOStreams, internalExtension *exten
 			return nil
 		},
 	}
-	f.BindFlags(cmd.Flags())
-	return cmd
+	f.BindFlags(runCmd.Flags())
+	return runCmd
 }
