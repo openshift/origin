@@ -421,16 +421,6 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 60 * time.Minute,
 	},
 	{
-		Name: "openshift/machine-config-operator/disruptive",
-		Description: templates.LongDesc(`
-		This test suite runs tests to validate machine-config-operator functionality.
-		`),
-		Qualifiers: []string{
-			`name.contains("[Suite:openshift/machine-config-operator/disruptive")`,
-		},
-		TestTimeout: 120 * time.Minute,
-	},
-	{
 		Name: "openshift/two-node",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate two-node.
