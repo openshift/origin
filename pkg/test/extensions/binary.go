@@ -475,15 +475,16 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 				case <-ctx.Done():
 					return // Context is cancelled
 				case b, ok := <-jobCh:
+					if !ok {
+						return // Channel is closed
+					}
+
 					// Self reference, no need to extract
 					if b.binaryPath == os.Args[0] {
 						binaries = append(binaries, &b)
 						continue
 					}
 
-					if !ok {
-						return // Channel is closed
-					}
 					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath)
 					if err != nil {
 						errCh <- err
