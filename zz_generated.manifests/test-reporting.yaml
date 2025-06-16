@@ -65,6 +65,32 @@ spec:
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
         when enabled'
+  - featureGate: ExternalOIDC
+    tests:
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from
+        OIDC authentication type to IntegratedOAuth should accept tokens provided
+        by the OpenShift OAuth server'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from
+        OIDC authentication type to IntegratedOAuth should not accept tokens provided
+        by an external IdP'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from
+        OIDC authentication type to IntegratedOAuth should rollout configuration on
+        the kube-apiserver successfully'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from
+        OIDC authentication type to IntegratedOAuth should rollout the OpenShift OAuth
+        stack'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring
+        an external OIDC provider should accept authentication via a kubeconfig (break-glass)'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring
+        an external OIDC provider should accept tokens issued by the external IdP'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring
+        an external OIDC provider should configure kube-apiserver'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring
+        an external OIDC provider should map cluster identities correctly'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring
+        an external OIDC provider should not accept tokens provided by the OAuth server'
+    - testName: '[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring
+        an external OIDC provider should remove the OpenShift OAuth stack'
   - featureGate: GatewayAPI
     tests:
     - testName: '[sig-network][OCPFeatureGate:GatewayAPI][Feature:Router][apigroup:gateway.networking.k8s.io]
