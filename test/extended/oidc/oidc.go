@@ -35,7 +35,7 @@ type kubeObject interface {
 	metav1.Object
 }
 
-var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func() {
+var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("external-oidc")
 
@@ -163,7 +163,7 @@ var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func
 	})
 })
 
-var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth", func() {
+var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	// oc := exutil.NewCLI("oidc")
 
