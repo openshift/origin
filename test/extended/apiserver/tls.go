@@ -1,20 +1,19 @@
 package apiserver
 
 import (
-	"bytes"
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"math"
 	"net"
-	"net/http"
+	"os/exec"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -22,13 +21,8 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/test/extended/scheme"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/transport/spdy"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
@@ -82,9 +76,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		configFlags.APIServer = &oc.AdminConfig().Host
 		configFlags.BearerToken = &oc.AdminConfig().BearerToken
 
-		restConfig, err := configFlags.ToRESTConfig()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -113,24 +104,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the Kube API server")
 
-		pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-kube-apiserver").List(ctx, metav1.ListOptions{
-			LabelSelector: "apiserver=true",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
-			[]string{"6443"},
+			"apiserver",
+			"openshift-kube-apiserver",
+			[]string{"443"},
 			3,
 			200*time.Millisecond,
 			func() {
-				conn, err := tls.Dial("tcp", "localhost:6443", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:6443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -140,24 +126,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the OAuth server")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-authentication").List(ctx, metav1.ListOptions{
-			LabelSelector: "app=oauth-openshift",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
-			[]string{"6443"},
+			"oauth-openshift",
+			"openshift-authentication",
+			[]string{"443"},
 			3,
 			200*time.Millisecond,
 			func() {
-				conn, err := tls.Dial("tcp", "localhost:6443", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:6443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -167,24 +148,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the kube-controller-manager")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-kube-controller-manager").List(ctx, metav1.ListOptions{
-			LabelSelector: "app=kube-controller-manager",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
-			[]string{"10357"},
+			"kube-controller-manager",
+			"openshift-kube-controller-manager",
+			[]string{"443"},
 			3,
 			200*time.Millisecond,
 			func() {
-				conn, err := tls.Dial("tcp", "localhost:10357", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:10357", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -194,24 +170,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the openshift-kube-scheduler")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-kube-scheduler").List(ctx, metav1.ListOptions{
-			LabelSelector: "app=openshift-kube-scheduler",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
-			[]string{"10259"},
+			"scheduler",
+			"openshift-kube-scheduler",
+			[]string{"443"},
 			3,
 			200*time.Millisecond,
 			func() {
-				conn, err := tls.Dial("tcp", "localhost:10259", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:10259", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -221,24 +192,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the openshift-apiserver")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-apiserver").List(ctx, metav1.ListOptions{
-			LabelSelector: "apiserver=true",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
-			[]string{"8443"},
+			"api",
+			"openshift-apiserver",
+			[]string{"443"},
 			3,
 			200*time.Millisecond,
 			func() {
-				conn, err := tls.Dial("tcp", "localhost:8443", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:8443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -248,24 +214,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the openshift-oauth-apiserver")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-oauth-apiserver").List(ctx, metav1.ListOptions{
-			LabelSelector: "app=openshift-oauth-apiserver",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
-			[]string{"8443"},
+			"api",
+			"openshift-oauth-apiserver",
+			[]string{"443"},
 			3,
 			200*time.Millisecond,
 			func() {
-				conn, err := tls.Dial("tcp", "localhost:8443", tlsShouldWork)
+				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:8443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -275,14 +236,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking the openshift-machine-config-controller")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-machine-config-operator").List(ctx, metav1.ListOptions{
-			LabelSelector: "k8s-app=machine-config-controller",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
+			"machine-config-controller",
+			"openshift-machine-config-operator",
 			[]string{"9001"},
 			3,
 			200*time.Millisecond,
@@ -302,14 +258,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 		g.By("Checking etcd")
 
-		pods, err = oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(ctx, metav1.ListOptions{
-			LabelSelector: "app=etcd",
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		err = ForwardPortsAndExecute(
-			*restConfig,
-			&pods.Items[0],
+			"etcd",
+			"openshift-etcd",
 			[]string{"2379"},
 			3,
 			200*time.Millisecond,
@@ -334,84 +285,71 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 })
 
-func ForwardPortsAndExecute(restConfig rest.Config, pod *v1.Pod, ports []string, maxConnectRetries int, initialBackoff time.Duration, toExecute func()) error {
+func ForwardPortsAndExecute(serviceName string, namespace string, ports []string, maxConnectRetries int, initialBackoff time.Duration, toExecute func()) error {
 	if len(ports) < 1 {
 		return fmt.Errorf("at least 1 PORT is required for port-forward")
 	}
 
-	restClient, err := rest.RESTClientFor(defaultRESTConfigs(restConfig))
-	if err != nil {
-		return err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
-	stdout := bytes.NewBuffer(nil)
-	req := restClient.Post().
-		Resource("pods").
-		Namespace(pod.Namespace).
-		Name(pod.Name).
-		SubResource("portforward")
+	args := []string{"port-forward", fmt.Sprintf("svc/%s", serviceName), "-n", namespace}
+	args = append(args, ports...)
 
-	transport, upgrader, err := spdy.RoundTripperFor(&restConfig)
-	if err != nil {
-		return err
-	}
+	var cmd *exec.Cmd
 
-	stopChannel := make(chan struct{})
-	readyChannel := make(chan struct{})
-	errorChannel := make(chan error, 1)
-	defer close(stopChannel)
+	for attempt := 0; attempt < maxConnectRetries; attempt++ {
+		cmd = exec.CommandContext(ctx, "oc", args...)
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
-	fw, err := portforward.New(dialer, ports, stopChannel, readyChannel, stdout, stdout)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		var err error
-
-		for attempt := 0; attempt < maxConnectRetries; attempt++ {
-			err = fw.ForwardPorts()
-			if err == nil {
-				break
-			}
-
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
 			if attempt < maxConnectRetries-1 {
 				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
 				time.Sleep(backoff)
+				continue
 			}
+			return fmt.Errorf("failed to create stdout pipe: %w", err)
 		}
 
+		err = cmd.Start()
 		if err != nil {
-			errorChannel <- err
-			close(stopChannel)
+			if attempt < maxConnectRetries-1 {
+				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
+				time.Sleep(backoff)
+				continue
+			}
+			return fmt.Errorf("failed to start oc port-forward command: %w", err)
 		}
-	}()
 
-	select {
-	case <-readyChannel:
-		toExecute()
-	case err := <-errorChannel:
-		return fmt.Errorf("port forwarding failed: %w", err)
-	case <-time.After(30 * time.Second):
-		return fmt.Errorf("timed out waiting for port forwarding to be ready")
+		scanner := bufio.NewScanner(stdout)
+		if scanner.Scan() {
+			e2e.Logf("oc port-forward output: %s", scanner.Text())
+
+			toExecute()
+
+			cmd.Process.Kill()
+			cmd.Wait()
+
+			return nil
+		}
+
+		if err := scanner.Err(); err != nil {
+			if attempt < maxConnectRetries-1 {
+				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
+				time.Sleep(backoff)
+				continue
+			}
+			return fmt.Errorf("failed to read oc port-forward output: %w", err)
+		}
+
+		// the port-forward failed to start properly
+		if attempt < maxConnectRetries-1 {
+			backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
+			time.Sleep(backoff)
+		}
 	}
 
-	return nil
-}
-
-func defaultRESTConfigs(config rest.Config) *rest.Config {
-	if config.GroupVersion == nil {
-		config.GroupVersion = &schema.GroupVersion{Group: "", Version: "v1"}
-	}
-	if config.NegotiatedSerializer == nil {
-		config.NegotiatedSerializer = scheme.Codecs
-	}
-	if len(config.UserAgent) == 0 {
-		config.UserAgent = rest.DefaultKubernetesUserAgent()
-	}
-	config.APIPath = "/api"
-	return &config
+	return fmt.Errorf("port forwarding failed after %d attempts", maxConnectRetries)
 }
 
 func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
@@ -420,7 +358,7 @@ func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
 	return getIPFamily(podIPs)
 }
 
-func getIPFamily(podIPs []v1.PodIP) IPFamily {
+func getIPFamily(podIPs []corev1.PodIP) IPFamily {
 	switch len(podIPs) {
 	case 1:
 		ip := net.ParseIP(podIPs[0].IP)
