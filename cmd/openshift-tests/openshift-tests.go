@@ -3,12 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdrun"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
@@ -69,10 +67,14 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-
 	logrus.SetLevel(logrus.InfoLevel)
 
-	rand.Seed(time.Now().UTC().UnixNano())
+	// The GCE PD drivers were removed in kube 1.31, so we can ignore the env var that
+	// some automation sets.
+	if os.Getenv("ENABLE_STORAGE_GCE_PD_DRIVER") != "" {
+		logrus.Warn("ENABLE_STORAGE_GCE_PD_DRIVER is set, but is not supported")
+		os.Unsetenv("ENABLE_STORAGE_GCE_PD_DRIVER")
+	}
 
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
