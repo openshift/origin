@@ -154,22 +154,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		sharder = &HashSharder{}
 	}
 
-	allBinaries := extensions.TestBinaries{extensions.OriginBinary}
-	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
-		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
-	} else {
-		// Extract all test binaries
-		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
-		if err != nil {
-			return err
-		}
-		defer cleanUpFn()
-		allBinaries = append(allBinaries, externalBinaries...)
-	}
-
 	defaultBinaryParallelism := 10
+
+	// Extract all test binaries
+	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer extractionContextCancel()
+	cleanUpFn, allBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism)
+	if err != nil {
+		return err
+	}
+	defer cleanUpFn()
 
 	// Learn about the extension binaries available
 	infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)

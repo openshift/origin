@@ -16,48 +16,118 @@ import (
 	"syscall"
 	"time"
 
+	originVersion "github.com/openshift/origin/pkg/version"
+
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
-	v "github.com/openshift/origin/pkg/version"
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
-// OriginBinary is the openshift-tests binary itself, which also implements the extension
-// interface. We don't extract it from the tests image because we already have the binary
-// available.
-var OriginBinary = &TestBinary{
-	imageTag:   "tests",
-	binaryPath: os.Args[0],
-	info:       OriginExtension,
-}
+// InitializeOpenShiftTestsExtensionFramework creates and initializes the extension registry with the origin tests extension.
+func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extension.Extension, error) {
+	// Create the origin extension
+	ov := originVersion.Get()
+	originExtension := &Extension{
+		Extension: &extension.Extension{
+			Component: extension.Component{
+				Product: "openshift",
+				Kind:    "payload",
+				Name:    "origin",
+			},
+			APIVersion: extension.CurrentExtensionAPIVersion,
+		},
+		Source: Source{
+			Source: &extension.Source{
+				Commit:       ov.GitCommit,
+				GitTreeState: ov.GitTreeState,
+				BuildDate:    ov.BuildDate,
+				SourceURL:    "https://github.com/openshift/origin",
+			},
+			SourceBinary: os.Args[0],
+			SourceImage:  "tests",
+		},
+	}
 
-var OriginExtension = &Extension{
-	Extension: &extension.Extension{
-		Component: extension.Component{
-			Product: "openshift",
-			Kind:    "payload",
-			Name:    "origin",
-		},
-		APIVersion: extension.CurrentExtensionAPIVersion,
-	},
-	Source: Source{
-		Source: &extension.Source{
-			Commit:       v.Get().GitCommit,
-			GitTreeState: v.Get().GitTreeState,
-			BuildDate:    v.Get().BuildDate,
-			SourceURL:    "https://github.com/openshift/origin",
-		},
-		SourceBinary: os.Args[0],
-		SourceImage:  "tests",
-	},
+	// Create our registry of openshift-tests extensions
+	extensionRegistry := extension.NewRegistry()
+	extensionRegistry.Register(originExtension.Extension)
+
+	// Build our specs from ginkgo
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
+	}
+
+	// Apply annotations to test names
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+		// we need to ensure the default path always annotates both
+		// origin and k8s tests accordingly, since each of these
+		// currently have their own annotations which are not
+		// merged anywhere else but applied here
+		if append, ok := origingenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+	})
+
+	// Filter out kube tests, vendor filtering isn't working within origin
+	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+		return !strings.Contains(spec.Name, "[Suite:k8s")
+	})
+
+	specs.AddBeforeAll(func() {
+		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
+		if err != nil {
+			panic(err)
+		}
+		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
+			panic(err)
+		}
+		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
+
+		exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+
+		if err := imagesetup.VerifyImages(); err != nil {
+			panic(err)
+		}
+
+		// Handle upgrade options
+		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
+		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
+		if err != nil {
+			panic(err)
+		}
+
+		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
+			panic(err)
+		}
+	})
+
+	originExtension.Extension.AddSpecs(specs)
+
+	return extensionRegistry, originExtension.Extension, nil
 }
 
 // TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
@@ -86,6 +156,13 @@ type Image struct {
 // extensionBinaries is the registry of additional test binaries to use as extension tests. Members
 // of the registry must be part of the release payload.
 var extensionBinaries = []TestBinary{
+	// Self reference for origin's own internal extension
+	{
+		imageTag:   "tests",
+		binaryPath: os.Args[0],
+	},
+
+	// Extensions in other payload images
 	{
 		imageTag:   "hyperkube",
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
@@ -282,6 +359,11 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it, and returns a slice of them.
 func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+		return func() {}, []*TestBinary{&extensionBinaries[0]}, nil
+	}
+
 	if parallelism < 1 {
 		return nil, nil, errors.New("parallelism must be greater than zero")
 	}
@@ -386,6 +468,12 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 				case <-ctx.Done():
 					return // Context is cancelled
 				case b, ok := <-jobCh:
+					// Self reference, no need to extract
+					if b.binaryPath == os.Args[0] {
+						binaries = append(binaries, &b)
+						continue
+					}
+
 					if !ok {
 						return // Channel is closed
 					}
