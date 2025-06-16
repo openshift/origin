@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"math"
+	"math/rand"
 	"net"
 	"os/exec"
 	"strings"
@@ -110,13 +111,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"443"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -132,13 +133,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"443"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -154,13 +155,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"443"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -176,13 +177,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"443"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -198,13 +199,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"443"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -220,13 +221,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"443"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:443", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:443", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -242,13 +243,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"9001"},
 			3,
 			200*time.Millisecond,
-			func() {
-				conn, err := tls.Dial("tcp", "localhost:9001", tlsShouldWork)
+			func(port int) {
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				conn.Close()
 
-				_, err = tls.Dial("tcp", "localhost:9001", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -264,19 +265,19 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			[]string{"2379"},
 			3,
 			200*time.Millisecond,
-			func() {
+			func(port int) {
 				// We aren't actually going through mTLS authentication with etcd to communicate
 				// with it - just checking TLS protocol versions. So, if it throws a "bad certificate"
 				// error, we're past the version check and consider it a success for this test.
 
-				conn, err := tls.Dial("tcp", "localhost:2379", tlsShouldWork)
+				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				if err != nil {
 					o.Expect(err.Error()).To(o.ContainSubstring("remote error: tls: bad certificate"))
 				} else {
 					conn.Close()
 				}
 
-				_, err = tls.Dial("tcp", "localhost:2379", tlsShouldNotWork)
+				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				o.Expect(err).To(o.HaveOccurred())
 			},
 		)
@@ -285,7 +286,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 })
 
-func ForwardPortsAndExecute(serviceName string, namespace string, ports []string, maxConnectRetries int, initialBackoff time.Duration, toExecute func()) error {
+func ForwardPortsAndExecute(serviceName string, namespace string, ports []string, maxConnectRetries int, initialBackoff time.Duration, toExecute func(int)) error {
 	if len(ports) < 1 {
 		return fmt.Errorf("at least 1 PORT is required for port-forward")
 	}
@@ -293,12 +294,17 @@ func ForwardPortsAndExecute(serviceName string, namespace string, ports []string
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	args := []string{"port-forward", fmt.Sprintf("svc/%s", serviceName), "-n", namespace}
-	args = append(args, ports...)
-
 	var cmd *exec.Cmd
 
 	for attempt := 0; attempt < maxConnectRetries; attempt++ {
+		// try a random local port likely to be usable for each attempt
+		localPort := rand.Intn(65534-1025) + 1025
+
+		args := []string{"port-forward", fmt.Sprintf("svc/%s", serviceName), "-n", namespace}
+		for _, remotePort := range ports {
+			args = append(args, fmt.Sprintf("%d:%s", localPort, remotePort))
+		}
+
 		cmd = exec.CommandContext(ctx, "oc", args...)
 
 		stdout, err := cmd.StdoutPipe()
@@ -325,7 +331,7 @@ func ForwardPortsAndExecute(serviceName string, namespace string, ports []string
 		if scanner.Scan() {
 			e2e.Logf("oc port-forward output: %s", scanner.Text())
 
-			toExecute()
+			toExecute(localPort)
 
 			cmd.Process.Kill()
 			cmd.Wait()
