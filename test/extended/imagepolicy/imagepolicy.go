@@ -75,7 +75,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 
 	g.It("Should fail clusterimagepolicy signature validation when scope in allowedRegistries list does not skip signature verification", func() {
-		// Ensure allowedRegistries do not skip signature verification by adding testReleaseImageScope to the list
+		// Ensure allowedRegistries do not skip signature verification by adding testReleaseImageScope to the list.
 		allowedRegistries := []string{"quay.io", "registry.redhat.io", "image-registry.openshift-image-registry.svc:5000", testReleaseImageScope}
 		updateImageConfig(oc, allowedRegistries)
 		g.DeferCleanup(cleanupImageConfig, oc)
@@ -110,6 +110,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	g.It("Should fail imagepolicy signature validation in different namespaces root of trust does not match the identity in the signature", func() {
 		createImagePolicy(oc, testImagePolicies[invalidPublicKeyImagePolicyName], imgpolicyClif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, invalidPublicKeyImagePolicyName, imgpolicyClif.Namespace.Name)
+		waitForPoolComplete(oc)
 
 		createImagePolicy(oc, testImagePolicies[invalidPublicKeyImagePolicyName], clif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, invalidPublicKeyImagePolicyName, clif.Namespace.Name)
@@ -134,6 +135,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	g.It("Should pass imagepolicy signature validation with signed image in namespaces", func() {
 		createImagePolicy(oc, testImagePolicies[publiKeyRekorImagePolicyName], clif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, publiKeyRekorImagePolicyName, clif.Namespace.Name)
+		waitForPoolComplete(oc)
 
 		createImagePolicy(oc, testImagePolicies[publiKeyRekorImagePolicyName], imgpolicyClif.Namespace.Name)
 		g.DeferCleanup(deleteImagePolicy, oc, publiKeyRekorImagePolicyName, imgpolicyClif.Namespace.Name)
