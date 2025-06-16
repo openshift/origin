@@ -361,7 +361,14 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
-		return func() {}, []*TestBinary{&extensionBinaries[0]}, nil
+		var internalBinaries []*TestBinary
+		for _, b := range extensionBinaries {
+			if b.binaryPath == os.Args[0] {
+				internalBinaries = append(internalBinaries, &b)
+			}
+		}
+
+		return func() {}, internalBinaries, nil
 	}
 
 	if parallelism < 1 {
