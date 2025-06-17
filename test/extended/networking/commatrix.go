@@ -45,6 +45,21 @@ const (
 
 var docCommatrixBaseURL = fmt.Sprintf(docCommatrixTemplateURL, docReleaseTemplate, docTypeHolder)
 
+// Temporarly exception for external port used only interanly.
+var staticOpenPortsToIgnore = []types.ComDetails{
+	{
+		Direction: "Ingress",
+		Protocol:  "TCP",
+		Port:      9447,
+		NodeRole:  "master",
+		Service:   "baremetal-operator-webhook-service",
+		Namespace: "openshift-machine-api",
+		Pod:       "metal3-baremetal-operator",
+		Container: "metal3-baremetal-operator",
+		Optional:  false,
+	},
+}
+
 var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
 	It("generated communication matrix should be equal to documented communication matrix", func() {
 		kubeconfig := os.Getenv("KUBECONFIG")
@@ -171,27 +186,26 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 			logrus.Warningf("unused documented ports found:\n%s", notUsedPortsMat)
 		}
 
-		var portsToIgnoreMat *types.ComMatrix
+		portsToIgnoreMat := &types.ComMatrix{Matrix: staticOpenPortsToIgnore}
 
 		openPortsToIgnoreFile, _ := os.LookupEnv("OPEN_PORTS_TO_IGNORE_IN_DOC_TEST_FILE")
 		openPortsToIgnoreFormat, _ := os.LookupEnv("OPEN_PORTS_TO_IGNORE_IN_DOC_TEST_FORMAT")
 
 		// Get ports that are in the generated commatrix but not in the documented commatrix,
 		// and ignore the ports in given file (if exists)
-		missingPortsMat := endpointslicesDiffWithDocMat.GetUniquePrimary()
 		if openPortsToIgnoreFile != "" && openPortsToIgnoreFormat != "" {
 			// generate open ports to ignore commatrix
 			portsToIgnoreFileContent, err := os.ReadFile(openPortsToIgnoreFile)
 			Expect(err).ToNot(HaveOccurred())
 			portsToIgnoreComDetails, err := types.ParseToComDetailsList(portsToIgnoreFileContent, openPortsToIgnoreFormat)
 			Expect(err).ToNot(HaveOccurred())
-			portsToIgnoreMat = &types.ComMatrix{Matrix: portsToIgnoreComDetails}
-
-			// generate the diff matrix between the open ports to ignore matrix and the missing ports in the documented commatrix (based on the diff between the enpointslice and the doc matrix)
-			nonDocumentedEndpointslicesMat := endpointslicesDiffWithDocMat.GetUniquePrimary()
-			endpointslicesDiffWithIgnoredPorts := matrixdiff.Generate(nonDocumentedEndpointslicesMat, portsToIgnoreMat)
-			missingPortsMat = endpointslicesDiffWithIgnoredPorts.GetUniquePrimary()
+			portsToIgnoreMat.Matrix = append(portsToIgnoreMat.Matrix, portsToIgnoreComDetails...)
 		}
+
+		// generate the diff matrix between the open ports to ignore matrix and the missing ports in the documented commatrix (based on the diff between the enpointslice and the doc matrix)
+		nonDocumentedEndpointslicesMat := endpointslicesDiffWithDocMat.GetUniquePrimary()
+		endpointslicesDiffWithIgnoredPorts := matrixdiff.Generate(nonDocumentedEndpointslicesMat, portsToIgnoreMat)
+		missingPortsMat := endpointslicesDiffWithIgnoredPorts.GetUniquePrimary()
 
 		Expect(missingPortsMat.Matrix).To(BeEmpty(), fmt.Sprintf("non-documented open ports found: \n%v", missingPortsMat))
 
