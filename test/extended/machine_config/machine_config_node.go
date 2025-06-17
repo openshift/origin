@@ -422,7 +422,15 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	degradedNodeMCNAppliedFilesCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFilesAndOS)
 	degradedNodeMCNExecutedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted)
 	framework.Logf("degradedNodeMCNAppliedFilesCondition.Message: %v, degradedNodeMCNAppliedFilesCondition.Reason: %v, degradedNodeMCNAppliedFilesCondition.Status: %v", degradedNodeMCNAppliedFilesCondition.Message, degradedNodeMCNAppliedFilesCondition.Reason, degradedNodeMCNAppliedFilesCondition.Status)
+	if !CheckMCNConditionStatus(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown) {
+		framework.Logf("would error on this condition for MachineConfigNodeUpdateFilesAndOS check")
+		framework.Logf("MCN: %v", degradedNodeMCN)
+	}
 	framework.Logf("degradedNodeMCNExecutedCondition.Message: %v, degradedNodeMCNExecutedCondition.Reason: %v, degradedNodeMCNExecutedCondition.Status: %v", degradedNodeMCNExecutedCondition.Message, degradedNodeMCNExecutedCondition.Reason, degradedNodeMCNExecutedCondition.Status)
+	if !CheckMCNConditionStatus(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown) {
+		framework.Logf("would error on this condition for MachineConfigNodeUpdateExecuted check")
+		framework.Logf("MCN: %v", degradedNodeMCN)
+	}
 	// o.Expect(CheckMCNConditionStatus(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown)).Should(o.BeTrue(), "Condition 'AppliedFilesAndOS' does not have the expected status of 'Unknown'.")
 	// o.Expect(CheckMCNConditionStatus(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown)).Should(o.BeTrue(), "Condition 'UpdateExecuted' does not have the expected status of 'Unknown'.")
 	nodeDegradedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeNodeDegraded)
