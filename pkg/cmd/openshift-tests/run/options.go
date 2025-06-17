@@ -11,9 +11,11 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -83,6 +85,17 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		ClusterStabilityDuringTest: monitortestframework.ClusterStabilityDuringTest(stabilitySetting),
 		ExactMonitorTests:          o.GinkgoRunSuiteOptions.ExactMonitorTests,
 		DisableMonitorTests:        o.GinkgoRunSuiteOptions.DisableMonitorTests,
+	}
+
+	oc := exutil.NewCLIWithoutNamespace("")
+	isTwoNodeFencing := exutil.IsTwoNodeFencing(ctx, oc.AdminConfigClient())
+	if isTwoNodeFencing {
+		enabledMonitors := []string{
+			"watch-namespaces"}
+		e2e.Logf("Two Node Fencing cluster, only enabled monitors: %v", enabledMonitors)
+		for _, m := range enabledMonitors {
+			monitorTestInfo.ExactMonitorTests = append(monitorTestInfo.ExactMonitorTests, m)
+		}
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
