@@ -628,6 +628,10 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 					if !ok {
 						return // Channel was closed
 					}
+					if binary.binaryPath == os.Args[0] {
+						continue // Skip self - only external binaries need to be queried for images
+					}
+
 					imageConfig, err := binary.ListImages(ctx)
 					if err != nil {
 						errCh <- err
