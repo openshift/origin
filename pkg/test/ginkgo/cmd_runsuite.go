@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -143,6 +144,9 @@ func max(a, b int) int {
 	return b
 }
 
+//go:embed 4.18-tests.txt
+var fourEighteenTestNames string
+
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
 	upgrade bool) error {
 	ctx := context.Background()
@@ -221,6 +225,39 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		tests = append(filteredTests, externalTestCases...)
 	} else {
 		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+	}
+
+	if strings.Contains(suite.Name, "conformance") {
+		testsArray := strings.Split(fourEighteenTestNames, "\n")
+		set := make(map[string]bool)
+
+		for _, val := range testsArray {
+			if val == "" {
+				continue
+			}
+			if val[0] == '"' {
+				val = val[1:]
+			}
+
+			if val[len(val)-1] == '"' {
+				val = val[:len(val)-1]
+			}
+
+			set[val] = true
+		}
+		var filteredTests []*testCase
+		filteredCount := 0
+		for _, test := range tests {
+			// keep only those that are in the 4.18 list
+			if set[test.name] {
+				filteredTests = append(filteredTests, test)
+			} else {
+				logrus.Infof("4.18 test not found, skipping: `%s`\n", test.name)
+				filteredCount++
+			}
+		}
+		tests = filteredTests
+		logrus.Infof("Filtered %d test cases, remaining 4.18 tests: %d", filteredCount, len(tests))
 	}
 
 	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
