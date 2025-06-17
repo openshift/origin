@@ -14,7 +14,7 @@ import (
 
 const ensurePodmanEtcdContainerIsRunning = "podman inspect --format '{{.State.Running}}' etcd"
 
-var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing topology", func() {
+var _ = g.Describe("[sig-node][apigroup:config.openshift.io] Two Node with Fencing topology", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithoutNamespace("")
@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 })
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing pods and podman containers", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Two Node with Fencing pods and podman containers", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc    = exutil.NewCLIWithoutNamespace("")

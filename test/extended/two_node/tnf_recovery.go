@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing etcd recovery", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io] Two Node with Fencing etcd recovery", func() {
 	defer g.GinkgoRecover()
 
 	var (
