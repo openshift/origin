@@ -168,9 +168,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Learn about the extension binaries available
 	infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer infoContextCancel()
+	logrus.Infof("Fetching info from %d extension binaries", len(allBinaries))
 	extensionsInfo, err := allBinaries.Info(infoContext, defaultBinaryParallelism)
 	if err != nil {
-		return err
+		logrus.Errorf("Failed to fetch extension info: %v", err)
+		return fmt.Errorf("failed to fetch extension info: %w", err)
 	}
 
 	logrus.Infof("Discovered %d extensions", len(extensionsInfo))

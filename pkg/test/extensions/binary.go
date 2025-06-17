@@ -186,14 +186,24 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 	command := exec.Command(b.binaryPath, "info")
 	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
+		logrus.Errorf("Failed to fetch info for %s: %v", binName, err)
+		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
+	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
+		logrus.Errorf("No valid JSON found in output from %s info command", binName)
+		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
+		return nil, fmt.Errorf("no valid JSON found in output from '%s info' command", binName)
+	}
 	var info Extension
-	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
+	jsonData := infoJson[jsonBegins : jsonEnds+1]
+	err = json.Unmarshal(jsonData, &info)
 	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
+		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
+		logrus.Errorf("JSON data from %s: %s", binName, string(jsonData))
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension info from %s: %s", binName, string(jsonData))
 	}
 	b.info = &info
 
@@ -555,7 +565,9 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 					}
 					info, err := binary.Info(ctx)
 					if err != nil {
-						errCh <- err
+						binName := filepath.Base(binary.binaryPath)
+						logrus.Errorf("Failed to get info from binary %s: %v", binName, err)
+						errCh <- fmt.Errorf("binary %s: %w", binName, err)
 					}
 					mu.Lock()
 					infos = append(infos, info)
@@ -575,7 +587,8 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 		errs = append(errs, err.Error())
 	}
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("encountered errors while fetch info: %s", strings.Join(errs, ";"))
+		logrus.Errorf("Failed to fetch info from %d binaries", len(errs))
+		return nil, fmt.Errorf("encountered errors while fetching info: %s", strings.Join(errs, "; "))
 	}
 
 	return infos, nil

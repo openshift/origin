@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -65,8 +66,10 @@ func NewListExtensionsCommand(streams genericclioptions.IOStreams) *cobra.Comman
 			}
 
 			// Get info from all binaries
+			logrus.Infof("Fetching info from %d extension binaries", len(binaries))
 			infos, err := binaries.Info(ctx, 4)
 			if err != nil {
+				logrus.Errorf("Failed to get extension info: %v", err)
 				return fmt.Errorf("failed to get extension info: %w", err)
 			}
 
