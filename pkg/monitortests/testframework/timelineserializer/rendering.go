@@ -193,12 +193,27 @@ func isLessInterestingAlert(eventInterval monitorapi.Interval) bool {
 	if eventInterval.Source != monitorapi.SourceAlert {
 		return false
 	}
+	alertName := eventInterval.Locator.Keys[monitorapi.LocatorAlertKey]
+
+	// Normally we don't want to display pending alerts, but allow some to show so we can see high CPU
+	// as it's detected.
 	if eventInterval.Message.Annotations[monitorapi.AnnotationAlertState] == "pending" {
-		// Skip pending alerts:
-		return true
+		switch alertName {
+		// Alerts we DO want to see pending intervals for in the minimal spyglass file
+		case "ExtremelyHighIndividualControlPlaneCPU":
+		case "HighOverallControlPlaneCPU":
+		case "HighOverallControlPlaneMemory":
+		case "SystemMemoryExceedsReservation":
+		case "etcdHighCommitDurations":
+		case "etcdGRPCRequestsSlow":
+		case "etcdHighFsyncDurations":
+		case "etcdDatabaseHighFragmentationRatio":
+		default:
+			// Skip pending alerts other than the specific ones listed above:
+			return true
+		}
 	}
 
-	alertName := eventInterval.Locator.Keys[monitorapi.LocatorAlertKey]
 	if len(alertName) == 0 {
 		return true
 	}
