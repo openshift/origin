@@ -27,13 +27,16 @@ func InitialAndFinalOperatorLogScraper() monitortestframework.MonitorTest {
 	return &operatorLogAnalyzer{}
 }
 
-func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (w *operatorLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
+func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	if err := scanAllOperatorPods(ctx, w.kubeClient, newOperatorLogHandler(recorder)); err != nil {
 		return fmt.Errorf("unable to scan operator logs: %w", err)
 	}
