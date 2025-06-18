@@ -241,7 +241,7 @@ func (*operatorLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Co
 	})
 	testName := fmt.Sprintf("[Jira:\"Networking / On-Prem Load Balancer\"] on-prem loadbalancer must achieve full priority")
 
-	neededPriority := "65"
+	neededPriority := "68"
 	ingressPriority := "80"
 	achievedPriority := false
 	ingressAchievedPriority := false
