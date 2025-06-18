@@ -19,7 +19,6 @@ import (
 	_ "github.com/openshift/origin/test/extended/cli"
 	_ "github.com/openshift/origin/test/extended/cloud_controller_manager"
 	_ "github.com/openshift/origin/test/extended/cluster"
-	_ "github.com/openshift/origin/test/extended/clusterversion"
 	_ "github.com/openshift/origin/test/extended/cmd"
 	_ "github.com/openshift/origin/test/extended/controller_manager"
 	_ "github.com/openshift/origin/test/extended/coreos"
