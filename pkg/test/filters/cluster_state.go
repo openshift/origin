@@ -19,6 +19,11 @@ type ClusterStateFilter struct {
 }
 
 func NewClusterStateFilter(config *clusterdiscovery.ClusterConfiguration) *ClusterStateFilter {
+	if config == nil {
+		logrus.Warn("Cluster state filter is disabled, cluster config is nil")
+		return &ClusterStateFilter{}
+	}
+
 	skips := []string{fmt.Sprintf("[Skipped:%s]", config.ProviderName)}
 
 	if config.IsIBMROKS {
