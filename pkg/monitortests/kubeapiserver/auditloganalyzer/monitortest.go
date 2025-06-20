@@ -390,7 +390,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		}
 	}
 
-	testName = "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+	testName = "[sig-api-machinery][Feature:APIServer] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
 	switch {
 	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
 		ret = append(ret,
