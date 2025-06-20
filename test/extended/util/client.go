@@ -309,6 +309,32 @@ func (c CLI) WithToken(token string) *CLI {
 	return &c
 }
 
+// WithKubeConfigCopy copies the current kubeconfig into a temporary file and sets the copy as the current kubeconfig
+// for the duration of the invocation of fnc. The temporary file is removed once fnc returns.
+func (c CLI) WithKubeConfigCopy(fnc func(*CLI)) {
+	out, err := os.CreateTemp("", "kubeconfig")
+	if err != nil {
+		FatalErr(err)
+	}
+	defer os.Remove(out.Name())
+
+	in, err := os.Open(c.configPath)
+	if err != nil {
+		out.Close()
+		FatalErr(err)
+	}
+
+	_, err = io.Copy(out, in)
+	in.Close()
+	out.Close()
+	if err != nil {
+		FatalErr(err)
+	}
+
+	c.configPath = out.Name()
+	fnc(&c)
+}
+
 // SetupProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
 // Returns the name of the new project.
