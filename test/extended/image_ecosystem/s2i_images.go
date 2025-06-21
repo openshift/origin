@@ -67,13 +67,6 @@ var s2iImages = map[string][]tc{
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
-			Version:  "38",
-			Cmd:      "python --version",
-			Expected: "Python 3.8",
-			Tag:      "3.8-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
 			Version:  "39",
 			Cmd:      "python --version",
 			Expected: "Python 3.9",
