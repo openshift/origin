@@ -455,6 +455,26 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:UserAPI] users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should accept tokens provided by the OpenShift OAuth server": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should not accept tokens provided by an external IdP": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should rollout configuration on the kube-apiserver successfully": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should rollout the OpenShift OAuth stack": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should accept authentication via a kubeconfig (break-glass)": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should accept tokens issued by the external IdP": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should configure kube-apiserver": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should map cluster identities correctly": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should not accept tokens provided by the OAuth server": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should remove the OpenShift OAuth stack": "",
+
 	"[sig-builds][Feature:Builds] Multi-stage image builds should succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds] Optimized image builds should succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
