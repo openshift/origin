@@ -58,6 +58,9 @@ var (
 
 		// used by KubeVirt test to start fedora VMs
 		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc": -1,
+
+		// used by SigstoreImageVerification test
+		"quay.io/openshift-release-dev/ocp-release@sha256:fbad931c725b2e5b937b295b58345334322bdabb0b67da1c800a53686d7397da": -1,
 	}
 )
 
