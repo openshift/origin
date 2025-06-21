@@ -93,9 +93,14 @@ func (provider *ExternalBinaryProvider) Cleanup() {
 // Note: When developing openshift-tests on a non-Linux non-AMD64 computer (i.e. on Apple Silicon), external
 // binaries won't work.  You would need to run it in a Linux environment (VM or container), and even then
 // override the payload selection with an aarch64 payload unless x86 emulation is enabled.
-func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binary string) (*TestBinary, error) {
+func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binary string, compExts map[string]string) (*TestBinary, error) {
 	if provider.binPath == "" {
 		return nil, fmt.Errorf("extraction path is not set, cleanup was already run")
+	}
+
+	var ext string
+	if val, ok := compExts[tag]; ok {
+		ext = val
 	}
 
 	// Allow overriding image path to an already existing local path, mostly useful
@@ -109,6 +114,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		return &TestBinary{
 			imageTag:   tag,
 			binaryPath: override,
+			extension:  ext,
 		}, nil
 	}
 
@@ -134,6 +140,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		return &TestBinary{
 			imageTag:   tag,
 			binaryPath: binPath,
+			extension:  ext,
 		}, nil
 	}
 
@@ -184,6 +191,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 
 	return &TestBinary{
 		binaryPath: extractedBinary,
+		extension:  ext,
 	}, nil
 }
 
