@@ -3,31 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math/rand"
 	"os"
 	"os/exec"
 	"syscall"
-	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdinfo"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/cmd/cmdrun"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/cmd"
-	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
-	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/render"
-	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/run"
-	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
-	run_test "github.com/openshift/origin/pkg/cmd/openshift-tests/run-test"
-	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
-	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
-	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -35,6 +17,25 @@ import (
 	utilflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/cmd"
+	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
+	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/render"
+	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/run"
+	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
+	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
+	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
+	"github.com/openshift/origin/pkg/test/extensions"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 func main() {
@@ -53,13 +54,22 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-
 	logrus.SetLevel(logrus.InfoLevel)
 
-	rand.Seed(time.Now().UTC().UnixNano())
+	// The GCE PD drivers were removed in kube 1.31, so we can ignore the env var that
+	// some automation sets.
+	if os.Getenv("ENABLE_STORAGE_GCE_PD_DRIVER") != "" {
+		logrus.Warn("ENABLE_STORAGE_GCE_PD_DRIVER is set, but is not supported")
+		os.Unsetenv("ENABLE_STORAGE_GCE_PD_DRIVER")
+	}
 
 	pflag.CommandLine.SetNormalizeFunc(utilflag.WordSepNormalizeFunc)
 	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+
+	extensionRegistry, originExtension, err := extensions.InitializeOpenShiftTestsExtensionFramework()
+	if err != nil {
+		panic(err)
+	}
 
 	root := &cobra.Command{
 		Long: templates.LongDesc(`This command verifies behavior of an OpenShift cluster by running remote tests against
@@ -79,10 +89,12 @@ func main() {
 	}
 
 	root.AddCommand(
-		run.NewRunCommand(ioStreams),
+		run.NewRunCommand(ioStreams, originExtension),
+		list.NewListCommand(ioStreams, extensionRegistry),
+		cmdinfo.NewInfoCommand(extensionRegistry),
 		run_upgrade.NewRunUpgradeCommand(ioStreams),
 		images.NewImagesCommand(),
-		run_test.NewRunTestCommand(ioStreams),
+		cmdrun.NewRunTestCommand(extensionRegistry),
 		dev.NewDevCommand(),
 		run_monitor.NewRunMonitorCommand(ioStreams),
 		monitor.NewMonitorCommand(ioStreams),
@@ -106,10 +118,6 @@ func main() {
 		defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 		return root.Execute()
 	}(); err != nil {
-		if ex, ok := err.(testginkgo.ExitError); ok {
-			fmt.Fprintf(os.Stderr, "Ginkgo exit error %d: %v\n", ex.Code, err)
-			os.Exit(ex.Code)
-		}
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
