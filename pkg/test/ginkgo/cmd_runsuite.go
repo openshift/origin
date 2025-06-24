@@ -787,10 +787,16 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 
 	envFlagBuilder := &extensions.EnvironmentFlagsBuilder{}
 	envFlagBuilder.
-		AddPlatform(config.ProviderName).
 		AddNetwork(config.NetworkPlugin).
 		AddNetworkStack(config.IPFamily).
 		AddExternalConnectivity(determineExternalConnectivity(config))
+
+	platform := config.ProviderName
+	// MicroShift is defined as "skeleton" in the providerName, but the flag should be "none"
+	if platform == "skeleton" {
+		platform = "none"
+	}
+	envFlagBuilder.AddPlatform(platform)
 
 	if config.SingleReplicaTopology {
 		// In cases like Microshift, we will not be able to determine the clusterState,
