@@ -166,14 +166,14 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 				}
 			}
 		}
-		errs := parallelTest(6, testFns)
+		errs := ParallelTest(6, testFns)
 		o.Expect(errs).To(o.Equal([]error(nil)))
 	})
 })
 
-// parallelTest runs the provided fns in parallel with at most workers and returns an array of all
+// ParallelTest runs the provided fns in parallel with at most workers and returns an array of all
 // non nil errors.
-func parallelTest(workers int, fns []func() error) []error {
+func ParallelTest(workers int, fns []func() error) []error {
 	var wg sync.WaitGroup
 	work := make(chan func() error, workers)
 	results := make(chan error, workers)

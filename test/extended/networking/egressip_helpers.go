@@ -1382,15 +1382,6 @@ func (p *PortAllocator) allocatePort(port int) error {
 	return nil
 }
 
-// deleteDaemonSet deletes the Daemonset <namespace>/<dsName>.
-func deleteDaemonSet(clientset kubernetes.Interface, namespace, dsName string) error {
-	deleteOptions := metav1.DeleteOptions{}
-	if err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), dsName, deleteOptions); err != nil {
-		return fmt.Errorf("Failed to delete DaemonSet %s/%s: %v", namespace, dsName, err)
-	}
-	return nil
-}
-
 // createHostNetworkedDaemonSetAndProbe creates a host networked pod in namespace <namespace> on
 // node <nodeName>. It will allocate a port to listen on and it will return
 // the DaemonSet or an error.

@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
@@ -774,6 +775,15 @@ func getDaemonSet(oc *exutil.CLI, namespace, name string) (*appsv1.DaemonSet, er
 		return nil, nil
 	}
 	return ds, err
+}
+
+// deleteDaemonSet deletes the Daemonset <namespace>/<dsName>.
+func deleteDaemonSet(clientset kubernetes.Interface, namespace, dsName string) error {
+	deleteOptions := metav1.DeleteOptions{}
+	if err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), dsName, deleteOptions); err != nil {
+		return fmt.Errorf("failed to delete DaemonSet %s/%s: %v", namespace, dsName, err)
+	}
+	return nil
 }
 
 func createIPsecCertsMachineConfig(oc *exutil.CLI) (*mcfgv1.MachineConfig, error) {

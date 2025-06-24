@@ -1543,6 +1543,10 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:IPsec] IPsec resilience when using openshift ovn-kubernetes check pod traffic is working across nodes [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
+
+	"[sig-network][Feature:IPsec] IPsec resilience when using openshift ovn-kubernetes check pod traffic is working across nodes after ipsec daemonset restart [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
+
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
 
 	"[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test when using openshift ovn-kubernetes assert the primary UDN feature works as expected": "",
