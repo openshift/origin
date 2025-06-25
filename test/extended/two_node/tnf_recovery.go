@@ -19,6 +19,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	nodeIsHealthyTimeout         = time.Minute
+	memberHasLeftTimeout         = 5 * time.Minute
+	memberIsLeaderTimeout        = 2 * time.Minute
+	memberRejoinedLearnerTimeout = 10 * time.Minute
+	memberPromotedVotingTimeout  = 10 * time.Minute
+	pollInterval                 = 5 * time.Second
+)
+
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing etcd recovery", func() {
 	defer g.GinkgoRecover()
 
@@ -48,11 +57,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.GinkgoT().Printf("Ensure both nodes are healthy before starting the test\n")
 		o.Eventually(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, nodeA.Name)
-		}, time.Minute, 5*time.Second).ShouldNot(o.HaveOccurred(), "expect to ensure Node A healthy without error")
+		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "expect to ensure Node A healthy without error")
 
 		o.Eventually(func() error {
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, nodeB.Name)
-		}, time.Minute, 5*time.Second).ShouldNot(o.HaveOccurred(), "expect to ensure Node B healthy without error")
+		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "expect to ensure Node B healthy without error")
 	})
 
 	g.It("Should support a graceful node shutdown", func() {
@@ -70,7 +79,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By(msg)
 		o.Eventually(func() error {
 			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, nodeB.Name)
-		}, 5*time.Minute, 30*time.Second).ShouldNot(o.HaveOccurred())
+		}, memberHasLeftTimeout, pollInterval).ShouldNot(o.HaveOccurred())
 
 		msg = fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner", nodeA.Name, nodeB.Name)
 		g.By(msg)
@@ -98,7 +107,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 			g.GinkgoT().Logf("membership: %+v", members)
 			return nil
-		}, 2*time.Minute, 15*time.Second).ShouldNot(o.HaveOccurred())
+		}, memberIsLeaderTimeout, pollInterval).ShouldNot(o.HaveOccurred())
 
 		msg = fmt.Sprintf("Ensuring %s rejoins as learner", nodeB.Name)
 		g.By(msg)
@@ -125,7 +134,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 			g.GinkgoT().Logf("membership: %+v", members)
 			return nil
-		}, 10*time.Minute, 15*time.Second).ShouldNot(o.HaveOccurred())
+		}, memberRejoinedLearnerTimeout, pollInterval).ShouldNot(o.HaveOccurred())
 
 		msg = fmt.Sprintf("Ensuring %s node is promoted back as voting member", nodeB.Name)
 		g.By(msg)
@@ -152,7 +161,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 			g.GinkgoT().Logf("membership: %+v", members)
 			return nil
-		}, 10*time.Minute, 15*time.Second).ShouldNot(o.HaveOccurred())
+		}, memberPromotedVotingTimeout, pollInterval).ShouldNot(o.HaveOccurred())
 	})
 })
 
