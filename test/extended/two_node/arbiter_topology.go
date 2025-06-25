@@ -151,7 +151,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		arbiterSelector, err := labels.Parse("app=busybox-arbiter")
 		o.Expect(err).To(o.BeNil(), "Expected to parse Arbiter label selector without error")
 
-		arbiterPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), arbiterSelector, isPodRunning, 1, time.Second*30)
+		arbiterPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), arbiterSelector, isPodRunning, 1, time.Second*300)
 		o.Expect(err).To(o.BeNil(), "Expected Arbiter pods to be running")
 		o.Expect(len(arbiterPods)).To(o.Equal(1), "Expected exactly one Arbiter pod to be running on Arbiter node")
 
@@ -183,7 +183,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		normalSelector, err := labels.Parse("app=busybox-master")
 		o.Expect(err).To(o.BeNil(), "Expected to parse Master label selector without error")
 
-		normalPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), normalSelector, isPodRunning, 1, time.Second*30)
+		normalPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), normalSelector, isPodRunning, 1, time.Second*300)
 		o.Expect(err).To(o.BeNil(), "Expected Normal pods to be running on Master nodes")
 		o.Expect(len(normalPods)).To(o.Equal(1), "Expected exactly one Normal pod to be running on a Master node")
 
@@ -228,7 +228,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		daemonSetSelector, err := labels.Parse("app=busybox-daemon")
 		o.Expect(err).To(o.BeNil(), "Expected to parse DaemonSet label selector without error")
 
-		daemonSetPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), daemonSetSelector, isPodRunning, 2, time.Second*30)
+		daemonSetPods, err := exutil.WaitForPods(oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()), daemonSetSelector, isPodRunning, 2, time.Second*300)
 		o.Expect(err).To(o.BeNil(), "Expected DaemonSet pods to be running")
 		o.Expect(len(daemonSetPods)).To(o.Equal(2), "Expected exactly two DaemonSet pod to be running")
 
