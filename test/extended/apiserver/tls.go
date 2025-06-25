@@ -1,11 +1,10 @@
 package apiserver
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
-	"math"
+	"io"
 	"math/rand"
 	"net"
 	"os/exec"
@@ -16,7 +15,6 @@ import (
 	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/utils/ptr"
 
@@ -71,12 +69,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
 		}
 
-		insecure := true
-		configFlags := &genericclioptions.ConfigFlags{}
-		configFlags.Insecure = &insecure
-		configFlags.APIServer = &oc.AdminConfig().Host
-		configFlags.BearerToken = &oc.AdminConfig().BearerToken
-
 		config, err := oc.AdminConfigClient().ConfigV1().APIServers().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -101,184 +93,114 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			}
 		}
 
-		//////
-
 		g.By("Checking the Kube API server")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"apiserver",
 			"openshift-kube-apiserver",
-			[]string{"443"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"443",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		//////
 
 		g.By("Checking the OAuth server")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"oauth-openshift",
 			"openshift-authentication",
-			[]string{"443"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"443",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		//////
 
 		g.By("Checking the kube-controller-manager")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"kube-controller-manager",
 			"openshift-kube-controller-manager",
-			[]string{"443"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"443",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		//////
 
 		g.By("Checking the openshift-kube-scheduler")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"scheduler",
 			"openshift-kube-scheduler",
-			[]string{"443"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"443",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		//////
 
 		g.By("Checking the openshift-apiserver")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"api",
 			"openshift-apiserver",
-			[]string{"443"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"443",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		//////
 
 		g.By("Checking the openshift-oauth-apiserver")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"api",
 			"openshift-oauth-apiserver",
-			[]string{"443"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"443",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		//////
 
 		g.By("Checking the openshift-machine-config-controller")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"machine-config-controller",
 			"openshift-machine-config-operator",
-			[]string{"9001"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
-				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				conn.Close()
-
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+			"9001",
+			func(port int) error {
+				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		//////
-
 		g.By("Checking etcd")
 
-		err = ForwardPortsAndExecute(
+		err = forwardPortAndExecute(
 			"etcd",
 			"openshift-etcd",
-			[]string{"2379"},
-			3,
-			200*time.Millisecond,
-			func(port int) {
+			"2379",
+			func(port int) error {
 				// We aren't actually going through mTLS authentication with etcd to communicate
 				// with it - just checking TLS protocol versions. So, if it throws a "bad certificate"
 				// error, we're past the version check and consider it a success for this test.
 
 				conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 				if err != nil {
-					o.Expect(err.Error()).To(o.ContainSubstring("remote error: tls: bad certificate"))
+					if !strings.Contains(err.Error(), "remote error: tls: bad certificate") {
+						return fmt.Errorf("should work: %w", err)
+					}
 				} else {
 					conn.Close()
 				}
-
 				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
-				o.Expect(err).To(o.HaveOccurred())
+				if err == nil {
+					return fmt.Errorf("should not work: connection unexpectedly succeeded")
+				}
+				return nil
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -286,76 +208,57 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 })
 
-func ForwardPortsAndExecute(serviceName string, namespace string, ports []string, maxConnectRetries int, initialBackoff time.Duration, toExecute func(int)) error {
-	if len(ports) < 1 {
-		return fmt.Errorf("at least 1 PORT is required for port-forward")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	var cmd *exec.Cmd
-
-	for attempt := 0; attempt < maxConnectRetries; attempt++ {
-		// try a random local port likely to be usable for each attempt
-		localPort := rand.Intn(65534-1025) + 1025
-
-		args := []string{"port-forward", fmt.Sprintf("svc/%s", serviceName), "-n", namespace}
-		for _, remotePort := range ports {
-			args = append(args, fmt.Sprintf("%d:%s", localPort, remotePort))
-		}
-
-		cmd = exec.CommandContext(ctx, "oc", args...)
-
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			if attempt < maxConnectRetries-1 {
-				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
-				time.Sleep(backoff)
-				continue
+func forwardPortAndExecute(serviceName string, namespace string, remotePort string, toExecute func(localPort int) error) error {
+	var err error
+	for i := 0; i < 3; i++ {
+		if err = func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			localPort := rand.Intn(65534-1025) + 1025
+			args := []string{
+				"port-forward",
+				fmt.Sprintf("svc/%s", serviceName),
+				fmt.Sprintf("%d:%s", localPort, remotePort),
+				"-n", namespace,
 			}
-			return fmt.Errorf("failed to create stdout pipe: %w", err)
-		}
 
-		err = cmd.Start()
-		if err != nil {
-			if attempt < maxConnectRetries-1 {
-				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
-				time.Sleep(backoff)
-				continue
+			cmd := exec.CommandContext(ctx, "oc", args...)
+
+			stdout, stderr, err := e2e.StartCmdAndStreamOutput(cmd)
+			if err != nil {
+				return err
 			}
-			return fmt.Errorf("failed to start oc port-forward command: %w", err)
-		}
+			defer stdout.Close()
+			defer stderr.Close()
+			defer e2e.TryKill(cmd)
 
-		scanner := bufio.NewScanner(stdout)
-		if scanner.Scan() {
-			e2e.Logf("oc port-forward output: %s", scanner.Text())
+			e2e.Logf("oc port-forward output: %s", readPartialFrom(stdout, 1024))
 
-			toExecute(localPort)
-
-			cmd.Process.Kill()
-			cmd.Wait()
+			if err := toExecute(localPort); err != nil {
+				return err
+			}
 
 			return nil
-		}
-
-		if err := scanner.Err(); err != nil {
-			if attempt < maxConnectRetries-1 {
-				backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
-				time.Sleep(backoff)
-				continue
-			}
-			return fmt.Errorf("failed to read oc port-forward output: %w", err)
-		}
-
-		// the port-forward failed to start properly
-		if attempt < maxConnectRetries-1 {
-			backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
-			time.Sleep(backoff)
+		}(); err == nil {
+			// Success, stop retrying
+			return nil
+		} else {
+			err = fmt.Errorf("failed to start oc port-forward command or test: %w", err)
+			e2e.Logf("%v", err)
+			time.Sleep(2 * time.Second)
 		}
 	}
 
-	return fmt.Errorf("port forwarding failed after %d attempts", maxConnectRetries)
+	return err
+}
+
+func readPartialFrom(r io.Reader, maxBytes int) string {
+	buf := make([]byte, maxBytes)
+	n, err := r.Read(buf)
+	if err != nil && err != io.EOF {
+		return fmt.Sprintf("error reading: %v", err)
+	}
+	return string(buf[:n])
 }
 
 func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
@@ -498,3 +401,24 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 
 	})
 })
+
+// CheckTLSConnection tries to connect to localhost:port with the provided TLS configs.
+func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
+	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
+	if err != nil {
+		return fmt.Errorf("should work: %w", err)
+	}
+	conn.Close()
+
+	_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
+	if err == nil {
+		return fmt.Errorf("should not work: connection unexpectedly succeeded")
+	}
+	// Acceptable TLS version mismatch errors
+	if !strings.Contains(err.Error(), "protocol version") &&
+		!strings.Contains(err.Error(), "no supported versions satisfy") &&
+		!strings.Contains(err.Error(), "handshake failure") {
+		return fmt.Errorf("should not work: got error, but not a TLS version mismatch: %w", err)
+	}
+	return nil
+}
