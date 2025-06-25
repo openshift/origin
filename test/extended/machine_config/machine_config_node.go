@@ -53,18 +53,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 	})
 
 	g.It("[Suite:openshift/conformance/parallel]Should have MCN properties matching associated node properties for nodes in default MCPs [apigroup:machineconfiguration.openshift.io]", func() {
-		if IsSingleNode(oc) || IsTwoNode(oc) { //handle SNO & two-node clusters
-			// In SNO and standard two-node openshift clusters, the nodes have both worker and master roles, but are a part
-			// of the master MCP. Thus, the tests for these clusters will be limited to checking master MCP association.
-			ValidateMCNPropertiesByMCPs(oc, []string{master})
-		} else if IsTwoNodeArbiter(oc) { //handle two-node arbiter clusters
-			// In two-node arbiter openshift clusters, there are two nodes have both worker and master roles, but are a part
-			// of the master MCP. There is also a third "arbiter" node. Thus, these clusters should be tests for both master
-			// and arbiter MCP association.
-			ValidateMCNPropertiesByMCPs(oc, []string{master, arbiter})
-		} else { //handle standard clusters
-			ValidateMCNPropertiesByMCPs(oc, []string{master, worker})
-		}
+		ValidateMCNPropertiesByMCPs(oc)
 	})
 
 	g.It("[Suite:openshift/conformance/serial][Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]", func() {
@@ -108,13 +97,15 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 })
 
 // `ValidateMCNPropertiesByMCPs` checks that MCN properties match the corresponding node properties
-// for a random node in each of the desired MCPs.
-func ValidateMCNPropertiesByMCPs(oc *exutil.CLI, poolNames []string) {
-	framework.Logf("Validating MCN properties for node(s) in pool(s) '%v'.", poolNames)
-
+// for a random node in each MCP in the cluster with nodes.
+func ValidateMCNPropertiesByMCPs(oc *exutil.CLI) {
 	// Create client set for test
 	clientSet, clientErr := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 	o.Expect(clientErr).NotTo(o.HaveOccurred(), "Error creating client set for test.")
+
+	// Get MCPs to test for cluster
+	poolNames := GetRolesToTest(oc, clientSet)
+	framework.Logf("Validating MCN properties for node(s) in pool(s) '%v'.", poolNames)
 
 	// Validate MCN associated with node in each desired MCP
 	for _, poolName := range poolNames {
