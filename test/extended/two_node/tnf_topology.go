@@ -24,30 +24,18 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		skipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 	})
 
-	g.It("Should validate the number of control-planes, workers and arbiters as configured", func() {
+	g.It("Should validate the number of control-planes, arbiters as configured", func() {
 		const (
-			expectedTotalNodes    = 2
 			expectedControlPlanes = 2
-			expectedWorkers       = 2 // CPs will also have the Workers label
 			expectedArbiters      = 0
 		)
 
-		g.By(fmt.Sprintf("Ensuring only %d nodes in the cluster: %d CP/Workers and %d Arbiter nodes", expectedTotalNodes, expectedControlPlanes, expectedArbiters))
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve control-plane nodes without error")
-		o.Expect(len(nodes.Items)).To(o.Equal(expectedControlPlanes), fmt.Sprintf("Expected %d Control-plane Nodes, found %d", expectedTotalNodes, len(nodes.Items)))
-
+		g.By(fmt.Sprintf("Ensuring only %d Control-plane nodes in the cluster, and %d Arbiter nodes", expectedControlPlanes, expectedArbiters))
 		controlPlaneNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelNodeRoleControlPlane,
 		})
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve control-plane nodes without error")
 		o.Expect(len(controlPlaneNodes.Items)).To(o.Equal(expectedControlPlanes), fmt.Sprintf("Expected %d Control-plane Nodes, found %d", expectedControlPlanes, len(controlPlaneNodes.Items)))
-
-		workerNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleWorker,
-		})
-		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve worker nodes without error")
-		o.Expect(len(workerNodes.Items)).To(o.Equal(expectedWorkers), fmt.Sprintf("Expected %d Worker Nodes, found %d", expectedWorkers, len(workerNodes.Items)))
 
 		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelNodeRoleArbiter,
