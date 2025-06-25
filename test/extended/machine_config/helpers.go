@@ -149,6 +149,24 @@ func skipOnMetal(oc *exutil.CLI) {
 	}
 }
 
+// `GetRolesToTest` gets the MCPs in a cluster with nodes associated to it. This allows a more robust way to determine
+// the roles to use when selecting nodes and testing their MCP associations in an MCN.
+func GetRolesToTest(oc *exutil.CLI, machineConfigClient *machineconfigclient.Clientset) []string {
+	// Get MCPs
+	mcps, mcpErr := machineConfigClient.MachineconfigurationV1().MachineConfigPools().List(context.TODO(), metav1.ListOptions{})
+	o.Expect(mcpErr).NotTo(o.HaveOccurred(), "Error getting MCPs.")
+
+	// For any MCP with machines, add the MCP name as a role to test.
+	var rolesToTest []string
+	for _, mcp := range mcps.Items {
+		if mcp.Status.MachineCount > 0 {
+			rolesToTest = append(rolesToTest, mcp.Name)
+		}
+	}
+
+	return rolesToTest
+}
+
 // getRandomMachineSet picks a random machineset present on the cluster
 func getRandomMachineSet(machineClient *machineclient.Clientset) machinev1beta1.MachineSet {
 	machineSets, err := machineClient.MachineV1beta1().MachineSets("openshift-machine-api").List(context.TODO(), metav1.ListOptions{})
