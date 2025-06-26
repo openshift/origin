@@ -28,7 +28,7 @@ const (
 	pollInterval                 = 5 * time.Second
 )
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing etcd recovery", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery", func() {
 	defer g.GinkgoRecover()
 
 	var (
