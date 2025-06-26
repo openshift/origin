@@ -98,7 +98,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 				return fmt.Errorf("Expected node: %s to be a started and voting member. Membership: %+v", nodeA.Name, members)
 			}
 
-			// Ensure GNS node is unstarted and a learner member (i.e. !learner)
+			// Ensure GNS node is unstarted and a learner member
 			if started, learner, err := getMemberState(&nodeB, members); err != nil {
 				return err
 			} else if started || !learner {
