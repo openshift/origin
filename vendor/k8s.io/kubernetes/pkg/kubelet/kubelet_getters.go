@@ -120,8 +120,9 @@ func (kl *Kubelet) ListPodsFromDisk() ([]types.UID, error) {
 // user namespaces.
 func (kl *Kubelet) HandlerSupportsUserNamespaces(rtHandler string) (bool, error) {
 	rtHandlers := kl.runtimeState.runtimeHandlers()
-	if rtHandlers == nil {
-		return false, fmt.Errorf("runtime handlers are not set")
+	if len(rtHandlers) == 0 {
+		// The slice is empty if the runtime is old and doesn't support this message.
+		return false, nil
 	}
 	for _, h := range rtHandlers {
 		if h.Name == rtHandler {
@@ -138,6 +139,20 @@ func (kl *Kubelet) GetKubeletMappings() (uint32, uint32, error) {
 
 func (kl *Kubelet) GetMaxPods() int {
 	return kl.maxPods
+}
+
+func (kl *Kubelet) GetUserNamespacesIDsPerPod() uint32 {
+	userNs := kl.kubeletConfiguration.UserNamespaces
+	if userNs == nil {
+		return config.DefaultKubeletUserNamespacesIDsPerPod
+	}
+	idsPerPod := userNs.IDsPerPod
+	if idsPerPod == nil || *idsPerPod == 0 {
+		return config.DefaultKubeletUserNamespacesIDsPerPod
+	}
+	// The value is already validated to be <= MaxUint32,
+	// so we can safely drop the upper bits.
+	return uint32(*idsPerPod)
 }
 
 // getPodDir returns the full path to the per-pod directory for the pod with
