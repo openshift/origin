@@ -1835,6 +1835,12 @@ var Annotations = map[string]string{
 
 	"[sig-node-tuning] NTO should OCP-66086 NTO Prevent from stalld continually restarting [Slow]": "",
 
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] [Platform:OpenShift] [Driver:dra-example-driver] one pod, one container, asking for 1 distinct GPU": " [Disabled:NeedsGPU]",
+
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] [Platform:OpenShift] [Driver:dra-nvidia-driver] [MIGEnabled=true] one pod, three containers, asking for 3g.20gb, 2g.10gb, and 1g.5gb respectively": " [Disabled:NeedsGPU]",
+
+	"[sig-node] DRA [Feature:DynamicResourceAllocation] [Platform:OpenShift] [Driver:dra-nvidia-driver] one pod, one container, asking for 1 distinct GPU": " [Disabled:NeedsGPU]",
+
 	"[sig-node] Managed cluster record the number of nodes at the beginning of the tests [Early]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late][apigroup:monitoring.coreos.com]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
