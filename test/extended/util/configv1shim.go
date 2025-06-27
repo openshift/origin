@@ -314,6 +314,13 @@ func (c *ConfigV1ClientShim) Builds() configv1.BuildInterface {
 	return c.configv1.Builds()
 }
 
+func (c *ConfigV1ClientShim) ClusterImagePolicies() configv1.ClusterImagePolicyInterface {
+	if c.v1Kinds["ClusterImagePolicy"] {
+		panic(fmt.Errorf("ClusterImagePolicies not implemented"))
+	}
+	return c.configv1.ClusterImagePolicies()
+}
+
 func (c *ConfigV1ClientShim) ClusterOperators() configv1.ClusterOperatorInterface {
 	if c.v1Kinds["ClusterOperator"] {
 		panic(fmt.Errorf("ClusterOperator not implemented"))
@@ -368,6 +375,13 @@ func (c *ConfigV1ClientShim) ImageDigestMirrorSets() configv1.ImageDigestMirrorS
 		panic(fmt.Errorf("ImageDigestMirrorSet not implemented"))
 	}
 	return c.configv1.ImageDigestMirrorSets()
+}
+
+func (c *ConfigV1ClientShim) ImagePolicies(namespace string) configv1.ImagePolicyInterface {
+	if c.v1Kinds["ImagePolicy"] {
+		panic(fmt.Errorf("ImagePolicy not implemented"))
+	}
+	return c.configv1.ImagePolicies(namespace)
 }
 
 func (c *ConfigV1ClientShim) ImageTagMirrorSets() configv1.ImageTagMirrorSetInterface {
