@@ -1215,6 +1215,8 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][apigroup:config.openshift.io] Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-imageregistry] Image --dry-run should not delete resources [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
 	"[sig-imageregistry][Feature:ImageAppend] Image append should create images by appending them [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
