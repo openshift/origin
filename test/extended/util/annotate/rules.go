@@ -60,6 +60,12 @@ var (
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
+
+		// These tests need GPU worker node, and are run only from an optional periodic
+		"[Skipped:NeedsGPU]": {
+			`\[Suite:openshift/dra-gpu-validation\]`,
+		},
+
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
