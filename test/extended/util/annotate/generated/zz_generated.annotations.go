@@ -1789,6 +1789,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io] when using openshift ovn-kubernetes [PodNetwork] Advertising the default network [apigroup:user.openshift.io][apigroup:security.openshift.io] Pods should communicate with external host without being SNATed": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] stress testing should work": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate if inline certificate is also present": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io] with invalid setup the router should not support external certificate if the route termination type is Passthrough": " [Suite:openshift/conformance/parallel]",
