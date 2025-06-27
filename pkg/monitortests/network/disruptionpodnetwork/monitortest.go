@@ -212,7 +212,7 @@ func (pna *podNetworkAvalibility) serviceHasEndpoints(ctx context.Context) (bool
 	}
 	endpointSlices, err := pna.kubeClient.DiscoveryV1().EndpointSlices(pna.targetService.Namespace).List(ctx, listOptions)
 	if err != nil {
-		klog.Errorf(err.Error())
+		klog.Error(err.Error())
 		return false, nil
 	}
 

@@ -33,6 +33,6 @@ var _ = g.Describe("[sig-node][Late]", func() {
 			timeoutString := fmt.Sprintf("systemd timed out for pod %v/%v", event.InvolvedObject.Namespace, event.InvolvedObject.Name)
 			timeoutStrings = append(timeoutStrings, timeoutString)
 		}
-		result.Flakef(strings.Join(timeoutStrings, "\n"))
+		result.Flakef("%s", strings.Join(timeoutStrings, "\n"))
 	})
 })
