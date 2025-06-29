@@ -60,6 +60,13 @@ var (
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
+
+		// These tests need GPU worker node, and are run only from an optional periodic
+		"[Disabled:NeedsGPU]": {
+			`\[sig-node\] DRA \[Feature:DynamicResourceAllocation\] \[Platform:OpenShift\] \[Driver:dra-example-driver\]`,
+			`\[sig-node\] DRA \[Feature:DynamicResourceAllocation\] \[Platform:OpenShift\] \[Driver:dra-nvidia-driver\]`,
+		},
+
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
