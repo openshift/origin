@@ -3,6 +3,7 @@ package imagepolicy
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -49,6 +50,25 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	g.BeforeAll(func() {
 		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
 			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
+		}
+
+		// skip test on ipv6 clusters.
+		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			e2e.Failf("unable to get cluster network config: %v", err)
+		}
+		usingIPv6 := false
+		for _, clusterNetworkEntry := range networkConfig.Status.ClusterNetwork {
+			addr, _, err := net.ParseCIDR(clusterNetworkEntry.CIDR)
+			if err != nil {
+				continue
+			}
+			if addr.To4() == nil {
+				usingIPv6 = true
+			}
+		}
+		if usingIPv6 {
+			g.Skip("skipping test on ipv6 platform")
 		}
 	})
 
