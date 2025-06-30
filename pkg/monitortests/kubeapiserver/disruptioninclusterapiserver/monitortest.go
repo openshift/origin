@@ -328,8 +328,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	if err := cmd.Run(); err != nil {
-		i.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
-		return nil
+		return fmt.Errorf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
 	}
 	i.openshiftTestsImagePullSpec = strings.TrimSpace(out.String())
 	log.Infof("openshift-tests image pull spec is %v", i.openshiftTestsImagePullSpec)
