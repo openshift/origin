@@ -218,7 +218,20 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				EnabledFeatureGates:  sets.New("FeatureA", "FeatureB"),
 				DisabledFeatureGates: sets.New("DisabledFeature"),
 			},
-			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled"),
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing"),
+		},
+		{
+			name: "Feature gate filtering - only disabled gates",
+			config: &clusterdiscovery.ClusterConfiguration{
+				ProviderName:         "gce",
+				NetworkPlugin:        "OpenShiftSDN",
+				HasIPv4:              true,
+				HasIPv6:              false,
+				APIGroups:            sets.New[string](),
+				EnabledFeatureGates:  sets.New[string](),
+				DisabledFeatureGates: sets.New("DisabledFeature"),
+			},
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing"),
 		},
 	}
 

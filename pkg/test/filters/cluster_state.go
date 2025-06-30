@@ -138,6 +138,11 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 		featureGates = append(featureGates, featureGate)
 	}
 
+	if len(featureGates) == 0 {
+		return true
+	}
+
+	// If any of the required feature gates are disabled, skip the test
 	if f.config.DisabledFeatureGates != nil && f.config.DisabledFeatureGates.HasAny(featureGates...) {
 		logrus.WithField("test", name).
 			WithField("disabledFeatureGates", f.config.DisabledFeatureGates.UnsortedList()).
@@ -146,7 +151,17 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 		return false
 	}
 
-	return f.config.EnabledFeatureGates != nil && f.config.EnabledFeatureGates.HasAll(featureGates...)
+	// It is important that we always return true if we don't know the status of the gate.
+	// This generally means we have no opinion on whether the feature is on or off.
+	// We expect the default case to be on, as this is what would happen after a feature is promoted,
+	// and the gate is removed.
+	//
+	// Therefore, if there are any feature gates defined at all in the cluster, we should
+	// run the tests as long as none of the required gates are explicitly disabled.
+	// If there are no feature gates at all in the cluster, we should not run feature gate tests.
+	hasAnyFeatureGates := (f.config.EnabledFeatureGates != nil && f.config.EnabledFeatureGates.Len() > 0) ||
+		(f.config.DisabledFeatureGates != nil && f.config.DisabledFeatureGates.Len() > 0)
+	return hasAnyFeatureGates
 }
 
 // Regular expressions for parsing test labels
