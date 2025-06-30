@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
@@ -100,7 +101,7 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 	for _, alertInterval := range alertIntervals {
 		for _, testInterval := range e2eTestIntervals {
 			// Check if test interval overlaps with alert interval
-			if overlaps(alertInterval, testInterval) {
+			if utility.IntervalsOverlap(alertInterval, testInterval) {
 				testName, exists := testInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
 				if !exists {
 					continue
@@ -126,22 +127,4 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 	logrus.Infof("High CPU correlated tests: %d successful, %d failed", highCPUSuccessfulTests, highCPUFailedTests)
 
 	return rows
-}
-
-// overlaps checks if two intervals overlap in time
-func overlaps(interval1, interval2 monitorapi.Interval) bool {
-	// If either interval has a zero end time, treat it as ongoing to the end of time
-	end1 := interval1.To
-	if end1.IsZero() {
-		end1 = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-	}
-
-	end2 := interval2.To
-	if end2.IsZero() {
-		end2 = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
-	}
-
-	// Check for overlap
-	return (interval1.From.Before(end2) || interval1.From.Equal(end2)) &&
-		(interval2.From.Before(end1) || interval2.From.Equal(end1))
 }
