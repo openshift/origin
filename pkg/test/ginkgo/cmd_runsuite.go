@@ -145,6 +145,43 @@ func max(a, b int) int {
 	return b
 }
 
+// shouldRetryTest determines if a failed test should be retried based on retry policies.
+// It returns true if the test is eligible for retry, false otherwise.
+func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTags []string) bool {
+	// Internal tests (no binary) are eligible for retry, we shouldn't really have any of these
+	// now that origin is also an extension.
+	if test.binary == nil {
+		return true
+	}
+
+	// Get extension info to check if it's from a permitted image
+	info, err := test.binary.Info(ctx)
+	if err != nil {
+		logrus.
+			WithField("test", test.name).
+			WithError(err).
+			Debug("Failed to get binary info, skipping retry")
+		return false
+	}
+
+	// Check if the test's source image is in the permitted retry list
+	for _, permittedTag := range permittedRetryImageTags {
+		if strings.Contains(info.Source.SourceImage, permittedTag) {
+			logrus.
+				WithField("test", test.name).
+				WithField("image", info.Source.SourceImage).
+				Debug("Permitting retry")
+			return true
+		}
+	}
+
+	logrus.
+		WithField("test", test.name).
+		WithField("image", info.Source.SourceImage).
+		Debug("Test not eligible for retry based on image tag")
+	return false
+}
+
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
 	upgrade bool) error {
 	ctx := context.Background()
@@ -483,29 +520,28 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
-	// attempt to retry failures to do flake detection
+	// Determine if we should retry any tests for flake detection
+	// Don't add more here without discussion with OCP architects, we should be moving towards not having any flakes
+	permittedRetryImageTags := []string{"tests"} // tests = openshift-tests image
 	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
 		var retries []*testCase
 
-		// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
-		// a list of tests to retry.
-		failedExtensionTestCount := 0
+		failedUnretriableTestCount := 0
 		for _, test := range failing {
-			// Do not retry extension tests -- we also want to remove retries from origin-sourced
-			// tests, but extensions is where we can start.
-			if test.binary != nil {
-				failedExtensionTestCount++
-				continue
-			}
-
-			retry := test.Retry()
-			retries = append(retries, retry)
-			if len(retries) > suite.MaximumAllowedFlakes {
-				break
+			if shouldRetryTest(ctx, test, permittedRetryImageTags) {
+				retry := test.Retry()
+				retries = append(retries, retry)
+				if len(retries) > suite.MaximumAllowedFlakes {
+					break
+				}
+			} else if test.binary != nil {
+				// Do not retry extension tests -- we also want to remove retries from origin-sourced
+				// tests, but extensions is where we can start.
+				failedUnretriableTestCount++
 			}
 		}
 
-		logrus.Warningf("%d tests failed, %d origin-sourced tests will be retried; %d extension tests will not", len(failing), len(retries), failedExtensionTestCount)
+		logrus.Warningf("%d tests failed, %d tests permitted to be retried; %d failures are terminal non-retryable failures", len(failing), len(retries), failedUnretriableTestCount)
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
