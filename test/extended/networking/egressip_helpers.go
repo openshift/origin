@@ -1382,15 +1382,6 @@ func (p *PortAllocator) allocatePort(port int) error {
 	return nil
 }
 
-// deleteDaemonSet deletes the Daemonset <namespace>/<dsName>.
-func deleteDaemonSet(clientset kubernetes.Interface, namespace, dsName string) error {
-	deleteOptions := metav1.DeleteOptions{}
-	if err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), dsName, deleteOptions); err != nil {
-		return fmt.Errorf("Failed to delete DaemonSet %s/%s: %v", namespace, dsName, err)
-	}
-	return nil
-}
-
 // createHostNetworkedDaemonSetAndProbe creates a host networked pod in namespace <namespace> on
 // node <nodeName>. It will allocate a port to listen on and it will return
 // the DaemonSet or an error.
@@ -1925,36 +1916,6 @@ func sdnHostsubnetFlushEgressCIDRs(oc *exutil.CLI, nodeName string) error {
 		return fmt.Errorf("Update failed: %v", retryErr)
 	}
 	return nil
-}
-
-// runOcWithRetry runs the oc command with up to 5 retries if a timeout error occurred while running the command.
-func runOcWithRetry(oc *exutil.CLI, cmd string, args ...string) (string, error) {
-	var err error
-	var stdout string
-	maxRetries := 5
-
-	for numRetries := 0; numRetries < maxRetries; numRetries++ {
-		if numRetries > 0 {
-			framework.Logf("Retrying oc command (retry count=%v/%v)", numRetries+1, maxRetries)
-		}
-
-		// stderrr can have spurious logs that can disrupt parsing done by
-		// callers, ignore it
-		stdout, _, err = oc.Run(cmd).Args(args...).Outputs()
-		// If an error was found, either return the error, or retry if a timeout error was found.
-		if err != nil {
-			if strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
-				// Retry on "i/o timeout" errors
-				framework.Logf("Warning: oc command encountered i/o timeout.\nerr=%v\n)", err)
-				continue
-			}
-			return stdout, err
-		}
-
-		// Break out of loop if no error.
-		break
-	}
-	return stdout, err
 }
 
 // listEgressIPs uses the dynamic admin client to return a pointer to

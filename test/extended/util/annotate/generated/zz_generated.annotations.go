@@ -107,8 +107,6 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer][Late] kube-apiserver terminates within graceful termination period": " [Suite:openshift/conformance/parallel]",
@@ -1035,8 +1033,6 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode] ClusterVersion API desired architecture should be valid when architecture is set in release payload metadata [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -1072,8 +1068,6 @@ var Annotations = map[string]string{
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.11-ubi9\" should print the usage": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.6-ubi8\" should print the usage": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.8-ubi8\" should print the usage": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.9-ubi8\" should print the usage": "",
 
@@ -1118,8 +1112,6 @@ var Annotations = map[string]string{
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.11-ubi9\" should be SCL enabled": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.6-ubi8\" should be SCL enabled": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.8-ubi8\" should be SCL enabled": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/python:3.9-ubi8\" should be SCL enabled": "",
 
@@ -1545,6 +1537,10 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:IPsec] IPsec resilience when using openshift ovn-kubernetes check pod traffic is working across nodes [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
+
+	"[sig-network][Feature:IPsec] IPsec resilience when using openshift ovn-kubernetes check pod traffic is working across nodes after ipsec daemonset restart [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
+
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic with IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
 
 	"[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:NetworkSegmentation][Suite:openshift/network/virtualization] primary UDN smoke test when using openshift ovn-kubernetes assert the primary UDN feature works as expected": "",
@@ -1604,6 +1600,8 @@ var Annotations = map[string]string{
 	"[sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:bond] should create a pod with bond interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial] generated communication matrix should be equal to documented communication matrix": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:tap] should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
