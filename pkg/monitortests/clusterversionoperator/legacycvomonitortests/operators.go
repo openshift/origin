@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -519,7 +520,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				// if there was any switch, it was wrong/unexpected at some point
 				failure := fmt.Sprintf("%v", eventInterval)
 
-				overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
+				overlappingE2EIntervals := utility.FindOverlap(e2eEventIntervals, eventInterval)
 				concurrentE2E := []string{}
 				for _, overlap := range overlappingE2EIntervals {
 					if overlap.Level == monitorapi.Info {
@@ -533,7 +534,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				}
 
 				if len(concurrentE2E) > 0 {
-					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
+					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.To, strings.Join(concurrentE2E, "\n"))
 				}
 				exception, err := except(operatorName, condition, eventInterval, clientConfig)
 				if err != nil || exception == "" {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -64,7 +64,7 @@ func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Co
 		restartsForNodeIntervals := nodeUpdateIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 			return eventInterval.Locator.Keys[monitorapi.LocatorNodeKey] == downInterval.Locator.Keys[monitorapi.LocatorNodeKey]
 		})
-		overlapIntervals := operatorstateanalyzer.FindOverlap(restartsForNodeIntervals, downInterval.From, downInterval.To)
+		overlapIntervals := utility.FindOverlap(restartsForNodeIntervals, downInterval)
 		if len(overlapIntervals) == 0 {
 			failures = append(failures, downInterval.String())
 			logger.Info("found no overlap with a node update")
