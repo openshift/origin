@@ -140,8 +140,10 @@ type BlockDeviceMappingSpec struct {
 // https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EbsBlockDevice
 type EBSBlockDeviceSpec struct {
 	// Indicates whether the EBS volume is deleted on machine termination.
+	//
+	// Deprecated: setting this field has no effect.
 	// +optional
-	DeleteOnTermination *bool `json:"deleteOnTermination,omitempty"`
+	DeprecatedDeleteOnTermination *bool `json:"deleteOnTermination,omitempty"`
 	// Indicates whether the EBS volume is encrypted. Encrypted Amazon EBS volumes
 	// may only be attached to machines that support Amazon EBS encryption.
 	// +optional

@@ -117,7 +117,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			for resource, requestCount := range resourceToRequestCount {
 				details := fmt.Sprintf("user/%v accessed %v %d times", user, resource, requestCount.count)
 				failureOutput = append(failureOutput, details)
-				framework.Logf(details)
+				framework.Logf("%s", details)
 			}
 		}
 
@@ -126,10 +126,10 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		if len(failureOutput) > 0 {
 			if cluster414OrNewer {
 				// for clusters 4.14+ this job needs to pass
-				framework.Failf(strings.Join(failureOutput, "\n"))
+				framework.Fail(strings.Join(failureOutput, "\n"))
 			} else {
 				// for olders - only flake
-				result.Flakef(strings.Join(failureOutput, "\n"))
+				result.Flakef("%s", strings.Join(failureOutput, "\n"))
 			}
 		}
 	})

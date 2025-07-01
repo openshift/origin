@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/pkg/dataloader"
 	"io"
 	"net/http"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/openshift/origin/pkg/dataloader"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
@@ -216,7 +217,7 @@ func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, 
 		failure := "unable to obtain risk analysis from sippy after retries"
 		logrus.WithError(err).Error(failure)
 		if err == nil { // no error, but no success either
-			err = fmt.Errorf(failure)
+			err = fmt.Errorf("%s", failure)
 		}
 		return nil, err
 	}
