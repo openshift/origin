@@ -1841,6 +1841,12 @@ var Annotations = map[string]string{
 
 	"[sig-node] [Conformance] Prevent openshift node labeling on update by the node TestOpenshiftNodeLabeling": " [Suite:openshift/conformance/parallel/minimal]",
 
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-example-driver] one pod, one container, asking for 1 distinct GPU": " [Skipped:NeedsGPU]",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] [MIGEnabled=true] one pod, three containers, asking for 3g.20gb, 2g.10gb, and 1g.5gb respectively": " [Skipped:NeedsGPU]",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] one pod, one container, asking for 1 distinct GPU": " [Skipped:NeedsGPU]",
+
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
