@@ -125,6 +125,9 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 			config.HasNoOptionalCapabilities = true
 			// Currently, for the sake of testing, MicroShift can always be assumed to be using OVNKubernetes
 			config.NetworkPlugin = "OVNKubernetes"
+			config.SingleReplicaTopology = true
+			// Currently, for the sake of testing, MicroShift can always be assumed to be using ipv4
+			config.IPFamily = "ipv4"
 		}
 
 		return config, nil
