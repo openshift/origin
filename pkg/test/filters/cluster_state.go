@@ -107,29 +107,33 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 		}
 	}
 
-	// Apply API group filtering
-	if f.config.APIGroups != nil {
-		requiredGroups := []string{}
-		matches := apiGroupRegex.FindAllStringSubmatch(name, -1)
-		for _, match := range matches {
-			if len(match) < 2 {
-				panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
-			}
-			apigroup := match[1]
-			requiredGroups = append(requiredGroups, apigroup)
+	// Check API groups
+	requiredAPIGroups := []string{}
+	matches := apiGroupRegex.FindAllStringSubmatch(name, -1)
+	for _, match := range matches {
+		if len(match) < 2 {
+			panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
 		}
-		if !f.config.APIGroups.HasAll(requiredGroups...) {
-			logrus.WithField("test", name).
-				WithField("requiredGroups", requiredGroups).
-				WithField("availableGroups", f.config.APIGroups.UnsortedList()).
-				Debug("Skipping test")
-			return false
-		}
+		apigroup := match[1]
+		requiredAPIGroups = append(requiredAPIGroups, apigroup)
 	}
 
-	// Apply feature gate filtering
+	if len(requiredAPIGroups) > 0 && (f.config.APIGroups == nil || !f.config.APIGroups.HasAll(requiredAPIGroups...)) {
+		available := "none"
+		if f.config.APIGroups != nil {
+			available = strings.Join(f.config.APIGroups.UnsortedList(), ",")
+		}
+
+		logrus.WithField("test", name).
+			WithField("requiredAPIGroups", requiredAPIGroups).
+			WithField("availableGroups", available).
+			Debug("Skipping test")
+		return false
+	}
+
+	// Apply feature gate filtering - keep this last
 	featureGates := []string{}
-	matches := featureGateRegex.FindAllStringSubmatch(name, -1)
+	matches = featureGateRegex.FindAllStringSubmatch(name, -1)
 	for _, match := range matches {
 		if len(match) < 2 {
 			panic(fmt.Errorf("regexp match %v is invalid: len(match) < 2 for %v", match, name))
