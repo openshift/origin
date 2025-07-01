@@ -284,7 +284,22 @@ func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, error) {
 			continue
 		}
 		date := fields[0]
-		bootTime, err := time.Parse("2006-01-02T15:04:05-0700", date)
+
+		var bootTime time.Time
+		var err error
+
+		layouts := []string{
+			"2006-01-02T15:04:05-0700",
+			"2006-01-02T15:04:05-07:00", // for cs10, rhel10
+		}
+
+		for _, layout := range layouts {
+			bootTime, err = time.Parse(layout, date)
+			if err == nil {
+				break
+			}
+		}
+
 		if err != nil {
 			return nil, err
 		}
