@@ -11,6 +11,7 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
@@ -121,30 +122,33 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 	g.It("should be created on arbiter nodes when arbiter node is selected", func() {
 		g.By("Waiting for Arbiter node to become Ready")
 		var arbiterNodeName string
-		timeout := time.Now().Add(2 * time.Minute) // Maximum wait time of 2 minutes
-
-		for time.Now().Before(timeout) {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 300*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 				LabelSelector: labelNodeRoleArbiter,
 			})
-			o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter nodes without error")
-
-			if len(arbiterNodes.Items) != 1 {
-				time.Sleep(5 * time.Second)
-				continue
+			if kapierror.IsTimeout(err) {
+				return false, nil
+			} else if err != nil {
+				return false, err
 			}
-			if isNodeReady(arbiterNodes.Items[0]) {
-				arbiterNodeName = arbiterNodes.Items[0].Name
+			if len(arbiterNodes.Items) == 0 {
+				return false, nil
+			}
+			// We only need the name of one arbiter node
+			for _, node := range arbiterNodes.Items {
+				arbiterNodeName = node.Name
 				break
 			}
+			return true, err
+		})
 
-			time.Sleep(5 * time.Second)
-		}
-
-		o.Expect(arbiterNodeName).NotTo(o.BeEmpty(), "Timed out waiting for the Arbiter node to become Ready")
+		o.Expect(err).To(o.BeNil(), "Error getting arbiter node list")
+		o.Expect(arbiterNodeName).NotTo(o.BeEmpty(), "Arbiter node name should not be empty")
 
 		g.By("Creating an Arbiter deployment (on Arbiter node)")
-		_, err := createArbiterDeployment(oc, arbiterNodeName)
+		_, err = createArbiterDeployment(oc, arbiterNodeName)
 		o.Expect(err).To(o.BeNil(), "Expected Arbiter busybox deployment creation to succeed")
 
 		g.By("Validating Arbiter deployment")
@@ -294,18 +298,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 func createNormalDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 	var replicas int32 = 1
 
-	container := corev1.Container{
-		Name:    "busybox",
-		Image:   "busybox",
-		Command: []string{"sleep", "3600"},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("20m"),
-				corev1.ResourceMemory: resource.MustParse("50Mi"),
-			},
-		},
-	}
-
+	container := containerSpec()
 	deployment := &appv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "apps/v1",
@@ -339,17 +332,7 @@ func createNormalDeployment(oc *exutil.CLI) (*appv1.Deployment, error) {
 func createArbiterDeployment(oc *exutil.CLI, arbiterNodeName string) (*appv1.Deployment, error) {
 	var replicas int32 = 1
 
-	container := corev1.Container{
-		Name:    "busybox",
-		Image:   "busybox",
-		Command: []string{"sleep", "3600"},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("20m"),
-				corev1.ResourceMemory: resource.MustParse("50Mi"),
-			},
-		},
-	}
+	container := containerSpec()
 
 	deployment := &appv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -382,10 +365,10 @@ func createArbiterDeployment(oc *exutil.CLI, arbiterNodeName string) (*appv1.Dep
 		Create(context.Background(), deployment, metav1.CreateOptions{})
 }
 
-func createDaemonSetDeployment(oc *exutil.CLI) (*appv1.DaemonSet, error) {
-	container := corev1.Container{
+func containerSpec() corev1.Container {
+	return corev1.Container{
 		Name:    "busybox",
-		Image:   "busybox",
+		Image:   image.ShellImage(),
 		Command: []string{"sleep", "3600"},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -394,6 +377,10 @@ func createDaemonSetDeployment(oc *exutil.CLI) (*appv1.DaemonSet, error) {
 			},
 		},
 	}
+}
+
+func createDaemonSetDeployment(oc *exutil.CLI) (*appv1.DaemonSet, error) {
+	container := containerSpec()
 
 	daemonSet := &appv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
@@ -422,15 +409,6 @@ func createDaemonSetDeployment(oc *exutil.CLI) (*appv1.DaemonSet, error) {
 	return oc.KubeClient().AppsV1().
 		DaemonSets(oc.Namespace()).
 		Create(context.Background(), daemonSet, metav1.CreateOptions{})
-}
-
-func isNodeReady(node corev1.Node) bool {
-	for _, condition := range node.Status.Conditions {
-		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
 }
 
 func isPodRunning(pod corev1.Pod) bool {
