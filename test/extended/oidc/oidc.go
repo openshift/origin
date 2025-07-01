@@ -3,6 +3,7 @@ package oidc
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,10 +22,11 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/pod-security-admission/api"
 	"k8s.io/utils/ptr"
@@ -35,56 +37,81 @@ type kubeObject interface {
 	metav1.Object
 }
 
-var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", g.Ordered, func() {
+var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("external-oidc")
 
-	g.Context("Configuring an external OIDC provider", func() {
+	g.Describe("Configuring an external OIDC provider", func() {
 		oc.KubeFramework().NamespacePodSecurityLevel = api.LevelPrivileged
-		var resources []kubeObject
 		var originalAuth *configv1.Authentication
-		var keycloakURL string
+		var cleanups []removalFunc
+		var keycloakCli *keycloakClient
+		var username string
+		var password string
+		var group string
 
-		g.BeforeAll(func() {
+		// TODO: need to do some keycloak client configuration
+		// prior to each test case.
+		// Specifically:
+		// - Update the admin-cli client to include groups and aud claim in the JWT
+		g.BeforeEach(func() {
 			var err error
 			ctx := context.TODO()
-			resources, err = deployKeycloak(ctx, oc)
+			cleanups, err = deployKeycloak(ctx, oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
 			kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
-			keycloakURL = kcURL
+
+			keycloakCli, err = keycloakClientFor(kcURL)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
+
+			// First authenticate as the admin keyloak user so we can add new groups and users
+			err = keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
+
+			o.Expect(keycloakCli.ConfigureClient("admin-cli")).NotTo(o.HaveOccurred(), "should not encounter an error configuring the admin-cli client")
+
+			username = rand.String(8)
+			password = rand.String(8)
+			group = fmt.Sprintf("ocp-test-%s-group", rand.String(8))
+
+			o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
+			o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
 
 			original, _, err := configureOIDCAuthentication(ctx, oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 			originalAuth = original
 		})
 
-		g.AfterAll(func() {
+		g.AfterEach(func() {
 			ctx := context.TODO()
-			err := removeResources(ctx, oc, resources...)
+			err := removeResources(ctx, cleanups...)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
 
-			_, err = oc.AdminConfigClient().ConfigV1().Authentications().Update(ctx, originalAuth, metav1.UpdateOptions{})
+			fmt.Println("resetting authentication to %v", originalAuth)
+			err = resetAuthentication(ctx, oc, originalAuth)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 		})
 
 		g.It("should configure kube-apiserver", func() {
-			kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(context.TODO(), "cluster", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
+			o.Eventually(func(gomega o.Gomega) {
+				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(context.TODO(), "cluster", metav1.GetOptions{})
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
 
-			observedConfig := map[string]interface{}{}
-			err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, observedConfig)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
+				observedConfig := map[string]interface{}{}
+				err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, &observedConfig)
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
 
-			apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
+				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
 
-			o.Expect(apiServerArgs["authentication-token-webhook-config-file"]).To(o.BeNil(), "authentication-token-webhook-config-file argument should not be specified when OIDC authentication is configured")
-			o.Expect(apiServerArgs["authentication-token-webhook-version"]).To(o.BeNil(), "authentication-token-webhook-version argument should not be specified when OIDC authentication is configured")
-			o.Expect(apiServerArgs["authConfig"]).To(o.BeNil(), "authConfig argument should not be specified when OIDC authentication is configured")
+				gomega.Expect(apiServerArgs["authentication-token-webhook-config-file"]).To(o.BeNil(), "authentication-token-webhook-config-file argument should not be specified when OIDC authentication is configured")
+				gomega.Expect(apiServerArgs["authentication-token-webhook-version"]).To(o.BeNil(), "authentication-token-webhook-version argument should not be specified when OIDC authentication is configured")
+				gomega.Expect(apiServerArgs["authConfig"]).To(o.BeNil(), "authConfig argument should not be specified when OIDC authentication is configured")
 
-			o.Expect(apiServerArgs["authentication-config"]).NotTo(o.BeNil(), "authentication-config argument should be specified when OIDC authentication is configured")
-			o.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
+				gomega.Expect(apiServerArgs["authentication-config"]).NotTo(o.BeNil(), "authentication-config argument should be specified when OIDC authentication is configured")
+				gomega.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
+			}).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 
 		g.It("should remove the OpenShift OAuth stack", func() {
@@ -92,39 +119,33 @@ var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", g.Or
 		})
 
 		g.It("should not accept tokens provided by the OAuth server", func() {
-			g.Fail("not implemented")
+			o.Eventually(func(gomega o.Gomega) {
+				_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
+				gomega.Expect(err).ShouldNot(o.BeNil(), "should not be able to list Pods using OAuth client token")
+				gomega.Expect(apierrors.IsForbidden(err)).To(o.BeTrue(), "should receive a fobidden error when trying to list Pods using OAuth client token")
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 
 		g.It("should accept tokens issued by the external IdP", func() {
-			// TODO: variables for test user data
-			kc, err := keycloakClientFor(keycloakURL)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
-
-			// First authenticate as the admin keyloak user so we can add new groups and users
-			err = kc.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
-
-			o.Expect(kc.CreateGroup("ocp-test-accepted-token-group")).To(o.Succeed(), "should be able to create a new keycloak group")
-			o.Expect(kc.CreateUser("homersimpson", "donuts", "ocp-test-accepted-token-group")).To(o.Succeed(), "should be able to create a new keycloak user")
-
-			err = kc.Authenticate("admin-cli", "homersimpson", "donuts")
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
-
-			tokenOC := oc.WithToken(kc.IdToken())
-
 			// should always be able to create an SSAR for yourself
-			_, err = tokenOC.KubeClient().AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), &authzv1.SelfSubjectAccessReview{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "can-homer-get-pods",
-				},
-				Spec: authzv1.SelfSubjectAccessReviewSpec{
-					ResourceAttributes: &authzv1.ResourceAttributes{
-						Resource: "pods",
-						Verb:     "get",
+			o.Eventually(func(gomega o.Gomega) {
+				// always re-authenticate to get a new token
+				err := keycloakCli.Authenticate("admin-cli", username, password)
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+				fmt.Println("keycloak access token", keycloakCli.AccessToken())
+				tokenOC := oc.WithToken(keycloakCli.AccessToken())
+
+				_, err = tokenOC.KubeClient().AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), &authzv1.SelfSubjectAccessReview{
+					Spec: authzv1.SelfSubjectAccessReviewSpec{
+						ResourceAttributes: &authzv1.ResourceAttributes{
+							Resource: "pods",
+							Verb:     "get",
+						},
 					},
-				},
-			}, metav1.CreateOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectAccessReview")
+				}, metav1.CreateOptions{})
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectAccessReview")
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 
 		g.It("should accept authentication via a kubeconfig (break-glass)", func() {
@@ -133,32 +154,23 @@ var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", g.Or
 		})
 
 		g.It("should map cluster identities correctly", func() {
-			// TODO: variables for test user data
-			kc, err := keycloakClientFor(keycloakURL)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
-
-			// First authenticate as the admin keyloak user so we can add new groups and users
-			err = kc.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
-
-			o.Expect(kc.CreateGroup("ocp-test-cluster-identity-group")).To(o.Succeed(), "should be able to create a new keycloak group")
-			o.Expect(kc.CreateUser("bartsimpson", "donuts", "ocp-test-cluster-identity-group")).To(o.Succeed(), "should be able to create a new keycloak user")
-
-			err = kc.Authenticate("admin-cli", "bartsimpson", "donuts")
+			err := keycloakCli.Authenticate("admin-cli", "bartsimpson", "donuts")
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
-			tokenOC := oc.WithToken(kc.IdToken())
+			tokenOC := oc.WithToken(keycloakCli.AccessToken())
 
 			// should always be able to create an SSAR for yourself
-			ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bart-info",
-				},
-			}, metav1.CreateOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+			o.Eventually(func(gomega o.Gomega) {
+				ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "bart-info",
+					},
+				}, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
 
-			o.Expect(ssr.Status.UserInfo.Username).To(o.Equal("bartsimpson"))
-			o.Expect(ssr.Status.UserInfo.Groups).To(o.Equal([]string{"ocp-test-cluster-identity-group"}))
+				o.Expect(ssr.Status.UserInfo.Username).To(o.Equal("bartsimpson"))
+				o.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement("ocp-test-cluster-identity-group"))
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 	})
 })
@@ -215,80 +227,61 @@ const (
 	keycloakKeyFile        = "tls.key"
 )
 
-func deployKeycloak(ctx context.Context, client *exutil.CLI) ([]kubeObject, error) {
-	resources := []kubeObject{}
+func deployKeycloak(ctx context.Context, client *exutil.CLI) ([]removalFunc, error) {
+	cleanups := []removalFunc{}
 
-	sa, err := createKeycloakServiceAccount(ctx, client)
+	cleanup, err := createKeycloakServiceAccount(ctx, client)
 	if err != nil {
-		return resources, fmt.Errorf("creating serviceaccount for keycloak: %w", err)
+		return cleanups, fmt.Errorf("creating serviceaccount for keycloak: %w", err)
 	}
-	resources = append(resources, sa)
+	cleanups = append(cleanups, cleanup)
 
-	rb, err := createKeycloakPrivilegedSSARoleBinding(ctx, sa.Name, client)
+	service, cleanup, err := createKeycloakService(ctx, client)
 	if err != nil {
-		return resources, fmt.Errorf("creating privileged ssa rolebinding for keycloak: %w", err)
+		return cleanups, fmt.Errorf("creating service for keycloak: %w", err)
 	}
-	resources = append(resources, rb)
+	cleanups = append(cleanups, cleanup)
 
-	service, err := createKeycloakService(ctx, client)
+	cleanup, err = createKeycloakDeployment(ctx, client)
 	if err != nil {
-		return resources, fmt.Errorf("creating service for keycloak: %w", err)
+		return cleanups, fmt.Errorf("creating deployment for keycloak: %w", err)
 	}
-	resources = append(resources, service)
+	cleanups = append(cleanups, cleanup)
 
-	dep, err := createKeycloakDeployment(ctx, client)
+	cleanup, err = createKeycloakRoute(ctx, service, client)
 	if err != nil {
-		return resources, fmt.Errorf("creating deployment for keycloak: %w", err)
+		return cleanups, fmt.Errorf("creating route for keycloak: %w", err)
 	}
-	resources = append(resources, dep)
+	cleanups = append(cleanups, cleanup)
 
-	route, err := createKeycloakRoute(ctx, service, client)
-	if err != nil {
-		return resources, fmt.Errorf("creating route for keycloak: %w", err)
+	cleanup, err = createKeycloakCAConfigMap(ctx, client)
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return cleanups, fmt.Errorf("creating CA configmap for keycloak: %w", err)
 	}
-	resources = append(resources, route)
+	cleanups = append(cleanups, cleanup)
 
-	caConfigMap, err := createKeycloakCAConfigMap(ctx, client)
-	if err != nil {
-		return resources, fmt.Errorf("creating CA configmap for keycloak: %w", err)
-	}
-	resources = append(resources, caConfigMap)
-
-	return resources, nil
+	return cleanups, waitForKeycloakAvailable(ctx, client)
 }
 
-func createKeycloakServiceAccount(ctx context.Context, client *exutil.CLI) (*corev1.ServiceAccount, error) {
+func createKeycloakServiceAccount(ctx context.Context, client *exutil.CLI) (removalFunc, error) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: keycloakResourceName,
 		},
 	}
+	sa.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
-	return client.KubeClient().CoreV1().ServiceAccounts(client.Namespace()).Create(ctx, sa, metav1.CreateOptions{})
-}
-
-func createKeycloakPrivilegedSSARoleBinding(ctx context.Context, saName string, client *exutil.CLI) (*rbacv1.RoleBinding, error) {
-	rb := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: keycloakResourceName,
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.SchemeGroupVersion.Group,
-			Kind:     "ClusterRole",
-			Name:     "system:openshift:scc:privileged",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind: "ServiceAccount",
-				Name: saName,
-			},
-		},
+	_, err := client.KubeClient().CoreV1().ServiceAccounts(client.Namespace()).Create(ctx, sa, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("creating serviceaccount: %w", err)
 	}
 
-	return client.KubeClient().RbacV1().RoleBindings(client.Namespace()).Create(ctx, rb, metav1.CreateOptions{})
+	return func(ctx context.Context) error {
+		return client.AdminKubeClient().CoreV1().ServiceAccounts(client.Namespace()).Delete(ctx, sa.Name, metav1.DeleteOptions{})
+	}, nil
 }
 
-func createKeycloakService(ctx context.Context, client *exutil.CLI) (*corev1.Service, error) {
+func createKeycloakService(ctx context.Context, client *exutil.CLI) (*corev1.Service, removalFunc, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: keycloakResourceName,
@@ -306,12 +299,20 @@ func createKeycloakService(ctx context.Context, client *exutil.CLI) (*corev1.Ser
 			},
 		},
 	}
+	service.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 
-	return client.KubeClient().CoreV1().Services(client.Namespace()).Create(ctx, service, metav1.CreateOptions{})
+	_, err := client.KubeClient().CoreV1().Services(client.Namespace()).Create(ctx, service, metav1.CreateOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("creating service: %w", err)
+	}
+
+	return service, func(ctx context.Context) error {
+		return client.AdminKubeClient().CoreV1().Services(client.Namespace()).Delete(ctx, service.Name, metav1.DeleteOptions{})
+	}, nil
 }
 
-func createKeycloakCAConfigMap(ctx context.Context, client *exutil.CLI) (*corev1.ConfigMap, error) {
-	defaultIngressCACM, err := client.KubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
+func createKeycloakCAConfigMap(ctx context.Context, client *exutil.CLI) (removalFunc, error) {
+	defaultIngressCACM, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("getting configmap openshift-config-managed/default-ingress-cert: %w", err)
 	}
@@ -323,14 +324,22 @@ func createKeycloakCAConfigMap(ctx context.Context, client *exutil.CLI) (*corev1
 			Name: fmt.Sprintf("%s-ca", keycloakResourceName),
 		},
 		Data: map[string]string{
-			"ca.crt": data,
+			"ca-bundle.crt": data,
 		},
 	}
+	keycloakCACM.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 
-	return client.KubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx, keycloakCACM, metav1.CreateOptions{})
+	_, err = client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx, keycloakCACM, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("creating configmap: %w", err)
+	}
+
+	return func(ctx context.Context) error {
+		return client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(ctx, keycloakCACM.Name, metav1.DeleteOptions{})
+	}, nil
 }
 
-func createKeycloakDeployment(ctx context.Context, client *exutil.CLI) (*appsv1.Deployment, error) {
+func createKeycloakDeployment(ctx context.Context, client *exutil.CLI) (removalFunc, error) {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   keycloakResourceName,
@@ -353,8 +362,16 @@ func createKeycloakDeployment(ctx context.Context, client *exutil.CLI) (*appsv1.
 			},
 		},
 	}
+	deployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 
-	return client.KubeClient().AppsV1().Deployments(client.Namespace()).Create(ctx, deployment, metav1.CreateOptions{})
+	_, err := client.KubeClient().AppsV1().Deployments(client.Namespace()).Create(ctx, deployment, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("creating deployment: %w", err)
+	}
+
+	return func(ctx context.Context) error {
+		return client.AdminKubeClient().AppsV1().Deployments(client.Namespace()).Delete(ctx, deployment.Name, metav1.DeleteOptions{})
+	}, nil
 }
 
 func keycloakLabels() map[string]string {
@@ -463,14 +480,11 @@ func keycloakContainers() []corev1.Container {
 				"/opt/keycloak/bin/kc.sh",
 				"start-dev",
 			},
-			SecurityContext: &corev1.SecurityContext{
-				Privileged: ptr.To(true),
-			},
 		},
 	}
 }
 
-func createKeycloakRoute(ctx context.Context, service *corev1.Service, client *exutil.CLI) (*routev1.Route, error) {
+func createKeycloakRoute(ctx context.Context, service *corev1.Service, client *exutil.CLI) (removalFunc, error) {
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: keycloakResourceName,
@@ -489,24 +503,30 @@ func createKeycloakRoute(ctx context.Context, service *corev1.Service, client *e
 			},
 		},
 	}
+	route.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
-	return client.RouteClient().RouteV1().Routes(client.Namespace()).Create(ctx, route, metav1.CreateOptions{})
+	_, err := client.RouteClient().RouteV1().Routes(client.Namespace()).Create(ctx, route, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("creating route: %w", err)
+	}
+
+	return func(ctx context.Context) error {
+		return client.AdminRouteClient().RouteV1().Routes(client.Namespace()).Delete(ctx, route.Name, metav1.DeleteOptions{})
+	}, nil
 }
 
-func removeResources(ctx context.Context, client *exutil.CLI, resources ...kubeObject) error {
+type removalFunc func(context.Context) error
+
+func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 	errs := []error{}
-	for _, resource := range resources {
-		gvk := resource.GetObjectKind().GroupVersionKind()
-		mapping, err := client.RESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("getting GVR for GVK %v: %w", gvk, err))
+
+	for _, removal := range removalFuncs {
+		if removal == nil {
 			continue
 		}
-
-		err = client.DynamicClient().Resource(mapping.Resource).Namespace(resource.GetNamespace()).Delete(ctx, resource.GetName(), metav1.DeleteOptions{})
-		if err != nil {
-			errs = append(errs, fmt.Errorf("deleting resource %v/%s: %w", mapping.Resource, resource.GetName(), err))
-			continue
+		err := removal(ctx)
+		if err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, err)
 		}
 	}
 
@@ -529,7 +549,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI) (*conf
 
 	modified.Spec.Type = configv1.AuthenticationTypeOIDC
 	modified.Spec.WebhookTokenAuthenticator = nil
-	modified.Spec.OIDCProviders = append(modified.Spec.OIDCProviders, *oidcProvider)
+	modified.Spec.OIDCProviders = []configv1.OIDCProvider{*oidcProvider}
 
 	modified, err = client.AdminConfigClient().ConfigV1().Authentications().Update(ctx, modified, metav1.UpdateOptions{})
 	if err != nil {
@@ -556,7 +576,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI) (*configv1.OI
 	return &configv1.OIDCProvider{
 		Name: idpName,
 		Issuer: configv1.TokenIssuer{
-			URL: idpUrl,
+			URL: fmt.Sprintf("%s/realms/master", idpUrl),
 			CertificateAuthority: configv1.ConfigMapNameReference{
 				Name: caBundle,
 			},
@@ -598,7 +618,7 @@ func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName stri
 
 		return false, fmt.Errorf("no admitted ingress for route %q", route.Name)
 	})
-	return admittedURL, err
+	return fmt.Sprintf("https://%s", admittedURL), err
 }
 
 type keycloakClient struct {
@@ -615,9 +635,18 @@ func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing url: %w", err)
 	}
+
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+
 	return &keycloakClient{
-		realm:    "master",
-		client:   http.DefaultClient,
+		realm: "master",
+		client: &http.Client{
+			Transport: transport,
+		},
 		adminURL: baseURL.JoinPath("admin", "realms", "master"),
 	}, nil
 }
@@ -634,7 +663,7 @@ func (kc *keycloakClient) CreateGroup(name string) error {
 		return fmt.Errorf("marshalling group configuration %v", group)
 	}
 
-	resp, err := kc.DoRequest(http.MethodPost, groupURL.String(), runtime.ContentTypeJSON, bytes.NewBuffer(groupBytes))
+	resp, err := kc.DoRequest(http.MethodPost, groupURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(groupBytes))
 	if err != nil {
 		return fmt.Errorf("sending POST request to %q to create group %s", groupURL.String(), name)
 	}
@@ -657,10 +686,12 @@ func (kc *keycloakClient) CreateUser(username, password string, groups ...string
 		"enabled":       true,
 		"emailVerified": true,
 		"groups":        groups,
-		"credentials": map[string]interface{}{
-			"temporary": false,
-			"type":      "password",
-			"value":     password,
+		"credentials": []map[string]interface{}{
+			{
+				"temporary": false,
+				"type":      "password",
+				"value":     password,
+			},
 		},
 	}
 
@@ -669,7 +700,7 @@ func (kc *keycloakClient) CreateUser(username, password string, groups ...string
 		return fmt.Errorf("marshalling user configuration %v", user)
 	}
 
-	resp, err := kc.DoRequest(http.MethodPost, userURL.String(), runtime.ContentTypeJSON, bytes.NewBuffer(userBytes))
+	resp, err := kc.DoRequest(http.MethodPost, userURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(userBytes))
 	if err != nil {
 		return fmt.Errorf("sending POST request to %q to create user %v", userURL.String(), user)
 	}
@@ -695,7 +726,7 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	tokenURL := *kc.adminURL
 	tokenURL.Path = fmt.Sprintf("/realms/%s/protocol/openid-connect/token", kc.realm)
 
-	resp, err := kc.DoRequest(http.MethodPost, tokenURL.String(), "application/x-www-form-urlencoded", bytes.NewBuffer([]byte(data.Encode())))
+	resp, err := kc.DoRequest(http.MethodPost, tokenURL.String(), "application/x-www-form-urlencoded", false, bytes.NewBuffer([]byte(data.Encode())))
 	if err != nil {
 		return fmt.Errorf("authenticating as user %q: %w", username, err)
 	}
@@ -707,7 +738,7 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 		return fmt.Errorf("reading response data: %w", err)
 	}
 
-	err = json.Unmarshal(respBodyData, respBody)
+	err = json.Unmarshal(respBodyData, &respBody)
 	if err != nil {
 		return fmt.Errorf("unmarshalling response body %s: %w", respBodyData, err)
 	}
@@ -737,8 +768,8 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	return nil
 }
 
-func (kc *keycloakClient) DoRequest(method, url, contentType string, body io.Reader) (*http.Response, error) {
-	if len(kc.accessToken) == 0 {
+func (kc *keycloakClient) DoRequest(method, url, contentType string, authenticated bool, body io.Reader) (*http.Response, error) {
+	if len(kc.accessToken) == 0 && authenticated {
 		panic("must authenticate before calling keycloakClient.DoRequest")
 	}
 
@@ -754,6 +785,186 @@ func (kc *keycloakClient) DoRequest(method, url, contentType string, body io.Rea
 	return kc.client.Do(req)
 }
 
+func (kc *keycloakClient) AccessToken() string {
+	return kc.accessToken
+}
+
 func (kc *keycloakClient) IdToken() string {
 	return kc.idToken
+}
+
+func (kc *keycloakClient) ConfigureClient(clientId string) error {
+	client, err := kc.GetClientByClientID(clientId)
+	if err != nil {
+		return fmt.Errorf("getting client %q: %w", clientId, err)
+	}
+
+	id, ok := client["id"]
+	if !ok {
+		return fmt.Errorf("client %q doesn't have 'id'", clientId)
+	}
+
+	idStr, ok := id.(string)
+	if !ok {
+		return fmt.Errorf("client %q 'id' is not of type string: %T", clientId, id)
+	}
+
+	if err := kc.CreateClientGroupMapper(idStr, "test-groups-mapper", "groups"); err != nil {
+		return fmt.Errorf("creating group mapper for client %q: %w", clientId, err)
+	}
+
+	if err := kc.CreateClientAudienceMapper(idStr, "test-aud-mapper"); err != nil {
+		return fmt.Errorf("creating audience mapper for client %q: %w", clientId, err)
+	}
+
+	return nil
+}
+
+func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) error {
+	mappersURL := *kc.adminURL
+	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
+
+	mapper := map[string]interface{}{
+		"name":           name,
+		"protocol":       "openid-connect",
+		"protocolMapper": "oidc-group-membership-mapper", // protocol-mapper type provided by Keycloak
+		"config": map[string]string{
+			"full.path":            "false",
+			"id.token.claim":       "true",
+			"access.token.claim":   "true",
+			"userinfo.token.claim": "true",
+			"claim.name":           claim,
+		},
+	}
+
+	mapperBytes, err := json.Marshal(mapper)
+	if err != nil {
+		return err
+	}
+
+	// Keycloak does not return the object on successful create so there's no need to attempt to retrieve it from the response
+	resp, err := kc.DoRequest(http.MethodPost, mappersURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(mapperBytes))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
+	}
+
+	return nil
+}
+
+func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) error {
+	mappersURL := *kc.adminURL
+	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
+
+	mapper := map[string]interface{}{
+		"name":           name,
+		"protocol":       "openid-connect",
+		"protocolMapper": "oidc-audience-mapper", // protocol-mapper type provided by Keycloak
+		"config": map[string]string{
+			"id.token.claim":            "false",
+			"access.token.claim":        "true",
+			"introspection.token.claim": "true",
+			"included.client.audience":  "admin-cli",
+			"included.custom.audience":  "",
+			"lightweight.claim":         "false",
+		},
+	}
+
+	mapperBytes, err := json.Marshal(mapper)
+	if err != nil {
+		return err
+	}
+
+	// Keycloak does not return the object on successful create so there's no need to attempt to retrieve it from the response
+	resp, err := kc.DoRequest(http.MethodPost, mappersURL.String(), runtime.ContentTypeJSON, true, bytes.NewBuffer(mapperBytes))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		respBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed creating mapper %q: %s %s", name, resp.Status, respBytes)
+	}
+
+	return nil
+}
+
+// ListClients retrieves all clients
+func (kc *keycloakClient) ListClients() ([]map[string]interface{}, error) {
+	clientsURL := *kc.adminURL
+	clientsURL.Path += "/clients"
+
+	resp, err := kc.DoRequest(http.MethodGet, clientsURL.String(), runtime.ContentTypeJSON, true, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("listing clients failed: %s: %s", resp.Status, respBytes)
+	}
+
+	clients := []map[string]interface{}{}
+	err = json.Unmarshal(respBytes, &clients)
+
+	return clients, err
+}
+
+func (kc *keycloakClient) GetClientByClientID(clientID string) (map[string]interface{}, error) {
+	clients, err := kc.ListClients()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range clients {
+		if c["clientId"].(string) == clientID {
+			return c, nil
+		}
+	}
+
+	return nil, fmt.Errorf("client with clientID %q not found", clientID)
+}
+
+func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) error {
+	current, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting the current authentications.config.openshift.io/cluster: %w", err)
+	}
+
+	current.Spec = original.Spec
+
+	fmt.Println("resetAuthentication", current)
+
+	_, err = client.AdminConfigClient().ConfigV1().Authentications().Update(ctx, current, metav1.UpdateOptions{})
+	return err
+}
+
+func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI) error {
+	timeoutCtx, _ := context.WithDeadline(ctx, time.Now().Add(2*time.Minute))
+	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
+		deploy, err := client.KubeClient().AppsV1().Deployments(client.Namespace()).Get(ctx, keycloakResourceName, metav1.GetOptions{})
+		if err != nil {
+			return false, nil
+		}
+
+		for _, condition := range deploy.Status.Conditions {
+			if condition.Type == appsv1.DeploymentAvailable && condition.Status == corev1.ConditionTrue {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+
+	return err
 }
