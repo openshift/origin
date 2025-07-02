@@ -86,7 +86,9 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 		}
 
 		alertName, exists := interval.Locator.Keys["alert"]
-		return exists && (alertName == "ExtremelyHighIndividualControlPlaneCPU" || alertName == "HighOverallControlPlaneCPU")
+		// HighOverallControlPlaneCPU (60% utilization) would be another contender here,
+		// but it picked up a lot, and if no individual host is over 90% it seems not worth worrying about.
+		return exists && alertName == "ExtremelyHighIndividualControlPlaneCPU"
 	})
 
 	// Filter for E2E test intervals

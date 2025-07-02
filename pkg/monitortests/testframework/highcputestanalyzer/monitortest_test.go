@@ -215,12 +215,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 					To:   now.Add(10 * time.Minute),
 				},
 			},
-			expected: []map[string]string{
-				{
-					"TestName": "test4",
-					"Success":  "1",
-				},
-			},
+			expected: []map[string]string{},
 		},
 		{
 			name: "e2e test touches alert end",
@@ -253,12 +248,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 					To:   now.Add(20 * time.Minute),
 				},
 			},
-			expected: []map[string]string{
-				{
-					"TestName": "test5",
-					"Success":  "0",
-				},
-			},
+			expected: []map[string]string{},
 		},
 		{
 			name: "e2e test with zero end time",
