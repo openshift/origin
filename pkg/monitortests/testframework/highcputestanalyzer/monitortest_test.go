@@ -443,6 +443,79 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "same test runs twice and overlaps high cpu alert each time",
+			intervals: monitorapi.Intervals{
+				{
+					Source: monitorapi.SourceAlert,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+							},
+						},
+					},
+					From: now,
+					To:   now.Add(15 * time.Minute),
+				},
+				{
+					Source: monitorapi.SourceAlert,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+							},
+						},
+					},
+					From: now.Add(30 * time.Minute),
+					To:   now.Add(45 * time.Minute),
+				},
+				{
+					Source: monitorapi.SourceE2ETest,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorE2ETestKey: "test11",
+							},
+						},
+						Message: monitorapi.Message{
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationStatus: "Failed",
+							},
+						},
+					},
+					From: now.Add(5 * time.Minute),
+					To:   now.Add(10 * time.Minute),
+				},
+				{
+					Source: monitorapi.SourceE2ETest,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorE2ETestKey: "test11",
+							},
+						},
+						Message: monitorapi.Message{
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationStatus: "Passed",
+							},
+						},
+					},
+					From: now.Add(35 * time.Minute),
+					To:   now.Add(40 * time.Minute),
+				},
+			},
+			expected: []map[string]string{
+				{
+					"TestName": "test11",
+					"Success":  "1",
+				},
+				{
+					"TestName": "test11",
+					"Success":  "0",
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
