@@ -1,0 +1,7 @@
+apiVersion: webhook.operators.coreos.io/v1
+kind: WebhookTest
+metadata:
+  namespace: webhook-operator
+  name: conversion-webhook-test
+spec:
+  valid: true
