@@ -78,6 +78,7 @@ func (*highCPUTestAnalyzer) Cleanup(ctx context.Context) error {
 }
 
 // findE2EIntervalsOverlappingHighCPU finds E2E test intervals that overlap with high CPU alert intervals
+// Each test is only reported once, even if it overlaps with multiple alerts, unless the test executed twice. (retry)
 func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[string]string {
 	// Filter for alert intervals of interest
 	alertIntervals := intervals.Filter(func(interval monitorapi.Interval) bool {
@@ -97,32 +98,45 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 	})
 
 	// Find E2E tests that overlap with alert intervals
+	// Use a map to track processed tests to ensure each test is only reported once
+	processedTests := make(map[string]bool)
 	rows := []map[string]string{}
 
 	var highCPUSuccessfulTests, highCPUFailedTests int
-	for _, alertInterval := range alertIntervals {
-		for _, testInterval := range e2eTestIntervals {
-			// Check if test interval overlaps with alert interval
+
+	// Iterate through E2E tests first to ensure each test is only processed once
+	for _, testInterval := range e2eTestIntervals {
+		testName, exists := testInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
+		if !exists {
+			continue
+		}
+
+		// Check if this test overlaps with any alert interval
+		overlapsWithAlert := false
+		for _, alertInterval := range alertIntervals {
 			if utility.IntervalsOverlap(alertInterval, testInterval) {
-				testName, exists := testInterval.Locator.Keys[monitorapi.LocatorE2ETestKey]
-				if !exists {
-					continue
-				}
-
-				// Determine success value based on status annotation
-				success := "0"
-				if status, exists := testInterval.Message.Annotations[monitorapi.AnnotationStatus]; exists && status == "Passed" {
-					success = "1"
-					highCPUSuccessfulTests++
-				} else {
-					highCPUFailedTests++
-				}
-
-				rows = append(rows, map[string]string{
-					"TestName": testName,
-					"Success":  success,
-				})
+				overlapsWithAlert = true
+				break
 			}
+		}
+
+		if overlapsWithAlert {
+			// Mark this test as processed
+			processedTests[testName] = true
+
+			// Determine success value based on status annotation
+			success := "0"
+			if status, exists := testInterval.Message.Annotations[monitorapi.AnnotationStatus]; exists && status == "Passed" {
+				success = "1"
+				highCPUSuccessfulTests++
+			} else {
+				highCPUFailedTests++
+			}
+
+			rows = append(rows, map[string]string{
+				"TestName": testName,
+				"Success":  success,
+			})
 		}
 	}
 
