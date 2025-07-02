@@ -110,7 +110,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "HighOverallControlPlaneCPU",
+								"alert": "ExtremelyHighIndividualControlPlaneCPU",
 							},
 						},
 					},
@@ -298,7 +298,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "HighOverallControlPlaneCPU",
+								"alert": "ExtremelyHighIndividualControlPlaneCPU",
 							},
 						},
 					},
@@ -388,6 +388,58 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 				{
 					"TestName": "test9",
 					"Success":  "0",
+				},
+			},
+		},
+		{
+			name: "test overlaps with multiple alerts - should only be reported once",
+			intervals: monitorapi.Intervals{
+				{
+					Source: monitorapi.SourceAlert,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+							},
+						},
+					},
+					From: now,
+					To:   now.Add(15 * time.Minute),
+				},
+				{
+					Source: monitorapi.SourceAlert,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+							},
+						},
+					},
+					From: now.Add(10 * time.Minute),
+					To:   now.Add(25 * time.Minute),
+				},
+				{
+					Source: monitorapi.SourceE2ETest,
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorE2ETestKey: "test10",
+							},
+						},
+						Message: monitorapi.Message{
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationStatus: "Passed",
+							},
+						},
+					},
+					From: now.Add(5 * time.Minute),
+					To:   now.Add(20 * time.Minute),
+				},
+			},
+			expected: []map[string]string{
+				{
+					"TestName": "test10",
+					"Success":  "1",
 				},
 			},
 		},
