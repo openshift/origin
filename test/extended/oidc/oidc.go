@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -40,57 +41,60 @@ type kubeObject interface {
 var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("external-oidc")
+	oc.KubeFramework().NamespacePodSecurityLevel = api.LevelPrivileged
+
+	var cleanups []removalFunc
+	var keycloakCli *keycloakClient
+	var username string
+	var password string
+	var group string
+
+	g.BeforeEach(func() {
+		var err error
+		ctx := context.TODO()
+		cleanups, err = deployKeycloak(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
+
+		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
+
+		keycloakCli, err = keycloakClientFor(kcURL)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
+
+		// First authenticate as the admin keyloak user so we can add new groups and users
+		err = keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
+
+		o.Expect(keycloakCli.ConfigureClient("admin-cli")).NotTo(o.HaveOccurred(), "should not encounter an error configuring the admin-cli client")
+
+		username = rand.String(8)
+		password = rand.String(8)
+		group = fmt.Sprintf("ocp-test-%s-group", rand.String(8))
+
+		o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
+		o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
+	})
+
+	g.AfterEach(func() {
+		ctx := context.TODO()
+		err := removeResources(ctx, cleanups...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
+	})
 
 	g.Describe("Configuring an external OIDC provider", func() {
-		oc.KubeFramework().NamespacePodSecurityLevel = api.LevelPrivileged
 		var originalAuth *configv1.Authentication
-		var cleanups []removalFunc
-		var keycloakCli *keycloakClient
-		var username string
-		var password string
-		var group string
 
-		// TODO: need to do some keycloak client configuration
-		// prior to each test case.
-		// Specifically:
-		// - Update the admin-cli client to include groups and aud claim in the JWT
 		g.BeforeEach(func() {
-			var err error
 			ctx := context.TODO()
-			cleanups, err = deployKeycloak(ctx, oc)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
-			kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
-
-			keycloakCli, err = keycloakClientFor(kcURL)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
-
-			// First authenticate as the admin keyloak user so we can add new groups and users
-			err = keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
-
-			o.Expect(keycloakCli.ConfigureClient("admin-cli")).NotTo(o.HaveOccurred(), "should not encounter an error configuring the admin-cli client")
-
-			username = rand.String(8)
-			password = rand.String(8)
-			group = fmt.Sprintf("ocp-test-%s-group", rand.String(8))
-
-			o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
-			o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
-
-			original, _, err := configureOIDCAuthentication(ctx, oc)
+			original, _, err := configureOIDCAuthentication(ctx, oc, nil)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 			originalAuth = original
 		})
 
 		g.AfterEach(func() {
 			ctx := context.TODO()
-			err := removeResources(ctx, cleanups...)
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
-
-			fmt.Println("resetting authentication to %v", originalAuth)
-			err = resetAuthentication(ctx, oc, originalAuth)
+			err := resetAuthentication(ctx, oc, originalAuth)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 		})
 
@@ -116,13 +120,18 @@ var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func
 
 		g.It("should remove the OpenShift OAuth stack", func() {
 			g.Skip("functionality not yet implemented")
+			o.Eventually(func(gomega o.Gomega) {
+				_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(context.TODO(), "oauth-openshift", metav1.GetOptions{})
+				gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
+				gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "integrated oauth stack should not be present when OIDC authentication is configured")
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 
 		g.It("should not accept tokens provided by the OAuth server", func() {
 			o.Eventually(func(gomega o.Gomega) {
 				_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
 				gomega.Expect(err).ShouldNot(o.BeNil(), "should not be able to list Pods using OAuth client token")
-				gomega.Expect(apierrors.IsForbidden(err)).To(o.BeTrue(), "should receive a fobidden error when trying to list Pods using OAuth client token")
+				gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error when trying to list Pods using OAuth client token")
 			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 
@@ -133,7 +142,6 @@ var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func
 				err := keycloakCli.Authenticate("admin-cli", username, password)
 				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
-				fmt.Println("keycloak access token", keycloakCli.AccessToken())
 				tokenOC := oc.WithToken(keycloakCli.AccessToken())
 
 				_, err = tokenOC.KubeClient().AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), &authzv1.SelfSubjectAccessReview{
@@ -148,67 +156,275 @@ var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC]", func
 			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 
-		g.It("should accept authentication via a kubeconfig (break-glass)", func() {
-			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
+		g.It("should accept authentication via a certificate-based kubeconfig (break-glass)", func() {
+			_, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "should be able to list pods using certificate-based authentication")
 		})
 
 		g.It("should map cluster identities correctly", func() {
-			err := keycloakCli.Authenticate("admin-cli", "bartsimpson", "donuts")
-			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
-
-			tokenOC := oc.WithToken(keycloakCli.AccessToken())
-
-			// should always be able to create an SSAR for yourself
+			// should always be able to create an SSR for yourself
 			o.Eventually(func(gomega o.Gomega) {
+				err := keycloakCli.Authenticate("admin-cli", username, password)
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+				tokenOC := oc.WithToken(keycloakCli.AccessToken())
 				ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "bart-info",
+						Name: fmt.Sprintf("%s-info", username),
 					},
 				}, metav1.CreateOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
 
-				o.Expect(ssr.Status.UserInfo.Username).To(o.Equal("bartsimpson"))
-				o.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement("ocp-test-cluster-identity-group"))
+				gomega.Expect(ssr.Status.UserInfo.Username).To(o.Equal(fmt.Sprintf("%s@payload.openshift.io", username)))
+				gomega.Expect(ssr.Status.UserInfo.Groups).To(o.ContainElement(group))
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+		})
+	})
+
+	g.Describe("Switching back from OIDC", func() {
+		g.BeforeEach(func() {
+			ctx := context.TODO()
+			original, _, err := configureOIDCAuthentication(ctx, oc, nil)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+			// Wait until we can authenticate using the configured external IdP
+			o.Eventually(func(gomega o.Gomega) {
+				// always re-authenticate to get a new token
+				err := keycloakCli.Authenticate("admin-cli", username, password)
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+				copiedOC := *oc
+				tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+
+				_, err = tokenOC.KubeClient().AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), &authzv1.SelfSubjectAccessReview{
+					Spec: authzv1.SelfSubjectAccessReviewSpec{
+						ResourceAttributes: &authzv1.ResourceAttributes{
+							Resource: "pods",
+							Verb:     "get",
+						},
+					},
+				}, metav1.CreateOptions{})
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectAccessReview")
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+
+			err = resetAuthentication(ctx, oc, original)
+			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+		})
+
+		g.It("should rollout configuration on the kube-apiserver successfully", func() {
+			o.Eventually(func(gomega o.Gomega) {
+				kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(context.TODO(), "cluster", metav1.GetOptions{})
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting the kubeapiservers.operator.openshift.io/cluster")
+
+				observedConfig := map[string]interface{}{}
+				err = json.Unmarshal(kas.Spec.ObservedConfig.Raw, &observedConfig)
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error unmarshalling the KAS observed configuration")
+
+				apiServerArgs := observedConfig["apiServerArguments"].(map[string]interface{})
+
+				gomega.Expect(apiServerArgs["authentication-token-webhook-config-file"]).NotTo(o.BeNil(), "authentication-token-webhook-config-file argument should be specified when OIDC authentication is not configured")
+				gomega.Expect(apiServerArgs["authentication-token-webhook-version"]).NotTo(o.BeNil(), "authentication-token-webhook-version argument should be specified when OIDC authentication is not configured")
+				gomega.Expect(apiServerArgs["authConfig"]).NotTo(o.BeNil(), "authConfig argument should be specified when OIDC authentication is not configured")
+
+				gomega.Expect(apiServerArgs["authentication-config"]).To(o.BeNil(), "authentication-config argument should not be specified when OIDC authentication is not configured")
+			}).WithTimeout(5 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+		})
+
+		g.It("should rollout the OpenShift OAuth stack", func() {
+			o.Eventually(func(gomega o.Gomega) {
+				_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(context.TODO(), "oauth-openshift", metav1.GetOptions{})
+				gomega.Expect(err).Should(o.BeNil(), "should be able to get the integrated oauth stack")
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+		})
+
+		g.It("should not accept tokens provided by an external IdP", func() {
+			o.Eventually(func(gomega o.Gomega) {
+				// always re-authenticate to get a new token
+				err := keycloakCli.Authenticate("admin-cli", username, password)
+				gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+				copiedOC := *oc
+				tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+
+				_, err = tokenOC.KubeClient().AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), &authzv1.SelfSubjectAccessReview{
+					Spec: authzv1.SelfSubjectAccessReviewSpec{
+						ResourceAttributes: &authzv1.ResourceAttributes{
+							Resource: "pods",
+							Verb:     "get",
+						},
+					},
+				}, metav1.CreateOptions{})
+				gomega.Expect(err).To(o.HaveOccurred(), "should not be able to create a SelfSubjectAccessReview")
+				gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "external IdP token should be unauthorized")
+			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+		})
+
+		g.It("should accept tokens provided by the OpenShift OAuth server", func() {
+			o.Eventually(func(gomega o.Gomega) {
+				_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
+				gomega.Expect(err).Should(o.BeNil(), "should be able to list Pods using OAuth client token")
 			}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 		})
 	})
 })
 
-var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth", g.Ordered, func() {
+var _ = g.Describe("[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings]", func() {
 	defer g.GinkgoRecover()
-	// oc := exutil.NewCLI("oidc")
+	oc := exutil.NewCLI("external-oidc-with-uid-and-extra")
+	oc.KubeFramework().NamespacePodSecurityLevel = api.LevelPrivileged
 
-	g.BeforeAll(func() {
-		// TODO: Deploy Keycloak
-		// TODO: Configure OIDC authentication type
-		// TODO: Wait for sucessful rollout
-		// TODO: Revert authentication configuration to previous configuration
+	var cleanups []removalFunc
+	var keycloakCli *keycloakClient
+	var username string
+	var password string
+	var group string
+
+	g.BeforeEach(func() {
+		var err error
+		ctx := context.TODO()
+		cleanups, err = deployKeycloak(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
+
+		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
+
+		keycloakCli, err = keycloakClientFor(kcURL)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
+
+		// First authenticate as the admin keyloak user so we can add new groups and users
+		err = keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
+
+		o.Expect(keycloakCli.ConfigureClient("admin-cli")).NotTo(o.HaveOccurred(), "should not encounter an error configuring the admin-cli client")
+
+		username = rand.String(8)
+		password = rand.String(8)
+		group = fmt.Sprintf("ocp-test-%s-group", rand.String(8))
+
+		o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
+		o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
 	})
 
-	g.AfterAll(func() {
-		// TODO: Tear down Keycloak if exists
-		// TODO: Revert authentication configuration to previous configuration
+	g.AfterEach(func() {
+		ctx := context.TODO()
+		err := removeResources(ctx, cleanups...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
 	})
 
-	g.It("should rollout configuration on the kube-apiserver successfully", func() {
-		g.Fail("not implemented")
-	})
+	g.Describe("Configuring an external OIDC provider", func() {
+		g.Describe("Without specified UID or Extra claim mappings", func() {
+			var originalAuth *configv1.Authentication
+			g.BeforeEach(func() {
+				ctx := context.TODO()
 
-	g.It("should rollout the OpenShift OAuth stack", func() {
-		g.Fail("not implemented")
-	})
+				original, _, err := configureOIDCAuthentication(ctx, oc, nil)
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+				originalAuth = original
+			})
 
-	g.It("should not accept tokens provided by an external IdP", func() {
-		g.Fail("not implemented")
-	})
+			g.AfterEach(func() {
+				ctx := context.TODO()
+				err := resetAuthentication(ctx, oc, originalAuth)
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+			})
 
-	g.It("should accept tokens provided by the OpenShift OAuth server", func() {
-		g.Fail("not implemented")
+			g.It("should default UID to the 'sub' claim in the access token from the IdP", func() {
+				g.Fail("not implemented")
+			})
+		})
+
+		g.Describe("With valid specified UID or Extra claim mappings", func() {
+			var originalAuth *configv1.Authentication
+			g.BeforeEach(func() {
+				ctx := context.TODO()
+
+				original, _, err := configureOIDCAuthentication(ctx, oc, func(o *configv1.OIDCProvider) {
+					o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
+						Expression: "claims.preferred_username.upperAscii()",
+					}
+
+					o.ClaimMappings.Extra = []configv1.ExtraMapping{
+						{
+							Key:             "payload/test",
+							ValueExpression: "claims.email + 'extra'",
+						},
+					}
+				})
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+				originalAuth = original
+			})
+
+			g.AfterEach(func() {
+				ctx := context.TODO()
+				err := resetAuthentication(ctx, oc, originalAuth)
+				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+			})
+
+			g.It("should map the UID of the cluster identity correctly", func() {
+				// should always be able to create an SSR for yourself
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", username, password)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+					tokenOC := oc.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+
+					gomega.Expect(ssr.Status.UserInfo.UID).To(o.Equal(strings.ToUpper(username)))
+				}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+			})
+
+			g.It("should map the Extra of the cluster identity correctly", func() {
+				// should always be able to create an SSR for yourself
+				o.Eventually(func(gomega o.Gomega) {
+					err := keycloakCli.Authenticate("admin-cli", username, password)
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
+
+					tokenOC := oc.WithToken(keycloakCli.AccessToken())
+					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: fmt.Sprintf("%s-info", username),
+						},
+					}, metav1.CreateOptions{})
+					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
+
+					gomega.Expect(ssr.Status.UserInfo.Extra).To(o.HaveKeyWithValue("payload/test", []string{fmt.Sprintf("%s@payload.openshift.ioextra", username)}))
+				}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
+			})
+		})
+
+		g.Describe("With invalid specified UID or Extra claim mappings", func() {
+			ctx := context.TODO()
+
+			g.It("should reject admission when UID claim expression is not compilable CEL", func() {
+				g.Skip("functionality not yet implemented")
+				_, _, err := configureOIDCAuthentication(ctx, oc, func(o *configv1.OIDCProvider) {
+					o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
+						Expression: "!@&*#^",
+					}
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
+			})
+
+			g.It("should reject admission when Extra claim expression is not compilable CEL", func() {
+				g.Skip("functionality not yet implemented")
+				_, _, err := configureOIDCAuthentication(ctx, oc, func(o *configv1.OIDCProvider) {
+					o.ClaimMappings.Extra = []configv1.ExtraMapping{
+						{
+							Key:             "payload/test",
+							ValueExpression: "!@*&#^!@(*&^",
+						},
+					}
+				})
+				o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
+			})
+		})
 	})
 })
-
-// TODO: Add test skeleton for the ExternalOIDCWithUIDAndExtraClaimMappings feature gate
 
 const (
 	keycloakResourceName          = "keycloak"
@@ -271,7 +487,7 @@ func createKeycloakServiceAccount(ctx context.Context, client *exutil.CLI) (remo
 	}
 	sa.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
-	_, err := client.KubeClient().CoreV1().ServiceAccounts(client.Namespace()).Create(ctx, sa, metav1.CreateOptions{})
+	_, err := client.AdminKubeClient().CoreV1().ServiceAccounts(client.Namespace()).Create(ctx, sa, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("creating serviceaccount: %w", err)
 	}
@@ -301,7 +517,7 @@ func createKeycloakService(ctx context.Context, client *exutil.CLI) (*corev1.Ser
 	}
 	service.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 
-	_, err := client.KubeClient().CoreV1().Services(client.Namespace()).Create(ctx, service, metav1.CreateOptions{})
+	_, err := client.AdminKubeClient().CoreV1().Services(client.Namespace()).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("creating service: %w", err)
 	}
@@ -364,7 +580,7 @@ func createKeycloakDeployment(ctx context.Context, client *exutil.CLI) (removalF
 	}
 	deployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 
-	_, err := client.KubeClient().AppsV1().Deployments(client.Namespace()).Create(ctx, deployment, metav1.CreateOptions{})
+	_, err := client.AdminKubeClient().AppsV1().Deployments(client.Namespace()).Create(ctx, deployment, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("creating deployment: %w", err)
 	}
@@ -533,7 +749,7 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 	return errors.Join(errs...)
 }
 
-func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI) (*configv1.Authentication, *configv1.Authentication, error) {
+func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
 	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
@@ -545,6 +761,10 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI) (*conf
 	oidcProvider, err := generateOIDCProvider(ctx, client)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating OIDC provider: %w", err)
+	}
+
+	if modifier != nil {
+		modifier(oidcProvider)
 	}
 
 	modified.Spec.Type = configv1.AuthenticationTypeOIDC
@@ -936,6 +1156,10 @@ func (kc *keycloakClient) GetClientByClientID(clientID string) (map[string]inter
 }
 
 func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) error {
+	if original == nil {
+		return nil
+	}
+
 	current, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("getting the current authentications.config.openshift.io/cluster: %w", err)
@@ -943,14 +1167,13 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 
 	current.Spec = original.Spec
 
-	fmt.Println("resetAuthentication", current)
-
 	_, err = client.AdminConfigClient().ConfigV1().Authentications().Update(ctx, current, metav1.UpdateOptions{})
 	return err
 }
 
 func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI) error {
-	timeoutCtx, _ := context.WithDeadline(ctx, time.Now().Add(2*time.Minute))
+	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(2*time.Minute))
+	defer cancel()
 	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
 		deploy, err := client.KubeClient().AppsV1().Deployments(client.Namespace()).Get(ctx, keycloakResourceName, metav1.GetOptions{})
 		if err != nil {

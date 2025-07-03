@@ -455,15 +455,17 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:UserAPI] users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should accept tokens provided by the OpenShift OAuth server": "",
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] Configuring an external OIDC provider With invalid specified UID or Extra claim mappings should reject admission when Extra claim expression is not compilable CEL": "",
 
-	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should not accept tokens provided by an external IdP": "",
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] Configuring an external OIDC provider With invalid specified UID or Extra claim mappings should reject admission when UID claim expression is not compilable CEL": "",
 
-	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should rollout configuration on the kube-apiserver successfully": "",
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] Configuring an external OIDC provider With valid specified UID or Extra claim mappings should map the Extra of the cluster identity correctly": "",
 
-	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Changing from OIDC authentication type to IntegratedOAuth should rollout the OpenShift OAuth stack": "",
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] Configuring an external OIDC provider With valid specified UID or Extra claim mappings should map the UID of the cluster identity correctly": "",
 
-	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should accept authentication via a kubeconfig (break-glass)": "",
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] Configuring an external OIDC provider Without specified UID or Extra claim mappings should default UID to the 'sub' claim in the access token from the IdP": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should accept authentication via a certificate-based kubeconfig (break-glass)": "",
 
 	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should accept tokens issued by the external IdP": "",
 
@@ -474,6 +476,14 @@ var Annotations = map[string]string{
 	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should not accept tokens provided by the OAuth server": "",
 
 	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Configuring an external OIDC provider should remove the OpenShift OAuth stack": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Switching back from OIDC should accept tokens provided by the OpenShift OAuth server": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Switching back from OIDC should not accept tokens provided by an external IdP": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Switching back from OIDC should rollout configuration on the kube-apiserver successfully": "",
+
+	"[sig-auth][Serial][Slow][OCPFeatureGate:ExternalOIDC] Switching back from OIDC should rollout the OpenShift OAuth stack": "",
 
 	"[sig-builds][Feature:Builds] Multi-stage image builds should succeed [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
