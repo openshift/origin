@@ -319,6 +319,7 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 			ret.testState = TestSucceeded
 		case extensions.ResultSkipped:
 			ret.testState = TestSkipped
+			ret.testOutputBytes = []byte(results[0].Output)
 		}
 		ret.start = extensions.Time(results[0].StartTime)
 		ret.end = extensions.Time(results[0].EndTime)
