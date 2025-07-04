@@ -2,17 +2,21 @@
 
 aliases:
   cluster-version-operator-test-case-approvers:
-  - LalatenduMohanty
+  - DavidHurta
+  - hongkailiu
+  - PratikMahajan
   - wking
   - petr-muller
   cluster-version-operator-test-case-reviewers:
-  - LalatenduMohanty
+  - DavidHurta
+  - hongkailiu
+  - PratikMahajan
   - wking
   - petr-muller
   team-leads:
   - JAORMX # Infrastructure Security and Compliance
   - JoelSpeed # Cluster Infrastructure
-  - LalatenduMohanty # Over the Air Updates
+  - PratikMahajan # Over the Air Updates
   - Miciah # Network Edge
   - coreydaley # Build + Jenkins
   - ashishkamra # Performance and Latency Sensitive Application Platform
