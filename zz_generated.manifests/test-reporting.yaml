@@ -1575,6 +1575,10 @@ spec:
         container''s primary UID belongs to some groups in the image when scheduled
         node supports SupplementalGroupsPolicy it should NOT add SupplementalGroups
         to them [LinuxOnly]'
+  - featureGate: UpgradeStatus
+    tests:
+    - testName: '[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status reports
+        correctly when the cluster is not updating'
   - featureGate: UserNamespacesSupport
     tests:
     - testName: '[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType]

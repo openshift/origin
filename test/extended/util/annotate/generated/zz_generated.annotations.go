@@ -991,6 +991,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh [apigroup:image.openshift.io]": "",
 
+	"[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status reports correctly when the cluster is not updating": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli][Slow] can use rsync to upload files to pods [apigroup:template.openshift.io] copy by strategy should copy files with the rsync strategy": "",
 
 	"[sig-cli][Slow] can use rsync to upload files to pods [apigroup:template.openshift.io] copy by strategy should copy files with the rsync-daemon strategy": "",
