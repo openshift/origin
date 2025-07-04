@@ -7,9 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"time"
-
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
@@ -80,32 +77,22 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 
 	if delete {
 		klog.Infof("Calling commitRemove for %s", filePath)
-		// ignore error, we've already reported and we're not doing anything else.
-		pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-
-			err := os.Remove(path.Join(s.path, filePath))
-			if err != nil {
-				// If the file doesn't exist it means we're deleting a file we haven't previously observed.
-				// That's probably a collection bug.
-				// Add it first before removing it.
-				if os.IsNotExist(err) {
-					klog.Info("Observed delete of file we haven't previously observed. Adding it first.")
-					s.handle(gvr, nil, obj, false)
-					s.handle(gvr, nil, obj, true)
-					return true, nil
-				}
+		err := os.Remove(path.Join(s.path, filePath))
+		if err != nil {
+			// If the file doesn't exist it means we're deleting a file we haven't previously observed.
+			// That's probably a collection bug.
+			// Add it first before removing it.
+			if os.IsNotExist(err) {
+				klog.Info("Observed delete of file we haven't previously observed. Adding it first.")
+				s.handle(gvr, nil, obj, false)
+				s.handle(gvr, nil, obj, true)
+				return
+			} else {
 				klog.Errorf("Error removing %q: %v", filePath, err)
-				return false, err
 			}
-			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
-				klog.Error(err)
-				return false, nil
-			}
-			return true, nil
-		})
-
-		if pollErr != nil {
-			klog.Errorf("PollWait Error: %v", pollErr)
+		}
+		if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
+			klog.Error(err)
 		}
 
 		return
@@ -124,31 +111,19 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 		modifyingUser = err.Error()
 	}
 
-	// ignore error, we've already reported and we're not doing anything else.
-	pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-		switch {
-		case operation == gitOpAdded:
-			klog.Infof("Calling commitAdd for %s", filePath)
-			if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
-				klog.Error(err)
-				return false, nil
-			}
-		case operation == gitOpModified:
-			klog.Infof("Calling commitModify for %s", filePath)
-			if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
-				klog.Error(err)
-				return false, nil
-			}
-		default:
-			klog.Errorf("unhandled case for %s", filePath)
-
-			return true, nil
+	switch operation {
+	case gitOpAdded:
+		klog.Infof("Calling commitAdd for %s", filePath)
+		if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
+			klog.Error(err)
 		}
-		return true, nil
-	})
-
-	if pollErr != nil {
-		klog.Errorf("PollWait Error: %v", pollErr)
+	case gitOpModified:
+		klog.Infof("Calling commitModify for %s", filePath)
+		if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
+			klog.Error(err)
+		}
+	default:
+		klog.Errorf("unhandled case for %s: %d", filePath, operation)
 	}
 }
 
