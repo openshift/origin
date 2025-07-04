@@ -4,14 +4,14 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
+	"github.com/openshift/origin/pkg/resourcewatch/observe"
 	"github.com/openshift/origin/pkg/resourcewatch/storage"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/klog/v2"
 )
 
@@ -59,8 +59,6 @@ func RunResourceWatch() error {
 		return err
 	}
 
-	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
-
 	resourcesToWatch := []schema.GroupVersionResource{
 		// provide high level details of configuration that feeds operator behavior
 		configResource("apiservers"),
@@ -104,14 +102,14 @@ func RunResourceWatch() error {
 		operatorResource("servicecas"),
 		operatorResource("storages"),
 
-		// describes the behavior of api changes rollouts
-		resource("apiextensions.k8s.io", "v1", "customresourcedefinitions"),
-
 		// machine resources are required to reason about the happenings of nodes
 		resource("machine.openshift.io", "v1", "controlplanemachinesets"),
 		resource("machine.openshift.io", "v1beta1", "machinehealthchecks"),
 		resource("machine.openshift.io", "v1beta1", "machines"),
 		resource("machine.openshift.io", "v1beta1", "machinesets"),
+
+		// describes the behavior of api changes rollouts
+		resource("apiextensions.k8s.io", "v1", "customresourcedefinitions"),
 
 		// describes the behavior of operand rollouts
 		appResource("deployments"),
@@ -143,19 +141,53 @@ func RunResourceWatch() error {
 		coreResource("serviceaccounts"),
 	}
 
-	configmonitor.WireResourceInformersToGitRepo(
-		dynamicInformer,
-		gitStorage,
-		resourcesToWatch,
-	)
+	// Observers emit observations to this channel. We use this channel as a buffer between the observers and the git writer.
+	// Memory consumption will grow if we can't write quickly enough.
+	resourceC := make(chan *observe.ResourceObservation, 1000000)
+	log := klog.FromContext(ctx)
 
-	dynamicInformer.Start(ctx.Done())
+	// Start a goroutine observing each resource
+	observers := sync.WaitGroup{}
+	for _, resource := range resourcesToWatch {
+		observers.Add(1)
+		go func(resource schema.GroupVersionResource) {
+			defer observers.Done()
+
+			observe.ObserveResource(ctx, log, dynamicClient, resource, resourceC)
+		}(resource)
+	}
 
 	klog.Infof("Started all informers")
 
-	<-ctx.Done()
+	// Start a goroutine writing to git
+	gitWriterFinished := writeToGit(gitStorage, resourceC)
+
+	// Wait for all resource observers to shut down cleanly, which they will do when the context is cancelled.
+	observers.Wait()
+
+	// Close the resource channel to signal to the git writer that it should finish, and wait for it to do so.
+	close(resourceC)
+	<-gitWriterFinished
 
 	return nil
+}
+
+func writeToGit(gitStorage *storage.GitStorage, resourceC <-chan *observe.ResourceObservation) chan struct{} {
+	finished := make(chan struct{})
+	go func() {
+		for observation := range resourceC {
+			switch observation.ObservationType {
+			case observe.ObservationTypeAdd:
+				gitStorage.OnAdd(observation.GroupVersionResource, observation.Object)
+			case observe.ObservationTypeUpdate:
+				gitStorage.OnUpdate(observation.GroupVersionResource, observation.OldObject, observation.Object)
+			case observe.ObservationTypeDelete:
+				gitStorage.OnDelete(observation.GroupVersionResource, observation.Object)
+			}
+		}
+		close(finished)
+	}()
+	return finished
 }
 
 func configResource(resource string) schema.GroupVersionResource {
