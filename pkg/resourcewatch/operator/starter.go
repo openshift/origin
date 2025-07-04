@@ -77,16 +77,18 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 
 	// Observers emit observations to this channel. We use this channel as a buffer between the observers and the git writer.
 	// Memory consumption will grow if we can't write quickly enough.
-	resourceC := make(chan *observe.ResourceObservation, 1000000)
+	// For reference, the captured test data from a 4.20 installation has ~17000 observations.
+	resourceC := make(chan *observe.ResourceObservation, 10000)
 
 	sourceFinished := source(ctx, log, resourceC)
-	sinkFinished := sink(log, resourceC)
+	sinkFinished := sink(ctx, log, resourceC)
 
 	// Wait for the source and sink to finish.
 	select {
 	case <-sourceFinished:
 		// The source finished. This will also happen if the context is cancelled.
 		close(resourceC)
+		log.Info("Source finished")
 
 		// Wait for the sink to finish writing queued observations.
 		<-sinkFinished

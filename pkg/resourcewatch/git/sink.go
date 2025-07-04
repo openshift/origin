@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -16,16 +17,16 @@ func Sink(log logr.Logger) (observe.ObservationSink, error) {
 		return nil, err
 	}
 
-	return func(log logr.Logger, resourceC <-chan *observe.ResourceObservation) chan struct{} {
+	return func(ctx context.Context, log logr.Logger, resourceC <-chan *observe.ResourceObservation) chan struct{} {
 		finished := make(chan struct{})
 		go func() {
 			defer close(finished)
 			for observation := range resourceC {
-				gitWrite(gitStorage, observation)
+				gitWrite(ctx, gitStorage, observation)
 			}
 
 			// We disable GC while we're writing, so run it after we're done.
-			if err := gitStorage.GC(); err != nil {
+			if err := gitStorage.GC(ctx); err != nil {
 				log.Error(err, "Failed to run git gc")
 			}
 		}()
@@ -41,7 +42,7 @@ func gitInitStorage() (*GitStorage, error) {
 	return NewGitStorage(repositoryPath)
 }
 
-func gitWrite(gitStorage *GitStorage, observation *observe.ResourceObservation) {
+func gitWrite(ctx context.Context, gitStorage *GitStorage, observation *observe.ResourceObservation) {
 	gvr := schema.GroupVersionResource{
 		Group:    observation.Group,
 		Version:  observation.Version,
@@ -49,10 +50,10 @@ func gitWrite(gitStorage *GitStorage, observation *observe.ResourceObservation) 
 	}
 	switch observation.ObservationType {
 	case observe.ObservationTypeAdd:
-		gitStorage.OnAdd(observation.ObservationTime, gvr, observation.Object)
+		gitStorage.OnAdd(ctx, observation.ObservationTime, gvr, observation.Object)
 	case observe.ObservationTypeUpdate:
-		gitStorage.OnUpdate(observation.ObservationTime, gvr, observation.OldObject, observation.Object)
+		gitStorage.OnUpdate(ctx, observation.ObservationTime, gvr, observation.OldObject, observation.Object)
 	case observe.ObservationTypeDelete:
-		gitStorage.OnDelete(observation.ObservationTime, gvr, observation.Object)
+		gitStorage.OnDelete(ctx, observation.ObservationTime, gvr, observation.Object)
 	}
 }

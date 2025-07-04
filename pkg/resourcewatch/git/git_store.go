@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
@@ -56,12 +58,12 @@ func NewGitStorage(path string) (*GitStorage, error) {
 	return storage, nil
 }
 
-func (s *GitStorage) GC() error {
-	return s.execGit("gc")
+func (s *GitStorage) GC(ctx context.Context) error {
+	return s.execGit(ctx, "gc")
 }
 
 // handle handles different operations on git
-func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
+func (s *GitStorage) handle(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
@@ -89,14 +91,14 @@ func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource
 			// Add it first before removing it.
 			if os.IsNotExist(err) {
 				klog.Info("Observed delete of file we haven't previously observed. Adding it first.")
-				s.handle(timestamp, gvr, nil, obj, false)
-				s.handle(timestamp, gvr, nil, obj, true)
+				s.handle(ctx, timestamp, gvr, nil, obj, false)
+				s.handle(ctx, timestamp, gvr, nil, obj, true)
 				return
 			} else {
 				klog.Errorf("Error removing %q: %v", filePath, err)
 			}
 		}
-		if err := s.commitRemove(timestamp, filePath, "unknown", ocCommand); err != nil {
+		if err := s.commitRemove(ctx, timestamp, filePath, "unknown", ocCommand); err != nil {
 			klog.Error(err)
 		}
 
@@ -119,12 +121,12 @@ func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource
 	switch operation {
 	case gitOpAdded:
 		klog.Infof("Calling commitAdd for %s", filePath)
-		if err := s.commitAdd(timestamp, filePath, modifyingUser, ocCommand); err != nil {
+		if err := s.commitAdd(ctx, timestamp, filePath, modifyingUser, ocCommand); err != nil {
 			klog.Error(err)
 		}
 	case gitOpModified:
 		klog.Infof("Calling commitModify for %s", filePath)
-		if err := s.commitModify(timestamp, filePath, modifyingUser, ocCommand); err != nil {
+		if err := s.commitModify(ctx, timestamp, filePath, modifyingUser, ocCommand); err != nil {
 			klog.Error(err)
 		}
 	default:
@@ -132,20 +134,20 @@ func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource
 	}
 }
 
-func (s *GitStorage) OnAdd(timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
+func (s *GitStorage) OnAdd(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 
-	s.handle(timestamp, gvr, nil, objUnstructured, false)
+	s.handle(ctx, timestamp, gvr, nil, objUnstructured, false)
 }
 
-func (s *GitStorage) OnUpdate(timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj interface{}) {
+func (s *GitStorage) OnUpdate(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 	oldObjUnstructured := oldObj.(*unstructured.Unstructured)
 
-	s.handle(timestamp, gvr, oldObjUnstructured, objUnstructured, false)
+	s.handle(ctx, timestamp, gvr, oldObjUnstructured, objUnstructured, false)
 }
 
-func (s *GitStorage) OnDelete(timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
+func (s *GitStorage) OnDelete(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -160,7 +162,7 @@ func (s *GitStorage) OnDelete(timestamp time.Time, gvr schema.GroupVersionResour
 		}
 	}
 
-	s.handle(timestamp, gvr, nil, objUnstructured, true)
+	s.handle(ctx, timestamp, gvr, nil, objUnstructured, true)
 }
 
 // guessAtModifyingUsers tries to figure out who modified the resource
@@ -223,34 +225,41 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
-func (s *GitStorage) execGit(args ...string) error {
+func (s *GitStorage) execGit(ctx context.Context, args ...string) error {
 	// Disable automatic garbage collection to avoid racing with other processes.
 	args = append([]string{"-c", "gc.auto=0"}, args...)
 
-	osCommand := exec.Command("git", args...)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
-	if err != nil {
-		klog.Errorf("Ran git %v\n%v\n\n", args, string(output))
-		return err
-	}
-	return nil
+	// The git store should no longer race with itself since we
+	// disabled auto gc so this should never happen in a CI run. However,
+	// manually executed git commands may still cause errors, so we have a retry
+	// loop for robustness.
+	return wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
+		osCommand := exec.Command("git", args...)
+		osCommand.Dir = s.path
+		output, err := osCommand.CombinedOutput()
+		if err != nil {
+			klog.Errorf("Ran git %v\n%v\n\n", args, string(output))
+			// Don't return the error or we'll stop polling.
+			return false, nil
+		}
+		return true, nil
+	})
 }
 
-func (s *GitStorage) commit(timestamp time.Time, path, author, commitMessage string) error {
+func (s *GitStorage) commit(ctx context.Context, timestamp time.Time, path, author, commitMessage string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	dateString := timestamp.Format(time.RFC3339)
 
-	return s.execGit("commit", "--author", authorString, "--date", dateString, "-m", commitMessage)
+	return s.execGit(ctx, "commit", "--author", authorString, "--date", dateString, "-m", commitMessage)
 }
 
-func (s *GitStorage) commitAdd(timestamp time.Time, path, author, ocCommand string) error {
-	if err := s.execGit("add", path); err != nil {
+func (s *GitStorage) commitAdd(ctx context.Context, timestamp time.Time, path, author, ocCommand string) error {
+	if err := s.execGit(ctx, "add", path); err != nil {
 		return err
 	}
 
 	commitMessage := fmt.Sprintf("added %s", ocCommand)
-	if err := s.commit(timestamp, path, author, commitMessage); err != nil {
+	if err := s.commit(ctx, timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
@@ -258,13 +267,13 @@ func (s *GitStorage) commitAdd(timestamp time.Time, path, author, ocCommand stri
 	return nil
 }
 
-func (s *GitStorage) commitModify(timestamp time.Time, path, author, ocCommand string) error {
-	if err := s.execGit("add", path); err != nil {
+func (s *GitStorage) commitModify(ctx context.Context, timestamp time.Time, path, author, ocCommand string) error {
+	if err := s.execGit(ctx, "add", path); err != nil {
 		return err
 	}
 
 	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
-	if err := s.commit(timestamp, path, author, commitMessage); err != nil {
+	if err := s.commit(ctx, timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
@@ -272,13 +281,13 @@ func (s *GitStorage) commitModify(timestamp time.Time, path, author, ocCommand s
 	return nil
 }
 
-func (s *GitStorage) commitRemove(timestamp time.Time, path, author, ocCommand string) error {
-	if err := s.execGit("rm", path); err != nil {
+func (s *GitStorage) commitRemove(ctx context.Context, timestamp time.Time, path, author, ocCommand string) error {
+	if err := s.execGit(ctx, "rm", path); err != nil {
 		return err
 	}
 
 	commitMessage := fmt.Sprintf("removed %s", ocCommand)
-	if err := s.commit(timestamp, path, author, commitMessage); err != nil {
+	if err := s.commit(ctx, timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
