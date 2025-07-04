@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // SystemdJournalLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
@@ -41,4 +43,34 @@ func SystemdJournalLogTime(logLine string, year int) time.Time {
 	}
 
 	return ret
+}
+
+// FindOverlap finds any intervals that overlap with the given interval.
+func FindOverlap(intervals monitorapi.Intervals, overlapsWith monitorapi.Interval) monitorapi.Intervals {
+	overlappingIntervals := monitorapi.Intervals{}
+	for i := range intervals {
+		interval := intervals[i]
+		if IntervalsOverlap(interval, overlapsWith) {
+			overlappingIntervals = append(overlappingIntervals, interval)
+		}
+	}
+
+	return overlappingIntervals
+}
+
+// IntervalsOverlap checks if two intervals overlap in time
+func IntervalsOverlap(interval1, interval2 monitorapi.Interval) bool {
+	// If either interval has a zero end time, treat it as ongoing to the end of time
+	end1 := interval1.To
+	if end1.IsZero() {
+		end1 = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+	}
+
+	end2 := interval2.To
+	if end2.IsZero() {
+		end2 = time.Date(9999, 12, 31, 23, 59, 59, 999999999, time.UTC)
+	}
+
+	// Check for overlap
+	return (interval1.From.Before(end2)) && (interval2.From.Before(end1))
 }
