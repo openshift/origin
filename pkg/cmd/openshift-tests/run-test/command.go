@@ -2,9 +2,10 @@ package run_test
 
 import (
 	"fmt"
-	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"os"
 	"strings"
+
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
@@ -54,7 +55,10 @@ func NewRunTestCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
 				return err
 			}
-			klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
+			// Redact the bearer token exposure
+			testContextString := fmt.Sprintf("%#v", exutil.TestContext)
+			redactedTestContext := exutil.RedactBearerToken(testContextString)
+			klog.V(4).Infof("Loaded test configuration: %s", redactedTestContext)
 
 			exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
 
