@@ -33,7 +33,7 @@ func BenchmarkGitSink(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gitWrite(gitStorage, resources[i])
+		gitWrite(context.TODO(), gitStorage, resources[i])
 	}
 }
 

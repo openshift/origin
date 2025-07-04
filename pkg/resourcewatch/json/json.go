@@ -42,7 +42,7 @@ func Source(file io.ReadCloser) (observe.ObservationSource, error) {
 func Sink(file io.WriteCloser) (observe.ObservationSink, error) {
 	encoder := json.NewEncoder(file)
 
-	return func(log logr.Logger, resourceC <-chan *observe.ResourceObservation) chan struct{} {
+	return func(_ context.Context, log logr.Logger, resourceC <-chan *observe.ResourceObservation) chan struct{} {
 		finished := make(chan struct{})
 		go func() {
 			defer func() {
