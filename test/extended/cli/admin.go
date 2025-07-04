@@ -632,6 +632,21 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	// os::test::junit::declare_suite_end
 })
 
+var _ = g.Describe("[sig-cli] oc adm upgrade recommend", func() {
+	defer g.GinkgoRecover()
+
+	f := framework.NewDefaultFramework("oc-adm-upgrade-recommend")
+	f.SkipNamespaceCreation = true
+
+	oc := exutil.NewCLIWithoutNamespace("oc-adm-upgrade-recommend").AsAdmin()
+
+	g.It("runs successfully, even without upstream OpenShift Update Service customization", func() {
+		out, err := oc.Run("adm", "upgrade", "recommend").EnvironmentVariables("OC_ENABLE_CMD_UPGRADE_RECOMMEND=true").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.MatchRegexp(`FIXME: not sure what to expect so fail`))
+	})
+})
+
 func randomNode(oc *exutil.CLI) string {
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
