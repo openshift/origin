@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -81,6 +82,21 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 		klog.Infof("Calling commitRemove for %s", filePath)
 		// ignore error, we've already reported and we're not doing anything else.
 		pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
+
+			err := os.Remove(path.Join(s.path, filePath))
+			if err != nil {
+				// If the file doesn't exist it means we're deleting a file we haven't previously observed.
+				// That's probably a collection bug.
+				// Add it first before removing it.
+				if os.IsNotExist(err) {
+					klog.Info("Observed delete of file we haven't previously observed. Adding it first.")
+					s.handle(gvr, nil, obj, false)
+					s.handle(gvr, nil, obj, true)
+					return true, nil
+				}
+				klog.Errorf("Error removing %q: %v", filePath, err)
+				return false, err
+			}
 			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
@@ -288,7 +304,8 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	commitMessage := fmt.Sprintf("removed %s", ocCommand)
-	command := fmt.Sprintf(`rm %q && git rm %q && git commit --author=%q -m %q`, path, path, authorString, commitMessage)
+
+	command := fmt.Sprintf(`git rm %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
 
 	osCommand := exec.Command("bash", "-e", "-c", command)
 	osCommand.Dir = s.path
