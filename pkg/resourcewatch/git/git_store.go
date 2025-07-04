@@ -243,23 +243,26 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
-func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
-	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("added %s", ocCommand)
-	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
-
-	osCommand := exec.Command("bash", "-e", "-c", command)
+func (s *GitStorage) exec(command string, args ...string) error {
+	osCommand := exec.Command(command, args...)
 	osCommand.Dir = s.path
 	output, err := osCommand.CombinedOutput()
 	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
+		klog.Errorf("Ran %s %v\n%v\n\n", command, args, string(output))
+		return err
+	}
+	return nil
+}
+
+func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
+	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
+	commitMessage := fmt.Sprintf("added %s", ocCommand)
+
+	if err := s.exec("git", "add", path); err != nil {
+		return err
+	}
+
+	if err := s.exec("git", "commit", "--author", authorString, "-m", commitMessage); err != nil {
 		return err
 	}
 
@@ -270,31 +273,13 @@ func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
 func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
-	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
-	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
-		// if nothing changed in the modify don't keep trying over and over
-		if strings.Contains(string(output), "nothing to commit") {
-			klog.Info("Exiting commitModify as nothing to commit")
-			return nil
-		}
-
+	if err := s.exec("git", "add", path); err != nil {
 		return err
 	}
 
-	if output != nil {
-		klog.Infof("Ran %v\n%v\n\n", command, string(output))
+	if err := s.exec("git", "commit", "--author", authorString, "-m", commitMessage); err != nil {
+		return err
 	}
 
 	klog.Infof("Modified: %v -- %v updated %v", path, author, ocCommand)
@@ -305,20 +290,11 @@ func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	commitMessage := fmt.Sprintf("removed %s", ocCommand)
 
-	command := fmt.Sprintf(`git rm %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
+	if err := s.exec("git", "rm", path); err != nil {
+		return err
+	}
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
-	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
+	if err := s.exec("git", "commit", "--author", authorString, "-m", commitMessage); err != nil {
 		return err
 	}
 
