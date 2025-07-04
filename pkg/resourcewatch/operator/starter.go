@@ -3,6 +3,8 @@ package operator
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"sync"
@@ -45,8 +47,12 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 	var sink observationSink
 
 	if fromJsonPath != "" {
-		var err error
-		source, err = jsonSource(fromJsonPath)
+		file, err := os.Open(fromJsonPath)
+		if err != nil {
+			return fmt.Errorf("failed to open json file %q: %w", fromJsonPath, err)
+		}
+
+		source, err = jsonSource(file)
 		if err != nil {
 			return err
 		}
@@ -59,8 +65,12 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 	}
 
 	if toJsonPath != "" {
-		var err error
-		sink, err = jsonSink(toJsonPath)
+		file, err := os.OpenFile(toJsonPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY|os.O_APPEND, 0664)
+		if err != nil {
+			return fmt.Errorf("failed to create json file %q: %w", toJsonPath, err)
+		}
+
+		sink, err = jsonSink(file)
 		if err != nil {
 			return err
 		}
@@ -217,13 +227,7 @@ func clusterSource() (observationSource, error) {
 	}, nil
 }
 
-func jsonSource(fromJsonPath string) (observationSource, error) {
-	file, err := os.Open(fromJsonPath)
-	if err != nil {
-		klog.Errorf("Failed to open json file with error %v", err)
-		return nil, err
-	}
-
+func jsonSource(file io.ReadCloser) (observationSource, error) {
 	decoder := json.NewDecoder(file)
 
 	return func(ctx context.Context, log logr.Logger, resourceC chan<- *observe.ResourceObservation) chan struct{} {
@@ -253,12 +257,7 @@ func jsonSource(fromJsonPath string) (observationSource, error) {
 }
 
 func gitSink() (observationSink, error) {
-	repositoryPath := "/repository"
-	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
-		repositoryPath = repositoryPathEnv
-	}
-
-	gitStorage, err := storage.NewGitStorage(repositoryPath)
+	gitStorage, err := gitInitStorage()
 	if err != nil {
 		klog.Errorf("Failed to create git storage with error %v", err)
 		return nil, err
@@ -269,32 +268,38 @@ func gitSink() (observationSink, error) {
 		go func() {
 			defer close(finished)
 			for observation := range resourceC {
-				gvr := schema.GroupVersionResource{
-					Group:    observation.Group,
-					Version:  observation.Version,
-					Resource: observation.Resource,
-				}
-				switch observation.ObservationType {
-				case observe.ObservationTypeAdd:
-					gitStorage.OnAdd(gvr, observation.Object)
-				case observe.ObservationTypeUpdate:
-					gitStorage.OnUpdate(gvr, observation.OldObject, observation.Object)
-				case observe.ObservationTypeDelete:
-					gitStorage.OnDelete(gvr, observation.Object)
-				}
+				gitWrite(gitStorage, observation)
 			}
 		}()
 		return finished
 	}, nil
 }
 
-func jsonSink(toJsonPath string) (observationSink, error) {
-	file, err := os.OpenFile(toJsonPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
-	if err != nil {
-		klog.Errorf("Failed to create json file with error %v", err)
-		return nil, err
+func gitInitStorage() (*storage.GitStorage, error) {
+	repositoryPath := "/repository"
+	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
+		repositoryPath = repositoryPathEnv
 	}
+	return storage.NewGitStorage(repositoryPath)
+}
 
+func gitWrite(gitStorage *storage.GitStorage, observation *observe.ResourceObservation) {
+	gvr := schema.GroupVersionResource{
+		Group:    observation.Group,
+		Version:  observation.Version,
+		Resource: observation.Resource,
+	}
+	switch observation.ObservationType {
+	case observe.ObservationTypeAdd:
+		gitStorage.OnAdd(gvr, observation.Object)
+	case observe.ObservationTypeUpdate:
+		gitStorage.OnUpdate(gvr, observation.OldObject, observation.Object)
+	case observe.ObservationTypeDelete:
+		gitStorage.OnDelete(gvr, observation.Object)
+	}
+}
+
+func jsonSink(file io.WriteCloser) (observationSink, error) {
 	encoder := json.NewEncoder(file)
 
 	return func(resourceC <-chan *observe.ResourceObservation) chan struct{} {
