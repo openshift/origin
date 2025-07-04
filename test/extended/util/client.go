@@ -92,15 +92,22 @@ type CLI struct {
 	// manifest files can be stored under directory tree
 	staticConfigManifestDir string
 
-	token                string
-	username             string
-	globalArgs           []string
-	commandArgs          []string
-	finalArgs            []string
-	namespacesToDelete   []string
-	stdin                *bytes.Buffer
-	stdout               io.Writer
-	stderr               io.Writer
+	token              string
+	username           string
+	globalArgs         []string
+	commandArgs        []string
+	finalArgs          []string
+	namespacesToDelete []string
+	stdin              *bytes.Buffer
+	stdout             io.Writer
+	stderr             io.Writer
+
+	// env allows setting environment variables for the command (when nil, the environment
+	// is inherited from the current process)
+	env []string
+	// addEnvVars allows adding environment variables on top of what is defined in env.
+	addEnvVars map[string]string
+
 	verbose              bool
 	withoutNamespace     bool
 	withManagedNamespace bool
@@ -883,6 +890,26 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 	return c
 }
 
+// Env sets the command's environment variables with the same semantics as exec.Cmd's Env property.
+// https://pkg.go.dev/os/exec#Cmd
+//
+// EnvVar()-provided variables will be appended to whatever Env was set before.
+func (c *CLI) Env(env ...string) *CLI {
+	c.env = env
+	return c
+}
+
+// EnvVar sets an environment variable for the command, appended to whatever Env is set on the CLI
+// when eventually executed, or to environment inherited from the current process if Env() was not
+// called.
+func (c *CLI) EnvVar(name, value string) *CLI {
+	if c.addEnvVars == nil {
+		c.addEnvVars = make(map[string]string)
+	}
+	c.addEnvVars[name] = value
+	return c
+}
+
 // Run executes given OpenShift CLI command verb (iow. "oc <verb>").
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
@@ -981,6 +1008,17 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	cmd.Stdin = c.stdin
 	// Redact any bearer token information from the log.
 	framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
+
+	cmd.Env = c.env
+	if len(c.addEnvVars) > 0 {
+		// This is a nil check to allow setting empty environment with Env()
+		if cmd.Env == nil {
+			cmd.Env = os.Environ()
+		}
+		for name, value := range c.addEnvVars {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", name, value))
+		}
+	}
 
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
