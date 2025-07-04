@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -17,15 +16,15 @@ const (
 )
 
 type ResourceObservation struct {
-	schema.GroupVersionResource
+	Group    string `json:"group"`
+	Version  string `json:"version"`
+	Resource string `json:"resource"`
 
-	UID       types.UID
-	Namespace string
-	Name      string
+	UID types.UID `json:"uid"`
 
-	Object    *unstructured.Unstructured
-	OldObject *unstructured.Unstructured
+	Object    *unstructured.Unstructured `json:"object,omitempty"`
+	OldObject *unstructured.Unstructured `json:"oldObject,omitempty"`
 
-	ObservationType ObservationType
-	ObservationTime time.Time
+	ObservationType ObservationType `json:"observationType"`
+	ObservationTime time.Time       `json:"observationTime"`
 }

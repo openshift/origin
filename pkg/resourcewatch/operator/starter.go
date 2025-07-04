@@ -2,11 +2,13 @@ package operator
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
+	"github.com/go-logr/logr"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/resourcewatch/observe"
 	"github.com/openshift/origin/pkg/resourcewatch/storage"
@@ -15,9 +17,12 @@ import (
 	"k8s.io/klog/v2"
 )
 
+type observationSource func(ctx context.Context, log logr.Logger, resourceC chan<- *observe.ResourceObservation) chan struct{}
+type observationSink func(<-chan *observe.ResourceObservation) chan struct{}
+
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
-func RunResourceWatch() error {
+func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	abortCh := make(chan os.Signal, 2)
@@ -36,27 +41,72 @@ func RunResourceWatch() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
+	var source observationSource
+	var sink observationSink
+
+	if fromJsonPath != "" {
+		var err error
+		source, err = jsonSource(fromJsonPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		source, err = clusterSource()
+		if err != nil {
+			return err
+		}
+	}
+
+	if toJsonPath != "" {
+		var err error
+		sink, err = jsonSink(toJsonPath)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		sink, err = gitSink()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Observers emit observations to this channel. We use this channel as a buffer between the observers and the git writer.
+	// Memory consumption will grow if we can't write quickly enough.
+	resourceC := make(chan *observe.ResourceObservation, 1000000)
+	log := klog.FromContext(ctx)
+
+	sourceFinished := source(ctx, log, resourceC)
+	sinkFinished := sink(resourceC)
+
+	// Wait for the source and sink to finish.
+	select {
+	case <-sourceFinished:
+		// The source finished. This will also happen if the context is cancelled.
+		close(resourceC)
+
+		// Wait for the sink to finish writing queued observations.
+		<-sinkFinished
+
+	case <-sinkFinished:
+		// The sink exited. We're no longer writing data, so no point cleaning up
+	}
+
+	return nil
+}
+
+func clusterSource() (observationSource, error) {
 	kubeConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		klog.Errorf("Failed to get kubeconfig with error %v", err)
-		return err
+		return nil, err
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
 	if err != nil {
 		klog.Errorf("Failed to create dynamic client with error %v", err)
-		return err
-	}
-
-	repositoryPath := "/repository"
-	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
-		repositoryPath = repositoryPathEnv
-	}
-
-	gitStorage, err := storage.NewGitStorage(repositoryPath)
-	if err != nil {
-		klog.Errorf("Failed to create git storage with error %v", err)
-		return err
+		return nil, err
 	}
 
 	resourcesToWatch := []schema.GroupVersionResource{
@@ -141,53 +191,128 @@ func RunResourceWatch() error {
 		coreResource("serviceaccounts"),
 	}
 
-	// Observers emit observations to this channel. We use this channel as a buffer between the observers and the git writer.
-	// Memory consumption will grow if we can't write quickly enough.
-	resourceC := make(chan *observe.ResourceObservation, 1000000)
-	log := klog.FromContext(ctx)
+	return func(ctx context.Context, log logr.Logger, resourceC chan<- *observe.ResourceObservation) chan struct{} {
+		finished := make(chan struct{})
 
-	// Start a goroutine observing each resource
-	observers := sync.WaitGroup{}
-	for _, resource := range resourcesToWatch {
-		observers.Add(1)
-		go func(resource schema.GroupVersionResource) {
-			defer observers.Done()
+		observers := sync.WaitGroup{}
+		for _, resource := range resourcesToWatch {
+			observers.Add(1)
+			go func(resource schema.GroupVersionResource) {
+				defer observers.Done()
 
-			observe.ObserveResource(ctx, log, dynamicClient, resource, resourceC)
-		}(resource)
-	}
+				observe.ObserveResource(ctx, log, dynamicClient, resource, resourceC)
+			}(resource)
+		}
 
-	klog.Infof("Started all informers")
+		log.Info("Started all informers")
 
-	// Start a goroutine writing to git
-	gitWriterFinished := writeToGit(gitStorage, resourceC)
-
-	// Wait for all resource observers to shut down cleanly, which they will do when the context is cancelled.
-	observers.Wait()
-
-	// Close the resource channel to signal to the git writer that it should finish, and wait for it to do so.
-	close(resourceC)
-	<-gitWriterFinished
-
-	return nil
+		// Close the finished channel when all observers have exited.
+		go func() {
+			observers.Wait()
+			log.Info("All informers finished")
+			close(finished)
+		}()
+		return finished
+	}, nil
 }
 
-func writeToGit(gitStorage *storage.GitStorage, resourceC <-chan *observe.ResourceObservation) chan struct{} {
-	finished := make(chan struct{})
-	go func() {
-		for observation := range resourceC {
-			switch observation.ObservationType {
-			case observe.ObservationTypeAdd:
-				gitStorage.OnAdd(observation.GroupVersionResource, observation.Object)
-			case observe.ObservationTypeUpdate:
-				gitStorage.OnUpdate(observation.GroupVersionResource, observation.OldObject, observation.Object)
-			case observe.ObservationTypeDelete:
-				gitStorage.OnDelete(observation.GroupVersionResource, observation.Object)
+func jsonSource(fromJsonPath string) (observationSource, error) {
+	file, err := os.Open(fromJsonPath)
+	if err != nil {
+		klog.Errorf("Failed to open json file with error %v", err)
+		return nil, err
+	}
+
+	decoder := json.NewDecoder(file)
+
+	return func(ctx context.Context, log logr.Logger, resourceC chan<- *observe.ResourceObservation) chan struct{} {
+		finished := make(chan struct{})
+		go func() {
+			defer func() {
+				file.Close()
+				close(finished)
+			}()
+
+			for decoder.More() {
+				// Exit if the context is cancelled.
+				if ctx.Err() != nil {
+					return
+				}
+
+				observation := &observe.ResourceObservation{}
+				if err := decoder.Decode(observation); err != nil {
+					klog.Errorf("Failed to decode observation with error %v", err)
+					return
+				}
+				resourceC <- observation
 			}
-		}
-		close(finished)
-	}()
-	return finished
+		}()
+		return finished
+	}, nil
+}
+
+func gitSink() (observationSink, error) {
+	repositoryPath := "/repository"
+	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
+		repositoryPath = repositoryPathEnv
+	}
+
+	gitStorage, err := storage.NewGitStorage(repositoryPath)
+	if err != nil {
+		klog.Errorf("Failed to create git storage with error %v", err)
+		return nil, err
+	}
+
+	return func(resourceC <-chan *observe.ResourceObservation) chan struct{} {
+		finished := make(chan struct{})
+		go func() {
+			defer close(finished)
+			for observation := range resourceC {
+				gvr := schema.GroupVersionResource{
+					Group:    observation.Group,
+					Version:  observation.Version,
+					Resource: observation.Resource,
+				}
+				switch observation.ObservationType {
+				case observe.ObservationTypeAdd:
+					gitStorage.OnAdd(gvr, observation.Object)
+				case observe.ObservationTypeUpdate:
+					gitStorage.OnUpdate(gvr, observation.OldObject, observation.Object)
+				case observe.ObservationTypeDelete:
+					gitStorage.OnDelete(gvr, observation.Object)
+				}
+			}
+		}()
+		return finished
+	}, nil
+}
+
+func jsonSink(toJsonPath string) (observationSink, error) {
+	file, err := os.OpenFile(toJsonPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0664)
+	if err != nil {
+		klog.Errorf("Failed to create json file with error %v", err)
+		return nil, err
+	}
+
+	encoder := json.NewEncoder(file)
+
+	return func(resourceC <-chan *observe.ResourceObservation) chan struct{} {
+		finished := make(chan struct{})
+		go func() {
+			defer func() {
+				file.Close()
+				close(finished)
+			}()
+
+			for observation := range resourceC {
+				if err := encoder.Encode(observation); err != nil {
+					klog.Errorf("Failed to encode observation with error %v", err)
+					return
+				}
+			}
+		}()
+		return finished
+	}, nil
 }
 
 func configResource(resource string) schema.GroupVersionResource {
