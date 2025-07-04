@@ -59,6 +59,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
+	{
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovnk-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
