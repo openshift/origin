@@ -23,6 +23,11 @@ func Sink(log logr.Logger) (observe.ObservationSink, error) {
 			for observation := range resourceC {
 				gitWrite(gitStorage, observation)
 			}
+
+			// We disable GC while we're writing, so run it after we're done.
+			if err := gitStorage.GC(); err != nil {
+				log.Error(err, "Failed to run git gc")
+			}
 		}()
 		return finished
 	}, nil
