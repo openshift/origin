@@ -56,6 +56,10 @@ func NewGitStorage(path string) (*GitStorage, error) {
 	return storage, nil
 }
 
+func (s *GitStorage) GC() error {
+	return s.execGit("gc")
+}
+
 // handle handles different operations on git
 func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
@@ -102,7 +106,7 @@ func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource
 	klog.Infof("Calling write for %s", filePath)
 	operation, err := s.write(filePath, content)
 	if err != nil {
-		klog.Warningf("Writing file content failed %q: %v", filePath, err)
+		klog.Errorf("Writing file content failed %q: %v", filePath, err)
 		return
 	}
 
@@ -219,12 +223,15 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
-func (s *GitStorage) exec(command string, args ...string) error {
-	osCommand := exec.Command(command, args...)
+func (s *GitStorage) execGit(args ...string) error {
+	// Disable automatic garbage collection to avoid racing with other processes.
+	args = append([]string{"-c", "gc.auto=0"}, args...)
+
+	osCommand := exec.Command("git", args...)
 	osCommand.Dir = s.path
 	output, err := osCommand.CombinedOutput()
 	if err != nil {
-		klog.Errorf("Ran %s %v\n%v\n\n", command, args, string(output))
+		klog.Errorf("Ran git %v\n%v\n\n", args, string(output))
 		return err
 	}
 	return nil
@@ -234,11 +241,11 @@ func (s *GitStorage) commit(timestamp time.Time, path, author, commitMessage str
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	dateString := timestamp.Format(time.RFC3339)
 
-	return s.exec("git", "commit", "--author", authorString, "--date", dateString, "-m", commitMessage)
+	return s.execGit("commit", "--author", authorString, "--date", dateString, "-m", commitMessage)
 }
 
 func (s *GitStorage) commitAdd(timestamp time.Time, path, author, ocCommand string) error {
-	if err := s.exec("git", "add", path); err != nil {
+	if err := s.execGit("add", path); err != nil {
 		return err
 	}
 
@@ -252,7 +259,7 @@ func (s *GitStorage) commitAdd(timestamp time.Time, path, author, ocCommand stri
 }
 
 func (s *GitStorage) commitModify(timestamp time.Time, path, author, ocCommand string) error {
-	if err := s.exec("git", "add", path); err != nil {
+	if err := s.execGit("add", path); err != nil {
 		return err
 	}
 
@@ -266,7 +273,7 @@ func (s *GitStorage) commitModify(timestamp time.Time, path, author, ocCommand s
 }
 
 func (s *GitStorage) commitRemove(timestamp time.Time, path, author, ocCommand string) error {
-	if err := s.exec("git", "rm", path); err != nil {
+	if err := s.execGit("rm", path); err != nil {
 		return err
 	}
 
