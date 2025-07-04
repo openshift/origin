@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/openshift/origin/pkg/resourcewatch/json"
@@ -36,11 +35,6 @@ func BenchmarkGitSink(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gitWrite(gitStorage, resources[i])
 	}
-	b.StopTimer()
-
-	// gitStorage creates unmanaged go threads which can prevent us from cleaning up.
-	// Until we address that, just give them a chance to finish
-	time.Sleep(5 * time.Second)
 }
 
 func readTestData(b *testing.B) ([]*observe.ResourceObservation, error) {
