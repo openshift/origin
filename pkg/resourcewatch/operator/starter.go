@@ -270,6 +270,11 @@ func gitSink() (observationSink, error) {
 			for observation := range resourceC {
 				gitWrite(gitStorage, observation)
 			}
+
+			// We disable GC while we're writing, so run it after we're done.
+			if err := gitStorage.GC(); err != nil {
+				klog.Errorf("Failed to run git gc with error %v", err)
+			}
 		}()
 		return finished
 	}, nil
