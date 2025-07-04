@@ -32,4 +32,4 @@ type ResourceObservation struct {
 }
 
 type ObservationSource func(ctx context.Context, log logr.Logger, resourceC chan<- *ResourceObservation) chan struct{}
-type ObservationSink func(log logr.Logger, resourceC <-chan *ResourceObservation) chan struct{}
+type ObservationSink func(ctx context.Context, log logr.Logger, resourceC <-chan *ResourceObservation) chan struct{}
