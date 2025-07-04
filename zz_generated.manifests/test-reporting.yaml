@@ -61,6 +61,19 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
         when using openshift ovn-kubernetes should ensure egressfirewall with wildcard
         dns rules is created'
+  - featureGate: DualReplica
+    tests:
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
+        Two Node with Fencing pods and podman containers Should validate the number
+        of etcd pods and containers as configured'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
+        Two Node with Fencing pods and podman containers Should verify the number
+        of podman-etcd containers as configured'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
+        Two Node with Fencing etcd recovery Should support a graceful node shutdown'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
+        Two Node with Fencing topology Should validate the number of control-planes,
+        arbiters as configured'
   - featureGate: Example
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
@@ -101,22 +114,22 @@ spec:
         set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
   - featureGate: HighlyAvailableArbiter
     tests:
-    - testName: '[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
+    - testName: '[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node]
         Deployments on HighlyAvailableArbiterMode topology should be created on arbiter
         nodes when arbiter node is selected'
-    - testName: '[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
+    - testName: '[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node]
         Deployments on HighlyAvailableArbiterMode topology should be created on master
         nodes when no node selected'
-    - testName: '[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
+    - testName: '[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node]
         Evaluate DaemonSet placement in HighlyAvailableArbiterMode topology should
         not create a DaemonSet on the Arbiter node'
-    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node]
         Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all
         etcd pods running and quorum met'
-    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node]
         expected Master and Arbiter node counts Should validate that there are Master
         and Arbiter nodes as specified in the cluster'
-    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node]
         required pods on the Arbiter node Should verify that the correct number of
         pods are running on the Arbiter node'
   - featureGate: HonorPVReclaimPolicy

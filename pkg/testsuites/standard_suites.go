@@ -462,4 +462,17 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 120 * time.Minute,
 	},
+	{
+		Name: "openshift/two-node",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate two-node.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/two-node") || strings.Contains(name, "[FeatureGate:DualReplica]") || strings.Contains(name, "[FeatureGate:HighlyAvailableArbiter]")
+		},
+		TestTimeout: 60 * time.Minute,
+	},
 }
