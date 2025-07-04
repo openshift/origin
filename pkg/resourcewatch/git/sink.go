@@ -44,10 +44,10 @@ func gitWrite(gitStorage *GitStorage, observation *observe.ResourceObservation) 
 	}
 	switch observation.ObservationType {
 	case observe.ObservationTypeAdd:
-		gitStorage.OnAdd(gvr, observation.Object)
+		gitStorage.OnAdd(observation.ObservationTime, gvr, observation.Object)
 	case observe.ObservationTypeUpdate:
-		gitStorage.OnUpdate(gvr, observation.OldObject, observation.Object)
+		gitStorage.OnUpdate(observation.ObservationTime, gvr, observation.OldObject, observation.Object)
 	case observe.ObservationTypeDelete:
-		gitStorage.OnDelete(gvr, observation.Object)
+		gitStorage.OnDelete(observation.ObservationTime, gvr, observation.Object)
 	}
 }
