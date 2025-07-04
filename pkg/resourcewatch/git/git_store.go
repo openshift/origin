@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -24,46 +23,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type workingSet struct {
-	currentlyWorking sets.String
-	lock             sync.RWMutex
-}
-
-func (s *workingSet) isWorkingOn(key string) bool {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.currentlyWorking.Has(key)
-}
-
-func (s *workingSet) reserve(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.currentlyWorking.Insert(key)
-}
-
-func (s *workingSet) release(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.currentlyWorking.Delete(key)
-}
-
-func (s *workingSet) waitUntilAvailable(key string) error {
-	return wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
-		if s.isWorkingOn(key) {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
 type GitStorage struct {
 	repo *git.Repository
 	path string
-
-	currentlyRecording workingSet
-
-	// Writing to Git repository must be synced otherwise Git will freak out
-	sync.Mutex
 }
 
 type gitOperation int
@@ -91,33 +53,12 @@ func NewGitStorage(path string) (*GitStorage, error) {
 		return nil, err
 	}
 	storage := &GitStorage{path: path, repo: repo}
-	storage.currentlyRecording.currentlyWorking = sets.String{}
 
 	return storage, nil
 }
 
 // handle handles different operations on git
 func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
-	// notifications for resources come in a single threaded stream per-resource.
-	// this means there will never be contention on a single file.
-	// we will lock just before the commit itself.
-
-	// Allowing files to be written while a commit is in progress leads to commit failures due to unstaged changes
-	// moving the lock to the top of the handler to make the action atomic.
-	// E0706 02:06:26.489945    2444 git_store.go:338] Ran git add "namespaces/openshift-cloud-credential-operator/core/services/cco-metrics.yaml" && git commit --author="modified-unknown <ci-monitor@openshift.io>" -m "modifed services/cco-metrics -n openshift-cloud-credential-operator"
-	// On branch master
-	// Changes not staged for commit:
-	//  (use "git add <file>..." to update what will be committed)
-	//  (use "git restore <file>..." to discard changes in working directory)
-	//	modified:   namespaces/openshift-apiserver/core/pods/apiserver-856c47d994-47cf7.yaml
-	//
-	// Untracked files:
-	//  (use "git add <file>..." to include in what will be committed)
-	//	namespaces/openshift-etcd/core/pods/etcd-ci-op-g2xjpfr4-ed5cd-gqjcq-master-0.yaml
-
-	s.Lock()
-	defer s.Unlock()
-
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
@@ -198,38 +139,14 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 
-	// serialize updates to individual files
-	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
-	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
-		klog.Error(err)
-		return
-	}
-	s.currentlyRecording.reserve(key)
-
-	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
-	go func() {
-		defer s.currentlyRecording.release(key)
-		s.handle(gvr, nil, objUnstructured, false)
-	}()
+	s.handle(gvr, nil, objUnstructured, false)
 }
 
 func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 	oldObjUnstructured := oldObj.(*unstructured.Unstructured)
 
-	// serialize updates to individual files
-	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
-	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
-		klog.Error(err)
-		return
-	}
-	s.currentlyRecording.reserve(key)
-
-	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
-	go func() {
-		defer s.currentlyRecording.release(key)
-		s.handle(gvr, oldObjUnstructured, objUnstructured, false)
-	}()
+	s.handle(gvr, oldObjUnstructured, objUnstructured, false)
 }
 
 func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
@@ -247,19 +164,7 @@ func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) 
 		}
 	}
 
-	// serialize updates to individual files
-	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
-	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
-		klog.Error(err)
-		return
-	}
-	s.currentlyRecording.reserve(key)
-
-	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
-	go func() {
-		defer s.currentlyRecording.release(key)
-		s.handle(gvr, nil, objUnstructured, true)
-	}()
+	s.handle(gvr, nil, objUnstructured, true)
 }
 
 // guessAtModifyingUsers tries to figure out who modified the resource
