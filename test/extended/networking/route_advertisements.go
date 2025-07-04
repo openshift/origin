@@ -118,8 +118,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 	oc := exutil.NewCLIWithPodSecurityLevel(bgpNamespacePrefix, admissionapi.LevelPrivileged)
 	InOVNKubernetesContext(func() {
 		var (
-			networkPlugin string
-
 			f         *framework.Framework
 			clientset kubernetes.Interface
 			tmpDirBGP string
@@ -143,8 +141,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 		g.BeforeEach(func() {
 			g.By("Verifying that this cluster uses a network plugin that is supported for this test")
-			networkPlugin = networkPluginName()
-			if networkPlugin != OVNKubernetesPluginName {
+			if networkPluginName() != OVNKubernetesPluginName {
 				skipper.Skipf("This cluster does not use OVNKubernetes")
 			}
 
@@ -233,7 +230,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			g.BeforeEach(func() {
 				g.By("Setup packet sniffer at nodes")
 				var err error
-				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, advertisedPodsNodes, networkPlugin)
+				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, advertisedPodsNodes)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Ensure the RouteAdvertisements is accepted")
@@ -403,7 +400,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					snifferPodsNodes = advertisedPodsNodes
 				}
 				g.By("Setup packet sniffer at nodes")
-				packetSnifferDaemonSet, err = setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, snifferPodsNodes, networkPlugin, testSnifferInterface)
+				packetSnifferDaemonSet, err = setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, snifferPodsNodes, testSnifferInterface)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Create a namespace with UDPN")
@@ -591,7 +588,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				g.By("Setup packet sniffer at nodes")
-				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, egressIPNodes, networkPlugin)
+				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, egressIPNodes)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
@@ -644,7 +641,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 						// Run this twice to make sure that repeated EgressIP creation, update and deletion works.
 						for i := 0; i < 2; i++ {
 							g.By("Creating the EgressIP object")
-							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+							createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
 
 							g.By("Applying the EgressIP object")
 							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
@@ -661,7 +658,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 							g.By("Updating the EgressIP object")
-							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
+							createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
 
 							g.By("Applying the updated EgressIP object")
 							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, newEgressIPSet, egressUpdateTimeout)
@@ -784,7 +781,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							// Run this twice to make sure that repeated EgressIP creation and deletion works.
 							for i := 0; i < 2; i++ {
 								g.By("Creating the EgressIP object")
-								ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+								createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
 
 								g.By("Applying the EgressIP object")
 								applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
@@ -802,7 +799,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 								spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
 								g.By("Updating the EgressIP object")
-								ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
+								createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
 
 								g.By("Applying the updated EgressIP object")
 								applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, newEgressIPSet, egressUpdateTimeout)
@@ -1278,11 +1275,11 @@ func checkExternalResponse(oc *exutil.CLI, proberPod *corev1.Pod, podIP, Externa
 }
 
 // Add these helper functions after the imports
-func setupPacketSniffer(oc *exutil.CLI, clientset kubernetes.Interface, snifferNamespace string, advertisedPodsNodes []string, networkPlugin string) (*v1.DaemonSet, error) {
-	return setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, advertisedPodsNodes, networkPlugin, "")
+func setupPacketSniffer(oc *exutil.CLI, clientset kubernetes.Interface, snifferNamespace string, advertisedPodsNodes []string) (*v1.DaemonSet, error) {
+	return setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, advertisedPodsNodes, "")
 }
 
-func setupPacketSnifferOnInterface(oc *exutil.CLI, clientset kubernetes.Interface, snifferNamespace string, advertisedPodsNodes []string, networkPlugin, packetSnifferInterface string) (*v1.DaemonSet, error) {
+func setupPacketSnifferOnInterface(oc *exutil.CLI, clientset kubernetes.Interface, snifferNamespace string, advertisedPodsNodes []string, packetSnifferInterface string) (*v1.DaemonSet, error) {
 	// Add SCC privileged
 	_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged",
 		fmt.Sprintf("system:serviceaccount:%s:default", snifferNamespace))
@@ -1292,7 +1289,7 @@ func setupPacketSnifferOnInterface(oc *exutil.CLI, clientset kubernetes.Interfac
 
 	// Find interface for packet sniffing
 	if packetSnifferInterface == "" {
-		packetSnifferInterface, err = findPacketSnifferInterface(oc, networkPlugin, advertisedPodsNodes)
+		packetSnifferInterface, err = findPacketSnifferInterface(oc, advertisedPodsNodes)
 		if err != nil {
 			return nil, err
 		}

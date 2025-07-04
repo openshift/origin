@@ -1093,9 +1093,6 @@ github.com/openshift/client-go/user/informers/externalversions/internalinterface
 github.com/openshift/client-go/user/informers/externalversions/user
 github.com/openshift/client-go/user/informers/externalversions/user/v1
 github.com/openshift/client-go/user/listers/user/v1
-# github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
-## explicit; go 1.22.0
-github.com/openshift/cluster-network-operator/pkg/names
 # github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
 ## explicit; go 1.23.0
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
@@ -1127,7 +1124,6 @@ github.com/openshift/library-go/pkg/image/internal/reference
 github.com/openshift/library-go/pkg/image/reference
 github.com/openshift/library-go/pkg/markdown
 github.com/openshift/library-go/pkg/network
-github.com/openshift/library-go/pkg/network/networkutils
 github.com/openshift/library-go/pkg/oauth/oauthdiscovery
 github.com/openshift/library-go/pkg/oauth/tokenrequest
 github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers
