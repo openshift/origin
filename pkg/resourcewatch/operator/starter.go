@@ -19,8 +19,8 @@ import (
 	"k8s.io/klog/v2"
 )
 
-type observationSource func(ctx context.Context, log logr.Logger, resourceC chan<- *observe.ResourceObservation) chan struct{}
-type observationSink func(<-chan *observe.ResourceObservation) chan struct{}
+type observationSource func(context.Context, logr.Logger, chan<- *observe.ResourceObservation) chan struct{}
+type observationSink func(context.Context, <-chan *observe.ResourceObservation) chan struct{}
 
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
@@ -88,7 +88,7 @@ func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 	log := klog.FromContext(ctx)
 
 	sourceFinished := source(ctx, log, resourceC)
-	sinkFinished := sink(resourceC)
+	sinkFinished := sink(ctx, resourceC)
 
 	// Wait for the source and sink to finish.
 	select {
@@ -263,16 +263,16 @@ func gitSink() (observationSink, error) {
 		return nil, err
 	}
 
-	return func(resourceC <-chan *observe.ResourceObservation) chan struct{} {
+	return func(ctx context.Context, resourceC <-chan *observe.ResourceObservation) chan struct{} {
 		finished := make(chan struct{})
 		go func() {
 			defer close(finished)
 			for observation := range resourceC {
-				gitWrite(gitStorage, observation)
+				gitWrite(ctx, gitStorage, observation)
 			}
 
 			// We disable GC while we're writing, so run it after we're done.
-			if err := gitStorage.GC(); err != nil {
+			if err := gitStorage.GC(ctx); err != nil {
 				klog.Errorf("Failed to run git gc with error %v", err)
 			}
 		}()
@@ -288,7 +288,7 @@ func gitInitStorage() (*storage.GitStorage, error) {
 	return storage.NewGitStorage(repositoryPath)
 }
 
-func gitWrite(gitStorage *storage.GitStorage, observation *observe.ResourceObservation) {
+func gitWrite(ctx context.Context, gitStorage *storage.GitStorage, observation *observe.ResourceObservation) {
 	gvr := schema.GroupVersionResource{
 		Group:    observation.Group,
 		Version:  observation.Version,
@@ -296,18 +296,18 @@ func gitWrite(gitStorage *storage.GitStorage, observation *observe.ResourceObser
 	}
 	switch observation.ObservationType {
 	case observe.ObservationTypeAdd:
-		gitStorage.OnAdd(observation.ObservationTime, gvr, observation.Object)
+		gitStorage.OnAdd(ctx, observation.ObservationTime, gvr, observation.Object)
 	case observe.ObservationTypeUpdate:
-		gitStorage.OnUpdate(observation.ObservationTime, gvr, observation.OldObject, observation.Object)
+		gitStorage.OnUpdate(ctx, observation.ObservationTime, gvr, observation.OldObject, observation.Object)
 	case observe.ObservationTypeDelete:
-		gitStorage.OnDelete(observation.ObservationTime, gvr, observation.Object)
+		gitStorage.OnDelete(ctx, observation.ObservationTime, gvr, observation.Object)
 	}
 }
 
 func jsonSink(file io.WriteCloser) (observationSink, error) {
 	encoder := json.NewEncoder(file)
 
-	return func(resourceC <-chan *observe.ResourceObservation) chan struct{} {
+	return func(ctx context.Context, resourceC <-chan *observe.ResourceObservation) chan struct{} {
 		finished := make(chan struct{})
 		go func() {
 			defer func() {

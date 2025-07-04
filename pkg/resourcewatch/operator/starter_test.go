@@ -44,6 +44,6 @@ func BenchmarkGitSink(b *testing.B) {
 	source(b.Context(), logr.Discard(), resourceC)
 
 	for b.Loop() {
-		gitWrite(gitStorage, <-resourceC)
+		gitWrite(b.Context(), gitStorage, <-resourceC)
 	}
 }
