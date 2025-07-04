@@ -11,6 +11,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -823,8 +825,15 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 	if apiGroups.Has("config.openshift.io") {
 		featureGates, err := determineEnabledFeatureGates(ctx, clientConfig)
 		if err != nil {
-			return nil, errors.WithMessage(err, "couldn't determine feature gates")
+			return nil, errors.WithMessage(err, "couldn't determine OpenShift feature gates")
 		}
+		featureGatesAPI, err := getFeatureGatesAPIServerMetrics(ctx, clientConfig)
+		if err != nil {
+			return nil, errors.WithMessage(err, "couldn't determine FeatureGates from API /metrics")
+		}
+		featureGates = append(featureGates, featureGatesAPI...)
+		slices.Sort(featureGates)
+		featureGates = slices.Compact(featureGates)
 		envFlagBuilder.AddFeatureGates(featureGates...)
 	}
 
@@ -902,6 +911,28 @@ func determineEnabledAPIGroups(discoveryClient discovery.AggregatedDiscoveryInte
 	return apiGroups, nil
 }
 
+// getFeatureGatesAPIServerMetrics extracts enabled feature gates from the API server metrics endpoint.
+// It returns a list of feature gate names that are enabled.
+func getFeatureGatesAPIServerMetrics(ctx context.Context, clientConfig *clientconfigv1.Clientset) ([]string, error) {
+	rsp, err := clientConfig.RESTClient().Get().AbsPath("/metrics").Do(ctx).Raw()
+	if err != nil {
+		return nil, err
+	}
+	featureGates := sets.NewString()
+	lines := strings.Split(string(rsp), "\n")
+	re := regexp.MustCompile(`kubernetes_feature_enabled\{name="([^"]+)".*\} 1`)
+	for _, line := range lines {
+		if strings.HasPrefix(line, "kubernetes_feature_enabled{") && strings.HasSuffix(line, "} 1") {
+			matches := re.FindStringSubmatch(line)
+			if len(matches) == 2 {
+				featureGates.Insert(matches[1])
+			}
+		}
+	}
+	logrus.Infof("Enabled feature gates from API server metrics: %v", featureGates.List())
+	return featureGates.List(), nil
+}
+
 func determineEnabledFeatureGates(ctx context.Context, configClient clientconfigv1.Interface) ([]string, error) {
 	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
@@ -934,5 +965,6 @@ func determineEnabledFeatureGates(ctx context.Context, configClient clientconfig
 		return nil, nil
 	}
 
+	logrus.Infof("Enabled feature gates from Openshift: %v", ret.List())
 	return ret.List(), nil
 }
