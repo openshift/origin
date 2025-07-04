@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
@@ -56,7 +57,7 @@ func NewGitStorage(path string) (*GitStorage, error) {
 }
 
 // handle handles different operations on git
-func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
+func (s *GitStorage) handle(timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
@@ -84,14 +85,14 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 			// Add it first before removing it.
 			if os.IsNotExist(err) {
 				klog.Info("Observed delete of file we haven't previously observed. Adding it first.")
-				s.handle(gvr, nil, obj, false)
-				s.handle(gvr, nil, obj, true)
+				s.handle(timestamp, gvr, nil, obj, false)
+				s.handle(timestamp, gvr, nil, obj, true)
 				return
 			} else {
 				klog.Errorf("Error removing %q: %v", filePath, err)
 			}
 		}
-		if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
+		if err := s.commitRemove(timestamp, filePath, "unknown", ocCommand); err != nil {
 			klog.Error(err)
 		}
 
@@ -114,12 +115,12 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	switch operation {
 	case gitOpAdded:
 		klog.Infof("Calling commitAdd for %s", filePath)
-		if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
+		if err := s.commitAdd(timestamp, filePath, modifyingUser, ocCommand); err != nil {
 			klog.Error(err)
 		}
 	case gitOpModified:
 		klog.Infof("Calling commitModify for %s", filePath)
-		if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
+		if err := s.commitModify(timestamp, filePath, modifyingUser, ocCommand); err != nil {
 			klog.Error(err)
 		}
 	default:
@@ -127,20 +128,20 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	}
 }
 
-func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
+func (s *GitStorage) OnAdd(timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 
-	s.handle(gvr, nil, objUnstructured, false)
+	s.handle(timestamp, gvr, nil, objUnstructured, false)
 }
 
-func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj interface{}) {
+func (s *GitStorage) OnUpdate(timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 	oldObjUnstructured := oldObj.(*unstructured.Unstructured)
 
-	s.handle(gvr, oldObjUnstructured, objUnstructured, false)
+	s.handle(timestamp, gvr, oldObjUnstructured, objUnstructured, false)
 }
 
-func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
+func (s *GitStorage) OnDelete(timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -155,7 +156,7 @@ func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) 
 		}
 	}
 
-	s.handle(gvr, nil, objUnstructured, true)
+	s.handle(timestamp, gvr, nil, objUnstructured, true)
 }
 
 // guessAtModifyingUsers tries to figure out who modified the resource
@@ -229,15 +230,20 @@ func (s *GitStorage) exec(command string, args ...string) error {
 	return nil
 }
 
-func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
+func (s *GitStorage) commit(timestamp time.Time, path, author, commitMessage string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("added %s", ocCommand)
+	dateString := timestamp.Format(time.RFC3339)
 
+	return s.exec("git", "commit", "--author", authorString, "--date", dateString, "-m", commitMessage)
+}
+
+func (s *GitStorage) commitAdd(timestamp time.Time, path, author, ocCommand string) error {
 	if err := s.exec("git", "add", path); err != nil {
 		return err
 	}
 
-	if err := s.exec("git", "commit", "--author", authorString, "-m", commitMessage); err != nil {
+	commitMessage := fmt.Sprintf("added %s", ocCommand)
+	if err := s.commit(timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
@@ -245,15 +251,13 @@ func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
 	return nil
 }
 
-func (s *GitStorage) commitModify(path, author, ocCommand string) error {
-	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
-
+func (s *GitStorage) commitModify(timestamp time.Time, path, author, ocCommand string) error {
 	if err := s.exec("git", "add", path); err != nil {
 		return err
 	}
 
-	if err := s.exec("git", "commit", "--author", authorString, "-m", commitMessage); err != nil {
+	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
+	if err := s.commit(timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
@@ -261,15 +265,13 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 	return nil
 }
 
-func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
-	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("removed %s", ocCommand)
-
+func (s *GitStorage) commitRemove(timestamp time.Time, path, author, ocCommand string) error {
 	if err := s.exec("git", "rm", path); err != nil {
 		return err
 	}
 
-	if err := s.exec("git", "commit", "--author", authorString, "-m", commitMessage); err != nil {
+	commitMessage := fmt.Sprintf("removed %s", ocCommand)
+	if err := s.commit(timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
