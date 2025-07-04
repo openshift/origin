@@ -1,15 +1,14 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
-
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
@@ -19,51 +18,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 )
 
-type workingSet struct {
-	currentlyWorking sets.String
-	lock             sync.RWMutex
-}
-
-func (s *workingSet) isWorkingOn(key string) bool {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.currentlyWorking.Has(key)
-}
-
-func (s *workingSet) reserve(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.currentlyWorking.Insert(key)
-}
-
-func (s *workingSet) release(key string) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.currentlyWorking.Delete(key)
-}
-
-func (s *workingSet) waitUntilAvailable(key string) error {
-	return wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
-		if s.isWorkingOn(key) {
-			return false, nil
-		}
-		return true, nil
-	})
-}
-
 type GitStorage struct {
 	repo *git.Repository
 	path string
-
-	currentlyRecording workingSet
-
-	// Writing to Git repository must be synced otherwise Git will freak out
-	sync.Mutex
 }
 
 type gitOperation int
@@ -91,33 +54,16 @@ func NewGitStorage(path string) (*GitStorage, error) {
 		return nil, err
 	}
 	storage := &GitStorage{path: path, repo: repo}
-	storage.currentlyRecording.currentlyWorking = sets.String{}
 
 	return storage, nil
 }
 
+func (s *GitStorage) GC(ctx context.Context) error {
+	return s.execGit(ctx, "gc")
+}
+
 // handle handles different operations on git
-func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
-	// notifications for resources come in a single threaded stream per-resource.
-	// this means there will never be contention on a single file.
-	// we will lock just before the commit itself.
-
-	// Allowing files to be written while a commit is in progress leads to commit failures due to unstaged changes
-	// moving the lock to the top of the handler to make the action atomic.
-	// E0706 02:06:26.489945    2444 git_store.go:338] Ran git add "namespaces/openshift-cloud-credential-operator/core/services/cco-metrics.yaml" && git commit --author="modified-unknown <ci-monitor@openshift.io>" -m "modifed services/cco-metrics -n openshift-cloud-credential-operator"
-	// On branch master
-	// Changes not staged for commit:
-	//  (use "git add <file>..." to update what will be committed)
-	//  (use "git restore <file>..." to discard changes in working directory)
-	//	modified:   namespaces/openshift-apiserver/core/pods/apiserver-856c47d994-47cf7.yaml
-	//
-	// Untracked files:
-	//  (use "git add <file>..." to include in what will be committed)
-	//	namespaces/openshift-etcd/core/pods/etcd-ci-op-g2xjpfr4-ed5cd-gqjcq-master-0.yaml
-
-	s.Lock()
-	defer s.Unlock()
-
+func (s *GitStorage) handle(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj *unstructured.Unstructured, delete bool) {
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
@@ -138,17 +84,22 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 
 	if delete {
 		klog.Infof("Calling commitRemove for %s", filePath)
-		// ignore error, we've already reported and we're not doing anything else.
-		pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
-				klog.Error(err)
-				return false, nil
+		err := os.Remove(path.Join(s.path, filePath))
+		if err != nil {
+			// If the file doesn't exist it means we're deleting a file we haven't previously observed.
+			// That's probably a collection bug.
+			// Add it first before removing it.
+			if os.IsNotExist(err) {
+				klog.Info("Observed delete of file we haven't previously observed. Adding it first.")
+				s.handle(ctx, timestamp, gvr, nil, obj, false)
+				s.handle(ctx, timestamp, gvr, nil, obj, true)
+				return
+			} else {
+				klog.Errorf("Error removing %q: %v", filePath, err)
 			}
-			return true, nil
-		})
-
-		if pollErr != nil {
-			klog.Errorf("PollWait Error: %v", pollErr)
+		}
+		if err := s.commitRemove(ctx, timestamp, filePath, "unknown", ocCommand); err != nil {
+			klog.Error(err)
 		}
 
 		return
@@ -157,7 +108,7 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	klog.Infof("Calling write for %s", filePath)
 	operation, err := s.write(filePath, content)
 	if err != nil {
-		klog.Warningf("Writing file content failed %q: %v", filePath, err)
+		klog.Errorf("Writing file content failed %q: %v", filePath, err)
 		return
 	}
 
@@ -167,72 +118,36 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 		modifyingUser = err.Error()
 	}
 
-	// ignore error, we've already reported and we're not doing anything else.
-	pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-		switch {
-		case operation == gitOpAdded:
-			klog.Infof("Calling commitAdd for %s", filePath)
-			if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
-				klog.Error(err)
-				return false, nil
-			}
-		case operation == gitOpModified:
-			klog.Infof("Calling commitModify for %s", filePath)
-			if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
-				klog.Error(err)
-				return false, nil
-			}
-		default:
-			klog.Errorf("unhandled case for %s", filePath)
-
-			return true, nil
+	switch operation {
+	case gitOpAdded:
+		klog.Infof("Calling commitAdd for %s", filePath)
+		if err := s.commitAdd(ctx, timestamp, filePath, modifyingUser, ocCommand); err != nil {
+			klog.Error(err)
 		}
-		return true, nil
-	})
-
-	if pollErr != nil {
-		klog.Errorf("PollWait Error: %v", pollErr)
+	case gitOpModified:
+		klog.Infof("Calling commitModify for %s", filePath)
+		if err := s.commitModify(ctx, timestamp, filePath, modifyingUser, ocCommand); err != nil {
+			klog.Error(err)
+		}
+	default:
+		klog.Errorf("unhandled case for %s: %d", filePath, operation)
 	}
 }
 
-func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
+func (s *GitStorage) OnAdd(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 
-	// serialize updates to individual files
-	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
-	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
-		klog.Error(err)
-		return
-	}
-	s.currentlyRecording.reserve(key)
-
-	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
-	go func() {
-		defer s.currentlyRecording.release(key)
-		s.handle(gvr, nil, objUnstructured, false)
-	}()
+	s.handle(ctx, timestamp, gvr, nil, objUnstructured, false)
 }
 
-func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj interface{}) {
+func (s *GitStorage) OnUpdate(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, oldObj, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 	oldObjUnstructured := oldObj.(*unstructured.Unstructured)
 
-	// serialize updates to individual files
-	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
-	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
-		klog.Error(err)
-		return
-	}
-	s.currentlyRecording.reserve(key)
-
-	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
-	go func() {
-		defer s.currentlyRecording.release(key)
-		s.handle(gvr, oldObjUnstructured, objUnstructured, false)
-	}()
+	s.handle(ctx, timestamp, gvr, oldObjUnstructured, objUnstructured, false)
 }
 
-func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
+func (s *GitStorage) OnDelete(ctx context.Context, timestamp time.Time, gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured, ok := obj.(*unstructured.Unstructured)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -247,19 +162,7 @@ func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) 
 		}
 	}
 
-	// serialize updates to individual files
-	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
-	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
-		klog.Error(err)
-		return
-	}
-	s.currentlyRecording.reserve(key)
-
-	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
-	go func() {
-		defer s.currentlyRecording.release(key)
-		s.handle(gvr, nil, objUnstructured, true)
-	}()
+	s.handle(ctx, timestamp, gvr, nil, objUnstructured, true)
 }
 
 // guessAtModifyingUsers tries to figure out who modified the resource
@@ -322,23 +225,39 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
-func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
-	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("added %s", ocCommand)
-	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
+func (s *GitStorage) execGit(ctx context.Context, args ...string) error {
+	// Disable automatic garbage collection to avoid racing with other processes.
+	args = append([]string{"-c", "gc.auto=0"}, args...)
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
-	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
+	// NOTE(mdbooth): I thought I saw a phantom race since adding the gc.auto=0
+	// flag, but I haven't been able to reproduce it since. This retry loop is
+	// hopefully unnecessary.
+	return wait.PollUntilContextTimeout(ctx, 1*time.Second, 15*time.Second, true, func(ctx context.Context) (bool, error) {
+		osCommand := exec.Command("git", args...)
+		osCommand.Dir = s.path
+		output, err := osCommand.CombinedOutput()
+		if err != nil {
+			klog.Errorf("Ran git %v\n%v\n\n", args, string(output))
+			return false, err
 		}
+		return true, nil
+	})
+}
+
+func (s *GitStorage) commit(ctx context.Context, timestamp time.Time, path, author, commitMessage string) error {
+	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
+	dateString := timestamp.Format(time.RFC3339)
+
+	return s.execGit(ctx, "commit", "--author", authorString, "--date", dateString, "-m", commitMessage)
+}
+
+func (s *GitStorage) commitAdd(ctx context.Context, timestamp time.Time, path, author, ocCommand string) error {
+	if err := s.execGit(ctx, "add", path); err != nil {
+		return err
+	}
+
+	commitMessage := fmt.Sprintf("added %s", ocCommand)
+	if err := s.commit(ctx, timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
@@ -346,57 +265,27 @@ func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
 	return nil
 }
 
-func (s *GitStorage) commitModify(path, author, ocCommand string) error {
-	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
-	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
-
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
-	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
-		// if nothing changed in the modify don't keep trying over and over
-		if strings.Contains(string(output), "nothing to commit") {
-			klog.Info("Exiting commitModify as nothing to commit")
-			return nil
-		}
-
+func (s *GitStorage) commitModify(ctx context.Context, timestamp time.Time, path, author, ocCommand string) error {
+	if err := s.execGit(ctx, "add", path); err != nil {
 		return err
 	}
 
-	if output != nil {
-		klog.Infof("Ran %v\n%v\n\n", command, string(output))
+	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
+	if err := s.commit(ctx, timestamp, path, author, commitMessage); err != nil {
+		return err
 	}
 
 	klog.Infof("Modified: %v -- %v updated %v", path, author, ocCommand)
 	return nil
 }
 
-func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
-	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
-	commitMessage := fmt.Sprintf("removed %s", ocCommand)
-	command := fmt.Sprintf(`rm %q && git rm %q && git commit --author=%q -m %q`, path, path, authorString, commitMessage)
+func (s *GitStorage) commitRemove(ctx context.Context, timestamp time.Time, path, author, ocCommand string) error {
+	if err := s.execGit(ctx, "rm", path); err != nil {
+		return err
+	}
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
-	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
+	commitMessage := fmt.Sprintf("removed %s", ocCommand)
+	if err := s.commit(ctx, timestamp, path, author, commitMessage); err != nil {
 		return err
 	}
 
