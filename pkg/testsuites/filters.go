@@ -3,9 +3,7 @@ package testsuites
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"strings"
-	"time"
 
 	"github.com/openshift/origin/pkg/test/ginkgo"
 )
@@ -16,49 +14,37 @@ func SuitesString(suites []*ginkgo.TestSuite, prefix string) string {
 	buf := &bytes.Buffer{}
 	fmt.Fprintf(buf, prefix)
 	for _, suite := range suites {
-		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
+		fmt.Fprintf(buf, "%s\n", suite.Name)
+
+		// Add source information
+		if suite.Extension != nil {
+			fmt.Fprintf(buf, "  Source: Extension (%s:%s:%s)\n", suite.Extension.Component.Product, suite.Extension.Component.Kind, suite.Extension.Component.Name)
+			if suite.Extension.Source.SourceImage != "" {
+				fmt.Fprintf(buf, "  Image: %s\n", suite.Extension.Source.SourceImage)
+			}
+			if suite.Extension.Source.SourceURL != "" {
+				fmt.Fprintf(buf, "  URL: %s\n", suite.Extension.Source.SourceURL)
+			}
+		} else {
+			fmt.Fprintf(buf, "  Source: Internal\n")
+		}
+
+		// Add description with proper indentation
+		if suite.Description != "" {
+			// Split description into lines and indent each line
+			lines := strings.Split(strings.TrimSpace(suite.Description), "\n")
+			fmt.Fprintf(buf, "  Description:\n")
+			for _, line := range lines {
+				trimmedLine := strings.TrimSpace(line)
+				if trimmedLine != "" {
+					fmt.Fprintf(buf, "    %s\n", trimmedLine)
+				}
+			}
+		}
+
+		fmt.Fprintf(buf, "\n")
 	}
 	return buf.String()
-}
-
-func isDisabled(name string) bool {
-	if strings.Contains(name, "[Disabled") {
-		return true
-	}
-
-	return shouldSkipUntil(name)
-}
-
-// shouldSkipUntil allows a test to be skipped with a time limit.
-// the test should be annotated with the 'SkippedUntil' tag, as shown below.
-//
-//	[SkippedUntil:05092022:blocker-bz/123456]
-//
-// - the specified date should conform to the 'MMDDYYYY' format.
-// - a valid blocker BZ must be specified
-// if the specified date in the tag has not passed yet, the test
-// will be skipped by the runner.
-func shouldSkipUntil(name string) bool {
-	re, err := regexp.Compile(`\[SkippedUntil:(\d{8}):blocker-bz\/([a-zA-Z0-9]+)\]`)
-	if err != nil {
-		// it should only happen with a programmer error and unit
-		// test will prevent that
-		return false
-	}
-	matches := re.FindStringSubmatch(name)
-	if len(matches) != 3 {
-		return false
-	}
-
-	skipUntil, err := time.Parse("01022006", matches[1])
-	if err != nil {
-		return false
-	}
-
-	if skipUntil.After(time.Now()) {
-		return true
-	}
-	return false
 }
 
 // isStandardEarlyTest returns true if a test is considered part of the normal
@@ -77,4 +63,30 @@ func isStandardEarlyOrLateTest(name string) bool {
 		return false
 	}
 	return strings.Contains(name, "[Suite:openshift/conformance/parallel")
+}
+
+// withStandardEarlyOrLateTests combines a CEL expression with the standard early/late test logic.
+// It returns a CEL expression that matches tests that either satisfy the provided expression
+// OR are standard early/late tests.
+func withStandardEarlyOrLateTests(expr string) string {
+	earlyLateExpr := `(name.contains("[Early]") || name.contains("[Late]")) && name.contains("[Suite:openshift/conformance/parallel")`
+
+	if expr == "" {
+		return earlyLateExpr
+	}
+
+	return fmt.Sprintf("(%s) || (%s)", expr, earlyLateExpr)
+}
+
+// withStandardEarlyTests combines a CEL expression with the standard early test logic.
+// It returns a CEL expression that matches tests that either satisfy the provided expression
+// OR are standard early tests.
+func withStandardEarlyTests(expr string) string {
+	earlyExpr := `name.contains("[Early]") && name.contains("[Suite:openshift/conformance/parallel")`
+
+	if expr == "" {
+		return earlyExpr
+	}
+
+	return fmt.Sprintf("(%s) || (%s)", expr, earlyExpr)
 }

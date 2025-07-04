@@ -9,8 +9,9 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	"github.com/openshift/origin/test/extended/util/image"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/test/extended/util/image"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	// Initialize baremetal as a provider
@@ -104,7 +105,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		"dryRun":       dryRun,
 		"discover":     discover,
 		"clusterState": clusterState,
-	}).Info("Decoding provider")
+	}).Debug("Decoding provider")
 	switch providerTypeOrJSON {
 	case "none":
 		config := &ClusterConfiguration{
@@ -193,7 +194,9 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 			if clusterState != nil {
 				var err error
 				config, err = LoadConfig(clusterState)
-				log.WithError(err).Warn("ignoring error from LoadConfig for discovery")
+				if err != nil {
+					log.WithError(err).Warn("ignoring error from LoadConfig for discovery")
+				}
 			}
 		}
 		if config == nil {
