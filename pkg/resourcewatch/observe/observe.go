@@ -136,12 +136,14 @@ func emitUpdate(observedResources map[types.UID]*resourceMeta, gvr schema.GroupV
 	}
 
 	resourceC <- &ResourceObservation{
-		GroupVersionResource: gvr,
-		UID:                  resource.GetUID(),
-		ObservationType:      observationType,
-		Object:               resource,
-		OldObject:            observedMeta.lastObserved,
-		ObservationTime:      time.Now(),
+		Group:           gvr.Group,
+		Version:         gvr.Version,
+		Resource:        gvr.Resource,
+		UID:             resource.GetUID(),
+		ObservationType: observationType,
+		Object:          resource,
+		OldObject:       observedMeta.lastObserved,
+		ObservationTime: time.Now(),
 	}
 
 	observedMeta.resourceVersions[resource.GetResourceVersion()] = struct{}{}
@@ -152,11 +154,13 @@ func emitDelete(observedResources map[types.UID]*resourceMeta, gvr schema.GroupV
 	delete(observedResources, resource.GetUID())
 
 	resourceC <- &ResourceObservation{
-		GroupVersionResource: gvr,
-		UID:                  resource.GetUID(),
-		ObservationType:      ObservationTypeDelete,
-		Object:               resource,
-		ObservationTime:      time.Now(),
+		Group:           gvr.Group,
+		Version:         gvr.Version,
+		Resource:        gvr.Resource,
+		UID:             resource.GetUID(),
+		ObservationType: ObservationTypeDelete,
+		Object:          resource,
+		ObservationTime: time.Now(),
 	}
 }
 
@@ -171,10 +175,12 @@ func emitInferredDelete(observedResources map[types.UID]*resourceMeta, lastObser
 	tombstone.SetUID(uid)
 
 	resourceC <- &ResourceObservation{
-		GroupVersionResource: gvr,
-		UID:                  uid,
-		ObservationType:      ObservationTypeDelete,
-		ObservationTime:      time.Now(),
-		Object:               &tombstone,
+		Group:           gvr.Group,
+		Version:         gvr.Version,
+		Resource:        gvr.Resource,
+		UID:             uid,
+		ObservationType: ObservationTypeDelete,
+		ObservationTime: time.Now(),
+		Object:          &tombstone,
 	}
 }
