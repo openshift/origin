@@ -435,7 +435,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 				}
 				output, err = getFromEtcd(etcdClient3, testData.ExpectedEtcdPath)
 				if err != nil {
-					framework.Logf(err.Error())
+					framework.Logf("%s", err.Error())
 					lastErr = err
 					continue
 				}

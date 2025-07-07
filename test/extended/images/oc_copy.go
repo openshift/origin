@@ -328,7 +328,7 @@ func (e *hookExecutor) executeExecNewPod(hook *appsv1.LifecycleHook, rc *corev1.
 	wg.Wait()
 	if updatedPod.Status.Phase == corev1.PodFailed {
 		fmt.Fprintf(e.out, "--> %s: Failed\n", label)
-		return fmt.Errorf(updatedPod.Status.Message)
+		return fmt.Errorf("%s", updatedPod.Status.Message)
 	}
 	// Only show this message if we created the pod ourselves, or we saw
 	// the pod in a running or pending state.

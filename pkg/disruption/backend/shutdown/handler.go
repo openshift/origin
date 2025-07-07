@@ -60,7 +60,7 @@ func (h *ciShutdownIntervalHandler) Handle(shutdown *shutdownInterval) {
 	message = fmt.Sprintf("%s: load balancer took new(%s) reused(%s) to switch to a new host", message,
 		shutdown.MaxElapsedWithNewConnection.Round(time.Second), shutdown.MaxElapsedWithConnectionReuse.Round(time.Second))
 	message = fmt.Sprintf("reason/%s locator/%s %s: %s", reason, h.descriptor.ShutdownLocator(), message, shutdown.String())
-	framework.Logf(message)
+	framework.Logf("%s", message)
 
 	if level == monitorapi.Error {
 		h.eventRecorder.Eventf(
