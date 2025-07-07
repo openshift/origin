@@ -157,17 +157,17 @@ var s2iImages = map[string][]tc{
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
-			Version:  "81",
+			Version:  "82",
 			Cmd:      "php --version",
-			Expected: "8.1",
-			Tag:      "8.1-ubi9",
+			Expected: "8.2",
+			Tag:      "8.2-ubi9",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		// {
-		// 	Version:  "82",
+		// 	Version:  "83",
 		// 	Cmd:      "php --version",
-		// 	Expected: "8.2",
-		// 	Tag:      "8.2-ubi9",
+		// 	Expected: "8.3",
+		// 	Tag:      "8.3-ubi9",
 		// 	Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		// },
 		{
