@@ -18,28 +18,25 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	configv1 "github.com/openshift/api/config/v1"
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/mod/semver"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/pkg/test/filters"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -89,6 +86,7 @@ type GinkgoRunSuiteOptions struct {
 
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+	Extension           *extension.Extension
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -147,94 +145,101 @@ func max(a, b int) int {
 	return b
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
-	upgrade bool) error {
-	ctx := context.Background()
-
-	tests, err := testsForSuite()
-	if err != nil {
-		return fmt.Errorf("failed reading origin test suites: %w", err)
+// shouldRetryTest determines if a failed test should be retried based on retry policies.
+// It returns true if the test is eligible for retry, false otherwise.
+func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTags []string) bool {
+	// Internal tests (no binary) are eligible for retry, we shouldn't really have any of these
+	// now that origin is also an extension.
+	if test.binary == nil {
+		return true
 	}
 
+	tlog := logrus.WithField("test", test.name)
+
+	// Get extension info to check if it's from a permitted image
+	info, err := test.binary.Info(ctx)
+	if err != nil {
+		tlog.WithError(err).
+			Debug("Failed to get binary info, skipping retry")
+		return false
+	}
+
+	// Check if the test's source image is in the permitted retry list
+	for _, permittedTag := range permittedRetryImageTags {
+		if strings.Contains(info.Source.SourceImage, permittedTag) {
+			tlog.WithField("image", info.Source.SourceImage).
+				Debug("Permitting retry")
+			return true
+		}
+	}
+
+	tlog.WithField("image", info.Source.SourceImage).
+		Debug("Test not eligible for retry based on image tag")
+	return false
+}
+
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
+	upgrade bool) error {
+	ctx := context.Background()
 	var sharder Sharder
 	switch o.ShardStrategy {
 	default:
 		sharder = &HashSharder{}
 	}
 
-	logrus.WithField("suite", suite.Name).Infof("Found %d internal tests in openshift-tests binary", len(tests))
+	defaultBinaryParallelism := 10
 
-	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
-	var externalTestCases []*testCase
-	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		// Extract all test binaries
-		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer extractionContextCancel()
-		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
-		if err != nil {
-			return err
-		}
-		defer cleanUpFn()
-
-		defaultBinaryParallelism := 10
-
-		// Learn about the extension binaries available
-		// TODO(stbenjam): we'll eventually use this information to get suite information -- but not yet in this iteration
-		infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
-		defer infoContextCancel()
-		extensionsInfo, err := externalBinaries.Info(infoContext, defaultBinaryParallelism)
-		if err != nil {
-			return err
-		}
-		logrus.Infof("Discovered %d extensions", len(extensionsInfo))
-		for _, e := range extensionsInfo {
-			id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
-			logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
-		}
-
-		// List tests from all available binaries and convert them to origin's testCase format
-		listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer listContextCancel()
-
-		envFlags, err := determineEnvironmentFlags(ctx, upgrade, o.DryRun)
-		if err != nil {
-			return fmt.Errorf("could not determine environment flags: %w", err)
-		}
-		logrus.WithFields(envFlags.LogFields()).Infof("Determined all potential environment flags")
-
-		externalTestSpecs, err := externalBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
-		if err != nil {
-			return err
-		}
-		externalTestCases = externalBinaryTestsToOriginTestCases(externalTestSpecs)
-
-		var filteredTests []*testCase
-		for _, test := range tests {
-			// tests contains all the tests "registered" in openshift-tests binary,
-			// this also includes vendored k8s tests, since this path assumes we're
-			// using external binary to run these tests we need to remove them
-			// from the final lists, which contains:
-			// 1. origin tests, only
-			// 2. k8s tests, coming from external binary
-			if !strings.Contains(test.name, "[Suite:k8s]") {
-				filteredTests = append(filteredTests, test)
-			}
-		}
-		logrus.Infof("Discovered %d internal tests, %d external tests - %d total unique tests",
-			len(tests), len(externalTestCases), len(filteredTests)+len(externalTestCases))
-		tests = append(filteredTests, externalTestCases...)
-	} else {
-		logrus.Infof("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+	// Extract all test binaries
+	extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer extractionContextCancel()
+	cleanUpFn, allBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, defaultBinaryParallelism)
+	if err != nil {
+		return err
 	}
+	defer cleanUpFn()
+
+	// Learn about the extension binaries available
+	infoContext, infoContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer infoContextCancel()
+	logrus.Infof("Fetching info from %d extension binaries", len(allBinaries))
+	extensionsInfo, err := allBinaries.Info(infoContext, defaultBinaryParallelism)
+	if err != nil {
+		logrus.Errorf("Failed to fetch extension info: %v", err)
+		return fmt.Errorf("failed to fetch extension info: %w", err)
+	}
+
+	logrus.Infof("Discovered %d extensions", len(extensionsInfo))
+	for _, e := range extensionsInfo {
+		id := fmt.Sprintf("%s:%s:%s", e.Component.Product, e.Component.Kind, e.Component.Name)
+		logrus.Infof("Extension %s found in %s:%s using API version %s", id, e.Source.SourceImage, e.Source.SourceBinary, e.APIVersion)
+	}
+
+	// List tests from all available binaries and convert them to origin's testCase format
+	listContext, listContextCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer listContextCancel()
+
+	envFlags, err := determineEnvironmentFlags(ctx, upgrade, o.DryRun)
+	if err != nil {
+		return fmt.Errorf("could not determine environment flags: %w", err)
+	}
+	logrus.WithFields(envFlags.LogFields()).Infof("Determined all potential environment flags")
+
+	specs, err := allBinaries.ListTests(listContext, defaultBinaryParallelism, envFlags)
+	if err != nil {
+		return err
+	}
+
+	logrus.Infof("Discovered %d total tests", len(specs))
 
 	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
 	// begins to pass we can remove the annotation logic
 	var annotatedSkipped []string
-	for _, t := range externalTestCases {
-		if strings.Contains(t.name, "[Skipped") {
-			annotatedSkipped = append(annotatedSkipped, t.name)
+	for _, t := range specs {
+		if strings.Contains(t.Name, "[Skipped") {
+			annotatedSkipped = append(annotatedSkipped, t.Name)
 		}
 	}
+	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	var skippedAnnotationSyntheticTestResults []*junitapi.JUnitTestCase
 	skippedAnnotationSyntheticTestResult := junitapi.JUnitTestCase{
 		Name: "[sig-trt] Skipped annotations present",
@@ -248,18 +253,37 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	// If this fails, this additional run will make it flake
 	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &junitapi.JUnitTestCase{Name: skippedAnnotationSyntheticTestResult.Name})
 
+	// skip tests due to newer k8s
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	// Apply all test filters using the filter chain -- origin previously filtered tests a ton
+	// of places, and co-mingled suite, annotation, and cluster state filters in odd ways. This filter
+	// chain is the ONLY place tests should be filtered down for determining the final execution set.
+	testFilterChain := filters.NewFilterChain(logrus.WithField("component", "test-filter")).
+		AddFilter(filters.NewQualifiersFilter(suite.Qualifiers)).
+		AddFilter(filters.NewKubeRebaseTestsFilter(restConfig)).
+		AddFilter(&filters.DisabledTestsFilter{}).
+		AddFilter(filters.NewMatchFnFilter(suite.SuiteMatcher)). // used for file or regexp cli filter on test names
+		AddFilter(filters.NewClusterStateFilter(clusterConfig))
+
+	specs, err = testFilterChain.Apply(ctx, specs)
+	if err != nil {
+		return err
+	}
+
+	tests, err := extensionTestSpecsToOriginTestCases(specs)
+	if err != nil {
+		return errors.WithMessage(err, "could not convert test specs to origin test cases")
+	}
+
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
 	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
-
-	tests = suite.Filter(tests)
-	if len(tests) == 0 {
-		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
-	}
-
-	logrus.Infof("Found %d filtered tests", len(tests))
 
 	count := o.Count
 	if count == 0 {
@@ -290,17 +314,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			fmt.Fprintf(o.Out, "%q\n", test.name)
 		}
 		return nil
-	}
-
-	restConfig, err := clusterinfo.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
-
-	// skip tests due to newer k8s
-	tests, err = o.filterOutRebaseTests(restConfig, tests)
-	if err != nil {
-		return err
 	}
 
 	if len(o.JUnitDir) > 0 {
@@ -503,29 +516,28 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
-	// attempt to retry failures to do flake detection
+	// Determine if we should retry any tests for flake detection
+	// Don't add more here without discussion with OCP architects, we should be moving towards not having any flakes
+	permittedRetryImageTags := []string{"tests"} // tests = openshift-tests image
 	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
 		var retries []*testCase
 
-		// Make a copy of the all failing tests (subject to the max allowed flakes) so we can have
-		// a list of tests to retry.
-		failedExtensionTestCount := 0
+		failedUnretriableTestCount := 0
 		for _, test := range failing {
-			// Do not retry extension tests -- we also want to remove retries from origin-sourced
-			// tests, but extensions is where we can start.
-			if test.binary != nil {
-				failedExtensionTestCount++
-				continue
-			}
-
-			retry := test.Retry()
-			retries = append(retries, retry)
-			if len(retries) > suite.MaximumAllowedFlakes {
-				break
+			if shouldRetryTest(ctx, test, permittedRetryImageTags) {
+				retry := test.Retry()
+				retries = append(retries, retry)
+				if len(retries) > suite.MaximumAllowedFlakes {
+					break
+				}
+			} else if test.binary != nil {
+				// Do not retry extension tests -- we also want to remove retries from origin-sourced
+				// tests, but extensions is where we can start.
+				failedUnretriableTestCount++
 			}
 		}
 
-		logrus.Warningf("%d tests failed, %d origin-sourced tests will be retried; %d extension tests will not", len(failing), len(retries), failedExtensionTestCount)
+		logrus.Warningf("%d tests failed, %d tests permitted to be retried; %d failures are terminal non-retryable failures", len(failing), len(retries), failedUnretriableTestCount)
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
@@ -729,42 +741,6 @@ func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix st
 	return nil
 }
 
-func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, tests []*testCase) ([]*testCase, error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-	serverVersion, err := discoveryClient.ServerVersion()
-	if err != nil {
-		return nil, err
-	}
-	// TODO: this version along with below exclusions lists needs to be updated
-	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "31") {
-		return tests, nil
-	}
-
-	// Below list should only be filled in when we're trying to land k8s rebase.
-	// Don't pile them up!
-	exclusions := []string{
-		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
-		`[sig-api-machinery] health handlers should contain necessary checks`,
-	}
-
-	matches := make([]*testCase, 0, len(tests))
-outerLoop:
-	for _, test := range tests {
-		for _, excl := range exclusions {
-			if strings.Contains(test.name, excl) {
-				fmt.Fprintf(o.Out, "Skipping %q due to rebase in-progress\n", test.name)
-				continue outerLoop
-			}
-		}
-		matches = append(matches, test)
-	}
-	return matches, nil
-}
-
 func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (extensions.EnvironmentFlags, error) {
 	restConfig, err := e2e.LoadConfig(true)
 	if err != nil {
@@ -805,31 +781,11 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		envFlagBuilder.AddTopology(&singleReplicaTopology)
 	}
 
-	clientConfig, err := clientconfigv1.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	discoveryClient, err := kubeconfig.NewDiscoveryGetter(restConfig).GetDiscoveryClient()
-	if err != nil {
-		return nil, err
-	}
-	apiGroups, err := determineEnabledAPIGroups(discoveryClient)
-	if err != nil {
-		return nil, errors.WithMessage(err, "couldn't determine api groups")
-	}
-	envFlagBuilder.AddAPIGroups(apiGroups.UnsortedList()...)
-
-	if apiGroups.Has("config.openshift.io") {
-		featureGates, err := determineEnabledFeatureGates(ctx, clientConfig)
-		if err != nil {
-			return nil, errors.WithMessage(err, "couldn't determine feature gates")
-		}
-		envFlagBuilder.AddFeatureGates(featureGates...)
-	}
-
 	//Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
+		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
+			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
+
 		upgradeType := "None"
 		if upgrade {
 			upgradeType = determineUpgradeType(clusterState.Version.Status)
@@ -883,56 +839,4 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
-}
-
-func determineEnabledAPIGroups(discoveryClient discovery.AggregatedDiscoveryInterface) (sets.Set[string], error) {
-	groups, err := discoveryClient.ServerGroups()
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve served resources: %v", err)
-	}
-	apiGroups := sets.New[string]()
-	for _, apiGroup := range groups.Groups {
-		// ignore the empty group
-		if apiGroup.Name == "" {
-			continue
-		}
-		apiGroups.Insert(apiGroup.Name)
-	}
-
-	return apiGroups, nil
-}
-
-func determineEnabledFeatureGates(ctx context.Context, configClient clientconfigv1.Interface) ([]string, error) {
-	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	desiredVersion := clusterVersion.Status.Desired.Version
-	if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
-		desiredVersion = clusterVersion.Status.History[0].Version
-	}
-
-	ret := sets.NewString()
-	found := false
-	for _, featureGateValues := range featureGate.Status.FeatureGates {
-		if featureGateValues.Version != desiredVersion {
-			continue
-		}
-		found = true
-		for _, enabled := range featureGateValues.Enabled {
-			ret.Insert(string(enabled.Name))
-		}
-		break
-	}
-	if !found {
-		logrus.Warning("no feature gates found")
-		return nil, nil
-	}
-
-	return ret.List(), nil
 }

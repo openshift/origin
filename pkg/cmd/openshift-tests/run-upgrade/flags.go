@@ -2,13 +2,14 @@ package run_upgrade
 
 import (
 	"fmt"
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
-	"github.com/openshift/origin/pkg/clioptions/iooptions"
-	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
-	"github.com/openshift/origin/pkg/clioptions/suiteselection"
-	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
+
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/clioptions/suiteselection"
+	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -60,11 +61,6 @@ func (f *RunUpgradeSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams)
 }
 
 func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions, error) {
-	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
-	if err != nil {
-		return nil, err
-	}
-
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -82,12 +78,7 @@ func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions
 
 	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
 		f.AvailableSuites,
-		args,
-		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
-		kubeconfig.NewConfigClientGetter(adminRESTConfig),
-		f.GinkgoRunSuiteOptions.DryRun,
-		nil,
-	)
+		args)
 	if err != nil {
 		return nil, err
 	}

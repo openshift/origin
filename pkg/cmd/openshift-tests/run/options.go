@@ -6,15 +6,18 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
+	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/openshift/origin/test/extended/util/image"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/klog/v2"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -27,6 +30,12 @@ type RunSuiteOptions struct {
 
 	CloseFn iooptions.CloseFunc
 	genericclioptions.IOStreams
+
+	// ClusterConfig contains cluster-specific configuration for filtering tests
+	ClusterConfig *clusterdiscovery.ClusterConfiguration
+
+	// Extension is the internal origin extension of its own test specs.
+	Extension *extension.Extension
 }
 
 func (o *RunSuiteOptions) TestCommandEnvironment() []string {
@@ -90,7 +99,9 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
 
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", monitorTestInfo, false)
+	o.GinkgoRunSuiteOptions.Extension = o.Extension
+
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, o.ClusterConfig, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}

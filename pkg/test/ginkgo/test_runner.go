@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
+
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 
 	"github.com/openshift/origin/pkg/test/extensions"
 
@@ -306,75 +306,40 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	ret.start = time.Now()
 	testEnv := append(os.Environ(), updateEnvVars(c.env)...)
 
-	if test.binary != nil {
-		results := test.binary.RunTests(ctx, c.timeout, testEnv, test.name)
-		if len(results) != 1 {
-			fmt.Fprintf(os.Stderr, "warning: expected 1 result from external binary; received %d", len(results))
-		}
-		switch results[0].Result {
-		case extensions.ResultFailed:
-			ret.testState = TestFailed
-			ret.testOutputBytes = []byte(fmt.Sprintf("%s\n%s", results[0].Output, results[0].Error))
-		case extensions.ResultPassed:
-			ret.testState = TestSucceeded
-		case extensions.ResultSkipped:
-			ret.testState = TestSkipped
-			ret.testOutputBytes = []byte(results[0].Output)
-		}
-		ret.start = extensions.Time(results[0].StartTime)
-		ret.end = extensions.Time(results[0].EndTime)
-		ret.extensionTestResult = results[0]
-		return ret
+	// Everything's been migrated to OTE, including origin itself, test spec must have a binary set
+	if test.binary == nil {
+		ret.testState = TestFailed
+		ret.testOutputBytes = []byte("test has no binary configured; this should not be possible")
 	}
-
-	testName := test.rawName
-	if testName == "" {
-		testName = test.name
-	}
-
-	command := exec.Command(os.Args[0], "run-test", testName)
-	command.Env = testEnv
 
 	timeout := c.timeout
-	if test.testTimeout != 0 {
+	if test.testTimeout > 0 {
 		timeout = test.testTimeout
 	}
 
-	testOutputBytes, err := runWithTimeout(ctx, command, timeout)
-	ret.end = time.Now()
+	results := test.binary.RunTests(ctx, timeout, testEnv, test.name)
+	if len(results) != 1 {
+		fmt.Fprintf(os.Stderr, "warning: expected 1 result from external binary; received %d", len(results))
+	}
+	if len(results) == 0 {
+		ret.testState = TestFailed
+		ret.testOutputBytes = []byte("no results from external binary")
+		return ret
+	}
 
-	ret.testOutputBytes = testOutputBytes
-	if err == nil {
+	switch results[0].Result {
+	case extensiontests.ResultFailed:
+		ret.testState = TestFailed
+		ret.testOutputBytes = []byte(fmt.Sprintf("%s\n%s", results[0].Output, results[0].Error))
+	case extensiontests.ResultPassed:
 		ret.testState = TestSucceeded
-		return ret
-	}
-
-	if ctx.Err() != nil {
+	case extensiontests.ResultSkipped:
 		ret.testState = TestSkipped
-		return ret
+		ret.testOutputBytes = []byte(results[0].Output)
 	}
-
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		switch exitErr.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() {
-		case 1:
-			// failed
-			ret.testState = TestFailed
-		case 2:
-			// timeout (ABRT is an exit code 2)
-			ret.testState = TestFailedTimeout
-		case 3:
-			// skipped
-			ret.testState = TestSkipped
-		case 4:
-			// flaky, do not retry
-			ret.testState = TestFlaked
-		default:
-			ret.testState = TestUnknown
-		}
-		return ret
-	}
-
-	ret.testState = TestFailed
+	ret.start = extensions.Time(results[0].StartTime)
+	ret.end = extensions.Time(results[0].EndTime)
+	ret.extensionTestResult = results[0]
 	return ret
 }
 
@@ -398,35 +363,5 @@ func updateEnvVars(envs []string) []string {
 	}
 	provider, _ := json.Marshal(config)
 	result = append(result, fmt.Sprintf("TEST_PROVIDER=%s", provider))
-	// TODO: do we need to inject KUBECONFIG?
-	// result = append(result, "KUBECONFIG=%s", )
 	return result
-}
-
-func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]byte, error) {
-	if timeout > 0 {
-		go func() {
-			select {
-			// interrupt tests after timeout, and abort if they don't complete quick enough
-			case <-time.After(timeout):
-				if c.Process != nil {
-					c.Process.Signal(syscall.SIGINT)
-				}
-				// if the process appears to be hung a significant amount of time after the timeout
-				// send an ABRT so we get a stack dump
-				select {
-				case <-time.After(time.Minute):
-					if c.Process != nil {
-						c.Process.Signal(syscall.SIGABRT)
-					}
-				}
-			case <-ctx.Done():
-				if c.Process != nil {
-					c.Process.Signal(syscall.SIGINT)
-				}
-			}
-
-		}()
-	}
-	return c.CombinedOutput()
 }

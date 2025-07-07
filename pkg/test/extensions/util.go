@@ -7,7 +7,6 @@ import (
 	"debug/elf"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"os/exec"
@@ -18,11 +17,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/dbtime"
+	"github.com/sirupsen/logrus"
+
 	imagev1 "github.com/openshift/api/image/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/test/extended/util"
 )
+
+func Time(t *dbtime.DBTime) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return time.Time(*t)
+}
 
 // ungzipFile checks if a binary is gzipped (ends with .gz) and decompresses it.
 // Returns the new filename of the decompressed file (original is deleted), or original filename if it was not gzipped.
