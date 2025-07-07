@@ -290,7 +290,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		// Skip router certificates (both certificate and signer)
 		// These are not being rotated automatically
 		// OLM: bug https://issues.redhat.com/browse/CNTRLPLANE-379
-		shortCertRotationIgnoredNamespaces := []string{"openshift-operator-lifecycle-manager", "openshift-ingress-operator"}
+		shortCertRotationIgnoredNamespaces := []string{"openshift-operator-lifecycle-manager", "openshift-ingress-operator", "openshift-ingress"}
 
 		for _, certKeyPair := range actualPKIContent.CertKeyPairs.Items {
 			if certKeyPair.Spec.CertMetadata.ValidityDuration == "" {
