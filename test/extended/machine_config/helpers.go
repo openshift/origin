@@ -729,6 +729,18 @@ func WaitForMCNConditionStatus(clientSet *machineconfigclient.Clientset, mcnName
 	return conditionMet, conditionErr
 }
 
+// `GetMCNCondition` returns the queried condition or nil if the condition does not exist
+func GetMCNCondition(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) *metav1.Condition {
+	// Loop through conditions and return the status of the desired condition type
+	conditions := mcn.Status.Conditions
+	for _, condition := range conditions {
+		if condition.Type == string(conditionType) {
+			return &condition
+		}
+	}
+	return nil
+}
+
 // `CheckMCNConditionStatus` checks that an MCN condition matches the desired status (ex. confirm "Updated" is "False")
 func CheckMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress, status metav1.ConditionStatus) bool {
 	conditionStatus := getMCNConditionStatus(mcn, conditionType)
@@ -738,14 +750,13 @@ func CheckMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1
 // `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
 func getMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) metav1.ConditionStatus {
 	// Loop through conditions and return the status of the desired condition type
-	conditions := mcn.Status.Conditions
-	for _, condition := range conditions {
-		if condition.Type == string(conditionType) {
-			framework.Logf("MCN '%s' %s condition status is %s", mcn.Name, conditionType, condition.Status)
-			return condition.Status
-		}
+	condition := GetMCNCondition(mcn, conditionType)
+	if condition == nil {
+		return ""
 	}
-	return ""
+
+	framework.Logf("MCN '%s' %s condition status is %s", mcn.Name, conditionType, condition.Status)
+	return condition.Status
 }
 
 // `ConfirmUpdatedMCNStatus` confirms that an MCN is in a fully updated state, which requires:
