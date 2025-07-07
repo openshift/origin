@@ -15,6 +15,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -328,8 +329,14 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	if err := cmd.Run(); err != nil {
-		i.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
-		return nil
+		// specifically ipv6 disconnected isn't expected to work
+		jobType, err := platformidentification.GetJobType(context.TODO(), adminRESTConfig)
+		if err == nil && jobType.Platform == "metal" {
+			i.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image for metal platform: %v: %v", err, errOut.String())
+			return nil
+		}
+
+		return fmt.Errorf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
 	}
 	i.openshiftTestsImagePullSpec = strings.TrimSpace(out.String())
 	log.Infof("openshift-tests image pull spec is %v", i.openshiftTestsImagePullSpec)
