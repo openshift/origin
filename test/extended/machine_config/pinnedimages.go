@@ -411,17 +411,20 @@ func waitForPISStatusX(ctx context.Context, oc *exutil.CLI, kubeClient *kubernet
 		// Wait for PIS object to get created
 		appliedPIS, err := clientSet.MachineconfigurationV1().PinnedImageSets().Get(context.TODO(), pisName, metav1.GetOptions{})
 		if err != nil {
-			return false, fmt.Errorf("PIS Object not created yet: %w", err)
+			framework.Logf("Retrying PIS Status with non-fatal error: PIS Object not created yet: %s", err)
+			return false, nil
 		}
 
 		pool, err := clientSet.MachineconfigurationV1().MachineConfigPools().Get(ctx, appliedPIS.Labels["machineconfiguration.openshift.io/role"], metav1.GetOptions{})
 		if err != nil {
-			return false, fmt.Errorf("failed to get MCP mentioned in PIS: %w", err)
+			framework.Logf("Retrying PIS Status with non-fatal error: failed to get MCP mentioned in PIS: %s", err)
+			return false, nil
 		}
 
 		nodes, err := getNodesForPool(ctx, oc, kubeClient, pool)
 		if err != nil {
-			return false, fmt.Errorf("failed to get Nodes from MCP %q  mentioned in PIS: %w", pool.Name, err)
+			framework.Logf("Retrying PIS Status with non-fatal error: failed to get Nodes from MCP %q mentioned in PIS: %s", pool.Name, err)
+			return false, nil
 		}
 
 		doneNodes := 0
