@@ -3,36 +3,26 @@ package extensions
 import (
 	"fmt"
 	"strings"
-	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// ExtensionInfo represents an extension to openshift-tests.
-type ExtensionInfo struct {
-	APIVersion string    `json:"apiVersion"`
-	Source     Source    `json:"source"`
-	Component  Component `json:"component"`
-
-	// Suites that the extension wants to advertise/participate in.
-	Suites []Suite `json:"suites"`
+// Extension represents an extension to openshift-tests.
+type Extension struct {
+	*extension.Extension
 
 	// -- origin specific info --
-	ExtensionArtifactDir string `json:"extension_artifact_dir"`
+	Binary               *TestBinary `json:"-"`
+	Source               Source      `json:"source"`
+	ExtensionArtifactDir string      `json:"extension_artifact_dir"`
 }
 
 // Source contains the details of the commit and source URL.
 type Source struct {
-	// Commit from which this binary was compiled.
-	Commit string `json:"commit"`
-	// BuildDate ISO8601 string of when the binary was built
-	BuildDate string `json:"build_date"`
-	// GitTreeState lets you know the status of the git tree (clean/dirty)
-	GitTreeState string `json:"git_tree_state"`
-	// SourceURL contains the url of the git repository (if known) that this extension was built from.
-	SourceURL string `json:"source_url,omitempty"`
+	*extension.Source
 
 	// -- origin specific info --
 
@@ -43,31 +33,6 @@ type Source struct {
 	SourceBinary string `json:"source_binary,omitempty"`
 }
 
-// Component represents the component the binary acts on.
-type Component struct {
-	// The product this component is part of.
-	Product string `json:"product"`
-	// The type of the component.
-	Kind string `json:"type"`
-	// The name of the component.
-	Name string `json:"name"`
-}
-
-// Suite represents additional suites the extension wants to advertise.
-type Suite struct {
-	// The name of the suite.
-	Name string `json:"name"`
-	// Parent suites this suite is part of.
-	Parents []string `json:"parents,omitempty"`
-	// Qualifiers are CEL expressions that are OR'd together for test selection that are members of the suite.
-	Qualifiers []string `json:"qualifiers,omitempty"`
-}
-
-type Lifecycle string
-
-var LifecycleInforming Lifecycle = "informing"
-var LifecycleBlocking Lifecycle = "blocking"
-
 type ExtensionTestSpecs []*ExtensionTestSpec
 
 type EnvironmentSelector struct {
@@ -76,113 +41,58 @@ type EnvironmentSelector struct {
 }
 
 type ExtensionTestSpec struct {
-	Name string `json:"name"`
-
-	// OriginalName contains the very first name this test was ever known as, used to preserve
-	// history across all names.
-	OriginalName string `json:"originalName,omitempty"`
-
-	// Labels are single string values to apply to the test spec
-	Labels sets.Set[string] `json:"labels"`
-
-	// Tags are key:value pairs
-	Tags map[string]string `json:"tags,omitempty"`
-
-	// Resources gives optional information about what's required to run this test.
-	Resources Resources `json:"resources"`
-
-	// Source is the origin of the test.
-	Source string `json:"source"`
-
-	// CodeLocations are the files where the spec originates from.
-	CodeLocations []string `json:"codeLocations,omitempty"`
-
-	// Lifecycle informs the executor whether the test is informing only, and should not cause the
-	// overall job run to fail, or if it's blocking where a failure of the test is fatal.
-	// Informing lifecycle tests can be used temporarily to gather information about a test's stability.
-	// Tests must not remain informing forever.
-	Lifecycle Lifecycle `json:"lifecycle"`
-
-	// EnvironmentSelector allows for CEL expressions to be used to control test inclusion
-	EnvironmentSelector EnvironmentSelector `json:"environmentSelector,omitempty"`
+	*extensiontests.ExtensionTestSpec
 
 	// Binary invokes a link to the external binary that provided this test
 	Binary *TestBinary
 }
 
-type Resources struct {
-	Isolation Isolation `json:"isolation"`
-	Memory    string    `json:"memory,omitempty"`
-	Duration  string    `json:"duration,omitempty"`
-	Timeout   string    `json:"timeout,omitempty"`
-}
+// FilterWrappedSpecs applies the upstream Filter method (defined on extensiontests.ExtensionTestSpecs)
+// while preserving our local ExtensionTestSpec wrappers.
+//
+// This is a bit awkward because our ExtensionTestSpecs is a slice of wrappers around
+// *extensiontests.ExtensionTestSpec, but the Filter method only exists on the upstream slice type.
+// To work around this, we:
+//  1. Extract the underlying *extensiontests.ExtensionTestSpec values.
+//  2. Call the upstream Filter.
+//  3. Map the filtered results back to the original wrapped specs using pointer identity.
+//
+// This preserves metadata like the Binary field stored in our wrapper.
+func FilterWrappedSpecs(
+	wrappedSpecs ExtensionTestSpecs,
+	qualifiers []string,
+) (ExtensionTestSpecs, error) {
+	var baseSpecs extensiontests.ExtensionTestSpecs
+	specMap := make(map[*extensiontests.ExtensionTestSpec]*ExtensionTestSpec)
 
-type Isolation struct {
-	Mode     string   `json:"mode,omitempty"`
-	Conflict []string `json:"conflict,omitempty"`
+	for _, spec := range wrappedSpecs {
+		baseSpecs = append(baseSpecs, spec.ExtensionTestSpec)
+		specMap[spec.ExtensionTestSpec] = spec
+	}
+
+	filtered, err := baseSpecs.Filter(qualifiers)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ExtensionTestSpecs
+	for _, f := range filtered {
+		if orig, ok := specMap[f]; ok {
+			result = append(result, orig)
+		}
+	}
+
+	return result, nil
 }
 
 type ExtensionTestResults []*ExtensionTestResult
 
-type Result string
-
-var ResultPassed Result = "passed"
-var ResultSkipped Result = "skipped"
-var ResultFailed Result = "failed"
-
 type ExtensionTestResult struct {
-	Name      string    `json:"name"`
-	Lifecycle Lifecycle `json:"lifecycle"`
-	Duration  int64     `json:"duration"`
-	StartTime *DBTime   `json:"startTime"`
-	EndTime   *DBTime   `json:"endTime"`
-	Result    Result    `json:"result"`
-	Output    string    `json:"output"`
-	Error     string    `json:"error,omitempty"`
-	Details   []Details `json:"details,omitempty"`
+	*extensiontests.ExtensionTestResult
 
 	// Source is the information from the extension binary (it's image tag, repo, commit sha, etc), reported
 	// up by origin so it's easy to identify where a particular result came from in the overall combined result JSON.
 	Source Source `json:"source"`
-}
-
-// Details are human-readable messages to further explain skips, timeouts, etc.
-// It can also be used to provide contemporaneous information about failures
-// that may not be easily returned by must-gather. For larger artifacts (greater than
-// 10KB, write them to $EXTENSION_ARTIFACTS_DIR.
-type Details struct {
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
-}
-
-// DBTime is a type suitable for direct importing into databases like BigQuery,
-// formatted like 2006-01-02 15:04:05.000000 UTC.
-type DBTime time.Time
-
-func TimePtr(t time.Time) *DBTime {
-	return (*DBTime)(&t)
-}
-
-func Time(t *DBTime) time.Time {
-	if t == nil {
-		return time.Time{}
-	}
-	return time.Time(*t)
-}
-
-func (dbt *DBTime) MarshalJSON() ([]byte, error) {
-	formattedTime := time.Time(*dbt).Format(`"2006-01-02 15:04:05.000000 UTC"`)
-	return []byte(formattedTime), nil
-}
-
-func (dbt *DBTime) UnmarshalJSON(b []byte) error {
-	timeStr := string(b[1 : len(b)-1])
-	parsedTime, err := time.Parse("2006-01-02 15:04:05.000000 UTC", timeStr)
-	if err != nil {
-		return err
-	}
-	*dbt = (DBTime)(parsedTime)
-	return nil
 }
 
 // EnvironmentFlagName enumerates each possible EnvironmentFlag's name to be passed to the external binary

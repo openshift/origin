@@ -7,8 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	corev1 "k8s.io/api/core/v1"
@@ -22,6 +25,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
+
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
@@ -70,6 +74,13 @@ type ClusterConfiguration struct {
 
 	// IsNoOptionalCapabilities indicates the cluster has no optional capabilities enabled
 	HasNoOptionalCapabilities bool
+
+	// APIGroups contains the set of API groups available in the cluster
+	APIGroups sets.Set[string] `json:"-"`
+	// EnabledFeatureGates contains the set of enabled feature gates in the cluster
+	EnabledFeatureGates sets.Set[string] `json:"-"`
+	// DisabledFeatureGates contains the set of disabled feature gates in the cluster
+	DisabledFeatureGates sets.Set[string] `json:"-"`
 }
 
 func (c *ClusterConfiguration) ToJSONString() string {
@@ -91,6 +102,80 @@ type ClusterState struct {
 	ControlPlaneTopology *configv1.TopologyMode
 	OptionalCapabilities []configv1.ClusterVersionCapability
 	Version              *configv1.ClusterVersion
+	APIGroups            sets.Set[string]
+	EnabledFeatureGates  sets.Set[string]
+	DisabledFeatureGates sets.Set[string]
+}
+
+// discoverAPIGroups discovers available API groups in the cluster
+func discoverAPIGroups(coreClient clientset.Interface) (sets.Set[string], error) {
+	logrus.Debugf("Discovering API Groups...")
+	discoveryClient := coreClient.Discovery()
+	groups, err := discoveryClient.ServerGroups()
+	if err != nil {
+		return nil, err
+	}
+
+	apiGroups := sets.New[string]()
+	for _, apiGroup := range groups.Groups {
+		// ignore the empty group
+		if apiGroup.Name == "" {
+			continue
+		}
+		apiGroups.Insert(apiGroup.Name)
+	}
+
+	sortedAPIGroups := apiGroups.UnsortedList()
+	slices.Sort(sortedAPIGroups)
+
+	logrus.WithField("apiGroups", strings.Join(sortedAPIGroups, ", ")).
+		Debugf("Discovered %d API Groups", apiGroups.Len())
+
+	return apiGroups, nil
+}
+
+// discoverFeatureGates discovers feature gates in the cluster
+func discoverFeatureGates(configClient configclient.Interface, clusterVersion *configv1.ClusterVersion) (enabled, disabled sets.Set[string], err error) {
+	logrus.Debugf("Discovering feature gates...")
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, errors.WithMessage(err, "encountered an error while discovering feature gates")
+	}
+
+	desiredVersion := clusterVersion.Status.Desired.Version
+	if len(desiredVersion) == 0 && len(clusterVersion.Status.History) > 0 {
+		desiredVersion = clusterVersion.Status.History[0].Version
+	}
+
+	enabled = sets.New[string]()
+	disabled = sets.New[string]()
+	for _, featureGateValues := range featureGate.Status.FeatureGates {
+		if featureGateValues.Version != desiredVersion {
+			logrus.Warningf("Feature gates for version %s not found, skipping", desiredVersion)
+			continue
+		}
+		for _, enabledGate := range featureGateValues.Enabled {
+			enabled.Insert(string(enabledGate.Name))
+		}
+		for _, disabledGate := range featureGateValues.Disabled {
+			disabled.Insert(string(disabledGate.Name))
+		}
+		break
+	}
+
+	sortedEnabledGates := enabled.UnsortedList()
+	slices.Sort(sortedEnabledGates)
+
+	logrus.WithField("featureGates", strings.Join(sortedEnabledGates, ", ")).
+		Debugf("Discovered %d enabled feature gates", len(sortedEnabledGates))
+
+	sortedDisabledGates := disabled.UnsortedList()
+	slices.Sort(sortedDisabledGates)
+
+	logrus.WithField("featureGates", strings.Join(sortedDisabledGates, ", ")).
+		Debugf("Discovered %d disabled feature gates", len(sortedDisabledGates))
+
+	return enabled, disabled, nil
 }
 
 // DiscoverClusterState creates a ClusterState based on a live cluster
@@ -155,6 +240,24 @@ func DiscoverClusterState(clientConfig *rest.Config) (*ClusterState, error) {
 	}
 	state.Version = clusterVersion
 	state.OptionalCapabilities = clusterVersion.Status.Capabilities.EnabledCapabilities
+
+	// Discover available API groups
+	state.APIGroups, err = discoverAPIGroups(coreClient)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encountered an error while discovering API groups")
+	}
+
+	// Discover feature gates
+	if state.APIGroups.Has("config.openshift.io") {
+		state.EnabledFeatureGates, state.DisabledFeatureGates, err = discoverFeatureGates(configClient, clusterVersion)
+		if err != nil {
+			logrus.WithError(err).Warn("ignoring error from discoverFeatureGates")
+		}
+	} else {
+		state.EnabledFeatureGates = sets.New[string]()
+		state.DisabledFeatureGates = sets.New[string]()
+		logrus.Infof("config.openshift.io API group not found, skipping feature gate discovery")
+	}
 
 	return state, nil
 }
@@ -271,63 +374,10 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	// have to scan MachineConfig objects to figure this out? For now, callers can
 	// can just manually override with --provider...
 
+	// Copy API groups and feature gates from cluster state
+	config.APIGroups = state.APIGroups
+	config.EnabledFeatureGates = state.EnabledFeatureGates
+	config.DisabledFeatureGates = state.DisabledFeatureGates
+
 	return config, nil
-}
-
-// MatchFn returns a function that tests if a named function should be run based on
-// the cluster configuration
-func (c *ClusterConfiguration) MatchFn() func(string) bool {
-	var skips []string
-	skips = append(skips, fmt.Sprintf("[Skipped:%s]", c.ProviderName))
-
-	if c.IsIBMROKS {
-		skips = append(skips, "[Skipped:ibmroks]")
-	}
-	if c.NetworkPlugin != "" {
-		skips = append(skips, fmt.Sprintf("[Skipped:Network/%s]", c.NetworkPlugin))
-		if c.NetworkPluginMode != "" {
-			skips = append(skips, fmt.Sprintf("[Skipped:Network/%s/%s]", c.NetworkPlugin, c.NetworkPluginMode))
-		}
-	}
-
-	if c.Disconnected {
-		skips = append(skips, "[Skipped:Disconnected]")
-	}
-
-	if c.IsProxied {
-		skips = append(skips, "[Skipped:Proxy]")
-	}
-
-	if c.SingleReplicaTopology {
-		skips = append(skips, "[Skipped:SingleReplicaTopology]")
-	}
-
-	if !c.HasIPv4 {
-		skips = append(skips, "[Feature:Networking-IPv4]")
-	}
-	if !c.HasIPv6 {
-		skips = append(skips, "[Feature:Networking-IPv6]")
-	}
-	if !c.HasIPv4 || !c.HasIPv6 {
-		// lack of "]" is intentional; this matches multiple tags
-		skips = append(skips, "[Feature:IPv6DualStack")
-	}
-
-	if !c.HasSCTP {
-		skips = append(skips, "[Feature:SCTPConnectivity]")
-	}
-
-	if c.HasNoOptionalCapabilities {
-		skips = append(skips, "[Skipped:NoOptionalCapabilities]")
-	}
-
-	matchFn := func(name string) bool {
-		for _, skip := range skips {
-			if strings.Contains(name, skip) {
-				return false
-			}
-		}
-		return true
-	}
-	return matchFn
 }

@@ -1,11 +1,11 @@
 package testsuites
 
 import (
-	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	"github.com/openshift/origin/pkg/test/ginkgo"
 )
 
 func UpgradeTestSuites() []*ginkgo.TestSuite {
@@ -24,11 +24,8 @@ var upgradeSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run all tests.
 		`),
-		Matches: func(name string) bool {
-			if isStandardEarlyTest(name) {
-				return true
-			}
-			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
+		Qualifiers: []string{
+			withStandardEarlyTests(`name.contains("[Feature:ClusterUpgrade]") && !name.contains("[Suite:k8s]")`),
 		},
 		TestTimeout: 240 * time.Minute,
 	},
@@ -37,11 +34,8 @@ var upgradeSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		Run only the tests that verify the platform remains available.
 		`),
-		Matches: func(name string) bool {
-			if isStandardEarlyTest(name) {
-				return true
-			}
-			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
+		Qualifiers: []string{
+			withStandardEarlyTests(`name.contains("[Feature:ClusterUpgrade]") && !name.contains("[Suite:k8s]")`),
 		},
 		TestTimeout: 240 * time.Minute,
 	},
@@ -50,11 +44,8 @@ var upgradeSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 	Don't run disruption tests.
 		`),
-		Matches: func(name string) bool {
-			if isStandardEarlyTest(name) {
-				return true
-			}
-			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
+		Qualifiers: []string{
+			withStandardEarlyTests(`name.contains("[Feature:ClusterUpgrade]") && !name.contains("[Suite:k8s]")`),
 		},
 		TestTimeout: 240 * time.Minute,
 	},
