@@ -96,7 +96,7 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 		return fmt.Errorf("error creating deployment %s: %v", deploymentObj.Namespace, err)
 	}
 
-	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
 	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
