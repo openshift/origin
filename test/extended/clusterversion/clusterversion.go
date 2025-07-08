@@ -27,7 +27,17 @@ func TestClusterVersionDesiredArchitecture(t g.GinkgoTInterface, oc *exutil.CLI)
 	ctx := context.Background()
 
 	archMetadata, _, err := oc.AsAdmin().Run("adm", "release", "info", `-ojsonpath={.metadata.metadata.release\.openshift\.io\/architecture}`).Outputs()
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		cleanup, cmdArgs, err := exutil.PrepareImagePullSecretAndCABundle(oc)
+		if cleanup != nil {
+			defer cleanup()
+		}
+		o.Expect(err).NotTo(o.HaveOccurred())
+		archMetadata, _, err = oc.AsAdmin().Run("adm", "release", "info", `-ojsonpath={.metadata.metadata.release\.openshift\.io\/architecture}`).Args(cmdArgs...).Outputs()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	} else {
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 
 	// Check desired.Architecture in the CV
 	configClient, err := configclient.NewForConfig(oc.AdminConfig())
