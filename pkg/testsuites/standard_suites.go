@@ -78,12 +78,21 @@ func AllTestSuites(ctx context.Context) ([]*ginkgo.TestSuite, error) {
 			// Add the suite name and its source to our tracking map
 			suiteNameToSources[s.Name] = []string{extensionSource}
 
+			var timeout time.Duration
+			if s.TestTimeout != nil {
+				timeout = *s.TestTimeout
+			}
+
 			suites = append(suites, &ginkgo.TestSuite{
-				Name:        s.Name,
-				Description: s.Description,
-				Kind:        ginkgo.KindExternal,
-				Extension:   e,
-				Qualifiers:  s.Qualifiers,
+				Name:                       s.Name,
+				Description:                s.Description,
+				Kind:                       ginkgo.KindExternal,
+				Count:                      s.Count,
+				Extension:                  e,
+				Parallelism:                s.Parallelism,
+				Qualifiers:                 s.Qualifiers,
+				TestTimeout:                timeout,
+				ClusterStabilityDuringTest: ginkgo.ClusterStabilityDuringTest(s.ClusterStability),
 			})
 		}
 	}
