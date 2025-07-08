@@ -853,7 +853,7 @@ func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
 }
 
 func (c *CLI) UserConfig() *rest.Config {
-	if c.configPath == "" && c.token != "" {
+	if c.token != "" {
 		clientConfig, err := GetClientConfig(c.adminConfigPath)
 		if err != nil {
 			FatalErr(err)

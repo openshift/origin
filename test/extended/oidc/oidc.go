@@ -18,6 +18,7 @@ import (
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	typedroutev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -29,6 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	typedappsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/pod-security-admission/api"
 	"k8s.io/utils/ptr"
 )
@@ -38,10 +43,12 @@ type kubeObject interface {
 	metav1.Object
 }
 
-var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
+var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("external-oidc")
+	// TODO: use new CLI without namespace to create
+	oc := exutil.NewCLIWithoutNamespace("oidc-e2e")
 	oc.KubeFramework().NamespacePodSecurityLevel = api.LevelPrivileged
+	oc.SetNamespace("oidc-e2e")
 	ctx := context.TODO()
 
 	var cleanups []removalFunc
@@ -50,13 +57,16 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 	var password string
 	var group string
 	var originalAuth *configv1.Authentication
+	var oauthUserConfig *rest.Config
 
-	g.BeforeEach(func() {
+	keycloakNamespace := "oidc-e2e-keycloak"
+
+	g.BeforeAll(func() {
 		var err error
-		cleanups, err = deployKeycloak(ctx, oc)
+		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
-		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName)
+		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error getting keycloak route URL")
 
 		keycloakCli, err = keycloakClientFor(kcURL)
@@ -74,24 +84,20 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 
 		o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
 		o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
+
+		originalAuth, err = oc.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not error getting authentications")
+
+		oauthUserConfig = oc.GetClientConfigForUser("oidc-e2e-oauth-user")
 	})
 
-	g.AfterEach(func() {
-		err := removeResources(ctx, cleanups...)
-		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
-
-		err = resetAuthentication(ctx, oc, originalAuth)
-		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
-	})
-
-	g.Describe("[OCPFeatureGate:ExternalOIDC]", func() {
-		g.BeforeEach(func() {
-			original, _, err := configureOIDCAuthentication(ctx, oc, nil)
+	g.Describe("[OCPFeatureGate:ExternalOIDC]", g.Ordered, func() {
+		g.BeforeAll(func() {
+			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, nil)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
-			originalAuth = original
 		})
 
-		g.Describe("external IdP is configured", func() {
+		g.Describe("external IdP is configured", g.Ordered, func() {
 			g.It("should configure kube-apiserver", func() {
 				o.Eventually(func(gomega o.Gomega) {
 					kas, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Get(context.TODO(), "cluster", metav1.GetOptions{})
@@ -125,7 +131,10 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 
 			g.It("should not accept tokens provided by the OAuth server", func() {
 				o.Eventually(func(gomega o.Gomega) {
-					_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
+					clientset, err := kubernetes.NewForConfig(oauthUserConfig)
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					_, err = clientset.CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
 					gomega.Expect(err).ShouldNot(o.BeNil(), "should not be able to list Pods using OAuth client token")
 					gomega.Expect(apierrors.IsUnauthorized(err)).To(o.BeTrue(), "should receive an unauthorized error when trying to list Pods using OAuth client token")
 				}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
@@ -138,7 +147,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 					err := keycloakCli.Authenticate("admin-cli", username, password)
 					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
-					tokenOC := oc.WithToken(keycloakCli.AccessToken())
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
 
 					_, err = tokenOC.KubeClient().AuthorizationV1().SelfSubjectAccessReviews().Create(context.TODO(), &authzv1.SelfSubjectAccessReview{
 						Spec: authzv1.SelfSubjectAccessReviewSpec{
@@ -163,7 +173,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 					err := keycloakCli.Authenticate("admin-cli", username, password)
 					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
-					tokenOC := oc.WithToken(keycloakCli.AccessToken())
+					copiedOC := *oc
+					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
 					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: fmt.Sprintf("%s-info", username),
@@ -177,8 +188,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 			})
 		})
 
-		g.Describe("reverting to IntegratedOAuth", func() {
-			g.BeforeEach(func() {
+		g.Describe("reverting to IntegratedOAuth", g.Ordered, func() {
+			g.BeforeAll(func() {
 				// Wait until we can authenticate using the configured external IdP
 				o.Eventually(func(gomega o.Gomega) {
 					// always re-authenticate to get a new token
@@ -201,7 +212,6 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 
 				err := resetAuthentication(ctx, oc, originalAuth)
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
-				originalAuth = nil
 			})
 
 			g.It("should rollout configuration on the kube-apiserver successfully", func() {
@@ -261,13 +271,12 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 		})
 	})
 
-	g.Describe("[OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings]", func() {
+	g.Describe("[OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings]", g.Ordered, func() {
 		g.Describe("external IdP is configured", func() {
 			g.Describe("without specified UID or Extra claim mappings", func() {
-				g.BeforeEach(func() {
-					original, _, err := configureOIDCAuthentication(ctx, oc, nil)
+				g.BeforeAll(func() {
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, nil)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
-					originalAuth = original
 				})
 
 				g.It("should default UID to the 'sub' claim in the access token from the IdP", func() {
@@ -276,8 +285,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 			})
 
 			g.Describe("with valid specified UID or Extra claim mappings", func() {
-				g.BeforeEach(func() {
-					original, _, err := configureOIDCAuthentication(ctx, oc, func(o *configv1.OIDCProvider) {
+				g.BeforeAll(func() {
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
 							Expression: "claims.preferred_username.upperAscii()",
 						}
@@ -290,7 +299,6 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 						}
 					})
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
-					originalAuth = original
 				})
 
 				g.It("should map the UID of the cluster identity correctly", func() {
@@ -299,7 +307,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 						err := keycloakCli.Authenticate("admin-cli", username, password)
 						gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
-						tokenOC := oc.WithToken(keycloakCli.AccessToken())
+						copiedOC := *oc
+						tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
 						ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
 							ObjectMeta: metav1.ObjectMeta{
 								Name: fmt.Sprintf("%s-info", username),
@@ -317,7 +326,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 						err := keycloakCli.Authenticate("admin-cli", username, password)
 						gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
-						tokenOC := oc.WithToken(keycloakCli.AccessToken())
+						copiedOC := *oc
+						tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
 						ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(context.TODO(), &authnv1.SelfSubjectReview{
 							ObjectMeta: metav1.ObjectMeta{
 								Name: fmt.Sprintf("%s-info", username),
@@ -360,6 +370,14 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", func() {
 			})
 		})
 	})
+
+	g.AfterAll(func() {
+		err := removeResources(ctx, cleanups...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
+
+		err = resetAuthentication(ctx, oc, originalAuth)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+	})
 })
 
 const (
@@ -379,43 +397,68 @@ const (
 	keycloakKeyFile        = "tls.key"
 )
 
-func deployKeycloak(ctx context.Context, client *exutil.CLI) ([]removalFunc, error) {
+func deployKeycloak(ctx context.Context, client *exutil.CLI, namespace string) ([]removalFunc, error) {
 	cleanups := []removalFunc{}
 
-	cleanup, err := createKeycloakServiceAccount(ctx, client)
+	corev1Client := client.AdminKubeClient().CoreV1()
+
+	cleanup, err := createKeycloakNamespace(ctx, corev1Client.Namespaces(), namespace)
+	if err != nil {
+		return cleanups, fmt.Errorf("creating namespace for keycloak: %w", err)
+	}
+	cleanups = append(cleanups, cleanup)
+
+	cleanup, err = createKeycloakServiceAccount(ctx, corev1Client.ServiceAccounts(namespace))
 	if err != nil {
 		return cleanups, fmt.Errorf("creating serviceaccount for keycloak: %w", err)
 	}
 	cleanups = append(cleanups, cleanup)
 
-	service, cleanup, err := createKeycloakService(ctx, client)
+	service, cleanup, err := createKeycloakService(ctx, corev1Client.Services(namespace))
 	if err != nil {
 		return cleanups, fmt.Errorf("creating service for keycloak: %w", err)
 	}
 	cleanups = append(cleanups, cleanup)
 
-	cleanup, err = createKeycloakDeployment(ctx, client)
+	cleanup, err = createKeycloakDeployment(ctx, client.AdminKubeClient().AppsV1().Deployments(namespace))
 	if err != nil {
 		return cleanups, fmt.Errorf("creating deployment for keycloak: %w", err)
 	}
 	cleanups = append(cleanups, cleanup)
 
-	cleanup, err = createKeycloakRoute(ctx, service, client)
+	cleanup, err = createKeycloakRoute(ctx, service, client.AdminRouteClient().RouteV1().Routes(namespace))
 	if err != nil {
 		return cleanups, fmt.Errorf("creating route for keycloak: %w", err)
 	}
 	cleanups = append(cleanups, cleanup)
 
-	cleanup, err = createKeycloakCAConfigMap(ctx, client)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	cleanup, err = createKeycloakCAConfigMap(ctx, corev1Client)
+	if err != nil {
 		return cleanups, fmt.Errorf("creating CA configmap for keycloak: %w", err)
 	}
 	cleanups = append(cleanups, cleanup)
 
-	return cleanups, waitForKeycloakAvailable(ctx, client)
+	return cleanups, waitForKeycloakAvailable(ctx, client, namespace)
 }
 
-func createKeycloakServiceAccount(ctx context.Context, client *exutil.CLI) (removalFunc, error) {
+func createKeycloakNamespace(ctx context.Context, client typedcorev1.NamespaceInterface, namespace string) (removalFunc, error) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+
+	_, err := client.Create(ctx, ns, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return nil, fmt.Errorf("creating serviceaccount: %w", err)
+	}
+
+	return func(ctx context.Context) error {
+		return client.Delete(ctx, ns.Name, metav1.DeleteOptions{})
+	}, nil
+}
+
+func createKeycloakServiceAccount(ctx context.Context, client typedcorev1.ServiceAccountInterface) (removalFunc, error) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: keycloakResourceName,
@@ -423,17 +466,17 @@ func createKeycloakServiceAccount(ctx context.Context, client *exutil.CLI) (remo
 	}
 	sa.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ServiceAccount"))
 
-	_, err := client.AdminKubeClient().CoreV1().ServiceAccounts(client.Namespace()).Create(ctx, sa, metav1.CreateOptions{})
-	if err != nil {
+	_, err := client.Create(ctx, sa, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("creating serviceaccount: %w", err)
 	}
 
 	return func(ctx context.Context) error {
-		return client.AdminKubeClient().CoreV1().ServiceAccounts(client.Namespace()).Delete(ctx, sa.Name, metav1.DeleteOptions{})
+		return client.Delete(ctx, sa.Name, metav1.DeleteOptions{})
 	}, nil
 }
 
-func createKeycloakService(ctx context.Context, client *exutil.CLI) (*corev1.Service, removalFunc, error) {
+func createKeycloakService(ctx context.Context, client typedcorev1.ServiceInterface) (*corev1.Service, removalFunc, error) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: keycloakResourceName,
@@ -453,18 +496,18 @@ func createKeycloakService(ctx context.Context, client *exutil.CLI) (*corev1.Ser
 	}
 	service.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("Service"))
 
-	_, err := client.AdminKubeClient().CoreV1().Services(client.Namespace()).Create(ctx, service, metav1.CreateOptions{})
-	if err != nil {
+	_, err := client.Create(ctx, service, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, nil, fmt.Errorf("creating service: %w", err)
 	}
 
 	return service, func(ctx context.Context) error {
-		return client.AdminKubeClient().CoreV1().Services(client.Namespace()).Delete(ctx, service.Name, metav1.DeleteOptions{})
+		return client.Delete(ctx, service.Name, metav1.DeleteOptions{})
 	}, nil
 }
 
-func createKeycloakCAConfigMap(ctx context.Context, client *exutil.CLI) (removalFunc, error) {
-	defaultIngressCACM, err := client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
+func createKeycloakCAConfigMap(ctx context.Context, client typedcorev1.ConfigMapsGetter) (removalFunc, error) {
+	defaultIngressCACM, err := client.ConfigMaps("openshift-config-managed").Get(ctx, "default-ingress-cert", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("getting configmap openshift-config-managed/default-ingress-cert: %w", err)
 	}
@@ -481,17 +524,17 @@ func createKeycloakCAConfigMap(ctx context.Context, client *exutil.CLI) (removal
 	}
 	keycloakCACM.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("ConfigMap"))
 
-	_, err = client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx, keycloakCACM, metav1.CreateOptions{})
-	if err != nil {
+	_, err = client.ConfigMaps("openshift-config").Create(ctx, keycloakCACM, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("creating configmap: %w", err)
 	}
 
 	return func(ctx context.Context) error {
-		return client.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(ctx, keycloakCACM.Name, metav1.DeleteOptions{})
+		return client.ConfigMaps("openshift-config").Delete(ctx, keycloakCACM.Name, metav1.DeleteOptions{})
 	}, nil
 }
 
-func createKeycloakDeployment(ctx context.Context, client *exutil.CLI) (removalFunc, error) {
+func createKeycloakDeployment(ctx context.Context, client typedappsv1.DeploymentInterface) (removalFunc, error) {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   keycloakResourceName,
@@ -516,13 +559,13 @@ func createKeycloakDeployment(ctx context.Context, client *exutil.CLI) (removalF
 	}
 	deployment.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
 
-	_, err := client.AdminKubeClient().AppsV1().Deployments(client.Namespace()).Create(ctx, deployment, metav1.CreateOptions{})
-	if err != nil {
+	_, err := client.Create(ctx, deployment, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("creating deployment: %w", err)
 	}
 
 	return func(ctx context.Context) error {
-		return client.AdminKubeClient().AppsV1().Deployments(client.Namespace()).Delete(ctx, deployment.Name, metav1.DeleteOptions{})
+		return client.Delete(ctx, deployment.Name, metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -636,7 +679,7 @@ func keycloakContainers() []corev1.Container {
 	}
 }
 
-func createKeycloakRoute(ctx context.Context, service *corev1.Service, client *exutil.CLI) (removalFunc, error) {
+func createKeycloakRoute(ctx context.Context, service *corev1.Service, client typedroutev1.RouteInterface) (removalFunc, error) {
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: keycloakResourceName,
@@ -657,13 +700,13 @@ func createKeycloakRoute(ctx context.Context, service *corev1.Service, client *e
 	}
 	route.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
-	_, err := client.RouteClient().RouteV1().Routes(client.Namespace()).Create(ctx, route, metav1.CreateOptions{})
-	if err != nil {
+	_, err := client.Create(ctx, route, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("creating route: %w", err)
 	}
 
 	return func(ctx context.Context) error {
-		return client.AdminRouteClient().RouteV1().Routes(client.Namespace()).Delete(ctx, route.Name, metav1.DeleteOptions{})
+		return client.Delete(ctx, route.Name, metav1.DeleteOptions{})
 	}, nil
 }
 
@@ -685,7 +728,7 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 	return errors.Join(errs...)
 }
 
-func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
+func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
 	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
@@ -694,7 +737,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, modifi
 	original := authConfig.DeepCopy()
 	modified := authConfig.DeepCopy()
 
-	oidcProvider, err := generateOIDCProvider(ctx, client)
+	oidcProvider, err := generateOIDCProvider(ctx, client, keycloakNS)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating OIDC provider: %w", err)
 	}
@@ -715,7 +758,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, modifi
 	return original, modified, nil
 }
 
-func generateOIDCProvider(ctx context.Context, client *exutil.CLI) (*configv1.OIDCProvider, error) {
+func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace string) (*configv1.OIDCProvider, error) {
 	idpName := "keycloak"
 	caBundle := "keycloak-ca"
 	audiences := []configv1.TokenAudience{
@@ -724,7 +767,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI) (*configv1.OI
 	usernameClaim := "email"
 	groupsClaim := "groups"
 
-	idpUrl, err := admittedURLForRoute(ctx, client, keycloakResourceName)
+	idpUrl, err := admittedURLForRoute(ctx, client, keycloakResourceName, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("getting issuer URL: %w", err)
 	}
@@ -753,12 +796,13 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI) (*configv1.OI
 	}, nil
 }
 
-func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName string) (string, error) {
+func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName, namespace string) (string, error) {
 	var admittedURL string
 
-	// TODO: should probably create a new context that has a timeout to pass into this
-	err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
-		route, err := client.RouteClient().RouteV1().Routes(client.Namespace()).Get(ctx, routeName, metav1.GetOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	err := wait.PollUntilContextCancel(timeoutCtx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
+		route, err := client.AdminRouteClient().RouteV1().Routes(namespace).Get(ctx, routeName, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -1091,6 +1135,7 @@ func (kc *keycloakClient) GetClientByClientID(clientID string) (map[string]inter
 	return nil, fmt.Errorf("client with clientID %q not found", clientID)
 }
 
+// TODO: use SSA?
 func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) error {
 	if original == nil {
 		return nil
@@ -1107,11 +1152,11 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 	return err
 }
 
-func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI) error {
-	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(2*time.Minute))
+func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace string) error {
+	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
 	defer cancel()
 	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
-		deploy, err := client.KubeClient().AppsV1().Deployments(client.Namespace()).Get(ctx, keycloakResourceName, metav1.GetOptions{})
+		deploy, err := client.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, keycloakResourceName, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
