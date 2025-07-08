@@ -27,7 +27,7 @@ type Console struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +required
-	Spec ConsoleSpec `json:"spec,omitempty"`
+	Spec ConsoleSpec `json:"spec"`
 	// +optional
 	Status ConsoleStatus `json:"status,omitempty"`
 }
@@ -203,6 +203,7 @@ type ConfigMapFileReference struct {
 	// +required
 	Key string `json:"key"`
 }
+
 // FileReferenceSource is used by the console to locate the specified file containing a custom logo.
 // +kubebuilder:validation:XValidation:rule="has(self.from) && self.from == 'ConfigMap' ? has(self.configMap) : !has(self.configMap)",message="configMap is required when from is 'ConfigMap', and forbidden otherwise."
 type FileReferenceSource struct {
@@ -479,7 +480,6 @@ type PerspectiveVisibility struct {
 
 // Perspective defines a perspective that cluster admins want to show/hide in the perspective switcher dropdown
 // +kubebuilder:validation:XValidation:rule="has(self.id) && self.id != 'dev'? !has(self.pinnedResources) : true",message="pinnedResources is allowed only for dev and forbidden for other perspectives"
-// +optional
 type Perspective struct {
 	// id defines the id of the perspective.
 	// Example: "dev", "admin".

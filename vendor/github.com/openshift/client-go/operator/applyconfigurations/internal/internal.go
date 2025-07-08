@@ -1656,6 +1656,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: matchType
       type:
         scalar: string
+      default: ""
     - name: maxLength
       type:
         scalar: numeric

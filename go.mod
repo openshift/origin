@@ -37,10 +37,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250522124649-4ffcd156ec7c
 	github.com/openshift-kni/commatrix v0.0.4-0.20250604173218-064b4004e9fb
-	github.com/openshift/api v0.0.0-20250513132935-9052dea86694
+	github.com/openshift/api v0.0.0-20250708091804-72b5a9b46e64
 	github.com/openshift/apiserver-library-go v0.0.0-20250127121756-dc9a973f14ce
-	github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c
-	github.com/openshift/client-go v0.0.0-20250513150353-9ea84fa6431b
+	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
+	github.com/openshift/client-go v0.0.0-20250708171513-62daf6100b4a
 	github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
 	github.com/openshift/library-go v0.0.0-20250129210218-fe56c2cf5d70
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417

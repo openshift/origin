@@ -41,7 +41,6 @@ type EtcdBackupSpec struct {
 	PVCName string `json:"pvcName"`
 }
 
-// +kubebuilder:validation:Optional
 type EtcdBackupStatus struct {
 	// conditions provide details on the status of the etcd backup job.
 	// +listType=map

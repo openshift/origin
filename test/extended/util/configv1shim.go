@@ -11,6 +11,7 @@ import (
 	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1alpha1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha1"
+	configv1alpha2 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha2"
 
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 
@@ -276,6 +277,11 @@ func (c *ConfigClientShim) ConfigV1alpha1() configv1alpha1.ConfigV1alpha1Interfa
 	return c.configClient.ConfigV1alpha1()
 }
 
+// ConfigV1alpha2 implements the missing method for configv1client.Interface.
+func (c *ConfigClientShim) ConfigV1alpha2() configv1alpha2.ConfigV1alpha2Interface {
+	return c.configClient.ConfigV1alpha2()
+}
+
 var _ configv1client.Interface = &ConfigClientShim{}
 
 // ConfigClientShim makes sure whenever there's a static
@@ -432,6 +438,22 @@ func (c *ConfigV1ClientShim) Schedulers() configv1.SchedulerInterface {
 		panic(fmt.Errorf("Scheduler not implemented"))
 	}
 	return c.configv1.Schedulers()
+}
+
+// ClusterImagePolicies implements the missing method for ConfigV1Interface.
+func (c *ConfigV1ClientShim) ClusterImagePolicies() configv1.ClusterImagePolicyInterface {
+	if c.v1Kinds["ClusterImagePolicy"] {
+		panic(fmt.Errorf("ClusterImagePolicy not implemented"))
+	}
+	return c.configv1.ClusterImagePolicies()
+}
+
+// ImagePolicies implements the missing method for ConfigV1Interface.
+func (c *ConfigV1ClientShim) ImagePolicies(namespace string) configv1.ImagePolicyInterface {
+	if c.v1Kinds["ImagePolicy"] {
+		panic(fmt.Errorf("ImagePolicy not implemented"))
+	}
+	return c.configv1.ImagePolicies(namespace)
 }
 
 func (c *ConfigV1ClientShim) RESTClient() rest.Interface {
