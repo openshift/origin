@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -82,6 +83,9 @@ const (
 var (
 	masterRoleMachineConfigLabel = map[string]string{"machineconfiguration.openshift.io/role": "master"}
 	workerRoleMachineConfigLabel = map[string]string{"machineconfiguration.openshift.io/role": "worker"}
+	ipsecConfigurationBaseDir    = exutil.FixturePath("testdata", "ipsec")
+	nsMachineConfigFixture       = filepath.Join(ipsecConfigurationBaseDir, "nsconfig-machine-config.yaml")
+	nsNodeRebootNoneFixture      = filepath.Join(ipsecConfigurationBaseDir, "nsconfig-reboot-none-policy.yaml")
 )
 
 // IsIPv6 returns true if a group of ips are ipv6.
@@ -713,11 +717,15 @@ func deployNmstateHandler(oc *exutil.CLI) error {
 		return fmt.Errorf("nmstate operator is not running: %v", err)
 	}
 	nmStateConfigYaml := exutil.FixturePath("testdata", "ipsec", nmstateConfigureManifestFile)
-	err = oc.AsAdmin().Run("create").Args("-f", nmStateConfigYaml, fmt.Sprintf("--namespace=%s", nmstateNamespace)).Execute()
+	err = oc.AsAdmin().Run("apply").Args("-f", nmStateConfigYaml, fmt.Sprintf("--namespace=%s", nmstateNamespace)).Execute()
 	if err != nil {
 		return fmt.Errorf("error configuring nmstate: %v", err)
 	}
-	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
+	return ensureNmstateHandlerRunning(oc)
+}
+
+func ensureNmstateHandlerRunning(oc *exutil.CLI) error {
+	err := wait.PollUntilContextTimeout(context.Background(), poll, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			// Ensure nmstate handler is running.
 			return isDaemonSetRunning(oc, nmstateNamespace, "nmstate-handler")
@@ -728,26 +736,6 @@ func deployNmstateHandler(oc *exutil.CLI) error {
 	err = waitForDeploymentComplete(oc, nmstateNamespace, "nmstate-webhook")
 	if err != nil {
 		return fmt.Errorf("nmstate webhook is not running: %v", err)
-	}
-	return nil
-}
-
-func undeployNmstateHandler(oc *exutil.CLI) error {
-	nmStateConfigYaml := exutil.FixturePath("testdata", "ipsec", nmstateConfigureManifestFile)
-	err := oc.AsAdmin().Run("delete").Args("-f", nmStateConfigYaml, fmt.Sprintf("--namespace=%s", nmstateNamespace)).Execute()
-	if err != nil {
-		return fmt.Errorf("error deleting nmstate configuration: %v", err)
-	}
-	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			_, err := oc.AdminKubeClient().AppsV1().DaemonSets(nmstateNamespace).Get(context.Background(), "nmstate-handler", metav1.GetOptions{})
-			if err != nil && apierrors.IsNotFound(err) {
-				return true, nil
-			}
-			return false, err
-		})
-	if err != nil {
-		return fmt.Errorf("failed to remove nmstate crd and handler: %v", err)
 	}
 	return nil
 }
@@ -782,12 +770,18 @@ func getDaemonSet(oc *exutil.CLI, namespace, name string) (*appsv1.DaemonSet, er
 }
 
 func createIPsecCertsMachineConfig(oc *exutil.CLI) (*mcfgv1.MachineConfig, error) {
-	ipSecCertsMachineConfig := exutil.FixturePath("testdata", "ipsec", nsCertMachineConfigFile)
-	err := oc.AsAdmin().Run("create").Args("-f", ipSecCertsMachineConfig).Execute()
+	nsCertMachineConfig, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigs().Get(context.Background(),
+		nsCertMachineConfigName, metav1.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+	if err == nil {
+		return nsCertMachineConfig, nil
+	}
+	err = oc.AsAdmin().Run("create").Args("-f", nsMachineConfigFixture).Execute()
 	if err != nil {
 		return nil, fmt.Errorf("error deploying IPsec certs Machine Config: %v", err)
 	}
-	var nsCertMachineConfig *mcfgv1.MachineConfig
 	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
 		nsCertMachineConfig, err = oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigs().Get(context.Background(),
 			nsCertMachineConfigName, metav1.GetOptions{})
