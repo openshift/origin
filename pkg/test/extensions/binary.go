@@ -16,16 +16,119 @@ import (
 	"syscall"
 	"time"
 
+	originVersion "github.com/openshift/origin/pkg/version"
+
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	"github.com/openshift/origin/test/extended/util/image"
 )
+
+// InitializeOpenShiftTestsExtensionFramework creates and initializes the extension registry with the origin tests extension.
+func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extension.Extension, error) {
+	// Create the origin extension
+	ov := originVersion.Get()
+	originExtension := &Extension{
+		Extension: &extension.Extension{
+			Component: extension.Component{
+				Product: "openshift",
+				Kind:    "payload",
+				Name:    "origin",
+			},
+			APIVersion: extension.CurrentExtensionAPIVersion,
+		},
+		Source: Source{
+			Source: &extension.Source{
+				Commit:       ov.GitCommit,
+				GitTreeState: ov.GitTreeState,
+				BuildDate:    ov.BuildDate,
+				SourceURL:    "https://github.com/openshift/origin",
+			},
+			SourceBinary: os.Args[0],
+			SourceImage:  "tests",
+		},
+	}
+
+	// Create our registry of openshift-tests extensions
+	extensionRegistry := extension.NewRegistry()
+	extensionRegistry.Register(originExtension.Extension)
+
+	// Build our specs from ginkgo
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
+	}
+
+	// Apply annotations to test names
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+		// we need to ensure the default path always annotates both
+		// origin and k8s tests accordingly, since each of these
+		// currently have their own annotations which are not
+		// merged anywhere else but applied here
+		if append, ok := origingenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
+			spec.Name += append
+		}
+	})
+
+	// Filter out kube tests, vendor filtering isn't working within origin
+	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+		return !strings.Contains(spec.Name, "[Suite:k8s")
+	})
+
+	specs.AddBeforeAll(func() {
+		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
+		if err != nil {
+			panic(err)
+		}
+		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, false); err != nil {
+			panic(err)
+		}
+		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
+
+		exutil.TestContext.ReportDir = os.Getenv("TEST_JUNIT_DIR")
+
+		image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+
+		if err := imagesetup.VerifyImages(); err != nil {
+			panic(err)
+		}
+
+		// Handle upgrade options
+		upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
+		upgradeOptions, err := upgradeoptions.NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
+		if err != nil {
+			panic(err)
+		}
+
+		if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
+			panic(err)
+		}
+	})
+
+	originExtension.Extension.AddSpecs(specs)
+
+	return extensionRegistry, originExtension.Extension, nil
+}
 
 // TestBinary implements the openshift-tests extension interface (Info, ListTests, RunTests, etc).
 type TestBinary struct {
@@ -35,7 +138,7 @@ type TestBinary struct {
 	binaryPath string
 
 	// Cache the info after gathering it
-	info *ExtensionInfo
+	info *Extension
 }
 
 // ImageSet maps a Kubernetes image ID to its corresponding configuration.
@@ -50,7 +153,16 @@ type Image struct {
 	Version  string `json:"version"`
 }
 
+// extensionBinaries is the registry of additional test binaries to use as extension tests. Members
+// of the registry must be part of the release payload.
 var extensionBinaries = []TestBinary{
+	// Self reference for origin's own internal extension
+	{
+		imageTag:   "tests",
+		binaryPath: os.Args[0],
+	},
+
+	// Extensions in other payload images
 	{
 		imageTag:   "hyperkube",
 		binaryPath: "/usr/bin/k8s-tests-ext.gz",
@@ -62,7 +174,7 @@ var extensionBinaries = []TestBinary{
 }
 
 // Info returns information about this particular extension.
-func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
+func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 	if b.info != nil {
 		return b.info, nil
 	}
@@ -74,18 +186,29 @@ func (b *TestBinary) Info(ctx context.Context) (*ExtensionInfo, error) {
 	command := exec.Command(b.binaryPath, "info")
 	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
+		logrus.Errorf("Failed to fetch info for %s: %v", binName, err)
+		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
 	jsonBegins := bytes.IndexByte(infoJson, '{')
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
-	var info ExtensionInfo
-	err = json.Unmarshal(infoJson[jsonBegins:jsonEnds+1], &info)
+	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
+		logrus.Errorf("No valid JSON found in output from %s info command", binName)
+		logrus.Errorf("Raw output from %s: %s", binName, string(infoJson))
+		return nil, fmt.Errorf("no valid JSON found in output from '%s info' command", binName)
+	}
+	var info Extension
+	jsonData := infoJson[jsonBegins : jsonEnds+1]
+	err = json.Unmarshal(jsonData, &info)
 	if err != nil {
-		return nil, errors.Wrapf(err, "couldn't unmarshal extension info: %s", string(infoJson))
+		logrus.Errorf("Failed to unmarshal JSON from %s: %v", binName, err)
+		logrus.Errorf("JSON data from %s: %s", binName, string(jsonData))
+		return nil, errors.Wrapf(err, "couldn't unmarshal extension info from %s: %s", binName, string(jsonData))
 	}
 	b.info = &info
 
 	// Set fields origin knows or calculates:
+	b.info.Binary = b
 	b.info.Source.SourceBinary = binName
 	b.info.Source.SourceImage = b.imageTag
 	b.info.ExtensionArtifactDir = path.Join(os.Getenv("ARTIFACT_DIR"), safeComponentPath(&b.info.Component))
@@ -187,7 +310,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		//  - we got a test result we didn't expect at all (maybe the external binary improperly
 		//    mutated the name, or otherwise did something weird)
 		if !expectedTests.Has(result.Name) {
-			result.Result = ResultFailed
+			result.Result = extensiontests.ResultFailed
 			result.Error = fmt.Sprintf("test binary %q returned unexpected result: %s", binName, result.Name)
 		}
 		expectedTests.Delete(result.Name)
@@ -200,12 +323,13 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	// we didn't get results for them.
 	for _, expectedTest := range expectedTests.UnsortedList() {
 		results = append(results, &ExtensionTestResult{
-			Name:   expectedTest,
-			Result: ResultFailed,
-			Output: string(testResult),
-			Error:  "external binary did not produce a result for this test",
-
-			Source: b.info.Source,
+			&extensiontests.ExtensionTestResult{
+				Name:   expectedTest,
+				Result: extensiontests.ResultFailed,
+				Output: string(testResult),
+				Error:  "external binary did not produce a result for this test",
+			},
+			b.info.Source,
 		})
 	}
 
@@ -245,6 +369,18 @@ func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 // ExtractAllTestBinaries determines the optimal release payload to use, and extracts all the external
 // test binaries from it, and returns a slice of them.
 func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestBinaries, error) {
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) > 0 {
+		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
+		var internalBinaries []*TestBinary
+		for _, b := range extensionBinaries {
+			if b.binaryPath == os.Args[0] {
+				internalBinaries = append(internalBinaries, &b)
+			}
+		}
+
+		return func() {}, internalBinaries, nil
+	}
+
 	if parallelism < 1 {
 		return nil, nil, errors.New("parallelism must be greater than zero")
 	}
@@ -352,6 +488,13 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 					if !ok {
 						return // Channel is closed
 					}
+
+					// Self reference, no need to extract
+					if b.binaryPath == os.Args[0] {
+						binaries = append(binaries, &b)
+						continue
+					}
+
 					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath)
 					if err != nil {
 						errCh <- err
@@ -386,9 +529,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 type TestBinaries []*TestBinary
 
 // Info fetches the info from all TestBinaries using the specified parallelism.
-func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*ExtensionInfo, error) {
+func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Extension, error) {
 	var (
-		infos []*ExtensionInfo
+		infos []*Extension
 		mu    sync.Mutex
 		wg    sync.WaitGroup
 		errCh = make(chan error, len(binaries))
@@ -422,7 +565,9 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 					}
 					info, err := binary.Info(ctx)
 					if err != nil {
-						errCh <- err
+						binName := filepath.Base(binary.binaryPath)
+						logrus.Errorf("Failed to get info from binary %s: %v", binName, err)
+						errCh <- fmt.Errorf("binary %s: %w", binName, err)
 					}
 					mu.Lock()
 					infos = append(infos, info)
@@ -442,7 +587,8 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 		errs = append(errs, err.Error())
 	}
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("encountered errors while fetch info: %s", strings.Join(errs, ";"))
+		logrus.Errorf("Failed to fetch info from %d binaries", len(errs))
+		return nil, fmt.Errorf("encountered errors while fetching info: %s", strings.Join(errs, "; "))
 	}
 
 	return infos, nil
@@ -482,6 +628,10 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 					if !ok {
 						return // Channel was closed
 					}
+					if binary.binaryPath == os.Args[0] {
+						continue // Skip self - only external binaries need to be queried for images
+					}
+
 					imageConfig, err := binary.ListImages(ctx)
 					if err != nil {
 						errCh <- err
@@ -605,7 +755,7 @@ func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]
 var safePathRegexp = regexp.MustCompile(`[<>:"/\\|?*\s]+`)
 
 // safeComponentPath sanitizes a component identifier to be safe for use as a file or directory name.
-func safeComponentPath(c *Component) string {
+func safeComponentPath(c *extension.Component) string {
 	return path.Join(
 		safePathRegexp.ReplaceAllString(c.Product, "_"),
 		safePathRegexp.ReplaceAllString(c.Kind, "_"),
