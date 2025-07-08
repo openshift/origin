@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -112,4 +115,67 @@ func DetermineImageFromRelease(ctx context.Context, oc *CLI, imageTagName string
 		}
 	}
 	return "", fmt.Errorf("Could not find image: %s", imageTagName)
+}
+
+// prepareImagePullSecretAndCABundle prepares the image pull secret and optional user CA bundle for use,
+// returning the necessary command-line arguments, or an error if setup fails.
+func PrepareImagePullSecretAndCABundle(oc *CLI) (func(), []string, error) {
+	kubeClient := oc.AdminKubeClient()
+	// Try to use the same pull secret as the cluster under test
+	imagePullSecret, err := kubeClient.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to get pull secret from cluster: %v", err)
+	}
+
+	// cache file to local temp location
+	imagePullFile, err := ioutil.TempFile("", "image-pull-secret")
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to create a temporary file: %v", err)
+	}
+	cleanup := func() {
+		os.Remove(imagePullFile.Name())
+	}
+
+	// write the content
+	imagePullSecretBytes := imagePullSecret.Data[".dockerconfigjson"]
+	if _, err = imagePullFile.Write(imagePullSecretBytes); err != nil {
+		return cleanup, nil, fmt.Errorf("unable to write pull secret to temp file: %v", err)
+	}
+	if err = imagePullFile.Close(); err != nil {
+		return cleanup, nil, fmt.Errorf("unable to close file: %v", err)
+	}
+
+	cmdArgs := []string{"--registry-config", imagePullFile.Name()}
+
+	// Trust also user trusted CA from the cluster under test
+	userCaBundle, err := kubeClient.CoreV1().ConfigMaps("openshift-config").Get(context.Background(), "user-ca-bundle", metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return cleanup, nil, fmt.Errorf("unable to get user-ca-bundle configmap from cluster: %v", err)
+		}
+	}
+
+	if userCaBundle != nil {
+		// cache file to local temp location
+		userCaBundleFile, err := ioutil.TempFile("", "user-ca-bundle")
+		if err != nil {
+			return cleanup, nil, fmt.Errorf("unable to create a temporary file: %v", err)
+		}
+
+		cleanup = func() {
+			os.Remove(imagePullFile.Name())
+			os.Remove(userCaBundleFile.Name())
+		}
+
+		// write the content
+		userCaBundleString := userCaBundle.Data["ca-bundle.crt"]
+		if _, err = userCaBundleFile.WriteString(userCaBundleString); err != nil {
+			return cleanup, nil, fmt.Errorf("unable to write user CA bundle to temp file: %v", err)
+		}
+		if err = userCaBundleFile.Close(); err != nil {
+			return cleanup, nil, fmt.Errorf("unable to close file: %v", err)
+		}
+		cmdArgs = append(cmdArgs, "--certificate-authority", userCaBundleFile.Name())
+	}
+	return cleanup, cmdArgs, nil
 }
