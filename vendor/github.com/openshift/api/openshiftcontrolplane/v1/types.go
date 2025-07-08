@@ -258,7 +258,10 @@ const (
 type OpenShiftControllerManagerConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	KubeClientConfig configv1.KubeClientConfig `json:"kubeClientConfig"`
+	// KubeClientConfig is no longer being used.
+	// The field is being ignored by OCM.
+	//
+	// KubeClientConfig configv1.KubeClientConfig `json:"kubeClientConfig"`
 
 	// servingInfo describes how to start serving
 	ServingInfo *configv1.HTTPServingInfo `json:"servingInfo"`
