@@ -180,6 +180,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "machine-config-operator",
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-monitoring-operator",
+		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
