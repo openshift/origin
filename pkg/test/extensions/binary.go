@@ -491,7 +491,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 					// Self reference, no need to extract
 					if b.binaryPath == os.Args[0] {
+						mu.Lock()
 						binaries = append(binaries, &b)
+						mu.Unlock()
 						continue
 					}
 
