@@ -260,7 +260,7 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/network/ipsec")
 		},
 		Parallelism: 1,
-		TestTimeout: 60 * time.Minute,
+		TestTimeout: 20 * time.Minute,
 	},
 	{
 		Name: "openshift/network/stress",

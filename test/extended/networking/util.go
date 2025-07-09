@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
@@ -749,7 +750,7 @@ func waitForDeploymentComplete(oc *exutil.CLI, namespace, name string) error {
 	return e2edeployment.WaitForDeploymentComplete(oc.AdminKubeClient(), deployment)
 }
 
-func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
+func isDaemonSetRunningOnGeneration(oc *exutil.CLI, namespace, name string, generation int64) (bool, error) {
 	ds, err := getDaemonSet(oc, namespace, name)
 	if err != nil {
 		return false, err
@@ -757,9 +758,15 @@ func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
 	if ds == nil {
 		return false, nil
 	}
-	// Be sure that it has ds pod running in each node.
-	desired, scheduled, ready := ds.Status.DesiredNumberScheduled, ds.Status.CurrentNumberScheduled, ds.Status.NumberReady
-	return desired == scheduled && desired == ready, nil
+	if generation == 0 {
+		generation = ds.Generation
+	}
+	desired, ready := ds.Status.DesiredNumberScheduled, ds.Status.NumberReady
+	return generation == ds.Status.ObservedGeneration && desired > 0 && desired == ready, nil
+}
+
+func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
+	return isDaemonSetRunningOnGeneration(oc, namespace, name, 0)
 }
 
 func getDaemonSet(oc *exutil.CLI, namespace, name string) (*appsv1.DaemonSet, error) {
@@ -768,6 +775,15 @@ func getDaemonSet(oc *exutil.CLI, namespace, name string) (*appsv1.DaemonSet, er
 		return nil, nil
 	}
 	return ds, err
+}
+
+// deleteDaemonSet deletes the Daemonset <namespace>/<dsName>.
+func deleteDaemonSet(clientset kubernetes.Interface, namespace, dsName string) error {
+	deleteOptions := metav1.DeleteOptions{}
+	if err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), dsName, deleteOptions); err != nil {
+		return fmt.Errorf("failed to delete DaemonSet %s/%s: %v", namespace, dsName, err)
+	}
+	return nil
 }
 
 func createIPsecCertsMachineConfig(oc *exutil.CLI) (*mcfgv1.MachineConfig, error) {
