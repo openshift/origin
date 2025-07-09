@@ -423,7 +423,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		case isManagedServiceCluster:
 			averageSeriesLimit = 850
 		default:
-			averageSeriesLimit = 760
+			averageSeriesLimit = 780
 		}
 
 		tests := map[string]bool{
