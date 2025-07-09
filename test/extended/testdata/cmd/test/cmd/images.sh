@@ -9,7 +9,7 @@ trap os::test::junit::reconcile_output EXIT
   os::cmd::expect_success 'oc login -u system:admin'
   cluster_admin_context="$( oc config current-context )"
   os::cmd::expect_success "oc config use-context '${original_context}'"
-	os::cmd::expect_success 'oc get -A -o json imagestreams'
+  oc get -A -o json imagestreams
   #oc delete project test-cmd-images-2 merge-tags --context=${cluster_admin_context}
   oc delete all,templates --all --context=${cluster_admin_context}
   exit 0
@@ -53,7 +53,7 @@ os::cmd::expect_success 'oc create -f ${TEST_DATA}/image-streams/image-streams-c
 #os::cmd::expect_success_and_text "oc get imageStreams httpd --template='{{.status.dockerImageRepository}}'" 'httpd'
 
 # verify the image repository had its tags populated
-os::cmd::try_until_success 'oc get imagestreamtags wildfly:latest'
+os::cmd::try_until_success 'oc get -A -o json imagestreams && oc get imagestreamtags wildfly:latest'
 os::cmd::expect_success_and_text "oc get imageStreams wildfly --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success_and_text 'oc get istag' 'wildfly'
 

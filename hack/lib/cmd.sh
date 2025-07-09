@@ -499,6 +499,7 @@ function os::cmd::internal::run_until_exit_code() {
 			break
 		fi
 		sleep "${interval}"
+		os::cmd::internal::get_results
 		os::cmd::internal::mark_attempt
 	done
 
