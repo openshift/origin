@@ -70,6 +70,11 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	extensionRegistry := extension.NewRegistry()
 	extensionRegistry.Register(originExtension.Extension)
 
+	err := clusterdiscovery.InitCSITests()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// Build our specs from ginkgo
 	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
 	if err != nil {
@@ -190,7 +195,22 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
 		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
 	}
-	jsonBegins := bytes.IndexByte(infoJson, '{')
+	// Some binaries may output logging that includes JSON-like data, so we need to find the first line that starts with '{'
+	jsonBegins := -1
+	lines := bytes.Split(infoJson, []byte("\n"))
+	for i, line := range lines {
+		trimmed := bytes.TrimSpace(line)
+		if bytes.HasPrefix(trimmed, []byte("{")) {
+			// Calculate the byte offset of this line in the original output
+			jsonBegins = 0
+			for j := 0; j < i; j++ {
+				jsonBegins += len(lines[j]) + 1 // +1 for the newline character
+			}
+			jsonBegins += len(line) - len(trimmed) // Add any leading whitespace
+			break
+		}
+	}
+
 	jsonEnds := bytes.LastIndexByte(infoJson, '}')
 	if jsonBegins == -1 || jsonEnds == -1 || jsonBegins > jsonEnds {
 		logrus.Errorf("No valid JSON found in output from %s info command", binName)
