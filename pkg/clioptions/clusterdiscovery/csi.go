@@ -6,11 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/test/extended/storage/csi"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	"k8s.io/kubernetes/test/e2e/storage/external"
 	"sigs.k8s.io/yaml"
+
+	"github.com/openshift/origin/test/extended/storage/csi"
 )
 
 const (
@@ -18,8 +19,8 @@ const (
 	OCPManifestEnvVar = "TEST_OCP_CSI_DRIVER_FILES"
 )
 
-// Initialize openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
-func initCSITests() error {
+// InitCSITests initializes the openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
+func InitCSITests() error {
 	ocpDrivers := sets.New[string]()
 	upstreamDrivers := sets.New[string]()
 
