@@ -10,7 +10,7 @@ trap os::test::junit::reconcile_output EXIT
   cluster_admin_context="$( oc config current-context )"
   os::cmd::expect_success "oc config use-context '${original_context}'"
 	os::cmd::expect_success 'oc get -A -o json imagestreams'
-  oc delete project test-cmd-images-2 merge-tags --context=${cluster_admin_context}
+  #oc delete project test-cmd-images-2 merge-tags --context=${cluster_admin_context}
   oc delete all,templates --all --context=${cluster_admin_context}
   exit 0
 ) &> /dev/null
