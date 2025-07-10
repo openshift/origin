@@ -154,8 +154,15 @@ var staticSuites = []ginkgo.TestSuite{
 		The disruptive test suite.  Disruptive tests interrupt the cluster function such as by stopping/restarting the control plane or 
 		changing the global cluster configuration in a way that can affect other tests.
 		`),
-		Qualifiers: []string{
-			withStandardEarlyTests(`name.contains("[Feature:EtcdRecovery]") || name.contains("[Feature:NodeRecovery]")`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			// excluded due to stopped instance handling until https://bugzilla.redhat.com/show_bug.cgi?id=1905709 is fixed
+			if strings.Contains(name, "Cluster should survive master and worker failure and recover with machine health checks") {
+				return false
+			}
+			return strings.Contains(name, "[Feature:EtcdRecovery]") || strings.Contains(name, "[Feature:NodeRecovery]") || isStandardEarlyTest(name)
 		},
 		// Duration of the quorum restore test exceeds 60 minutes.
 		TestTimeout:                90 * time.Minute,
@@ -334,6 +341,21 @@ var staticSuites = []ginkgo.TestSuite{
 		Parallelism: 3,
 	},
 	{
+		Name: "experimental/reliability/minimal",
+		Description: templates.LongDesc(`
+		Set of highly reliable tests.
+		`),
+		Matches: func(name string) bool {
+			_, exists := minimal[name]
+			if !exists {
+				return false
+			}
+			return !isDisabled(name) && strings.Contains(name, "[Suite:openshift/conformance/parallel")
+		},
+		Parallelism:          20,
+		MaximumAllowedFlakes: 15,
+	},
+	{
 		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.
@@ -431,37 +453,17 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 120 * time.Minute,
 	},
 	{
-		Name: "openshift/two-node",
+		Name: "openshift/auth/external-oidc",
 		Description: templates.LongDesc(`
-		This test suite runs tests to validate two-node.
+		This test suite runs tests to validate cluster behavior when cluster authentication is configured to use an external OIDC provider.
 		`),
-		Qualifiers: []string{
-			withExcludedTestsFilter(`name.contains("[Suite:openshift/two-node") || name.contains("[FeatureGate:DualReplica]") || name.contains("[FeatureGate:HighlyAvailableArbiter]")`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+
+			return strings.Contains(name, "[Suite:openshift/auth/external-oidc")
 		},
-		TestTimeout: 60 * time.Minute,
+		TestTimeout: 120 * time.Minute,
 	},
-}
-
-func withExcludedTestsFilter(baseExpr string) string {
-	excluded := []string{
-		"[Disabled:",
-		"[Disruptive]",
-		"[Skipped]",
-		"[Slow]",
-		"[Flaky]",
-		"[Local]",
-	}
-
-	filter := ""
-	for i, s := range excluded {
-		if i > 0 {
-			filter += " && "
-		}
-		filter += fmt.Sprintf("!name.contains('%s')", s)
-	}
-
-	if baseExpr != "" {
-		return fmt.Sprintf("(%s) && (%s)", baseExpr, filter)
-	}
-	return filter
 }

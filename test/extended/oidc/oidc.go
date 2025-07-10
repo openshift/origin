@@ -17,6 +17,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	typedroutev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -27,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -36,6 +38,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/pod-security-admission/api"
 	"k8s.io/utils/ptr"
+
+	"github.com/openshift/library-go/pkg/operator/condition"
 )
 
 type kubeObject interface {
@@ -43,9 +47,8 @@ type kubeObject interface {
 	metav1.Object
 }
 
-var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
+var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive]", g.Ordered, func() {
 	defer g.GinkgoRecover()
-	// TODO: use new CLI without namespace to create
 	oc := exutil.NewCLIWithoutNamespace("oidc-e2e")
 	oc.KubeFramework().NamespacePodSecurityLevel = api.LevelPrivileged
 	oc.SetNamespace("oidc-e2e")
@@ -59,10 +62,13 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 	var originalAuth *configv1.Authentication
 	var oauthUserConfig *rest.Config
 
-	keycloakNamespace := "oidc-e2e-keycloak"
+	var keycloakNamespace string
 
 	g.BeforeAll(func() {
 		var err error
+
+		keycloakNamespace = fmt.Sprintf("oidc-keycloak-%s", rand.String(8))
+
 		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
@@ -95,6 +101,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 		g.BeforeAll(func() {
 			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, nil)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+			waitForRollout(ctx, oc)
 		})
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
@@ -212,6 +220,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 
 				err := resetAuthentication(ctx, oc, originalAuth)
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+
+				waitForRollout(ctx, oc)
 			})
 
 			g.It("should rollout configuration on the kube-apiserver successfully", func() {
@@ -264,8 +274,11 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 
 			g.It("should accept tokens provided by the OpenShift OAuth server", func() {
 				o.Eventually(func(gomega o.Gomega) {
-					_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
-					gomega.Expect(err).Should(o.BeNil(), "should be able to list Pods using OAuth client token")
+					clientset, err := kubernetes.NewForConfig(oauthUserConfig)
+					gomega.Expect(err).NotTo(o.HaveOccurred())
+
+					_, err = clientset.CoreV1().Pods(oc.Namespace()).List(context.TODO(), metav1.ListOptions{})
+					gomega.Expect(err).ShouldNot(o.HaveOccurred(), "should be able to list Pods using OAuth client token")
 				}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
 			})
 		})
@@ -277,6 +290,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 				g.BeforeAll(func() {
 					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, nil)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+					waitForRollout(ctx, oc)
 				})
 
 				g.It("should default UID to the 'sub' claim in the access token from the IdP", func() {
@@ -299,6 +314,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 						}
 					})
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
+
+					waitForRollout(ctx, oc)
 				})
 
 				g.It("should map the UID of the cluster identity correctly", func() {
@@ -377,6 +394,8 @@ var _ = g.Describe("[sig-auth][Serial][Slow]", g.Ordered, func() {
 
 		err = resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
+
+		waitForRollout(ctx, oc)
 	})
 })
 
@@ -1135,7 +1154,6 @@ func (kc *keycloakClient) GetClientByClientID(clientID string) (map[string]inter
 	return nil, fmt.Errorf("client with clientID %q not found", clientID)
 }
 
-// TODO: use SSA?
 func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) error {
 	if original == nil {
 		return nil
@@ -1143,12 +1161,31 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 
 	current, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("getting the current authentications.config.openshift.io/cluster: %w", err)
+		return err
 	}
 
-	current.Spec = original.Spec
+	patch := struct {
+		metav1.TypeMeta `json:",inline"`
+		Spec            configv1.AuthenticationSpec   `json:"spec"`
+		Status          configv1.AuthenticationStatus `json:"status"`
+	}{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: configv1.SchemeGroupVersion.String(),
+			Kind:       "Authentication",
+		},
+		Spec:   original.Spec,
+		Status: current.Status,
+	}
 
-	_, err = client.AdminConfigClient().ConfigV1().Authentications().Update(ctx, current, metav1.UpdateOptions{})
+	specOut, err := json.Marshal(patch)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.AdminConfigClient().ConfigV1().Authentications().Patch(ctx, "cluster", types.ApplyPatchType, specOut, metav1.PatchOptions{
+		Force:        ptr.To(true),
+		FieldManager: "oidc-e2e",
+	})
 	return err
 }
 
@@ -1171,4 +1208,46 @@ func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace
 	})
 
 	return err
+}
+
+func waitForRollout(ctx context.Context, client *exutil.CLI) {
+	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
+
+	// First wait for KAS to flip to progessing
+	o.Eventually(func(gomega o.Gomega) {
+		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
+		gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error fetching the KAS")
+
+		found := false
+		nipCond := operatorv1.OperatorCondition{}
+		for _, cond := range kas.Status.Conditions {
+			if cond.Type == condition.NodeInstallerProgressingConditionType {
+				found = true
+				nipCond = cond
+				break
+			}
+		}
+
+		gomega.Expect(found).To(o.BeTrue(), "should have found the NodeInstallerProgressing condition")
+		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionTrue), "NodeInstallerProgressing condition should be True")
+	}).WithTimeout(10*time.Minute).WithPolling(30*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
+
+	// Then wait for it to flip back
+	o.Eventually(func(gomega o.Gomega) {
+		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
+		gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error fetching the KAS")
+
+		found := false
+		nipCond := operatorv1.OperatorCondition{}
+		for _, cond := range kas.Status.Conditions {
+			if cond.Type == condition.NodeInstallerProgressingConditionType {
+				found = true
+				nipCond = cond
+				break
+			}
+		}
+
+		gomega.Expect(found).To(o.BeTrue(), "should have found the NodeInstallerProgressing condition")
+		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionFalse), "NodeInstallerProgressing condition should be True")
+	}).WithTimeout(30*time.Minute).WithPolling(30*time.Second).Should(o.Succeed(), "should eventually rollout out a new revision successfully")
 }
