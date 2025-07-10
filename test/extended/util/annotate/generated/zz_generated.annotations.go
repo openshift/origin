@@ -71,11 +71,11 @@ var Annotations = map[string]string{
 
 	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes] [Suite:openshift/conformance/parallel]Should properly block MCN updates from a MCD that is not the associated one [apigroup:machineconfiguration.openshift.io]": "",
 
-	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes] [Suite:openshift/conformance/parallel]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]": "",
-
 	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes] [Suite:openshift/conformance/serial][Serial]Should have MCN properties matching associated node properties for nodes in custom MCPs [apigroup:machineconfiguration.openshift.io]": "",
 
 	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes] [Suite:openshift/conformance/serial][Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]": "",
+
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes] [Suite:openshift/conformance/serial][Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]": "",
 
 	"[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode": "",
 
