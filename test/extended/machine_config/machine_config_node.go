@@ -91,7 +91,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		ValidateMCNScopeImpersonationPathTest(oc)
 	})
 
-	g.It("[Suite:openshift/conformance/parallel]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("[Suite:openshift/conformance/serial][Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]", func() {
 		ValidateMCNScopeHappyPathTest(oc)
 	})
 })
