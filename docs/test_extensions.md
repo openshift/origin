@@ -1,25 +1,34 @@
-# External Binaries
+# OpenShift Test Extensions
 
-This package includes the code used for working with external test binaries.
-It's intended to house the implementation of the openshift-tests side of the
-[openshift-tests extension interface](https://github.com/openshift/enhancements/pull/1676), which is only
-partially implemented here for the moment.
+`openshift-tests` can be extended using the [openshift-tests extension
+interface](https://github.com/openshift/enhancements/pull/1676).
 
-There is a registry defined in binary.go, that lists the release image tag, and
-path to each external test binary.  These binaries should implement the OTE
-interface defined in the enhancement, and implemented by the vendorable
-[openshift-tests-extension](https://github.com/openshift-eng/openshift-tests-extension).
+There is a registry of binaries defined in
+`pkg/test/extensions/binary.go`, that lists the release image tag, and
+path to each external test binary.  These binaries should implement the
+OTE interface defined in the enhancement, and implemented by the
+vendorable [openshift-tests-extension](https://github.com/openshift-eng/openshift-tests-extension)
+framework.
 
-## Requirements
+## Local Development
 
 If the architecture of your local system where `openshift-tests` will run
 differs from the cluster under test, you should override the release payload
 with a payload of the architecture of your own system, as it is where the
-binaries will execute. Note, your OS must still be Linux. That means on Apple
-Silicon, you'll still need to run this in a Linux environment, such as a
-virtual machine, or x86 podman container.
+binaries will execute. Note, your OS must still be Linux to run any extracted images
+from the payload.
 
-## Overrides
+Alternatively, you can point origin to locally-built binaries.  An
+example workflow for Mac would be to override both the payload and
+specific image binaries:
+
+```
+export EXTENSIONS_PAYLOAD_OVERRIDE=registry.ci.openshift.org/ocp-arm64/release-arm64:4.18.0-0.nightly-arm64-2024-11-15-135718
+export EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS=tests,hyperkube
+export EXTENSION_BINARY_OVERRIDE_HYPERKUBE=$HOME/go/src/github.com/kubernetes/kubernetes/_output/bin/k8s-tests-ext"
+```
+
+## Environment Variables
 
 A number of environment variables for overriding the behavior of external
 binaries are available, but in general this should "just work". A complex set
@@ -28,7 +37,19 @@ credentials to use are found in this code, and extensively documented in code
 comments.  The following environment variables are available to force certain
 behaviors:
 
-### Extension Binary
+### Extension Binary Filtering
+
+Filter which extension binaries are extracted by image tag:
+
+```bash
+# Exclude specific extensions
+export EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS="hyperkube,machine-api-operator"
+
+# Include only specific extensions
+export EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS="tests,hyperkube"
+```
+
+### Extension Binary Override
 
 When developing locally, you may want to use a locally built extension
 binary. You can override the binary from the registry by setting:
