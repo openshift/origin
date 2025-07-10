@@ -58,7 +58,7 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 	// allow the CSI tests to access test data, but only briefly
 	// TODO: ideally CSI would not use any of these test methods
 	var err error
-	exutil.WithCleanup(func() { err = initCSITests() })
+	exutil.WithCleanup(func() { err = InitCSITests() })
 	if err != nil {
 		return err
 	}
