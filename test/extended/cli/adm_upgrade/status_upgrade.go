@@ -80,11 +80,11 @@ func (t *controlPlaneAssessmentLifecycleTest) name() string {
 }
 
 var (
-	reNotUpdating = regexp.MustCompile(`The cluster is not updating.`)
+	reNotUpdating = regexp.MustCompile(`(?m)The cluster is not updating.`)
 	// TODO(muller): Key on = Control Plane = header with multi-line regex
-	reUpdating             = regexp.MustCompile(`^Assessment:\s+(Progressing|Progressing - Slow|Degraded)`)
-	reUnknownAssessment    = regexp.MustCompile(`^Assessment:\s+`) // Everything else
-	reControlPlaneComplete = regexp.MustCompile(`^Update to \S+ successfully completed at \S+ \(duration: \S+\)$`)
+	reUpdating             = regexp.MustCompile(`(?m)^Assessment:\s+(Progressing|Progressing - Slow|Degraded)`)
+	reUnknownAssessment    = regexp.MustCompile(`(?m)^Assessment:\s+`) // Everything else
+	reControlPlaneComplete = regexp.MustCompile(`(?m)^Update to \S+ successfully completed at \S+ \(duration: \S+\)$`)
 )
 
 func (t *controlPlaneAssessmentLifecycleTest) controlPlaneObservation(output string) (controlPlaneAssessmentObservation, string) {
