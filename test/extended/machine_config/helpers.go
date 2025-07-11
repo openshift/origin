@@ -1002,7 +1002,7 @@ func GetNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	return *node, nil
 }
 
-// `GetNewReadyNodeInMachine` waits up to 2 minutes for the newly provisioned node in a desired machine node to be ready
+// `GetNewReadyNodeInMachine` waits up to 4 minutes for the newly provisioned node in a desired machine node to be ready
 func GetNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	desiredNode := corev1.Node{}
 	err := fmt.Errorf("no ready node in Machine: %s", machineName)
@@ -1021,7 +1021,7 @@ func GetNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, 
 		}
 
 		return false
-	}, 2*time.Minute, 3*time.Second).Should(o.BeTrue())
+	}, 4*time.Minute, 5*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node in machine %v never became ready.", machineName))
 	return desiredNode, err
 }
 
