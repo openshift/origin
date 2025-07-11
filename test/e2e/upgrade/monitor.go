@@ -34,7 +34,7 @@ func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update)
 	cv, err := m.client.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		msg := fmt.Sprintf("unable to retrieve cluster version during upgrade: %v", err)
-		framework.Logf(msg)
+		framework.Logf("%s", msg)
 		return nil, msg, nil
 	}
 	m.lastCV = cv
