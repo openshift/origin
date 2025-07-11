@@ -406,16 +406,27 @@ func ValidateMCNConditionOnNodeDegrade(oc *exutil.CLI, fixture string, isSno boo
 	o.Expect(degradedNodeErr).NotTo(o.HaveOccurred(), "Could not get degraded node.")
 
 	// Validate MCN of degraded node
+	// 	get and log MCN conditions for debugging purposes
 	degradedNodeMCN, degradedErr = clientSet.MachineconfigurationV1().MachineConfigNodes().Get(context.TODO(), degradedNode.Name, metav1.GetOptions{})
 	o.Expect(degradedErr).NotTo(o.HaveOccurred(), fmt.Sprintf("Error getting MCN of degraded node '%v'.", degradedNode.Name))
-	framework.Logf("Validating that `AppliedFilesAndOS` and `UpdateExecuted` conditions in '%v' MCN have a status of 'Unknown'.", degradedNodeMCN.Name)
-	o.Expect(CheckMCNConditionStatus(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFilesAndOS, metav1.ConditionUnknown)).Should(o.BeTrue(), "Condition 'AppliedFilesAndOS' does not have the expected status of 'Unknown'.")
-	o.Expect(CheckMCNConditionStatus(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted, metav1.ConditionUnknown)).Should(o.BeTrue(), "Condition 'UpdateExecuted' does not have the expected status of 'Unknown'.")
 	nodeDegradedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeNodeDegraded)
-	o.Expect(nodeDegradedCondition).NotTo(o.BeNil())
+	o.Expect(nodeDegradedCondition).NotTo(o.BeNil(), "Condition 'NodeDegraded' does not exist.")
+	framework.Logf("`NodeDegraded` condition status is `%v` with the message `%v`", nodeDegradedCondition.Status, nodeDegradedCondition.Message)
+	filesAndOSCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateFilesAndOS)
+	o.Expect(filesAndOSCondition).NotTo(o.BeNil(), "Condition 'AppliedFilesAndOS' does not exist.")
+	framework.Logf("`AppliedFilesAndOS` condition status is `%v` with the message `%v`", filesAndOSCondition.Status, filesAndOSCondition.Message)
+	executedCondition := GetMCNCondition(degradedNodeMCN, mcfgv1.MachineConfigNodeUpdateExecuted)
+	o.Expect(executedCondition).NotTo(o.BeNil(), "Condition 'UpdateExecuted' does not exist.")
+	framework.Logf("`UpdateExecuted` condition status is `%v` with the message `%v`", executedCondition.Status, executedCondition.Message)
+	// 	validate the conditions are as expected
+	framework.Logf("Validating that `NodeDegraded` condition in '%v' MCN has a status of 'True'.", degradedNodeMCN.Name)
 	o.Expect(nodeDegradedCondition.Status).Should(o.Equal(metav1.ConditionTrue), "Condition 'NodeDegraded' does not have the expected status of 'True'.")
 	o.Expect(nodeDegradedCondition.Message).Should(o.ContainSubstring(fmt.Sprintf("Node %s upgrade failure.", degradedNodeMCN.Name)), "Condition 'NodeDegraded' does not have the expected message.")
 	o.Expect(nodeDegradedCondition.Message).Should(o.ContainSubstring("/home/core: file exists"), "Condition 'NodeDegraded' does not have the expected message details.")
+	framework.Logf("Validating that `UpdateExecuted` condition in '%v' MCN has a status of 'Unknown'.", degradedNodeMCN.Name)
+	o.Expect(executedCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'UpdateExecuted' does not have the expected status of 'Unknown'.")
+	framework.Logf("Validating that `AppliedFilesAndOS` condition in '%v' MCN has a status of 'Unknown'.", degradedNodeMCN.Name)
+	o.Expect(filesAndOSCondition.Status).Should(o.Equal(metav1.ConditionUnknown), "Condition 'AppliedFilesAndOS' does not have the expected status of 'Unknown'.")
 }
 
 // `ValidateMCNProperties` checks that MCNs with correct properties are created on node creation
