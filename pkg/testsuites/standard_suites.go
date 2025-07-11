@@ -430,6 +430,15 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 60 * time.Minute,
 	},
+	{
+		Name: "openshift/auth/external-oidc",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate cluster behavior when cluster authentication is configured to use an external OIDC provider.
+		`),
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/auth/external-oidc")`,
+		},
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
