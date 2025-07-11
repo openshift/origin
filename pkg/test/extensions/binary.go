@@ -176,6 +176,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-monitoring-operator",
+		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
