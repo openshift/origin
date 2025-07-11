@@ -48,8 +48,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 	portAllocator := NewPortAllocator(egressIPTargetHostPortMin, egressIPTargetHostPortMax)
 
 	var (
-		networkPlugin string
-
 		clientset             kubernetes.Interface
 		cloudNetworkClientset cloudnetwork.Interface
 		tmpDirEgressIP        string
@@ -77,10 +75,8 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 	g.BeforeEach(func() {
 		g.By("Verifying that this cluster uses a network plugin that is supported for this test")
-		networkPlugin = networkPluginName()
-		if networkPlugin != OVNKubernetesPluginName &&
-			networkPlugin != OpenshiftSDNPluginName {
-			skipper.Skipf("This cluster neither uses OVNKubernetes nor OpenShiftSDN")
+		if networkPluginName() != OVNKubernetesPluginName {
+			skipper.Skipf("This cluster does not use OVN Kubernetes")
 		}
 
 		g.By("Creating a temp directory")
@@ -145,11 +141,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Determining the target protocol, host and port")
-		targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType, networkPlugin)
+		targetProtocol, targetHost, targetPort, err = getTargetProtocolHostPort(oc, hasIPv4, hasIPv6, cloudType)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Testing against: CloudType: %s, NetworkPlugin: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
+		framework.Logf("Testing against: CloudType: %s, Protocol %s, TargetHost: %s, TargetPort: %d",
 			cloudType,
-			networkPlugin,
 			targetProtocol,
 			targetHost,
 			targetPort)
@@ -168,34 +163,24 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		ingressDomain, err = getIngressDomain(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if networkPluginName() == OVNKubernetesPluginName {
-			g.By("Setting the EgressIP nodes as EgressIP assignable")
-			for _, node := range egressIPNodesOrderedNames {
-				_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
+		g.By("Setting the EgressIP nodes as EgressIP assignable")
+		for _, node := range egressIPNodesOrderedNames {
+			_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
+			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
 
 	// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
 	g.AfterEach(func() {
-		if networkPluginName() == OVNKubernetesPluginName {
-			g.By("Deleting the EgressIP object if it exists for OVN Kubernetes")
-			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-			if _, err := os.Stat(egressIPYamlPath); err == nil {
-				_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirEgressIP+"/"+egressIPYaml)
-			}
+		g.By("Deleting the EgressIP object if it exists")
+		egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+		if _, err := os.Stat(egressIPYamlPath); err == nil {
+			_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirEgressIP+"/"+egressIPYaml)
+		}
 
-			g.By("Removing the EgressIP assignable annotation for OVN Kubernetes")
-			for _, nodeName := range egressIPNodesOrderedNames {
-				_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
-			}
-		} else {
-			g.By("Removing any hostsubnet EgressIPs for OpenShiftSDN")
-			for _, nodeName := range egressIPNodesOrderedNames {
-				_ = sdnHostsubnetFlushEgressIPs(oc, nodeName)
-				_ = sdnHostsubnetFlushEgressCIDRs(oc, nodeName)
-			}
+		g.By("Removing the EgressIP assignable annotation")
+		for _, nodeName := range egressIPNodesOrderedNames {
+			_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
 		}
 
 		g.By("Removing the temp directory")
@@ -293,12 +278,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				}
 			}
 
-			g.By("Creating the EgressIP object for OVN Kubernetes")
+			g.By("Creating the EgressIP object")
 			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 			egressIPObjectName := egressIPNamespace
-			ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
-			g.By("Applying the EgressIP object for OVN Kubernetes")
+			g.By("Applying the EgressIP object")
 			_, err = runOcWithRetry(oc.AsAdmin(), "create", "-f", tmpDirEgressIP+"/"+egressIPYaml)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -351,7 +336,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Determining the interface that will be used for packet sniffing")
-			packetSnifferInterface, err = findPacketSnifferInterface(oc, networkPlugin, egressIPNodesOrderedNames)
+			packetSnifferInterface, err = findPacketSnifferInterface(oc, egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("Using interface %s for packet captures", packetSnifferInterface)
 
@@ -360,8 +345,6 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		// OVNKubernetes
-		// OpenShiftSDN
 		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
 		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
@@ -395,34 +378,19 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 			egressIPObjectName := egressIPNamespace
 			for i := 0; i < 2; i++ {
-				if networkPlugin == OVNKubernetesPluginName {
-					g.By("Creating the EgressIP object for OVN Kubernetes")
-					ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+				g.By("Creating the EgressIP object")
+				createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
-					g.By("Applying the EgressIP object for OVN Kubernetes")
-					applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-				} else {
-					g.By("Adding EgressIPs to netnamespace and hostsubnet for OpenShiftSDN")
-					openshiftSDNAssignEgressIPsManually(oc, cloudNetworkClientset, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-				}
+				g.By("Applying the EgressIP object")
+				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 
-				if networkPlugin == OVNKubernetesPluginName {
-					g.By("Deleting the EgressIP object for OVN Kubernetes")
-					// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
-					_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
-					o.Expect(err).NotTo(o.HaveOccurred())
-				} else {
-					g.By("Removing EgressIPs from netnamespace and hostsubnet for OpenShiftSDN")
-					for eip, nodeName := range egressIPSet {
-						err = sdnNamespaceRemoveEgressIP(oc, egressIPNamespace, eip)
-						o.Expect(err).NotTo(o.HaveOccurred())
-						err = sdnHostsubnetRemoveEgressIP(oc, nodeName, eip)
-						o.Expect(err).NotTo(o.HaveOccurred())
-					}
-				}
+				g.By("Deleting the EgressIP object")
+				// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
+				_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// Azure often fails on this step here - BZ https://bugzilla.redhat.com/show_bug.cgi?id=2073045
 				g.By(fmt.Sprintf("Waiting for maximum %d seconds for the CloudPrivateIPConfig objects to vanish", egressUpdateTimeout))
@@ -432,14 +400,10 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
 			}
 
-			if networkPlugin == OVNKubernetesPluginName {
-				g.By("Removing the egressIPYaml file to signal that no further cleanup is needed for OVN Kubernetes")
-				os.Remove(egressIPYamlPath)
-			}
+			g.By("Removing the egressIPYaml file to signal that no further cleanup is needed")
+			os.Remove(egressIPYamlPath)
 		})
 
-		// OVNKubernetes
-		// OpenShiftSDN
 		g.It("pods should keep the assigned EgressIPs when being rescheduled to another node", func() {
 			g.By("Selecting a single EgressIP node, and a single start node for the pod")
 			// requires a total of 3 worker nodes
@@ -475,18 +439,13 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			}
 
 			// This step is different depending on the network plugin.
-			if networkPlugin == OVNKubernetesPluginName {
-				g.By("Creating the EgressIP object for OVN Kubernetes")
-				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
-				egressIPObjectName := egressIPNamespace
-				ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+			g.By("Creating the EgressIP object")
+			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
+			egressIPObjectName := egressIPNamespace
+			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
-				g.By("Applying the EgressIP object for OVN Kubernetes")
-				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-			} else {
-				g.By("Patching the netnamespace and hostsubnet for OpenShiftSDN")
-				openshiftSDNAssignEgressIPsManually(oc, cloudNetworkClientset, egressIPNamespace, egressIPSet, egressUpdateTimeout)
-			}
+			g.By("Applying the EgressIP object")
+			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 			numberOfRequestsToSend := 10
 			if targetHost == "self" {
@@ -503,9 +462,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 		})
 
-		// OVNKubernetes
-		// Skipped on OpenShiftSDN as the plugin does not support pod selectors.
-		g.It("only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]", func() {
+		g.It("only pods matched by the pod selector should have the EgressIPs", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			deployment0Name, route0Name, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "0", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -533,12 +490,12 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 				}
 			}
 
-			g.By("Creating the EgressIP object for OVN Kubernetes")
+			g.By("Creating the EgressIP object")
 			egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 			egressIPObjectName := egressIPNamespace
-			ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, fmt.Sprintf("app: %s", deployment0Name), egressIPSet)
+			createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, fmt.Sprintf("app: %s", deployment0Name), egressIPSet)
 
-			g.By("Applying the EgressIP object for OVN Kubernetes")
+			g.By("Applying the EgressIP object")
 			applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 			numberOfRequestsToSend := 10
@@ -555,9 +512,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, route1Name, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, egressIPSet)
 		})
 
-		// OVNKubernetes
-		// Skipped on OpenShiftSDN as this plugin has no EgressIPs object
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]", func() {
+		g.It("pods should have the assigned EgressIPs and EgressIPs can be updated", func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -597,73 +552,17 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 			for eip, nodeName := range egressIPSetTemp {
 				egressIPSet := map[string]string{eip: nodeName}
 
-				g.By("Creating the EgressIP object for OVN Kubernetes")
+				g.By("Creating the EgressIP object")
 				egressIPYamlPath := tmpDirEgressIP + "/" + egressIPYaml
 				egressIPObjectName := egressIPNamespace
-				ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
+				createEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, egressIPNamespace, "", egressIPSet)
 
-				g.By("Applying the EgressIP object for OVN Kubernetes")
+				g.By("Applying the EgressIP object")
 				applyEgressIPObject(oc, cloudNetworkClientset, egressIPYamlPath, egressIPNamespace, egressIPSet, egressUpdateTimeout)
 
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
 				spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 			}
-		})
-
-		// OpenShiftSDN
-		// Skipped on OVNKubernetes
-		g.It("EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]", func() {
-			g.By("Adding EgressCIDR configuration to hostSubnets for OpenShiftSDN")
-			for _, eipNodeName := range egressIPNodesOrderedNames {
-				for _, node := range workerNodesOrdered {
-					if node.Name == eipNodeName {
-						nodeEgressIPConfigs, err := getNodeEgressIPConfiguration(&node)
-						if err != nil {
-							o.Expect(err).NotTo(o.HaveOccurred())
-						}
-						o.Expect(len(nodeEgressIPConfigs)).Should(o.BeNumerically("==", 1))
-						// TODO - not ready for dualstack (?)
-						egressCIDR := nodeEgressIPConfigs[0].IFAddr.IPv4
-						if egressCIDR == "" {
-							egressCIDR = nodeEgressIPConfigs[0].IFAddr.IPv6
-						}
-						err = sdnHostsubnetSetEgressCIDR(oc, node.Name, egressCIDR)
-						o.Expect(err).NotTo(o.HaveOccurred())
-					}
-				}
-			}
-			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
-			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			// For this test, get a single EgressIP per node.
-			g.By("Getting a map of source nodes and potential Egress IPs for these nodes")
-			egressIPsPerNode := 1
-			nodeEgressIPMap, err := findNodeEgressIPs(oc, clientset, cloudNetworkClientset, egressIPNodesOrderedNames, cloudType, egressIPsPerNode)
-			framework.Logf("%v", nodeEgressIPMap)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("Choosing the EgressIPs to be assigned, one per node")
-			egressIPSet := make(map[string]string)
-			for nodeName, eip := range nodeEgressIPMap {
-				_, ok := egressIPSet[eip[0]]
-				if !ok {
-					egressIPSet[eip[0]] = nodeName
-				}
-			}
-
-			g.By("Patching the netnamespace for OpenShiftSDN")
-			for eip := range egressIPSet {
-				err := sdnNamespaceAddEgressIP(oc, egressIPNamespace, eip)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-
-			numberOfRequestsToSend := 10
-			if targetHost == "self" {
-				targetHost = routeName
-			}
-			g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-			spawnProberSendEgressIPTrafficCheckLogs(oc, externalNamespace, probePodName, routeName, targetProtocol, targetHost, targetPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
 		})
 	}) // end testing to external targets
 })
@@ -700,9 +599,9 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 	}, 120*time.Second, 30*time.Second).Should(o.BeTrue())
 }
 
-// ovnKubernetesCreateEgressIPObject creates the file containing the EgressIP YAML definition which can
+// createEgressIPObject creates the file containing the EgressIP YAML definition which can
 // then be applied.
-func ovnKubernetesCreateEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressIPObjectName, egressIPNamespace, podSelector string, egressIPSet map[string]string) string {
+func createEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressIPObjectName, egressIPNamespace, podSelector string, egressIPSet map[string]string) string {
 	framework.Logf("Marshalling the desired EgressIPs into a string")
 	var egressIPs []string
 	for eip := range egressIPSet {
@@ -800,39 +699,6 @@ func waitForCloudPrivateIPConfigsDeletion(oc *exutil.CLI, cloudNetworkClientset 
 			}
 		}
 		framework.Logf("CloudPrivateIPConfigs for %v not found.", egressIPSet)
-		return true
-	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
-}
-
-// openshiftSDNAssignEgressIPsManually adds EgressIPs to hostsubnet and netnamespace.
-func openshiftSDNAssignEgressIPsManually(oc *exutil.CLI, cloudNetworkClientset cloudnetwork.Interface, egressIPNamespace string, egressIPSet map[string]string, timeout int) {
-	var err error
-	for eip, nodeName := range egressIPSet {
-		framework.Logf("Adding EgressIP %s to hostnamespace %s", eip, egressIPNamespace)
-		err = sdnNamespaceAddEgressIP(oc, egressIPNamespace, eip)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		framework.Logf("Adding EgressIP %s to hostsubnet %s", eip, nodeName)
-		err = sdnHostsubnetAddEgressIP(oc, nodeName, eip)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	}
-
-	framework.Logf(fmt.Sprintf("Waiting for CloudPrivateIPConfig creation for a maximum of %d seconds", timeout))
-	var exists bool
-	var isAssigned bool
-	o.Eventually(func() bool {
-		for eip := range egressIPSet {
-			exists, isAssigned, err = cloudPrivateIpConfigExists(oc, cloudNetworkClientset, eip)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if !exists {
-				framework.Logf("CloudPrivateIPConfig for %s not found.", eip)
-				return false
-			}
-			if !isAssigned {
-				framework.Logf("CloudPrivateIPConfig for %s not assigned.", eip)
-				return false
-			}
-		}
-		framework.Logf("CloudPrivateIPConfigs for %v found.", egressIPSet)
 		return true
 	}, time.Duration(timeout)*time.Second, 5*time.Second).Should(o.BeTrue())
 }

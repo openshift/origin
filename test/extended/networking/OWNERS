@@ -1,12 +1,19 @@
 reviewers:
-  - jcaamano
-  - knobunc
+  - abhat
   - danwinship
+  - dougbtv
+  - JacobTanenbaum
+  - jcaamano
+  - kyrtapz
   - trozet
   - tssurya
 approvers:
+  - abhat
+  - danwinship
+  - dougbtv
+  - JacobTanenbaum
   - jcaamano
   - knobunc
-  - danwinship
+  - kyrtapz
   - trozet
   - tssurya
