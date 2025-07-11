@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -457,12 +458,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate cluster behavior when cluster authentication is configured to use an external OIDC provider.
 		`),
-		Matches: func(name string) bool {
-			if isDisabled(name) {
-				return false
-			}
-
-			return strings.Contains(name, "[Suite:openshift/auth/external-oidc")
+		Qualifiers: []string{
+			`name.contains("[Suite:openshift/auth/external-oidc")`,
 		},
 		TestTimeout: 120 * time.Minute,
 	},
