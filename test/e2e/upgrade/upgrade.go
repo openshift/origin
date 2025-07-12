@@ -41,6 +41,7 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
+	ocadmupgrade "github.com/openshift/origin/test/extended/cli/adm_upgrade"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/operator"
@@ -56,6 +57,7 @@ func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		&adminack.UpgradeTest{},
 		&manifestdelete.UpgradeTest{},
+		&ocadmupgrade.OcAdmUpgradeStatusTest{},
 
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
