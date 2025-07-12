@@ -133,12 +133,14 @@ message ConfigStatus {
   // the operator back on (i.e. "Managed") when it was previously "Unmanaged".
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   optional string managementState = 1;
 
   // conditions represents the available maintenance status of the sample
   // imagestreams and templates.
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   repeated ConfigCondition conditions = 2;
 
   // samplesRegistry allows for the specification of which registry is accessed
@@ -147,12 +149,14 @@ message ConfigStatus {
   // defaults to registry.redhat.io.
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   optional string samplesRegistry = 3;
 
   // architectures determine which hardware architecture(s) to install, where x86_64 and ppc64le are the
   // supported choices.
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   repeated string architectures = 5;
 
   // skippedImagestreams specifies names of image streams that should NOT be
@@ -162,6 +166,7 @@ message ConfigStatus {
   // listed here.
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   repeated string skippedImagestreams = 6;
 
   // skippedTemplates specifies names of templates that should NOT be
@@ -171,11 +176,13 @@ message ConfigStatus {
   // listed here.
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   repeated string skippedTemplates = 7;
 
   // version is the value of the operator's payload based version indicator when it was last successfully processed
   // +patchMergeKey=type
   // +patchStrategy=merge
+  // +optional
   optional string version = 8;
 }
 

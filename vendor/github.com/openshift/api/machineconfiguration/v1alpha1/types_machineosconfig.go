@@ -174,7 +174,7 @@ type MachineOSContainerfile struct {
 	// +kubebuilder:validation:Enum:=arm64;amd64;ppc64le;s390x;aarch64;x86_64;noarch
 	// +kubebuilder:default:=noarch
 	// +optional
-	ContainerfileArch ContainerfileArch `json:"containerfileArch"`
+	ContainerfileArch ContainerfileArch `json:"containerfileArch,omitempty"`
 	// content is the custom content to be built
 	// +required
 	Content string `json:"content"`

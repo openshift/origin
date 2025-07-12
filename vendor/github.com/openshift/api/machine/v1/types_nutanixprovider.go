@@ -238,7 +238,7 @@ type NutanixVMStorageConfig struct {
 
 	// storageContainer refers to the storage_container used by the VM disk.
 	// +optional
-	StorageContainer *NutanixStorageResourceIdentifier `json:"storageContainer"`
+	StorageContainer *NutanixStorageResourceIdentifier `json:"storageContainer,omitempty"`
 }
 
 // NutanixDiskDeviceType is the VM disk device type.
@@ -286,7 +286,7 @@ type NutanixVMDiskDeviceProperties struct {
 	// If the deviceType is "Disk", the valid adapterType can be "SCSI", "IDE", "PCI", "SATA" or "SPAPR".
 	// If the deviceType is "CDRom", the valid adapterType can be "IDE" or "SATA".
 	// +required
-	AdapterType NutanixDiskAdapterType `json:"adapterType,omitempty"`
+	AdapterType NutanixDiskAdapterType `json:"adapterType"`
 
 	// deviceIndex is the index of the disk address. The valid values are non-negative integers, with the default value 0.
 	// For a Machine VM, the deviceIndex for the disks with the same deviceType.adapterType combination should

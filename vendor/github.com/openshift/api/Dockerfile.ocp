@@ -1,10 +1,10 @@
-FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.23-openshift-4.19 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.24-openshift-4.20 AS builder
 WORKDIR /go/src/github.com/openshift/api
 COPY . .
 ENV GO_PACKAGE github.com/openshift/api
 RUN make build --warn-undefined-variables
 
-FROM registry.ci.openshift.org/ocp/4.19:base-rhel9
+FROM registry.ci.openshift.org/ocp/4.20:base-rhel9
 
 # copy the built binaries to /usr/bin
 COPY --from=builder /go/src/github.com/openshift/api/render /usr/bin/
@@ -15,7 +15,7 @@ RUN mkdir -p /usr/share/bootkube/manifests/manifests
 COPY payload-manifests/crds/* /usr/share/bootkube/manifests/manifests
 
 # these are applied by the CVO
-COPY manifests /manifests
+RUN mkdir -p /manifests
 COPY payload-manifests/crds/* /manifests
 COPY payload-manifests/featuregates/* /manifests
 COPY payload-command/empty-resources /manifests

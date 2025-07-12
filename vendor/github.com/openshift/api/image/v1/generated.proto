@@ -353,12 +353,15 @@ message ImageStreamImportSpec {
 // ImageStreamImportStatus contains information about the status of an image stream import.
 message ImageStreamImportStatus {
   // import is the image stream that was successfully updated or created when 'to' was set.
+  // +optional
   optional ImageStream import = 1;
 
   // repository is set if spec.repository was set to the outcome of the import
+  // +optional
   optional RepositoryImportStatus repository = 2;
 
   // images is set with the result of importing spec.images
+  // +optional
   repeated ImageImportStatus images = 3;
 }
 
@@ -436,17 +439,20 @@ message ImageStreamSpec {
 message ImageStreamStatus {
   // dockerImageRepository represents the effective location this stream may be accessed at.
   // May be empty until the server determines where the repository is located
+  // +optional
   optional string dockerImageRepository = 1;
 
   // publicDockerImageRepository represents the public location from where the image can
   // be pulled outside the cluster. This field may be empty if the administrator
   // has not exposed the integrated registry externally.
+  // +optional
   optional string publicDockerImageRepository = 3;
 
   // tags are a historical record of images associated with each tag. The first entry in the
   // TagEvent array is the currently tagged image.
   // +patchMergeKey=tag
   // +patchStrategy=merge
+  // +optional
   repeated NamedTagEventList tags = 2;
 }
 
