@@ -101,6 +101,7 @@ type CLI struct {
 	stdin                *bytes.Buffer
 	stdout               io.Writer
 	stderr               io.Writer
+	env                  []string
 	verbose              bool
 	withoutNamespace     bool
 	withManagedNamespace bool
@@ -883,6 +884,25 @@ func (c *CLI) setOutput(out io.Writer) *CLI {
 	return c
 }
 
+// Env sets the command's environment variables with the same semantics as exec.Cmd's Env property.
+// https://pkg.go.dev/os/exec#Cmd
+//
+// When empty the command will inherit the environment variables from the current process.
+// EnvVar()-provided variables are appended to whatever Env was set before.
+func (c *CLI) Env(env ...string) *CLI {
+	c.env = env
+	return c
+}
+
+// EnvVar sets an environment variable for the command, appended to the current process environment variables.
+func (c *CLI) EnvVar(name, value string) *CLI {
+	if c.env == nil {
+		c.env = os.Environ()
+	}
+	c.env = append(c.env, fmt.Sprintf("%s=%s", name, value))
+	return c
+}
+
 // Run executes given OpenShift CLI command verb (iow. "oc <verb>").
 // This function also override the default 'stdout' to redirect all output
 // to a buffer and prepare the global flags such as namespace and config path.
@@ -982,6 +1002,7 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	// Redact any bearer token information from the log.
 	framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
 
+	cmd.Env = c.env
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
 	err := cmd.Start()
