@@ -2,24 +2,24 @@ package operator
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
-	"github.com/openshift/origin/pkg/resourcewatch/storage"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/dynamic/dynamicinformer"
+	"github.com/openshift/origin/pkg/resourcewatch/git"
+	"github.com/openshift/origin/pkg/resourcewatch/json"
+	"github.com/openshift/origin/pkg/resourcewatch/observe"
 	"k8s.io/klog/v2"
 )
 
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
-func RunResourceWatch() error {
+func RunResourceWatch(toJsonPath, fromJsonPath string) error {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
+	log := klog.FromContext(ctx)
+
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
@@ -36,164 +36,66 @@ func RunResourceWatch() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	kubeConfig, err := clusterinfo.GetMonitorRESTConfig()
-	if err != nil {
-		klog.Errorf("Failed to get kubeconfig with error %v", err)
-		return err
+	var source observe.ObservationSource
+	var sink observe.ObservationSink
+
+	if fromJsonPath != "" {
+		file, err := os.Open(fromJsonPath)
+		if err != nil {
+			return fmt.Errorf("failed to open json file %q: %w", fromJsonPath, err)
+		}
+
+		source, err = json.Source(file)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		source, err = observe.Source(log)
+		if err != nil {
+			return err
+		}
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
-	if err != nil {
-		klog.Errorf("Failed to create dynamic client with error %v", err)
-		return err
+	if toJsonPath != "" {
+		file, err := os.OpenFile(toJsonPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY|os.O_APPEND, 0664)
+		if err != nil {
+			return fmt.Errorf("failed to create json file %q: %w", toJsonPath, err)
+		}
+
+		sink, err = json.Sink(file)
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		sink, err = git.Sink(log)
+		if err != nil {
+			return err
+		}
 	}
 
-	repositoryPath := "/repository"
-	if repositoryPathEnv := os.Getenv("REPOSITORY_PATH"); len(repositoryPathEnv) > 0 {
-		repositoryPath = repositoryPathEnv
+	// Observers emit observations to this channel. We use this channel as a buffer between the observers and the git writer.
+	// Memory consumption will grow if we can't write quickly enough.
+	// For reference, the captured test data from a 4.20 installation has ~17000 observations.
+	resourceC := make(chan *observe.ResourceObservation, 10000)
+
+	sourceFinished := source(ctx, log, resourceC)
+	sinkFinished := sink(ctx, log, resourceC)
+
+	// Wait for the source and sink to finish.
+	select {
+	case <-sourceFinished:
+		// The source finished. This will also happen if the context is cancelled.
+		close(resourceC)
+		log.Info("Source finished")
+
+		// Wait for the sink to finish writing queued observations.
+		<-sinkFinished
+
+	case <-sinkFinished:
+		// The sink exited. We're no longer writing data, so no point cleaning up
 	}
-
-	gitStorage, err := storage.NewGitStorage(repositoryPath)
-	if err != nil {
-		klog.Errorf("Failed to create git storage with error %v", err)
-		return err
-	}
-
-	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
-
-	resourcesToWatch := []schema.GroupVersionResource{
-		// provide high level details of configuration that feeds operator behavior
-		configResource("apiservers"),
-		configResource("authentications"),
-		configResource("builds"),
-		configResource("clusteroperators"),
-		configResource("clusterversions"),
-		configResource("consoles"),
-		configResource("dnses"),
-		configResource("featuregates"),
-		configResource("imagecontentpolicies"),
-		configResource("images"),
-		configResource("infrastructures"),
-		configResource("ingresses"),
-		configResource("networks"),
-		configResource("nodes"),
-		configResource("oauths"),
-		configResource("operatorhubs"),
-		configResource("projects"),
-		configResource("proxies"),
-		configResource("schedulers"),
-
-		// operator resources provide low level details about how what operators are doing
-		operatorResource("authentications"),
-		operatorResource("cloudcredentials"),
-		operatorResource("clustercsidrivers"),
-		operatorResource("configs"),
-		operatorResource("consoles"),
-		operatorResource("csisnapshotcontrollers"),
-		operatorResource("dnses"),
-		operatorResource("etcds"),
-		operatorResource("imagecontentsourcepolicies"),
-		operatorResource("insightsoperators"),
-		operatorResource("kubeapiservers"),
-		operatorResource("kubecontrollermanagers"),
-		operatorResource("kubeschedulers"),
-		operatorResource("kubestorageversionmigrators"),
-		operatorResource("networks"),
-		operatorResource("openshiftapiservers"),
-		operatorResource("openshiftcontrollermanagers"),
-		operatorResource("servicecas"),
-		operatorResource("storages"),
-
-		// describes the behavior of api changes rollouts
-		resource("apiextensions.k8s.io", "v1", "customresourcedefinitions"),
-
-		// machine resources are required to reason about the happenings of nodes
-		resource("machine.openshift.io", "v1", "controlplanemachinesets"),
-		resource("machine.openshift.io", "v1beta1", "machinehealthchecks"),
-		resource("machine.openshift.io", "v1beta1", "machines"),
-		resource("machine.openshift.io", "v1beta1", "machinesets"),
-
-		// describes the behavior of operand rollouts
-		appResource("deployments"),
-		appResource("daemonsets"),
-		appResource("statefulsets"),
-		appResource("replicasets"),
-
-		// describe notable happenings
-		resource("events.k8s.io", "v1", "events"),
-
-		// describes the behavior of node drains
-		resource("policy", "v1", "poddisruptionbudgets"),
-
-		// describes the behavior of admission during the run
-		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicies"),
-		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicybindings"),
-
-		// describes the behavior of aggregated apiservers
-		resource("apiregistration.k8s.io", "v1", "apiservices"),
-
-		// describes behavior of service endpoints
-		resource("discovery.k8s.io", "v1", "endpointslices"),
-
-		coreResource("pods"),
-		coreResource("namespaces"),
-		coreResource("nodes"),
-		coreResource("replicationcontrollers"),
-		coreResource("services"),
-		coreResource("serviceaccounts"),
-	}
-
-	configmonitor.WireResourceInformersToGitRepo(
-		dynamicInformer,
-		gitStorage,
-		resourcesToWatch,
-	)
-
-	dynamicInformer.Start(ctx.Done())
-
-	klog.Infof("Started all informers")
-
-	<-ctx.Done()
 
 	return nil
-}
-
-func configResource(resource string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "config.openshift.io",
-		Version:  "v1",
-		Resource: resource,
-	}
-}
-
-func operatorResource(resource string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "operator.openshift.io",
-		Version:  "v1",
-		Resource: resource,
-	}
-}
-
-func coreResource(resource string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "",
-		Version:  "v1",
-		Resource: resource,
-	}
-}
-
-func resource(group, version, resource string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: resource,
-	}
-}
-
-func appResource(resource string) schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    "apps",
-		Version:  "v1",
-		Resource: resource,
-	}
 }
