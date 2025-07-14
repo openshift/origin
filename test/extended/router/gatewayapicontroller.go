@@ -195,6 +195,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
+		isDNSManaged, err := isDNSManaged(oc, time.Minute)
+		if err != nil {
+			e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+		}
+		if !isDNSManaged {
+			g.Skip("Skipping on this cluster since DNSManaged is false")
+		}
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -218,6 +226,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
+		isDNSManaged, err := isDNSManaged(oc, time.Minute)
+		if err != nil {
+			e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+		}
+		if !isDNSManaged {
+			g.Skip("Skipping on this cluster since DNSManaged is false")
+		}
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
