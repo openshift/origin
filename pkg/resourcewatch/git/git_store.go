@@ -42,7 +42,7 @@ const (
 // into a Git repository. Each change is stored as separate commit which means a full history of the
 // resource lifecycle is preserved.
 func NewGitStorage(path string) (*GitStorage, error) {
-	// If the repo does not exists, do git init
+	// If the repo does not exist, do git init
 	if _, err := os.Stat(filepath.Join(path, ".git")); os.IsNotExist(err) {
 		_, err := git.PlainInit(path, false)
 		if err != nil {
