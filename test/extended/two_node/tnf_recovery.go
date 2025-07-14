@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net"
 	"os"
-	"slices"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -22,7 +21,6 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -48,9 +46,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	defer g.GinkgoRecover()
 
 	var (
-		oc                   = exutil.NewCLIWithoutNamespace("").AsAdmin()
-		etcdClientFactory    *helpers.EtcdClientFactoryImpl
-		peerNode, targetNode corev1.Node
+		oc                       = exutil.NewCLIWithoutNamespace("").AsAdmin()
+		etcdClientFactory        *helpers.EtcdClientFactoryImpl
+		survivedNode, targetNode corev1.Node
 	)
 
 	g.BeforeEach(func() {
@@ -67,276 +65,228 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		// Select the first index randomly
 		randomIndex := rand.Intn(len(nodes.Items))
-		peerNode = nodes.Items[randomIndex]
+		survivedNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
-		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n", targetNode.Name, targetNode.Status.Addresses[0].Address, &peerNode.Name, peerNode.Status.Addresses[0].Address)
+		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n", targetNode.Name, targetNode.Status.Addresses[0].Address, survivedNode.Name, survivedNode.Status.Addresses[0].Address)
 
 		kubeClient := oc.KubeClient()
 		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
 
 		g.GinkgoT().Printf("Ensure both nodes are healthy before starting the test\n")
 		o.Eventually(func() error {
-			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, peerNode.Name)
-		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("expect to ensure Node '%s' healthiness without errors", peerNode.Name))
+			return ensureEtcdNodeHealthy(oc, survivedNode.Name)
+		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "node %s should be healthy before starting test", survivedNode.Name)
 
 		o.Eventually(func() error {
-			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, targetNode.Name)
-		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("expect to ensure Node '%s' healthiness without errors", targetNode.Name))
+			return ensureEtcdNodeHealthy(oc, targetNode.Name)
+		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "node %s should be healthy before starting test", targetNode.Name)
+
+		validateClusterOperatorsAvailable(oc)
 	})
 
-	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
-		// Note: In graceful shutdown, the targetNode is deliberately shut down while
-		// the peerNode remains running and becomes the etcd leader.
-		survivedNode := peerNode
-		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
-			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
-		g.By(fmt.Sprintf("Shutting down %s gracefully in 1 minute", targetNode.Name))
-		err := util.TriggerNodeRebootGraceful(oc.KubeClient(), targetNode.Name)
-		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
-		time.Sleep(time.Minute)
+	g.It("should maintain quorum after ungraceful shutdown and restart of leader and promote learner to voter", func() {
+		g.By("Determining current leader and selecting target node to shutdown")
+		leaderNode, err := determineEtcdLeaderNode(etcdClientFactory)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Failed to determine etcd leader node")
+		g.GinkgoT().Printf("Detected etcd leader node: %s\n", leaderNode)
 
-		g.By(fmt.Sprintf("Ensuring %s leaves the member list (timeout: %v)", targetNode.Name, memberHasLeftTimeout))
+		// Set targetNode to be the leader, survivedNode to be the follower
+		if leaderNode == survivedNode.Name {
+			survivedNode, targetNode = targetNode, survivedNode
+			g.GinkgoT().Printf("Adjusted: targeting leader node %s for shutdown, %s to survive\n", targetNode.Name, survivedNode.Name)
+		}
+
+		g.By("Ungracefully shutting down target node")
+		ungracefulShutdownNode(oc, targetNode.Name)
+
+		g.By("Validating etcd recovery state - target expected to be unstarted learner")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			false, true, memberRejoinedLearnerTimeout, pollInterval)
+
+		g.By("Starting target node")
+		startNode(oc, targetNode.Name)
+
+		g.By("Validating final etcd state - both nodes should be started voters")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			true, false, memberPromotedVotingTimeout, pollInterval)
+
+		g.By("Verifying etcd cluster operator is healthy at the end of test")
 		o.Eventually(func() error {
-			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, targetNode.Name)
-		}, memberHasLeftTimeout, pollInterval).ShouldNot(o.HaveOccurred())
-
-		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, false, true, // targetNode expected started == false, learner == true
-			memberIsLeaderTimeout, pollInterval)
-
-		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, true, true, // targetNode expected started == true, learner == true
-			memberRejoinedLearnerTimeout, pollInterval)
-
-		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, true, false, // targetNode expected started == true, learner == false
-			memberPromotedVotingTimeout, pollInterval)
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy at the end of test")
 	})
 
-	g.It("should recover from ungraceful node shutdown with etcd member re-addition", func() {
-		// Note: In ungraceful shutdown, the targetNode is forcibly shut down while
-		// the peerNode remains running and becomes the etcd leader.
-		survivedNode := peerNode
-		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n",
-			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
-		g.By(fmt.Sprintf("Shutting down %s ungracefully in 1 minute", targetNode.Name))
-		err := util.TriggerNodeRebootUngraceful(oc.KubeClient(), targetNode.Name)
-		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
-		time.Sleep(1 * time.Minute)
+	g.It("should maintain quorum after ungraceful shutdown and restart of follower and promote learner to voter", func() {
+		g.By("Determining current leader and selecting target node to shutdown")
+		leaderNode, err := determineEtcdLeaderNode(etcdClientFactory)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Failed to determine etcd leader node")
+		g.GinkgoT().Printf("Detected etcd leader node: %s\n", leaderNode)
 
-		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, false, true, // targetNode expected started == false, learner == true
-			memberIsLeaderTimeout, pollInterval)
-
-		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, true, true, // targetNode expected started == true, learner == true
-			memberRejoinedLearnerTimeout, pollInterval)
-
-		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, true, false, // targetNode expected started == true, learner == false
-			memberPromotedVotingTimeout, pollInterval)
-	})
-
-	g.It("should recover from network disruption with etcd member re-addition", func() {
-		// Note: In network disruption, the targetNode runs the disruption command that
-		// isolates the nodes from each other, creating a split-brain where pacemaker
-		// determines which node gets fenced and which becomes the etcd leader.
-		g.GinkgoT().Printf("Randomly selected %s (%s) to run the network disruption command\n", targetNode.Name, targetNode.Status.Addresses[0].Address)
-		g.By(fmt.Sprintf("Blocking network communication between %s and %s for %v ", targetNode.Name, peerNode.Name, networkDisruptionDuration))
-		command, err := util.TriggerNetworkDisruption(oc.KubeClient(), &targetNode, &peerNode, networkDisruptionDuration)
-		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
-		g.GinkgoT().Printf("command: '%s'\n", command)
-
-		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after network disruption (timeout: %v)", memberIsLeaderTimeout))
-		// Note: The fenced node may recover quickly and already be started when we get
-		// the first etcd membership. This is valid behavior, so we capture the learner's
-		// state and adapt the test accordingly.
-		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
-			&peerNode, &targetNode, memberIsLeaderTimeout, pollInterval)
-
-		if learnerStarted {
-			g.GinkgoT().Printf("Learner node '%s' already started as learner\n", learnerNode.Name)
-		} else {
-			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner (timeout: %v)", learnerNode.Name, memberRejoinedLearnerTimeout))
-			validateEtcdRecoveryState(oc, etcdClientFactory,
-				leaderNode,
-				learnerNode, true, true, // targetNode expected started == true, learner == true
-				memberRejoinedLearnerTimeout, pollInterval)
+		// Set targetNode to be the follower, survivedNode to be the leader
+		if leaderNode == targetNode.Name {
+			survivedNode, targetNode = targetNode, survivedNode
+			g.GinkgoT().Printf("Adjusted: targeting follower node %s for shutdown, %s (leader) to survive\n", targetNode.Name, survivedNode.Name)
 		}
 
-		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			leaderNode,
-			learnerNode, true, false, // targetNode expected started == true, learner == false
-			memberPromotedVotingTimeout, pollInterval)
+		g.By("Ungracefully shutting down target node")
+		ungracefulShutdownNode(oc, targetNode.Name)
+
+		g.By("Validating etcd recovery state - target expected to be unstarted learner")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			false, true, memberRejoinedLearnerTimeout, pollInterval)
+
+		g.By("Starting target node")
+		startNode(oc, targetNode.Name)
+
+		g.By("Validating final etcd state - both nodes should be started voters")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			true, false, memberPromotedVotingTimeout, pollInterval)
+
+		g.By("Verifying etcd cluster operator is healthy at the end of test")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy at the end of test")
 	})
 
-	g.It("should recover from a double node failure", func() {
-		// Note: In a double node failure both nodes have the same role, hence we
-		// will call them just NodeA and NodeB
-		nodeA := peerNode
-		nodeB := targetNode
-		c, vmA, vmB, err := setupMinimalTestEnvironment(oc, &nodeA, &nodeB)
-		o.Expect(err).To(o.BeNil(), "Expected to setup test environment without error")
+	g.It("should maintain quorum after graceful shutdown and restart of leader and promote learner to voter", func() {
+		g.By("Determining current leader and selecting target node to shutdown")
+		leaderNode, err := determineEtcdLeaderNode(etcdClientFactory)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Failed to determine etcd leader node")
+		g.GinkgoT().Printf("Detected etcd leader node: %s\n", leaderNode)
 
-		dataPair := []struct {
-			vm, node string
-		}{
-			{vmA, nodeA.Name},
-			{vmB, nodeB.Name},
+		// Set targetNode to be the leader, survivedNode to be the follower
+		if leaderNode == survivedNode.Name {
+			survivedNode, targetNode = targetNode, survivedNode
+			g.GinkgoT().Printf("Adjusted: targeting leader node %s for graceful shutdown, %s to survive\n", targetNode.Name, survivedNode.Name)
 		}
 
-		defer func() {
-			for _, d := range dataPair {
-				if err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath); err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restart VM %s during cleanup: %v\n", d.vm, err)
-				}
+		g.By("Gracefully shutting down target node")
+		gracefulShutdownNode(oc, targetNode.Name)
+
+		g.By("Validating etcd recovery state - target expected to be unstarted learner")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			false, true, memberRejoinedLearnerTimeout, pollInterval)
+
+		g.By("Starting target node")
+		startNode(oc, targetNode.Name)
+
+		g.By("Validating final etcd state - both nodes should be started voters")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			true, false, memberPromotedVotingTimeout, pollInterval)
+
+		g.By("Verifying etcd cluster operator is healthy at the end of test")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy at the end of test")
+	})
+
+	g.It("should maintain quorum after graceful shutdown and restart of follower and promote learner to voter", func() {
+		g.By("Determining current leader and selecting target node to shutdown")
+		leaderNode, err := determineEtcdLeaderNode(etcdClientFactory)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Failed to determine etcd leader node")
+		g.GinkgoT().Printf("Detected etcd leader node: %s\n", leaderNode)
+
+		// Set targetNode to be the follower, survivedNode to be the leader
+		if leaderNode == targetNode.Name {
+			survivedNode, targetNode = targetNode, survivedNode
+			g.GinkgoT().Printf("Adjusted: targeting follower node %s for graceful shutdown, %s (leader) to survive\n", targetNode.Name, survivedNode.Name)
+		}
+
+		g.By("Gracefully shutting down target node")
+		gracefulShutdownNode(oc, targetNode.Name)
+
+		g.By("Validating etcd recovery state - target expected to be unstarted learner")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			false, true, memberRejoinedLearnerTimeout, pollInterval)
+
+		g.By("Starting target node")
+		startNode(oc, targetNode.Name)
+
+		g.By("Validating final etcd state - both nodes should be started voters")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			true, false, memberPromotedVotingTimeout, pollInterval)
+
+		g.By("Verifying etcd cluster operator is healthy at the end of test")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy at the end of test")
+	})
+
+	g.It("should recover etcd cluster after network disruption between nodes", func() {
+		g.By("Getting hypervisor configuration for network disruption")
+		hypervisorConfig, err := getHypervisorConfig()
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Failed to get hypervisor configuration")
+
+		g.By("Determining current leader and selecting target node for network disruption")
+		leaderNode, err := determineEtcdLeaderNode(etcdClientFactory)
+		o.Expect(err).ShouldNot(o.HaveOccurred(), "Failed to determine etcd leader node")
+		g.GinkgoT().Printf("Detected etcd leader node: %s\n", leaderNode)
+
+		// Set targetNode to be the leader, survivedNode to be the follower
+		if leaderNode == survivedNode.Name {
+			survivedNode, targetNode = targetNode, survivedNode
+			g.GinkgoT().Printf("Adjusted: targeting leader node %s for network disruption, %s to survive\n", targetNode.Name, survivedNode.Name)
+		}
+
+		g.By("Disrupting network between nodes")
+		disruptNetworkBetweenNodes(hypervisorConfig, survivedNode, targetNode, networkDisruptionDuration)
+
+		g.By("Validating etcd recovery state after network disruption")
+		validateEtcdRecoveryState(oc, etcdClientFactory, &survivedNode, &targetNode,
+			true, false, memberPromotedVotingTimeout, pollInterval)
+
+		g.By("Verifying etcd cluster operator is healthy at the end of test")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy at the end of test")
+	})
+
+	g.It("should recover after double node failure (both nodes ungracefully shut down)", func() {
+		g.By("Ungracefully shutting down both nodes simultaneously")
+		ungracefulShutdownNode(oc, survivedNode.Name)
+		ungracefulShutdownNode(oc, targetNode.Name)
+
+		g.By("Starting both nodes")
+		startNode(oc, survivedNode.Name)
+		startNode(oc, targetNode.Name)
+
+		g.By("Waiting for etcd members to become healthy after double node failure")
+		o.Eventually(func() error {
+			members, err := getMembers(etcdClientFactory)
+			if err != nil {
+				return fmt.Errorf("Failed to get etcd members: %v", err)
 			}
-		}()
+			if len(members) != 2 {
+				return fmt.Errorf("Expected 2 etcd members, got %d", len(members))
+			}
 
-		g.By("Simulating double node failure: stopping both nodes' VMs")
-		// First, stop all VMs
-		for _, d := range dataPair {
-			err := services.VirshDestroyVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop VM %s (node: %s)", d.vm, d.node))
-		}
-		// Then, wait for all to reach shut off state
-		for _, d := range dataPair {
-			err := services.WaitForVMState(d.vm, services.VMStateShutOff, vmUngracefulShutdownTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to reach shut off state in %s timeout", d.vm, d.node, vmUngracefulShutdownTimeout))
-		}
+			survivedStarted, survivedVoter, err := getMemberState(&survivedNode, members)
+			if err != nil {
+				return fmt.Errorf("Failed to get member state for %s: %v", survivedNode.Name, err)
+			}
+			targetStarted, targetVoter, err := getMemberState(&targetNode, members)
+			if err != nil {
+				return fmt.Errorf("Failed to get member state for %s: %v", targetNode.Name, err)
+			}
 
-		g.By("Restarting both nodes")
-		// Start all VMs
-		for _, d := range dataPair {
-			err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to start VM %s (node: %s)", d.vm, d.node))
-		}
-		// Wait for all to be running
-		for _, d := range dataPair {
-			err := services.WaitForVMState(d.vm, services.VMStateRunning, vmUngracefulShutdownTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
-		}
+			if !survivedStarted || !survivedVoter {
+				return fmt.Errorf("Survived node %s not ready: started=%v, voter=%v", survivedNode.Name, survivedStarted, survivedVoter)
+			}
+			if !targetStarted || !targetVoter {
+				return fmt.Errorf("Target node %s not ready: started=%v, voter=%v", targetNode.Name, targetStarted, targetVoter)
+			}
 
-		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&nodeA,              // member on node A considered leader, hence started == true, learner == false
-			&nodeB, true, false, // member on node B expected started == true, learner == false
-			membersHealthyAfterDoubleReboot, pollInterval)
+			g.GinkgoT().Logf("SUCCESS: Both etcd members are healthy after double node failure")
+			return nil
+		}, membersHealthyAfterDoubleReboot, pollInterval).ShouldNot(o.HaveOccurred(), "Both etcd members should be healthy after double node failure")
+
+		g.By("Verifying etcd cluster operator is healthy at the end of test")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy at the end of test")
 	})
 })
-
-func getMembers(etcdClientFactory helpers.EtcdClientCreator) ([]*etcdserverpb.Member, error) {
-	etcdClient, closeFn, err := etcdClientFactory.NewEtcdClient()
-	if err != nil {
-		return []*etcdserverpb.Member{}, errors.Wrap(err, "could not get a etcd client")
-	}
-	defer closeFn()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
-	defer cancel()
-	m, err := etcdClient.MemberList(ctx)
-	if err != nil {
-		return []*etcdserverpb.Member{}, errors.Wrap(err, "could not get the member list")
-	}
-	return m.Members, nil
-}
-
-func getMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started, learner bool, err error) {
-	// Etcd members that have been added to the member list but haven't
-	// joined yet will have an empty Name field. We can match them via Peer URL.
-	hostPort := net.JoinHostPort(node.Status.Addresses[0].Address, "2380")
-	peerURL := fmt.Sprintf("https://%s", hostPort)
-	var found bool
-	for _, m := range members {
-		if m.Name == node.Name {
-			found = true
-			started = true
-			learner = m.IsLearner
-			break
-		}
-		if slices.Contains(m.PeerURLs, peerURL) {
-			found = true
-			learner = m.IsLearner
-			break
-		}
-	}
-	if !found {
-		return false, false, fmt.Errorf("could not find node %v via peer URL %s", node.Name, peerURL)
-	}
-	return started, learner, nil
-}
-
-// ensureEtcdOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
-func ensureEtcdOperatorHealthy(oc *util.CLI) error {
-	g.By("Checking etcd ClusterOperator status")
-	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to retrieve etcd ClusterOperator: %v", err)
-	}
-
-	// Check if etcd operator is Available
-	if !utils.IsClusterOperatorAvailable(etcdOperator) {
-		return fmt.Errorf("etcd ClusterOperator is not Available")
-	}
-
-	// Check if etcd operator is not Degraded
-	if utils.IsClusterOperatorDegraded(etcdOperator) {
-		degraded := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorDegraded)
-		return fmt.Errorf("etcd ClusterOperator is Degraded: %s", degraded.Message)
-	}
-
-	// Check if etcd operator is not Progressing (optional - might be ok during normal operations)
-	progressing := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorProgressing)
-	if progressing != nil && progressing.Status == v1.ConditionTrue {
-		g.GinkgoT().Logf("Warning: etcd ClusterOperator is Progressing: %s", progressing.Message)
-	}
-
-	g.By("Checking etcd pods are running")
-	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
-		LabelSelector: "app=etcd",
-	})
-	if err != nil {
-		return fmt.Errorf("failed to retrieve etcd pods: %v", err)
-	}
-
-	runningPods := 0
-	for _, pod := range etcdPods.Items {
-		if pod.Status.Phase == corev1.PodRunning {
-			runningPods++
-		}
-	}
-
-	if runningPods < 2 {
-		return fmt.Errorf("expected at least 2 etcd pods running, found %d", runningPods)
-	}
-
-	g.GinkgoT().Logf("etcd cluster operator is healthy: Available=True, Degraded=False, %d pods running", runningPods)
-	return nil
-}
-
-// findClusterOperatorCondition finds a condition in ClusterOperator status
-func findClusterOperatorCondition(conditions []v1.ClusterOperatorStatusCondition, conditionType v1.ClusterStatusConditionType) *v1.ClusterOperatorStatusCondition {
-	for i := range conditions {
-		if conditions[i].Type == conditionType {
-			return &conditions[i]
-		}
-	}
-	return nil
-}
 
 func validateEtcdRecoveryState(
 	oc *util.CLI, e *helpers.EtcdClientFactoryImpl,
@@ -370,7 +320,7 @@ func validateEtcdRecoveryState(
 			// return cached value only if the node has already rebooted during this test
 			if !hasTargetNodeRebooted {
 				var checkErr error
-				hasTargetNodeRebooted, checkErr = utils.HasNodeRebooted(oc, targetNode)
+				hasTargetNodeRebooted, checkErr = hasNodeRebooted(oc, targetNode)
 				if checkErr != nil {
 					// Return false on error; Eventually will retry this entire validation function
 					g.GinkgoT().Logf("Warning: failed to check reboot status: %v", checkErr)
@@ -407,139 +357,167 @@ func validateEtcdRecoveryState(
 	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 }
 
-func validateEtcdRecoveryStateWithoutAssumingLeader(
-	oc *util.CLI, e *helpers.EtcdClientFactoryImpl,
-	nodeA, nodeB *corev1.Node,
-	timeout, pollInterval time.Duration) (leaderNode, learnerNode *corev1.Node, learnerStarted bool) {
-
-	o.EventuallyWithOffset(1, func() error {
-		members, err := getMembers(e)
-		if err != nil {
-			return err
-		}
-		if len(members) != 2 {
-			return fmt.Errorf("expected 2 members, got %d", len(members))
-		}
-
-		// Get state for both nodes first
-		startedA, learnerA, err := getMemberState(nodeA, members)
-		if err != nil {
-			return fmt.Errorf("failed to get state for node %s: %v", nodeA.Name, err)
-		}
-
-		startedB, learnerB, err := getMemberState(nodeB, members)
-		if err != nil {
-			return fmt.Errorf("failed to get state for node %s: %v", nodeB.Name, err)
-		}
-
-		// Then, evaluate the possible combinations
-		if !startedA && !startedB {
-			return fmt.Errorf("etcd members have not started yet")
-		}
-
-		// This should not happen
-		if learnerA && learnerB {
-			o.Expect(fmt.Errorf("both nodes are learners! %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
-				nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)).ToNot(o.HaveOccurred())
-		}
-
-		// This might happen if the disruption didn't occurred yet, or we get this snapshot when the learner has been already promoted
-		if !learnerA && !learnerB {
-			// the disrupted node might have been promoted already due to fast promotion.
-			// The promotion from learner to voting member can happen faster than the time
-			// it takes us to establish an etcd client connection to the new etcd cluster
-			// created by the survivedNode, and query the cluster state.
-			// If one node rebooted, it proves a disruption occurred and recovery was successful,
-			// even though we missed observing the intermediate learner state.
-			hasNodeARebooted, err := utils.HasNodeRebooted(oc, nodeA)
-			if err != nil {
-				return err
-			}
-			hasNodeBRebooted, err := utils.HasNodeRebooted(oc, nodeB)
-			if err != nil {
-				return err
-			}
-
-			if hasNodeARebooted != hasNodeBRebooted {
-				framework.Logf("both nodes are non-learners, but only one has rebooted, hence the cluster has indeed recovered from a disruption")
-				// the rebooted node is the learner
-				learnerA = hasNodeARebooted
-				learnerB = hasNodeBRebooted
-			} else if hasNodeARebooted && hasNodeBRebooted {
-				return fmt.Errorf("both nodes rebooted. This indicates a cluster disruption beyond the expected single-node failure")
-			} else {
-				return fmt.Errorf("both nodes are non-learners (should have exactly one learner): %s(started=%v, learner=%v), %s(started=%v, learner=%v)", nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
-			}
-		}
-
-		// Once we get one leader and one learner, we don't care if the latter has started already, but the first must
-		// already been started
-		leaderStarted := (startedA && !learnerA) || (startedB && !learnerB)
-		if !leaderStarted {
-			return fmt.Errorf("leader node is not started: %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
-				nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
-		}
-
-		// Set return values based on actual roles
-		if learnerA {
-			leaderNode = nodeB
-			learnerNode = nodeA
-			learnerStarted = startedA
-		} else {
-			leaderNode = nodeA
-			learnerNode = nodeB
-			learnerStarted = startedB
-		}
-
-		g.GinkgoT().Logf("SUCCESS: Leader is %s, learner is %s (started=%v)",
-			leaderNode.Name, learnerNode.Name, learnerStarted)
-
-		return nil
-	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
-
-	return leaderNode, learnerNode, learnerStarted
+func validateClusterOperatorsAvailable(oc *util.CLI) {
+	// TODO: Implement cluster operator availability validation
+	g.GinkgoT().Logf("TODO: Implement validateClusterOperatorsAvailable function")
 }
 
-// setupMinimalTestEnvironment validates prerequisites and gathers required information for double node failure test
-func setupMinimalTestEnvironment(oc *util.CLI, nodeA, nodeB *corev1.Node) (c hypervisorExtendedConfig, vmNameNodeA, vmNameNodeB string, err error) {
-	if !util.HasHypervisorConfig() {
-		services.PrintHypervisorConfigUsage()
-		err = fmt.Errorf("no hypervisor configuration available")
-		return
+func gracefulShutdownNode(oc *util.CLI, nodeName string) {
+	g.GinkgoT().Printf("Initiating graceful shutdown of node %s\n", nodeName)
+	services.VMMService{}.GracefulShutdown(oc, nodeName, vmRestartTimeout)
+	g.GinkgoT().Printf("Node %s has been gracefully shut down\n", nodeName)
+}
+
+func ungracefulShutdownNode(oc *util.CLI, nodeName string) {
+	g.GinkgoT().Printf("Initiating ungraceful shutdown of node %s\n", nodeName)
+	services.VMMService{}.UngracefulShutdown(oc, nodeName, vmUngracefulShutdownTimeout)
+	g.GinkgoT().Printf("Node %s has been ungracefully shut down\n", nodeName)
+}
+
+func startNode(oc *util.CLI, nodeName string) {
+	g.GinkgoT().Printf("Starting node %s\n", nodeName)
+	services.VMMService{}.Start(oc, nodeName)
+	g.GinkgoT().Printf("Node %s has been started\n", nodeName)
+}
+
+func disruptNetworkBetweenNodes(hypervisorConfig hypervisorExtendedConfig, survivedNode, targetNode corev1.Node, duration time.Duration) {
+	g.GinkgoT().Printf("Disrupting network between nodes %s and %s for %v\n", survivedNode.Name, targetNode.Name, duration)
+	services.NetworkService{}.DisruptNetworkBetweenNodes(hypervisorConfig.HypervisorConfig, survivedNode, targetNode, duration)
+	g.GinkgoT().Printf("Network disruption between nodes completed\n")
+}
+
+func getHypervisorConfig() (hypervisorExtendedConfig, error) {
+	hypervisorHost := os.Getenv("TNF_HYPERVISOR_HOST")
+	hypervisorUser := os.Getenv("TNF_HYPERVISOR_USER")
+	hypervisorKeyPath := os.Getenv("TNF_HYPERVISOR_KEY_PATH")
+	hypervisorKnownHostsPath := os.Getenv("TNF_HYPERVISOR_KNOWN_HOSTS_PATH")
+
+	if hypervisorHost == "" || hypervisorUser == "" || hypervisorKeyPath == "" {
+		return hypervisorExtendedConfig{}, fmt.Errorf("required environment variables not set: TNF_HYPERVISOR_HOST, TNF_HYPERVISOR_USER, TNF_HYPERVISOR_KEY_PATH")
 	}
 
-	sshConfig := util.GetHypervisorConfig()
-	c.HypervisorConfig.IP = sshConfig.HypervisorIP
-	c.HypervisorConfig.User = sshConfig.SSHUser
-	c.HypervisorConfig.PrivateKeyPath = sshConfig.PrivateKeyPath
+	return hypervisorExtendedConfig{
+		HypervisorConfig: core.SSHConfig{
+			Host:     hypervisorHost,
+			User:     hypervisorUser,
+			KeyPath:  hypervisorKeyPath,
+			Port:     22,
+			Password: "",
+		},
+		HypervisorKnownHostsPath: hypervisorKnownHostsPath,
+	}, nil
+}
 
-	// Validate that the private key file exists
-	if _, err = os.Stat(c.HypervisorConfig.PrivateKeyPath); os.IsNotExist(err) {
-		return
-	}
-
-	c.HypervisorKnownHostsPath, err = core.PrepareLocalKnownHostsFile(&c.HypervisorConfig)
+func ensureEtcdOperatorHealthy(oc *util.CLI) error {
+	co, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
 	if err != nil {
-		return
+		return errors.Wrap(err, "could not get cluster operator etcd")
 	}
 
-	err = services.VerifyHypervisorAvailability(&c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	for _, condition := range co.Status.Conditions {
+		switch condition.Type {
+		case v1.OperatorAvailable:
+			if condition.Status != v1.ConditionTrue {
+				return fmt.Errorf("etcd cluster operator not available: %s", condition.Message)
+			}
+		case v1.OperatorProgressing:
+			if condition.Status == v1.ConditionTrue {
+				return fmt.Errorf("etcd cluster operator is progressing: %s", condition.Message)
+			}
+		case v1.OperatorDegraded:
+			if condition.Status == v1.ConditionTrue {
+				return fmt.Errorf("etcd cluster operator is degraded: %s", condition.Message)
+			}
+		}
+	}
+
+	return nil
+}
+
+func ensureEtcdNodeHealthy(oc *util.CLI, nodeName string) error {
+	node, err := oc.KubeClient().CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
 	if err != nil {
-		return
+		return errors.Wrapf(err, "could not get node %s", nodeName)
 	}
 
-	// This assumes VMs are named similarly to the OpenShift nodes (e.g., master-0, master-1)
-	vmNameNodeA, err = services.FindVMByNodeName(nodeA.Name, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady {
+			if condition.Status != corev1.ConditionTrue {
+				return fmt.Errorf("node %s is not ready: %s", nodeName, condition.Message)
+			}
+			break
+		}
+	}
+
+	return nil
+}
+
+func determineEtcdLeaderNode(etcdClientFactory *helpers.EtcdClientFactoryImpl) (string, error) {
+	members, err := getMembers(etcdClientFactory)
 	if err != nil {
-		err = fmt.Errorf("failed to find node's %s VM: %w", nodeA.Name, err)
-		return
+		return "", err
 	}
 
-	vmNameNodeB, err = services.FindVMByNodeName(nodeB.Name, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	for _, member := range members {
+		if member.IsLeader {
+			return member.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("no leader found in etcd cluster")
+}
+
+func getMembers(etcdClientFactory *helpers.EtcdClientFactoryImpl) ([]*etcdserverpb.Member, error) {
+	etcdClient, err := etcdClientFactory.NewEtcdClient()
 	if err != nil {
-		err = fmt.Errorf("failed to find node's %s VM: %w", nodeB.Name, err)
-		return
+		return nil, err
+	}
+	defer etcdClient.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	resp, err := etcdClient.MemberList(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return
+	return resp.Members, nil
+}
+
+func getMemberState(node *corev1.Node, members []*etcdserverpb.Member) (bool, bool, error) {
+	nodeIP := getNodeInternalIP(node)
+	if nodeIP == "" {
+		return false, false, fmt.Errorf("could not find internal IP for node %s", node.Name)
+	}
+
+	for _, member := range members {
+		for _, clientURL := range member.ClientURLs {
+			if host, _, err := net.SplitHostPort(clientURL); err == nil && host == nodeIP {
+				return member.IsStarted, member.IsLearner, nil
+			}
+		}
+	}
+
+	return false, false, fmt.Errorf("could not find etcd member for node %s with IP %s", node.Name, nodeIP)
+}
+
+func getNodeInternalIP(node *corev1.Node) string {
+	for _, address := range node.Status.Addresses {
+		if address.Type == corev1.NodeInternalIP {
+			return address.Address
+		}
+	}
+	return ""
+}
+
+func hasNodeRebooted(oc *util.CLI, node *corev1.Node) (bool, error) {
+	currentNode, err := oc.KubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	// Compare node creation time or boot ID if available
+	// This is a simplified check - in a real implementation you might want to compare boot IDs
+	return currentNode.CreationTimestamp.After(node.CreationTimestamp.Time), nil
 }
