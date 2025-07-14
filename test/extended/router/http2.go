@@ -24,6 +24,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
@@ -52,14 +53,29 @@ const (
 // certificate verification (InsecureSkipVerify).
 //
 // The function returns a pointer to the configured http.Client.
-func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client {
+func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration, lbAddress string) *http.Client {
 	tlsConfig := tls.Config{
 		InsecureSkipVerify: true,
+	}
+
+	dialer := &net.Dialer{}
+	// modify target address of DialContext if lbAddress present
+	dialContext := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		if lbAddress != "" {
+			_, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			// Connect to lbAddress:port regardless of hostname
+			addr = net.JoinHostPort(lbAddress, port)
+		}
+		return dialer.DialContext(ctx, network, addr)
 	}
 
 	transport := &http.Transport{
 		TLSClientConfig: &tlsConfig,
 		Proxy:           http.ProxyFromEnvironment,
+		DialContext:     dialContext,
 	}
 
 	c := &http.Client{
@@ -109,8 +125,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
-			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+			baseDomain, err := getClusterBaseDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find base domain name")
 
 			g.By("Locating the canary image reference")
 			image, err := getCanaryImage(oc)
@@ -254,7 +270,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			shardFQDN := oc.Namespace() + "." + defaultDomain
+			shardFQDN := oc.Namespace() + "." + baseDomain
 
 			// The new router shard is using a namespace
 			// selector so label this test namespace to
@@ -485,10 +501,19 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(shardService).NotTo(o.BeNil())
 			o.Expect(shardService.Status.LoadBalancer.Ingress).To(o.Not(o.BeEmpty()))
 
+			isDNSManaged, err := isDNSManaged(oc, time.Minute)
+			if err != nil {
+				e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+			}
+			lbAddress := ""
+			if !isDNSManaged {
+				lbAddress = getLoadBalancerAddress(oc, "router-"+oc.Namespace())
+			}
+
 			for i, tc := range testCases {
 				testConfig := fmt.Sprintf("%+v", tc)
 				var resp *http.Response
-				client := makeHTTPClient(tc.useHTTP2Transport, http2ClientTimeout)
+				client := makeHTTPClient(tc.useHTTP2Transport, http2ClientTimeout, lbAddress)
 
 				o.Expect(wait.Poll(time.Second, 5*time.Minute, func() (bool, error) {
 					host := tc.route + "." + shardFQDN
@@ -519,6 +544,23 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 		})
 	})
 })
+
+func getClusterBaseDomainName(oc *exutil.CLI, timeout time.Duration) (string, error) {
+	var domain string
+
+	if err := wait.PollUntilContextTimeout(context.Background(), time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		dns, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Get dnses.config/cluster failed: %v, retrying...", err)
+			return false, nil
+		}
+		domain = dns.Spec.BaseDomain
+		return true, nil
+	}); err != nil {
+		return "", err
+	}
+	return domain, nil
+}
 
 func getDefaultIngressClusterDomainName(oc *exutil.CLI, timeout time.Duration) (string, error) {
 	var domain string
@@ -597,4 +639,33 @@ func platformHasHTTP2LoadBalancerService(platformType configv1.PlatformType) boo
 	default:
 		return false
 	}
+}
+
+func isDNSManaged(oc *exutil.CLI, timeout time.Duration) (bool, error) {
+	var status operatorv1.ConditionStatus
+	conditionFound := false
+
+	if err := wait.PollUntilContextTimeout(context.Background(), time.Second, timeout, true, func(ctx context.Context) (bool, error) {
+		ic, err := oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get(ctx, "default", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get default ingresscontroller: %v, retrying...", err)
+			return false, nil
+		}
+		for _, condition := range ic.Status.Conditions {
+			if condition.Type == string(operatorv1.DNSManagedIngressConditionType) {
+				status = condition.Status
+				conditionFound = true
+				return true, nil
+			}
+		}
+		// DNSManaged condition not present, assume DNS is managed (default behavior)
+		e2e.Logf("DNSManaged condition not found on default ingresscontroller, assuming DNS is managed")
+		return true, nil
+	}); err != nil {
+		return false, err
+	}
+	if !conditionFound {
+		return true, nil
+	}
+	return status != operatorv1.ConditionFalse, nil
 }
