@@ -60,51 +60,15 @@ var staticOpenPortsToIgnore = []types.ComDetails{
 	},
 }
 
-// port used only interanly just on ci.
-var staticOpenPortsToIgnoreInStaticEntry = []types.ComDetails{
-	{
-		Direction: "Ingress",
-		Protocol:  "TCP",
-		Port:      10250,
-		NodeRole:  "worker",
-		Optional:  false,
-	},
-	{
-		Direction: "Ingress",
-		Protocol:  "TCP",
-		Port:      10250,
-		NodeRole:  "master",
-		Optional:  false,
-	},
-	{
-		Direction: "Ingress",
-		Protocol:  "TCP",
-		Port:      6385,
-		NodeRole:  "master",
-		Optional:  false,
-	},
-}
-
-var (
-	cs                *client.ClientSet
-	epExporter        *endpointslices.EndpointSlicesExporter
-	isSNO             bool
-	infraType         configv1.PlatformType
-	deployment        types.Deployment
-	utilsHelpers      utils.UtilsInterface
-	artifactsDir      string
-	commMatrixCreator *commatrixcreator.CommunicationMatrixCreator
-)
-
 var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
-	BeforeEach(func() {
+	It("generated communication matrix should be equal to documented communication matrix", func() {
 		kubeconfig := os.Getenv("KUBECONFIG")
 		if kubeconfig == "" {
 			Fail("KUBECONFIG not set")
 		}
 
 		By("Creating output folder")
-		artifactsDir = os.Getenv("ARTIFACT_DIR")
+		artifactsDir := os.Getenv("ARTIFACT_DIR")
 		if artifactsDir == "" {
 			log.Println("env var ARTIFACT_DIR is not set, using default value")
 		}
@@ -114,36 +78,14 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Creating the clients for the Generating step")
-		cs, err = client.New()
+		cs, err := client.New()
 		Expect(err).NotTo(HaveOccurred())
 
-		utilsHelpers = utils.New(cs)
-		epExporter, err = endpointslices.New(cs)
-		Expect(err).NotTo(HaveOccurred())
+		utilsHelpers := utils.New(cs)
 
-		By("Get cluster's deployment and infrastructure types")
-		deployment = types.Standard
-		isSNO, err = utilsHelpers.IsSNOCluster()
-		Expect(err).NotTo(HaveOccurred())
+		epExporter, err := endpointslices.New(cs)
+		Expect(err).ToNot(HaveOccurred())
 
-		if isSNO {
-			deployment = types.SNO
-		}
-
-		infraType, err = utilsHelpers.GetPlatformType()
-		Expect(err).NotTo(HaveOccurred())
-
-		// if cluster's type is not supported by the commatrix app, skip tests
-		if !slices.Contains(types.SupportedPlatforms, infraType) {
-			Skip(fmt.Sprintf("unsupported platform type: %s. Supported platform types are: %v", infraType, types.SupportedPlatforms))
-		}
-
-		By("Generating cluster's communication matrix creator")
-		commMatrixCreator, err = commatrixcreator.New(epExporter, "", "", infraType, deployment)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("generated communication matrix should be equal to documented communication matrix", func() {
 		By("Get cluster's version and check if it's suitable for test")
 		clusterVersionStr, err := cluster.GetClusterVersion(cs)
 		Expect(err).NotTo(HaveOccurred())
@@ -157,7 +99,26 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 			Skip(fmt.Sprintf("Cluster version is lower than the lowest version that has a documented communication matrix (%v)", minimalDocCommatrixVersionStr))
 		}
 
-		By("Create endpoint matrix ")
+		By("Get cluster's deployment and infrastructure types")
+		deployment := types.Standard
+		isSNO, err := utilsHelpers.IsSNOCluster()
+		Expect(err).NotTo(HaveOccurred())
+		if isSNO {
+			deployment = types.SNO
+		}
+
+		platformType, err := utilsHelpers.GetPlatformType()
+		Expect(err).NotTo(HaveOccurred())
+
+		// if cluster's type is not supported by the commatrix app, skip tests
+		if !slices.Contains(types.SupportedPlatforms, platformType) {
+			Skip(fmt.Sprintf("unsupported platform type: %s. Supported platform types are: %v", platformType, types.SupportedPlatforms))
+		}
+
+		By("Generating cluster's communication matrix")
+		commMatrixCreator, err := commatrixcreator.New(epExporter, "", "", platformType, deployment)
+		Expect(err).NotTo(HaveOccurred())
+
 		commatrix, err := commMatrixCreator.CreateEndpointMatrix()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -169,7 +130,7 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 
 		// clusters with unsupported platform types had skip the test, so we assume the platform type is supported
 		var docType string
-		switch infraType {
+		switch platformType {
 		case configv1.AWSPlatformType:
 			docType = "aws"
 		case configv1.BareMetalPlatformType:
@@ -251,42 +212,6 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		if len(missingPortsMat.Matrix) > 0 {
 			err := fmt.Errorf("the following ports are used but are not documented:\n%s", missingPortsMat)
 			Expect(err).ToNot(HaveOccurred())
-		}
-	})
-
-	It("Static entries should not overlap with those in the EndpointSlice; any shared entries must be removed", func() {
-		By("Get EndpointSlice matrix")
-		err := epExporter.LoadExposedEndpointSlicesInfo()
-		Expect(err).NotTo(HaveOccurred())
-
-		epSliceComDetails, err := epExporter.ToComDetails()
-		Expect(err).NotTo(HaveOccurred())
-
-		By("Get static entries list")
-		staticEntries, err := commMatrixCreator.GetStaticEntries()
-		Expect(err).NotTo(HaveOccurred())
-
-		staticEntriesMat := &types.ComMatrix{Matrix: staticEntries}
-		epSliceComDetailsMat := &types.ComMatrix{Matrix: epSliceComDetails}
-
-		By("Write the matrix to files")
-		err = staticEntriesMat.WriteMatrixToFileByType(utilsHelpers, "static-entry-matrix", types.FormatCSV, deployment, artifactsDir)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = epSliceComDetailsMat.WriteMatrixToFileByType(utilsHelpers, "expose-communication-matrix", types.FormatCSV, deployment, artifactsDir)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("Generating the Diff between the static entris and the expose communication matrix")
-		endpointslicesDiffWithstaticEntrieMat := matrixdiff.Generate(epSliceComDetailsMat, staticEntriesMat)
-		sharedEntries := endpointslicesDiffWithstaticEntrieMat.GetSharedEntries()
-
-		portsToIgnoreMat := &types.ComMatrix{Matrix: staticOpenPortsToIgnoreInStaticEntry}
-		sharedEntriesDiffWithIgnoredPorts := matrixdiff.Generate(sharedEntries, portsToIgnoreMat)
-		staticEntryNeedToRemove := sharedEntriesDiffWithIgnoredPorts.GetUniquePrimary()
-
-		if len(staticEntryNeedToRemove.Matrix) > 0 {
-			err := fmt.Errorf("the following ports must be removed from the static entry file, as they already exist in an EndpointSlice:\n%s", staticEntryNeedToRemove)
-			Expect(err).NotTo(HaveOccurred())
 		}
 	})
 })

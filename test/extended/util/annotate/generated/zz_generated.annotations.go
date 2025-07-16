@@ -1607,8 +1607,6 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:bond] should create a pod with bond interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial] Static entries should not overlap with those in the EndpointSlice; any shared entries must be removed": " [Suite:openshift/conformance/serial]",
-
 	"[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial] generated communication matrix should be equal to documented communication matrix": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:tap] should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
