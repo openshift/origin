@@ -8,40 +8,40 @@ spec:
   - featureGate: CRDValidationRatcheting
     tests:
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST NOT fail to update a resource
-        due to CRD Validation Rule errors on unchanged correlatable fields'
+        [FeatureGate:CRDValidationRatcheting] MUST NOT fail to update a resource due
+        to CRD Validation Rule errors on unchanged correlatable fields'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST NOT fail to update a resource
-        due to JSONSchema errors on unchanged correlatable fields'
+        [FeatureGate:CRDValidationRatcheting] MUST NOT fail to update a resource due
+        to JSONSchema errors on unchanged correlatable fields'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST NOT ratchet errors raised
-        by transition rules'
+        [FeatureGate:CRDValidationRatcheting] MUST NOT ratchet errors raised by transition
+        rules'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST evaluate a CRD Validation
-        Rule with oldSelf = nil for new values when optionalOldSelf is true'
+        [FeatureGate:CRDValidationRatcheting] MUST evaluate a CRD Validation Rule
+        with oldSelf = nil for new values when optionalOldSelf is true'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
-        due to CRD Validation Rule errors on changed fields'
+        [FeatureGate:CRDValidationRatcheting] MUST fail to update a resource due to
+        CRD Validation Rule errors on changed fields'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
-        due to CRD Validation Rule errors on unchanged uncorrelatable fields'
+        [FeatureGate:CRDValidationRatcheting] MUST fail to update a resource due to
+        CRD Validation Rule errors on unchanged uncorrelatable fields'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
-        due to JSONSchema errors on changed fields'
+        [FeatureGate:CRDValidationRatcheting] MUST fail to update a resource due to
+        JSONSchema errors on changed fields'
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
-        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
-        due to JSONSchema errors on unchanged uncorrelatable fields'
+        [FeatureGate:CRDValidationRatcheting] MUST fail to update a resource due to
+        JSONSchema errors on unchanged uncorrelatable fields'
   - featureGate: CSIVolumeHealth
     tests:
-    - testName: '[sig-storage] CSI Mock Node Volume Health [Feature:CSIVolumeHealth]
-        [FeatureGate:CSIVolumeHealth] [Alpha] CSI Mock Node Volume Health [Slow] return
-        normal volume stats'
-    - testName: '[sig-storage] CSI Mock Node Volume Health [Feature:CSIVolumeHealth]
-        [FeatureGate:CSIVolumeHealth] [Alpha] CSI Mock Node Volume Health [Slow] return
-        normal volume stats with abnormal volume condition'
-    - testName: '[sig-storage] CSI Mock Node Volume Health [Feature:CSIVolumeHealth]
-        [FeatureGate:CSIVolumeHealth] [Alpha] CSI Mock Node Volume Health [Slow] return
-        normal volume stats without volume condition'
+    - testName: '[sig-storage] CSI Mock Node Volume Health [FeatureGate:CSIVolumeHealth]
+        [Alpha] [Feature:OffByDefault] CSI Mock Node Volume Health [Slow] return normal
+        volume stats'
+    - testName: '[sig-storage] CSI Mock Node Volume Health [FeatureGate:CSIVolumeHealth]
+        [Alpha] [Feature:OffByDefault] CSI Mock Node Volume Health [Slow] return normal
+        volume stats with abnormal volume condition'
+    - testName: '[sig-storage] CSI Mock Node Volume Health [FeatureGate:CSIVolumeHealth]
+        [Alpha] [Feature:OffByDefault] CSI Mock Node Volume Health [Slow] return normal
+        volume stats without volume condition'
   - featureGate: ChunkSizeMiB
     tests:
     - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
@@ -56,11 +56,132 @@ spec:
         Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value'
     - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value'
+  - featureGate: ClusterTrustBundle
+    tests:
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be able to mount a big number (>100) of CTBs'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be able to mount a single ClusterTrustBundle by name'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be able to specify multiple CTB volumes'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels can combine all
+        signer CTBs with an empty label selector'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels can combine multiple
+        CTBs with signer name and label selector'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels should start if
+        only signer name and explicit label selector matches nothing + optional=true'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels should start if
+        only signer name and nil label selector + optional=true'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        prevent a pod from starting if:  sets optional=false and no trust bundle matches
+        query'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        prevent a pod from starting if:  sets optional=false and the configured CTB
+        does not exist'
+  - featureGate: ClusterTrustBundleProjection
+    tests:
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be able to mount a big number (>100) of CTBs'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be able to mount a single ClusterTrustBundle by name'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be able to specify multiple CTB volumes'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels can combine all
+        signer CTBs with an empty label selector'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels can combine multiple
+        CTBs with signer name and label selector'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels should start if
+        only signer name and explicit label selector matches nothing + optional=true'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        be capable to mount multiple trust bundles by signer+labels should start if
+        only signer name and nil label selector + optional=true'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        prevent a pod from starting if:  sets optional=false and no trust bundle matches
+        query'
+    - testName: '[sig-auth] [FeatureGate:ClusterTrustBundle] [Beta] [Feature:OffByDefault]
+        [FeatureGate:ClusterTrustBundleProjection] [Beta] [Feature:OffByDefault] should
+        prevent a pod from starting if:  sets optional=false and the configured CTB
+        does not exist'
+  - featureGate: CoordinatedLeaderElection
+    tests:
+    - testName: '[sig-api-machinery] CoordinatedLeaderElection [Feature:CoordinatedLeaderElection]
+        [FeatureGate:CoordinatedLeaderElection] [Beta] [Feature:OffByDefault] CLE
+        Preemption'
+    - testName: '[sig-api-machinery] CoordinatedLeaderElection [Feature:CoordinatedLeaderElection]
+        [FeatureGate:CoordinatedLeaderElection] [Beta] [Feature:OffByDefault] CLE
+        downgrade to disabled'
+    - testName: '[sig-api-machinery] CoordinatedLeaderElection [Feature:CoordinatedLeaderElection]
+        [FeatureGate:CoordinatedLeaderElection] [Beta] [Feature:OffByDefault] CLE
+        upgrade to enabled'
+    - testName: '[sig-api-machinery] CoordinatedLeaderElection [Feature:CoordinatedLeaderElection]
+        [FeatureGate:CoordinatedLeaderElection] [Beta] [Feature:OffByDefault] multiple
+        LeaseCandidate'
+    - testName: '[sig-api-machinery] CoordinatedLeaderElection [Feature:CoordinatedLeaderElection]
+        [FeatureGate:CoordinatedLeaderElection] [Beta] [Feature:OffByDefault] multiple
+        LeaseCandidates third party strategy'
+    - testName: '[sig-api-machinery] CoordinatedLeaderElection [Feature:CoordinatedLeaderElection]
+        [FeatureGate:CoordinatedLeaderElection] [Beta] [Feature:OffByDefault] single
+        LeaseCandidate'
   - featureGate: DNSNameResolver
     tests:
     - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
         when using openshift ovn-kubernetes should ensure egressfirewall with wildcard
         dns rules is created'
+  - featureGate: DRAAdminAccess
+    tests:
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster DaemonSet with admin access [Feature:DRAAdminAccess]
+        [FeatureGate:DRAAdminAccess] [Alpha] [Feature:OffByDefault] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster validate ResourceClaimTemplate and ResourceClaim
+        for admin access [Feature:DRAAdminAccess] [FeatureGate:DRAAdminAccess] [Alpha]
+        [Feature:OffByDefault] [FeatureGate:DynamicResourceAllocation] [Beta] [Feature:OffByDefault]'
+  - featureGate: DRADeviceTaints
+    tests:
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with device taints [Feature:DRADeviceTaints]
+        [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceTaint keeps
+        pod pending'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with device taints [Feature:DRADeviceTaints]
+        [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceTaintRule
+        evicts pod'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with device taints [Feature:DRADeviceTaints]
+        [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceToleration
+        enables pod scheduling'
+  - featureGate: DRAResourceClaimDeviceStatus
+    tests:
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node must be possible for the driver
+        to update the ResourceClaim.Status.Devices once allocated [Feature:DRAResourceClaimDeviceStatus]
+        [FeatureGate:DRAResourceClaimDeviceStatus] [Beta] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault]'
   - featureGate: DualReplica
     tests:
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
@@ -74,6 +195,141 @@ spec:
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
         Two Node with Fencing topology Should validate the number of control-planes,
         arbiters as configured'
+  - featureGate: DynamicResourceAllocation
+    tests:
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] ResourceSlice Controller creates slices'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster DaemonSet with admin access [Feature:DRAAdminAccess]
+        [FeatureGate:DRAAdminAccess] [Alpha] [Feature:OffByDefault] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster must apply per-node permission checks'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster must manage ResourceSlices [Slow]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster supports count/resourceclaims.resource.k8s.io
+        ResourceQuota'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster truncates the name of a generated resource
+        claim'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] cluster validate ResourceClaimTemplate and ResourceClaim
+        for admin access [Feature:DRAAdminAccess] [FeatureGate:DRAAdminAccess] [Alpha]
+        [Feature:OffByDefault] [FeatureGate:DynamicResourceAllocation] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] failed update'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] kubelet must call NodePrepareResources even
+        if not used by any container'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] kubelet must map configs and devices to the
+        right containers'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] kubelet must not run a pod if a claim is not
+        ready'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] kubelet must retry NodePrepareResources'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] kubelet must unprepare resources for force-deleted
+        pod'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] kubelet registers plugin'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] multiple drivers using only drapbv1beta1 work'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on multiple nodes with different ResourceSlices
+        keeps pod pending because of CEL runtime errors'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on multiple nodes with network-attached resources
+        supports sharing a claim sequentially [Slow]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on multiple nodes with node-local resources
+        uses all resources'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node deletes generated claims when
+        pod is done'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node does not delete generated claims
+        when pod is restarting'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node must be possible for the driver
+        to update the ResourceClaim.Status.Devices once allocated [Feature:DRAResourceClaimDeviceStatus]
+        [FeatureGate:DRAResourceClaimDeviceStatus] [Beta] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node must deallocate after use'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node removes reservation from claim
+        when pod is done'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node retries pod scheduling after
+        creating device class'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node retries pod scheduling after
+        updating device class'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node runs a pod without a generated
+        resource claim'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports claim and class parameters'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports external claim referenced
+        by multiple containers of multiple pods'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports external claim referenced
+        by multiple pods'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports init containers'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports inline claim referenced
+        by multiple containers'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports reusing resources'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports sharing a claim concurrently'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports simple pod referencing
+        external resource claim'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] on single node supports simple pod referencing
+        inline resource claim'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] rolling update'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] runs pod after driver starts'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] sequential update with pods replacing each other
+        [Slow]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with device taints [Feature:DRADeviceTaints]
+        [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceTaint keeps
+        pod pending'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with device taints [Feature:DRADeviceTaints]
+        [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceTaintRule
+        evicts pod'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with device taints [Feature:DRADeviceTaints]
+        [FeatureGate:DRADeviceTaints] [Alpha] [Feature:OffByDefault] DeviceToleration
+        enables pod scheduling'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with prioritized list chooses the correct subrequest
+        subject to constraints [Feature:DRAPrioritizedList]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with prioritized list filters config correctly
+        for multiple devices [Feature:DRAPrioritizedList]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with prioritized list selects the first subrequest
+        that can be satisfied [Feature:DRAPrioritizedList]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with prioritized list uses the config for the
+        selected subrequest [Feature:DRAPrioritizedList]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with v1beta2 API supports requests with alternatives
+        [Feature:DRAPrioritizedList]'
+    - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
+        [Beta] [Feature:OffByDefault] with v1beta2 API supports simple ResourceClaim'
   - featureGate: Example
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
@@ -104,6 +360,16 @@ spec:
         Ensure custom gatewayclass can be accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure default gatewayclass is accepted'
+  - featureGate: GitRepoVolumeDriver
+    tests:
+    - testName: '[sig-storage] EmptyDir wrapper volumes should not cause race condition
+        when used for git_repo [FeatureGate:GitRepoVolumeDriver] [Deprecated] [Feature:OffByDefault]
+        [Serial] [Slow]'
+  - featureGate: HPAConfigurableTolerance
+    tests:
+    - testName: '[sig-autoscaling] [Feature:HPAConfigurableTolerance] [FeatureGate:HPAConfigurableTolerance]
+        [Alpha] [Feature:OffByDefault] [Serial] [Slow] Horizontal pod autoscaling
+        (configurable tolerance) with large configurable tolerance should not scale'
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
@@ -132,20 +398,6 @@ spec:
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
         required pods on the Arbiter node Should verify that the correct number of
         pods are running on the Arbiter node'
-  - featureGate: HonorPVReclaimPolicy
-    tests:
-    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
-        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
-        mock driver Dynamic provisioning should honor pv delete reclaim policy'
-    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
-        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
-        mock driver Dynamic provisioning should honor pv retain reclaim policy'
-    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
-        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
-        mock driver Static provisioning should honor pv delete reclaim policy'
-    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
-        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
-        mock driver Static provisioning should honor pv retain reclaim policy'
   - featureGate: ImageStreamImportMode
     tests:
     - testName: '[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode] ClusterVersion
@@ -160,6 +412,153 @@ spec:
     - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
         ImageStream API import mode should be PreserveOriginal or Legacy depending
         on desired.architecture field in the CV [apigroup:image.openshift.io]'
+  - featureGate: InPlacePodVerticalScaling
+    tests:
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] BestEffort QoS pod - empty resize'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] BestEffort pod - try requesting memory, expect error'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod with memory requests + limits - decrease memory limit'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, mixed containers - add limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, mixed containers - add requests'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, mixed containers - scale up cpu and memory'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container - decrease CPU (NotRequired) & memory
+        (RestartContainer)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container - decrease memory request (RestartContainer
+        memory resize policy)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container - increase memory request (NoRestart
+        memory resize policy)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with CPU requests + limits, cpu requests
+        - remove memory requests'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease CPU limits only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease CPU requests and increase CPU limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease CPU requests and increase memory limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease CPU requests and limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease CPU requests only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease memory requests and increase CPU limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease memory requests and increase memory limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - decrease memory requests only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase CPU limits only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase CPU requests and decrease CPU limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase CPU requests and limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase CPU requests only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase memory limits only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase memory requests and decrease CPU limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase memory requests and limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - increase memory requests only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - remove CPU limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests + limits
+        - remove memory limits'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests - decrease
+        memory request'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu & memory requests - increase
+        cpu request'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with cpu requests and limits - resize
+        with equivalents'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container with memory requests + limits, cpu
+        requests - remove CPU requests'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container, one restartable init container -
+        decrease init container CPU only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container, one restartable init container -
+        decrease init container memory requests only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container, one restartable init container -
+        increase init container CPU & memory'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container, one restartable init container -
+        increase init container CPU only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, one container, one restartable init container -
+        increase init container memory only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, three containers - decrease c1 resources, increase
+        c2 resources, no change for c3 (net increase for pod)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, three containers - increase c1 resources, no change
+        for c2, decrease c3 resources (no net change for pod)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, three containers - no change for c1, increase c2
+        resources, decrease c3 (net decrease for pod)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Burstable QoS pod, two containers with cpu & memory requests + limits
+        - reorder containers'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one container - decrease CPU only'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one container - increase CPU & memory'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one container - increase CPU & memory with an extended
+        resource'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one container - increase CPU (NotRequired) & memory
+        (RestartContainer)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one container, one restartable init container -
+        decrease init container CPU'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one restartable init container - decrease CPU &
+        increase memory'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, one restartable init container - increase CPU &
+        memory'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] Guaranteed QoS pod, three containers (c1, c2, c3) - increase: CPU (c1,c3),
+        memory (c2, c3) ; decrease: CPU (c2)'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] pod-resize-limit-ranger-test'
+    - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
+        [Beta] pod-resize-resource-quota-test'
+    - testName: '[sig-node] [Serial] Pod InPlace Resize Container (scheduler-focused)
+        [FeatureGate:InPlacePodVerticalScaling] [Beta] pod-resize-scheduler-tests'
   - featureGate: MachineConfigNodes
     tests:
     - testName: '[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
@@ -240,10 +639,17 @@ spec:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
         The collection profiles feature-set initially, in a homogeneous default environment,
         should expose default metrics'
-  - featureGate: MultiCIDRServiceAllocator
+  - featureGate: MutatingAdmissionPolicy
     tests:
-    - testName: '[sig-network] [Feature:ServiceCIDRs] [FeatureGate:MultiCIDRServiceAllocator]
-        [Beta] should create Services and serve on different Service CIDRs'
+    - testName: '[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin]
+        [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Alpha]
+        [Feature:OffByDefault] should mutate a Deployment'
+    - testName: '[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin]
+        [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Alpha]
+        [Feature:OffByDefault] should support MutatingAdmissionPolicy API operations'
+    - testName: '[sig-api-machinery] MutatingAdmissionPolicy [Privileged:ClusterAdmin]
+        [Feature:MutatingAdmissionPolicy] [FeatureGate:MutatingAdmissionPolicy] [Alpha]
+        [Feature:OffByDefault] should support MutatingAdmissionPolicyBinding API operations'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
@@ -537,7 +943,7 @@ spec:
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
         delete pod first [Feature:OrderedNamespaceDeletion] [FeatureGate:OrderedNamespaceDeletion]
-        [Beta]'
+        [Beta] [Serial]'
   - featureGate: PersistentIPsForVirtualization
     tests:
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
@@ -616,11 +1022,69 @@ spec:
         Invalid PIS leads to degraded MCN in a custom Pool [apigroup:machineconfiguration.openshift.io]'
     - testName: '[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]
         Invalid PIS leads to degraded MCN in a standard Pool [apigroup:machineconfiguration.openshift.io]'
+  - featureGate: PodObservedGenerationTracking
+    tests:
+    - testName: '[sig-node] Pods Extended (pod generation) [Feature:PodObservedGenerationTracking]
+        [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
+        Pod Generation custom-set generation on new pods and graceful delete'
+    - testName: '[sig-node] Pods Extended (pod generation) [Feature:PodObservedGenerationTracking]
+        [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
+        Pod Generation issue 500 podspec updates and verify generation and observedGeneration
+        eventually converge'
+    - testName: '[sig-node] Pods Extended (pod generation) [Feature:PodObservedGenerationTracking]
+        [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
+        Pod Generation pod generation should start at 1 and increment per update'
+    - testName: '[sig-node] Pods Extended (pod generation) [Feature:PodObservedGenerationTracking]
+        [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
+        Pod Generation pod observedGeneration field set in pod conditions'
+    - testName: '[sig-node] Pods Extended (pod generation) [Feature:PodObservedGenerationTracking]
+        [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
+        Pod Generation pod rejected by kubelet should have updated generation and
+        observedGeneration'
+  - featureGate: PreferSameTrafficDistribution
+    tests:
+    - testName: '[sig-network] Traffic Distribution should route traffic correctly
+        between pods on multiple nodes when using PreferSameZone [FeatureGate:PreferSameTrafficDistribution]
+        [Alpha] [Feature:OffByDefault]'
+    - testName: '[sig-network] Traffic Distribution should route traffic to an endpoint
+        in the same zone when using PreferSameZone [FeatureGate:PreferSameTrafficDistribution]
+        [Alpha] [Feature:OffByDefault]'
+    - testName: '[sig-network] Traffic Distribution should route traffic to an endpoint
+        on the same node or fall back to same zone when using PreferSameNode [FeatureGate:PreferSameTrafficDistribution]
+        [Alpha] [Feature:OffByDefault]'
+    - testName: '[sig-network] Traffic Distribution should route traffic to an endpoint
+        on the same node when using PreferSameNode and fall back when the endpoint
+        becomes unavailable [FeatureGate:PreferSameTrafficDistribution] [Alpha] [Feature:OffByDefault]'
   - featureGate: ProcMountType
     tests:
     - testName: '[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType]
         [FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem
         test in baseline mode'
+  - featureGate: RecoverVolumeExpansionFailure
+    tests:
+    - testName: '[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure]
+        [FeatureGate:RecoverVolumeExpansionFailure] [Beta] recovery should be possible
+        for node-only expanded volumes with final error'
+    - testName: '[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure]
+        [FeatureGate:RecoverVolumeExpansionFailure] [Beta] recovery should be possible
+        for node-only expanded volumes with infeasible error'
+    - testName: '[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure]
+        [FeatureGate:RecoverVolumeExpansionFailure] [Beta] recovery should not be
+        possible in partially expanded volumes'
+    - testName: '[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure]
+        [FeatureGate:RecoverVolumeExpansionFailure] [Beta] should allow recovery if
+        controller expansion fails with final error'
+    - testName: '[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure]
+        [FeatureGate:RecoverVolumeExpansionFailure] [Beta] should allow recovery if
+        controller expansion fails with infeasible error'
+    - testName: '[sig-storage] CSI Mock volume expansion Expansion with recovery [Feature:RecoverVolumeExpansionFailure]
+        [FeatureGate:RecoverVolumeExpansionFailure] [Beta] should record target size
+        in allocated resources'
+  - featureGate: RelaxedDNSSearchValidation
+    tests:
+    - testName: '[sig-network] DNS [Feature:RelaxedDNSSearchValidation] [FeatureGate:RelaxedDNSSearchValidation]
+        [Beta] should work with a search path containing an underscore and a search
+        path with a single dot'
   - featureGate: RouteAdvertisements
     tests:
     - testName: '[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:RouteAdvertisements][apigroup:operator.openshift.io]
@@ -742,32 +1206,183 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:RouteExternalCertificate][Feature:Router][apigroup:route.openshift.io]
         with valid setup the router should support external certificate and the secret
         is updated then also routes are reachable'
+  - featureGate: SELinuxChangePolicy
+    tests:
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for RWO volume with
+        SELinuxMount disabled and Recursive policy [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for RWO volume with
+        only SELinuxChangePolicy enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [FeatureGate:SELinuxChangePolicy]
+        [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
+        enabled and MountOption policy [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
+        enabled and nil policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with MountOption policy and a different context on RWOP volume
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWO volume and SELinuxMount enabled
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWOP volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWX volume and SELinuxMount enabled
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (Recursive + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta]
+        [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (Recursive + nil) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (nil + Recursive) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with a different policy RWX volume (MountOption + MountOption)
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with a different policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped
+        on two Pods with a different context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped
+        on two Pods with different policies on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is not
+        bumped on two Pods with Recursive policy and a different context on RWO volume
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is not
+        bumped on two Pods with the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for RWO volume with
+        SELinuxMount disabled and Recursive policy [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should not unstage RWO volume when starting a second pod
         with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
-        [FeatureGate:SELinuxMount] [Alpha]'
+        [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
-        enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount]
-        [Alpha]'
+        enabled and MountOption policy [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
+        enabled and nil policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should unstage RWO volume when starting a second pod with
         different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
-        [FeatureGate:SELinuxMount] [Alpha]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
-        different context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
-        different context on RWX volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with
-        the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+        [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWO volume when starting a second pod with
+        different policy (MountOption -> Recursive) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWO volume when starting a second pod with
+        different policy (Recursive -> MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with MountOption policy and a different context on RWOP volume
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWO volume and SELinuxMount enabled
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWX volume and SELinuxMount enabled
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (Recursive + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta]
+        [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (Recursive + nil) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (nil + Recursive) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with a different policy RWX volume (MountOption + MountOption)
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with a different policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
   - featureGate: SELinuxMountReadWriteOncePod
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
@@ -784,50 +1399,127 @@ spec:
         [Feature:SELinux] should not pass SELinux mount option for RWO volume with
         SELinuxMount disabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for RWO volume with
+        SELinuxMount disabled and Recursive policy [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for RWO volume with
+        only SELinuxChangePolicy enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [FeatureGate:SELinuxChangePolicy]
+        [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should not unstage RWO volume when starting a second pod
         with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
-        [FeatureGate:SELinuxMount] [Alpha]'
+        [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should not unstage RWOP volume when starting a second pod
         with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
-        enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount]
-        [Alpha]'
+        enabled and MountOption policy [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
+        enabled and nil policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should pass SELinux mount option for RWOP volume and Pod
         with SELinux context set [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should unstage RWO volume when starting a second pod with
         different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
-        [FeatureGate:SELinuxMount] [Alpha]'
+        [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWO volume when starting a second pod with
+        different policy (MountOption -> Recursive) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWO volume when starting a second pod with
+        different policy (Recursive -> MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
         [Feature:SELinux] should unstage RWOP volume when starting a second pod with
         different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
-        different context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
-        different context on RWOP volume [FeatureGate:SELinuxMountReadWriteOncePod]
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with MountOption policy and a different context on RWOP volume
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWO volume and SELinuxMount enabled
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWOP volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
-        different context on RWX volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with
-        the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped on two Pods with
-        a different context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
-        [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with
-        the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
-        [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different context on RWX volume and SELinuxMount enabled
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (Recursive + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta]
+        [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (Recursive + nil) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on two Pods with a different policy on RWO volume and SELinuxMount enabled
+        (nil + Recursive) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with a different policy RWX volume (MountOption + MountOption)
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with a different policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped
+        on two Pods with a different context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped
+        on two Pods with different policies on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is not
+        bumped on two Pods with Recursive policy and a different context on RWO volume
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is not
+        bumped on two Pods with the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+  - featureGate: SchedulerAsyncPreemption
+    tests:
+    - testName: '[sig-scheduling] SchedulerPreemption [Serial] validates various priority
+        Pods preempt expectedly with the async preemption [Feature:SchedulerAsyncPreemption]
+        [FeatureGate:SchedulerAsyncPreemption] [Beta]'
   - featureGate: ShortCertRotation
     tests:
     - testName: '[sig-arch][Late][Jira:"kube-apiserver"] [OCPFeatureGate:ShortCertRotation]
@@ -847,6 +1539,42 @@ spec:
         Should pass clusterimagepolicy signature validation with signed image'
     - testName: '[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial]
         Should pass imagepolicy signature validation with signed image in namespaces'
+  - featureGate: SupplementalGroupsPolicy
+    tests:
+    - testName: '[sig-node] Security Context SupplementalGroupsPolicy [LinuxOnly]
+        [Feature:SupplementalGroupsPolicy] [FeatureGate:SupplementalGroupsPolicy]
+        [Beta] when SupplementalGroupsPolicy nil in SecurityContext when if the container''s
+        primary UID belongs to some groups in the image when scheduled node does not
+        support SupplementalGroupsPolicy it should add SupplementalGroups to them
+        [LinuxOnly]'
+    - testName: '[sig-node] Security Context SupplementalGroupsPolicy [LinuxOnly]
+        [Feature:SupplementalGroupsPolicy] [FeatureGate:SupplementalGroupsPolicy]
+        [Beta] when SupplementalGroupsPolicy nil in SecurityContext when if the container''s
+        primary UID belongs to some groups in the image when scheduled node supports
+        SupplementalGroupsPolicy it should add SupplementalGroups to them [LinuxOnly]'
+    - testName: '[sig-node] Security Context SupplementalGroupsPolicy [LinuxOnly]
+        [Feature:SupplementalGroupsPolicy] [FeatureGate:SupplementalGroupsPolicy]
+        [Beta] when SupplementalGroupsPolicy was set to Merge in PodSpec when the
+        container''s primary UID belongs to some groups in the image when scheduled
+        node does not support SupplementalGroupsPolicy it should add SupplementalGroups
+        to them [LinuxOnly]'
+    - testName: '[sig-node] Security Context SupplementalGroupsPolicy [LinuxOnly]
+        [Feature:SupplementalGroupsPolicy] [FeatureGate:SupplementalGroupsPolicy]
+        [Beta] when SupplementalGroupsPolicy was set to Merge in PodSpec when the
+        container''s primary UID belongs to some groups in the image when scheduled
+        node supports SupplementalGroupsPolicy it should add SupplementalGroups to
+        them [LinuxOnly]'
+    - testName: '[sig-node] Security Context SupplementalGroupsPolicy [LinuxOnly]
+        [Feature:SupplementalGroupsPolicy] [FeatureGate:SupplementalGroupsPolicy]
+        [Beta] when SupplementalGroupsPolicy was set to Strict in PodSpec when the
+        container''s primary UID belongs to some groups in the image when scheduled
+        node does not support SupplementalGroupsPolicy it should reject the pod [LinuxOnly]'
+    - testName: '[sig-node] Security Context SupplementalGroupsPolicy [LinuxOnly]
+        [Feature:SupplementalGroupsPolicy] [FeatureGate:SupplementalGroupsPolicy]
+        [Beta] when SupplementalGroupsPolicy was set to Strict in PodSpec when the
+        container''s primary UID belongs to some groups in the image when scheduled
+        node supports SupplementalGroupsPolicy it should NOT add SupplementalGroups
+        to them [LinuxOnly]'
   - featureGate: UserNamespacesSupport
     tests:
     - testName: '[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType]
@@ -871,111 +1599,180 @@ spec:
         use default when unset'
   - featureGate: VolumeAttributesClass
     tests:
+    - testName: '[sig-api-machinery] ResourceQuota [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should verify ResourceQuota''s volume attributes
+        class scope (quota set to pvc count: 1) against 2 pvcs with same volume attributes
+        class.'
+    - testName: '[sig-api-machinery] ResourceQuota [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should verify ResourceQuota''s volume attributes
+        class scope (quota set to pvc count: 1) against a pvc with different volume
+        attributes class.'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should be protected by vac-protection finalizer'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should create a volume with VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should modify volume that already has a VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should modify volume with no VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should recover from invalid target VAC by updating
+        PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should be protected by vac-protection finalizer'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+        PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should create a volume with VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
-        has a VAC'
+        PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should modify volume that already has a VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
-        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+        PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault] should recover from invalid target VAC by updating
+        PVC to new valid VAC [Flaky]'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should be protected by vac-protection finalizer'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume that already has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should recover from invalid target VAC by updating
+        PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should be protected by vac-protection finalizer'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
-        has a VAC'
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should create a volume with VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume that already has a VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume with no VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
-        has a VAC'
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should recover from invalid target VAC by updating
+        PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+        [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should be protected by vac-protection finalizer'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+        [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should create a volume with VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
-        has a VAC'
+        [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume that already has a VAC'
     - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
-        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+        [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should recover from invalid target VAC by updating
+        PVC to new valid VAC [Flaky]'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should be protected by vac-protection finalizer'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume that already has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should recover from invalid target VAC by updating
+        PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should be protected by vac-protection finalizer'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should create a volume with VAC'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume that already has a VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume with no VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should recover from invalid target VAC by updating PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should be protected by vac-protection finalizer'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should create a volume with VAC'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume that already has a VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume with no VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should recover from invalid target VAC by updating PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should be protected by vac-protection finalizer'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should create a volume with VAC'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
-    - testName: '[sig-storage] VolumeAttributesClass [Feature:VolumeAttributesClass]
-        [FeatureGate:VolumeAttributesClass] [Beta] should run through the lifecycle
-        of a VolumeAttributesClass'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume that already has a VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume with no VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should recover from invalid target VAC by updating PVC to new valid VAC [Flaky]'
+    - testName: '[sig-storage] VolumeAttributesClass [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault] should run through the lifecycle of a VolumeAttributesClass'
     - testName: '[sig-storage] [Serial] Volume metrics PVController should create
         bound pv/pvc count metrics for pvc controller with volume attributes class
-        dimension after creating both pv and pvc [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta]'
+        dimension after creating both pv and pvc [FeatureGate:VolumeAttributesClass]
+        [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] [Serial] Volume metrics PVController should create
         unbound pvc count metrics for pvc controller with volume attributes class
-        dimension after creating pvc only [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta]'
+        dimension after creating pvc only [FeatureGate:VolumeAttributesClass] [Beta]
+        [Feature:OffByDefault]'
   - featureGate: VolumeGroupSnapshot
     tests:
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
@@ -1092,16 +1889,24 @@ spec:
         property'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should be protected by vac-protection finalizer'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should create a volume with VAC'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume that already has a VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume with no VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should recover from invalid target VAC by updating PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)]
         volume-stress multiple pods should access different volumes repeatedly [Slow]
@@ -1259,16 +2064,24 @@ spec:
         property'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should be protected by vac-protection finalizer'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should create a volume with VAC'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume that already has a VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume with no VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should recover from invalid target VAC by updating PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)]
         volume-stress multiple pods should access different volumes repeatedly [Slow]
@@ -1562,16 +2375,24 @@ spec:
         property'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should create a volume with VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should be protected by vac-protection finalizer'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume that already has a VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should create a volume with VAC'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
-        volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
-        [Beta] should modify volume with no VAC'
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume that already has a VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should modify volume with no VAC'
+    - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
+        [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
+        volume-modify [FeatureGate:VolumeAttributesClass] [Beta] [Feature:OffByDefault]
+        should recover from invalid target VAC by updating PVC to new valid VAC [Flaky]'
     - testName: '[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot]
         [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (ntfs)] [Feature:Windows]
         volumeIO should write files of various sizes, verify size, validate content
@@ -2084,4 +2905,24 @@ spec:
         (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot
         controller should check snapshot fields, check restore correctly works, check
         deletion (ephemeral)'
+  - featureGate: WatchList
+    tests:
+    - testName: '[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList]
+        [Beta] [Feature:OffByDefault] [Serial] doesn''t support receiving resources
+        as Tables'
+    - testName: '[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList]
+        [Beta] [Feature:OffByDefault] [Serial] falls backs to supported content type
+        when when receiving resources as Tables was requested'
+    - testName: '[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList]
+        [Beta] [Feature:OffByDefault] [Serial] should be requested by client-go''s
+        List method when WatchListClient is enabled'
+    - testName: '[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList]
+        [Beta] [Feature:OffByDefault] [Serial] should be requested by dynamic client''s
+        List method when WatchListClient is enabled'
+    - testName: '[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList]
+        [Beta] [Feature:OffByDefault] [Serial] should be requested by informers when
+        WatchListClient is enabled'
+    - testName: '[sig-api-machinery] API Streaming (aka. WatchList) [FeatureGate:WatchList]
+        [Beta] [Feature:OffByDefault] [Serial] should be requested by metadata client''s
+        List method when WatchListClient is enabled'
 status: {}
