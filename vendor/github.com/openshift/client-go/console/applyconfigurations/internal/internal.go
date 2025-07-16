@@ -288,7 +288,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: basePath
       type:
         scalar: string
-      default: ""
     - name: name
       type:
         scalar: string

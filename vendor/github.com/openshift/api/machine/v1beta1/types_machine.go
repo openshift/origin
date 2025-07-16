@@ -392,6 +392,7 @@ type MachineStatus struct {
 	// conditions defines the current state of the Machine
 	// +listType=map
 	// +listMapKey=type
+	// +optional
 	Conditions []Condition `json:"conditions,omitempty"`
 
 	// authoritativeAPI is the API that is authoritative for this resource.

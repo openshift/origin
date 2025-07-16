@@ -3,6 +3,26 @@ include $(addprefix $(dir $(lastword $(MAKEFILE_LIST))), \
 	../../lib/tmp.mk \
 )
 
+##############
+# DEPRECATED #
+##############
+# This utility is hard to maintain due to the need to continuously build and release binaries for
+# multiple platforms and versions. Instead it is recommended that you:
+# - Vendor the sigs.k8s.io/controller-tools repository.
+# - Write a local rule to (lazily) build the controller-gen binary from the vendored repo.
+# For example:
+#
+# CONTROLLER_GEN_SRC := $(shell realpath vendor/sigs.k8s.io/controller-tools/cmd/controller-gen)
+# CONTROLLER_GEN := $(shell go list -f '{{.Target}}' $(CONTROLLER_GEN_SRC))
+# $(CONTROLLER_GEN): $(CONTROLLER_GEN_SRC)
+# 	go install $(CONTROLLER_GEN_SRC)
+#
+# This allows you to upgrade versions simply by revendoring controller-tools:
+# - Bump the semver in your go.mod
+# - go mod tidy
+# - go mod vendor
+##############
+
 # NOTE: The release binary specified here needs to be built properly so that
 # `--version` works correctly. Just using `go build` will result in it
 # reporting `(devel)`. To build for a given platform:

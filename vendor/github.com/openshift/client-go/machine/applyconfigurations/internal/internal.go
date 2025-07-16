@@ -176,6 +176,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: machineType
       type:
         scalar: string
+      default: ""
     - name: machines_v1beta1_machine_openshift_io
       type:
         namedType: com.github.openshift.api.machine.v1.OpenShiftMachineV1Beta1MachineTemplate

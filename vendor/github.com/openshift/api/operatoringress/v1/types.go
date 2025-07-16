@@ -81,6 +81,7 @@ type DNSRecordSpec struct {
 // DNSRecordStatus is the most recently observed status of each record.
 type DNSRecordStatus struct {
 	// zones are the status of the record in each zone.
+	// +optional
 	Zones []DNSZoneStatus `json:"zones,omitempty"`
 
 	// observedGeneration is the most recently observed generation of the

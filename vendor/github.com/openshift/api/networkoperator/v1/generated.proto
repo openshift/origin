@@ -51,7 +51,6 @@ message EgressRouter {
 }
 
 // EgressRouterAddress contains a pair of IP CIDR and gateway to be configured on the router's interface
-// +kubebuilder:validation:Required
 message EgressRouterAddress {
   // ip is the address to configure on the router's interface. Can be IPv4 or IPv6.
   // +required
@@ -84,7 +83,6 @@ message EgressRouterList {
 // Mode, networkInterface and addresses fields must be specified along with exactly one "Config" that matches the mode.
 // Each config consists of parameters specific to that mode.
 // +k8s:openapi-gen=true
-// +kubebuilder:validation:Required
 message EgressRouterSpec {
   // mode depicts the mode that is used for the egress router. The default mode is "Redirect" and is the only supported mode currently.
   // +required

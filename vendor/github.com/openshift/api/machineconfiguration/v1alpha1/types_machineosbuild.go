@@ -90,6 +90,7 @@ type MachineOSBuildStatus struct {
 	// +optional
 	BuilderReference *MachineOSBuilderReference `json:"builderReference"`
 	// relatedObjects is a list of objects that are related to the build process.
+	// +optional
 	RelatedObjects []ObjectReference `json:"relatedObjects,omitempty"`
 	// buildStart describes when the build started.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="buildStart is immutable once set"
@@ -98,6 +99,7 @@ type MachineOSBuildStatus struct {
 	// buildEnd describes when the build ended.
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="buildEnd is immutable once set"
 	//+optional
+	// +optional
 	BuildEnd *metav1.Time `json:"buildEnd,omitempty"`
 	// finalImagePushSpec describes the fully qualified pushspec produced by this build that the final image can be. Must be in sha format.
 	// +kubebuilder:validation:XValidation:rule=`((self.split('@').size() == 2 && self.split('@')[1].matches('^sha256:[a-f0-9]{64}$')))`,message="the OCI Image reference must end with a valid '@sha256:<digest>' suffix, where '<digest>' is 64 characters long"
