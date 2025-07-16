@@ -459,7 +459,6 @@ func (in *OpenShiftAPIServerConfig) DeepCopyObject() runtime.Object {
 func (in *OpenShiftControllerManagerConfig) DeepCopyInto(out *OpenShiftControllerManagerConfig) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.KubeClientConfig = in.KubeClientConfig
 	if in.ServingInfo != nil {
 		in, out := &in.ServingInfo, &out.ServingInfo
 		*out = new(configv1.HTTPServingInfo)

@@ -47,7 +47,7 @@ type SharedConfigMap struct {
 
 	// spec is the specification of the desired shared configmap
 	// +required
-	Spec SharedConfigMapSpec `json:"spec,omitempty"`
+	Spec SharedConfigMapSpec `json:"spec"`
 
 	// status is the observed status of the shared configmap
 	Status SharedConfigMapStatus `json:"status,omitempty"`

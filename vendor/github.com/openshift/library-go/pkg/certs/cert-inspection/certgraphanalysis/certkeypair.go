@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -108,6 +109,8 @@ func toCertKeyMetadata(certificate *x509.Certificate) certgraphapi.CertKeyMetada
 		},
 		SignatureAlgorithm: certificate.SignatureAlgorithm.String(),
 		PublicKeyAlgorithm: certificate.PublicKeyAlgorithm.String(),
+		NotBefore:          certificate.NotBefore.Format(time.RFC3339),
+		NotAfter:           certificate.NotAfter.Format(time.RFC3339),
 		ValidityDuration:   duration.HumanDuration(certificate.NotAfter.Sub(certificate.NotBefore)),
 	}
 

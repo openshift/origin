@@ -1,26 +1,69 @@
-linters-settings:
-  custom:
-    kubeapilinter:
-      type: "module"
-      description: kubeapilinter is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
-      settings:
-        linters:
-          enable:
-          - "maxlength"
-          - "nobools"
-          - "nomaps"
-          - "statussubresource"
-        lintersConfig:
-          conditions:
-            isFirstField: Warn
-            useProtobuf: Ignore
-            usePatchStrategy: Ignore
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - kubeapilinter
+  settings:
+    custom:
+      kubeapilinter:
+        path: tools/_output/bin/kube-api-linter.so
+        description: kubeapilinter is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+        settings:
+          linters:
+            enable:
+              - maxlength
+              - nobools
+              - nomaps
+              - statussubresource
+          lintersConfig:
+            conditions:
+              isFirstField: Warn
+              usePatchStrategy: Ignore
+              useProtobuf: Ignore
+            optionalfields:
+              pointers:
+                preference: WhenRequired
+                policy: SuggestFix
+              omitEmpty:
+                # Ignore missing omitempty so that we can omit the omitempty for discoverability.
+                # Discoverability is for configuration APIs, generally singletons.
+                # Refer to the API conventions for when to use discoverability (not our default stance).
+                policy: Ignore 
+            uniqueMarkers:
+              customMarkers:
+              - identifier: "openshift:validation:FeatureGateAwareEnum"
+                attributes:
+                - featureGate
+                - requiredFeatureGate
+              - identifier: "openshift:validation:FeatureGateMaxItems"
+                attributes:
+                - featureGate
+                - requiredFeatureGate
+              - identifier: "openshift:validation:FeatureGateAwareXValidation"
+                attributes:
+                - featureGate
+                - requiredFeatureGate
+                - rule
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
   # We have a lot of existing issues.
   # Want to make sure that those adding new fields have an
   # opportunity to fix them when running the linter locally.
   max-issues-per-linter: 1000
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

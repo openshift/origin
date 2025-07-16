@@ -29,7 +29,6 @@ controllerconfigs.machineconfiguration.openshift.io:
   Category: ""
   FeatureGates:
   - AWSClusterHostedDNS
-  - BareMetalLoadBalancer
   - DualReplica
   - DyanmicServiceEndpointIBMCloud
   - GCPClusterHostedDNS

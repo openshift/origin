@@ -169,7 +169,6 @@ type AWSCSIDriverConfigSpec struct {
 	KMSKeyARN string `json:"kmsKeyARN,omitempty"`
 
 	// efsVolumeMetrics sets the configuration for collecting metrics from EFS volumes used by the EFS CSI Driver.
-	// +openshift:enable:FeatureGate=AWSEFSDriverVolumeMetrics
 	// +optional
 	EFSVolumeMetrics *AWSEFSVolumeMetrics `json:"efsVolumeMetrics,omitempty"`
 }
@@ -348,7 +347,6 @@ type VSphereCSIDriverConfigSpec struct {
 	// Volume snapshot documentation: https://docs.vmware.com/en/VMware-vSphere-Container-Storage-Plug-in/3.0/vmware-vsphere-csp-getting-started/GUID-E0B41C69-7EEB-450F-A73D-5FD2FF39E891.html
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=32
-	// +openshift:enable:FeatureGate=VSphereDriverConfiguration
 	// +optional
 	GlobalMaxSnapshotsPerBlockVolume *uint32 `json:"globalMaxSnapshotsPerBlockVolume,omitempty"`
 
@@ -357,7 +355,6 @@ type VSphereCSIDriverConfigSpec struct {
 	// Snapshots for VSAN can not be disabled using this parameter.
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=32
-	// +openshift:enable:FeatureGate=VSphereDriverConfiguration
 	// +optional
 	GranularMaxSnapshotsPerBlockVolumeInVSAN *uint32 `json:"granularMaxSnapshotsPerBlockVolumeInVSAN,omitempty"`
 
@@ -366,7 +363,6 @@ type VSphereCSIDriverConfigSpec struct {
 	// Snapshots for VVOL can not be disabled using this parameter.
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=32
-	// +openshift:enable:FeatureGate=VSphereDriverConfiguration
 	// +optional
 	GranularMaxSnapshotsPerBlockVolumeInVVOL *uint32 `json:"granularMaxSnapshotsPerBlockVolumeInVVOL,omitempty"`
 

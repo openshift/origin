@@ -530,7 +530,7 @@ func (MachineOSConfigReference) SwaggerDoc() map[string]string {
 var map_ObjectReference = map[string]string{
 	"":          "ObjectReference contains enough information to let you inspect or modify the referred object.",
 	"group":     "group of the referent. The name must contain only lowercase alphanumeric characters, '-' or '.' and start/end with an alphanumeric character. Example: \"\", \"apps\", \"build.openshift.io\", etc.",
-	"resource":  "resource of the referent. This value should consist of at most 63 characters, and of only lowercase alphanumeric characters and hyphens, and should start and end with an alphanumeric character. Example: \"deployments\", \"deploymentconfigs\", \"pods\", etc.",
+	"resource":  "resource of the referent. This value should consist of at most 63 characters, and of only lowercase alphanumeric characters and hyphens, and should start with an alphabetic character and end with an alphanumeric character. Example: \"deployments\", \"deploymentconfigs\", \"pods\", etc.",
 	"namespace": "namespace of the referent. This value should consist of at most 63 characters, and of only lowercase alphanumeric characters and hyphens, and should start and end with an alphanumeric character.",
 	"name":      "name of the referent. The name must contain only lowercase alphanumeric characters, '-' or '.' and start/end with an alphanumeric character.",
 }

@@ -1,12 +1,12 @@
 # This Dockerfile must be on the top-level of this repo, because it needs to copy
 # both commitchecker/ and make/ into the build container.
 
-FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.22-openshift-4.17 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.23-openshift-4.19 AS builder
 WORKDIR /go/src/github.com/openshift/build-machinery-go
 COPY . .
 RUN make -C commitchecker
 
-FROM registry.ci.openshift.org/ocp/4.17:base-rhel9
+FROM registry.ci.openshift.org/ocp/4.19:base-rhel9
 COPY --from=builder /go/src/github.com/openshift/build-machinery-go/commitchecker/commitchecker /usr/bin/
 RUN dnf install --setopt=tsflags=nodocs -y git && \
     dnf clean all && rm -rf /var/cache/yum/*

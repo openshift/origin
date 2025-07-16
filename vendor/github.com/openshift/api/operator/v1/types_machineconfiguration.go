@@ -53,7 +53,6 @@ type MachineConfigurationSpec struct {
 	// MachineConfig-based updates, such as drains, service reloads, etc. Specifying this will allow
 	// for less downtime when doing small configuration updates to the cluster. This configuration
 	// has no effect on cluster upgrades which will still incur node disruption where required.
-	// +openshift:enable:FeatureGate=NodeDisruptionPolicy
 	// +optional
 	NodeDisruptionPolicy NodeDisruptionPolicyConfig `json:"nodeDisruptionPolicy"`
 }
@@ -94,7 +93,6 @@ type MachineConfigurationStatus struct {
 
 	// nodeDisruptionPolicyStatus status reflects what the latest cluster-validated policies are,
 	// and will be used by the Machine Config Daemon during future node updates.
-	// +openshift:enable:FeatureGate=NodeDisruptionPolicy
 	// +optional
 	NodeDisruptionPolicyStatus NodeDisruptionPolicyStatus `json:"nodeDisruptionPolicyStatus"`
 
