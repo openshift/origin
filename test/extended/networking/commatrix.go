@@ -1,10 +1,12 @@
 package networking
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os/exec"
 	"slices"
 	"strings"
 
@@ -15,9 +17,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 
-	commatrixcreator "github.com/openshift-kni/commatrix/pkg/commatrix-creator"
 	configv1 "github.com/openshift/api/config/v1"
 
+	commatrixcreator "github.com/openshift-kni/commatrix/pkg/commatrix-creator"
 	matrixdiff "github.com/openshift-kni/commatrix/pkg/matrix-diff"
 	"github.com/openshift-kni/commatrix/pkg/types"
 
@@ -26,6 +28,7 @@ import (
 	"github.com/openshift-kni/commatrix/pkg/endpointslices"
 	"github.com/openshift-kni/commatrix/pkg/utils"
 	"github.com/openshift-kni/commatrix/test/pkg/cluster"
+	"github.com/openshift/library-go/pkg/git"
 )
 
 const (
@@ -37,6 +40,8 @@ const (
 		"// `-` indicates a port that has to be removed from the documented matrix.\n"
 	minimalDocCommatrixVersionStr = "4.18"
 	commatrixArfticatFolder       = "commatrix-e2e"
+	commatrixRepoDir              = "/tmp/commatrix"
+	commatrixFile                 = "communication-matrix.csv"
 	docFilePath                   = "doc-commatrix.csv"
 	docDiffCoammtrixFilePath      = "doc-diff-commatrix"
 	masterNodeRole                = "master"
@@ -89,15 +94,70 @@ var (
 	cs                *client.ClientSet
 	epExporter        *endpointslices.EndpointSlicesExporter
 	isSNO             bool
-	infraType         configv1.PlatformType
+	platform          configv1.PlatformType
 	deployment        types.Deployment
 	utilsHelpers      utils.UtilsInterface
 	artifactsDir      string
+	clusterVersionStr string
 	commMatrixCreator *commatrixcreator.CommunicationMatrixCreator
+	commatrix         *types.ComMatrix
 )
 
-var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
-	BeforeEach(func() {
+func installCommatrixPlugin() error {
+	if err := os.RemoveAll(commatrixRepoDir); err != nil {
+		return fmt.Errorf("unable to remove %s directory: %v", commatrixRepoDir, err)
+	}
+
+	if err := git.NewRepository().Clone("/tmp/commatrix", "https://github.com/openshift-kni/commatrix.git"); err != nil {
+		return fmt.Errorf("error cloning commatrix repo: %v", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	cmd := exec.Command("sh", "-c", `
+		if [ ! -d /tmp/bin ]; then
+			mkdir -p /tmp/bin
+		fi
+		chmod -R a+w /tmp/bin
+	`)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run command: %s\nstdout:\n%s\nstderr:\n%s", cmd.String(), stdout.String(), stderr.String())
+	}
+
+	cmd = exec.Command("sh", "-c", "make build && make install INSTALL_DIR=/tmp/bin/")
+	cmd.Dir = "/tmp/commatrix"
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run command: %s\nstdout:\n%s\nstderr:\n%s", cmd.String(), stdout.String(), stderr.String())
+	}
+
+	return nil
+}
+
+func getDocumentedCommatrixType(platform configv1.PlatformType, isSNO bool) (string, error) {
+	var docType string
+	switch platform {
+	case configv1.AWSPlatformType:
+		docType = "aws"
+	case configv1.BareMetalPlatformType:
+		docType = "bm"
+	case configv1.NonePlatformType:
+		docType = "none"
+	default:
+		return "", fmt.Errorf("platform type %s is not supported", platform)
+	}
+
+	if isSNO {
+		docType += "-sno"
+	}
+
+	return docType, nil
+}
+
+var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", Ordered, func() {
+	BeforeAll(func() {
 		kubeconfig := os.Getenv("KUBECONFIG")
 		if kubeconfig == "" {
 			Fail("KUBECONFIG not set")
@@ -113,6 +173,10 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		err := os.MkdirAll(artifactsDir, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("Install commatrix plugin")
+		err = installCommatrixPlugin()
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Creating the clients for the Generating step")
 		cs, err = client.New()
 		Expect(err).NotTo(HaveOccurred())
@@ -121,7 +185,7 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		epExporter, err = endpointslices.New(cs)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("Get cluster's deployment and infrastructure types")
+		By("Get cluster's deployment and platform types")
 		deployment = types.Standard
 		isSNO, err = utilsHelpers.IsSNOCluster()
 		Expect(err).NotTo(HaveOccurred())
@@ -130,20 +194,17 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 			deployment = types.SNO
 		}
 
-		infraType, err = utilsHelpers.GetPlatformType()
+		platform, err = utilsHelpers.GetPlatformType()
 		Expect(err).NotTo(HaveOccurred())
 
 		// if cluster's type is not supported by the commatrix app, skip tests
-		if !slices.Contains(types.SupportedPlatforms, infraType) {
-			Skip(fmt.Sprintf("unsupported platform type: %s. Supported platform types are: %v", infraType, types.SupportedPlatforms))
+		if !slices.Contains(types.SupportedPlatforms, platform) {
+			Skip(fmt.Sprintf("unsupported platform type: %s. Supported platform types are: %v", platformType, types.SupportedPlatforms))
 		}
 
-		By("Generating cluster's communication matrix creator")
-		commMatrixCreator, err = commatrixcreator.New(epExporter, "", "", infraType, deployment)
+		commMatrixCreator, err = commatrixcreator.New(epExporter, "", "", platform, deployment)
 		Expect(err).NotTo(HaveOccurred())
-	})
 
-	It("generated communication matrix should be equal to documented communication matrix", func() {
 		By("Get cluster's version and check if it's suitable for test")
 		clusterVersionStr, err := cluster.GetClusterVersion(cs)
 		Expect(err).NotTo(HaveOccurred())
@@ -156,31 +217,33 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		if clusterVersion.LessThan(minimalDocCommatrixVersion) {
 			Skip(fmt.Sprintf("Cluster version is lower than the lowest version that has a documented communication matrix (%v)", minimalDocCommatrixVersionStr))
 		}
+	})
 
-		By("Create endpoint matrix ")
-		commatrix, err := commMatrixCreator.CreateEndpointMatrix()
-		Expect(err).NotTo(HaveOccurred())
+	It("generated communication matrix should be equal to documented communication matrix", func() {
+		By("Generating communication matrix using oc command")
+		cmd := exec.Command("oc", "commatrix", "generate", "--host-open-ports", "--destDir", artifactsDir)
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		err := cmd.Run()
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf(
+			"Failed to run command: %s\nstdout:\n%s\nstderr:\n%s",
+			cmd.String(), stdout.String(), stderr.String(),
+		))
 
-		err = commatrix.WriteMatrixToFileByType(utilsHelpers, "communication-matrix", types.FormatCSV, deployment, artifactsDir)
-		Expect(err).ToNot(HaveOccurred())
+		By("Reading the generated commatrix files")
+		commatrixFilePath := filepath.Join(artifactsDir, commatrixFile)
+		commatrixFileContent, err := os.ReadFile(commatrixFilePath)
+		Expect(err).ToNot(HaveOccurred(), "Failed to read generated commatrix file")
+
+		ComDetailsMatrix, err := types.ParseToComDetailsList(commatrixFileContent, types.FormatCSV)
+		Expect(err).ToNot(HaveOccurred(), "Failed to parse generated commatrix")
+		commatrix = &types.ComMatrix{Matrix: ComDetailsMatrix}
 
 		By("Generate documented commatrix file path")
 		docCommatrixURL := strings.Replace(docCommatrixBaseURL, docVersionHolder, clusterVersionStr, 1)
-
-		// clusters with unsupported platform types had skip the test, so we assume the platform type is supported
-		var docType string
-		switch infraType {
-		case configv1.AWSPlatformType:
-			docType = "aws"
-		case configv1.BareMetalPlatformType:
-			docType = "bm"
-		case configv1.NonePlatformType:
-			docType = "none"
-		}
-
-		if isSNO {
-			docType += "-sno"
-		}
+		docType, err := getDocumentedCommatrixType(platform, isSNO)
+		Expect(err).ToNot(HaveOccurred())
 		docCommatrixURL = strings.Replace(docCommatrixURL, docTypeHolder, docType, 1)
 
 		By(fmt.Sprintf("Get documented commatrix version %s type %s", clusterVersionStr, docType))
