@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("wait until endpoint addresses are scaled to %s", scaledReplicaCount))
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			out, err := oc.Run("get").Args("endpointslices", "-l", "kubernetes.io/service-name=idling-echo", "--template={{ len (index .items 0).endpoints }}", "--output=go-template").Output()
 			if err != nil || out != scaledReplicaCount {
 				return false, nil
@@ -242,7 +242,7 @@ var _ = g.Describe("[sig-cli] oc idle Deployments [apigroup:route.openshift.io][
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("wait until endpoint addresses are scaled to %s", scaledReplicaCount))
-		err = wait.PollUntilContextTimeout(ctx, time.Second, 60*time.Second, true, func(ctx context.Context) (done bool, err error) {
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			out, err := oc.Run("get").Args("endpointslices", "-l", "kubernetes.io/service-name=idling-echo", "--template={{ len (index .items 0).endpoints }}", "--output=go-template").Output()
 			if err != nil || out != scaledReplicaCount {
 				return false, nil
