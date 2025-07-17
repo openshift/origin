@@ -426,7 +426,7 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite runs tests to validate two-node.
 		`),
 		Qualifiers: []string{
-			withExcludedTestsFilter(`name.contains("[Suite:openshift/two-node") || name.contains("[FeatureGate:DualReplica]") || name.contains("[FeatureGate:HighlyAvailableArbiter]")`),
+			`name.contains("[Suite:openshift/two-node") || name.contains("[FeatureGate:DualReplica]") || name.contains("[FeatureGate:HighlyAvailableArbiter]")`,
 		},
 		TestTimeout: 60 * time.Minute,
 	},
