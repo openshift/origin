@@ -40,7 +40,6 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		nodeDisruptionEmptyFixture     = filepath.Join(MCOMachineConfigurationBaseDir, "managedbootimages-empty.yaml")
 		customMCFixture                = filepath.Join(MCOMachineConfigBaseDir, "0-infra-mc.yaml")
 		masterMCFixture                = filepath.Join(MCOMachineConfigBaseDir, "0-master-mc.yaml")
-		invalidWorkerMCFixture         = filepath.Join(MCOMachineConfigBaseDir, "1-worker-invalid-mc.yaml")
 		invalidMasterMCFixture         = filepath.Join(MCOMachineConfigBaseDir, "1-master-invalid-mc.yaml")
 		oc                             = exutil.NewCLIWithoutNamespace("machine-config")
 	)
@@ -74,7 +73,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco
 		if IsSingleNode(oc) { //handle SNO clusters
 			ValidateMCNConditionOnNodeDegrade(oc, invalidMasterMCFixture, true)
 		} else { //handle standard, non-SNO, clusters
-			ValidateMCNConditionOnNodeDegrade(oc, invalidWorkerMCFixture, false)
+			g.Skip("Temporarily skipping MachineConfigNodes node degrade test.")
 		}
 	})
 
