@@ -26,6 +26,11 @@ import (
 
 type UpgradeTest struct{}
 
+const (
+	successRateThresholdDefault    = 99.0
+	acceptableSingleNodeDisruption = 1.0
+)
+
 var appName string
 
 func (t *UpgradeTest) Name() string { return "check-for-dns-availability" }
@@ -57,7 +62,7 @@ func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 // to cover during and after upgrade phase, and verifies the results.
 func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
 	ginkgo.By("Validating DNS results during upgrade")
-	t.validateDNSResults(f)
+	t.validateDNSResults(f, successRateThresholdDefault)
 
 	// Block until upgrade is done
 	<-done
@@ -65,15 +70,19 @@ func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-c
 	ginkgo.By("Sleeping for a minute to give it time for verifying DNS after upgrade")
 	time.Sleep(1 * time.Minute)
 
-	// TODO: Remove once OCPBUGS-42777 is resolved
+	successRateThreshold := successRateThresholdDefault
+
+	// OCPBUGS-59159: Allow a greater disruption window for SNO
+	// The reason for this is that DNS is expected to fail on SNO until the dependencies
+	// recover from the upgrade event. Multi-node clusters can rely on other nodes to provide
+	// the DNS service.
 	ex := exutil.NewCLIWithFramework(f)
 	if isSNO, err := exutil.IsSingleNode(ctx, ex.AdminConfigClient()); err == nil && isSNO {
-		// Add one minute for more data to be collected for validation
-		time.Sleep(1 * time.Minute)
+		successRateThreshold = successRateThresholdDefault - acceptableSingleNodeDisruption
 	}
 
 	ginkgo.By("Validating DNS results after upgrade")
-	t.validateDNSResults(f)
+	t.validateDNSResults(f, successRateThreshold)
 }
 
 // getServiceIP gets Cluster IP from DNS Service
@@ -113,7 +122,7 @@ func (t *UpgradeTest) createDNSTestDaemonSet(f *framework.Framework, dnsServiceI
 }
 
 // validateDNSResults retrieves the Pod logs and validates the results
-func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
+func (t *UpgradeTest) validateDNSResults(f *framework.Framework, successRateThreshold float64) {
 	ginkgo.By(fmt.Sprintf("Listing Pods with label app=%s", appName))
 	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	selector, _ := labels.Parse(fmt.Sprintf("app=%s", appName))
@@ -150,8 +159,8 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 			}
 		}
 
-		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
-			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
+		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < successRateThreshold {
+			err = fmt.Errorf("success rate is less than %f%% on the node %s: [%0.2f]", successRateThreshold, pod.Spec.NodeName, successRate)
 		} else {
 			err = nil
 		}
