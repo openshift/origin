@@ -149,6 +149,15 @@ var (
 			return timestampReg.ReplaceAllString(path, "<timestamp>.pem")
 		},
 	}
+	RewritePrimaryCertBundleSecret = &metadataOptions{
+		rewriteSecretFn: func(secret *corev1.Secret) {
+			if secret.Namespace != "openshift-ingress" || !strings.HasSuffix(secret.Name, "-primary-cert-bundle-secret") {
+				return
+			}
+			hash := strings.TrimSuffix(secret.Name, "-primary-cert-bundle-secret")
+			secret.Name = strings.ReplaceAll(secret.Name, hash, "<hash>")
+		},
+	}
 )
 
 // skipRevisionedInOnDiskLocation returns true if location is for revisioned certificate and needs to be skipped
