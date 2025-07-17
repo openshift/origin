@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"regexp"
@@ -23,6 +23,7 @@ import (
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -50,6 +51,63 @@ const (
 
 	frrNamespace = "openshift-frr-k8s"
 	raLabel      = "k8s.ovn.org/route-advertisements"
+
+	// IP allocation parameters
+	// The pools being defined here for the BGP test cases should not be used by
+	// any other tests in the same suite
+	allocationConfigMapNamespace = "default"
+	allocationConfigMapName      = "e2e-test-ovn-bgp-allocations"
+	subnetAllocationKey          = "allocated-subnets"
+	subnetAllocationTemplatev4   = "203.%d.0.0/16"
+	subnetAllocationTemplatev6   = "2014:100:200:%02x0::0/60"
+	subnetAllocationMin          = 110
+	subnetAllocationMax          = 140
+	eipAllocationKey             = "allocated-eips"
+	eipAllocationTemplatev4      = "192.168.111.%d"
+	eipAllocationTemplatev6      = "fd2e:6f44:5dd8:c956::%0x"
+	eipAllocationMin             = 110
+	eipAllocationMax             = 170
+
+	// These variables are specific to VRF Lite testing. Thay make assumptions
+	// that are aligned to how the job itself configures the infra environment.
+	// 'agnhost_extranet' is the hostname of the external agnhost container that
+	// is only connected to the extra network. This extra network is accessible
+	// to the cluster nodes through enp3s0 interface.
+	// TODO: Don't make assumptions and find a way to know about these
+	vrfLiteCUDNName         = "extranet"
+	vrfLiteExternalHostname = "agnhost_extranet"
+	vrfLiteSnifferInterface = "enp3s0"
+	// This policy attaches enp3s0 to the extra network / CUDN VRF
+	// TODO: consider bringing in NNCP API
+	vrfLiteOnNNCP = `
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: extranet
+spec:
+  desiredState:
+    interfaces:
+    - name: enp3s0
+      state: up 
+      controller: extranet
+`
+	vrfLiteOffNNCP = `
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: extranet
+spec:
+  desiredState:
+    interfaces:
+    - name: enp3s0
+      state: up 
+      controller: ""
+`
+	nncpRenderedRegex = `(\d+)/(\d+) nodes successfully configured`
+)
+
+var (
+	nncpRenderedCompiledRegex = regexp.MustCompile(nncpRenderedRegex)
 )
 
 type response struct {
@@ -76,7 +134,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			cloudType               configv1.PlatformType
 			deployName              string
 			svcUrl                  string
-			cudnName                string
 			packetSnifferDaemonSet  *v1.DaemonSet
 			podList                 *corev1.PodList
 			v4PodIPSet              map[string]string
@@ -87,9 +144,8 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 		g.BeforeEach(func() {
 			g.By("Verifying that this cluster uses a network plugin that is supported for this test")
 			networkPlugin = networkPluginName()
-			if networkPlugin != OVNKubernetesPluginName &&
-				networkPlugin != OpenshiftSDNPluginName {
-				skipper.Skipf("This cluster neither uses OVNKubernetes nor OpenShiftSDN")
+			if networkPlugin != OVNKubernetesPluginName {
+				skipper.Skipf("This cluster does not use OVNKubernetes")
 			}
 
 			g.By("Creating a temp directory")
@@ -163,14 +219,13 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 		// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.
 		g.AfterEach(func() {
-			g.By("Removing the temp directory")
-			os.RemoveAll(tmpDirBGP)
+			o.Expect(os.RemoveAll(tmpDirBGP)).To(o.Succeed())
 		})
 
 		g.JustAfterEach(func() {
 			specReport := g.CurrentSpecReport()
 			if specReport.Failed() {
-				gatherDebugInfo(oc, snifferNamespace, targetNamespace, workerNodesOrderedNames)
+				gatherDebugInfo(oc, packetSnifferDaemonSet, targetNamespace, workerNodesOrderedNames)
 			}
 		})
 
@@ -201,7 +256,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				v4PodIPSet, v6PodIPSet = extractPodIPs(podList)
 			})
 
-			g.It("pods should communicate with external host without being SNATed", func() {
+			g.It("Pods should communicate with external host without being SNATed", func() {
 				g.By("Checking that routes are advertised to each node")
 				for _, nodeName := range workerNodesOrderedNames {
 					verifyLearnedBgpRoutesForNode(oc, nodeName, "default")
@@ -242,107 +297,27 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			})
 		})
 
-		verifyUdnRaFunc := func(udnTopology string) {
+		g.Describe("[PodNetwork] Advertising a cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+			var testCUDNName, testTargetVRF, testCUDNTopology, testSnifferInterface string
+			var userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet string
 			var cleanup func()
-			g.BeforeEach(func() {
-				var err error
-				var snifferPodsNodes []string
-				// Check if the cluster is in local gateway mode
-				network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.TODO(), "cluster", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig != nil && network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig.RoutingViaHost && udnTopology == "layer2" {
-					skipper.Skipf("Skipping Layer2 UDN advertisements test for local gateway mode")
-				}
-				if udnTopology == "layer2" {
-					// Running the packet sniffer on all nodes in the cluster for Layer2 UDN
-					nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
-					for _, node := range nodes.Items {
-						snifferPodsNodes = append(snifferPodsNodes, node.Name)
-					}
-				} else {
-					snifferPodsNodes = advertisedPodsNodes
-				}
-				g.By("Setup packet sniffer at nodes")
-				packetSnifferDaemonSet, err = setupPacketSniffer(oc, clientset, snifferNamespace, snifferPodsNodes, networkPlugin)
-				o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("Create a namespace with UDPN")
-				ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
-					"e2e-framework":           f.BaseName,
-					RequiredUDNNamespaceLabel: "",
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				err = udnWaitForOpenShift(oc, ns.Name)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				targetNamespace = ns.Name
-				f.Namespace = ns
-				// use a long cudn (longer than 15 characters) name to work around OCPBUGS-54659
-				cudnName = "clusteruserdefinenetwork-" + ns.Name
+			isTargetVRFLite := func(targetVRF string) bool {
+				return targetVRF == "auto"
+			}
 
-				g.By("Creating a cluster user defined network")
-				nc := &networkAttachmentConfigParams{
-					name:      cudnName,
-					topology:  udnTopology,
-					role:      "primary",
-					namespace: targetNamespace,
-				}
-				userDefinedNetworkIPv4Subnet := generateRandomSubnet(IPv4)
-				userDefinedNetworkIPv6Subnet := generateRandomSubnet(IPv6)
-				framework.Logf("userDefinedNetworkIPv4Subnet: %s", userDefinedNetworkIPv4Subnet)
-				framework.Logf("userDefinedNetworkIPv6Subnet: %s", userDefinedNetworkIPv6Subnet)
-				nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
-				cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
-				cleanup, err = createManifest(targetNamespace, cudnManifest)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), cudnName), 60*time.Second, time.Second).Should(o.Succeed())
+			toExternalCheck := func() {
+				g.GinkgoHelper()
 
-				g.By("Labeling the UDN for advertisement")
-				_, err = runOcWithRetry(oc.AsAdmin(), "label", "clusteruserdefinednetworks", "-n", targetNamespace, cudnName, "advertise="+cudnName)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By("Create the route advertisement for UDN")
-				raManifest := newRouteAdvertisementsManifest(cudnName, true, false)
-				err = applyManifest(targetNamespace, raManifest)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				g.By(fmt.Sprintf("Ensure the RouteAdvertisements %s is accepted", cudnName))
-				waitForRouteAdvertisements(oc, cudnName)
-
-				g.By("Makes sure the FRR configuration is generated for each node")
-				for _, nodeName := range workerNodesOrderedNames {
-					frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, cudnName)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(frr).NotTo(o.BeNil())
-				}
-
-				g.By("Deploy the test pods")
-				deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
-				svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
-
-				g.By("Extract test pod UDN IPs")
-				v4PodIPSet, v6PodIPSet = extractPodUdnIPs(podList, nc, targetNamespace, clientset)
-			})
-
-			g.AfterEach(func() {
-				runOcWithRetry(oc.AsAdmin(), "delete", "deploy", deployName)
-				runOcWithRetry(oc.AsAdmin(), "delete", "pod", "--all")
-				runOcWithRetry(oc.AsAdmin(), "delete", "ra", cudnName)
-				runOcWithRetry(oc.AsAdmin(), "delete", "clusteruserdefinednetwork", cudnName)
-				cleanup()
-			})
-
-			g.It("pods should communicate with external host without being SNATed", func() {
 				g.By("Checking that routes are advertised to each node")
 				for _, nodeName := range workerNodesOrderedNames {
-					verifyLearnedBgpRoutesForNode(oc, nodeName, cudnName)
+					verifyLearnedBgpRoutesForNode(oc, nodeName, testCUDNName)
 				}
 
 				numberOfRequestsToSend := 10
 				g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and PodIP %v were seen", numberOfRequestsToSend, v4PodIPSet))
 
+				svcUrl := fmt.Sprintf("%s-0-service:%d", targetNamespace, serverPort)
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("sending to IPv4 external host")
 					spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, v4ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v4PodIPSet)
@@ -351,9 +326,38 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					g.By("sending to IPv6 external host")
 					spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, v6ExternalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, v6PodIPSet)
 				}
-			})
 
-			g.It("External host should be able to query route advertised pods by the pod IP", func() {
+				// For VRF-Lite configuration specifically check that the
+				// external hostname is that of the one reachable through the
+				// CUDN VRF, and not the one reachable on the default VRF, both
+				// having same IPs.
+				if isTargetVRFLite(testTargetVRF) {
+					meetsExpectations := func(og o.Gomega, node string) {
+						probe := func(ip string) {
+							g.GinkgoHelper()
+							responseSet, err := probeForHostnames(oc, targetNamespace, probePodName, svcUrl, ip, serverPort, 1, func(p *corev1.Pod) { p.Spec.NodeName = node })
+							og.Expect(err).NotTo(o.HaveOccurred())
+							og.Expect(responseSet).To(o.HaveLen(1))
+							og.Expect(responseSet).To(o.HaveKey(vrfLiteExternalHostname))
+						}
+						if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
+							probe(v4ExternalIP)
+						}
+						if clusterIPFamily == DualStack || clusterIPFamily == IPv6 {
+							probe(v6ExternalIP)
+						}
+					}
+					for _, node := range workerNodesOrderedNames {
+						g.By("verifying pods on node " + node + " reach the external host through the VRF")
+						o.Eventually(meetsExpectations).WithArguments(node).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.Succeed())
+						o.Consistently(meetsExpectations).WithArguments(node).WithTimeout(timeOut).WithPolling(interval).Should(o.Succeed())
+					}
+				}
+			}
+
+			fromExternalCheck := func() {
+				g.GinkgoHelper()
+
 				g.By("Launching an agent pod")
 				nodeSelection := e2epod.NodeSelection{}
 				e2epod.SetAffinity(&nodeSelection, externalNodeName)
@@ -372,28 +376,216 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 						checkExternalResponse(oc, proberPod, podIP, v6ExternalIP, serverPort, packetSnifferDaemonSet, targetProtocol)
 					}
 				}
+			}
+
+			beforeEach := func(cudnName, targetVRF, cudnTopology, snifferInterface string) {
+				g.GinkgoHelper()
+
+				testCUDNName, testTargetVRF, testCUDNTopology, testSnifferInterface = cudnName, targetVRF, cudnTopology, snifferInterface
+
+				var err error
+				var snifferPodsNodes []string
+				// Check if the cluster is in local gateway mode
+				network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.TODO(), "cluster", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig != nil && network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig.RoutingViaHost && testCUDNTopology == "layer2" {
+					// TODO: unskip once CORENET-5881 is done.
+					skipper.Skipf("Skipping Layer2 UDN advertisements test for local gateway mode")
+				}
+				if testCUDNTopology == "layer2" {
+					// Running the packet sniffer on all nodes in the cluster for Layer2 UDN
+					nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					for _, node := range nodes.Items {
+						snifferPodsNodes = append(snifferPodsNodes, node.Name)
+					}
+				} else {
+					snifferPodsNodes = advertisedPodsNodes
+				}
+				g.By("Setup packet sniffer at nodes")
+				packetSnifferDaemonSet, err = setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, snifferPodsNodes, networkPlugin, testSnifferInterface)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Create a namespace with UDPN")
+				ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+					"e2e-framework":           f.BaseName,
+					RequiredUDNNamespaceLabel: "",
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = udnWaitForOpenShift(oc, ns.Name)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				targetNamespace = ns.Name
+				f.Namespace = ns
+
+				g.By("Creating a cluster user defined network")
+				nc := &networkAttachmentConfigParams{
+					name:      testCUDNName,
+					topology:  testCUDNTopology,
+					role:      "primary",
+					namespace: targetNamespace,
+				}
+
+				g.By("Allocating subnets for a CUDN")
+				userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, err = allocateSubnets(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				framework.Logf("Allocated subnets %s %s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+
+				nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+				cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
+				cleanup, err = createManifest("", cudnManifest)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testCUDNName), 60*time.Second, time.Second).Should(o.Succeed())
+
+				g.By("Labeling the UDN for advertisement")
+				_, err = runOcWithRetry(oc.AsAdmin(), "label", "clusteruserdefinednetworks", "-n", targetNamespace, testCUDNName, "network="+testCUDNName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("Create the route advertisement for UDN")
+				raManifest := newRouteAdvertisementsManifest(testCUDNName, testTargetVRF, true, false)
+				err = applyManifest("", raManifest)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By(fmt.Sprintf("Ensure the RouteAdvertisements %s is accepted", testCUDNName))
+				waitForRouteAdvertisements(oc, testCUDNName)
+
+				g.By("Makes sure the FRR configuration is generated for each node")
+				for _, nodeName := range workerNodesOrderedNames {
+					frr, err := getGeneratedFrrConfigurationForNode(oc, nodeName, testCUDNName)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(frr).NotTo(o.BeNil())
+				}
+
+				g.By("Deploy the test pods")
+				deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, advertisedPodsNodes)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(len(podList.Items)).To(o.Equal(len(advertisedPodsNodes)))
+				svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
+
+				g.By("Extract test pod UDN IPs")
+				v4PodIPSet, v6PodIPSet = extractPodUdnIPs(podList, nc, targetNamespace, clientset)
+			}
+
+			afterEach := func() error {
+				err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "deploy", deployName)
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "pod", "--all"))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "clusteruserdefinednetwork", testCUDNName))
+				errors.Join(err, deallocateSubnets(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet))
+				cleanup()
+				return err
+			}
+
+			g.DescribeTableSubtree("Over the default VRF",
+				func(topology string) {
+					g.BeforeEach(func() {
+						beforeEach(randomNetworkMetaName(), "", topology, "")
+					})
+					g.AfterEach(func() {
+						o.Expect(afterEach()).To(o.Succeed())
+					})
+					g.It("Pods should communicate with external host without being SNATed", toExternalCheck)
+					g.It("External host should be able to query route advertised pods by the pod IP", fromExternalCheck)
+				},
+				g.Entry("When the network topology is Layer 3", "layer3"),
+				g.Entry("When the network topology is Layer 2", "layer2"),
+			)
+
+			// VRF-Lite test cases are serial as they depend on shared provider network configuration
+			g.Describe("Over a VRF-Lite configuration", func() {
+				g.BeforeEach(func() {
+					g.By("Verifying that RoutingViaHost is enabled")
+					network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					isRoutingViaHost := network.Spec.DefaultNetwork.OVNKubernetesConfig != nil &&
+						network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig != nil &&
+						network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig.RoutingViaHost
+
+					if !isRoutingViaHost {
+						skipper.Skipf("These tests only apply when RoutingViaHost is enabled")
+					}
+
+					// Deploy nmstate handler which is used for rolling out VRF-Lite config
+					// via NodeNetworkConfigurationPolicy.
+					g.By("deploy nmstate handler")
+					err = deployNmstateHandler(oc)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					// This is a workaround for OCPBUGS-56488: scale down
+					// nmstate operator and disable liveness probe
+					o.Eventually(workaroundOCPBUGS56488).WithArguments(oc).WithTimeout(3 * time.Minute).WithPolling(5 * time.Second).Should(o.BeTrue())
+				})
+
+				g.AfterEach(func() {
+					o.Expect(func() error {
+						err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "nncp", "extranet")
+						errors.Join(err, afterEach())
+						return err
+					}()).To(o.Succeed())
+				})
+
+				test := func(topology string) {
+					// general prerequisites
+					beforeEach(vrfLiteCUDNName, "auto", topology, vrfLiteSnifferInterface)
+
+					// we shouldn't need to do this but we have to because of
+					// https://issues.redhat.com/browse/RHEL-89914
+					// recycle the VRF until it becomes managed
+					g.By("ensuring the CUDN VRF is managed by NetworkManager")
+					ensureManaged := func(g o.Gomega) {
+						status, err := exutil.DebugAllNodesRetryWithOptionsAndChroot(oc, f.Namespace.Name, "nmcli", "-f", "GENERAL.STATE", "device", "show", vrfLiteCUDNName)
+						g.Expect(err).NotTo(o.HaveOccurred())
+						var recycled bool
+						for node, state := range status {
+							if strings.Contains(state, "connected") {
+								continue
+							}
+							// add and remove a dummy address to the interface so that NM manages it
+							_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, node, f.Namespace.Name, "ip", "address", "add", "dev", vrfLiteCUDNName, "203.0.113.113/32")
+							g.Expect(err).NotTo(o.HaveOccurred())
+							_, err = exutil.DebugNodeRetryWithOptionsAndChroot(oc, node, f.Namespace.Name, "ip", "address", "del", "dev", vrfLiteCUDNName, "203.0.113.113/32")
+							g.Expect(err).NotTo(o.HaveOccurred())
+							recycled = true
+						}
+						g.Expect(recycled).To(o.BeFalse())
+					}
+					o.Eventually(ensureManaged).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.Succeed())
+
+					g.By("attaching the secondary network interface to the CUDN VRF")
+					applyNNCP(oc, "extranet", vrfLiteOnNNCP)
+					g.By("checking that a pod in the network can communicate with external host without being SNATed")
+					toExternalCheck()
+					g.By("checking that the external host is able to query route advertised pods by pod IP")
+					fromExternalCheck()
+					g.By("removing the secondary network interface from the CUDN VRF")
+					applyNNCP(oc, "extranet", vrfLiteOffNNCP)
+				}
+
+				// All VRF-Lite checks for 'vrfLiteCUDNName' need to happen on a
+				// single test (or otherwise we should resort to a serial job)
+				// This test has a long timeout due to its serial nature and also
+				// because of OCPBUGS-56488
+				g.It("Pods should be able to communicate on a secondary network [Timeout:30m]", func() {
+					g.By("testing with a layer 3 CUDN", func() { test("layer3") })
+					// TODO: Add test for layer 2 UDN once CORENET-5881 is done.
+					//g.By("testing with a layer 2 CUDN", func() { test("layer2") })
+				})
 			})
-		}
-
-		g.Context("[PodNetwork] Advertising a Layer 3 cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
-			verifyUdnRaFunc("layer3")
 		})
 
-		g.Context("[PodNetwork] Advertising a Layer 2 cluster user defined network [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
-			verifyUdnRaFunc("layer2")
-		})
-
-		g.Context("[EgressIP][apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
+		g.Describe("[EgressIP] Advertising EgressIP [apigroup:user.openshift.io][apigroup:security.openshift.io]", func() {
 			var err error
 			var egressIPYamlPath, egressIPObjectName string
+			var egressIPSet, newEgressIPSet map[string]string
 
 			g.BeforeEach(func() {
 				egressIPYamlPath = tmpDirBGP + "/" + egressIPYaml
 				g.By("Setting the EgressIP nodes as EgressIP assignable")
-				_, err = runOcWithRetry(oc.AsAdmin(), "create", "configmap", "egressip-test")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				_, err = runOcWithRetry(oc.AsAdmin(), "label", "configmap", "egressip-test", "app=egressip-test")
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// in order for these tests to run in parallel, they  all use
+				// the same egress nodes (all ordered worker nodes but the
+				// first), so we will label as necessary but not unlabel. There
+				// shouldn't be any other tests in the suite labeling a
+				// different set of nodes, or unlabeling any nodes.
 				for _, node := range egressIPNodes {
 					_, err = runOcWithRetry(oc.AsAdmin(), "label", "node", node, "k8s.ovn.org/egress-assignable=")
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -404,29 +596,14 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			})
 
 			g.AfterEach(func() {
-				g.By("Deleting the EgressIP object if it exists for OVN Kubernetes")
-				if _, err := os.Stat(egressIPYamlPath); err == nil {
-					_, _ = runOcWithRetry(oc.AsAdmin(), "delete", "-f", tmpDirBGP+"/"+egressIPYaml)
-				}
-				output, _ := runOcWithRetry(oc.AsAdmin(), "get", "egressip", "--no-headers")
-				if strings.TrimSpace(output) != "No resources found" {
-					framework.Logf("don't unlabel the nodes if there are still EgressIP objects: %s", output)
-					return
-				}
-				runOcWithRetry(oc.AsAdmin(), "delete", "configmap", "egressip-test")
-				output, _ = runOcWithRetry(oc.AsAdmin(), "get", "configmap", "--no-headers", "-A", "-l", "app=egressip-test")
-				if !strings.Contains(output, "NotFound") {
-					framework.Logf("don't unlabel the nodes if other egress ip test is running: %s", output)
-					return
-				}
-
-				g.By("Removing the EgressIP assignable annotation for OVN Kubernetes")
-				for _, nodeName := range egressIPNodes {
-					_, _ = runOcWithRetry(oc.AsAdmin(), "label", "node", nodeName, "k8s.ovn.org/egress-assignable-")
-				}
+				o.Expect(func() error {
+					err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground", "--ignore-not-found=true")
+					errors.Join(err, deallocateEgressIPSets(oc, egressIPSet, newEgressIPSet))
+					return err
+				}()).To(o.Succeed())
 			})
 
-			g.Context("Advertising egressIP for default network", func() {
+			g.Describe("For the default network", func() {
 				g.BeforeEach(func() {
 					egressIPObjectName = targetNamespace
 
@@ -445,21 +622,17 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					}
 				})
 
-				g.AfterEach(func() {
-					g.By("Turn off the BGP advertisement of EgressIPs")
-					_, err := runOcWithRetry(oc.AsAdmin(), "patch", "ra", "default", "--type=merge", `-p={"spec":{"advertisements":["PodNetwork"]}}`)
-					o.Expect(err).NotTo(o.HaveOccurred())
-				})
-
-				g.DescribeTable("pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
+				g.DescribeTable("Pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
 					func(ipFamily IPFamily, externalIP string) {
 						if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
 							skipper.Skipf("Skipping test for IPFamily: %s", ipFamily)
 							return
 						}
-						g.By("Selecte EgressIP set for the test")
-						egressIPSet, newEgressIPSet := getEgressIPSet(ipFamily, egressIPNodes)
-						framework.Logf("egressIPSet: %v", egressIPSet)
+
+						g.By("Allocating an EgressIP sets for the test")
+						egressIPSet, newEgressIPSet, err = allocateEgressIPSet(oc, ipFamily, egressIPNodes)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						framework.Logf("Allocated EgressIP sets: %v %v", egressIPSet, newEgressIPSet)
 
 						g.By("Deploy the test pods")
 						deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
@@ -520,187 +693,235 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 							spawnProberSendEgressIPTrafficCheckLogs(oc, snifferNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
 						}
 					},
-					g.Entry("IPv4", IPv4, v4ExternalIP),
-					g.Entry("IPv6", IPv6, v6ExternalIP),
+					g.Entry("When the network is IPv4", IPv4, v4ExternalIP),
+					g.Entry("When the network is IPv6", IPv6, v6ExternalIP),
 				)
 			})
 
-			verifyEIPForUDN := func(udnTopology string) {
-				var cleanup func()
-				g.BeforeEach(func() {
-					g.By("Create a namespace with UDPN")
-					ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
-						"e2e-framework":           f.BaseName,
-						RequiredUDNNamespaceLabel: "",
-					})
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = udnWaitForOpenShift(oc, ns.Name)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					targetNamespace = ns.Name
-					f.Namespace = ns
-					egressIPObjectName = targetNamespace
-					cudnName = ns.Name
+			g.DescribeTableSubtree("For cluster user defined networks",
+				func(udnTopology string) {
+					var testCUDNName string
+					var userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet string
+					var cleanup func()
 
-					g.By("Creating a cluster user defined network")
-					nc := &networkAttachmentConfigParams{
-						name:      cudnName,
-						topology:  udnTopology,
-						role:      "primary",
-						namespace: targetNamespace,
-					}
-					userDefinedNetworkIPv4Subnet := generateRandomSubnet(IPv4)
-					userDefinedNetworkIPv6Subnet := generateRandomSubnet(IPv6)
-					framework.Logf("userDefinedNetworkIPv4Subnet: %s", userDefinedNetworkIPv4Subnet)
-					framework.Logf("userDefinedNetworkIPv6Subnet: %s", userDefinedNetworkIPv6Subnet)
-					nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
-					cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
-					cleanup, err = createManifest(targetNamespace, cudnManifest)
-
-					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), cudnName), 60*time.Second, time.Second).Should(o.Succeed())
-					g.By("Labeling the UDN for advertisement")
-					_, err = runOcWithRetry(oc.AsAdmin(), "label", "clusteruserdefinednetworks", "-n", targetNamespace, cudnName, "advertise="+cudnName)
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					g.By("Create the route advertisement for UDN")
-					raManifest := newRouteAdvertisementsManifest(cudnName, false, true)
-					err = applyManifest(targetNamespace, raManifest)
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					g.By(fmt.Sprintf("Ensure the RouteAdvertisements %s is accepted", cudnName))
-					waitForRouteAdvertisements(oc, cudnName)
-				})
-
-				g.AfterEach(func() {
-					runOcWithRetry(oc.AsAdmin(), "delete", "deploy", deployName)
-					runOcWithRetry(oc.AsAdmin(), "delete", "ra", cudnName)
-					runOcWithRetry(oc.AsAdmin(), "delete", "pod", "--all")
-					runOcWithRetry(oc.AsAdmin(), "delete", "clusteruserdefinednetwork", cudnName)
-					cleanup()
-				})
-
-				g.DescribeTable("UDN pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
-					func(ipFamily IPFamily, externalIP string) {
-						if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
-							skipper.Skipf("Skipping test for IPFamily: %s", ipFamily)
-							return
-						}
-
-						g.By("Selecte EgressIP set for the test")
-						egressIPSet, newEgressIPSet := getEgressIPSet(ipFamily, egressIPNodes)
-						framework.Logf("egressIPSet: %v", egressIPSet)
-
-						g.By("Deploy the test pods")
-						deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
+					g.BeforeEach(func() {
+						g.By("Create a namespace with UDPN")
+						ns, err := f.CreateNamespace(context.TODO(), f.BaseName, map[string]string{
+							"e2e-framework":           f.BaseName,
+							RequiredUDNNamespaceLabel: "",
+						})
 						o.Expect(err).NotTo(o.HaveOccurred())
-						o.Expect(len(podList.Items)).To(o.Equal(len(egressIPNodes)))
-						svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
+						err = udnWaitForOpenShift(oc, ns.Name)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						targetNamespace = ns.Name
+						f.Namespace = ns
+						egressIPObjectName = targetNamespace
+						testCUDNName = ns.Name
 
-						numberOfRequestsToSend := 10
-						// Run this twice to make sure that repeated EgressIP creation and deletion works.
-						for i := 0; i < 2; i++ {
-							g.By("Creating the EgressIP object")
-							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
-
-							g.By("Applying the EgressIP object")
-							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
-
-							g.By("Makes sure the EgressIP is advertised by FRR")
-							for eip, nodeName := range egressIPSet {
-								o.Expect(nodeName).ShouldNot(o.BeEmpty())
-								o.Eventually(func() bool {
-									return isRouteToEgressIPPresent(oc, eip, cudnName, nodeName)
-								}).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.BeTrue())
-							}
-
-							svcUrl := fmt.Sprintf("%s-0-service:%d", targetNamespace, serverPort)
-							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
-							spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
-
-							g.By("Updating the EgressIP object")
-							ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
-
-							g.By("Applying the updated EgressIP object")
-							applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, newEgressIPSet, egressUpdateTimeout)
-
-							g.By("Makes sure the updated EgressIP is advertised by FRR ")
-							for eip, nodeName := range newEgressIPSet {
-								o.Expect(nodeName).ShouldNot(o.BeEmpty())
-								o.Eventually(func() bool {
-									return isRouteToEgressIPPresent(oc, eip, cudnName, nodeName)
-								}).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.BeTrue())
-							}
-
-							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and updated EgressIPs %v were seen", numberOfRequestsToSend, newEgressIPSet))
-							spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, newEgressIPSet)
-
-							g.By("Deleting the EgressIP object")
-							// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
-							_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
-							o.Expect(err).NotTo(o.HaveOccurred())
-
-							g.By("Makes sure the EgressIP is not advertised by FRR")
-							for eip, nodeName := range newEgressIPSet {
-								o.Eventually(func() bool {
-									return isRouteToEgressIPPresent(oc, eip, cudnName, nodeName)
-								}).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.BeFalse())
-							}
-
-							g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, newEgressIPSet))
-							spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
+						g.By("Creating a cluster user defined network")
+						nc := &networkAttachmentConfigParams{
+							name:      testCUDNName,
+							topology:  udnTopology,
+							role:      "primary",
+							namespace: targetNamespace,
 						}
-					},
-					g.Entry("IPv4", IPv4, v4ExternalIP),
-					g.Entry("IPv6", IPv6, v6ExternalIP),
-				)
-			}
 
-			g.Context("Advertising egressIP for layer 3 user defined network", func() {
-				verifyEIPForUDN("layer3")
-			})
+						g.By("Allocating subnets for a CUDN")
+						userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, err = allocateSubnets(oc)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						framework.Logf("Allocated subnets %s %s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 
-			// [TODO] Add test for layer 2 UDN once OCPBUGS-55157 is fixed.
+						nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
+						cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
+						cleanup, err = createManifest(targetNamespace, cudnManifest)
+
+						o.Expect(err).NotTo(o.HaveOccurred())
+						o.Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testCUDNName), 60*time.Second, time.Second).Should(o.Succeed())
+						g.By("Labeling the UDN for advertisement")
+						_, err = runOcWithRetry(oc.AsAdmin(), "label", "clusteruserdefinednetworks", "-n", targetNamespace, testCUDNName, "network="+testCUDNName)
+						o.Expect(err).NotTo(o.HaveOccurred())
+
+						g.By("Create the route advertisement for UDN")
+						raManifest := newRouteAdvertisementsManifest(testCUDNName, "", false, true)
+						err = applyManifest("", raManifest)
+						o.Expect(err).NotTo(o.HaveOccurred())
+
+						g.By(fmt.Sprintf("Ensure the RouteAdvertisements %s is accepted", testCUDNName))
+						waitForRouteAdvertisements(oc, testCUDNName)
+					})
+
+					g.AfterEach(func() {
+						o.Expect(func() error {
+							err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "deploy", deployName)
+							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "ra", testCUDNName))
+							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "pod", "--all"))
+							errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "clusteruserdefinednetwork", testCUDNName))
+							errors.Join(err, deallocateSubnets(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet))
+							return err
+						}()).To(o.Succeed())
+						cleanup()
+					})
+
+					g.DescribeTable("UDN pods should have the assigned EgressIPs and EgressIPs can be created, updated and deleted [apigroup:route.openshift.io]",
+						func(ipFamily IPFamily, externalIP string) {
+							if clusterIPFamily != ipFamily && clusterIPFamily != DualStack {
+								skipper.Skipf("Skipping test for IPFamily: %s", ipFamily)
+								return
+							}
+
+							g.By("Allocating EgressIP sets for the test")
+							egressIPSet, newEgressIPSet, err = allocateEgressIPSet(oc, ipFamily, egressIPNodes)
+							o.Expect(err).NotTo(o.HaveOccurred())
+							framework.Logf("Allocated EgressIP sets: %v %v", egressIPSet, newEgressIPSet)
+
+							g.By("Deploy the test pods")
+							deployName, _, podList, err = setupTestDeployment(oc, clientset, targetNamespace, egressIPNodes)
+							o.Expect(err).NotTo(o.HaveOccurred())
+							o.Expect(len(podList.Items)).To(o.Equal(len(egressIPNodes)))
+							svcUrl = fmt.Sprintf("%s-0-service.%s.svc.cluster.local:%d", targetNamespace, targetNamespace, serverPort)
+
+							numberOfRequestsToSend := 10
+							// Run this twice to make sure that repeated EgressIP creation and deletion works.
+							for i := 0; i < 2; i++ {
+								g.By("Creating the EgressIP object")
+								ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", egressIPSet)
+
+								g.By("Applying the EgressIP object")
+								applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, egressIPSet, egressUpdateTimeout)
+
+								g.By("Makes sure the EgressIP is advertised by FRR")
+								for eip, nodeName := range egressIPSet {
+									o.Expect(nodeName).ShouldNot(o.BeEmpty())
+									o.Eventually(func() bool {
+										return isRouteToEgressIPPresent(oc, eip, testCUDNName, nodeName)
+									}).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.BeTrue())
+								}
+
+								svcUrl := fmt.Sprintf("%s-0-service:%d", targetNamespace, serverPort)
+								g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", numberOfRequestsToSend, egressIPSet))
+								spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, egressIPSet)
+
+								g.By("Updating the EgressIP object")
+								ovnKubernetesCreateEgressIPObject(oc, egressIPYamlPath, egressIPObjectName, targetNamespace, "", newEgressIPSet)
+
+								g.By("Applying the updated EgressIP object")
+								applyEgressIPObject(oc, nil, egressIPYamlPath, targetNamespace, newEgressIPSet, egressUpdateTimeout)
+
+								g.By("Makes sure the updated EgressIP is advertised by FRR ")
+								for eip, nodeName := range newEgressIPSet {
+									o.Expect(nodeName).ShouldNot(o.BeEmpty())
+									o.Eventually(func() bool {
+										return isRouteToEgressIPPresent(oc, eip, testCUDNName, nodeName)
+									}).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.BeTrue())
+								}
+
+								g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and updated EgressIPs %v were seen", numberOfRequestsToSend, newEgressIPSet))
+								spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, numberOfRequestsToSend, packetSnifferDaemonSet, newEgressIPSet)
+
+								g.By("Deleting the EgressIP object")
+								// Use cascading foreground deletion to make sure that the EgressIP object and its dependencies are gone.
+								_, err = runOcWithRetry(oc.AsAdmin(), "delete", "egressip", egressIPObjectName, "--cascade=foreground")
+								o.Expect(err).NotTo(o.HaveOccurred())
+
+								g.By("Makes sure the EgressIP is not advertised by FRR")
+								for eip, nodeName := range newEgressIPSet {
+									o.Eventually(func() bool {
+										return isRouteToEgressIPPresent(oc, eip, testCUDNName, nodeName)
+									}).WithTimeout(3 * timeOut).WithPolling(interval).Should(o.BeFalse())
+								}
+
+								g.By(fmt.Sprintf("Sending requests from prober and making sure that %d requests with search string and EgressIPs %v were seen", 0, newEgressIPSet))
+								spawnProberSendEgressIPTrafficCheckLogs(oc, targetNamespace, probePodName, svcUrl, targetProtocol, externalIP, serverPort, numberOfRequestsToSend, 0, packetSnifferDaemonSet, newEgressIPSet)
+							}
+						},
+						g.Entry("When the network is IPv4", IPv4, v4ExternalIP),
+						g.Entry("When the network is IPv6", IPv6, v6ExternalIP),
+					)
+				},
+				g.Entry("When the network topology is Layer 3", "layer3"),
+				// [TODO] Add test for layer 2 UDN once OCPBUGS-55157 is fixed.
+				//g.Entry("When the network topology is Layer 2", "layer2"),
+			)
 		})
 	})
 })
 
-func IntnRange(min, max int) int {
-	return rand.Intn(max-min+1) + min
-}
-
-func generateRandomSubnet(ipFamily IPFamily) string {
-	var subnet string
-	switch ipFamily {
-	case IPv4:
-		subnet = fmt.Sprintf("203.%d.0.0/16", IntnRange(0, 255))
-	case IPv6:
-		subnet = fmt.Sprintf("2014:100:200:%0x::0/60", IntnRange(0, 255))
-	default:
-		o.Expect(false).To(o.BeTrue())
+func allocateSubnets(oc *exutil.CLI) (string, string, error) {
+	subnetsv4, subnetsv6, err := allocateIPs(
+		oc,
+		allocationConfigMapNamespace,
+		allocationConfigMapName,
+		subnetAllocationKey,
+		subnetAllocationTemplatev4,
+		subnetAllocationTemplatev6,
+		1, // allocate 1 IPv4 subnet
+		1, // allocate 1 IPv6 subnet
+		subnetAllocationMin,
+		subnetAllocationMax)
+	if err != nil {
+		return "", "", err
 	}
-	return subnet
+	return subnetsv4[0], subnetsv6[0], nil
 }
 
-func getEgressIPSet(ipFamily IPFamily, eipNodes []string) (map[string]string, map[string]string) {
+func deallocateSubnets(oc *exutil.CLI, subnets ...string) error {
+	return deallocateIPs(oc, allocationConfigMapNamespace, allocationConfigMapName, subnetAllocationKey, subnets...)
+}
+
+func allocateEgressIPSet(oc *exutil.CLI, ipFamily IPFamily, eipNodes []string) (map[string]string, map[string]string, error) {
 	egressIPSet := make(map[string]string)
 	newEgressIPSet := make(map[string]string)
-	for range eipNodes {
-		switch ipFamily {
-		case IPv4:
-			eip := fmt.Sprintf("192.168.111.%d", IntnRange(30, 254))
-			egressIPSet[eip] = ""
-			neip := fmt.Sprintf("192.168.111.%d", IntnRange(30, 254))
-			newEgressIPSet[neip] = ""
-		case IPv6:
-			eip := fmt.Sprintf("fd2e:6f44:5dd8:c956::%0x", IntnRange(30, 254))
-			egressIPSet[eip] = ""
-			neip := fmt.Sprintf("fd2e:6f44:5dd8:c956::%0x", IntnRange(30, 254))
-			newEgressIPSet[neip] = ""
-		default:
-			o.Expect(false).To(o.BeTrue())
+	n := len(eipNodes)
+	var ips []string
+	var err error
+	switch ipFamily {
+	case IPv4:
+		ips, _, err = allocateIPs(
+			oc,
+			allocationConfigMapNamespace,
+			allocationConfigMapName,
+			eipAllocationKey,
+			eipAllocationTemplatev4,
+			"",  // no IPv6 allocation
+			n*2, // allocate this many IPv4 EIPs
+			0,   // no IPv6 allocation
+			eipAllocationMin,
+			eipAllocationMax,
+		)
+	case IPv6:
+		_, ips, err = allocateIPs(
+			oc,
+			allocationConfigMapNamespace,
+			allocationConfigMapName,
+			eipAllocationKey,
+			"", // no IPv4 allocation
+			eipAllocationTemplatev6,
+			0,   // no IPv4 allocation
+			n*2, // allocate this many IPv6 EIPs
+			eipAllocationMin,
+			eipAllocationMax,
+		)
+	default:
+		return nil, nil, fmt.Errorf("unknown IP family")
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := 0; i < len(ips); i = i + 2 {
+		egressIPSet[ips[i]] = ""
+		newEgressIPSet[ips[i+1]] = ""
+	}
+	return egressIPSet, newEgressIPSet, nil
+}
+
+func deallocateEgressIPSets(oc *exutil.CLI, eipsets ...map[string]string) error {
+	var eips []string
+	for _, set := range eipsets {
+		for eip := range set {
+			eips = append(eips, eip)
 		}
 	}
-	return egressIPSet, newEgressIPSet
+	return deallocateIPs(oc, allocationConfigMapNamespace, allocationConfigMapName, eipAllocationKey, eips...)
 }
 
 // isRouteToEgressIPPresent checks that routes to the egress IPs are being advertised by FRR.
@@ -825,7 +1046,7 @@ func getNodeSubnets(oc *exutil.CLI, network string) (map[string][]net.IPNet, err
 }
 
 // getLearnedBgpRoutesByNode returns the BGP routes learned by the node
-func getLearnedBgpRoutesByNode(oc *exutil.CLI, nodeName string) (map[string]string, map[string]string, error) {
+func getLearnedBgpRoutesByNode(oc *exutil.CLI, nodeName, network string) (map[string]string, map[string]string, error) {
 	var podName string
 	var out string
 	var err error
@@ -853,14 +1074,27 @@ func getLearnedBgpRoutesByNode(oc *exutil.CLI, nodeName string) (map[string]stri
 	if podName == "" {
 		return nil, nil, fmt.Errorf("could not find valid frr pod on node %q", nodeName)
 	}
-	out, err = adminExecInPod(oc, frrNamespace, podName, "frr", "ip route show proto bgp")
+
+	isDefault := network == "default"
+	cmdv4 := "ip route show proto bgp"
+	cmdv6 := "ip -6 route show proto bgp"
+	if !isDefault {
+		table, err := adminExecInPod(oc, frrNamespace, podName, "frr", "ip -d link show dev "+network+" | grep -oP 'table \\d+' | grep -oP '\\d+'")
+		if err != nil {
+			return nil, nil, err
+		}
+		cmdv4 += " table " + table
+		cmdv6 += " table " + table
+	}
+
+	out, err = adminExecInPod(oc, frrNamespace, podName, "frr", cmdv4)
 	if err != nil {
 		return nil, nil, err
 	}
 	framework.Logf("BGP v4 routes for node %s: %s", nodeName, out)
 	v4bgpRoutes = parseRoutes(out)
 
-	out, err = adminExecInPod(oc, frrNamespace, podName, "frr", "ip -6 route show proto bgp")
+	out, err = adminExecInPod(oc, frrNamespace, podName, "frr", cmdv6)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -889,7 +1123,7 @@ func parseRoutes(routeOutput string) map[string]string {
 	return routes
 }
 
-func newRouteAdvertisementsManifest(name string, podNetwork, egressip bool) string {
+func newRouteAdvertisementsManifest(name, vrf string, podNetwork, egressip bool) string {
 	advertisements := []string{}
 	if podNetwork {
 		advertisements = append(advertisements, "PodNetwork")
@@ -897,21 +1131,9 @@ func newRouteAdvertisementsManifest(name string, podNetwork, egressip bool) stri
 	if egressip {
 		advertisements = append(advertisements, "EgressIP")
 	}
-	if name == "default" {
-		return fmt.Sprintf(`
-apiVersion: k8s.ovn.org/v1
-kind: RouteAdvertisements
-metadata:
-  name: %s
-spec:
-  nodeSelector: {}
-  frrConfigurationSelector:
-    matchLabels:
-      network: default
-  advertisements: [%s]
-  networkSelectors:
-  - networkSelectionType: DefaultNetwork
-`, name, strings.Join(advertisements, ","))
+	network := "default"
+	if vrf == "auto" {
+		network = name
 	}
 	return fmt.Sprintf(`
 apiVersion: k8s.ovn.org/v1
@@ -919,18 +1141,19 @@ kind: RouteAdvertisements
 metadata:
   name: %s
 spec:
+  targetVRF: "%s"
   nodeSelector: {}
   frrConfigurationSelector:
     matchLabels:
-      network: default
+      network: %s
   advertisements: [%s]
   networkSelectors:
-  - networkSelectionType: ClusterUserDefinedNetworks
-    clusterUserDefinedNetworkSelector:
-      networkSelector:
-        matchLabels:
-          advertise: "%s"
-`, name, strings.Join(advertisements, ","), name)
+    - networkSelectionType: ClusterUserDefinedNetworks
+      clusterUserDefinedNetworkSelector:
+        networkSelector:
+          matchLabels:
+            network: %s
+`, name, vrf, network, strings.Join(advertisements, ","), name)
 }
 
 // verifyLearnedBgpRoutesForNode encapsulates the verification of learned BGP routes for a node.
@@ -941,7 +1164,7 @@ func verifyLearnedBgpRoutesForNode(oc *exutil.CLI, nodeName string, network stri
 
 	g.By(fmt.Sprintf("Checking routes for node %s in network %s", nodeName, network))
 	o.Eventually(func() bool {
-		bgpV4Routes, bgpV6Routes, err := getLearnedBgpRoutesByNode(oc, nodeName)
+		bgpV4Routes, bgpV6Routes, err := getLearnedBgpRoutesByNode(oc, nodeName, network)
 		if err != nil {
 			lastErr = fmt.Errorf("failed to get BGP routes: %v", err)
 			return false
@@ -958,7 +1181,7 @@ func verifyLearnedBgpRoutesForNode(oc *exutil.CLI, nodeName string, network stri
 		}
 
 		return true
-	}, timeOut, interval).Should(o.BeTrue(), func() string {
+	}, 3*timeOut, interval).Should(o.BeTrue(), func() string {
 		return fmt.Sprintf("Route verification failed for node %s: %v", nodeName, lastErr)
 	})
 }
@@ -1055,8 +1278,11 @@ func checkExternalResponse(oc *exutil.CLI, proberPod *corev1.Pod, podIP, Externa
 }
 
 // Add these helper functions after the imports
-
 func setupPacketSniffer(oc *exutil.CLI, clientset kubernetes.Interface, snifferNamespace string, advertisedPodsNodes []string, networkPlugin string) (*v1.DaemonSet, error) {
+	return setupPacketSnifferOnInterface(oc, clientset, snifferNamespace, advertisedPodsNodes, networkPlugin, "")
+}
+
+func setupPacketSnifferOnInterface(oc *exutil.CLI, clientset kubernetes.Interface, snifferNamespace string, advertisedPodsNodes []string, networkPlugin, packetSnifferInterface string) (*v1.DaemonSet, error) {
 	// Add SCC privileged
 	_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged",
 		fmt.Sprintf("system:serviceaccount:%s:default", snifferNamespace))
@@ -1065,9 +1291,11 @@ func setupPacketSniffer(oc *exutil.CLI, clientset kubernetes.Interface, snifferN
 	}
 
 	// Find interface for packet sniffing
-	packetSnifferInterface, err := findPacketSnifferInterface(oc, networkPlugin, advertisedPodsNodes)
-	if err != nil {
-		return nil, err
+	if packetSnifferInterface == "" {
+		packetSnifferInterface, err = findPacketSnifferInterface(oc, networkPlugin, advertisedPodsNodes)
+		if err != nil {
+			return nil, err
+		}
 	}
 	framework.Logf("Using interface %s for packet captures", packetSnifferInterface)
 
@@ -1166,6 +1394,27 @@ func extractPodUdnIPs(podList *corev1.PodList, nc *networkAttachmentConfigParams
 	return v4PodIPSet, v6PodIPSet
 }
 
+// probeForHostnames spawns a prober pod inside the prober namespace. It then runs curl against http://%s/dial?host=%s&port=%d&request=/hostname
+// for the specified number of iterations and returns a set of the clientIP addresses that were returned.
+// At the end of the test, the prober pod is deleted again.
+func probeForHostnames(oc *exutil.CLI, proberPodNamespace, proberPodName, url, targetIP string, targetPort, iterations int, tweak func(*corev1.Pod)) (map[string]struct{}, error) {
+	return probeForRequest(oc, proberPodNamespace, proberPodName, url, targetIP, "hostname", targetPort, iterations, tweak)
+}
+
+func applyNNCP(oc *exutil.CLI, name, policy string) {
+	g.GinkgoHelper()
+
+	o.Expect(oc.AsAdmin().Run("apply").Args("-f", "-").InputString(policy).Execute()).To(o.Succeed())
+
+	o.Eventually(func(g o.Gomega) {
+		out, err := oc.AsAdmin().Run("get").Args("NodeNetworkConfigurationPolicy/"+name, "-o", "yaml").Output()
+		g.Expect(err).NotTo(o.HaveOccurred())
+		matches := nncpRenderedCompiledRegex.FindStringSubmatch(out)
+		g.Expect(matches).To(o.HaveLen(3))
+		g.Expect(matches[1]).To(o.Equal(matches[2]))
+	}).WithTimeout(300 * time.Second).WithPolling(5 * time.Second).Should(o.Succeed())
+}
+
 func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, error) {
 	results := make(map[string]string)
 
@@ -1206,7 +1455,7 @@ func runCommandInFrrPods(oc *exutil.CLI, command string) (map[string]string, err
 	return results, nil
 }
 
-func gatherDebugInfo(oc *exutil.CLI, snifferNamespace, targetNamespace string, workerNodesOrderedNames []string) {
+func gatherDebugInfo(oc *exutil.CLI, snifferDaemonset *v1.DaemonSet, targetNamespace string, workerNodesOrderedNames []string) {
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "ra", "-o", "yaml"); err == nil {
 		framework.Logf("RouteAdvertisements:\n%s", out)
 	}
@@ -1222,72 +1471,92 @@ func gatherDebugInfo(oc *exutil.CLI, snifferNamespace, targetNamespace string, w
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", targetNamespace, "-o", "yaml"); err == nil {
 		framework.Logf(" %s:\n%s", targetNamespace, out)
 	}
-	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "ds", "-n", snifferNamespace, "-o", "yaml"); err == nil {
-		framework.Logf("DaemonSets in namespace %s:\n%s", snifferNamespace, out)
-	}
-	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", snifferNamespace, "-o", "yaml"); err == nil {
-		framework.Logf("Pods in namespace %s:\n%s", snifferNamespace, out)
-	}
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "frrconfiguration", "-n", "openshift-frr-k8s", "-o", "yaml"); err == nil {
 		framework.Logf("FrrConfiguration:\n%s", out)
 	}
 	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "frrnodestates", "-o", "yaml"); err == nil {
 		framework.Logf("FrrNodeStates:\n%s", out)
 	}
+	if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "nncp", "-o", "yaml"); err == nil {
+		framework.Logf("FrrNodeStates:\n%s", out)
+	}
+	if snifferDaemonset != nil {
+		if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "ds", "-n", snifferDaemonset.Namespace, "-o", "yaml"); err == nil {
+			framework.Logf("DaemonSets in namespace %s:\n%s", snifferDaemonset.Namespace, out)
+		}
+		if out, err := runOcWithRetry(oc.AsAdmin().WithoutNamespace(), "get", "pod", "-n", snifferDaemonset.Namespace, "-o", "yaml"); err == nil {
+			framework.Logf("Pods in namespace %s:\n%s", snifferDaemonset.Namespace, out)
+		}
+		logs, err := getDaemonSetLogs(oc.KubeFramework().ClientSet, snifferDaemonset)
+		if err != nil {
+			framework.Logf("failed to gather packet sniffer logs: %v", err)
+		} else {
+			for node, log := range logs {
+				framework.Logf("packet sniffer logs for node %s:\n%s", node, log)
+			}
+		}
+	}
 
 	// FRR debugging information
 	framework.Logf("\n=== FRR Debugging Information ===")
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ip route'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ip route vrf all'"); err == nil {
 		framework.Logf("\nBGP IPv4 route:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ipv6 route'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ipv6 route vrf all'"); err == nil {
 		framework.Logf("\nBGP IPv6 route:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ip bgp summary'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ip bgp vrf all ipv4 summary'"); err == nil {
 		framework.Logf("\nBGP IPv4 Summary:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ip bgp ipv6 summary'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show ip bgp vrf all ipv6 summary'"); err == nil {
 		framework.Logf("\nBGP IPv6 Summary:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp ipv4'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp vrf all ipv4'"); err == nil {
 		framework.Logf("\nBGP IPv4 Routes:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp ipv6'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp vrf all ipv6'"); err == nil {
 		framework.Logf("\nBGP IPv6 Routes:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp neighbor'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp vrf all ipv4 neighbor'"); err == nil {
 		framework.Logf("\nBGP Neighbors:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
 
-	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bfd peer'"); err == nil {
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bgp vrf all ipv6 neighbor'"); err == nil {
+		framework.Logf("\nBGP Neighbors:")
+		for node, output := range results {
+			framework.Logf("Node %s:\n%s", node, output)
+		}
+	}
+
+	if results, err := runCommandInFrrPods(oc, "vtysh -c 'show bfd vrf all peer'"); err == nil {
 		framework.Logf("\nBFD Peers:")
 		for node, output := range results {
 			framework.Logf("Node %s:\n%s", node, output)
@@ -1300,4 +1569,22 @@ func gatherDebugInfo(oc *exutil.CLI, snifferNamespace, targetNamespace string, w
 			framework.Logf("Node %s:\n%s", node, output)
 		}
 	}
+}
+
+func workaroundOCPBUGS56488(oc *exutil.CLI) (bool, error) {
+	opPatch := []byte(`{"spec":{"replicas": 0}}`)
+	dp, err := oc.AdminKubeClient().AppsV1().Deployments(nmstateNamespace).Patch(context.Background(), "nmstate-operator", types.MergePatchType, opPatch, metav1.PatchOptions{})
+	if err != nil {
+		return false, err
+	}
+	err = exutil.WaitForDeploymentReadyWithTimeout(oc, "nmstate-operator", nmstateNamespace, dp.Generation, 0)
+	if err != nil {
+		return false, err
+	}
+	hPatch := []byte(`{"spec":{"template":{"spec":{"containers":[{"name":"nmstate-handler","livenessProbe":{"exec":{"command": ["true"]}}}]}}}}`)
+	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(nmstateNamespace).Patch(context.Background(), "nmstate-handler", types.StrategicMergePatchType, hPatch, metav1.PatchOptions{})
+	if err != nil {
+		return false, err
+	}
+	return isDaemonSetRunningOnGeneration(oc, nmstateNamespace, "nmstate-handler", ds.Generation)
 }
