@@ -2011,6 +2011,19 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
+                    "Name": "etcd-peer-qlg8lj33-92bf1-4q7j7bootstrap"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-\u003cbootstrap\u003e"
                 },
                 "certKeyInfo": {
@@ -2103,6 +2116,32 @@
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-metrics-\u003cmaster-2\u003e"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-metrics-qlg8lj33-92bf1-4q7j7bootstrap"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-qlg8lj33-92bf1-4q7j7bootstrap"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",

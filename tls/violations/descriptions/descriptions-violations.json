@@ -355,6 +355,19 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-config-managed",
+                    "Name": "merged-trusted-image-registry-ca"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-config-managed",
                     "Name": "oauth-serving-cert"
                 },
                 "certificateAuthorityBundleInfo": {
