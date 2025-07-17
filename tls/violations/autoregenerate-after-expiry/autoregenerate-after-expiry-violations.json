@@ -1855,6 +1855,19 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
+                    "Name": "etcd-peer-arbiter-0"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
                     "Name": "etcd-peer-qlg8lj33-92bf1-4q7j7bootstrap"
                 },
                 "certKeyInfo": {
@@ -1920,6 +1933,19 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-arbiter-0"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-metrics-\u003cbootstrap\u003e"
                 },
                 "certKeyInfo": {
@@ -1960,6 +1986,19 @@
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-metrics-\u003cmaster-2\u003e"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-metrics-arbiter-0"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",
