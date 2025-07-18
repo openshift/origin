@@ -33,6 +33,13 @@ var s2iImages = map[string][]tc{
 			Version:  "33",
 			Cmd:      "ruby --version",
 			Expected: "ruby 3.3",
+			Tag:      "3.3-ubi10",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "33",
+			Cmd:      "ruby --version",
+			Expected: "ruby 3.3",
 			Tag:      "3.3-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
@@ -124,6 +131,13 @@ var s2iImages = map[string][]tc{
 			Tag:      "20-ubi9",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
+		{
+			Version:  "22",
+			Cmd:      "node --version",
+			Expected: "v22",
+			Tag:      "22-ubi10",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 	},
 	"perl": {
 		{
@@ -147,8 +161,22 @@ var s2iImages = map[string][]tc{
 			Tag:      "5.26-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
+		{
+			Version:  "540",
+			Cmd:      "perl --version",
+			Expected: "v5.40",
+			Tag:      "5.40-ubi10",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 	},
 	"php": {
+		{
+			Version:  "83",
+			Cmd:      "php --version",
+			Expected: "8.3",
+			Tag:      "8.3-ubi10",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 		{
 			Version:  "80",
 			Cmd:      "php --version",
@@ -212,6 +240,13 @@ var s2iImages = map[string][]tc{
 			Cmd:      "nginx -V",
 			Expected: "nginx/1.22",
 			Tag:      "1.22-ubi9",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "126",
+			Cmd:      "nginx -V",
+			Expected: "nginx/1.26",
+			Tag:      "1.26-ubi10",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		// {
