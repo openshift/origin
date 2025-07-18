@@ -418,9 +418,13 @@ spec:
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure OSSM and OLM related resources are created after creating GatewayClass'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Ensure OSSM subscription and istio could be deleted and then get recreated'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure custom gatewayclass can be accepted'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure default gatewayclass is accepted'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]'
   - featureGate: GitRepoVolumeDriver
     tests:
     - testName: '[sig-storage] EmptyDir wrapper volumes should not cause race condition
