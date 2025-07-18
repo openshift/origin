@@ -15,7 +15,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -305,6 +304,7 @@ func (i *InvariantInClusterDisruption) PrepareCollection(ctx context.Context, ad
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
+	log.Infof("payload image pull spec is %v", i.payloadImagePullSpec)
 	if len(i.payloadImagePullSpec) == 0 {
 		configClient, err := configclient.NewForConfig(adminRESTConfig)
 		if err != nil {
@@ -319,16 +319,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 			return err
 		}
 		i.payloadImagePullSpec = clusterVersion.Status.History[0].Image
-
-		// saw this on rosa
-		if len(i.payloadImagePullSpec) == 0 {
-			log.Infof("configClient clusterVersion missing image pull spec %v", clusterVersion)
-			i.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
-			return nil
-		}
 	}
-
-	log.Infof("payload image pull spec is %v", i.payloadImagePullSpec)
 
 	// runImageExtract extracts src from specified image to dst
 	cmd := exec.Command("oc", "adm", "release", "info", i.payloadImagePullSpec, "--image-for=tests")
@@ -337,15 +328,8 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	if err := cmd.Run(); err != nil {
-		// specifically ipv6 disconnected isn't expected to work
-		// could we use OTE method for extracting image references to fix the issue with disconnected?  https://github.com/openshift/origin/blob/58ddec89c791ea056a9b0fb3558f369128e55e64/pkg/test/extensions/util.go#L226
-		jobType, err := platformidentification.GetJobType(context.TODO(), adminRESTConfig)
-		if err == nil && jobType.Platform == "metal" {
-			i.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image for metal platform: %v: %v", err, errOut.String())
-			return nil
-		}
-
-		return fmt.Errorf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
+		i.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
+		return nil
 	}
 	i.openshiftTestsImagePullSpec = strings.TrimSpace(out.String())
 	log.Infof("openshift-tests image pull spec is %v", i.openshiftTestsImagePullSpec)
