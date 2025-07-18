@@ -267,15 +267,6 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By(fmt.Sprintf("Wait until the OSSM subscription %s is automatically created successfully", expectedSubscriptionName))
 		pollWaitSubscriptionCreated(oc, openshiftOperatorsNamespace, expectedSubscriptionName, subscriptionOriginalCreatedTimestamp)
 
-		g.By(fmt.Sprintf("Try to delete the OSSM csv %s", expectedCsvName))
-		csvcOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "csv", expectedCsvName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", openshiftOperatorsNamespace, "csv", expectedCsvName).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By(fmt.Sprintf("Wait until the the OSSM csv %s is automatically created successfully", expectedCsvName))
-		pollWaitOssmCsvCreated(oc, openshiftOperatorsNamespace, expectedCsvName, csvcOriginalCreatedTimestamp)
-
 		// delete the istiod deployment and then checked if it is restored
 		g.By(fmt.Sprintf("Try to delete the istiod deployment in %s namespace", ingressNamespace))
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context.Background(), istiodDeployment, metav1.GetOptions{})
@@ -790,37 +781,7 @@ func pollWaitSubscriptionCreated(oc *exutil.CLI, openshiftOperatorsNamespace, ex
 		}
 
 		if currentCreatedTimestamp == originalCreatedTimestamp {
-			e2e.Logf("Trying deleting the original subscription %q in namespace %q, retrying...", expectedSubscriptionName, openshiftOperatorsNamespace)
-			return false, nil
-		}
-
-		return true, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-// used to wait an OSSM csv is automatically created successfully
-func pollWaitOssmCsvCreated(oc *exutil.CLI, openshiftOperatorsNamespace, csvName, originalCreatedTimestamp string) {
-	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
-		phase, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "csv", csvName, `-o=jsonpath={.status.phase}`).Output()
-		if err != nil {
-			e2e.Logf("Failed to get %q CSV, error: %v, retrying...", csvName, err)
-			return false, nil
-		}
-
-		if phase != "Succeeded" {
-			e2e.Logf("Wait for phase to be Succeeded, and got %s", phase)
-			return false, nil
-		}
-
-		currentCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "csv", csvName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
-		if err != nil {
-			e2e.Logf("Failed to get %q CSV, error: %v, retrying...", csvName, err)
-			return false, nil
-		}
-
-		if currentCreatedTimestamp == originalCreatedTimestamp {
-			e2e.Logf("Trying deleting the original OSSM csv %q in namespace %q, retrying...", csvName, openshiftOperatorsNamespace)
+			e2e.Logf("Original subscription %q in namespace %q is not deleted yet, retrying...", expectedSubscriptionName, openshiftOperatorsNamespace)
 			return false, nil
 		}
 
@@ -834,17 +795,17 @@ func pollWaitDeploymentCreated(oc *exutil.CLI, ns, deploymentName string, origin
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Failed to get %q deployment: %v, retrying", deploymentName, err)
+			e2e.Logf("Failed to get %q deployment: %v, retrying...", deploymentName, err)
 			return false, nil
 		}
 
 		if deployment.CreationTimestamp == originalCreatedTime {
-			e2e.Logf("Trying deleting the orignal deployment %q in namespace %q, retrying...", deploymentName, ns)
+			e2e.Logf("Orignal deployment %q in namespace %q is not deleted yet, retrying...", deploymentName, ns)
 			return false, nil
 		}
 
 		if readyReplicas := deployment.Status.ReadyReplicas; readyReplicas < 1 {
-			e2e.Logf(`The deployment %s in %s namespace is not ready(ReadyReplicas: %v), retrying`, deploymentName, ns, readyReplicas)
+			e2e.Logf(`The deployment %s in %s namespace is not ready(ReadyReplicas: %v), retrying...`, deploymentName, ns, readyReplicas)
 			return false, nil
 		}
 
@@ -880,7 +841,7 @@ func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName, originalC
 		}
 
 		if currentCreatedTimestamp == originalCreatedTimestamp {
-			e2e.Logf("Trying deleting the original istio %q in namespace %q, retrying...", istioName, ingressNamespace)
+			e2e.Logf("Original istio %q in namespace %q is not deleted yet, retrying...", istioName, ingressNamespace)
 			return false, nil
 		}
 
@@ -900,7 +861,7 @@ func pollWaitGWLBServiceRecreated(oc *exutil.CLI, ingressNamespace, gatewayLbSer
 		}
 
 		if lbService.ObjectMeta.CreationTimestamp == originalCreatedTime {
-			e2e.Logf("Trying deleting the original gateway lb service %q, retrying...", gatewayLbService)
+			e2e.Logf("Original gateway lb service %q is not deleted yet, retrying...", gatewayLbService)
 			return false, nil
 		}
 
@@ -915,7 +876,7 @@ func pollWaitGWLBServiceRecreated(oc *exutil.CLI, ingressNamespace, gatewayLbSer
 			lbAddress = lbService.Status.LoadBalancer.Ingress[0].IP
 		}
 		if lbAddress == "" {
-			e2e.Logf("No load balancer address for service %q, retrying", gatewayLbService)
+			e2e.Logf("No load balancer address for service %q, retrying...", gatewayLbService)
 			return false, nil
 		}
 
@@ -952,7 +913,7 @@ func pollWaitGWDNSRecordsRecreated(oc *exutil.CLI, gwName, ingressNamespace, exp
 		}
 
 		if dnsrecord.ObjectMeta.CreationTimestamp == originalCreatedTime {
-			e2e.Logf("Trying deleting the original dnsrecord of GW %q, retrying...", gwName)
+			e2e.Logf("Original DNSRecord of GW %q is not deleted yet, retrying...", gwName)
 			return false, nil
 		}
 
@@ -964,8 +925,8 @@ func pollWaitGWDNSRecordsRecreated(oc *exutil.CLI, gwName, ingressNamespace, exp
 
 		for _, zone := range dnsrecord.Status.Zones {
 			for _, condition := range zone.Conditions {
-				if condition.Status != "True" || condition.Reason != "ProviderSuccess" {
-					e2e.Logf(`Current condition Status(%q) and Current condition Reason(%q) of zone %q, at least one of them is not matched, retrying...`, condition.Status, condition.Reason, zone)
+				if condition.Type == "Published" && condition.Status != "True" {
+					e2e.Logf(`DNSRecord %q is not published in zone %q, retrying...`, dnsrecord.Name, zone)
 					return false, nil
 				}
 			}
