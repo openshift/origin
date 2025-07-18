@@ -3,9 +3,12 @@ package router
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -66,7 +69,13 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
 		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
 		//OSSM Deployment Pod Name
-		deploymentOSSMName = "servicemesh-operator3"
+		deploymentOSSMName          = "servicemesh-operator3"
+		openshiftOperatorsNamespace = "openshift-operators"
+		ingressNamespace            = "openshift-ingress"
+		expectedCsvName             = "servicemeshoperator3.v3.0.0"
+		ossmOperatorDeployment      = "servicemesh-operator3"
+		istiodDeployment            = "istiod-openshift-gateway"
+		istioName                   = "openshift-gateway"
 	)
 	g.BeforeAll(func() {
 		isokd, err := isOKD(oc)
@@ -290,6 +299,83 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 			return true, nil
 		})
 		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to remove GIE env variable")
+	})
+
+	g.It("Ensure OSSM subscription, istiod deployment and the istio could be deleted and then get recreated [Serial]", func() {
+		// delete the OSSM subscription and then check if it is restored
+		g.By(fmt.Sprintf("Try to delete the subscription %s", expectedSubscriptionName))
+		subscriptionOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", openshiftOperatorsNamespace, "subscription/"+expectedSubscriptionName).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the OSSM subscription %s is automatically created successfully", expectedSubscriptionName))
+		pollWaitSubscriptionCreated(oc, openshiftOperatorsNamespace, expectedSubscriptionName, subscriptionOriginalCreatedTimestamp)
+
+		// delete the istiod deployment and then checked if it is restored
+		g.By(fmt.Sprintf("Try to delete the istiod deployment in %s namespace", ingressNamespace))
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context.Background(), istiodDeployment, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Delete(context.Background(), istiodDeployment, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the istiod deployment in %s namespace is automatically created successfully", ingressNamespace))
+		pollWaitDeploymentCreated(oc, ingressNamespace, istiodDeployment, deployment.CreationTimestamp)
+
+		// delete the istio and check if it is restored
+		g.By(fmt.Sprintf("Try to delete the istio %s", istioName))
+		istioOriginalCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		_, err = oc.AsAdmin().WithoutNamespace().Run("delete").Args("-n", ingressNamespace, "istio/"+istioName).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the the istiod %s is automatically created successfully", istioName))
+		pollWaitIstioCreated(oc, ingressNamespace, istioName, istioOriginalCreatedTimestamp)
+	})
+
+	g.It("Ensure gateway loadbalancer service and dnsrecords could be deleted and then get recreated [Serial]", func() {
+		g.By("Getting the default domain for creating a custom Gateway")
+		defaultIngressDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to find default domain name")
+		customDomain := strings.Replace(defaultIngressDomain, "apps.", "gw-custom.", 1)
+
+		g.By("Create a custom Gateway")
+		gw := names.SimpleNameGenerator.GenerateName("gateway-")
+		gateways = append(gateways, gw)
+		_, gwerr := createAndCheckGateway(oc, gw, gatewayClassName, customDomain)
+		o.Expect(gwerr).NotTo(o.HaveOccurred(), "Failed to create Gateway")
+
+		// verify the gateway's LoadBalancer service
+		assertGatewayLoadbalancerReady(oc, gw, gw+"-openshift-default")
+		gatewayLbService := gw + "-openshift-default"
+
+		// make sure the DNSRecord is ready to use.
+		assertDNSRecordStatus(oc, gw)
+
+		g.By(fmt.Sprintf("Try to delete the gateway lb service %s", gatewayLbService))
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Delete(context.Background(), gatewayLbService, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait until the gateway lb service %s is automatically recreated successfully", gatewayLbService))
+		pollWaitGWLBServiceRecreated(oc, ingressNamespace, gatewayLbService, lbService.ObjectMeta.CreationTimestamp)
+
+		// make sure the DNSRecord is ready to use.
+		assertDNSRecordStatus(oc, gw)
+
+		// delete the gateway dnsrecords then checked if it is restored
+		g.By(fmt.Sprintf("Get some info of the gateway dnsrecords in %s namespace, then try to delete it", ingressNamespace))
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		dnsrecord, err := getGWDNSRecords(dnsrecordList, gw)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).Delete(context.Background(), dnsrecord.ObjectMeta.Name, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Wait unitl the gateway dnsrecords in %s namespace is automatically created successfully", ingressNamespace))
+		pollWaitGWDNSRecordsRecreated(oc, gw, ingressNamespace, getSortedString(dnsrecord.Spec.Targets), dnsrecord.ObjectMeta.CreationTimestamp)
 	})
 })
 
@@ -720,4 +806,195 @@ func isOKD(oc *exutil.CLI) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// used to wait a subscription is created successfully by checking its CatalogSourcesUnhealthy
+func pollWaitSubscriptionCreated(oc *exutil.CLI, openshiftOperatorsNamespace, expectedSubscriptionName, originalCreatedTimestamp string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		unhealthy, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.status.conditions[?(@.type=="CatalogSourcesUnhealthy")].status}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to get %q subscription, error: %v, retrying...", expectedSubscriptionName, err)
+			return false, nil
+		}
+
+		if unhealthy != "False" {
+			e2e.Logf("Wait CatalogSourcesUnhealthy status to be False, and got %q", unhealthy)
+			return false, nil
+		}
+
+		currentCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to get %q subscription, error: %v, retrying...", expectedSubscriptionName, err)
+			return false, nil
+		}
+
+		if currentCreatedTimestamp == originalCreatedTimestamp {
+			e2e.Logf("Original subscription %q in namespace %q is not deleted yet, retrying...", expectedSubscriptionName, openshiftOperatorsNamespace)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait a deploymentfor is automatically recreated
+func pollWaitDeploymentCreated(oc *exutil.CLI, ns, deploymentName string, originalCreatedTime metav1.Time) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get %q deployment: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+
+		if deployment.CreationTimestamp == originalCreatedTime {
+			e2e.Logf("Orignal deployment %q in namespace %q is not deleted yet, retrying...", deploymentName, ns)
+			return false, nil
+		}
+
+		if readyReplicas := deployment.Status.ReadyReplicas; readyReplicas < 1 {
+			e2e.Logf(`The deployment %s in %s namespace is not ready(ReadyReplicas: %v), retrying...`, deploymentName, ns, readyReplicas)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait the istio is created successfully by checking its readyReplicas
+func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName, originalCreatedTimestamp string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		readyReplicasStr, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.status.revisions.ready}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to check istio %q, error: %v, retrying...", istioName, err)
+			return false, nil
+		}
+
+		readyReplicas, err := strconv.Atoi(readyReplicasStr)
+		if err != nil {
+			e2e.Logf("Failed to convert readyReplicasStr %q to int, error: %v, retrying...", readyReplicasStr, err)
+			return false, nil
+		}
+
+		if readyReplicas < 1 {
+			e2e.Logf("No ready replicas found for istio %q", istioName)
+			return false, nil
+		}
+
+		currentCreatedTimestamp, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.metadata.creationTimestamp}`).Output()
+		if err != nil {
+			e2e.Logf("Failed to check istio %q, error: %v, retrying...", istioName, err)
+			return false, nil
+		}
+
+		if currentCreatedTimestamp == originalCreatedTimestamp {
+			e2e.Logf("Original istio %q in namespace %q is not deleted yet, retrying...", istioName, ingressNamespace)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for the gateway lb service is automatically recreated successfully
+func pollWaitGWLBServiceRecreated(oc *exutil.CLI, ingressNamespace, gatewayLbService string, originalCreatedTime metav1.Time) {
+	var lbAddress string
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context.Background(), gatewayLbService, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get the gateway lb service %q: %v, retrying...", gatewayLbService, err)
+			return false, nil
+		}
+
+		if lbService.ObjectMeta.CreationTimestamp == originalCreatedTime {
+			e2e.Logf("Original gateway lb service %q is not deleted yet, retrying...", gatewayLbService)
+			return false, nil
+		}
+
+		if len(lbService.Status.LoadBalancer.Ingress) == 0 {
+			e2e.Logf("New gateway lb service %q is created, but without lb hostname or ip, retrying...", gatewayLbService)
+			return false, nil
+		}
+
+		if lbService.Status.LoadBalancer.Ingress[0].Hostname != "" {
+			lbAddress = lbService.Status.LoadBalancer.Ingress[0].Hostname
+		} else {
+			lbAddress = lbService.Status.LoadBalancer.Ingress[0].IP
+		}
+		if lbAddress == "" {
+			e2e.Logf("No load balancer address for service %q, retrying...", gatewayLbService)
+			return false, nil
+		}
+
+		e2e.Logf("Got load balancer address for service %q: %v", gatewayLbService, lbAddress)
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to get a gateway dnsrecord from a given dnsrecordList
+func getGWDNSRecords(dnsrecordList *operatoringressv1.DNSRecordList, gwName string) (operatoringressv1.DNSRecord, error) {
+	for _, dnsrecord := range dnsrecordList.Items {
+		if strings.Contains(dnsrecord.ObjectMeta.Name, gwName+"-") {
+			return dnsrecord, nil
+		}
+	}
+
+	return operatoringressv1.DNSRecord{}, errors.New("Could not get the name of the gw dnsrecord")
+}
+
+// used to wait for the gateway dnsrecord is automatically recreated successfully
+func pollWaitGWDNSRecordsRecreated(oc *exutil.CLI, gwName, ingressNamespace, expectedtargets string, originalCreatedTime metav1.Time) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		dnsrecordList, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			e2e.Logf("Failed to List DNSRecords in namespace %q: %v, retrying...", ingressNamespace, err)
+			return false, nil
+		}
+
+		dnsrecord, err := getGWDNSRecords(dnsrecordList, gwName)
+		if err != nil {
+			e2e.Logf("Failed to get the DNSRecord name for gateway %q in namespace %q: %v, retrying...", gwName, ingressNamespace, err)
+			return false, nil
+		}
+
+		if dnsrecord.ObjectMeta.CreationTimestamp == originalCreatedTime {
+			e2e.Logf("Original DNSRecord of GW %q is not deleted yet, retrying...", gwName)
+			return false, nil
+		}
+
+		currentTargets := getSortedString(dnsrecord.Spec.Targets)
+		if currentTargets != expectedtargets {
+			e2e.Logf("Current DNSRecord targets %q for gateway %q differ from expected %q, retrying...", currentTargets, gwName, expectedtargets)
+			return false, nil
+		}
+
+		for _, zone := range dnsrecord.Status.Zones {
+			for _, condition := range zone.Conditions {
+				if condition.Type == "Published" && condition.Status != "True" {
+					e2e.Logf(`DNSRecord %q is not published in zone %q, retrying...`, dnsrecord.Name, zone)
+					return false, nil
+				}
+			}
+		}
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to sort string type of slice or string which can be split to the slice by the space character
+func getSortedString(obj interface{}) string {
+	objList := []string{}
+	str, ok := obj.(string)
+	if ok {
+		objList = strings.Split(str, " ")
+	}
+	strList, ok := obj.([]string)
+	if ok {
+		objList = strList
+	}
+	sort.Strings(objList)
+	return strings.Join(objList, " ")
 }
