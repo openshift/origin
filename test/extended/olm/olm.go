@@ -169,7 +169,7 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 			gitCommitID := strings.TrimSpace(idSlice[len(idSlice)-1])
 			e2e.Logf("olm source git commit ID:%s", gitCommitID)
 			if len(gitCommitID) != 40 {
-				e2e.Failf(fmt.Sprintf("the length of the git commit id is %d, != 40", len(gitCommitID)))
+				e2e.Failf("the length of the git commit id is %d, != 40", len(gitCommitID))
 			}
 
 			if sameCommit == "" {

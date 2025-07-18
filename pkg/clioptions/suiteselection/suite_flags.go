@@ -3,6 +3,7 @@ package suiteselection
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -71,7 +72,7 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 		}
 	}
 	if suite == nil && len(args) == 0 {
-		fmt.Fprintf(f.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		PrintSuitesString(f.ErrOut, suites, "Select a test suite to run against the server:\n\n")
 		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
 	}
 	if suite == nil && len(args) > 0 {
@@ -83,7 +84,7 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 		}
 	}
 	if suite == nil {
-		fmt.Fprintf(f.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		PrintSuitesString(f.ErrOut, suites, "Select a test suite to run against the server:\n\n")
 		return nil, fmt.Errorf("suite %q does not exist", args[0])
 	}
 
@@ -145,13 +146,13 @@ func (f *TestSuiteSelectionFlags) testFileMatchFunc() (testginkgo.TestMatchFunc,
 }
 
 // TODO re-collapse
-// SuitesString returns a string with the provided suites formatted. Prefix is
+// PrintSuitesString returns a string with the provided suites formatted. Prefix is
 // printed at the beginning of the output.
-func SuitesString(suites []*testginkgo.TestSuite, prefix string) string {
+func PrintSuitesString(w io.Writer, suites []*testginkgo.TestSuite, prefix string) {
 	buf := &bytes.Buffer{}
-	fmt.Fprintf(buf, prefix)
+	fmt.Fprintf(buf, "%s", prefix)
 	for _, suite := range suites {
 		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
 	}
-	return buf.String()
+	io.Copy(w, buf)
 }
