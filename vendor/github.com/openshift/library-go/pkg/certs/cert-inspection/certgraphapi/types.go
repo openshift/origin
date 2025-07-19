@@ -157,6 +157,8 @@ type CertKeyMetadata struct {
 	SignatureAlgorithm string
 	PublicKeyAlgorithm string
 	PublicKeyBitSize   string
+	NotBefore          string `json:"-"`
+	NotAfter           string `json:"-"`
 	ValidityDuration   string
 	Usages             []string
 	ExtendedUsages     []string

@@ -112,6 +112,7 @@ type FeatureGateStatus struct {
 	// Only featureGates with .version in the ClusterVersion.status will be present in this list.
 	// +listType=map
 	// +listMapKey=version
+	// +optional
 	FeatureGates []FeatureGateDetails `json:"featureGates"`
 }
 

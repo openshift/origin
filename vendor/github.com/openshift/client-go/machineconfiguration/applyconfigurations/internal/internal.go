@@ -433,7 +433,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: containerfileArch
       type:
         scalar: string
-      default: ""
     - name: content
       type:
         scalar: string

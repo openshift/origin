@@ -22,5 +22,5 @@ RUN PACKAGES="git gzip util-linux" && \
 LABEL io.k8s.display-name="OpenShift End-to-End Tests" \
     io.openshift.release.operator=true \
     io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
-    io.openshift.build.versions="kubernetes-tests=1.32.5" \
+    io.openshift.build.versions="kubernetes-tests=1.33.2" \
     io.openshift.tags="openshift,tests,e2e"

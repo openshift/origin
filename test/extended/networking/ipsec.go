@@ -827,5 +827,5 @@ func dumpPodCommand(namespace, name, cmd string) {
 	g.GinkgoHelper()
 	stdout, err := e2eoutput.RunHostCmdWithRetries(namespace, name, cmd, statefulset.StatefulSetPoll, statefulset.StatefulPodTimeout)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	framework.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
+	framework.Logf("%s: %s", name, strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 }

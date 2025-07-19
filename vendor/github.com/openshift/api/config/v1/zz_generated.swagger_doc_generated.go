@@ -407,11 +407,12 @@ func (ExtraMapping) SwaggerDoc() map[string]string {
 }
 
 var map_OIDCClientConfig = map[string]string{
-	"componentName":      "componentName is the name of the component that is supposed to consume this client configuration",
-	"componentNamespace": "componentNamespace is the namespace of the component that is supposed to consume this client configuration",
-	"clientID":           "clientID is the identifier of the OIDC client from the OIDC provider",
-	"clientSecret":       "clientSecret refers to a secret in the `openshift-config` namespace that contains the client secret in the `clientSecret` key of the `.data` field",
-	"extraScopes":        "extraScopes is an optional set of scopes to request tokens with.",
+	"":                   "OIDCClientConfig configures how platform clients interact with identity providers as an authentication method",
+	"componentName":      "componentName is a required field that specifies the name of the platform component being configured to use the identity provider as an authentication mode. It is used in combination with componentNamespace as a unique identifier.\n\ncomponentName must not be an empty string (\"\") and must not exceed 256 characters in length.",
+	"componentNamespace": "componentNamespace is a required field that specifies the namespace in which the platform component being configured to use the identity provider as an authentication mode is running. It is used in combination with componentName as a unique identifier.\n\ncomponentNamespace must not be an empty string (\"\") and must not exceed 63 characters in length.",
+	"clientID":           "clientID is a required field that configures the client identifier, from the identity provider, that the platform component uses for authentication requests made to the identity provider. The identity provider must accept this identifier for platform components to be able to use the identity provider as an authentication mode.\n\nclientID must not be an empty string (\"\").",
+	"clientSecret":       "clientSecret is an optional field that configures the client secret used by the platform component when making authentication requests to the identity provider.\n\nWhen not specified, no client secret will be used when making authentication requests to the identity provider.\n\nWhen specified, clientSecret references a Secret in the 'openshift-config' namespace that contains the client secret in the 'clientSecret' key of the '.data' field. The client secret will be used when making authentication requests to the identity provider.\n\nPublic clients do not require a client secret but private clients do require a client secret to work with the identity provider.",
+	"extraScopes":        "extraScopes is an optional field that configures the extra scopes that should be requested by the platform component when making authentication requests to the identity provider. This is useful if you have configured claim mappings that requires specific scopes to be requested beyond the standard OIDC scopes.\n\nWhen omitted, no additional scopes are requested.",
 }
 
 func (OIDCClientConfig) SwaggerDoc() map[string]string {
@@ -419,9 +420,10 @@ func (OIDCClientConfig) SwaggerDoc() map[string]string {
 }
 
 var map_OIDCClientReference = map[string]string{
-	"oidcProviderName": "OIDCName refers to the `name` of the provider from `oidcProviders`",
-	"issuerURL":        "URL is the serving URL of the token issuer. Must use the https:// scheme.",
-	"clientID":         "clientID is the identifier of the OIDC client from the OIDC provider",
+	"":                 "OIDCClientReference is a reference to a platform component client configuration.",
+	"oidcProviderName": "oidcProviderName is a required reference to the 'name' of the identity provider configured in 'oidcProviders' that this client is associated with.\n\noidcProviderName must not be an empty string (\"\").",
+	"issuerURL":        "issuerURL is a required field that specifies the URL of the identity provider that this client is configured to make requests against.\n\nissuerURL must use the 'https' scheme.",
+	"clientID":         "clientID is a required field that specifies the client identifier, from the identity provider, that the platform component is using for authentication requests made to the identity provider.\n\nclientID must not be empty.",
 }
 
 func (OIDCClientReference) SwaggerDoc() map[string]string {
@@ -429,10 +431,11 @@ func (OIDCClientReference) SwaggerDoc() map[string]string {
 }
 
 var map_OIDCClientStatus = map[string]string{
-	"componentName":      "componentName is the name of the component that will consume a client configuration.",
-	"componentNamespace": "componentNamespace is the namespace of the component that will consume a client configuration.",
-	"currentOIDCClients": "currentOIDCClients is a list of clients that the component is currently using.",
-	"consumingUsers":     "consumingUsers is a slice of ServiceAccounts that need to have read permission on the `clientSecret` secret.",
+	"":                   "OIDCClientStatus represents the current state of platform components and how they interact with the configured identity providers.",
+	"componentName":      "componentName is a required field that specifies the name of the platform component using the identity provider as an authentication mode. It is used in combination with componentNamespace as a unique identifier.\n\ncomponentName must not be an empty string (\"\") and must not exceed 256 characters in length.",
+	"componentNamespace": "componentNamespace is a required field that specifies the namespace in which the platform component using the identity provider as an authentication mode is running. It is used in combination with componentName as a unique identifier.\n\ncomponentNamespace must not be an empty string (\"\") and must not exceed 63 characters in length.",
+	"currentOIDCClients": "currentOIDCClients is an optional list of clients that the component is currently using. Entries must have unique issuerURL/clientID pairs.",
+	"consumingUsers":     "consumingUsers is an optional list of ServiceAccounts requiring read permissions on the `clientSecret` secret.\n\nconsumingUsers must not exceed 5 entries.",
 	"conditions":         "conditions are used to communicate the state of the `oidcClients` entry.\n\nSupported conditions include Available, Degraded and Progressing.\n\nIf Available is true, the component is successfully using the configured client. If Degraded is true, that means something has gone wrong trying to handle the client configuration. If Progressing is true, that means the component is taking some action related to the `oidcClients` entry.",
 }
 
@@ -441,11 +444,11 @@ func (OIDCClientStatus) SwaggerDoc() map[string]string {
 }
 
 var map_OIDCProvider = map[string]string{
-	"name":                 "name of the OIDC provider",
-	"issuer":               "issuer describes atributes of the OIDC token issuer",
-	"oidcClients":          "oidcClients contains configuration for the platform's clients that need to request tokens from the issuer",
-	"claimMappings":        "claimMappings describes rules on how to transform information from an ID token into a cluster identity",
-	"claimValidationRules": "claimValidationRules are rules that are applied to validate token claims to authenticate users.",
+	"name":                 "name is a required field that configures the unique human-readable identifier associated with the identity provider. It is used to distinguish between multiple identity providers and has no impact on token validation or authentication mechanics.\n\nname must not be an empty string (\"\").",
+	"issuer":               "issuer is a required field that configures how the platform interacts with the identity provider and how tokens issued from the identity provider are evaluated by the Kubernetes API server.",
+	"oidcClients":          "oidcClients is an optional field that configures how on-cluster, platform clients should request tokens from the identity provider. oidcClients must not exceed 20 entries and entries must have unique namespace/name pairs.",
+	"claimMappings":        "claimMappings is a required field that configures the rules to be used by the Kubernetes API server for translating claims in a JWT token, issued by the identity provider, to a cluster identity.",
+	"claimValidationRules": "claimValidationRules is an optional field that configures the rules to be used by the Kubernetes API server for validating the claims in a JWT token issued by the identity provider.\n\nValidation rules are joined via an AND operation.",
 }
 
 func (OIDCProvider) SwaggerDoc() map[string]string {
@@ -453,7 +456,8 @@ func (OIDCProvider) SwaggerDoc() map[string]string {
 }
 
 var map_PrefixedClaimMapping = map[string]string{
-	"prefix": "prefix is a string to prefix the value from the token in the result of the claim mapping.\n\nBy default, no prefixing occurs.\n\nExample: if `prefix` is set to \"myoidc:\"\" and the `claim` in JWT contains an array of strings \"a\", \"b\" and  \"c\", the mapping will result in an array of string \"myoidc:a\", \"myoidc:b\" and \"myoidc:c\".",
+	"":       "PrefixedClaimMapping configures a claim mapping that allows for an optional prefix.",
+	"prefix": "prefix is an optional field that configures the prefix that will be applied to the cluster identity attribute during the process of mapping JWT claims to cluster identity attributes.\n\nWhen omitted (\"\"), no prefix is applied to the cluster identity attribute.\n\nExample: if `prefix` is set to \"myoidc:\" and the `claim` in JWT contains an array of strings \"a\", \"b\" and  \"c\", the mapping will result in an array of string \"myoidc:a\", \"myoidc:b\" and \"myoidc:c\".",
 }
 
 func (PrefixedClaimMapping) SwaggerDoc() map[string]string {
@@ -461,7 +465,8 @@ func (PrefixedClaimMapping) SwaggerDoc() map[string]string {
 }
 
 var map_TokenClaimMapping = map[string]string{
-	"claim": "claim is a JWT token claim to be used in the mapping",
+	"":      "TokenClaimMapping allows specifying a JWT token claim to be used when mapping claims from an authentication token to cluster identities.",
+	"claim": "claim is a required field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.",
 }
 
 func (TokenClaimMapping) SwaggerDoc() map[string]string {
@@ -469,8 +474,8 @@ func (TokenClaimMapping) SwaggerDoc() map[string]string {
 }
 
 var map_TokenClaimMappings = map[string]string{
-	"username": "username is a name of the claim that should be used to construct usernames for the cluster identity.\n\nDefault value: \"sub\"",
-	"groups":   "groups is a name of the claim that should be used to construct groups for the cluster identity. The referenced claim must use array of strings values.",
+	"username": "username is a required field that configures how the username of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider.",
+	"groups":   "groups is an optional field that configures how the groups of a cluster identity should be constructed from the claims in a JWT token issued by the identity provider. When referencing a claim, if the claim is present in the JWT token, its value must be a list of groups separated by a comma (','). For example - '\"example\"' and '\"exampleOne\", \"exampleTwo\", \"exampleThree\"' are valid claim values.",
 	"uid":      "uid is an optional field for configuring the claim mapping used to construct the uid for the cluster identity.\n\nWhen using uid.claim to specify the claim it must be a single string value. When using uid.expression the expression must result in a single string value.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose a default, which is subject to change over time. The current default is to use the 'sub' claim.",
 	"extra":    "extra is an optional field for configuring the mappings used to construct the extra attribute for the cluster identity. When omitted, no extra attributes will be present on the cluster identity. key values for extra mappings must be unique. A maximum of 64 extra attribute mappings may be provided.",
 }
@@ -490,8 +495,8 @@ func (TokenClaimOrExpressionMapping) SwaggerDoc() map[string]string {
 }
 
 var map_TokenClaimValidationRule = map[string]string{
-	"type":          "type sets the type of the validation rule",
-	"requiredClaim": "requiredClaim allows configuring a required claim name and its expected value",
+	"type":          "type is an optional field that configures the type of the validation rule.\n\nAllowed values are 'RequiredClaim' and omitted (not provided or an empty string).\n\nWhen set to 'RequiredClaim', the Kubernetes API server will be configured to validate that the incoming JWT contains the required claim and that its value matches the required value.\n\nDefaults to 'RequiredClaim'.",
+	"requiredClaim": "requiredClaim is an optional field that configures the required claim and value that the Kubernetes API server will use to validate if an incoming JWT is valid for this identity provider.",
 }
 
 func (TokenClaimValidationRule) SwaggerDoc() map[string]string {
@@ -499,9 +504,9 @@ func (TokenClaimValidationRule) SwaggerDoc() map[string]string {
 }
 
 var map_TokenIssuer = map[string]string{
-	"issuerURL":                  "URL is the serving URL of the token issuer. Must use the https:// scheme.",
-	"audiences":                  "audiences is an array of audiences that the token was issued for. Valid tokens must include at least one of these values in their \"aud\" claim. Must be set to exactly one value.",
-	"issuerCertificateAuthority": "CertificateAuthority is a reference to a config map in the configuration namespace. The .data of the configMap must contain the \"ca-bundle.crt\" key. If unset, system trust is used instead.",
+	"issuerURL":                  "issuerURL is a required field that configures the URL used to issue tokens by the identity provider. The Kubernetes API server determines how authentication tokens should be handled by matching the 'iss' claim in the JWT to the issuerURL of configured identity providers.\n\nissuerURL must use the 'https' scheme.",
+	"audiences":                  "audiences is a required field that configures the acceptable audiences the JWT token, issued by the identity provider, must be issued to. At least one of the entries must match the 'aud' claim in the JWT token.\n\naudiences must contain at least one entry and must not exceed ten entries.",
+	"issuerCertificateAuthority": "issuerCertificateAuthority is an optional field that configures the certificate authority, used by the Kubernetes API server, to validate the connection to the identity provider when fetching discovery information.\n\nWhen not specified, the system trust is used.\n\nWhen specified, it must reference a ConfigMap in the openshift-config namespace containing the PEM-encoded CA certificates under the 'ca-bundle.crt' key in the data field of the ConfigMap.",
 }
 
 func (TokenIssuer) SwaggerDoc() map[string]string {
@@ -509,8 +514,8 @@ func (TokenIssuer) SwaggerDoc() map[string]string {
 }
 
 var map_TokenRequiredClaim = map[string]string{
-	"claim":         "claim is a name of a required claim. Only claims with string values are supported.",
-	"requiredValue": "requiredValue is the required value for the claim.",
+	"claim":         "claim is a required field that configures the name of the required claim. When taken from the JWT claims, claim must be a string value.\n\nclaim must not be an empty string (\"\").",
+	"requiredValue": "requiredValue is a required field that configures the value that 'claim' must have when taken from the incoming JWT claims. If the value in the JWT claims does not match, the token will be rejected for authentication.\n\nrequiredValue must not be an empty string (\"\").",
 }
 
 func (TokenRequiredClaim) SwaggerDoc() map[string]string {
@@ -518,11 +523,22 @@ func (TokenRequiredClaim) SwaggerDoc() map[string]string {
 }
 
 var map_UsernameClaimMapping = map[string]string{
-	"prefixPolicy": "prefixPolicy specifies how a prefix should apply.\n\nBy default, claims other than `email` will be prefixed with the issuer URL to prevent naming clashes with other plugins.\n\nSet to \"NoPrefix\" to disable prefixing.\n\nExample:\n    (1) `prefix` is set to \"myoidc:\" and `claim` is set to \"username\".\n        If the JWT claim `username` contains value `userA`, the resulting\n        mapped value will be \"myoidc:userA\".\n    (2) `prefix` is set to \"myoidc:\" and `claim` is set to \"email\". If the\n        JWT `email` claim contains value \"userA@myoidc.tld\", the resulting\n        mapped value will be \"myoidc:userA@myoidc.tld\".\n    (3) `prefix` is unset, `issuerURL` is set to `https://myoidc.tld`,\n        the JWT claims include \"username\":\"userA\" and \"email\":\"userA@myoidc.tld\",\n        and `claim` is set to:\n        (a) \"username\": the mapped value will be \"https://myoidc.tld#userA\"\n        (b) \"email\": the mapped value will be \"userA@myoidc.tld\"",
+	"claim":        "claim is a required field that configures the JWT token claim whose value is assigned to the cluster identity field associated with this mapping.\n\nclaim must not be an empty string (\"\") and must not exceed 256 characters.",
+	"prefixPolicy": "prefixPolicy is an optional field that configures how a prefix should be applied to the value of the JWT claim specified in the 'claim' field.\n\nAllowed values are 'Prefix', 'NoPrefix', and omitted (not provided or an empty string).\n\nWhen set to 'Prefix', the value specified in the prefix field will be prepended to the value of the JWT claim. The prefix field must be set when prefixPolicy is 'Prefix'.\n\nWhen set to 'NoPrefix', no prefix will be prepended to the value of the JWT claim.\n\nWhen omitted, this means no opinion and the platform is left to choose any prefixes that are applied which is subject to change over time. Currently, the platform prepends `{issuerURL}#` to the value of the JWT claim when the claim is not 'email'. As an example, consider the following scenario:\n   `prefix` is unset, `issuerURL` is set to `https://myoidc.tld`,\n   the JWT claims include \"username\":\"userA\" and \"email\":\"userA@myoidc.tld\",\n   and `claim` is set to:\n   - \"username\": the mapped value will be \"https://myoidc.tld#userA\"\n   - \"email\": the mapped value will be \"userA@myoidc.tld\"",
+	"prefix":       "prefix configures the prefix that should be prepended to the value of the JWT claim.\n\nprefix must be set when prefixPolicy is set to 'Prefix' and must be unset otherwise.",
 }
 
 func (UsernameClaimMapping) SwaggerDoc() map[string]string {
 	return map_UsernameClaimMapping
+}
+
+var map_UsernamePrefix = map[string]string{
+	"":             "UsernamePrefix configures the string that should be used as a prefix for username claim mappings.",
+	"prefixString": "prefixString is a required field that configures the prefix that will be applied to cluster identity username attribute during the process of mapping JWT claims to cluster identity attributes.\n\nprefixString must not be an empty string (\"\").",
+}
+
+func (UsernamePrefix) SwaggerDoc() map[string]string {
+	return map_UsernamePrefix
 }
 
 var map_WebhookTokenAuthenticator = map[string]string{
@@ -593,6 +609,45 @@ var map_ImageLabel = map[string]string{
 
 func (ImageLabel) SwaggerDoc() map[string]string {
 	return map_ImageLabel
+}
+
+var map_ClusterImagePolicy = map[string]string{
+	"":         "ClusterImagePolicy holds cluster-wide configuration for image signature verification\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec contains the configuration for the cluster image policy.",
+	"status":   "status contains the observed state of the resource.",
+}
+
+func (ClusterImagePolicy) SwaggerDoc() map[string]string {
+	return map_ClusterImagePolicy
+}
+
+var map_ClusterImagePolicyList = map[string]string{
+	"":         "ClusterImagePolicyList is a list of ClusterImagePolicy resources\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items is a list of ClusterImagePolices",
+}
+
+func (ClusterImagePolicyList) SwaggerDoc() map[string]string {
+	return map_ClusterImagePolicyList
+}
+
+var map_ClusterImagePolicySpec = map[string]string{
+	"":       "CLusterImagePolicySpec is the specification of the ClusterImagePolicy custom resource.",
+	"scopes": "scopes is a required field that defines the list of image identities assigned to a policy. Each item refers to a scope in a registry implementing the \"Docker Registry HTTP API V2\". Scopes matching individual images are named Docker references in the fully expanded form, either using a tag or digest. For example, docker.io/library/busybox:latest (not busybox:latest). More general scopes are prefixes of individual-image scopes, and specify a repository (by omitting the tag or digest), a repository namespace, or a registry host (by only specifying the host name and possibly a port number) or a wildcard expression starting with `*.`, for matching all subdomains (not including a port number). Wildcards are only supported for subdomain matching, and may not be used in the middle of the host, i.e.  *.example.com is a valid case, but example*.*.com is not. This support no more than 256 scopes in one object. If multiple scopes match a given image, only the policy requirements for the most specific scope apply. The policy requirements for more general scopes are ignored. In addition to setting a policy appropriate for your own deployed applications, make sure that a policy on the OpenShift image repositories quay.io/openshift-release-dev/ocp-release, quay.io/openshift-release-dev/ocp-v4.0-art-dev (or on a more general scope) allows deployment of the OpenShift images required for cluster operation. If a scope is configured in both the ClusterImagePolicy and the ImagePolicy, or if the scope in ImagePolicy is nested under one of the scopes from the ClusterImagePolicy, only the policy from the ClusterImagePolicy will be applied. For additional details about the format, please refer to the document explaining the docker transport field, which can be found at: https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md#docker",
+	"policy": "policy is a required field that contains configuration to allow scopes to be verified, and defines how images not matching the verification policy will be treated.",
+}
+
+func (ClusterImagePolicySpec) SwaggerDoc() map[string]string {
+	return map_ClusterImagePolicySpec
+}
+
+var map_ClusterImagePolicyStatus = map[string]string{
+	"conditions": "conditions provide details on the status of this API Resource.",
+}
+
+func (ClusterImagePolicyStatus) SwaggerDoc() map[string]string {
+	return map_ClusterImagePolicyStatus
 }
 
 var map_ClusterOperator = map[string]string{
@@ -724,7 +779,7 @@ var map_ClusterVersionSpec = map[string]string{
 	"clusterID":       "clusterID uniquely identifies this cluster. This is expected to be an RFC4122 UUID value (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx in hexadecimal values). This is a required field.",
 	"desiredUpdate":   "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail.\n\nSome of the fields are inter-related with restrictions and meanings described here. 1. image is specified, version is specified, architecture is specified. API validation error. 2. image is specified, version is specified, architecture is not specified. The version extracted from the referenced image must match the specified version. 3. image is specified, version is not specified, architecture is specified. API validation error. 4. image is specified, version is not specified, architecture is not specified. image is used. 5. image is not specified, version is specified, architecture is specified. version and desired architecture are used to select an image. 6. image is not specified, version is specified, architecture is not specified. version and current architecture are used to select an image. 7. image is not specified, version is not specified, architecture is specified. API validation error. 8. image is not specified, version is not specified, architecture is not specified. API validation error.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
 	"upstream":        "upstream may be used to specify the preferred update server. By default it will use the appropriate update server for the cluster and region.",
-	"channel":         "channel is an identifier for explicitly requesting that a non-default set of updates be applied to this cluster. The default channel will be contain stable updates that are appropriate for production clusters.",
+	"channel":         "channel is an identifier for explicitly requesting a non-default set of updates to be applied to this cluster. The default channel will contain stable updates that are appropriate for production clusters.",
 	"capabilities":    "capabilities configures the installation of optional, core cluster components.  A null value here is identical to an empty object; see the child properties for default semantics.",
 	"signatureStores": "signatureStores contains the upstream URIs to verify release signatures and optional reference to a config map by name containing the PEM-encoded CA bundle.\n\nBy default, CVO will use existing signature stores if this property is empty. The CVO will check the release signatures in the local ConfigMaps first. It will search for a valid signature in these stores in parallel only when local ConfigMaps did not include a valid signature. Validation will fail if none of the signature stores reply with valid signature before timeout. Setting signatureStores will replace the default signature stores with custom signature stores. Default stores can be used with custom signature stores by adding them manually.\n\nA maximum of 32 signature stores may be configured.",
 	"overrides":       "overrides is list of overides for components that are managed by cluster version operator. Marking a component unmanaged will prevent the operator from creating or updating the object.",
@@ -1157,6 +1212,147 @@ var map_ImageDigestMirrors = map[string]string{
 
 func (ImageDigestMirrors) SwaggerDoc() map[string]string {
 	return map_ImageDigestMirrors
+}
+
+var map_FulcioCAWithRekor = map[string]string{
+	"":              "FulcioCAWithRekor defines the root of trust based on the Fulcio certificate and the Rekor public key.",
+	"fulcioCAData":  "fulcioCAData is a required field contains inline base64-encoded data for the PEM format fulcio CA. fulcioCAData must be at most 8192 characters. ",
+	"rekorKeyData":  "rekorKeyData is a required field contains inline base64-encoded data for the PEM format from the Rekor public key. rekorKeyData must be at most 8192 characters. ",
+	"fulcioSubject": "fulcioSubject is a required field specifies OIDC issuer and the email of the Fulcio authentication configuration.",
+}
+
+func (FulcioCAWithRekor) SwaggerDoc() map[string]string {
+	return map_FulcioCAWithRekor
+}
+
+var map_ImagePolicy = map[string]string{
+	"":         "ImagePolicy holds namespace-wide configuration for image signature verification\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec holds user settable values for configuration",
+	"status":   "status contains the observed state of the resource.",
+}
+
+func (ImagePolicy) SwaggerDoc() map[string]string {
+	return map_ImagePolicy
+}
+
+var map_ImagePolicyList = map[string]string{
+	"":         "ImagePolicyList is a list of ImagePolicy resources\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items is a list of ImagePolicies",
+}
+
+func (ImagePolicyList) SwaggerDoc() map[string]string {
+	return map_ImagePolicyList
+}
+
+var map_ImagePolicySpec = map[string]string{
+	"":       "ImagePolicySpec is the specification of the ImagePolicy CRD.",
+	"scopes": "scopes is a required field that defines the list of image identities assigned to a policy. Each item refers to a scope in a registry implementing the \"Docker Registry HTTP API V2\". Scopes matching individual images are named Docker references in the fully expanded form, either using a tag or digest. For example, docker.io/library/busybox:latest (not busybox:latest). More general scopes are prefixes of individual-image scopes, and specify a repository (by omitting the tag or digest), a repository namespace, or a registry host (by only specifying the host name and possibly a port number) or a wildcard expression starting with `*.`, for matching all subdomains (not including a port number). Wildcards are only supported for subdomain matching, and may not be used in the middle of the host, i.e.  *.example.com is a valid case, but example*.*.com is not. This support no more than 256 scopes in one object. If multiple scopes match a given image, only the policy requirements for the most specific scope apply. The policy requirements for more general scopes are ignored. In addition to setting a policy appropriate for your own deployed applications, make sure that a policy on the OpenShift image repositories quay.io/openshift-release-dev/ocp-release, quay.io/openshift-release-dev/ocp-v4.0-art-dev (or on a more general scope) allows deployment of the OpenShift images required for cluster operation. If a scope is configured in both the ClusterImagePolicy and the ImagePolicy, or if the scope in ImagePolicy is nested under one of the scopes from the ClusterImagePolicy, only the policy from the ClusterImagePolicy will be applied. For additional details about the format, please refer to the document explaining the docker transport field, which can be found at: https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md#docker",
+	"policy": "policy is a required field that contains configuration to allow scopes to be verified, and defines how images not matching the verification policy will be treated.",
+}
+
+func (ImagePolicySpec) SwaggerDoc() map[string]string {
+	return map_ImagePolicySpec
+}
+
+var map_ImagePolicyStatus = map[string]string{
+	"conditions": "conditions provide details on the status of this API Resource. condition type 'Pending' indicates that the customer resource contains a policy that cannot take effect. It is either overwritten by a global policy or the image scope is not valid.",
+}
+
+func (ImagePolicyStatus) SwaggerDoc() map[string]string {
+	return map_ImagePolicyStatus
+}
+
+var map_PKI = map[string]string{
+	"":                      "PKI defines the root of trust based on Root CA(s) and corresponding intermediate certificates.",
+	"caRootsData":           "caRootsData contains base64-encoded data of a certificate bundle PEM file, which contains one or more CA roots in the PEM format. The total length of the data must not exceed 8192 characters. ",
+	"caIntermediatesData":   "caIntermediatesData contains base64-encoded data of a certificate bundle PEM file, which contains one or more intermediate certificates in the PEM format. The total length of the data must not exceed 8192 characters. caIntermediatesData requires caRootsData to be set. ",
+	"pkiCertificateSubject": "pkiCertificateSubject defines the requirements imposed on the subject to which the certificate was issued.",
+}
+
+func (PKI) SwaggerDoc() map[string]string {
+	return map_PKI
+}
+
+var map_PKICertificateSubject = map[string]string{
+	"":         "PKICertificateSubject defines the requirements imposed on the subject to which the certificate was issued.",
+	"email":    "email specifies the expected email address imposed on the subject to which the certificate was issued, and must match the email address listed in the Subject Alternative Name (SAN) field of the certificate. The email must be a valid email address and at most 320 characters in length.",
+	"hostname": "hostname specifies the expected hostname imposed on the subject to which the certificate was issued, and it must match the hostname listed in the Subject Alternative Name (SAN) DNS field of the certificate. The hostname must be a valid dns 1123 subdomain name, optionally prefixed by '*.', and at most 253 characters in length. It must consist only of lowercase alphanumeric characters, hyphens, periods and the optional preceding asterisk.",
+}
+
+func (PKICertificateSubject) SwaggerDoc() map[string]string {
+	return map_PKICertificateSubject
+}
+
+var map_Policy = map[string]string{
+	"":               "Policy defines the verification policy for the items in the scopes list.",
+	"rootOfTrust":    "rootOfTrust is a required field that defines the root of trust for verifying image signatures during retrieval. This allows image consumers to specify policyType and corresponding configuration of the policy, matching how the policy was generated.",
+	"signedIdentity": "signedIdentity is an optional field specifies what image identity the signature claims about the image. This is useful when the image identity in the signature differs from the original image spec, such as when mirror registry is configured for the image scope, the signature from the mirror registry contains the image identity of the mirror instead of the original scope. The required matchPolicy field specifies the approach used in the verification process to verify the identity in the signature and the actual image identity, the default matchPolicy is \"MatchRepoDigestOrExact\".",
+}
+
+func (Policy) SwaggerDoc() map[string]string {
+	return map_Policy
+}
+
+var map_PolicyFulcioSubject = map[string]string{
+	"":            "PolicyFulcioSubject defines the OIDC issuer and the email of the Fulcio authentication configuration.",
+	"oidcIssuer":  "oidcIssuer is a required filed contains the expected OIDC issuer. The oidcIssuer must be a valid URL and at most 2048 characters in length. It will be verified that the Fulcio-issued certificate contains a (Fulcio-defined) certificate extension pointing at this OIDC issuer URL. When Fulcio issues certificates, it includes a value based on an URL inside the client-provided ID token. Example: \"https://expected.OIDC.issuer/\"",
+	"signedEmail": "signedEmail is a required field holds the email address that the Fulcio certificate is issued for. The signedEmail must be a valid email address and at most 320 characters in length. Example: \"expected-signing-user@example.com\"",
+}
+
+func (PolicyFulcioSubject) SwaggerDoc() map[string]string {
+	return map_PolicyFulcioSubject
+}
+
+var map_PolicyIdentity = map[string]string{
+	"":                "PolicyIdentity defines image identity the signature claims about the image. When omitted, the default matchPolicy is \"MatchRepoDigestOrExact\".",
+	"matchPolicy":     "matchPolicy is a required filed specifies matching strategy to verify the image identity in the signature against the image scope. Allowed values are \"MatchRepoDigestOrExact\", \"MatchRepository\", \"ExactRepository\", \"RemapIdentity\". When omitted, the default value is \"MatchRepoDigestOrExact\". When set to \"MatchRepoDigestOrExact\", the identity in the signature must be in the same repository as the image identity if the image identity is referenced by a digest. Otherwise, the identity in the signature must be the same as the image identity. When set to \"MatchRepository\", the identity in the signature must be in the same repository as the image identity. When set to \"ExactRepository\", the exactRepository must be specified. The identity in the signature must be in the same repository as a specific identity specified by \"repository\". When set to \"RemapIdentity\", the remapIdentity must be specified. The signature must be in the same as the remapped image identity. Remapped image identity is obtained by replacing the \"prefix\" with the specified “signedPrefix” if the the image identity matches the specified remapPrefix.",
+	"exactRepository": "exactRepository specifies the repository that must be exactly matched by the identity in the signature. exactRepository is required if matchPolicy is set to \"ExactRepository\". It is used to verify that the signature claims an identity matching this exact repository, rather than the original image identity.",
+	"remapIdentity":   "remapIdentity specifies the prefix remapping rule for verifying image identity. remapIdentity is required if matchPolicy is set to \"RemapIdentity\". It is used to verify that the signature claims a different registry/repository prefix than the original image.",
+}
+
+func (PolicyIdentity) SwaggerDoc() map[string]string {
+	return map_PolicyIdentity
+}
+
+var map_PolicyMatchExactRepository = map[string]string{
+	"repository": "repository is the reference of the image identity to be matched. repository is required if matchPolicy is set to \"ExactRepository\". The value should be a repository name (by omitting the tag or digest) in a registry implementing the \"Docker Registry HTTP API V2\". For example, docker.io/library/busybox",
+}
+
+func (PolicyMatchExactRepository) SwaggerDoc() map[string]string {
+	return map_PolicyMatchExactRepository
+}
+
+var map_PolicyMatchRemapIdentity = map[string]string{
+	"prefix":       "prefix is required if matchPolicy is set to \"RemapIdentity\". prefix is the prefix of the image identity to be matched. If the image identity matches the specified prefix, that prefix is replaced by the specified “signedPrefix” (otherwise it is used as unchanged and no remapping takes place). This is useful when verifying signatures for a mirror of some other repository namespace that preserves the vendor’s repository structure. The prefix and signedPrefix values can be either host[:port] values (matching exactly the same host[:port], string), repository namespaces, or repositories (i.e. they must not contain tags/digests), and match as prefixes of the fully expanded form. For example, docker.io/library/busybox (not busybox) to specify that single repository, or docker.io/library (not an empty string) to specify the parent namespace of docker.io/library/busybox.",
+	"signedPrefix": "signedPrefix is required if matchPolicy is set to \"RemapIdentity\". signedPrefix is the prefix of the image identity to be matched in the signature. The format is the same as \"prefix\". The values can be either host[:port] values (matching exactly the same host[:port], string), repository namespaces, or repositories (i.e. they must not contain tags/digests), and match as prefixes of the fully expanded form. For example, docker.io/library/busybox (not busybox) to specify that single repository, or docker.io/library (not an empty string) to specify the parent namespace of docker.io/library/busybox.",
+}
+
+func (PolicyMatchRemapIdentity) SwaggerDoc() map[string]string {
+	return map_PolicyMatchRemapIdentity
+}
+
+var map_PolicyRootOfTrust = map[string]string{
+	"":                  "PolicyRootOfTrust defines the root of trust based on the selected policyType.",
+	"policyType":        "policyType is a required field specifies the type of the policy for verification. This field must correspond to how the policy was generated. Allowed values are \"PublicKey\", \"FulcioCAWithRekor\", and \"PKI\". When set to \"PublicKey\", the policy relies on a sigstore publicKey and may optionally use a Rekor verification. When set to \"FulcioCAWithRekor\", the policy is based on the Fulcio certification and incorporates a Rekor verification. When set to \"PKI\", the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI). This value is enabled by turning on the SigstoreImageVerificationPKI feature gate.",
+	"publicKey":         "publicKey defines the root of trust configuration based on a sigstore public key. Optionally include a Rekor public key for Rekor verification. publicKey is required when policyType is PublicKey, and forbidden otherwise.",
+	"fulcioCAWithRekor": "fulcioCAWithRekor defines the root of trust configuration based on the Fulcio certificate and the Rekor public key. fulcioCAWithRekor is required when policyType is FulcioCAWithRekor, and forbidden otherwise For more information about Fulcio and Rekor, please refer to the document at: https://github.com/sigstore/fulcio and https://github.com/sigstore/rekor",
+	"pki":               "pki defines the root of trust configuration based on Bring Your Own Public Key Infrastructure (BYOPKI) Root CA(s) and corresponding intermediate certificates. pki is required when policyType is PKI, and forbidden otherwise.",
+}
+
+func (PolicyRootOfTrust) SwaggerDoc() map[string]string {
+	return map_PolicyRootOfTrust
+}
+
+var map_PublicKey = map[string]string{
+	"":             "PublicKey defines the root of trust based on a sigstore public key.",
+	"keyData":      "keyData is a required field contains inline base64-encoded data for the PEM format public key. keyData must be at most 8192 characters. ",
+	"rekorKeyData": "rekorKeyData is an optional field contains inline base64-encoded data for the PEM format from the Rekor public key. rekorKeyData must be at most 8192 characters. ",
+}
+
+func (PublicKey) SwaggerDoc() map[string]string {
+	return map_PublicKey
 }
 
 var map_ImageTagMirrorSet = map[string]string{

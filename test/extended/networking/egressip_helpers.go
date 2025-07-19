@@ -1289,7 +1289,7 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 		for e := range errChan {
 			errList = fmt.Sprintf("%s {%s}", errList, e.Error())
 		}
-		return "", fmt.Errorf(errList)
+		return "", fmt.Errorf("%s", errList)
 	}
 
 	return randomID.String(), nil

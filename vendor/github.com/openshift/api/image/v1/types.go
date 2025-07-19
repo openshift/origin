@@ -357,15 +357,18 @@ type TagReferencePolicy struct {
 type ImageStreamStatus struct {
 	// dockerImageRepository represents the effective location this stream may be accessed at.
 	// May be empty until the server determines where the repository is located
+	// +optional
 	DockerImageRepository string `json:"dockerImageRepository" protobuf:"bytes,1,opt,name=dockerImageRepository"`
 	// publicDockerImageRepository represents the public location from where the image can
 	// be pulled outside the cluster. This field may be empty if the administrator
 	// has not exposed the integrated registry externally.
+	// +optional
 	PublicDockerImageRepository string `json:"publicDockerImageRepository,omitempty" protobuf:"bytes,3,opt,name=publicDockerImageRepository"`
 	// tags are a historical record of images associated with each tag. The first entry in the
 	// TagEvent array is the currently tagged image.
 	// +patchMergeKey=tag
 	// +patchStrategy=merge
+	// +optional
 	Tags []NamedTagEventList `json:"tags,omitempty" patchStrategy:"merge" patchMergeKey:"tag" protobuf:"bytes,2,rep,name=tags"`
 }
 
@@ -701,10 +704,13 @@ type ImageStreamImportSpec struct {
 // ImageStreamImportStatus contains information about the status of an image stream import.
 type ImageStreamImportStatus struct {
 	// import is the image stream that was successfully updated or created when 'to' was set.
+	// +optional
 	Import *ImageStream `json:"import,omitempty" protobuf:"bytes,1,opt,name=import"`
 	// repository is set if spec.repository was set to the outcome of the import
+	// +optional
 	Repository *RepositoryImportStatus `json:"repository,omitempty" protobuf:"bytes,2,opt,name=repository"`
 	// images is set with the result of importing spec.images
+	// +optional
 	Images []ImageImportStatus `json:"images,omitempty" protobuf:"bytes,3,rep,name=images"`
 }
 

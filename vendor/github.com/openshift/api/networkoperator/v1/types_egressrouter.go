@@ -49,7 +49,6 @@ type EgressRouter struct {
 // Mode, networkInterface and addresses fields must be specified along with exactly one "Config" that matches the mode.
 // Each config consists of parameters specific to that mode.
 // +k8s:openapi-gen=true
-// +kubebuilder:validation:Required
 type EgressRouterSpec struct {
 	// mode depicts the mode that is used for the egress router. The default mode is "Redirect" and is the only supported mode currently.
 	// +required
@@ -176,7 +175,6 @@ type MacvlanConfig struct {
 }
 
 // EgressRouterAddress contains a pair of IP CIDR and gateway to be configured on the router's interface
-// +kubebuilder:validation:Required
 type EgressRouterAddress struct {
 	// ip is the address to configure on the router's interface. Can be IPv4 or IPv6.
 	// +required
@@ -249,7 +247,7 @@ type EgressRouterStatus struct {
 	// +required
 	// +listType=map
 	// +listMapKey=type
-	Conditions []EgressRouterStatusCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
+	Conditions []EgressRouterStatusCondition `json:"conditions" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

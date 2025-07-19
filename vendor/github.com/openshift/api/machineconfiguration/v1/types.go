@@ -222,11 +222,11 @@ type ControllerCertificate struct {
 
 	// notBefore is the lower boundary for validity
 	// +optional
-	NotBefore *metav1.Time `json:"notBefore"`
+	NotBefore *metav1.Time `json:"notBefore,omitempty"`
 
 	// notAfter is the upper boundary for validity
 	// +optional
-	NotAfter *metav1.Time `json:"notAfter"`
+	NotAfter *metav1.Time `json:"notAfter,omitempty"`
 
 	// bundleFile is the larger bundle a cert comes from
 	// +required
@@ -323,7 +323,7 @@ type MachineConfigSpec struct {
 
 	// config is a Ignition Config object.
 	// +optional
-	Config runtime.RawExtension `json:"config"`
+	Config runtime.RawExtension `json:"config,omitempty"`
 
 	// kernelArguments contains a list of kernel arguments to be added
 	// +listType=atomic
@@ -598,7 +598,7 @@ type MachineConfigPoolCondition struct {
 
 	// status of the condition, one of ('True', 'False', 'Unknown').
 	// +optional
-	Status corev1.ConditionStatus `json:"status"`
+	Status corev1.ConditionStatus `json:"status,omitempty"`
 
 	// lastTransitionTime is the timestamp corresponding to the last status
 	// change of this condition.
@@ -742,7 +742,7 @@ type KubeletConfigCondition struct {
 
 	// status of the condition, one of True, False, Unknown.
 	// +optional
-	Status corev1.ConditionStatus `json:"status"`
+	Status corev1.ConditionStatus `json:"status,omitempty"`
 
 	// lastTransitionTime is the time of the last update to the current status object.
 	// +optional
@@ -878,7 +878,7 @@ type ContainerRuntimeConfigCondition struct {
 
 	// status of the condition, one of True, False, Unknown.
 	// +optional
-	Status corev1.ConditionStatus `json:"status"`
+	Status corev1.ConditionStatus `json:"status,omitempty"`
 
 	// lastTransitionTime is the time of the last update to the current status object.
 	// +nullable

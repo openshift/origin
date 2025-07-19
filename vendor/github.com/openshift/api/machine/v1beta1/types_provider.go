@@ -213,7 +213,7 @@ type Condition struct {
 	// This should be when the underlying condition changed. If that is not known, then using the time when
 	// the API field changed is acceptable.
 	// +required
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
 	// The reason for the condition's last transition in CamelCase.
 	// The specific API may choose whether or not this field is considered a guaranteed API.

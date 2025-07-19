@@ -96,6 +96,23 @@ func BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(selectFns ...ext.SelectFunc
 					result.Result = ext.ResultPassed
 				case summary.State == types.SpecStateSkipped:
 					result.Result = ext.ResultSkipped
+					if len(summary.Failure.Message) > 0 {
+						result.Output = fmt.Sprintf(
+							"%s\n skip [%s:%d]: %s\n",
+							result.Output,
+							lastFilenameSegment(summary.Failure.Location.FileName),
+							summary.Failure.Location.LineNumber,
+							summary.Failure.Message,
+						)
+					} else if len(summary.Failure.ForwardedPanic) > 0 {
+						result.Output = fmt.Sprintf(
+							"%s\n skip [%s:%d]: %s\n",
+							result.Output,
+							lastFilenameSegment(summary.Failure.Location.FileName),
+							summary.Failure.Location.LineNumber,
+							summary.Failure.ForwardedPanic,
+						)
+					}
 				case summary.State == types.SpecStateFailed, summary.State == types.SpecStatePanicked, summary.State == types.SpecStateInterrupted:
 					result.Result = ext.ResultFailed
 					var errors []string

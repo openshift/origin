@@ -114,6 +114,7 @@ type MachineTemplateSpec struct {
 // +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="!has(oldSelf.synchronizedGeneration) || (has(self.synchronizedGeneration) && self.synchronizedGeneration >= oldSelf.synchronizedGeneration) || (oldSelf.authoritativeAPI == 'Migrating' && self.authoritativeAPI != 'Migrating')",message="synchronizedGeneration must not decrease unless authoritativeAPI is transitioning from Migrating to another value"
 type MachineSetStatus struct {
 	// replicas is the most recently observed number of replicas.
+	// +optional
 	Replicas int32 `json:"replicas"`
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	// +optional
@@ -153,6 +154,7 @@ type MachineSetStatus struct {
 	// conditions defines the current state of the MachineSet
 	// +listType=map
 	// +listMapKey=type
+	// +optional
 	Conditions []Condition `json:"conditions,omitempty"`
 
 	// authoritativeAPI is the API that is authoritative for this resource.
