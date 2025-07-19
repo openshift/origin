@@ -177,6 +177,10 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
+		imageTag:   "olm-operator-controller",
+		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
+	},
+	{
 		imageTag:   "machine-config-operator",
 		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
 	},
