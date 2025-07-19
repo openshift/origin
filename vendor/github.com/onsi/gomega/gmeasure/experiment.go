@@ -463,13 +463,19 @@ func (e *Experiment) Sample(callback func(idx int), samplingConfig SamplingConfi
 	minSamplingInterval := samplingConfig.MinSamplingInterval
 
 	work := make(chan int)
-	defer close(work)
+	var wg sync.WaitGroup
+	defer func() {
+		close(work)
+		wg.Wait()
+	}()
 	if numParallel > 1 {
 		for worker := 0; worker < numParallel; worker++ {
 			go func() {
+				wg.Add(1)
 				for idx := range work {
 					callback(idx)
 				}
+				wg.Done()
 			}()
 		}
 	}
