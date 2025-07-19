@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
@@ -279,10 +278,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return errors.WithMessage(err, "could not convert test specs to origin test cases")
 	}
 
-	// this ensures the tests are always run in random order to avoid
-	// any intra-tests dependencies
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	// TRT-2197 removing random seed for the time being
+	// belief is it works against us in the short term
+	// causing intermittent failures due to random test pairings.
+	// Plan is to add a set of seeds and be able to attribute
+	// the seed to individual jobs so compare results for
+	// the same seed and search for failure patterns.
+	r := rand.New(rand.NewSource(42))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	count := o.Count
