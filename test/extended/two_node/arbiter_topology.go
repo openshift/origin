@@ -22,10 +22,18 @@ import (
 )
 
 var (
-	defaultExpectedMaxPodCount      = 30
-	expectedMaxPodCountsPerPlatform = map[v1.PlatformType]int{
-		v1.BareMetalPlatformType: 30,
-		// Add more platforms as needed
+	expectedPods = map[string]int{
+		"openshift-cluster-node-tuning-operator": 1,
+		"openshift-dns":                          1,
+		"openshift-etcd":                         2,
+		"openshift-image-registry":               1,
+		"openshift-kni-infra":                    3,
+		"openshift-machine-config-operator":      2,
+		"openshift-monitoring":                   1,
+		"openshift-multus":                       3,
+		"openshift-network-diagnostics":          1,
+		"openshift-network-operator":             1,
+		"openshift-ovn-kubernetes":               1,
 	}
 )
 
@@ -63,20 +71,14 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 	defer g.GinkgoRecover()
 
 	var (
-		oc          = exutil.NewCLIWithoutNamespace("")
-		infraStatus v1.InfrastructureStatus
+		oc = exutil.NewCLIWithoutNamespace("")
 	)
 
 	g.BeforeEach(func() {
 		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
-		g.By("inferring platform type")
 
-		// Default to baremetal count of 17 expected Pods, if platform type does not exist in map
-		if expectedCount, exists := expectedMaxPodCountsPerPlatform[infraStatus.PlatformStatus.Type]; exists {
-			defaultExpectedMaxPodCount = expectedCount
-		}
 		g.By("Retrieving the Arbiter node name")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelNodeRoleArbiter,
@@ -84,19 +86,19 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodes.Items)).To(o.Equal(1))
 		g.By("by comparing pod counts")
-		podCount := 0
+		countedPods := map[string]int{}
 		for _, node := range nodes.Items {
 			pods, err := oc.AdminKubeClient().CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
-				FieldSelector: "spec.nodeName=" + node.Name + ",status.phase=Running",
+				FieldSelector: fmt.Sprintf("spec.nodeName=%s,status.phase=Running", node.Name),
 			})
 			o.Expect(err).To(o.BeNil(), "Expected to retrieve pods without error")
 			for _, pod := range pods.Items {
-				if !strings.HasPrefix(pod.Namespace, "openshift-e2e-") {
-					podCount += 1
+				if !strings.HasPrefix(pod.Namespace, "e2e-") {
+					countedPods[pod.Namespace] += 1
 				}
 			}
 		}
-		o.Expect(podCount).To(o.BeNumerically("<=", defaultExpectedMaxPodCount), "Expected the max number of running pods on the Arbiter node")
+		o.Expect(countedPods).To(o.Equal(expectedPods), "Expected the max number of running pods on the Arbiter node")
 	})
 })
 
