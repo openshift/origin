@@ -1153,6 +1153,7 @@ github.com/openshift/library-go/pkg/network/networkutils
 github.com/openshift/library-go/pkg/oauth/oauthdiscovery
 github.com/openshift/library-go/pkg/oauth/tokenrequest
 github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers
+github.com/openshift/library-go/pkg/operator/condition
 github.com/openshift/library-go/pkg/operator/events
 github.com/openshift/library-go/pkg/operator/resource/resourceapply
 github.com/openshift/library-go/pkg/operator/resource/resourcehelper
