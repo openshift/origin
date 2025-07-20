@@ -19,15 +19,17 @@ type CommunicationMatrixCreator struct {
 	customEntriesFormat string
 	platformType        configv1.PlatformType
 	deployment          types.Deployment
+	ipv6Enabled         bool
 }
 
-func New(exporter *endpointslices.EndpointSlicesExporter, customEntriesPath string, customEntriesFormat string, platformType configv1.PlatformType, deployment types.Deployment) (*CommunicationMatrixCreator, error) {
+func New(exporter *endpointslices.EndpointSlicesExporter, customEntriesPath string, customEntriesFormat string, platformType configv1.PlatformType, deployment types.Deployment, ipv6Enabled bool) (*CommunicationMatrixCreator, error) {
 	return &CommunicationMatrixCreator{
 		exporter:            exporter,
 		customEntriesPath:   customEntriesPath,
 		customEntriesFormat: customEntriesFormat,
 		platformType:        platformType,
 		deployment:          deployment,
+		ipv6Enabled:         ipv6Enabled,
 	}, nil
 }
 
@@ -116,8 +118,7 @@ func (cm *CommunicationMatrixCreator) GetStaticEntries() ([]types.ComDetails, er
 		}
 		comDetails = append(comDetails, types.BaremetalStaticEntriesWorker...)
 	case configv1.AWSPlatformType:
-		log.Debug("Adding Cloud static entries")
-		comDetails = append(comDetails, types.CloudStaticEntriesMaster...)
+		log.Debug("There are no Cloud static entries to be added")
 	case configv1.NonePlatformType:
 		break
 	default:
@@ -127,12 +128,18 @@ func (cm *CommunicationMatrixCreator) GetStaticEntries() ([]types.ComDetails, er
 
 	log.Debug("Adding general static entries")
 	comDetails = append(comDetails, types.GeneralStaticEntriesMaster...)
+	if cm.ipv6Enabled {
+		comDetails = append(comDetails, types.GeneralIPv6StaticEntriesMaster...)
+	}
 	if cm.deployment == types.SNO {
 		return comDetails, nil
 	}
 
 	comDetails = append(comDetails, types.StandardStaticEntries...)
 	comDetails = append(comDetails, types.GeneralStaticEntriesWorker...)
+	if cm.ipv6Enabled {
+		comDetails = append(comDetails, types.GeneralIPv6StaticEntriesWorker...)
+	}
 	log.Debug("Successfully determined static entries")
 	return comDetails, nil
 }

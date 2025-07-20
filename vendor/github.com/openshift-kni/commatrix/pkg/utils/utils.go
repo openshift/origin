@@ -36,6 +36,7 @@ type UtilsInterface interface {
 	GetPlatformType() (configv1.PlatformType, error)
 	IsSNOCluster() (bool, error)
 	WaitForPodStatus(namespace string, pod *corev1.Pod, PodPhase corev1.PodPhase) error
+	IsIPv6Enabled() (bool, error)
 }
 
 type utils struct {
@@ -319,4 +320,23 @@ func (u *utils) GetPodLogs(namespace string, pod *corev1.Pod) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// IsIPv6Enabled detects whether the cluster networking includes IPv6.
+// It checks only the Spec.ClusterNetwork CIDRs for IPv6.
+func (u *utils) IsIPv6Enabled() (bool, error) {
+	network := &configv1.Network{}
+	err := u.Get(context.Background(), clientOptions.ObjectKey{Name: "cluster"}, network)
+	if err != nil {
+		return false, err
+	}
+
+	// Check ClusterNetwork CIDRs
+	for _, entry := range network.Spec.ClusterNetwork {
+		if strings.Contains(entry.CIDR, ":") {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
