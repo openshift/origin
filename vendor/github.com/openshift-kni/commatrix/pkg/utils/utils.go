@@ -20,6 +20,7 @@ import (
 	clientOptions "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openshift-kni/commatrix/pkg/client"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
 //go:generate ../../bin/mockgen -destination mock/mock_utils.go -source utils.go
@@ -175,7 +176,7 @@ func getPodDefinition(node string, namespace string, image string, command []str
 				{
 					Name:    "container",
 					Command: command,
-					Image:   image,
+					Image:   imageutils.GetE2EImage(imageutils.Agnhost),
 					SecurityContext: &corev1.SecurityContext{
 						Privileged: ptr.To(true),
 						RunAsUser:  ptr.To(int64(0)),
