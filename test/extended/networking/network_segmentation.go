@@ -1890,6 +1890,11 @@ type networkAttachmentConfigParams struct {
 	role               string
 }
 
+// workloadNetworkConfig contains workload-specific network customizations
+type workloadNetworkConfig struct {
+	preconfiguredIPs []string
+}
+
 type networkAttachmentConfig struct {
 	networkAttachmentConfigParams
 }
