@@ -17,8 +17,8 @@
   - [Machine Config Operator (6)](#Machine-Config-Operator-6)
     - [Certificates (2)](#Certificates-2)
     - [Certificate Authority Bundles (4)](#Certificate-Authority-Bundles-4)
-  - [Monitoring (8)](#Monitoring-8)
-    - [Certificates (3)](#Certificates-3)
+  - [Monitoring (10)](#Monitoring-10)
+    - [Certificates (5)](#Certificates-5)
     - [Certificate Authority Bundles (5)](#Certificate-Authority-Bundles-5)
   - [Networking / cluster-network-operator (41)](#Networking-/-cluster-network-operator-41)
     - [Certificates (8)](#Certificates-8)
@@ -29,23 +29,24 @@
     - [Certificates (2)](#Certificates-2)
   - [RHCOS (2)](#RHCOS-2)
     - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-  - [apiserver-auth (5)](#apiserver-auth-5)
-    - [Certificates (3)](#Certificates-3)
+  - [apiserver-auth (8)](#apiserver-auth-8)
+    - [Certificates (6)](#Certificates-6)
     - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
   - [cluster-network-operator (1)](#cluster-network-operator-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [etcd (37)](#etcd-37)
     - [Certificates (28)](#Certificates-28)
     - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-  - [kube-apiserver (46)](#kube-apiserver-46)
-    - [Certificates (25)](#Certificates-25)
+  - [kube-apiserver (49)](#kube-apiserver-49)
+    - [Certificates (28)](#Certificates-28)
     - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
   - [kube-controller-manager (12)](#kube-controller-manager-12)
     - [Certificates (3)](#Certificates-3)
     - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
   - [kube-scheduler (1)](#kube-scheduler-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [openshift-apiserver (1)](#openshift-apiserver-1)
+  - [openshift-apiserver (4)](#openshift-apiserver-4)
+    - [Certificates (3)](#Certificates-3)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [service-ca (101)](#service-ca-101)
     - [Certificates (98)](#Certificates-98)
@@ -219,8 +220,8 @@
 
 
 
-## Monitoring (8)
-### Certificates (3)
+## Monitoring (10)
+### Certificates (5)
 1. ns/openshift-monitoring secret/federate-client-certs
 
       **Description:** 
@@ -234,6 +235,16 @@
 3. ns/openshift-monitoring secret/metrics-server-client-certs
 
       **Description:** 
+      
+
+4. ns/openshift-monitoring pod/metrics-apiserver-0 (in-memory)
+
+      **Description:** metrics-server loopback connection certificate
+      
+
+5. ns/openshift-monitoring pod/metrics-apiserver-1 (in-memory)
+
+      **Description:** metrics-server loopback connection certificate
       
 
 
@@ -530,8 +541,8 @@
 
 
 
-## apiserver-auth (5)
-### Certificates (3)
+## apiserver-auth (8)
+### Certificates (6)
 1. ns/openshift-config secret/webhook-authentication-integrated-oauth
 
       **Description:** 
@@ -545,6 +556,21 @@
 3. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
 
       **Description:** 
+      
+
+4. ns/openshift-authentication pod/oauth-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+5. ns/openshift-authentication pod/oauth-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+6. ns/openshift-authentication pod/oauth-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -868,8 +894,8 @@
 
 
 
-## kube-apiserver (46)
-### Certificates (25)
+## kube-apiserver (49)
+### Certificates (28)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
       **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
@@ -1069,6 +1095,21 @@
 25. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
       **Description:** 
+      
+
+26. ns/openshift-kube-apiserver pod/kube-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+27. ns/openshift-kube-apiserver pod/kube-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+28. ns/openshift-kube-apiserver pod/kube-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -1336,7 +1377,25 @@
 
 
 
-## openshift-apiserver (1)
+## openshift-apiserver (4)
+### Certificates (3)
+1. ns/openshift-apiserver pod/openshift-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+2. ns/openshift-apiserver pod/openshift-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+3. ns/openshift-apiserver pod/openshift-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+
+
 ### Certificate Authority Bundles (1)
 1. ns/openshift-apiserver configmap/image-import-ca
 
