@@ -14,6 +14,7 @@ type PKIList struct {
 
 	InClusterResourceData PerInClusterResourceData
 	OnDiskResourceData    PerOnDiskResourceData
+	InMemoryResourceData  PerInMemoryResourceData
 
 	CertificateAuthorityBundles CertificateAuthorityBundleList
 	CertKeyPairs                CertKeyPairList
@@ -27,6 +28,12 @@ type PerInClusterResourceData struct {
 	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
 	// +mapType:=atomic
 	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+}
+
+// PerInMemoryResourceData tracks metadata that corresponds to specific certificates stored in pod memory.
+type PerInMemoryResourceData struct {
+	// +mapType:=atomic
+	CertKeyPairs []PKIRegistryInMemoryCertKeyPair `json:"certKeyPairs"`
 }
 
 // PerOnDiskResourceData tracks metadata that corresponds to specific files on disk.
@@ -89,14 +96,20 @@ type CertKeyPairStatus struct {
 }
 
 type CertKeyPairSpec struct {
-	SecretLocations []InClusterSecretLocation
-	OnDiskLocations []OnDiskCertKeyPairLocation
+	SecretLocations   []InClusterSecretLocation
+	OnDiskLocations   []OnDiskCertKeyPairLocation
+	InMemoryLocations []InClusterPodLocation
 
 	CertMetadata CertKeyMetadata
 	Details      CertKeyPairDetails
 }
 
 type InClusterSecretLocation struct {
+	Namespace string
+	Name      string
+}
+
+type InClusterPodLocation struct {
 	Namespace string
 	Name      string
 }
