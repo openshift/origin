@@ -26,6 +26,19 @@ const (
 	containerMachineConfigDaemon   = "machine-config-daemon"
 )
 
+// HasEnvVar checks if a container has an environment variable with a specific value
+func HasEnvVar(container *corev1.Container, name, expectedValue string) bool {
+	if container == nil {
+		return false
+	}
+	for _, env := range container.Env {
+		if env.Name == name {
+			return env.Value == expectedValue
+		}
+	}
+	return false
+}
+
 // WaitForNoPodsRunning waits until there are no (running) pods in the given namespace.
 // (The idling tests use a DeploymentConfig which will leave a "Completed" deploy pod
 // after deploying the service; we don't want to count that.)
