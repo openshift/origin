@@ -70,8 +70,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			DescribeTableSubtree("created using",
 				func(createNetworkFn func(netConfig networkAttachmentConfigParams) networkAttachmentConfig) {
 
-					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string)) {
+					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string), wlConfig ...workloadNetworkConfig) {
 						var err error
+						var workloadConfig workloadNetworkConfig
+						if len(wlConfig) > 0 {
+							workloadConfig = wlConfig[0]
+						}
 						l := map[string]string{
 							"e2e-framework": f.BaseName,
 						}
@@ -128,6 +132,11 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							vmCreationParams.NetworkName = nadName
 						}
 
+						if len(workloadConfig.preconfiguredIPs) > 0 {
+							var err error
+							vmCreationParams.PreconfiguredIP, err = formatAddressesAnnotation(workloadConfig.preconfiguredIPs)
+							Expect(err).NotTo(HaveOccurred())
+						}
 						Expect(virtClient.CreateVM(vmResource, vmCreationParams)).To(Succeed())
 						waitForVMReadiness(virtClient, vmCreationParams.VMNamespace, vmCreationParams.VMName)
 
@@ -151,6 +160,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						}
 						Expect(initialAddresses).To(HaveLen(expectedNumberOfAddresses))
 
+						if len(workloadConfig.preconfiguredIPs) > 0 {
+							By("Verifying VM received the preconfigured IP address(es)")
+							for _, expectedIP := range workloadConfig.preconfiguredIPs {
+								expectedIP = strings.TrimSpace(expectedIP)
+								Expect(initialAddresses).To(ContainElement(expectedIP), fmt.Sprintf("Expected IP %s not found in VM addresses %v", expectedIP, initialAddresses))
+							}
+						}
 						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
 
 						By(fmt.Sprintf("Check east/west traffic before test operation using IPs: %v", httpServerPodsIPs))
@@ -241,7 +257,22 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							},
 							kubevirt.FedoraVMWithSecondaryNetworkAttachment,
 							restartVM,
-						))
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IPs attached to a primary UDN is restarted",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							restartVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.50", "2014:100:200::50"},
+							},
+						),
+					)
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
 					netConfig := newNetworkAttachmentConfig(c)
@@ -626,4 +657,26 @@ func networkName(netSpecConfig string) string {
 	var nc netConfig
 	Expect(json.Unmarshal([]byte(netSpecConfig), &nc)).To(Succeed())
 	return nc.Name
+}
+
+// formatAddressesAnnotation converts slice of IPs to the required JSON format for kubevirt addresses annotation
+func formatAddressesAnnotation(preconfiguredIPs []string) (string, error) {
+	const primaryUDNNetworkName = "overlay"
+	if len(preconfiguredIPs) == 0 {
+		return "", nil
+	}
+
+	ips := make([]string, len(preconfiguredIPs))
+	for i, ip := range preconfiguredIPs {
+		ips[i] = strings.TrimSpace(ip)
+	}
+
+	staticIPs, err := json.Marshal(map[string][]string{
+		primaryUDNNetworkName: ips,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal static IPs: %w", err)
+	}
+
+	return string(staticIPs), nil
 }
