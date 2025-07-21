@@ -20,10 +20,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/objx"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubectl/pkg/cmd/util/podcmd"
 	"sigs.k8s.io/cloud-provider-azure/pkg/provider"
 	"sigs.k8s.io/yaml"
 )
@@ -171,8 +173,21 @@ func (w *azureMetricsCollector) StartCollection(ctx context.Context, adminRESTCo
 		return w.notSupportedReason
 	}
 
-	// Only collect if we are on azure
+	// Create oc client earlier to use for hypershift check
 	oc := exutil.NewCLI("cloudmetrics").AsAdmin()
+	if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+		// For Hypershift, only skip if it's specifically ARO HCP
+		if isAROHCP, err := isAROHCP(ctx, kubeClient); err != nil {
+			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
+		} else if isAROHCP {
+			w.notSupportedReason = &monitortestframework.NotSupportedError{
+				Reason: "platform Hypershift - ARO HCP not supported",
+			}
+			return w.notSupportedReason
+		}
+	}
+
+	// Only collect if we are on azure
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -521,4 +536,42 @@ func (w *azureMetricsCollector) Cleanup(ctx context.Context) error {
 		return w.notSupportedReason
 	}
 	return deleteLogAnalyticsWorkspace(ctx, w.credential, w.subscriptionID, w.resourceGroup, w.workspaceName)
+}
+
+// hasEnvVar checks if a container has an environment variable with a specific value
+func hasEnvVar(container *corev1.Container, name, expectedValue string) bool {
+	if container == nil {
+		return false
+	}
+	for _, env := range container.Env {
+		if env.Name == name {
+			return env.Value == expectedValue
+		}
+	}
+	return false
+}
+
+// isAROHCP checks if the HyperShift operator deployment has MANAGED_SERVICE=ARO-HCP environment variable.
+func isAROHCP(ctx context.Context, kubeClient kubernetes.Interface) (bool, error) {
+	deployments, err := kubeClient.AppsV1().Deployments("hypershift").List(ctx, metav1.ListOptions{
+		LabelSelector: "hypershift.openshift.io/operator-component=operator",
+	})
+	if err != nil {
+		return false, err
+	}
+
+	for _, deployment := range deployments.Items {
+		// Create a temporary pod from the deployment template to use with FindContainerByName
+		tempPod := &corev1.Pod{
+			Spec: deployment.Spec.Template.Spec,
+		}
+
+		container, _ := podcmd.FindContainerByName(tempPod, "operator")
+		if container == nil {
+			continue
+		}
+		return hasEnvVar(container, "MANAGED_SERVICE", "ARO-HCP"), nil
+	}
+
+	return false, nil
 }
