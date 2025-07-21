@@ -303,6 +303,28 @@ func (i *InvariantInClusterDisruption) PrepareCollection(ctx context.Context, ad
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
+
+	// Check for ARO HCP and skip if detected
+	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
+	var isAROHCPcluster bool
+	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	if isHypershift {
+		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+		if err != nil {
+			logrus.WithError(err).Error("failed to get hypershift management cluster config and namespace")
+		}
+
+		// For Hypershift, only skip if it's specifically ARO HCP
+		// Use management cluster client to check the control-plane-operator deployment
+		managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
+		if isAROHCPcluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
+			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
+		} else if isAROHCPcluster {
+			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
+			return nil
+		}
+	}
+
 	if len(i.payloadImagePullSpec) == 0 {
 		i.payloadImagePullSpec, err = extensions.DetermineReleasePayloadImage()
 		if err != nil {
@@ -319,7 +341,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	log.Infof("payload image pull spec is %s", i.payloadImagePullSpec)
 
 	// Extract the openshift-tests image from the release payload
-	oc := exutil.NewCLIForMonitorTest("default")
+	oc = exutil.NewCLIForMonitorTest("default")
 	i.openshiftTestsImagePullSpec, err = payload.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests", oc)
 	if err != nil {
 		return fmt.Errorf("unable to determine openshift-tests image: %s: %v", i.payloadImagePullSpec, err)
