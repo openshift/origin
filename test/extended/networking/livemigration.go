@@ -297,6 +297,21 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 								preconfiguredMAC: "02:0A:0B:0C:0D:50",
 							},
 						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP and MAC attached to a primary UDN is migrated between nodes",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							migrateVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.51", "2014:100:200::51"},
+								preconfiguredMAC: "02:0A:0B:0C:0D:51",
+							},
+						),
 					)
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
