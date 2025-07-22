@@ -225,6 +225,9 @@ spec:
           - name: overlay
             binding:
               name: {{ .NetBindingName }}
+            {{- if .PreconfiguredMAC }}
+            macAddress: "{{ .PreconfiguredMAC }}"
+            {{- end }}
         machine:
           type: ""
         resources:
@@ -269,6 +272,7 @@ type CreationTemplateParams struct {
 	NetBindingName            string
 	NetworkName               string
 	PreconfiguredIP           string
+	PreconfiguredMAC          string
 }
 
 func renderVMTemplate(vmTemplateString string, params CreationTemplateParams) (string, error) {
