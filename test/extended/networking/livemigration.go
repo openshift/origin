@@ -12,6 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"gopkg.in/yaml.v2"
+
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -300,6 +302,30 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
 							migrateVM,
 						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP address is created when the address is already taken",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+								preconfiguredIP:    "203.203.0.100",
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							duplicateVM,
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC address is created when the address is already taken",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+								preconfiguredMAC:   "02:0A:0B:0C:0D:100",
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							duplicateVM,
+						),
 					)
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
@@ -523,6 +549,62 @@ func verifyVMMAC(virtClient *kubevirt.Client, vmName, expectedMAC string) {
 		WithPolling(time.Second).
 		WithTimeout(5 * time.Minute).
 		Should(Equal(expectedMAC))
+}
+
+func createVMIFromSpec(cli *kubevirt.Client, vmNamespace, vmName string, vmiSpec map[string]interface{}) error {
+	GinkgoHelper()
+
+	newVMI := map[string]interface{}{
+		"apiVersion": "kubevirt.io/v1",
+		"kind":       "VirtualMachineInstance",
+		"metadata": map[string]interface{}{
+			"name":      vmName,
+			"namespace": vmNamespace,
+		},
+		"spec": vmiSpec,
+	}
+
+	newVMIYAML, err := yaml.Marshal(newVMI)
+	if err != nil {
+		return err
+	}
+
+	return cli.Apply(string(newVMIYAML))
+}
+
+func duplicateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
+	GinkgoHelper()
+	duplicateVMName := vmName + "-duplicate"
+	By(fmt.Sprintf("Duplicating VM %s/%s to %s/%s", vmNamespace, vmName, vmNamespace, duplicateVMName))
+
+	vmiSpecJSON, err := cli.GetJSONPath("vmi", vmName, "{.spec}")
+	Expect(err).NotTo(HaveOccurred())
+	var vmiSpec map[string]interface{}
+	Expect(json.Unmarshal([]byte(vmiSpecJSON), &vmiSpec)).To(Succeed())
+
+	Expect(createVMIFromSpec(cli, vmNamespace, duplicateVMName, vmiSpec)).To(Succeed())
+	waitForVMPodEventWithMessage(cli, vmNamespace, duplicateVMName, "address conflict detected", 2*time.Minute)
+}
+
+func waitForVMPodEventWithMessage(vmClient *kubevirt.Client, vmNamespace, vmName, expectedEventMessage string, timeout time.Duration) {
+	GinkgoHelper()
+	By(fmt.Sprintf("Waiting for event containing %q on VM %s/%s virt-launcher pod", expectedEventMessage, vmNamespace, vmName))
+
+	Eventually(func(g Gomega) []string {
+		const vmLabelKey = "vm.kubevirt.io/name"
+		podNames, err := vmClient.GetPodsByLabel(vmLabelKey, vmName)
+		if err != nil || len(podNames) != 1 {
+			return []string{}
+		}
+
+		virtLauncherPodName := podNames[0]
+		eventMessages, err := vmClient.GetEventsForPod(virtLauncherPodName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to get events for pod")
+
+		return eventMessages
+	}).WithPolling(time.Second).WithTimeout(timeout).Should(
+		ContainElement(ContainSubstring(expectedEventMessage)),
+		fmt.Sprintf("Expected to find an event containing %q", expectedEventMessage))
 }
 
 func waitForPodsCondition(fr *framework.Framework, pods []*corev1.Pod, conditionFn func(g Gomega, pod *corev1.Pod)) {
