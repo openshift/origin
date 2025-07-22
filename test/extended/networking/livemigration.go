@@ -303,6 +303,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 								preconfiguredMAC: "02:0A:0B:0C:0D:51",
 							},
 						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP address is created when the address is already taken",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							duplicateVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.100", "2014:100:200::100"},
+							},
+						),
 					)
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
@@ -524,6 +538,40 @@ func verifyVMMAC(virtClient *kubevirt.Client, vmName, expectedMAC string) {
 		WithPolling(time.Second).
 		WithTimeout(5 * time.Minute).
 		Should(Equal(expectedMAC))
+}
+
+func duplicateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
+	GinkgoHelper()
+	duplicateVMName := vmName + "-duplicate"
+	By(fmt.Sprintf("Duplicating VM %s/%s to %s/%s", vmNamespace, vmName, vmNamespace, duplicateVMName))
+
+	vmiSpecJSON, err := cli.GetJSONPath("vmi", vmName, "{.spec}")
+	Expect(err).NotTo(HaveOccurred())
+	var vmiSpec map[string]interface{}
+	Expect(json.Unmarshal([]byte(vmiSpecJSON), &vmiSpec)).To(Succeed())
+
+	Expect(cli.CreateVMIFromSpec(vmNamespace, duplicateVMName, vmiSpec)).To(Succeed())
+	waitForVMPodEventWithMessage(cli, vmNamespace, duplicateVMName, "IP is already allocated", 2*time.Minute)
+}
+
+func waitForVMPodEventWithMessage(vmClient *kubevirt.Client, vmNamespace, vmName, expectedEventMessage string, timeout time.Duration) {
+	GinkgoHelper()
+	By(fmt.Sprintf("Waiting for event containing %q on VM %s/%s virt-launcher pod", expectedEventMessage, vmNamespace, vmName))
+
+	Eventually(func(g Gomega) []string {
+		const vmLabelKey = "vm.kubevirt.io/name"
+		podNames, err := vmClient.GetPodsByLabel(vmLabelKey, vmName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to get pods by label %s=%s", vmLabelKey, vmName)
+		g.Expect(podNames).To(HaveLen(1), "Expected exactly one virt-launcher pod for VM %s/%s, but found %d pods: %v", vmNamespace, vmName, len(podNames), podNames)
+
+		virtLauncherPodName := podNames[0]
+		eventMessages, err := vmClient.GetEventsForPod(virtLauncherPodName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to get events for pod %s", virtLauncherPodName)
+
+		return eventMessages
+	}).WithPolling(time.Second).WithTimeout(timeout).Should(
+		ContainElement(ContainSubstring(expectedEventMessage)),
+		fmt.Sprintf("Expected to find an event containing %q", expectedEventMessage))
 }
 
 func waitForPodsCondition(fr *framework.Framework, pods []*corev1.Pod, conditionFn func(g Gomega, pod *corev1.Pod)) {
