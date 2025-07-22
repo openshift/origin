@@ -1893,6 +1893,7 @@ type networkAttachmentConfigParams struct {
 // workloadNetworkConfig contains workload-specific network customizations
 type workloadNetworkConfig struct {
 	preconfiguredIPs []string
+	preconfiguredMAC string
 }
 
 type networkAttachmentConfig struct {
