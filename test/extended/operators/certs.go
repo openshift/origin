@@ -99,6 +99,10 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if ok, _ := exutil.IsMicroShiftCluster(kubeClient); ok {
 			g.Skip("microshift does not auto-collect TLS.")
 		}
+		configClient := oc.AdminConfigClient()
+		if ok, _ := exutil.IsHypershift(ctx, configClient); ok {
+			g.Skip("hypershift does not auto-collect TLS.")
+		}
 		var err error
 		onDiskPKIContent := &certgraphapi.PKIList{}
 
