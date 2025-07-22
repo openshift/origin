@@ -442,9 +442,7 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace str
 		},
 		ClaimMappings: configv1.TokenClaimMappings{
 			Username: configv1.UsernameClaimMapping{
-				TokenClaimMapping: configv1.TokenClaimMapping{
-					Claim: usernameClaim,
-				},
+				Claim: usernameClaim,
 			},
 			Groups: configv1.PrefixedClaimMapping{
 				TokenClaimMapping: configv1.TokenClaimMapping{
