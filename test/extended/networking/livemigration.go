@@ -131,6 +131,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						if netConfig.preconfiguredIP != "" {
 							vmCreationParams.PreconfiguredIP = netConfig.preconfiguredIP
 						}
+						if netConfig.preconfiguredMAC != "" {
+							vmCreationParams.PreconfiguredMAC = netConfig.preconfiguredMAC
+						}
 						Expect(virtClient.CreateVM(vmResource, vmCreationParams)).To(Succeed())
 						waitForVMReadiness(virtClient, vmCreationParams.VMNamespace, vmCreationParams.VMName)
 
@@ -161,6 +164,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 								Expect(initialAddresses).To(ContainElement(expectedIP), fmt.Sprintf("Expected IP %s not found in VM addresses %v", expectedIP, initialAddresses))
 							}
 						}
+						if netConfig.preconfiguredMAC != "" {
+							By("Verifying VM received the preconfigured MAC address")
+							verifyVMMAC(virtClient, vmName, netConfig.preconfiguredMAC)
+						}
 						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
 
 						By(fmt.Sprintf("Check east/west traffic before test operation using IPs: %v", httpServerPodsIPs))
@@ -183,6 +190,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							ShouldNot(BeEmpty())
 						Expect(obtainedAddresses).To(ConsistOf(initialAddresses))
 
+						if netConfig.preconfiguredMAC != "" {
+							By("Verifying VM MAC address persisted after test operation")
+							verifyVMMAC(virtClient, vmName, netConfig.preconfiguredMAC)
+						}
 						By("Check east/west after test operation")
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 					},
@@ -260,6 +271,18 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 								role:               "primary",
 								allowPersistentIPs: true,
 								preconfiguredIP:    "203.203.0.50,2014:100:200::50",
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							restartVM,
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC attached to a primary UDN is restarted",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+								preconfiguredMAC:   "02:0A:0B:0C:0D:50",
 							},
 							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
 							restartVM,
@@ -451,6 +474,14 @@ func obtainAddresses(virtClient *kubevirt.Client, vmName string) ([]string, erro
 	return addressFromStatus(virtClient, vmName)
 }
 
+func obtainMAC(virtClient *kubevirt.Client, vmName string) (string, error) {
+	macStr, err := virtClient.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].mac}")
+	if err != nil {
+		return "", fmt.Errorf("failed to extract the MAC address from VM %q: %w", vmName, err)
+	}
+	return macStr, nil
+}
+
 func restartVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	GinkgoHelper()
 	By(fmt.Sprintf("Restarting vmi %s/%s", vmNamespace, vmName))
@@ -463,6 +494,22 @@ func migrateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	By(fmt.Sprintf("Migrating vmi %s/%s", vmNamespace, vmName))
 	Expect(cli.CreateVMIM(vmName)).To(Succeed())
 	waitForVMIMSuccess(cli, vmNamespace, vmName)
+}
+
+func verifyVMMAC(virtClient *kubevirt.Client, vmName, expectedMAC string) {
+	GinkgoHelper()
+	var actualMAC string
+	Eventually(func(g Gomega) string {
+		GinkgoHelper()
+
+		var err error
+		actualMAC, err = obtainMAC(virtClient, vmName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain MAC address for VM")
+		return actualMAC
+	}).
+		WithPolling(time.Second).
+		WithTimeout(5 * time.Minute).
+		Should(Equal(expectedMAC))
 }
 
 func waitForPodsCondition(fr *framework.Framework, pods []*corev1.Pod, conditionFn func(g Gomega, pod *corev1.Pod)) {
