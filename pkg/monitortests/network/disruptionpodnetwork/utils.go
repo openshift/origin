@@ -1,19 +1,17 @@
 package disruptionpodnetwork
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/openshift/origin/pkg/test/extensions"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
 
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,35 +22,25 @@ import (
 // IN ginkgo environment, oc needs to be created before BeforeEach and passed in
 func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.Config, suggestedPayloadImage string, oc *exutil.CLI) (string, error) {
 	if len(suggestedPayloadImage) == 0 {
-		configClient, err := configclient.NewForConfig(adminRESTConfig)
+		var err error
+		suggestedPayloadImage, err = extensions.DetermineReleasePayloadImage()
 		if err != nil {
 			return "", err
 		}
-		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			return "", fmt.Errorf("clusterversion/version not found and no image pull spec specified")
-		}
-		if err != nil {
-			return "", err
-		}
-		suggestedPayloadImage = clusterVersion.Status.History[0].Image
 	}
 
 	logrus.Infof("payload image reported by CV: %v\n", suggestedPayloadImage)
 	// runImageExtract extracts src from specified image to dst
-	cmd := exec.Command("oc", "adm", "release", "info", suggestedPayloadImage, "--image-for=tests")
-	out := &bytes.Buffer{}
-	outStr := ""
-	errOut := &bytes.Buffer{}
-	cmd.Stdout = out
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		logrus.WithError(err).Errorf("unable to determine openshift-tests image through exec: %v", errOut.String())
+
+	// Extract the openshift-tests image from the release payload
+	openshiftTestsImagePullSpec, err := extensions.ExtractImageFromReleasePayload(suggestedPayloadImage, "tests")
+	if err != nil {
+		logrus.WithError(err).Errorf("unable to determine openshift-tests image through ExtractImageFromReleasePayload: %v", err)
 		// Now try the wrapper to see if it makes a difference
 		if oc == nil {
 			oc = exutil.NewCLIWithoutNamespace("openshift-tests")
 		}
-		outStr, err = oc.Run("adm", "release", "info", suggestedPayloadImage).Args("--image-for=tests").Output()
+		outStr, err := oc.Run("adm", "release", "info", suggestedPayloadImage).Args("--image-for=tests").Output()
 		if err != nil {
 			logrus.WithError(err).Errorf("unable to determine openshift-tests image through oc wrapper with default ps: %v", outStr)
 
@@ -130,11 +118,9 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 		} else {
 			logrus.Infof("successfully getting image for test with oc wrapper with default ps: %s\n", outStr)
 		}
-	} else {
-		outStr = out.String()
-	}
 
-	openshiftTestsImagePullSpec := strings.TrimSpace(outStr)
+		openshiftTestsImagePullSpec = strings.TrimSpace(outStr)
+	}
 	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
 
 	return openshiftTestsImagePullSpec, nil

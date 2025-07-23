@@ -160,7 +160,7 @@ func pullSpecToDirName(input string) string {
 	return filepath.Clean(safeName)
 }
 
-func determineReleasePayloadImage() (string, error) {
+func DetermineReleasePayloadImage() (string, error) {
 	var releaseImage string
 
 	// Highest priority override is EXTENSIONS_PAYLOAD_OVERRIDE
