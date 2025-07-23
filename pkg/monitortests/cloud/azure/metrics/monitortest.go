@@ -175,17 +175,27 @@ func (w *azureMetricsCollector) StartCollection(ctx context.Context, adminRESTCo
 
 	// Create oc client earlier to use for hypershift check
 	oc := exutil.NewCLI("cloudmetrics").AsAdmin()
-	if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+	var isAROHCPcluster bool
+	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	if isHypershift {
+		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+		if err != nil {
+			logrus.WithError(err).Error("failed to get hypershift management cluster config and namespace")
+		}
+
 		// For Hypershift, only skip if it's specifically ARO HCP
-		if isAROHCP, err := isAROHCP(ctx, kubeClient); err != nil {
+		if isAROHCPcluster, err := isAROHCP(ctx, hcpNamespace, oc.KubeClient()); err != nil {
 			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
-		} else if isAROHCP {
+		} else if isAROHCPcluster {
 			w.notSupportedReason = &monitortestframework.NotSupportedError{
 				Reason: "platform Hypershift - ARO HCP not supported",
 			}
 			return w.notSupportedReason
 		}
 	}
+
+	logrus.Infof("isAROHCP: %v", isAROHCPcluster)
+	logrus.Infof("isHypershift: %v", isHypershift)
 
 	// Only collect if we are on azure
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -552,9 +562,9 @@ func hasEnvVar(container *corev1.Container, name, expectedValue string) bool {
 }
 
 // isAROHCP checks if the HyperShift operator deployment has MANAGED_SERVICE=ARO-HCP environment variable.
-func isAROHCP(ctx context.Context, kubeClient kubernetes.Interface) (bool, error) {
-	deployments, err := kubeClient.AppsV1().Deployments("hypershift").List(ctx, metav1.ListOptions{
-		LabelSelector: "hypershift.openshift.io/operator-component=operator",
+func isAROHCP(ctx context.Context, namespace string, kubeClient kubernetes.Interface) (bool, error) {
+	deployments, err := kubeClient.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app=control-plane-operator",
 	})
 	if err != nil {
 		return false, err
@@ -566,7 +576,7 @@ func isAROHCP(ctx context.Context, kubeClient kubernetes.Interface) (bool, error
 			Spec: deployment.Spec.Template.Spec,
 		}
 
-		container, _ := podcmd.FindContainerByName(tempPod, "operator")
+		container, _ := podcmd.FindContainerByName(tempPod, "control-plane-operator")
 		if container == nil {
 			continue
 		}
