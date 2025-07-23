@@ -303,28 +303,19 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
 	if len(i.payloadImagePullSpec) == 0 {
-		configClient, err := configclient.NewForConfig(adminRESTConfig)
+		i.payloadImagePullSpec, err = extensions.DetermineReleasePayloadImage()
 		if err != nil {
 			return err
 		}
-		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			i.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		i.payloadImagePullSpec = clusterVersion.Status.History[0].Image
 
 		if len(i.payloadImagePullSpec) == 0 {
-			log.Infof("configClient clusterVersion missing image pull spec %v", clusterVersion)
-			i.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
+			log.Info("unable to determine payloadImagePullSpec")
+			i.notSupportedReason = "no image pull spec specified."
 			return nil
 		}
 	}
 
-	log.Infof("payload image pull spec is %v", i.payloadImagePullSpec)
+	log.Infof("payload image pull spec is %s", i.payloadImagePullSpec)
 
 	// Extract the openshift-tests image from the release payload
 	i.openshiftTestsImagePullSpec, err = extensions.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests")

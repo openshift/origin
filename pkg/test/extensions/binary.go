@@ -414,7 +414,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		return nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
-	releaseImage, err := determineReleasePayloadImage()
+	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "couldn't determine release image")
 	}
