@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -14,6 +16,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	prometheusoperatorv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	prometheusoperatorv1client "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -47,6 +51,120 @@ type ClusterMonitoringConfiguration struct {
 // TelemeterClientConfig is a subset of https://github.com/openshift/cluster-monitoring-operator/blob/8d331d78b22948d36c20da0552763ddd8a4e2093/pkg/manifests/config.go#L335-L342
 type TelemeterClientConfig struct {
 	Enabled *bool `json:"enabled"`
+}
+
+var componentNamespace = os.Getenv("COMPONENT_NAMESPACE")
+
+var _ = g.Describe("[sig-instrumentation][Late] OpenShift service monitors [apigroup:image.openshift.io]", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc                         = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
+		prometheusURL, bearerToken string
+
+		// TODO: remove the namespace when the bug is fixed.
+		namespacesToSkip = sets.New[string]("openshift-monitoring", // https://issues.redhat.com/browse/MON-4304
+			"openshift-marketplace",                // https://issues.redhat.com/browse/OCPBUGS-59763
+			"openshift-image-registry",             // https://issues.redhat.com/browse/OCPBUGS-59767
+			"openshift-operator-lifecycle-manager", // https://issues.redhat.com/browse/OCPBUGS-59768
+			"openshift-cluster-samples-operator",   // https://issues.redhat.com/browse/OCPBUGS-59769
+			"openshift-cluster-version",            // https://issues.redhat.com/browse/OCPBUGS-57585
+		)
+	)
+
+	g.BeforeEach(func(ctx g.SpecContext) {
+		var err error
+		prometheusURL, err = helper.PrometheusRouteURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
+		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
+
+		if namespacesToSkip.Has(componentNamespace) {
+			e2e.Logf("The namespace %s is not skipped because $COMPONENT_NAMESPACE is set to it", componentNamespace)
+			namespacesToSkip.Delete(componentNamespace)
+		}
+	})
+
+	g.It("should not be accessible without authorization [Serial]", func() {
+		var errs []error
+
+		g.By("verifying all targets returns 401 or 403 or 500 without authorization")
+		ns := oc.Namespace()
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod-targets-authorization")
+		defer func() {
+			oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+		}()
+
+		contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		targets := &prometheusTargets{}
+		err = json.Unmarshal([]byte(contents), targets)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, target := range targets.Data.ActiveTargets {
+			ns := target.Labels["namespace"]
+			if !strings.HasPrefix(ns, "openshift-") {
+				continue
+			}
+			if componentNamespace != "" && ns != componentNamespace {
+				continue
+			}
+			pod := target.Labels["pod"]
+			e2e.Logf("Checking via pod exec status code from the scaple url %s for pod %s/%s without authorization (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
+			// Error out only when the status code is obtained
+			// Error on executing the cmd is skipped here because the endpoint does not expose any information.
+			// Promethus may have troubles to scrape it but that is out of the scape of this test
+			// The same reasoning holds for status code 500
+			err = helper.ExpectURLStatusCodeExecViaPod(ns, execPod.Name, target.ScrapeUrl, true, http.StatusUnauthorized, http.StatusForbidden, http.StatusInternalServerError)
+			e2e.Logf("The scaple url %s for pod %s/%s without authorization returned error %v (skip=%t)", target.ScrapeUrl, ns, pod, err, namespacesToSkip.Has(ns))
+			if err != nil && !namespacesToSkip.Has(ns) {
+				errs = append(errs, fmt.Errorf("the scaple url %s for pod %s/%s is accessible without authorization: %w", target.ScrapeUrl, ns, pod, err))
+			}
+		}
+
+		g.By("verifying all service monitors are configured with authorization")
+		client, err := prometheusoperatorv1client.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred(), "Create monitoring client")
+
+		serviceMonitorList, err := client.ServiceMonitors("").List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "List service monitors")
+
+		for _, sm := range serviceMonitorList.Items {
+			// we do not check service monitors for user-workload-monitoring
+			if !strings.HasPrefix(sm.Namespace, "openshift-") {
+				continue
+			}
+			if componentNamespace != "" && sm.Namespace != componentNamespace {
+				continue
+			}
+			ok := authorizationConfigured(sm)
+			e2e.Logf("Service monitor %s/%s has authorization: %t (skip=%t)", sm.Namespace, sm.Name, ok, namespacesToSkip.Has(sm.Namespace))
+			if !ok && !namespacesToSkip.Has(sm.Namespace) {
+				errs = append(errs, fmt.Errorf("service monitor %s/%s has no authorization", sm.Namespace, sm.Name))
+			}
+		}
+
+		o.Expect(errs).To(o.BeEmpty())
+	})
+
+})
+
+// authorizationConfigured returns true if the service monitor is configured with authorization
+func authorizationConfigured(sm *prometheusoperatorv1.ServiceMonitor) bool {
+	if sm == nil {
+		return false
+	}
+	for _, e := range sm.Spec.Endpoints {
+		if e.BasicAuth != nil ||
+			e.OAuth2 != nil ||
+			e.Authorization != nil ||
+			e.BearerTokenFile != "" ||
+			e.BearerTokenSecret != nil ||
+			e.TLSConfig != nil {
+			return true
+		}
+	}
+	return false
 }
 
 var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
@@ -549,7 +667,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			})).NotTo(o.HaveOccurred(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total"))
 
 			g.By("verifying the Thanos querier service requires authentication")
-			err := helper.ExpectURLStatusCodeExecViaPod(ns, execPod.Name, querySvcURL, 401, 403)
+			err := helper.ExpectURLStatusCodeExecViaPod(ns, execPod.Name, querySvcURL, false, 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")

@@ -283,12 +283,19 @@ func ExpectHTTPStatusCode(url, bearerToken string, statusCodes ...int) error {
 }
 
 // ExpectURLStatusCodeExecViaPod attempts connection to url via exec pod and returns an error
-// upon failure or if status return code is not equal to any of the statusCodes.
-func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...int) error {
+// if status return code is not equal to any of the statusCodes, or
+// it is not tolerant to failures, i.e., allowFailure=false and some failure popped up when executing the command.
+// When allowFailure=true, it logs the error and the output and returns nil.
+func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, allowFailure bool, statusCodes ...int) error {
 	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
 	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
-		return fmt.Errorf("host command failed: %v\n%s", err, output)
+		if !allowFailure {
+			return fmt.Errorf("host command failed: %v\n%s", err, output)
+		} else {
+			framework.Logf("host command failed: %v\n%s", err, output)
+			return nil
+		}
 	}
 	for _, statusCode := range statusCodes {
 		if output == strconv.Itoa(statusCode) {
