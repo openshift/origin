@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -48,6 +50,92 @@ type ClusterMonitoringConfiguration struct {
 type TelemeterClientConfig struct {
 	Enabled *bool `json:"enabled"`
 }
+
+// Set $MONITORING_AUTH_TEST_NAMESPACE to focus on the targets from a single namespace
+var monitoringAuthTestNamespace = os.Getenv("MONITORING_AUTH_TEST_NAMESPACE")
+
+var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc                         = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
+		prometheusURL, bearerToken string
+
+		// TODO: remove the namespace when the bug is fixed.
+		namespacesToSkip = sets.New[string]("openshift-marketplace", // https://issues.redhat.com/browse/OCPBUGS-59763
+			"openshift-image-registry",               // https://issues.redhat.com/browse/OCPBUGS-59767
+			"openshift-operator-lifecycle-manager",   // https://issues.redhat.com/browse/OCPBUGS-59768
+			"openshift-cluster-samples-operator",     // https://issues.redhat.com/browse/OCPBUGS-59769
+			"openshift-cluster-version",              // https://issues.redhat.com/browse/OCPBUGS-57585
+			"openshift-cluster-csi-drivers",          // https://issues.redhat.com/browse/OCPBUGS-60159
+			"openshift-cluster-node-tuning-operator", // https://issues.redhat.com/browse/OCPBUGS-60258
+			"openshift-etcd",                         // https://issues.redhat.com/browse/OCPBUGS-60263
+		)
+	)
+
+	g.BeforeEach(func(ctx g.SpecContext) {
+		var err error
+		prometheusURL, err = helper.PrometheusRouteURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
+		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
+
+		if namespacesToSkip.Has(monitoringAuthTestNamespace) {
+			e2e.Logf("The namespace %s is not skipped because $MONITORING_AUTH_TEST_NAMESPACE is set to it", monitoringAuthTestNamespace)
+			namespacesToSkip.Delete(monitoringAuthTestNamespace)
+		}
+	})
+
+	g.It("should not be accessible without auth [Serial]", func() {
+		var errs []error
+
+		g.By("checking that targets reject the requests with 401 or 403")
+		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod-targets-authorization")
+		defer func() {
+			err := oc.AdminKubeClient().CoreV1().Pods(execPod.Namespace).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete pod %s/%s", execPod.Namespace, execPod.Name))
+		}()
+
+		contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		targets := &prometheusTargets{}
+		err = json.Unmarshal([]byte(contents), targets)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(len(targets.Data.ActiveTargets)).Should(o.BeNumerically(">=", 5))
+
+		expected := sets.New[int](http.StatusUnauthorized, http.StatusForbidden)
+		for _, target := range targets.Data.ActiveTargets {
+			ns := target.Labels["namespace"]
+			o.Expect(ns).NotTo(o.BeEmpty())
+			if monitoringAuthTestNamespace != "" && ns != monitoringAuthTestNamespace {
+				continue
+			}
+			pod := target.Labels["pod"]
+			e2e.Logf("Checking via pod exec status code from the scaple url %s for pod %s/%s without authorization (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
+			err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
+				e2e.Logf("The scaple url %s for pod %s/%s without authorization returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
+				if expected.Has(statusCode) {
+					return true, nil
+				}
+				// retry on those cases
+				if execError != nil ||
+					statusCode/100 == 5 ||
+					statusCode == http.StatusRequestTimeout ||
+					statusCode == http.StatusTooManyRequests {
+					return false, nil
+				}
+				return false, fmt.Errorf("expecting status code %v but returned %d", expected.UnsortedList(), statusCode)
+			})
+			if err != nil && !namespacesToSkip.Has(ns) {
+				errs = append(errs, fmt.Errorf("the scaple url %s for pod %s/%s is accessible without authorization: %w", target.ScrapeUrl, ns, pod, err))
+			}
+		}
+
+		o.Expect(errs).To(o.BeEmpty())
+	})
+
+})
 
 var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
