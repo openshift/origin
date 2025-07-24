@@ -3,7 +3,6 @@ package authentication
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -17,6 +16,8 @@ import (
 	authnv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/errors"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -64,7 +65,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		keycloakCli, err = keycloakClientFor(kcURL)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating a keycloak client")
 
-		// First authenticate as the admin keyloak user so we can add new groups and users
+		// First authenticate as the admin keycloak user so we can add new groups and users
 		err = keycloakCli.Authenticate("admin-cli", keycloakAdminUsername, keycloakAdminPassword)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak admin")
 
@@ -379,12 +380,10 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 			continue
 		}
 		err := removal(ctx)
-		if err != nil && !apierrors.IsNotFound(err) {
-			errs = append(errs, err)
-		}
+		errs = append(errs, err)
 	}
 
-	return errors.Join(errs...)
+	return errors.FilterOut(errors.NewAggregate(errs), apierrors.IsNotFound)
 }
 
 func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
@@ -508,7 +507,7 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 func waitForRollout(ctx context.Context, client *exutil.CLI) {
 	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
 
-	// First wait for KAS to flip to progessing
+	// First wait for KAS to flip to progressing
 	o.Eventually(func(gomega o.Gomega) {
 		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
 		gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error fetching the KAS")
