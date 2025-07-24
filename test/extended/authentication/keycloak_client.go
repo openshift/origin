@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,11 +42,15 @@ func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
 	}, nil
 }
 
+type group struct {
+	Name string `json:"name"`
+}
+
 func (kc *keycloakClient) CreateGroup(name string) error {
 	groupURL := kc.adminURL.JoinPath("groups")
 
-	group := map[string]interface{}{
-		"name": name,
+	group := group{
+		Name: name,
 	}
 
 	groupBytes, err := json.Marshal(group)
@@ -69,20 +72,41 @@ func (kc *keycloakClient) CreateGroup(name string) error {
 	return nil
 }
 
+type user struct {
+	Username      string       `json:"username"`
+	Email         string       `json:"email"`
+	Enabled       bool         `json:"enabled"`
+	EmailVerified bool         `json:"emailVerified"`
+	Groups        []string     `json:"groups"`
+	Credentials   []credential `json:"credentials"`
+}
+
+type credential struct {
+	Temporary bool           `json:"temporary"`
+	Type      credentialType `json:"type"`
+	Value     string         `json:"value"`
+}
+
+type credentialType string
+
+const (
+	credentialTypePassword credentialType = "password"
+)
+
 func (kc *keycloakClient) CreateUser(username, password string, groups ...string) error {
 	userURL := kc.adminURL.JoinPath("users")
 
-	user := map[string]interface{}{
-		"username":      username,
-		"email":         fmt.Sprintf("%s@payload.openshift.io", username),
-		"enabled":       true,
-		"emailVerified": true,
-		"groups":        groups,
-		"credentials": []map[string]interface{}{
+	user := user{
+		Username:      username,
+		Email:         fmt.Sprintf("%s@payload.openshift.io", username),
+		Enabled:       true,
+		EmailVerified: true,
+		Groups:        groups,
+		Credentials: []credential{
 			{
-				"temporary": false,
-				"type":      "password",
-				"value":     password,
+				Temporary: true,
+				Type:      credentialTypePassword,
+				Value:     password,
 			},
 		},
 	}
@@ -106,14 +130,18 @@ func (kc *keycloakClient) CreateUser(username, password string, groups ...string
 	return nil
 }
 
+type authenticationResponse struct {
+	AccessToken string `json:"access_token"`
+	IDToken     string `json:"id_token"`
+}
+
 func (kc *keycloakClient) Authenticate(clientID, username, password string) error {
-	data := url.Values{
-		"username":   []string{username},
-		"password":   []string{password},
-		"grant_type": []string{"password"},
-		"client_id":  []string{clientID},
-		"scope":      []string{"openid"},
-	}
+	data := url.Values{}
+	data.Set("username", username)
+	data.Set("password", password)
+	data.Set("grant_type", "password")
+	data.Set("client_id", clientID)
+	data.Set("scope", "openid")
 
 	tokenURL := *kc.adminURL
 	tokenURL.Path = fmt.Sprintf("/realms/%s/protocol/openid-connect/token", kc.realm)
@@ -124,38 +152,15 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	}
 	defer resp.Body.Close()
 
-	respBody := map[string]interface{}{}
-	respBodyData, err := io.ReadAll(resp.Body)
+	respBody := &authenticationResponse{}
+
+	err = json.NewDecoder(resp.Body).Decode(respBody)
 	if err != nil {
-		return fmt.Errorf("reading response data: %w", err)
+		return fmt.Errorf("unmarshalling response data: %w", err)
 	}
 
-	err = json.Unmarshal(respBodyData, &respBody)
-	if err != nil {
-		return fmt.Errorf("unmarshalling response body %s: %w", respBodyData, err)
-	}
-
-	accessTokenData, ok := respBody["access_token"]
-	if !ok {
-		return errors.New("unable to extract access token from the response body: access_token field is missing")
-	}
-
-	accessToken, ok := accessTokenData.(string)
-	if !ok {
-		return fmt.Errorf("expected accessToken to be of type string but was %T", accessTokenData)
-	}
-	kc.accessToken = accessToken
-
-	idTokenData, ok := respBody["id_token"]
-	if !ok {
-		return errors.New("unable to extract id token from the response body: id_token field is missing")
-	}
-
-	idToken, ok := idTokenData.(string)
-	if !ok {
-		return fmt.Errorf("expected idToken to be of type string but was %T", idTokenData)
-	}
-	kc.idToken = idToken
+	kc.accessToken = respBody.AccessToken
+	kc.idToken = respBody.IDToken
 
 	return nil
 }
@@ -191,41 +196,66 @@ func (kc *keycloakClient) ConfigureClient(clientId string) error {
 		return fmt.Errorf("getting client %q: %w", clientId, err)
 	}
 
-	id, ok := client["id"]
-	if !ok {
-		return fmt.Errorf("client %q doesn't have 'id'", clientId)
-	}
-
-	idStr, ok := id.(string)
-	if !ok {
-		return fmt.Errorf("client %q 'id' is not of type string: %T", clientId, id)
-	}
-
-	if err := kc.CreateClientGroupMapper(idStr, "test-groups-mapper", "groups"); err != nil {
+	if err := kc.CreateClientGroupMapper(client.ID, "test-groups-mapper", "groups"); err != nil {
 		return fmt.Errorf("creating group mapper for client %q: %w", clientId, err)
 	}
 
-	if err := kc.CreateClientAudienceMapper(idStr, "test-aud-mapper"); err != nil {
+	if err := kc.CreateClientAudienceMapper(client.ID, "test-aud-mapper"); err != nil {
 		return fmt.Errorf("creating audience mapper for client %q: %w", clientId, err)
 	}
 
 	return nil
 }
 
+type groupMapper struct {
+	Name           string            `json:"name"`
+	Protocol       protocol          `json:"protocol"`
+	ProtocolMapper protocolMapper    `json:"protocolMapper"`
+	Config         groupMapperConfig `json:"config"`
+}
+
+type protocol string
+
+const (
+	protocolOpenIDConnect protocol = "openid-connect"
+)
+
+type protocolMapper string
+
+const (
+	protocolMapperOpenIDConnectGroupMembership protocolMapper = "oidc-group-membership-mapper"
+	protocolMapperOpenIDConnectAudience        protocolMapper = "oidc-audience-mapper"
+)
+
+type groupMapperConfig struct {
+	FullPath           booleanString `json:"full.path"`
+	IDTokenClaim       booleanString `json:"id.token.claim"`
+	AccessTokenClaim   booleanString `json:"access.token.claim"`
+	UserInfoTokenClaim booleanString `json:"userinfo.token.claim"`
+	ClaimName          string        `json:"claim.name"`
+}
+
+type booleanString string
+
+const (
+	booleanStringTrue  booleanString = "true"
+	booleanStringFalse booleanString = "false"
+)
+
 func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) error {
 	mappersURL := *kc.adminURL
 	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
 
-	mapper := map[string]interface{}{
-		"name":           name,
-		"protocol":       "openid-connect",
-		"protocolMapper": "oidc-group-membership-mapper", // protocol-mapper type provided by Keycloak
-		"config": map[string]string{
-			"full.path":            "false",
-			"id.token.claim":       "true",
-			"access.token.claim":   "true",
-			"userinfo.token.claim": "true",
-			"claim.name":           claim,
+	mapper := &groupMapper{
+		Name:           name,
+		Protocol:       protocolOpenIDConnect,
+		ProtocolMapper: protocolMapperOpenIDConnectGroupMembership,
+		Config: groupMapperConfig{
+			FullPath:           booleanStringFalse,
+			IDTokenClaim:       booleanStringTrue,
+			AccessTokenClaim:   booleanStringTrue,
+			UserInfoTokenClaim: booleanStringTrue,
+			ClaimName:          claim,
 		},
 	}
 
@@ -247,23 +277,38 @@ func (kc *keycloakClient) CreateClientGroupMapper(clientId, name, claim string) 
 	}
 
 	return nil
+}
+
+type audienceMapper struct {
+	Name           string               `json:"name"`
+	Protocol       protocol             `json:"protocol"`
+	ProtocolMapper protocolMapper       `json:"protocolMapper"`
+	Config         audienceMapperConfig `json:"config"`
+}
+
+type audienceMapperConfig struct {
+	IDTokenClaim            booleanString `json:"id.token.claim"`
+	AccessTokenClaim        booleanString `json:"access.token.claim"`
+	IntrospectionTokenClaim booleanString `json:"introspection.token.claim"`
+	IncludedClientAudience  string        `json:"included.client.audience"`
+	IncludedCustomAudience  string        `json:"included.custom.audience"`
+	LightweightClaim        booleanString `json:"lightweight.claim"`
 }
 
 func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) error {
 	mappersURL := *kc.adminURL
 	mappersURL.Path += fmt.Sprintf("/clients/%s/protocol-mappers/models", clientId)
 
-	mapper := map[string]interface{}{
-		"name":           name,
-		"protocol":       "openid-connect",
-		"protocolMapper": "oidc-audience-mapper", // protocol-mapper type provided by Keycloak
-		"config": map[string]string{
-			"id.token.claim":            "false",
-			"access.token.claim":        "true",
-			"introspection.token.claim": "true",
-			"included.client.audience":  "admin-cli",
-			"included.custom.audience":  "",
-			"lightweight.claim":         "false",
+	mapper := &audienceMapper{
+		Name:           name,
+		Protocol:       protocolOpenIDConnect,
+		ProtocolMapper: protocolMapperOpenIDConnectAudience,
+		Config: audienceMapperConfig{
+			IDTokenClaim:            booleanStringFalse,
+			AccessTokenClaim:        booleanStringTrue,
+			IntrospectionTokenClaim: booleanStringTrue,
+			IncludedClientAudience:  "admin-cli",
+			LightweightClaim:        booleanStringFalse,
 		},
 	}
 
@@ -287,8 +332,13 @@ func (kc *keycloakClient) CreateClientAudienceMapper(clientId, name string) erro
 	return nil
 }
 
+type client struct {
+	ClientID string `json:"clientID"`
+	ID       string `json:"id"`
+}
+
 // ListClients retrieves all clients
-func (kc *keycloakClient) ListClients() ([]map[string]interface{}, error) {
+func (kc *keycloakClient) ListClients() ([]client, error) {
 	clientsURL := *kc.adminURL
 	clientsURL.Path += "/clients"
 
@@ -298,29 +348,28 @@ func (kc *keycloakClient) ListClients() ([]map[string]interface{}, error) {
 	}
 	defer resp.Body.Close()
 
-	respBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("listing clients failed: %s: %s", resp.Status, respBytes)
+		return nil, fmt.Errorf("listing clients failed: %s", resp.Status)
 	}
 
-	clients := []map[string]interface{}{}
-	err = json.Unmarshal(respBytes, &clients)
+	clients := []client{}
+	err = json.NewDecoder(resp.Body).Decode(&clients)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling response data: %w", err)
+	}
 
 	return clients, err
 }
 
-func (kc *keycloakClient) GetClientByClientID(clientID string) (map[string]interface{}, error) {
+func (kc *keycloakClient) GetClientByClientID(clientID string) (*client, error) {
 	clients, err := kc.ListClients()
 	if err != nil {
 		return nil, err
 	}
 
 	for _, c := range clients {
-		if c["clientId"].(string) == clientID {
-			return c, nil
+		if c.ClientID == clientID {
+			return &c, nil
 		}
 	}
 
