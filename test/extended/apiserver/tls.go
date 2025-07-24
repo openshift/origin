@@ -48,6 +48,8 @@ const (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
+	f := e2e.NewDefaultFramework("tls")
+
 	oc := exutil.NewCLI(namespace)
 
 	g.It("TestTLSMinimumVersions", func() {
@@ -63,7 +65,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("tls configuration for the apiserver resource is not applicable to microshift or hypershift clusters - skipping")
 		}
 
-		ipFamily := getIPFamilyForCluster(*oc, oc.Namespace())
+		ipFamily := getIPFamilyForCluster(f)
 
 		if ipFamily != IPv4 {
 			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
@@ -100,7 +102,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-kube-apiserver",
 			"443",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -112,7 +114,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-authentication",
 			"443",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -124,7 +126,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-kube-controller-manager",
 			"443",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -136,7 +138,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-kube-scheduler",
 			"443",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -148,7 +150,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-apiserver",
 			"443",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -160,7 +162,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-oauth-apiserver",
 			"443",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -172,7 +174,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			"openshift-machine-config-operator",
 			"9001",
 			func(port int) error {
-				return CheckTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
+				return checkTLSConnection(port, tlsShouldWork, tlsShouldNotWork)
 			},
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -194,11 +196,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 						return fmt.Errorf("should work: %w", err)
 					}
 				} else {
-					conn.Close()
+					err = conn.Close()
+					if err != nil {
+						return fmt.Errorf("failed to close connection: %w", err)
+					}
 				}
-				_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
+				conn, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 				if err == nil {
-					return fmt.Errorf("should not work: connection unexpectedly succeeded")
+					return fmt.Errorf("should not work: connection unexpectedly succeeded, closing conn status: %v", conn.Close())
 				}
 				return nil
 			},
@@ -234,11 +239,7 @@ func forwardPortAndExecute(serviceName string, namespace string, remotePort stri
 
 			e2e.Logf("oc port-forward output: %s", readPartialFrom(stdout, 1024))
 
-			if err := toExecute(localPort); err != nil {
-				return err
-			}
-
-			return nil
+			return toExecute(localPort)
 		}(); err == nil {
 			// Success, stop retrying
 			return nil
@@ -261,8 +262,9 @@ func readPartialFrom(r io.Reader, maxBytes int) string {
 	return string(buf[:n])
 }
 
-func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
-	podIPs, err := createPod(client, namespace, "test-ip-family-pod")
+// func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
+func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
+	podIPs, err := createPod(f, "test-ip-family-pod")
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return getIPFamily(podIPs)
 }
@@ -291,8 +293,8 @@ func getIPFamily(podIPs []corev1.PodIP) IPFamily {
 	}
 }
 
-func createPod(client exutil.CLI, ns, generateName string) ([]corev1.PodIP, error) {
-	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
+func createPod(f *e2e.Framework, generateName string) ([]corev1.PodIP, error) {
+	pod := frameworkpod.NewAgnhostPod(f.Namespace.Name, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
 	pod.Spec.SecurityContext = &corev1.PodSecurityContext{
 		RunAsNonRoot: ptr.To(true),
@@ -309,11 +311,11 @@ func createPod(client exutil.CLI, ns, generateName string) ([]corev1.PodIP, erro
 		Privileged:             ptr.To(false),
 	}
 
-	execPod, err := client.AdminKubeClient().CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
+	execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	var podIPs []corev1.PodIP
 	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.AdminKubeClient().CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
+		retrievedPod, err := f.ClientSet.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -331,6 +333,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	g.It("TestTLSDefaults", func() {
 		t := g.GinkgoT()
 
+		f := e2e.NewDefaultFramework("tls")
 		coreClient, err := e2e.LoadClientset(true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -341,7 +344,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
 		}
 
-		ipFamily := getIPFamilyForCluster(*oc, oc.Namespace())
+		ipFamily := getIPFamilyForCluster(f)
 
 		if ipFamily != IPv4 {
 			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
@@ -366,7 +369,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			{
 				conn, err := tls.Dial("tcp", host, config)
 				if err == nil {
-					conn.Close()
+					err := conn.Close()
+					if err != nil {
+						t.Errorf("Failed to close connection: %v", err)
+					}
 				}
 				if success := err == nil; success != expectSuccess {
 					t.Errorf("Expected success %v, got %v with TLS version %s dialing master", expectSuccess, success, tlsVersionName)
@@ -391,9 +397,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			{
 				conn, err := tls.Dial("tcp", oc.AdminConfig().Host, config)
 				if err == nil {
-					conn.Close()
 					if expectFailure {
-						t.Errorf("Expected failure on cipher %s, got success dialing master", cipherName)
+						t.Errorf("Expected failure on cipher %s, got success dialing master. closing conn status: %v", cipherName, conn.Close())
 					}
 				}
 			}
@@ -402,17 +407,20 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 })
 
-// CheckTLSConnection tries to connect to localhost:port with the provided TLS configs.
-func CheckTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
+// checkTLSConnection tries to connect to localhost:port with the provided TLS configs.
+func checkTLSConnection(port int, tlsShouldWork, tlsShouldNotWork *tls.Config) error {
 	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldWork)
 	if err != nil {
 		return fmt.Errorf("should work: %w", err)
 	}
-	conn.Close()
+	err = conn.Close()
+	if err != nil {
+		return fmt.Errorf("failed to close connection: %w", err)
+	}
 
-	_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
+	conn, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), tlsShouldNotWork)
 	if err == nil {
-		return fmt.Errorf("should not work: connection unexpectedly succeeded")
+		return fmt.Errorf("should not work: connection unexpectedly succeeded, closing conn status: %v", conn.Close())
 	}
 	// Acceptable TLS version mismatch errors
 	if !strings.Contains(err.Error(), "protocol version") &&
