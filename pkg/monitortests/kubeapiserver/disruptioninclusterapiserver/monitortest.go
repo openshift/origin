@@ -318,7 +318,8 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	log.Infof("payload image pull spec is %s", i.payloadImagePullSpec)
 
 	// Extract the openshift-tests image from the release payload
-	i.openshiftTestsImagePullSpec, err = extensions.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests")
+	oc := exutil.NewCLIForMonitorTest("default")
+	i.openshiftTestsImagePullSpec, err = extensions.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests", oc)
 	if err != nil {
 		return fmt.Errorf("unable to determine openshift-tests image: %s: %v", i.payloadImagePullSpec, err)
 	}

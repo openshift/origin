@@ -91,14 +91,14 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	deploymentID := uuid.New().String()
 
-	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec, nil)
+	// Skip on ROSA TRT-1869
+	oc := util.NewCLIWithoutNamespace("openshift-tests")
+	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec, oc)
 	if err != nil {
 		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("unable to determine openshift-tests image: %v", err)}
 		return pna.notSupportedReason
 	}
 
-	// Skip on ROSA TRT-1869
-	oc := util.NewCLIWithoutNamespace("openshift-tests")
 	isManagedServiceCluster, err := util.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
 	if isManagedServiceCluster {
 		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("pod network tests are unschedulable on ROSA TRT-1869")}
