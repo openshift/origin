@@ -30,13 +30,6 @@ import (
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
-var (
-	requiredCapabilities = []configv1.ClusterVersionCapability{
-		configv1.ClusterVersionCapabilityMarketplace,
-		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
-	}
-)
-
 const (
 	// Max time duration for the DNS resolution
 	dnsResolutionTimeout = 10 * time.Minute
@@ -47,6 +40,34 @@ const (
 	ingressNamespace = "openshift-ingress"
 	// istioName is the name of the Istio CR.
 	istioName = "openshift-gateway"
+	// The name of the default gatewayclass, which is used to install OSSM.
+	gatewayClassName = "openshift-default"
+
+	ossmAndOLMResourcesCreated         = "ensure-resources-are-created"
+	defaultGatewayclassAccepted        = "ensure-default-gatewayclass-is-accepted"
+	customGatewayclassAccepted         = "ensure-custom-gatewayclass-is-accepted"
+	lbAndServiceAndDnsrecordAreCreated = "ensure-lb-and-service-and-dnsrecord-are-created"
+	httprouteObjectCreated             = "ensure-httproute-object-is-created"
+)
+
+var (
+	requiredCapabilities = []configv1.ClusterVersionCapability{
+		configv1.ClusterVersionCapabilityMarketplace,
+		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
+	}
+	// testNames is a list of names that are used to track when tests are
+	// done in order to check whether it is safe to clean up resources that
+	// these tests share, such as the gatewayclass and Istio CR.  These
+	// names are embedded within annotation keys of the form test-%s-done.
+	// Because annotation keys are limited to 63 characters, each of these
+	// names must be no longer than 53 characters.
+	testNames = []string{
+		ossmAndOLMResourcesCreated,
+		defaultGatewayclassAccepted,
+		customGatewayclassAccepted,
+		lbAndServiceAndDnsrecordAreCreated,
+		httprouteObjectCreated,
+	}
 )
 
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
@@ -67,14 +88,12 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		expectedSubscriptionSource = "redhat-operators"
 		// The expected OSSM operator namespace.
 		expectedSubscriptionNamespace = "openshift-operators"
-		// The gatewayclass name used to create ossm and other gateway api resources.
-		gatewayClassName = "openshift-default"
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
 		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
 		//OSSM Deployment Pod Name
 		deploymentOSSMName = "servicemesh-operator3"
 	)
-	g.BeforeAll(func() {
+	g.BeforeEach(func() {
 		isokd, err := isOKD(oc)
 		if err != nil {
 			e2e.Failf("Failed to get clusterversion to determine if release is OKD: %v", err)
@@ -99,7 +118,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		}
 	})
 
-	g.AfterAll(func() {
+	g.AfterEach(func() {
+		if !checkAllTestsDone(oc) {
+			g.Skip("Skipping cleanup while not all GatewayAPIController tests are done")
+		}
+
 		g.By("Deleting the gateways")
 
 		for _, name := range gateways {
@@ -149,6 +172,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
+		defer markTestDone(oc, ossmAndOLMResourcesCreated)
+
 		//check the catalogSource
 		g.By("Check OLM catalogSource, subscription, CSV and Pod")
 		waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
@@ -212,6 +237,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure default gatewayclass is accepted", func() {
+		defer markTestDone(oc, defaultGatewayclassAccepted)
 
 		g.By("Check if default GatewayClass is accepted after OLM resources are successful")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
@@ -219,6 +245,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure custom gatewayclass can be accepted", func() {
+		defer markTestDone(oc, customGatewayclassAccepted)
+
 		customGatewayClassName := "custom-gatewayclass"
 
 		g.By("Create Custom GatewayClass")
@@ -246,6 +274,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
+		defer markTestDone(oc, lbAndServiceAndDnsrecordAreCreated)
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -269,6 +299,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
+		defer markTestDone(oc, httprouteObjectCreated)
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -730,4 +762,42 @@ func isOKD(oc *exutil.CLI) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// annotationKeyForTest returns the key for an annotation on the default
+// gatewayclass that indicates whether the specified test is done.
+func annotationKeyForTest(testName string) string {
+	return fmt.Sprintf("test-%s-done", testName)
+}
+
+// markTestDone adds an annotation to the default gatewayclass that all the
+// GatewayAPIController tests use to indicate that a particular test has ended.
+// These annotations are used to determine whether it is safe to clean up the
+// gatewayclass and other shared resources.
+func markTestDone(oc *exutil.CLI, testName string) {
+	gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if gwc.Annotations == nil {
+		gwc.Annotations = map[string]string{}
+	}
+	gwc.Annotations[annotationKeyForTest(testName)] = ""
+	_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Update(context.Background(), gwc, metav1.UpdateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// checkAllTestsDone checks the annotations on the default gatewayclass that all
+// the GatewayAPIController tests use to determine whether all the tests are
+// done.
+func checkAllTestsDone(oc *exutil.CLI) bool {
+	gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, testName := range testNames {
+		if _, ok := gwc.Annotations[annotationKeyForTest(testName)]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
