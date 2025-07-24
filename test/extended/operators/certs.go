@@ -83,6 +83,7 @@ func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernete
 		certgraphanalysis.SkipHashed,
 		certgraphanalysis.ElideProxyCADetails,
 		certgraphanalysis.RewriteNodeNames(masters, bootstrapHostname),
+		certgraphanalysis.HumanizeRewritePeriod,
 		certgraphanalysis.CollectAnnotations(annotationsToCollect...),
 	)
 }
