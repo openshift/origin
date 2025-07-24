@@ -1,4 +1,4 @@
-package legacynodemonitortests
+package containerfailures
 
 import (
 	"testing"
