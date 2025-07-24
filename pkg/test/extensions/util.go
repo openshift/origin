@@ -273,7 +273,7 @@ func extractReleaseImageStream(extractPath, releaseImage string,
 
 // ExtractImageFromReleasePayload extracts the image pull spec for a specific tag from a release payload.
 // It returns the image pull spec for the specified tag or an error if the tag is not found.
-func ExtractImageFromReleasePayload(releaseImage, imageTag string) (string, error) {
+func ExtractImageFromReleasePayload(releaseImage, imageTag string, oc *util.CLI) (string, error) {
 	// Create a temporary directory for extraction
 	tmpDir, err := os.MkdirTemp("", "release-extract")
 	if err != nil {
@@ -281,7 +281,7 @@ func ExtractImageFromReleasePayload(releaseImage, imageTag string) (string, erro
 	}
 	defer os.RemoveAll(tmpDir)
 
-	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir)
+	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
 	if err != nil {
 		return "", fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
@@ -302,9 +302,7 @@ func ExtractImageFromReleasePayload(releaseImage, imageTag string) (string, erro
 	return "", fmt.Errorf("image tag %q not found in release payload %q", imageTag, releaseImage)
 }
 
-func DetermineRegistryAuthFilePath(tmpDir string) (string, error) {
-	oc := util.NewCLIWithoutNamespace("default")
-
+func DetermineRegistryAuthFilePath(tmpDir string, oc *util.CLI) (string, error) {
 	// To extract binaries bearing external tests, we must inspect the release
 	// payload under tests as well as extract content from component images
 	// referenced by that payload.

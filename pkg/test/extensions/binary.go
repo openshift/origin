@@ -426,7 +426,8 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 
 	defer os.RemoveAll(tmpDir)
 
-	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir)
+	oc := exutil.NewCLIWithoutNamespace("default")
+	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to determine registry auth file path: %w", err)
 	}
