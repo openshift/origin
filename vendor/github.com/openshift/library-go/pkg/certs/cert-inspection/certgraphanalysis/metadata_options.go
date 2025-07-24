@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/library-go/pkg/operator/certrotation"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -149,7 +152,38 @@ var (
 			return timestampReg.ReplaceAllString(path, "<timestamp>.pem")
 		},
 	}
+	HumanizeRewritePeriod = &metadataOptions{
+		rewriteSecretFn: func(secret *corev1.Secret) {
+			secret.Annotations = humanizeRewritePeriodFromMetadata(secret.Annotations)
+		},
+		rewriteConfigMapFn: func(configMap *corev1.ConfigMap) {
+			configMap.Annotations = humanizeRewritePeriodFromMetadata(configMap.Annotations)
+		},
+	}
 )
+
+func humanizeRewritePeriodFromMetadata(annotations map[string]string) map[string]string {
+	result := map[string]string{}
+	if annotations == nil {
+		return result
+	}
+	for k, v := range annotations {
+		result[k] = v
+	}
+	period, ok := annotations[certrotation.CertificateRefreshPeriodAnnotation]
+	if !ok {
+		return result
+	}
+	d, err := time.ParseDuration(period)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse rewrite period %s: %v\n", period, err)
+		return result
+	}
+	humanReadableDate := durationToHumanReadableString(d)
+	result[certrotation.CertificateRefreshPeriodAnnotation] = humanReadableDate
+	result[rewritePrefix+"HumanizeRewritePeriod"] = period
+	return result
+}
 
 // skipRevisionedInOnDiskLocation returns true if location is for revisioned certificate and needs to be skipped
 func skipRevisionedInOnDiskLocation(location certgraphapi.OnDiskLocation) bool {
@@ -225,4 +259,75 @@ func StripRootFSMountPoint(rootfsMount string) *metadataOptions {
 			return path
 		},
 	}
+}
+
+// durationToHumanReadableString formats a duration into a human-readable string.
+// Unlike Go's built-in `time.Duration.String()`, which returns a string like "72h0m0s", this function returns a more concise format like "3d" or "5d4h25m".
+func durationToHumanReadableString(d time.Duration) string {
+	u := uint64(d)
+	if d < 0 {
+		u = -u
+	}
+
+	if u == 0 {
+		return "0s"
+	}
+
+	// Unit values in uint64 nanoseconds
+	year := uint64(time.Hour) * 24 * 365
+	month := uint64(time.Hour) * 24 * 30
+	day := uint64(time.Hour) * 24
+	hour := uint64(time.Hour)
+	minute := uint64(time.Minute)
+	second := uint64(time.Second)
+
+	var b strings.Builder
+
+	years := u / year
+	u %= year
+	if years > 0 {
+		b.WriteString(strconv.FormatUint(years, 10))
+		b.WriteString("y")
+	}
+
+	months := u / month
+	u %= month
+	if months > 0 {
+		b.WriteString(strconv.FormatUint(months, 10))
+		b.WriteString("mo")
+	}
+
+	days := u / day
+	u %= day
+	if days > 0 {
+		b.WriteString(strconv.FormatUint(days, 10))
+		b.WriteString("d")
+	}
+
+	hours := u / hour
+	u %= hour
+	if hours > 0 {
+		b.WriteString(strconv.FormatUint(hours, 10))
+		b.WriteString("h")
+	}
+
+	minutes := u / minute
+	u %= minute
+	if minutes > 0 {
+		b.WriteString(strconv.FormatUint(minutes, 10))
+		b.WriteString("m")
+	}
+
+	seconds := u / second
+	u %= second
+	if seconds > 0 {
+		b.WriteString(strconv.FormatUint(seconds, 10))
+		b.WriteString("s")
+	}
+
+	if b.Len() == 0 {
+		return "0s"
+	}
+
+	return b.String()
 }

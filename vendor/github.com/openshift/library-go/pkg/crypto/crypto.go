@@ -629,7 +629,7 @@ func MakeSelfSignedCAConfig(name string, lifetime time.Duration) (*TLSCertificat
 func MakeSelfSignedCAConfigForSubject(subject pkix.Name, lifetime time.Duration) (*TLSCertificateConfig, error) {
 	if lifetime <= 0 {
 		lifetime = DefaultCACertificateLifetimeDuration
-		fmt.Fprintf(os.Stderr, "Validity period of the certificate for %q is unset, resetting to %d years!\n", subject.CommonName, lifetime)
+		fmt.Fprintf(os.Stderr, "Validity period of the certificate for %q is unset, resetting to %s!\n", subject.CommonName, lifetime.String())
 	}
 
 	if lifetime > DefaultCACertificateLifetimeDuration {
@@ -1018,7 +1018,7 @@ func newSigningCertificateTemplateForDuration(subject pkix.Name, caLifetime time
 func newServerCertificateTemplate(subject pkix.Name, hosts []string, lifetime time.Duration, currentTime func() time.Time, authorityKeyId, subjectKeyId []byte) *x509.Certificate {
 	if lifetime <= 0 {
 		lifetime = DefaultCertificateLifetimeDuration
-		fmt.Fprintf(os.Stderr, "Validity period of the certificate for %q is unset, resetting to %d years!\n", subject.CommonName, lifetime)
+		fmt.Fprintf(os.Stderr, "Validity period of the certificate for %q is unset, resetting to %s!\n", subject.CommonName, lifetime.String())
 	}
 
 	if lifetime > DefaultCertificateLifetimeDuration {
@@ -1105,7 +1105,7 @@ func CertsFromPEM(pemCerts []byte) ([]*x509.Certificate, error) {
 func NewClientCertificateTemplate(subject pkix.Name, lifetime time.Duration, currentTime func() time.Time) *x509.Certificate {
 	if lifetime <= 0 {
 		lifetime = DefaultCertificateLifetimeDuration
-		fmt.Fprintf(os.Stderr, "Validity period of the certificate for %q is unset, resetting to %d years!\n", subject.CommonName, lifetime)
+		fmt.Fprintf(os.Stderr, "Validity period of the certificate for %q is unset, resetting to %s!\n", subject.CommonName, lifetime.String())
 	}
 
 	if lifetime > DefaultCertificateLifetimeDuration {
