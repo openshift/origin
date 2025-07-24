@@ -412,6 +412,22 @@ spec:
     - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
         ImageStream API import mode should be PreserveOriginal or Legacy depending
         on desired.architecture field in the CV [apigroup:image.openshift.io]'
+  - featureGate: ImageVolume
+    tests:
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume should fail when
+        image does not exist'
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume should handle multiple
+        image volumes'
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume should succeed if
+        image volume is not existing but unused'
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume should succeed with
+        multiple pods and same image on the same node'
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume should succeed with
+        pod and pull policy of Always'
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume when subPath is
+        used should fail to mount image volume with invalid subPath'
+    - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume when subPath is
+        used should handle image volume with subPath'
   - featureGate: InPlacePodVerticalScaling
     tests:
     - testName: '[sig-node] Pod InPlace Resize Container [FeatureGate:InPlacePodVerticalScaling]
