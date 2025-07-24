@@ -40,6 +40,58 @@ func TestClusterStateFilter(t *testing.T) {
 	assert.Equal(t, "test [Feature:Networking-IPv4]", result[1].Name)
 }
 
+func TestClusterStateFilterSkeletonProvider(t *testing.T) {
+	// Test that skeleton provider skips all cluster state filtering
+	config := &clusterdiscovery.ClusterConfiguration{
+		ProviderName: "skeleton",
+		// Note: other fields are not set, simulating failed cluster discovery
+	}
+	filter := NewClusterStateFilter(config)
+
+	tests := extensions.ExtensionTestSpecs{
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "normal test"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [Skipped:aws]"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [Feature:Networking-IPv6]"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [apigroup:missing.api.group]"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [OCPFeatureGate:SomeFeature]"}},
+	}
+
+	// ShouldApply should return false for skeleton provider
+	assert.False(t, filter.ShouldApply())
+
+	// Filter should return all tests unchanged when provider is skeleton
+	result, err := filter.Filter(context.Background(), tests)
+
+	require.NoError(t, err)
+	assert.Len(t, result, 5) // All tests should pass through without filtering
+	assert.Equal(t, "normal test", result[0].Name)
+	assert.Equal(t, "test [Skipped:aws]", result[1].Name)
+	assert.Equal(t, "test [Feature:Networking-IPv6]", result[2].Name)
+	assert.Equal(t, "test [apigroup:missing.api.group]", result[3].Name)
+	assert.Equal(t, "test [OCPFeatureGate:SomeFeature]", result[4].Name)
+}
+
+func TestClusterStateFilterNilConfig(t *testing.T) {
+	// Test that nil config skips all cluster state filtering
+	filter := NewClusterStateFilter(nil)
+
+	tests := extensions.ExtensionTestSpecs{
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "normal test"}},
+		&extensions.ExtensionTestSpec{ExtensionTestSpec: &extensiontests.ExtensionTestSpec{Name: "test [apigroup:missing.api.group]"}},
+	}
+
+	// ShouldApply should return false for nil config
+	assert.False(t, filter.ShouldApply())
+
+	// Filter should return all tests unchanged when config is nil
+	result, err := filter.Filter(context.Background(), tests)
+
+	require.NoError(t, err)
+	assert.Len(t, result, 2) // All tests should pass through without filtering
+	assert.Equal(t, "normal test", result[0].Name)
+	assert.Equal(t, "test [apigroup:missing.api.group]", result[1].Name)
+}
+
 // Test data for comprehensive cluster state filter testing
 var e2eTestNames = map[string]string{
 	"everyone":              "[Skipped:Wednesday]",
@@ -123,7 +175,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 			runTests: sets.New("everyone", "not-aws", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
-			name: "simple non-cloud",
+			name: "simple non-cloud (skeleton provider - no filtering)",
 			config: &clusterdiscovery.ClusterConfiguration{
 				ProviderName:              "skeleton",
 				NetworkPlugin:             "OpenShiftSDN",
@@ -134,7 +186,8 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
+			// Skeleton provider skips all filtering, so all tests should pass through
+			runTests: sets.New("everyone", "not-gce", "not-aws", "not-sdn", "not-multitenant", "online", "ipv4", "ipv6", "dual-stack", "sctp", "requires-optional-cap", "apigroup-apps", "apigroup-missing", "featuregate-enabled", "featuregate-missing", "featuregate-disabled"),
 		},
 		{
 			name: "complex override dual-stack",
