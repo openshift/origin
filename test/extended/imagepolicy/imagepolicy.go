@@ -3,11 +3,12 @@ package imagepolicy
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	configv1alpha1 "github.com/openshift/api/config/v1alpha1"
+	configv1 "github.com/openshift/api/config/v1"
 	machineconfighelper "github.com/openshift/origin/test/extended/machine_config"
 	exutil "github.com/openshift/origin/test/extended/util"
 	kapiv1 "k8s.io/api/core/v1"
@@ -49,6 +50,25 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	g.BeforeAll(func() {
 		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
 			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
+		}
+		// skip test on disconnected clusters.
+		networkConfig, err := oc.AdminConfigClient().ConfigV1().Networks().Get(context.Background(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			e2e.Failf("unable to get cluster network config: %v", err)
+		}
+		usingIPv6 := false
+		for _, clusterNetworkEntry := range networkConfig.Status.ClusterNetwork {
+			addr, _, err := net.ParseCIDR(clusterNetworkEntry.CIDR)
+			if err != nil {
+				continue
+			}
+			if addr.To4() == nil {
+				usingIPv6 = true
+				break
+			}
+		}
+		if usingIPv6 {
+			g.Skip("skipping test on disconnected platform")
 		}
 	})
 
@@ -227,67 +247,78 @@ func waitForTestPodContainerToFailSignatureValidation(ctx context.Context, f *e2
 	return e2epod.WaitForPodContainerToFail(ctx, f.ClientSet, pod.Namespace, pod.Name, 0, SignatureValidationFaildReason, e2e.PodStartShortTimeout)
 }
 
-func createClusterImagePolicy(oc *exutil.CLI, policy configv1alpha1.ClusterImagePolicy) {
-	_, err := oc.AdminConfigClient().ConfigV1alpha1().ClusterImagePolicies().Create(context.TODO(), &policy, metav1.CreateOptions{})
+func createClusterImagePolicy(oc *exutil.CLI, policy configv1.ClusterImagePolicy) {
+	_, err := oc.AdminConfigClient().ConfigV1().ClusterImagePolicies().Create(context.TODO(), &policy, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func deleteClusterImagePolicy(oc *exutil.CLI, policyName string) error {
-	if err := oc.AdminConfigClient().ConfigV1alpha1().ClusterImagePolicies().Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+	if err := oc.AdminConfigClient().ConfigV1().ClusterImagePolicies().Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete cluster image policy %s: %v", policyName, err)
 	}
 	waitForPoolComplete(oc)
 	return nil
 }
 
-func createImagePolicy(oc *exutil.CLI, policy configv1alpha1.ImagePolicy, namespace string) {
-	_, err := oc.AdminConfigClient().ConfigV1alpha1().ImagePolicies(namespace).Create(context.TODO(), &policy, metav1.CreateOptions{})
+func createImagePolicy(oc *exutil.CLI, policy configv1.ImagePolicy, namespace string) {
+	_, err := oc.AdminConfigClient().ConfigV1().ImagePolicies(namespace).Create(context.TODO(), &policy, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func deleteImagePolicy(oc *exutil.CLI, policyName string, namespace string) error {
-	if err := oc.AdminConfigClient().ConfigV1alpha1().ImagePolicies(namespace).Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+	if err := oc.AdminConfigClient().ConfigV1().ImagePolicies(namespace).Delete(context.TODO(), policyName, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete image policy %s in namespace %s: %v", policyName, namespace, err)
 	}
 	waitForPoolComplete(oc)
 	return nil
 }
 
-func generateClusterImagePolicies() map[string]configv1alpha1.ClusterImagePolicy {
-	testClusterImagePolicies := map[string]configv1alpha1.ClusterImagePolicy{
+func generateClusterImagePolicies() map[string]configv1.ClusterImagePolicy {
+	testClusterImagePolicies := map[string]configv1.ClusterImagePolicy{
 		invalidPublicKeyClusterImagePolicyName: {
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ClusterImagePolicy",
+				APIVersion: configv1.SchemeGroupVersion.String(),
+			},
 			ObjectMeta: metav1.ObjectMeta{Name: invalidPublicKeyClusterImagePolicyName},
-			Spec: configv1alpha1.ClusterImagePolicySpec{
-				Scopes: []configv1alpha1.ImageScope{testSignedPolicyScope},
-				Policy: configv1alpha1.Policy{
-					RootOfTrust: configv1alpha1.PolicyRootOfTrust{
-						PolicyType: configv1alpha1.PublicKeyRootOfTrust,
-						PublicKey: &configv1alpha1.PublicKey{
-							KeyData: []byte(`LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFVW9GVW9ZQVJlS1hHeTU5eGU1U1FPazJhSjhvKwoyL1l6NVk4R2NOM3pGRTZWaUl2a0duSGhNbEFoWGFYL2JvME05UjYyczAvNnErK1Q3dXdORnVPZzhBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCgo=`),
+			Spec: configv1.ClusterImagePolicySpec{
+				Scopes: []configv1.ImageScope{testSignedPolicyScope},
+				Policy: configv1.Policy{
+					RootOfTrust: configv1.PolicyRootOfTrust{
+						PolicyType: configv1.PublicKeyRootOfTrust,
+						PublicKey: &configv1.PublicKey{
+							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUoFUoYAReKXGy59xe5SQOk2aJ8o+
+2/Yz5Y8GcN3zFE6ViIvkGnHhMlAhXaX/bo0M9R62s0/6q++T7uwNFuOg8A==
+-----END PUBLIC KEY-----`),
 						},
 					},
-					SignedIdentity: configv1alpha1.PolicyIdentity{
-						MatchPolicy: configv1alpha1.IdentityMatchPolicyMatchRepoDigestOrExact,
+					SignedIdentity: &configv1.PolicyIdentity{
+						MatchPolicy: configv1.IdentityMatchPolicyMatchRepoDigestOrExact,
 					},
 				},
 			},
 		},
 		publiKeyRekorClusterImagePolicyName: {
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ClusterImagePolicy",
+				APIVersion: configv1.SchemeGroupVersion.String(),
+			},
 			ObjectMeta: metav1.ObjectMeta{Name: publiKeyRekorClusterImagePolicyName},
-			Spec: configv1alpha1.ClusterImagePolicySpec{
-				Scopes: []configv1alpha1.ImageScope{testSignedPolicyScope},
-				Policy: configv1alpha1.Policy{
-					RootOfTrust: configv1alpha1.PolicyRootOfTrust{
-						PolicyType: configv1alpha1.PublicKeyRootOfTrust,
-						PublicKey: &configv1alpha1.PublicKey{
+			Spec: configv1.ClusterImagePolicySpec{
+				Scopes: []configv1.ImageScope{testSignedPolicyScope},
+				Policy: configv1.Policy{
+					RootOfTrust: configv1.PolicyRootOfTrust{
+						PolicyType: configv1.PublicKeyRootOfTrust,
+						PublicKey: &configv1.PublicKey{
 							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 60l1/qUU0fRATNSCVORCog5PDFo5z0ZLeblWgwbn4c8xpvuo9jQFwpeOsg==
 -----END PUBLIC KEY-----`),
 						},
 					},
-					SignedIdentity: configv1alpha1.PolicyIdentity{
-						MatchPolicy: configv1alpha1.IdentityMatchPolicyMatchRepository,
+					SignedIdentity: &configv1.PolicyIdentity{
+						MatchPolicy: configv1.IdentityMatchPolicyMatchRepository,
 					},
 				},
 			},
@@ -296,41 +327,52 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 	return testClusterImagePolicies
 }
 
-func generateImagePolicies() map[string]configv1alpha1.ImagePolicy {
-	testImagePolicies := map[string]configv1alpha1.ImagePolicy{
+func generateImagePolicies() map[string]configv1.ImagePolicy {
+	testImagePolicies := map[string]configv1.ImagePolicy{
 		invalidPublicKeyImagePolicyName: {
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ImagePolicy",
+				APIVersion: configv1.SchemeGroupVersion.String(),
+			},
 			ObjectMeta: metav1.ObjectMeta{Name: invalidPublicKeyImagePolicyName},
-			Spec: configv1alpha1.ImagePolicySpec{
-				Scopes: []configv1alpha1.ImageScope{testSignedPolicyScope},
-				Policy: configv1alpha1.Policy{
-					RootOfTrust: configv1alpha1.PolicyRootOfTrust{
-						PolicyType: configv1alpha1.PublicKeyRootOfTrust,
-						PublicKey: &configv1alpha1.PublicKey{
-							KeyData: []byte(`LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFVW9GVW9ZQVJlS1hHeTU5eGU1U1FPazJhSjhvKwoyL1l6NVk4R2NOM3pGRTZWaUl2a0duSGhNbEFoWGFYL2JvME05UjYyczAvNnErK1Q3dXdORnVPZzhBPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCgo=`),
+			Spec: configv1.ImagePolicySpec{
+				Scopes: []configv1.ImageScope{testSignedPolicyScope},
+				Policy: configv1.Policy{
+					RootOfTrust: configv1.PolicyRootOfTrust{
+						PolicyType: configv1.PublicKeyRootOfTrust,
+						PublicKey: &configv1.PublicKey{
+							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUoFUoYAReKXGy59xe5SQOk2aJ8o+
+2/Yz5Y8GcN3zFE6ViIvkGnHhMlAhXaX/bo0M9R62s0/6q++T7uwNFuOg8A==
+-----END PUBLIC KEY-----`),
 						},
 					},
-					SignedIdentity: configv1alpha1.PolicyIdentity{
-						MatchPolicy: configv1alpha1.IdentityMatchPolicyMatchRepoDigestOrExact,
+					SignedIdentity: &configv1.PolicyIdentity{
+						MatchPolicy: configv1.IdentityMatchPolicyMatchRepoDigestOrExact,
 					},
 				},
 			},
 		},
 		publiKeyRekorImagePolicyName: {
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ImagePolicy",
+				APIVersion: configv1.SchemeGroupVersion.String(),
+			},
 			ObjectMeta: metav1.ObjectMeta{Name: publiKeyRekorImagePolicyName},
-			Spec: configv1alpha1.ImagePolicySpec{
-				Scopes: []configv1alpha1.ImageScope{testSignedPolicyScope},
-				Policy: configv1alpha1.Policy{
-					RootOfTrust: configv1alpha1.PolicyRootOfTrust{
-						PolicyType: configv1alpha1.PublicKeyRootOfTrust,
-						PublicKey: &configv1alpha1.PublicKey{
+			Spec: configv1.ImagePolicySpec{
+				Scopes: []configv1.ImageScope{testSignedPolicyScope},
+				Policy: configv1.Policy{
+					RootOfTrust: configv1.PolicyRootOfTrust{
+						PolicyType: configv1.PublicKeyRootOfTrust,
+						PublicKey: &configv1.PublicKey{
 							KeyData: []byte(`-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKvZH0CXTk8XQkETuxkzkl3Bi4ms5
 60l1/qUU0fRATNSCVORCog5PDFo5z0ZLeblWgwbn4c8xpvuo9jQFwpeOsg==
 -----END PUBLIC KEY-----`),
 						},
 					},
-					SignedIdentity: configv1alpha1.PolicyIdentity{
-						MatchPolicy: configv1alpha1.IdentityMatchPolicyMatchRepository,
+					SignedIdentity: &configv1.PolicyIdentity{
+						MatchPolicy: configv1.IdentityMatchPolicyMatchRepository,
 					},
 				},
 			},
