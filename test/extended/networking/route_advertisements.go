@@ -385,13 +385,6 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 				var err error
 				var snifferPodsNodes []string
-				// Check if the cluster is in local gateway mode
-				network, err := oc.AdminOperatorClient().OperatorV1().Networks().Get(context.TODO(), "cluster", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig != nil && network.Spec.DefaultNetwork.OVNKubernetesConfig.GatewayConfig.RoutingViaHost && testCUDNTopology == "layer2" {
-					// TODO: unskip once CORENET-5881 is done.
-					skipper.Skipf("Skipping Layer2 UDN advertisements test for local gateway mode")
-				}
 				if testCUDNTopology == "layer2" {
 					// Running the packet sniffer on all nodes in the cluster for Layer2 UDN
 					nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
@@ -469,9 +462,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "deploy", deployName)
 				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "pod", "--all"))
 				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName))
-				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "ra", testCUDNName))
 				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin().WithoutNamespace(), "delete", "clusteruserdefinednetwork", testCUDNName))
 				errors.Join(err, deallocateSubnets(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet))
+				errors.Join(err, runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "ds", packetSnifferDaemonSet.Name, "-n", snifferNamespace))
 				cleanup()
 				return err
 			}
@@ -559,16 +552,21 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 					fromExternalCheck()
 					g.By("removing the secondary network interface from the CUDN VRF")
 					applyNNCP(oc, "extranet", vrfLiteOffNNCP)
+
+					o.Expect(func() error {
+						err := runOcWithRetryIgnoreOutput(oc.AsAdmin(), "delete", "nncp", "extranet")
+						errors.Join(err, afterEach())
+						return err
+					}()).To(o.Succeed())
 				}
 
 				// All VRF-Lite checks for 'vrfLiteCUDNName' need to happen on a
 				// single test (or otherwise we should resort to a serial job)
-				// This test has a long timeout due to its serial nature and also
-				// because of OCPBUGS-56488
-				g.It("Pods should be able to communicate on a secondary network [Timeout:30m]", func() {
+				// This test has a long timeout due to its serial nature, testing both
+				// Layer 3 and Layer 2 topologies serially, and also because of OCPBUGS-56488
+				g.It("Pods should be able to communicate on a secondary network [Timeout:45m]", func() {
 					g.By("testing with a layer 3 CUDN", func() { test("layer3") })
-					// TODO: Add test for layer 2 UDN once CORENET-5881 is done.
-					//g.By("testing with a layer 2 CUDN", func() { test("layer2") })
+					g.By("testing with a layer 2 CUDN", func() { test("layer2") })
 				})
 			})
 		})
