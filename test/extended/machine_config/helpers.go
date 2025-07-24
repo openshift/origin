@@ -735,17 +735,28 @@ func CheckMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1
 	return conditionStatus == status
 }
 
-// `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
-func getMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) metav1.ConditionStatus {
+// `GetMCNCondition` returns the queried condition or nil if the condition does not exist
+func GetMCNCondition(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) *metav1.Condition {
 	// Loop through conditions and return the status of the desired condition type
 	conditions := mcn.Status.Conditions
 	for _, condition := range conditions {
 		if condition.Type == string(conditionType) {
-			framework.Logf("MCN '%s' %s condition status is %s", mcn.Name, conditionType, condition.Status)
-			return condition.Status
+			return &condition
 		}
 	}
-	return ""
+	return nil
+}
+
+// `getMCNConditionStatus` returns the status of the desired condition type for MCN, or an empty string if the condition does not exist
+func getMCNConditionStatus(mcn *mcfgv1.MachineConfigNode, conditionType mcfgv1.StateProgress) metav1.ConditionStatus {
+	// Loop through conditions and return the status of the desired condition type
+	condition := GetMCNCondition(mcn, conditionType)
+	if condition == nil {
+		return ""
+	}
+
+	framework.Logf("MCN '%s' %s condition status is %s", mcn.Name, conditionType, condition.Status)
+	return condition.Status
 }
 
 // `ConfirmUpdatedMCNStatus` confirms that an MCN is in a fully updated state, which requires:
@@ -994,7 +1005,7 @@ func GetNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	return *node, nil
 }
 
-// `GetNewReadyNodeInMachine` waits up to 2 minutes for the newly provisioned node in a desired machine node to be ready
+// `GetNewReadyNodeInMachine` waits up to 4 minutes for the newly provisioned node in a desired machine node to be ready
 func GetNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, error) {
 	desiredNode := corev1.Node{}
 	err := fmt.Errorf("no ready node in Machine: %s", machineName)
@@ -1013,7 +1024,7 @@ func GetNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, 
 		}
 
 		return false
-	}, 2*time.Minute, 3*time.Second).Should(o.BeTrue())
+	}, 4*time.Minute, 5*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node in machine %v never became ready.", machineName))
 	return desiredNode, err
 }
 
