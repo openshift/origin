@@ -130,6 +130,8 @@ github.com/Microsoft/hnslib v0.1.1 h1:JsZy681SnvSOUAfCZVAxkX4LgQGp+CZZwPbLV0/pdF
 github.com/Microsoft/hnslib v0.1.1/go.mod h1:DRQR4IjLae6WHYVhW7uqe44hmFUiNhmaWA+jwMbz5tM=
 github.com/NYTimes/gziphandler v1.1.1 h1:ZUDjpQae29j0ryrS0u/B8HZfJBtBQHjqw2rQ2cqUQ3I=
 github.com/NYTimes/gziphandler v1.1.1/go.mod h1:n/CVRwUEOgIxrgPvAQhUUr9oeUtvrhMomdKFjzJNB0c=
+github.com/Phaow/kubernetes v0.0.0-20250724003926-6fc37f1dbe47 h1:swyyZRc3mG2Ca61YSARfR9SFqffPNihrtmfQqlp68vY=
+github.com/Phaow/kubernetes v0.0.0-20250724003926-6fc37f1dbe47/go.mod h1:GwUMe2E0Dqe2YN/Nkg9QWNBktqiTR7y+HFxcIWKshXI=
 github.com/RangelReale/osincli v0.0.0-20160924135400-fababb0555f2 h1:x8Brv0YNEe6jY3V/hQglIG2nd8g5E2Zj5ubGKkPQctQ=
 github.com/RangelReale/osincli v0.0.0-20160924135400-fababb0555f2/go.mod h1:XyjUkMA8GN+tOOPXvnbi3XuRxWFvTJntqvTFnjmhzbk=
 github.com/ajstarks/deck v0.0.0-20200831202436-30c9fc6549a9/go.mod h1:JynElWSGnm/4RlzPXRlREEwqTHAN3T56Bv2ITsFT3gY=
@@ -626,8 +628,6 @@ github.com/openshift/client-go v0.0.0-20250710075018-396b36f983ee h1:tOtrrxfDEW8
 github.com/openshift/client-go v0.0.0-20250710075018-396b36f983ee/go.mod h1:zhRiYyNMk89llof2qEuGPWPD+joQPhCRUc2IK0SB510=
 github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb h1:Dr0dbSQTAU9UaoAvimGjR+fsvwx2twJ5KR0s/jyAz88=
 github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb/go.mod h1:LnhqxbWhAnhPwilJ4yX1/ly7wCMCYJKkaiSJQSh+Wjg=
-github.com/openshift/kubernetes v1.30.1-0.20250716113245-b94367cabf3e h1:M5BrUTglTltZjcRz5ouJBqSw0a60p760Bl520ndOGS0=
-github.com/openshift/kubernetes v1.30.1-0.20250716113245-b94367cabf3e/go.mod h1:GwUMe2E0Dqe2YN/Nkg9QWNBktqiTR7y+HFxcIWKshXI=
 github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20250716113245-b94367cabf3e h1:Y70IDoOnCCKQT4lIJxx2KkTifLuqD/vjRrzo1DxZ/iw=
 github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20250716113245-b94367cabf3e/go.mod h1:swyY9Vxfl/p3AXSU4Q/mKx42sj30InC4qeKgvc5fZio=
 github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20250716113245-b94367cabf3e h1:8Zix9zo3XUC6pH/jNGpOf7X0+FcRUuDh3mR3ymML8FA=
