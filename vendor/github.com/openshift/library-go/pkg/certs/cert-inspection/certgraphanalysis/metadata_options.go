@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/library-go/pkg/operator/certrotation"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -149,7 +152,40 @@ var (
 			return timestampReg.ReplaceAllString(path, "<timestamp>.pem")
 		},
 	}
+	RewritePrimaryCertBundleSecret = &metadataOptions{
+		rewriteSecretFn: func(secret *corev1.Secret) {
+			if secret.Namespace != "openshift-ingress" || !strings.HasSuffix(secret.Name, "-primary-cert-bundle-secret") {
+				return
+			}
+			hash := strings.TrimSuffix(secret.Name, "-primary-cert-bundle-secret")
+			secret.Name = strings.ReplaceAll(secret.Name, hash, "<hash>")
+		},
+	}
+	RewriteRefreshPeriod = &metadataOptions{
+		rewriteSecretFn: func(secret *corev1.Secret) {
+			humanizeRefreshPeriodFromMetadata(secret.Annotations)
+		},
+		rewriteConfigMapFn: func(configMap *corev1.ConfigMap) {
+			humanizeRefreshPeriodFromMetadata(configMap.Annotations)
+		},
+	}
 )
+
+func humanizeRefreshPeriodFromMetadata(annotations map[string]string) {
+	period, ok := annotations[certrotation.CertificateRefreshPeriodAnnotation]
+	if !ok {
+		return
+	}
+	d, err := time.ParseDuration(period)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse certificate refresh period %q: %v\n", period, err)
+		return
+	}
+	humanReadableDate := durationToHumanReadableString(d)
+	annotations[certrotation.CertificateRefreshPeriodAnnotation] = humanReadableDate
+	annotations[rewritePrefix+"RewriteRefreshPeriod"] = period
+	return
+}
 
 // skipRevisionedInOnDiskLocation returns true if location is for revisioned certificate and needs to be skipped
 func skipRevisionedInOnDiskLocation(location certgraphapi.OnDiskLocation) bool {
@@ -225,4 +261,63 @@ func StripRootFSMountPoint(rootfsMount string) *metadataOptions {
 			return path
 		},
 	}
+}
+
+// durationToHumanReadableString formats a duration into a human-readable string.
+// Unlike Go's built-in `time.Duration.String()`, which returns a string like "72h0m0s", this function returns a more concise format like "3d" or "5d4h25m".
+// Implementation is based on https://github.com/gomodules/sprig/blob/master/date.go#L97-L139,
+// but it doesn't round the duration to the nearest largest value but converts it precisely
+// This function rounds duration to the nearest second and handles negative durations by taking the absolute value.
+func durationToHumanReadableString(d time.Duration) string {
+	if d == 0 {
+		return "0s"
+	}
+	// Handle negative durations by taking the absolute value
+	// This also rounds the duration to the nearest second
+	u := uint64(d.Abs().Seconds())
+
+	var b strings.Builder
+
+	writeUnit := func(value uint64, suffix string) {
+		if value > 0 {
+			b.WriteString(strconv.FormatUint(value, 10))
+			b.WriteString(suffix)
+		}
+	}
+
+	const (
+		// Unit values in seconds
+		year   = 60 * 60 * 24 * 365
+		month  = 60 * 60 * 24 * 30
+		day    = 60 * 60 * 24
+		hour   = 60 * 60
+		minute = 60
+		second = 1
+	)
+
+	years := u / year
+	u %= year
+	writeUnit(years, "y")
+
+	months := u / month
+	u %= month
+	writeUnit(months, "mo")
+
+	days := u / day
+	u %= day
+	writeUnit(days, "d")
+
+	hours := u / hour
+	u %= hour
+	writeUnit(hours, "h")
+
+	minutes := u / minute
+	u %= minute
+	writeUnit(minutes, "m")
+
+	seconds := u / second
+	u %= second
+	writeUnit(seconds, "s")
+
+	return b.String()
 }
