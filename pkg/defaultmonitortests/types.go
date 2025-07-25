@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/authentication/requiredsccmonitortests"
+	admupgradestatus "github.com/openshift/origin/pkg/monitortests/cli/adm_upgrade/status"
 	azuremetrics "github.com/openshift/origin/pkg/monitortests/cloud/azure/metrics"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
@@ -206,6 +207,8 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-namespaces", "Test Framework", watchnamespaces.NewNamespaceWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-test-analyzer", "Test Framework", highcputestanalyzer.NewHighCPUTestAnalyzer())
+
+	monitorTestRegistry.AddMonitorTestOrDie("oc-adm-upgrade-status", "oc / update", admupgradestatus.NewOcAdmUpgradeStatusChecker())
 
 	return monitorTestRegistry
 }
