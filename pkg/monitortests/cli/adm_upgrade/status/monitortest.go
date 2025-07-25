@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -43,6 +44,7 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 	//       how to do pass that to exutil.NewCLI* or if it is even possible. It seems to work this way though.
 	oc := exutil.NewCLIWithoutNamespace("adm-upgrade-status").AsAdmin()
 	now := time.Now()
+	// TODO: Consider retrying on brief apiserver unavailability
 	cmd := oc.Run("adm", "upgrade", "status").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
 	out, err := cmd.Output()
 	ch <- &snapshot{when: now, out: out, err: err}
@@ -77,7 +79,29 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	// The framework cancels the context it gave StartCollection before it calls CollectData, but we need to wait for
 	// the collection goroutines spawned in StartedCollection to finish
 	<-w.collectionDone
-	return nil, nil, nil
+
+	noFailures := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
+	}
+
+	var failures []string
+	for when, observed := range w.ocAdmUpgradeStatus {
+		if observed.err != nil {
+			failures = append(failures, fmt.Sprintf("- %s: %v", when.Format(time.RFC3339), observed.err))
+		}
+	}
+
+	// TODO: Zero failures is too strict for at least SNO clusters
+	if len(failures) > 0 {
+		noFailures.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
+			Output:  strings.Join(failures, "\n"),
+		}
+	}
+
+	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
+
+	return nil, []*junitapi.JUnitTestCase{noFailures}, nil
 }
 
 func (*monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
