@@ -14,6 +14,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	prometheusoperatorv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	prometheusoperatorv1client "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -47,6 +49,80 @@ type ClusterMonitoringConfiguration struct {
 // TelemeterClientConfig is a subset of https://github.com/openshift/cluster-monitoring-operator/blob/8d331d78b22948d36c20da0552763ddd8a4e2093/pkg/manifests/config.go#L335-L342
 type TelemeterClientConfig struct {
 	Enabled *bool `json:"enabled"`
+}
+
+var _ = g.Describe("[sig-instrumentation][Late] OpenShift service monitors [apigroup:image.openshift.io]", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc                         = exutil.NewCLIWithoutNamespace("prometheus")
+		prometheusURL, bearerToken string
+	)
+
+	g.BeforeEach(func(ctx g.SpecContext) {
+		var err error
+		prometheusURL, err = helper.PrometheusRouteURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
+		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
+	})
+
+	g.It("should not be accessible without authorization", func() {
+		var errs []error
+		client, err := prometheusoperatorv1client.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred(), "Create monitoring client")
+
+		g.By("verifying all service monitors are configured with authorization")
+		serviceMonitorList, err := client.ServiceMonitors("").List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "List service monitors")
+
+		for _, sm := range serviceMonitorList.Items {
+			// we do not check service monitors for user-workload-monitoring
+			if !strings.HasPrefix(sm.Namespace, "openshift-") {
+				continue
+			}
+			if !authorizationConfigured(sm) {
+				errs = append(errs, fmt.Errorf("service monitor %s/%s has no authorization", sm.Namespace, sm.Name))
+			}
+		}
+
+		g.By("verifying all targets returns 401 or 403 without authorization")
+		contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		targets := &prometheusTargets{}
+		err = json.Unmarshal([]byte(contents), targets)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, target := range targets.Data.ActiveTargets {
+			ns := target.Labels["namespace"]
+			if !strings.HasPrefix(ns, "openshift-") {
+				continue
+			}
+			err = helper.ExpectURLStatusCodeExecViaPod("openshift-monitoring", "prometheus-k8s-0", target.ScrapeUrl, 401, 403)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("the scaple url %s for namespace %s is accessible without authorization: %w", target.ScrapeUrl, ns, err))
+			}
+		}
+		o.Expect(errs).To(o.BeEmpty())
+	})
+
+})
+
+// authorizationConfigured returns true if the service monitor is configured with authorization
+func authorizationConfigured(sm *prometheusoperatorv1.ServiceMonitor) bool {
+	if sm == nil {
+		return false
+	}
+	for _, e := range sm.Spec.Endpoints {
+		if e.BasicAuth != nil ||
+			e.OAuth2 != nil ||
+			e.Authorization != nil ||
+			e.BearerTokenFile != "" ||
+			e.BearerTokenSecret != nil {
+			return true
+		}
+	}
+	return false
 }
 
 var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
