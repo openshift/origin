@@ -1,9 +1,9 @@
 # Certificate Ownership
 
 ## Table of Contents
-  - [Missing Owners (10)](#Missing-Owners-10)
+  - [Missing Owners (5)](#Missing-Owners-5)
     - [Certificates (2)](#Certificates-2)
-    - [Certificate Authority Bundles (8)](#Certificate-Authority-Bundles-8)
+    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
   - [Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)](#Bare-Metal-Hardware-Provisioning-/-cluster-baremetal-operator-1)
     - [Certificates (1)](#Certificates-1)
   - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
@@ -12,14 +12,14 @@
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [Etcd (1)](#Etcd-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [Image Registry (2)](#Image-Registry-2)
-    - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-  - [Machine Config Operator (5)](#Machine-Config-Operator-5)
-    - [Certificates (2)](#Certificates-2)
-    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
-  - [Monitoring (7)](#Monitoring-7)
-    - [Certificates (3)](#Certificates-3)
+  - [Image Registry (4)](#Image-Registry-4)
     - [Certificate Authority Bundles (4)](#Certificate-Authority-Bundles-4)
+  - [Machine Config Operator (6)](#Machine-Config-Operator-6)
+    - [Certificates (2)](#Certificates-2)
+    - [Certificate Authority Bundles (4)](#Certificate-Authority-Bundles-4)
+  - [Monitoring (10)](#Monitoring-10)
+    - [Certificates (5)](#Certificates-5)
+    - [Certificate Authority Bundles (5)](#Certificate-Authority-Bundles-5)
   - [Networking / cluster-network-operator (41)](#Networking-/-cluster-network-operator-41)
     - [Certificates (8)](#Certificates-8)
     - [Certificate Authority Bundles (33)](#Certificate-Authority-Bundles-33)
@@ -29,28 +29,31 @@
     - [Certificates (2)](#Certificates-2)
   - [RHCOS (2)](#RHCOS-2)
     - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-  - [apiserver-auth (5)](#apiserver-auth-5)
-    - [Certificates (3)](#Certificates-3)
+  - [apiserver-auth (8)](#apiserver-auth-8)
+    - [Certificates (6)](#Certificates-6)
     - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
   - [cluster-network-operator (1)](#cluster-network-operator-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [etcd (31)](#etcd-31)
-    - [Certificates (22)](#Certificates-22)
+  - [etcd (37)](#etcd-37)
+    - [Certificates (28)](#Certificates-28)
     - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-  - [kube-apiserver (46)](#kube-apiserver-46)
-    - [Certificates (25)](#Certificates-25)
+  - [kube-apiserver (49)](#kube-apiserver-49)
+    - [Certificates (28)](#Certificates-28)
     - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
   - [kube-controller-manager (12)](#kube-controller-manager-12)
     - [Certificates (3)](#Certificates-3)
     - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
   - [kube-scheduler (1)](#kube-scheduler-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+  - [openshift-apiserver (4)](#openshift-apiserver-4)
+    - [Certificates (3)](#Certificates-3)
+    - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [service-ca (101)](#service-ca-101)
     - [Certificates (98)](#Certificates-98)
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
-## Missing Owners (10)
+## Missing Owners (5)
 ### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
 
@@ -64,7 +67,7 @@
 
 
 
-### Certificate Authority Bundles (8)
+### Certificate Authority Bundles (3)
 1. ns/kube-system configmap/extension-apiserver-authentication
 
       **Description:** 
@@ -76,37 +79,12 @@
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
       
 
-2. ns/openshift-apiserver configmap/image-import-ca
+2. ns/openshift-config-managed configmap/default-ingress-cert
 
       **Description:** 
       
 
-3. ns/openshift-config-managed configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-4. ns/openshift-config-managed configmap/image-registry-ca
-
-      **Description:** 
-      
-
-5. ns/openshift-config-managed configmap/merged-trusted-image-registry-ca
-
-      **Description:** Created and managed by the machine-config-operator
-      
-
-6. ns/openshift-console configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-7. ns/openshift-image-registry configmap/image-registry-certificates
-
-      **Description:** 
-      
-
-8. ns/openshift-monitoring configmap/metrics-client-ca
+3. ns/openshift-console configmap/default-ingress-cert
 
       **Description:** 
       
@@ -159,9 +137,31 @@
 
 
 
-## Image Registry (2)
-### Certificate Authority Bundles (2)
-1. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
+## Image Registry (4)
+### Certificate Authority Bundles (4)
+1. ns/openshift-config-managed configmap/image-registry-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
+      * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
+      
+
+2. ns/openshift-image-registry configmap/image-registry-certificates
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
+      * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
+      
+
+3. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
 
       **Description:** 
       
@@ -171,7 +171,7 @@
       * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
       
 
-2. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
+4. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
 
       **Description:** 
       
@@ -183,7 +183,7 @@
 
 
 
-## Machine Config Operator (5)
+## Machine Config Operator (6)
 ### Certificates (2)
 1. ns/openshift-machine-config-operator secret/machine-config-server-ca
 
@@ -197,26 +197,31 @@
 
 
 
-### Certificate Authority Bundles (3)
+### Certificate Authority Bundles (4)
 1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
 
       **Description:** 
       
 
-2. ns/openshift-machine-config-operator configmap/machine-config-server-ca
+2. ns/openshift-config-managed configmap/merged-trusted-image-registry-ca
+
+      **Description:** 
+      
+
+3. ns/openshift-machine-config-operator configmap/machine-config-server-ca
 
       **Description:** CA bundle that stores all valid CAs for the MachineConfigServer TLS certificate
       
 
-3. file /etc/kubernetes/ca.crt
+4. file /etc/kubernetes/ca.crt
 
       **Description:** 
       
 
 
 
-## Monitoring (7)
-### Certificates (3)
+## Monitoring (10)
+### Certificates (5)
 1. ns/openshift-monitoring secret/federate-client-certs
 
       **Description:** 
@@ -232,9 +237,19 @@
       **Description:** 
       
 
+4. ns/openshift-monitoring pod/metrics-apiserver-0 (in-memory)
+
+      **Description:** metrics-server loopback connection certificate
+      
+
+5. ns/openshift-monitoring pod/metrics-apiserver-1 (in-memory)
+
+      **Description:** metrics-server loopback connection certificate
+      
 
 
-### Certificate Authority Bundles (4)
+
+### Certificate Authority Bundles (5)
 1. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle
 
       **Description:** 
@@ -245,12 +260,17 @@
       **Description:** 
       
 
-3. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle
+3. ns/openshift-monitoring configmap/metrics-client-ca
 
       **Description:** 
       
 
-4. ns/openshift-monitoring configmap/telemeter-trusted-ca-bundle
+4. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle
+
+      **Description:** 
+      
+
+5. ns/openshift-monitoring configmap/telemeter-trusted-ca-bundle
 
       **Description:** 
       
@@ -521,8 +541,8 @@
 
 
 
-## apiserver-auth (5)
-### Certificates (3)
+## apiserver-auth (8)
+### Certificates (6)
 1. ns/openshift-config secret/webhook-authentication-integrated-oauth
 
       **Description:** 
@@ -536,6 +556,21 @@
 3. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
 
       **Description:** 
+      
+
+4. ns/openshift-authentication pod/oauth-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+5. ns/openshift-authentication pod/oauth-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+6. ns/openshift-authentication pod/oauth-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -562,26 +597,26 @@
 
 
 
-## etcd (31)
-### Certificates (22)
+## etcd (37)
+### Certificates (28)
 1. ns/openshift-apiserver secret/etcd-client
 
-      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
 2. ns/openshift-config secret/etcd-client
 
-      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
 3. ns/openshift-etcd secret/etcd-client
 
-      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
 4. ns/openshift-etcd secret/etcd-metric-client
 
-      **Description:** Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
 5. ns/openshift-etcd secret/etcd-metric-signer
@@ -591,12 +626,12 @@
 
 6. ns/openshift-etcd secret/etcd-peer-\<bootstrap>
 
-      **Description:** Peer (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Peer (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
 7. ns/openshift-etcd secret/etcd-peer-\<master-0>
 
-      **Description:** Peer (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Peer (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -606,7 +641,7 @@
 
 8. ns/openshift-etcd secret/etcd-peer-\<master-1>
 
-      **Description:** Peer (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Peer (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -616,7 +651,7 @@
 
 9. ns/openshift-etcd secret/etcd-peer-\<master-2>
 
-      **Description:** Peer (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Peer (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -624,14 +659,29 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-2>.crt
       
 
-10. ns/openshift-etcd secret/etcd-serving-\<bootstrap>
+10. ns/openshift-etcd secret/etcd-peer-arbiter-0
 
-      **Description:** Serving (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Peer (client and server) certificate for node arbiter-0, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-11. ns/openshift-etcd secret/etcd-serving-\<master-0>
+      Other locations:
 
-      **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-arbiter-0.crt
+      
+
+11. ns/openshift-etcd secret/etcd-peer-qlg8lj33-92bf1-4q7j7bootstrap
+
+      **Description:** Peer (client and server) certificate for node qlg8lj33-92bf1-4q7j7bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
+      
+
+12. ns/openshift-etcd secret/etcd-serving-\<bootstrap>
+
+      **Description:** Serving (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
+      
+
+13. ns/openshift-etcd secret/etcd-serving-\<master-0>
+
+      **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -639,9 +689,9 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-0>.crt
       
 
-12. ns/openshift-etcd secret/etcd-serving-\<master-1>
+14. ns/openshift-etcd secret/etcd-serving-\<master-1>
 
-      **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -649,9 +699,9 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-1>.crt
       
 
-13. ns/openshift-etcd secret/etcd-serving-\<master-2>
+15. ns/openshift-etcd secret/etcd-serving-\<master-2>
 
-      **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -659,14 +709,24 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-2>.crt
       
 
-14. ns/openshift-etcd secret/etcd-serving-metrics-\<bootstrap>
+16. ns/openshift-etcd secret/etcd-serving-arbiter-0
 
-      **Description:** Serving (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Serving (client and server) certificate for node arbiter-0, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-15. ns/openshift-etcd secret/etcd-serving-metrics-\<master-0>
+      Other locations:
 
-      **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-arbiter-0.crt
+      
+
+17. ns/openshift-etcd secret/etcd-serving-metrics-\<bootstrap>
+
+      **Description:** Serving (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
+      
+
+18. ns/openshift-etcd secret/etcd-serving-metrics-\<master-0>
+
+      **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -674,9 +734,9 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-0>.crt
       
 
-16. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
+19. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
 
-      **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -684,9 +744,9 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-1>.crt
       
 
-17. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
+20. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
 
-      **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
       Other locations:
@@ -694,29 +754,49 @@
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-2>.crt
       
 
-18. ns/openshift-etcd secret/etcd-signer
+21. ns/openshift-etcd secret/etcd-serving-metrics-arbiter-0
+
+      **Description:** Serving (client and server) certificate for node arbiter-0, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-arbiter-0.crt
+      
+
+22. ns/openshift-etcd secret/etcd-serving-metrics-qlg8lj33-92bf1-4q7j7bootstrap
+
+      **Description:** Serving (client and server) certificate for node qlg8lj33-92bf1-4q7j7bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
+      
+
+23. ns/openshift-etcd secret/etcd-serving-qlg8lj33-92bf1-4q7j7bootstrap
+
+      **Description:** Serving (client and server) certificate for node qlg8lj33-92bf1-4q7j7bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
+      
+
+24. ns/openshift-etcd secret/etcd-signer
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to sign peer, server and client certificates. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-19. ns/openshift-etcd-operator secret/etcd-client
+25. ns/openshift-etcd-operator secret/etcd-client
 
-      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-20. ns/openshift-etcd-operator secret/etcd-metric-client
+26. ns/openshift-etcd-operator secret/etcd-metric-client
 
-      **Description:** Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-21. ns/openshift-kube-apiserver secret/etcd-client
+27. ns/openshift-kube-apiserver secret/etcd-client
 
-      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-22. ns/openshift-oauth-apiserver secret/etcd-client
+28. ns/openshift-oauth-apiserver secret/etcd-client
 
-      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
 
@@ -814,8 +894,8 @@
 
 
 
-## kube-apiserver (46)
-### Certificates (25)
+## kube-apiserver (49)
+### Certificates (28)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
       **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
@@ -1015,6 +1095,21 @@
 25. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
       **Description:** 
+      
+
+26. ns/openshift-kube-apiserver pod/kube-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+27. ns/openshift-kube-apiserver pod/kube-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+28. ns/openshift-kube-apiserver pod/kube-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -1276,6 +1371,33 @@
 ## kube-scheduler (1)
 ### Certificate Authority Bundles (1)
 1. ns/openshift-kube-scheduler configmap/serviceaccount-ca
+
+      **Description:** 
+      
+
+
+
+## openshift-apiserver (4)
+### Certificates (3)
+1. ns/openshift-apiserver pod/openshift-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+2. ns/openshift-apiserver pod/openshift-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+3. ns/openshift-apiserver pod/openshift-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+
+
+### Certificate Authority Bundles (1)
+1. ns/openshift-apiserver configmap/image-import-ca
 
       **Description:** 
       
