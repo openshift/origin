@@ -231,9 +231,9 @@ func createBinPath(path string) error {
 	return nil
 }
 
-// extractReleaseImageStream extracts image references from the given releaseImage and returns
+// ExtractReleaseImageStream extracts image references from the given releaseImage and returns
 // an ImageStream object with tags associated with image-references from that payload.
-func extractReleaseImageStream(extractPath, releaseImage string,
+func ExtractReleaseImageStream(extractPath, releaseImage string,
 	registryAuthFilePath string) (*imagev1.ImageStream, string, error) {
 
 	if _, err := os.Stat(path.Join(extractPath, "image-references")); err != nil {
@@ -269,37 +269,6 @@ func extractReleaseImageStream(extractPath, releaseImage string,
 	}
 
 	return is, releaseImage, nil
-}
-
-// ExtractImageFromReleasePayload extracts the image pull spec for a specific tag from a release payload.
-// It returns the image pull spec for the specified tag or an error if the tag is not found.
-func ExtractImageFromReleasePayload(releaseImage, imageTag string, oc *util.CLI) (string, error) {
-	// Create a temporary directory for extraction
-	tmpDir, err := os.MkdirTemp("", "release-extract")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temporary directory: %w", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	registryAuthFilePath, err := DetermineRegistryAuthFilePath(tmpDir, oc)
-	if err != nil {
-		return "", fmt.Errorf("failed to determine registry auth file path: %w", err)
-	}
-
-	// Extract the ImageStream from the release payload
-	imageStream, _, err := extractReleaseImageStream(tmpDir, releaseImage, registryAuthFilePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to extract image references from release payload: %w", err)
-	}
-
-	// Find the specified tag in the ImageStream
-	for _, tag := range imageStream.Spec.Tags {
-		if tag.Name == imageTag {
-			return tag.From.Name, nil
-		}
-	}
-
-	return "", fmt.Errorf("image tag %q not found in release payload %q", imageTag, releaseImage)
 }
 
 func DetermineRegistryAuthFilePath(tmpDir string, oc *util.CLI) (string, error) {

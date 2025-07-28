@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/test/extended/util/payload"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -319,7 +320,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 
 	// Extract the openshift-tests image from the release payload
 	oc := exutil.NewCLIForMonitorTest("default")
-	i.openshiftTestsImagePullSpec, err = extensions.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests", oc)
+	i.openshiftTestsImagePullSpec, err = payload.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests", oc)
 	if err != nil {
 		return fmt.Errorf("unable to determine openshift-tests image: %s: %v", i.payloadImagePullSpec, err)
 	}
