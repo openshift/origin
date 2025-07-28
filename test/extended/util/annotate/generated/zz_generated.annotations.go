@@ -1871,6 +1871,20 @@ var Annotations = map[string]string{
 
 	"[sig-node] [Conformance] Prevent openshift node labeling on update by the node TestOpenshiftNodeLabeling": " [Suite:openshift/conformance/parallel/minimal]",
 
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume should fail when image does not exist": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume should handle multiple image volumes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume should succeed if image volume is not existing but unused": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume should succeed with multiple pods and same image on the same node": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume should succeed with pod and pull policy of Always": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume when subPath is used should fail to mount image volume with invalid subPath": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] [FeatureGate:ImageVolume] ImageVolume when subPath is used should handle image volume with subPath": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
