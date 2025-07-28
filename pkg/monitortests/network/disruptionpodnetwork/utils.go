@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/openshift/origin/pkg/test/extensions"
+
 	"io/ioutil"
 	"os"
 	"strings"
@@ -12,7 +12,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/openshift/origin/pkg/test/extensions"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/payload"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -33,7 +35,7 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 	// runImageExtract extracts src from specified image to dst
 
 	// Extract the openshift-tests image from the release payload
-	openshiftTestsImagePullSpec, err := extensions.ExtractImageFromReleasePayload(suggestedPayloadImage, "tests", oc)
+	openshiftTestsImagePullSpec, err := payload.ExtractImageFromReleasePayload(suggestedPayloadImage, "tests", oc)
 	if err != nil {
 		logrus.WithError(err).Errorf("unable to determine openshift-tests image through ExtractImageFromReleasePayload: %v", err)
 		// Now try the wrapper to see if it makes a difference

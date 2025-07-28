@@ -91,7 +91,6 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	deploymentID := uuid.New().String()
 
-	// Skip on ROSA TRT-1869
 	oc := util.NewCLIWithoutNamespace("openshift-tests")
 	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec, oc)
 	if err != nil {
