@@ -490,6 +490,12 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	newDeferringOperatorNodeUpdateTooOftenEventMatcher := newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newDeferringOperatorNodeUpdateTooOftenEventMatcher)
 
+	newAnnotationChangeTooOftenEventMatcher := newAnnotationChangeTooOftenEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newAnnotationChangeTooOftenEventMatcher)
+
+	newSetDesiredConfigTooOftenEventMatcher := newSetDesiredConfigTooOftenEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(newSetDesiredConfigTooOftenEventMatcher)
+
 	newCrioReloadedTooOftenEventMatcher := newCrioReloadedTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newCrioReloadedTooOftenEventMatcher)
 
@@ -1085,6 +1091,46 @@ func newDeferringOperatorNodeUpdateTooOftenEventMatcher(finalIntervals monitorap
 			jira:               "https://issues.redhat.com/browse/OCPBUGS-52260",
 		},
 		allowIfWithinIntervals: DeferringOperatorNodeUpdateIntervals,
+	}
+}
+
+func newAnnotationChangeTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	AnnotationChangeIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
+	})
+	for i := range AnnotationChangeIntervals {
+		AnnotationChangeIntervals[i].To = AnnotationChangeIntervals[i].To.Add(time.Minute * 10)
+		AnnotationChangeIntervals[i].From = AnnotationChangeIntervals[i].From.Add(time.Minute * -10)
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "AnnotationChangeTooOften",
+			messageReasonRegex: regexp.MustCompile(`^AnnotationChange$`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-58376",
+		},
+		allowIfWithinIntervals: AnnotationChangeIntervals,
+	}
+}
+
+func newSetDesiredConfigTooOftenEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	SetDesiredConfigIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.Locator.Keys[monitorapi.LocatorE2ETestKey], "imagepolicy signature validation")
+	})
+	for i := range SetDesiredConfigIntervals {
+		SetDesiredConfigIntervals[i].To = SetDesiredConfigIntervals[i].To.Add(time.Minute * 10)
+		SetDesiredConfigIntervals[i].From = SetDesiredConfigIntervals[i].From.Add(time.Minute * -10)
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "SetDesiredConfigTooOften",
+			messageReasonRegex: regexp.MustCompile(`^SetDesiredConfig$`),
+			jira:               "https://issues.redhat.com/browse/OCPBUGS-58376",
+		},
+		allowIfWithinIntervals: SetDesiredConfigIntervals,
 	}
 }
 
