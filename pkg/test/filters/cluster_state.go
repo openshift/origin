@@ -137,6 +137,18 @@ func (f *ClusterStateFilter) matchTest(name string) bool {
 		return false
 	}
 
+	// SELinux tests marked with [Feature:SELinuxMountReadWriteOncePodOnly] require SELinuxMount feature gate **disabled**.
+	// There is no way how to capture it with [FeatureGate:XYZ].
+	// TODO(jsafrane): once SELinuxMount graduates to GA, remove the tests upstream + remove this check.
+	if strings.Contains(name, "[Feature:SELinuxMountReadWriteOncePodOnly]") {
+		if f.config.EnabledFeatureGates != nil && f.config.EnabledFeatureGates.Has("SELinuxMount") {
+			logrus.WithField("test", name).
+				WithField("enabledFeatureGates", f.config.EnabledFeatureGates.UnsortedList()).
+				Debug("Skipping Feature:SELinuxMountReadWriteOncePodOnly test")
+			return false
+		}
+	}
+
 	// Apply feature gate filtering - keep this last
 	featureGates := []string{}
 	matches = featureGateRegex.FindAllStringSubmatch(name, -1)

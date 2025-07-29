@@ -42,22 +42,23 @@ func TestClusterStateFilter(t *testing.T) {
 
 // Test data for comprehensive cluster state filter testing
 var e2eTestNames = map[string]string{
-	"everyone":              "[Skipped:Wednesday]",
-	"not-gce":               "[Skipped:gce]",
-	"not-aws":               "[Skipped:aws]",
-	"not-sdn":               "[Skipped:Network/OpenShiftSDN]",
-	"not-multitenant":       "[Skipped:Network/OpenShiftSDN/Multitenant]",
-	"online":                "[Skipped:Disconnected]",
-	"ipv4":                  "[Feature:Networking-IPv4]",
-	"ipv6":                  "[Feature:Networking-IPv6]",
-	"dual-stack":            "[Feature:IPv6DualStackAlpha]",
-	"sctp":                  "[Feature:SCTPConnectivity]",
-	"requires-optional-cap": "[Skipped:NoOptionalCapabilities]",
-	"apigroup-apps":         "[apigroup:apps]",
-	"apigroup-missing":      "[apigroup:missing]",
-	"featuregate-enabled":   "[OCPFeatureGate:FeatureA]",
-	"featuregate-missing":   "[OCPFeatureGate:MissingFeature]",
-	"featuregate-disabled":  "[OCPFeatureGate:DisabledFeature]",
+	"everyone":                "[Skipped:Wednesday]",
+	"not-gce":                 "[Skipped:gce]",
+	"not-aws":                 "[Skipped:aws]",
+	"not-sdn":                 "[Skipped:Network/OpenShiftSDN]",
+	"not-multitenant":         "[Skipped:Network/OpenShiftSDN/Multitenant]",
+	"online":                  "[Skipped:Disconnected]",
+	"ipv4":                    "[Feature:Networking-IPv4]",
+	"ipv6":                    "[Feature:Networking-IPv6]",
+	"dual-stack":              "[Feature:IPv6DualStackAlpha]",
+	"sctp":                    "[Feature:SCTPConnectivity]",
+	"requires-optional-cap":   "[Skipped:NoOptionalCapabilities]",
+	"apigroup-apps":           "[apigroup:apps]",
+	"apigroup-missing":        "[apigroup:missing]",
+	"featuregate-enabled":     "[OCPFeatureGate:FeatureA]",
+	"featuregate-missing":     "[OCPFeatureGate:MissingFeature]",
+	"featuregate-disabled":    "[OCPFeatureGate:DisabledFeature]",
+	"selinux-mount-rwop-only": "[Feature:SELinuxMountReadWriteOncePodOnly]",
 }
 
 // Helper function to create test specs from test names
@@ -105,7 +106,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "GCE multitenant",
@@ -120,7 +121,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-aws", "online", "ipv4", "requires-optional-cap"),
+			runTests: sets.New("everyone", "not-aws", "online", "ipv4", "requires-optional-cap", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "simple non-cloud",
@@ -134,7 +135,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
+			runTests: sets.New("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "complex override dual-stack",
@@ -148,7 +149,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv4", "ipv6", "dual-stack", "requires-optional-cap"),
+			runTests: sets.New("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv4", "ipv6", "dual-stack", "requires-optional-cap", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "disconnected",
@@ -163,7 +164,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-gce", "not-aws", "not-sdn", "not-multitenant", "ipv4", "ipv6", "dual-stack", "requires-optional-cap"),
+			runTests: sets.New("everyone", "not-gce", "not-aws", "not-sdn", "not-multitenant", "ipv4", "ipv6", "dual-stack", "requires-optional-cap", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "override network plugin with SCTP",
@@ -178,7 +179,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv6", "sctp", "requires-optional-cap"),
+			runTests: sets.New("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv6", "sctp", "requires-optional-cap", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "no optional capabilities",
@@ -192,7 +193,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				DisabledFeatureGates:      sets.New[string](),
 				APIGroups:                 sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4"),
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "API group filtering",
@@ -205,7 +206,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				EnabledFeatureGates:  sets.New[string](),
 				DisabledFeatureGates: sets.New[string](),
 			},
-			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "apigroup-apps"),
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "apigroup-apps", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "Feature gate filtering",
@@ -218,7 +219,7 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				EnabledFeatureGates:  sets.New("FeatureA", "FeatureB"),
 				DisabledFeatureGates: sets.New("DisabledFeature"),
 			},
-			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing"),
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing", "selinux-mount-rwop-only"),
 		},
 		{
 			name: "Feature gate filtering - only disabled gates",
@@ -231,7 +232,20 @@ func TestClusterStateFilterComprehensive(t *testing.T) {
 				EnabledFeatureGates:  sets.New[string](),
 				DisabledFeatureGates: sets.New("DisabledFeature"),
 			},
-			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing"),
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing", "selinux-mount-rwop-only"),
+		},
+		{
+			name: "SELinuxMountReadWriteOncePodOnly with SELinuxMount enabled",
+			config: &clusterdiscovery.ClusterConfiguration{
+				ProviderName:         "gce",
+				NetworkPlugin:        "OpenShiftSDN",
+				HasIPv4:              true,
+				HasIPv6:              false,
+				APIGroups:            sets.New[string](),
+				EnabledFeatureGates:  sets.New("SELinuxMount"),
+				DisabledFeatureGates: sets.New[string](),
+			},
+			runTests: sets.New("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap", "featuregate-enabled", "featuregate-missing", "featuregate-disabled"),
 		},
 	}
 
