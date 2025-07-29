@@ -287,8 +287,9 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 		for _, machineSet := range machineSets {
 			newestMachine, err := getNewestMachineNameFromMachineSet(dc, machineName(machineSet))
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = markMachineForScaleDown(dc, newestMachine)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Eventually(func() error {
+				return markMachineForScaleDown(dc, newestMachine)
+			}, 3*time.Minute, 5*time.Second).Should(o.Succeed(), "Unable to mark Machine %q for scale down", newestMachine)
 		}
 
 		g.By("scaling the machinesets back to their original size")
