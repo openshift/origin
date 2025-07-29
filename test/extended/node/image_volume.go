@@ -56,11 +56,12 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 		_, err := oc.AdminKubeClient().CoreV1().Pods(f.Namespace.Name).Create(ctx, pod, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Waiting for pod to be ImagePullBackOff")
+		g.By("Waiting for pod to be ErrImagePull or ImagePullBackOff")
 		err = e2epod.WaitForPodCondition(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, "ImagePullBackOff", 60*time.Second, func(pod *v1.Pod) (bool, error) {
 			return len(pod.Status.ContainerStatuses) > 0 &&
-				pod.Status.ContainerStatuses[0].State.Waiting != nil &&
-				pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ImagePullBackOff", nil
+					pod.Status.ContainerStatuses[0].State.Waiting != nil &&
+					(pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ImagePullBackOff" || pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ErrImagePull"),
+				nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
