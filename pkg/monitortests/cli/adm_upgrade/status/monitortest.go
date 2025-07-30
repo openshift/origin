@@ -8,15 +8,16 @@ import (
 	"strings"
 	"time"
 
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/rest"
 )
 
 type snapshot struct {
@@ -28,6 +29,7 @@ type monitor struct {
 	collectionDone     chan struct{}
 	ocAdmUpgradeStatus map[time.Time]*snapshot
 	notSupportedReason error
+	isSNO              bool
 }
 
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
@@ -49,6 +51,16 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 	if isMicroShift {
 		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform MicroShift not supported"}
 		return w.notSupportedReason
+	}
+	clientconfigv1client, err := clientconfigv1.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
+	if ok, err := exutil.IsSingleNode(ctx, clientconfigv1client); err != nil {
+		return fmt.Errorf("unable to determine if cluster is single node: %v", err)
+	} else {
+		w.isSNO = ok
 	}
 	return nil
 }
@@ -115,14 +127,17 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	}
 
 	var failures []string
+	var total int
 	for when, observed := range w.ocAdmUpgradeStatus {
+		total++
 		if observed.err != nil {
 			failures = append(failures, fmt.Sprintf("- %s: %v", when.Format(time.RFC3339), observed.err))
 		}
 	}
 
-	// TODO: Zero failures is too strict for at least SNO clusters
-	if len(failures) > 0 {
+	// Zero failures is too strict for at least SNO clusters
+	p := (len(failures) / total) * 100
+	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
 		noFailures.FailureOutput = &junitapi.FailureOutput{
 			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
 			Output:  strings.Join(failures, "\n"),
