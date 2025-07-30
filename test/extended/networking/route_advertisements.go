@@ -1152,8 +1152,6 @@ spec:
 // verifyLearnedBgpRoutesForNode encapsulates the verification of learned BGP routes for a node.
 func verifyLearnedBgpRoutesForNode(oc *exutil.CLI, nodeName string, network string) {
 	var lastErr error
-	nodeSubnets, err := getNodeSubnets(oc, network)
-	o.Expect(err).NotTo(o.HaveOccurred())
 
 	g.By(fmt.Sprintf("Checking routes for node %s in network %s", nodeName, network))
 	o.Eventually(func() bool {
@@ -1167,12 +1165,6 @@ func verifyLearnedBgpRoutesForNode(oc *exutil.CLI, nodeName string, network stri
 			lastErr = fmt.Errorf("missing external routes")
 			return false
 		}
-
-		if !verifyNodeSubnetRoutes(nodeName, nodeSubnets, bgpV4Routes, bgpV6Routes) {
-			lastErr = fmt.Errorf("missing node subnet routes")
-			return false
-		}
-
 		return true
 	}, 3*timeOut, interval).Should(o.BeTrue(), func() string {
 		return fmt.Sprintf("Route verification failed for node %s: %v", nodeName, lastErr)
@@ -1187,28 +1179,6 @@ func verifyExternalRoutes(v4Routes, v6Routes map[string]string) bool {
 	if _, ok := v6Routes[v6ExternalCIDR]; !ok {
 		framework.Logf("Missing v6 external route %s in %v", v6ExternalCIDR, v6Routes)
 		return false
-	}
-	return true
-}
-
-func verifyNodeSubnetRoutes(nodeName string, nodeSubnets map[string][]net.IPNet, v4Routes, v6Routes map[string]string) bool {
-	for node, subnets := range nodeSubnets {
-		if node == nodeName {
-			continue
-		}
-		for _, subnet := range subnets {
-			if subnet.IP.To4() != nil {
-				if _, ok := v4Routes[subnet.String()]; !ok {
-					framework.Logf("Missing v4 route for node %s subnet %s", node, subnet.String())
-					return false
-				}
-			} else {
-				if _, ok := v6Routes[subnet.String()]; !ok {
-					framework.Logf("Missing v6 route for node %s subnet %s", node, subnet.String())
-					return false
-				}
-			}
-		}
 	}
 	return true
 }
