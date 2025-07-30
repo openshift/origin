@@ -1,13 +1,10 @@
 package disruptioninclusterapiserver
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
 	"net/url"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +12,8 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/test/extensions"
+	"github.com/openshift/origin/test/extended/util/payload"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -304,34 +303,27 @@ func (i *InvariantInClusterDisruption) PrepareCollection(ctx context.Context, ad
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
-	log.Infof("payload image pull spec is %v", i.payloadImagePullSpec)
 	if len(i.payloadImagePullSpec) == 0 {
-		configClient, err := configclient.NewForConfig(adminRESTConfig)
+		i.payloadImagePullSpec, err = extensions.DetermineReleasePayloadImage()
 		if err != nil {
 			return err
 		}
-		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			i.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
+
+		if len(i.payloadImagePullSpec) == 0 {
+			log.Info("unable to determine payloadImagePullSpec")
+			i.notSupportedReason = "no image pull spec specified."
 			return nil
 		}
-		if err != nil {
-			return err
-		}
-		i.payloadImagePullSpec = clusterVersion.Status.History[0].Image
 	}
 
-	// runImageExtract extracts src from specified image to dst
-	cmd := exec.Command("oc", "adm", "release", "info", i.payloadImagePullSpec, "--image-for=tests")
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
-	cmd.Stdout = out
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		i.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
-		return nil
+	log.Infof("payload image pull spec is %s", i.payloadImagePullSpec)
+
+	// Extract the openshift-tests image from the release payload
+	oc := exutil.NewCLIForMonitorTest("default")
+	i.openshiftTestsImagePullSpec, err = payload.ExtractImageFromReleasePayload(i.payloadImagePullSpec, "tests", oc)
+	if err != nil {
+		return fmt.Errorf("unable to determine openshift-tests image: %s: %v", i.payloadImagePullSpec, err)
 	}
-	i.openshiftTestsImagePullSpec = strings.TrimSpace(out.String())
 	log.Infof("openshift-tests image pull spec is %v", i.openshiftTestsImagePullSpec)
 
 	i.adminRESTConfig = adminRESTConfig

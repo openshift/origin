@@ -59,7 +59,7 @@ func NewExternalBinaryProvider(releaseImage, registryAuthfilePath string) (*Exte
 		return nil, errors.WithMessagef(err, "error creating cache path %s", binDir)
 	}
 
-	releasePayloadImageStream, releaseImage, err := extractReleaseImageStream(binDir, releaseImage, registryAuthfilePath)
+	releasePayloadImageStream, releaseImage, err := ExtractReleaseImageStream(binDir, releaseImage, registryAuthfilePath)
 	if err != nil {
 		return nil, errors.WithMessage(err, "couldn't extract release payload image stream")
 	}
