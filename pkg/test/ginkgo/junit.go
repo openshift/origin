@@ -31,6 +31,7 @@ func generateJUnitTestSuiteResults(
 			},
 		},
 	}
+
 	for _, test := range tests {
 		switch {
 		case test.skipped:
@@ -55,25 +56,8 @@ func generateJUnitTestSuiteResults(
 					Output: lastLinesUntil(string(test.testOutputBytes), 100, "fail ["),
 				},
 			})
-		case test.flake:
-			s.NumTests++
-			s.NumFailed++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
-				Name:      test.name,
-				SystemOut: string(test.testOutputBytes),
-				Duration:  test.duration.Seconds(),
-				FailureOutput: &junitapi.FailureOutput{
-					Output: lastLinesUntil(string(test.testOutputBytes), 100, "flake:"),
-				},
-			})
-
-			// also add the successful junit result:
-			s.NumTests++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
-				Name:     test.name,
-				Duration: test.duration.Seconds(),
-			})
 		case test.success:
+			// Only add success entries for non-flaky tests (flaky tests already have success entry added above)
 			s.NumTests++
 			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
 				Name:     test.name,

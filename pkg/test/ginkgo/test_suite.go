@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2/types"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -38,6 +39,26 @@ func extensionTestSpecsToOriginTestCases(specs extensions.ExtensionTestSpecs) ([
 	return tests, nil
 }
 
+type testSuiteResult struct {
+	passed  []*testCase
+	failed  [][]*testCase
+	flaked  [][]*testCase
+	skipped []*testCase
+}
+
+func (r testSuiteResult) allFailuresBlocking() bool {
+	for _, failed := range r.failed {
+		for _, f := range failed {
+			if f.extensionTestResult != nil &&
+				f.extensionTestResult.Lifecycle != "" &&
+				f.extensionTestResult.Lifecycle != extensiontests.LifecycleBlocking {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 type testCase struct {
 	// name is the fully labeled test name as reported by openshift-tests
 	// this is being used for placing tests in buckets, as well as filtering
@@ -65,7 +86,6 @@ type testCase struct {
 	duration        time.Duration
 	testOutputBytes []byte
 
-	flake               bool
 	failed              bool
 	skipped             bool
 	success             bool
@@ -165,10 +185,13 @@ func (s *TestSuite) AddRequiredMatchFunc(matchFn TestMatchFunc) {
 	}
 }
 
-func testNames(tests []*testCase) []string {
+func testNames(tests [][]*testCase) []string {
 	var names []string
 	for _, t := range tests {
-		names = append(names, t.name)
+		if len(t) > 0 {
+			names = append(names, t[0].name)
+			continue
+		}
 	}
 	return names
 }
