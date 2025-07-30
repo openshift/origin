@@ -12,6 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -26,6 +27,7 @@ type snapshot struct {
 type monitor struct {
 	collectionDone     chan struct{}
 	ocAdmUpgradeStatus map[time.Time]*snapshot
+	notSupportedReason error
 }
 
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
@@ -36,6 +38,18 @@ func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
 }
 
 func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform MicroShift not supported"}
+		return w.notSupportedReason
+	}
 	return nil
 }
 
@@ -76,6 +90,10 @@ func (w *monitor) StartCollection(ctx context.Context, adminRESTConfig *rest.Con
 }
 
 func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
+	}
+
 	// The framework cancels the context it gave StartCollection before it calls CollectData, but we need to wait for
 	// the collection goroutines spawned in StartedCollection to finish
 	<-w.collectionDone
@@ -104,11 +122,14 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	return nil, []*junitapi.JUnitTestCase{noFailures}, nil
 }
 
-func (*monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, w.notSupportedReason
 }
 
-func (*monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+func (w *monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
+	}
 	return nil, nil
 }
 
