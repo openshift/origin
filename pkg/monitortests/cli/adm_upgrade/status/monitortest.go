@@ -12,6 +12,8 @@ import (
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -51,6 +53,16 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 	}
 	if isMicroShift {
 		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform MicroShift not supported"}
+		return w.notSupportedReason
+	}
+	controlPlaneNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set{"node-role.kubernetes.io/master": ""}.AsSelector().String(),
+	})
+	if err != nil {
+		return fmt.Errorf("error getting control plane nodes: %v", err)
+	}
+	if len(controlPlaneNodes.Items) == 0 {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform HyperShift not supported"}
 		return w.notSupportedReason
 	}
 	clientconfigv1client, err := clientconfigv1.NewForConfig(adminRESTConfig)
