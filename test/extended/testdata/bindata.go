@@ -58114,7 +58114,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         if (eventInterval.message.reason !== "DisruptionBegan" && eventInterval.message.reason !== "DisruptionSamplerOutageBegan") {
             return false
         }
-        if (eventInterval.source === "Disruption" || eventInterval.source === "DisruptionLocalhost") {
+        if (eventInterval.source === "Disruption") {
             return true
         }
         if (eventInterval.locator.keys["namespace"] === "e2e-k8s-service-lb-available") {
