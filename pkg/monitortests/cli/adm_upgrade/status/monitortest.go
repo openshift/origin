@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -161,11 +162,15 @@ func (w *monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, fin
 }
 
 func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	folderPath := path.Join(storageDir, "adm-upgrade-status")
+	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+		return fmt.Errorf("unable to create directory %s: %w", folderPath, err)
+	}
+
 	var errs []error
 	for when, observed := range w.ocAdmUpgradeStatus {
-		// TODO: Maybe make a directory for these files
 		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", when, timeSuffix)
-		outputFile := filepath.Join(storageDir, outputFilename)
+		outputFile := filepath.Join(folderPath, outputFilename)
 		if err := os.WriteFile(outputFile, []byte(observed.out), 0644); err != nil {
 			errs = append(errs, fmt.Errorf("failed to write %s: %w", outputFile, err))
 		}
