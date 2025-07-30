@@ -58,6 +58,13 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 		return err
 	}
 
+	if ok, err := exutil.IsHypershift(ctx, clientconfigv1client); err != nil {
+		return fmt.Errorf("unable to determine if cluster is Hypershift: %v", err)
+	} else if ok {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform Hypershift not supported"}
+		return w.notSupportedReason
+	}
+
 	if ok, err := exutil.IsSingleNode(ctx, clientconfigv1client); err != nil {
 		return fmt.Errorf("unable to determine if cluster is single node: %v", err)
 	} else {
