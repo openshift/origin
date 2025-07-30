@@ -57,7 +57,8 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting for pod to be ErrImagePull or ImagePullBackOff")
-		err = e2epod.WaitForPodCondition(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, "ImagePullBackOff", 60*time.Second, func(pod *v1.Pod) (bool, error) {
+		// wait for 5 mins so that the pod in metal-ovn-two-node-arbiter-ipv6-techpreview can become ImagePullBackOff.
+		err = e2epod.WaitForPodCondition(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, "ImagePullBackOff", 5*time.Minute, func(pod *v1.Pod) (bool, error) {
 			return len(pod.Status.ContainerStatuses) > 0 &&
 					pod.Status.ContainerStatuses[0].State.Waiting != nil &&
 					(pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ImagePullBackOff" || pod.Status.ContainerStatuses[0].State.Waiting.Reason == "ErrImagePull"),
