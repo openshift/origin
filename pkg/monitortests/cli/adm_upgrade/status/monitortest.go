@@ -58,9 +58,21 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 	//       how to do pass that to exutil.NewCLI* or if it is even possible. It seems to work this way though.
 	oc := exutil.NewCLIWithoutNamespace("adm-upgrade-status").AsAdmin()
 	now := time.Now()
-	// TODO: Consider retrying on brief apiserver unavailability
-	cmd := oc.Run("adm", "upgrade", "status").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
-	out, err := cmd.Output()
+
+	var out string
+	var err error
+	// retry on brief apiserver unavailability
+	if errWait := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
+		cmd := oc.Run("adm", "upgrade", "status").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
+		out, err = cmd.Output()
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	}); errWait != nil {
+		out = ""
+		err = errWait
+	}
 	ch <- &snapshot{when: now, out: out, err: err}
 }
 
