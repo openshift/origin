@@ -336,7 +336,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			return nil
 		}
 
-		setupTestPods := func(config *testConfig, isHostNetwork bool) error {
+		setupTestPods := func(config *testConfig, isSrcPingPodInHostNetwork, isDstPingPodInHostNetwork bool) error {
 			tcpdumpImage, err := exutil.DetermineImageFromRelease(context.TODO(), oc, "network-tools")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			createSync := errgroup.Group{}
@@ -348,7 +348,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 				srcPingPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-srcpod-", func(p *corev1.Pod) {
 					p.Spec.NodeName = config.srcNodeConfig.nodeName
-					p.Spec.HostNetwork = isHostNetwork
+					p.Spec.HostNetwork = isSrcPingPodInHostNetwork
 				})
 				config.srcNodeConfig.pingPod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), srcPingPod.Name, metav1.GetOptions{})
 				return err
@@ -361,7 +361,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 				dstPingPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-dstpod-", func(p *corev1.Pod) {
 					p.Spec.NodeName = config.dstNodeConfig.nodeName
-					p.Spec.HostNetwork = isHostNetwork
+					p.Spec.HostNetwork = isDstPingPodInHostNetwork
 				})
 				config.dstNodeConfig.pingPod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), dstPingPod.Name, metav1.GetOptions{})
 				return err
@@ -388,7 +388,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 		checkForGeneveOnlyPodTraffic := func(config *testConfig) {
 			g.GinkgoHelper()
-			err := setupTestPods(config, false)
+			err := setupTestPods(config, false, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
 				// Don't cleanup test pods in error scenario.
@@ -410,7 +410,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 		checkForESPOnlyPodTraffic := func(config *testConfig) {
 			g.GinkgoHelper()
-			err := setupTestPods(config, false)
+			err := setupTestPods(config, false, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
 				// Don't cleanup test pods in error scenario.
@@ -430,7 +430,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 		checkForNATTOnlyPodTraffic := func(config *testConfig) {
 			g.GinkgoHelper()
-			err := setupTestPods(config, false)
+			err := setupTestPods(config, false, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
 				// Don't cleanup test pods in error scenario.
@@ -461,7 +461,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 		checkNodeTraffic := func(mode v1.IPsecMode) {
 			g.GinkgoHelper()
-			err := setupTestPods(config, true)
+			err := setupTestPods(config, true, true)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
 				// Don't cleanup test pods in error scenario.
@@ -471,6 +471,30 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				cleanupTestPods(config)
 			}()
 			if mode == v1.IPsecModeFull || mode == v1.IPsecModeExternal {
+				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, esp)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
+				o.Expect(err).To(o.HaveOccurred())
+				err = nil
+				return
+			} else {
+				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+		}
+
+		checkPodToNodeTraffic := func(mode v1.IPsecMode) {
+			g.GinkgoHelper()
+			err := setupTestPods(config, false, true)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() {
+				// Don't cleanup test pods in error scenario.
+				if err != nil && !framework.TestContext.DeleteNamespaceOnFailure {
+					return
+				}
+				cleanupTestPods(config)
+			}()
+			if mode == v1.IPsecModeExternal {
 				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, esp)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
@@ -617,8 +641,10 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 			g.By("validate traffic before changing IPsec configuration")
 			checkPodTraffic(config.ipsecCfg)
-			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
+			// N/S ipsec config is not in effect yet, so node to node and pod to node traffic behave
+			// as it were disabled
 			checkNodeTraffic(v1.IPsecModeDisabled)
+			checkPodToNodeTraffic(v1.IPsecModeDisabled)
 
 			// TODO: remove this block when https://issues.redhat.com/browse/RHEL-67307 is fixed.
 			if config.ipsecCfg.mode == v1.IPsecModeFull {
@@ -653,6 +679,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			checkPodTraffic(&ipsecConfig{mode: v1.IPsecModeFull,
 				encap: v1.Encapsulation(v1.EncapsulationAuto)})
 			checkNodeTraffic(v1.IPsecModeExternal)
+			checkPodToNodeTraffic(v1.IPsecModeExternal)
 		})
 	})
 })
