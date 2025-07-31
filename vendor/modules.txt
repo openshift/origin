@@ -859,6 +859,7 @@ github.com/openshift-kni/commatrix/pkg/client
 github.com/openshift-kni/commatrix/pkg/commatrix-creator
 github.com/openshift-kni/commatrix/pkg/consts
 github.com/openshift-kni/commatrix/pkg/endpointslices
+github.com/openshift-kni/commatrix/pkg/listening-sockets
 github.com/openshift-kni/commatrix/pkg/matrix-diff
 github.com/openshift-kni/commatrix/pkg/types
 github.com/openshift-kni/commatrix/pkg/utils
