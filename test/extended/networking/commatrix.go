@@ -58,6 +58,28 @@ var staticOpenPortsToIgnore = []types.ComDetails{
 		Container: "metal3-baremetal-operator",
 		Optional:  false,
 	},
+	{
+		Direction: "Ingress",
+		Protocol:  "TCP",
+		Port:      4194,
+		NodeRole:  workerNodeRole,
+		Service:   "kubelet",
+		Namespace: "kube-system",
+		Pod:       "konnectivity-agent",
+		Container: "",
+		Optional:  false,
+	},
+	{
+		Direction: "Ingress",
+		Protocol:  "TCP",
+		Port:      10255,
+		NodeRole:  workerNodeRole,
+		Service:   "kubelet",
+		Namespace: "kube-system",
+		Pod:       "konnectivity-agent",
+		Container: "",
+		Optional:  false,
+	},
 }
 
 var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
