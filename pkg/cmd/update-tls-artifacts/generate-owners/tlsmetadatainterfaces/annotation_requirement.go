@@ -220,10 +220,13 @@ func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInf
 func GetCertKeyPairInfo(certKeyPair certgraphapi.PKIRegistryCertKeyPair) *certgraphapi.PKIRegistryCertKeyPairInfo {
 	var certKeyInfo *certgraphapi.PKIRegistryCertKeyPairInfo
 	if certKeyPair.InClusterLocation != nil {
-		certKeyInfo = &certKeyPair.InClusterLocation.CertKeyInfo
+		return &certKeyPair.InClusterLocation.CertKeyInfo
 	}
 	if certKeyPair.OnDiskLocation != nil {
-		certKeyInfo = &certKeyPair.OnDiskLocation.CertKeyInfo
+		return &certKeyPair.OnDiskLocation.CertKeyInfo
+	}
+	if certKeyPair.InMemoryPodLocation != nil {
+		return &certKeyPair.InMemoryPodLocation.CertKeyInfo
 	}
 	return certKeyInfo
 }
@@ -231,10 +234,10 @@ func GetCertKeyPairInfo(certKeyPair certgraphapi.PKIRegistryCertKeyPair) *certgr
 func GetCABundleInfo(caBundle certgraphapi.PKIRegistryCABundle) *certgraphapi.PKIRegistryCertificateAuthorityInfo {
 	var caBundleInfo *certgraphapi.PKIRegistryCertificateAuthorityInfo
 	if caBundle.InClusterLocation != nil {
-		caBundleInfo = &caBundle.InClusterLocation.CABundleInfo
+		return &caBundle.InClusterLocation.CABundleInfo
 	}
 	if caBundle.OnDiskLocation != nil {
-		caBundleInfo = &caBundle.OnDiskLocation.CABundleInfo
+		return &caBundle.OnDiskLocation.CABundleInfo
 	}
 	return caBundleInfo
 }
