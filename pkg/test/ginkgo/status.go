@@ -43,21 +43,54 @@ func (s *testSuiteProgress) TestEnded(testName string, testRunResult *testRunRes
 	}
 }
 
-func summarizeTests(tests []*testCase) (int, int, int, []*testCase) {
-	var pass, fail, skip int
-	var failingTests []*testCase
+func summarizeTests(tests []*testCase) *testSuiteResult {
+	result := &testSuiteResult{}
+
+	// Track results by test name to detect flakes
+	testResults := make(map[string]struct {
+		hasSuccess bool
+		hasFailure bool
+		testCases  []*testCase
+	})
+
+	// Collect all results by test name
 	for _, t := range tests {
+		testResult := testResults[t.name]
+		testResult.testCases = append(testResult.testCases, t)
+
 		switch {
 		case t.success:
-			pass++
+			testResult.hasSuccess = true
 		case t.failed:
-			fail++
-			failingTests = append(failingTests, t)
+			testResult.hasFailure = true
 		case t.skipped:
-			skip++
+			result.skipped = append(result.skipped, t)
+		}
+
+		testResults[t.name] = testResult
+	}
+
+	// Categorize tests based on their overall result
+	for _, testResult := range testResults {
+		if testResult.hasFailure && testResult.hasSuccess {
+			// Test has both successes and failures - it's a flake
+			result.flaked = append(result.flaked, testResult.testCases)
+		} else if testResult.hasFailure {
+			// Test only has failures - it's a hard failure
+			// Add all failed test cases to maintain the list for detailed reporting
+			result.failed = append(result.failed, testResult.testCases)
+		} else if testResult.hasSuccess {
+			// Test only has successes - it's a pass
+			// Add all successful test cases (there should only be 1)
+			for _, tc := range testResult.testCases {
+				if tc.success {
+					result.passed = append(result.passed, tc)
+				}
+			}
 		}
 	}
-	return pass, fail, skip, failingTests
+
+	return result
 }
 
 func sortedTests(tests []*testCase) []*testCase {

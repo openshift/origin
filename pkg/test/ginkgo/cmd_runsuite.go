@@ -145,9 +145,13 @@ func max(a, b int) int {
 	return b
 }
 
+// permittedRetryImageTags defines which image tags are allowed for test retries
+// Don't add more here without discussion with OCP architects, we should be moving towards not having any flakes
+var permittedRetryImageTags = []string{"tests"} // tests = openshift-tests image
+
 // shouldRetryTest determines if a failed test should be retried based on retry policies.
 // It returns true if the test is eligible for retry, false otherwise.
-func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTags []string) bool {
+func shouldRetryTest(ctx context.Context, test *testCase) bool {
 	// Internal tests (no binary) are eligible for retry, we shouldn't really have any of these
 	// now that origin is also an extension.
 	if test.binary == nil {
@@ -176,6 +180,21 @@ func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTag
 	tlog.WithField("image", info.Source.SourceImage).
 		Debug("Test not eligible for retry based on image tag")
 	return false
+}
+
+// getRetriableTestCases takes a slice of test cases and returns copies of the retriable ones
+// according to image tag rules.
+func getRetriableTestCases(ctx context.Context, tests []*testCase) []*testCase {
+	var retries []*testCase
+
+	for _, test := range tests {
+		if shouldRetryTest(ctx, test) {
+			retry := test.Retry()
+			retries = append(retries, retry)
+		}
+	}
+
+	return retries
 }
 
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
@@ -506,7 +525,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	}
 
 	// calculate the effective test set we ran, excluding any incompletes
-	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.flake || t.failed || t.skipped })
+	tests, _ = splitTests(tests, func(t *testCase) bool { return t.success || t.failed || t.skipped })
 
 	end := time.Now()
 	duration := end.Sub(start).Round(time.Second / 10)
@@ -514,64 +533,23 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		duration = duration.Round(time.Second)
 	}
 
-	pass, fail, skip, failing := summarizeTests(tests)
-
-	// Determine if we should retry any tests for flake detection
-	// Don't add more here without discussion with OCP architects, we should be moving towards not having any flakes
-	permittedRetryImageTags := []string{"tests"} // tests = openshift-tests image
-	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
-		var retries []*testCase
-
-		failedUnretriableTestCount := 0
-		for _, test := range failing {
-			if shouldRetryTest(ctx, test, permittedRetryImageTags) {
-				retry := test.Retry()
-				retries = append(retries, retry)
-				if len(retries) > suite.MaximumAllowedFlakes {
-					break
-				}
-			} else if test.binary != nil {
-				// Do not retry extension tests -- we also want to remove retries from origin-sourced
-				// tests, but extensions is where we can start.
-				failedUnretriableTestCount++
-			}
-		}
-
-		logrus.Warningf("%d tests failed, %d tests permitted to be retried; %d failures are terminal non-retryable failures", len(failing), len(retries), failedUnretriableTestCount)
+	retries := getRetriableTestCases(ctx, tests)
+	if len(retries) <= suite.MaximumAllowedFlakes {
+		logrus.Warningf("%d failed tests to be retried", len(retries))
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
 		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
 
-		var flaky, skipped []string
-		var repeatFailures []*testCase
-		for _, test := range retries {
-			if test.success {
-				flaky = append(flaky, test.name)
-			} else if test.skipped {
-				skipped = append(skipped, test.name)
-			} else {
-				repeatFailures = append(repeatFailures, test)
-			}
-		}
-
-		// Add the list of retries into the list of all tests.
+		// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
+		// we need to remove the failure case
+		var skipped []string
 		for _, retry := range retries {
-			if retry.flake {
-				// Retry tests that flaked are omitted so that the original test is counted as a failure.
-				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
-				continue
+			if retry.skipped {
+				skipped = append(skipped, retry.name)
 			}
-			tests = append(tests, retry)
-		}
-		if len(flaky) > 0 {
-			failing = repeatFailures
-			sort.Strings(flaky)
-			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
 		}
 		if len(skipped) > 0 {
-			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
-			// we need to remove the failure case.
 			var withoutPreconditionFailures []*testCase
 		testLoop:
 			for _, t := range tests {
@@ -583,12 +561,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 				}
 			}
 			tests = withoutPreconditionFailures
-			failing = repeatFailures
 			sort.Strings(skipped)
 			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
-
 		}
+
+		// Append our retry results to the final set
+		tests = append(tests, retries...)
 	}
+
+	// Calculate test results after retries
+	result := summarizeTests(tests)
+	pass, fail, skip, flake := len(result.passed), len(result.failed), len(result.skipped), len(result.flaked)
+	logrus.Infof("%d pass, %d fail, %d skip, %d flake", pass, fail, skip, flake)
 
 	// monitor the cluster while the tests are running and report any detected anomalies
 	var syntheticTestResults []*junitapi.JUnitTestCase
@@ -660,10 +644,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		wasMasterNodeUpdated = clusterinfo.WasMasterNodeUpdated(events)
 	}
 
-	// report the outcome of the test
-	if len(failing) > 0 {
-		names := sets.NewString(testNames(failing)...).List()
-		fmt.Fprintf(o.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
+	if len(result.flaked) > 0 {
+		logrus.Infof("Flaky tests: %v", strings.Join(testNames(result.flaked), "\n"))
+	}
+	if len(result.failed) > 0 {
+		logrus.Infof("Failing tests: %v", strings.Join(testNames(result.failed), "\n"))
 	}
 
 	if len(o.JUnitDir) > 0 {
@@ -681,11 +666,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 	}
 
-	if fail > 0 {
-		if len(failing) > 0 || suite.MaximumAllowedFlakes == 0 {
-			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
-		}
-		fmt.Fprintf(o.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
+	// Check for hard failures first - these always cause suite failure
+	if fail > 0 && result.allFailuresBlocking() {
+		logrus.Errorf("Suite failing due to %d hard failures", fail)
+		return fmt.Errorf("%d fail, %d pass, %d skip, %d flake (%s)", fail, pass, skip, flake, duration)
+	} else if fail > 0 {
+		logrus.Warningf("All %d test failures are not blocking", fail)
+	}
+
+	// Check for flakes - these only cause failure if MaximumAllowedFlakes is 0
+	if flake > 0 && suite.MaximumAllowedFlakes == 0 {
+		logrus.Errorf("Suite failing because MaximumAllowedFlakes is 0 but %d tests flaked", flake)
+		return fmt.Errorf("%d flake, %d pass, %d skip (%s)", flake, pass, skip, duration)
 	}
 
 	if syntheticFailure {
@@ -695,7 +687,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return fmt.Errorf("failed due to a MonitorTest failure")
 	}
 
-	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
+	if flake > 0 {
+		fmt.Fprintf(o.Out, "%d pass, %d skip, %d flake (%s)\n", pass, skip, flake, duration)
+	} else {
+		fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
+	}
 	return ctx.Err()
 }
 

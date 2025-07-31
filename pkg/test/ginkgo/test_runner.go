@@ -78,38 +78,27 @@ func mutateTestCaseWithResults(test *testCase, testRunResult *testRunResultHandl
 	test.extensionTestResult = testRunResult.extensionTestResult
 
 	switch testRunResult.testState {
-	case TestFlaked:
-		test.flake = true
-		test.failed = false
-		test.skipped = false
-		test.success = false
-		test.timedOut = false
 	case TestSucceeded:
-		test.flake = false
 		test.failed = false
 		test.skipped = false
 		test.success = true
 		test.timedOut = false
 	case TestSkipped:
-		test.flake = false
 		test.failed = false
 		test.skipped = true
 		test.success = false
 		test.timedOut = false
 	case TestFailed:
-		test.flake = false
 		test.failed = true
 		test.skipped = false
 		test.success = false
 		test.timedOut = false
 	case TestFailedTimeout:
-		test.flake = false
 		test.failed = true
 		test.skipped = false
 		test.success = false
 		test.timedOut = true
 	case TestUnknown:
-		test.flake = false
 		test.failed = true
 		test.skipped = false
 		test.success = false
@@ -161,7 +150,6 @@ const (
 	TestSucceeded     TestState = "Success"
 	TestFailed        TestState = "Failed"
 	TestFailedTimeout TestState = "TimedOut"
-	TestFlaked        TestState = "Flaked"
 	TestSkipped       TestState = "Skipped"
 	TestUnknown       TestState = "Unknown"
 )
@@ -169,8 +157,6 @@ const (
 func isTestFailed(testState TestState) bool {
 	switch testState {
 	case TestSucceeded:
-		return false
-	case TestFlaked:
 		return false
 	case TestSkipped:
 		return false
@@ -223,10 +209,6 @@ func recordTestResultInLogWithoutOverlap(testRunResult *testRunResultHandle, tes
 func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, includeSuccessfulOutput bool) {
 	// output the status of the test
 	switch testRunResult.testState {
-	case TestFlaked:
-		out.Write(testRunResult.testOutputBytes)
-		fmt.Fprintln(out)
-		fmt.Fprintf(out, "flaked: (%s) %s %q\n\n", testRunResult.duration(), testRunResult.end.UTC().Format("2006-01-02T15:04:05"), testRunResult.name)
 	case TestSucceeded:
 		if includeSuccessfulOutput {
 			out.Write(testRunResult.testOutputBytes)
@@ -262,9 +244,6 @@ func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecord
 	msg := monitorapi.NewMessage().HumanMessage("e2e test finished")
 
 	switch testRunResult.testState {
-	case TestFlaked:
-		eventLevel = monitorapi.Error
-		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Flaked")
 	case TestSucceeded:
 		eventLevel = monitorapi.Info
 		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Passed")
