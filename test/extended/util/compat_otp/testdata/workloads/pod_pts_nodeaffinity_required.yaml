@@ -1,0 +1,53 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-pts-nodeaffinity-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      "${LABELKEY}": "${LABELVALUE}"
+  spec:
+    topologySpreadConstraints:
+    - maxSkew: ${{SKEWNUM}}
+      topologyKey: "${PTSKEYNAME}"
+      whenUnsatisfiable: "${PTSPOLICY}"
+      labelSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+    - maxSkew: ${{SKEWNUM2}}
+      topologyKey: "${PTSKEY2NAME}"
+      whenUnsatisfiable: "${PTSPOLICY2}"
+      labelSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+    affinity:
+     "${AFFINITYMETHOD}":
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: "${KEYNAME}"
+            operator: "${OPERATORNAME}"
+            values:
+            - "${VALUENAME}"
+    containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+      name: hello-pod
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+- name: PTSKEYNAME
+- name: PTSPOLICY
+- name: SKEWNUM
+- name: PTSKEY2NAME
+- name: PTSPOLICY2
+- name: SKEWNUM2
+- name: AFFINITYMETHOD
+- name: OPERATORNAME
+- name: VALUENAME
+- name: KEYNAME

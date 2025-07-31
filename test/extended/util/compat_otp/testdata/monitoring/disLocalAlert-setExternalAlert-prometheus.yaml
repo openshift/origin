@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    alertmanagerMain:
+      enabled: false
+    enableUserWorkload: true
+    prometheusK8s:
+      additionalAlertmanagerConfigs:
+      - scheme: http
+        pathPrefix: /
+        timeout: 30s
+        apiVersion: v2
+        staticConfigs:
+        - alertmanager-operated.openshift-user-workload-monitoring.svc:9093

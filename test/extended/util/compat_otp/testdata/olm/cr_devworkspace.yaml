@@ -1,0 +1,8 @@
+kind: DevWorkspace
+apiVersion: workspace.devfile.io/v1alpha2
+metadata:
+  name: empty-devworkspace
+spec:
+  started: true
+  template: {}
+

@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-hpa-demo-deployment
+spec:
+  selector:
+    matchLabels:
+      run: keda-hpa-demo-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: keda-hpa-demo-deployment
+    spec:
+      containers:
+      - name: keda-hpa-demo-deployment
+        image: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: 256Mi
+          limits:
+            memory: 512Mi

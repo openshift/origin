@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+ labels:
+   app: yy-policy-engine
+ name: yy-policy-engine
+spec:
+ ipFamilies:
+ - IPv6
+ ipFamilyPolicy: SingleStack
+ ports:
+ - name: policy-engine
+   port: 80
+   protocol: TCP
+   targetPort: 8081
+ - name: status-pe
+   port: 9081
+   protocol: TCP
+   targetPort: 9081
+ selector:
+   deployment: service
+ sessionAffinity: None
+ type: ClusterIP

@@ -1,0 +1,16 @@
+kind: DeleteImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+delete:
+  additionalImages:
+  - name: registry.redhat.io/ubi8/ubi:latest                        
+  - name: quay.io/openshifttest/hello-openshift@sha256:61b8f5e1a3b5dbd9e2c35fd448dc5106337d7a299873dd3a6f0cd8d4891ecc27
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.15
+    packages:
+    - name: devworkspace-operator  
+  platform:
+    architectures:
+      - "s390x"
+    channels:
+    - name: stable-4.15
+      type: ocp

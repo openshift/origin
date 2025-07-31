@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: usb-extension
+objects:
+  - kind: MachineConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: "${POOL}"
+      name: "${NAME}"
+    spec:
+      config:
+        ignition:
+          version: 3.2.0
+      extensions:
+      - usbguard
+      - kerberos
+      - kernel-devel
+      - sandboxed-containers
+      - ipsec
+      - wasm
+      - sysstat
+parameters:
+  - name: NAME
+  - name: POOL
+

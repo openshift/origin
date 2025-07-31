@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: stdalonerc
+spec:
+  replicas: 1
+  selector:
+    name: stdalonerc
+  template:
+    metadata:
+      labels:
+        name: stdalonerc
+    spec:
+      containers:
+        - args:
+            - start
+            - master
+            - --config=/config/master-config.yaml
+          image: "quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c"
+          name: origin
+          ports:
+            - containerPort: 8443
+              name: openshift
+          volumeMounts:
+            - mountPath: /config
+              name: config
+              readOnly: true
+      volumes:
+        - name: config
+          secret:
+            secretName: mysecret

@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterresourequotaremplate
+objects:
+  - apiVersion: quota.openshift.io/v1
+    kind: ClusterResourceQuota
+    metadata:
+      name: "${NAME}"
+    spec:
+      quota:
+        hard:
+          pods: "${{PODS_LIMIT}}"
+          secrets: "${{SECRETS_LIMIT}}"
+          cpu: "${{CPU_LIMIT}}"
+          memory: "${MEMORY_LIMIT}"
+          requests.cpu: "${{REQUESTS_CPU}}"
+          requests.memory: "${REQUEST_MEMORY}"
+          limits.cpu: "${{LIMITS_CPU}}"
+          limits.memory: "${LIMITS_MEMORY}"
+          configmaps: "${{CONFIGMAPS_LIMIT}}"
+          count/templates.template.openshift.io: "${{TEMPLATE_COUNT}}"
+          count/servicemonitors.monitoring.coreos.com: "${{SERVICE_MONITOR}}"
+          count/deployments.apps: "${{DEPLOYMENT}}"
+      selector:
+        labels:
+          matchLabels:
+            kubernetes.io/metadata.name: "${LABEL}"
+parameters:
+  - name: NAME
+  - name: LABEL
+  - name: PODS_LIMIT
+  - name: SECRETS_LIMIT
+  - name: CPU_LIMIT
+  - name: MEMORY_LIMIT
+  - name: REQUESTS_CPU
+  - name: REQUEST_MEMORY
+  - name: LIMITS_CPU
+  - name: LIMITS_MEMORY
+  - name: CONFIGMAPS_LIMIT
+  - name: TEMPLATE_COUNT
+  - name: SERVICE_MONITOR
+  - name: DEPLOYMENT

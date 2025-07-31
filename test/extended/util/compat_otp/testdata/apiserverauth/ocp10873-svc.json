@@ -1,0 +1,26 @@
+{
+  "kind": "Service",
+  "apiVersion": "v1",
+  "metadata": {
+    "annotations": {
+      "service.beta.openshift.io/serving-cert-secret-name": "ssl-key"
+    },
+    "labels": {
+      "name": "hello"
+    },
+    "name": "hello"
+  },
+  "spec": {
+    "ports": [
+      {
+        "name": "https",
+        "protocol": "TCP",
+        "port": 443,
+        "targetPort": 8443
+      }
+    ],
+    "selector": {
+      "name": "web-server-rc"
+    }
+  }
+}

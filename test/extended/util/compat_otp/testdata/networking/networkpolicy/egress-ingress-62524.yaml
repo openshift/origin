@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-ingress-62524.test
+spec:
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          team: openshift-networking
+      podSelector:
+        matchLabels:
+          name: hello-pod
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          team: openshift-networking
+      podSelector:
+        matchLabels:
+          name: test-pods
+  podSelector:
+    matchLabels:
+      name: test-pods
+  policyTypes:
+  - Ingress
+  - Egress

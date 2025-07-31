@@ -1,0 +1,41 @@
+# © Broadcom. All Rights Reserved.
+# The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: Apache-2.0
+
+# --- Builder Stage ---
+# Uses the official Go Docker image for the build.
+
+ARG GO_VERSION
+FROM golang:${GO_VERSION} AS build
+WORKDIR /go/src/app
+
+ENV USER=appuser
+ENV UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    "${USER}"
+
+RUN mkdir /temporary-tmp-directory && chmod 777 /temporary-tmp-directory
+
+# --- Final Stage ---
+
+FROM scratch
+
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
+
+COPY --chown=appuser --from=build /temporary-tmp-directory /tmp
+
+COPY govc /govc
+
+USER appuser:appuser
+
+ENV GOVMOMI_HOME=/tmp
+
+CMD ["/govc"]

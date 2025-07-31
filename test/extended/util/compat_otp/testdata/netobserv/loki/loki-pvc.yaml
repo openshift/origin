@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: loki-pvc-template
+objects:
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: loki-store
+    namespace: "${NAMESPACE}"
+  spec:
+    resources:
+      requests:
+        storage: 10G
+    volumeMode: Filesystem
+    accessModes:
+      - ReadWriteOnce
+parameters:
+- name: NAMESPACE
+  value: "netobserv"

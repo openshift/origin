@@ -1,0 +1,11 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: "${SCNAME}"
+# parameters:
+#   type: gp2
+#   encrypted: 'false'
+#   fsType: ext4
+provisioner: ${PROVISIONER} # default: ebs.csi.aws.com
+reclaimPolicy: ${RECLAIMPOLICY} # Retain, Delete
+volumeBindingMode: ${VOLUMEBINDINGMODE} # WaitForFirstConsumer, Immediate

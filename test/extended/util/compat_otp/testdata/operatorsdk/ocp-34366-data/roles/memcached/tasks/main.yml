@@ -1,0 +1,47 @@
+---
+# tasks file for Memcached
+- name: start memcached
+  k8s:
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: '{{ ansible_operator_meta.name }}-memcached'
+        namespace: '{{ ansible_operator_meta.namespace }}'
+      spec:
+        replicas: "{{size}}"
+        selector:
+          matchLabels:
+            app: memcached
+        template:
+          metadata:
+            labels:
+              app: memcached
+          spec:
+            containers:
+            - name: memcached
+              image: "quay.io/olmqe/memcached-docker:multi-arch"
+              
+
+- k8s:
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: test-secret
+        namespace: "{{ ansible_operator_meta.namespace }}"
+      data:
+        test: aGVsbG8K
+
+- name: Create ConfigMap to test blacklisted watches
+  k8s:
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: test-blacklist-watches
+        namespace: "{{ ansible_operator_meta.namespace }}"
+      data:
+        arbitrary: afdasdfsajsafj
+    state: present
+

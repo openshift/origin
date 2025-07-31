@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    enableUserWorkload: true
+    prometheusK8s:
+      remoteWrite:
+      - url: "https://remote-write.endpoint"
+      - url: "https://basicAuth.remotewrite.com/api/write"
+        basicAuth:
+          username:
+            name: rw-auth
+            key: user
+          password:
+            name: rw-auth
+            key: password
+      - url: "https://authorization.remotewrite.com/api/write"
+        authorization:
+          type: Bearer
+          credentials:
+            name: rw-auth
+            key: token
+        writeRelabelConfigs:
+        - sourceLabels:
+          - __tmp_openshift_cluster_id__
+          targetLabel: cluster_id

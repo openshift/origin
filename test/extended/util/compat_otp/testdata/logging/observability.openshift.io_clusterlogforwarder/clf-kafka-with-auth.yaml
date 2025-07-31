@@ -1,0 +1,74 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    outputs:
+    - kafka:
+        authentication:
+          sasl:
+            mechanism: ${SASL_MECHANISM}
+            password:
+              key: password
+              secretName: ${SECRET_NAME}
+            username:
+              key: username
+              secretName: ${SECRET_NAME}
+        url: ${URL}
+        tuning:
+          compression: ${COMPRESSION}
+          deliveryMode: ${DELIVERY}
+          maxWrite: ${MAX_WRITE}
+      name: kafka-app
+      tls:
+        ca:
+          key: ${TLS_CA_KEY}
+          secretName: ${TLS_SECRET_NAME}
+        certificate:
+          key: ${TLS_CERTIFICATE_KEY}
+          secretName: ${TLS_SECRET_NAME}
+        key:
+          key: ${TLS_KEY}
+          secretName: ${TLS_SECRET_NAME}
+      type: kafka
+    pipelines:
+    - name: test-app
+      inputRefs:
+      - application
+      outputRefs:
+      - kafka-app
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: URL
+  value: "tls://kafka.openshift-logging.svc.cluster.local:9093/clo-topic"
+- name: SECRET_NAME
+  value: "vector-kafka"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: SASL_MECHANISM
+  value: "PLAIN"
+- name: TLS_CA_KEY
+  value: "ca-bundle.crt"
+- name: TLS_CERTIFICATE_KEY
+  value: "tls.crt"
+- name: TLS_KEY
+  value: "tls.key"
+- name: TLS_SECRET_NAME
+  value: ""
+- name: COMPRESSION
+  value: "zstd"
+- name: MAX_WRITE
+  value: "10M"
+- name: DELIVERY
+  value: "AtLeastOnce"

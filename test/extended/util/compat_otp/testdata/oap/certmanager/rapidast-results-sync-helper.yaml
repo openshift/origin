@@ -1,0 +1,32 @@
+# DO NOT MODIFY DIRECTLY
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: rapidast-results-sync-helper-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      labels:
+        name: "${POD_NAME}"
+      name: "${POD_NAME}"
+    spec:
+      volumes:
+        - name: results-volume
+          persistentVolumeClaim:
+            claimName: "${PVC_NAME}"
+      containers:
+        - name: busybox
+          image: quay.io/openshifttest/busybox:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - "sleep"
+            - "600"
+          volumeMounts:
+            - name: results-volume
+              mountPath: "${VOLUME_MOUNT_PATH}"
+      restartPolicy: Never
+parameters:
+  - name: POD_NAME
+  - name: VOLUME_MOUNT_PATH
+  - name: PVC_NAME

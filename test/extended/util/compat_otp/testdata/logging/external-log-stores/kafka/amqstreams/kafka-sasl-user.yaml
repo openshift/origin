@@ -1,0 +1,41 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-user-template
+objects:
+- apiVersion: kafka.strimzi.io/v1beta2
+  kind: KafkaUser
+  metadata:
+    name: ${NAME}
+    labels:
+      strimzi.io/cluster: ${KAFKA_NAME}
+  spec:
+    authentication:
+      type: scram-sha-512
+    authorization:
+      acls:
+        - host: '*'
+          operations:
+            - Read
+            - Describe
+            - Write
+            - Create
+          resource:
+            name: ${TOPIC_PREFIX}
+            patternType: prefix
+            type: topic
+        - host: '*'
+          operations:
+            - Read
+          resource:
+            name: my-group
+            patternType: literal
+            type: group
+      type: simple
+parameters:
+- name: NAME
+  value: "my-user"
+- name:  KAFKA_NAME
+  value: "my-cluster"
+- name: TOPIC_PREFIX
+  value: "topic-logging"

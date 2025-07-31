@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  podManagementPolicy: OrderedReady  # you must set OrderedReady
+  replicas: 5
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      # image changed since publication (previously used registry "k8s.gcr.io")
+      - image: quay.io/openshifttest/nginx-alpine@sha256:0d0385b0bea406ff659154fa34a6dda34e1de62d7dd559076d5abcf0d39c553e
+        imagePullPolicy: IfNotPresent
+        name: nginx
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 2 # this is the new alpha field, whose default value is 1
+      partition: 0
+    type: RollingUpdate

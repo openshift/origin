@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: List
+items:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    labels:
+        name: service-secure2
+    name: service-secure2
+  spec:
+      ports:
+         - name: https
+           protocol: TCP
+           port: 27443
+           targetPort: 8443
+      selector:
+        name: web-server-rc
+- kind: Service
+  apiVersion: v1
+  metadata:
+    labels:
+      name: service-unsecure2
+    name: service-unsecure2
+  spec:
+    internalTrafficPolicy: Cluster
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server-rc
+    type: ClusterIP

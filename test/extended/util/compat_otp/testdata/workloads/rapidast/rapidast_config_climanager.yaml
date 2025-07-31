@@ -1,0 +1,22 @@
+application:
+    shortName: oobttest
+config:
+    configVersion: 5
+general:
+    base_results_dir: "/tmp"
+    results_dir: "/tmp"
+    container:
+        type: none
+scanners:
+    generic_oobt:
+        toolDir: "/opt/rapidast/scanners/generic/tools"
+        results_dir: "/tmp"
+        inline: python3 /opt/rapidast/scanners/generic/tools/oobtkube.py -d 120 -p 12345 -i NodeIp -f /opt/rapidast/config/clusterresouce.yaml -o /tmp/oobtkube.sarif.json
+    generic_trivy:
+        toolDir: "/opt/rapidast/scanners/generic/tools"
+        results_dir: "/tmp"
+        container:
+            parameters:
+                validReturns:
+                    - 0
+        inline: trivy k8s --kubeconfig=/opt/rapidast/config/kubeconfig -n openshift-cli-manager-operator pod --severity=HIGH,CRITICAL --scanners=misconfig --report all --format json

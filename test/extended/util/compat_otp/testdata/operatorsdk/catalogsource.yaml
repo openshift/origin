@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: catalogsource-image-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    image: "${ADDRESS}" 
+    grpcPodConfig:
+      securityContextConfig: restricted
+    displayName: "${DISPLAYNAME}"
+    publisher: Kaka
+    sourceType: grpc
+    updateStrategy:
+      registryPoll:
+        interval: 10m0s
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ADDRESS
+- name: DISPLAYNAME

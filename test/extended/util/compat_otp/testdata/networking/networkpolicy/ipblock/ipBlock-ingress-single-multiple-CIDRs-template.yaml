@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ipBlockIngressSingle_multiple_cidrs_template
+objects:
+- kind: NetworkPolicy
+  apiVersion: networking.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    podSelector: {}
+    ingress:
+    - from:
+      - ipBlock:
+          cidr: "${CIDR}"
+      - ipBlock:
+          cidr: "${CIDR2}"
+      - ipBlock:
+          cidr: "${CIDR3}"
+parameters:
+- name: NAME
+- name: CIDR
+- name: CIDR2
+- name: CIDR3
+- name: NAMESPACE

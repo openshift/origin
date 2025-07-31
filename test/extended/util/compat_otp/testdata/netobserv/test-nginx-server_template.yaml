@@ -1,0 +1,78 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-test-client-server
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${SERVER_NS}
+    labels:
+      name: ${SERVER_NS}
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: nginx
+    namespace: ${SERVER_NS}
+    labels:
+      app: nginx
+  spec:
+    securityContext:     
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    replicas: 1
+    selector:
+      matchLabels:
+        app: nginx
+    template:
+      metadata:
+        labels:
+          app: nginx
+      spec:
+        containers:
+        - name: nginx
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+              privileged: false
+          image: quay.io/openshifttest/nginx-alpine:1.2.3
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: CREATE_LARGE_BLOB_FILES
+            value: ${LARGE_BLOB}
+          ports:
+          - containerPort: 8080
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${SERVER_NS}
+    name: nginx-service
+  spec:
+    selector:
+      app: nginx
+    type: ${SERVICE_TYPE}
+    ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    namespace: ${SERVER_NS}
+    name: nginx-route
+  spec:
+    port:
+      targetPort: 80
+    to:
+      kind: Service
+      name: nginx-service
+parameters:
+- name: SERVER_NS
+  value: test-server
+- name: LARGE_BLOB
+  value: "no"
+- name: SERVICE_TYPE
+  value: "NodePort"
+

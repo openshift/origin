@@ -1,0 +1,16 @@
+
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${NAME}
+  namespace: ${NAMESPACE}
+spec:
+  image: ${ADDRESS}
+  displayName: ${DISPLAYNAME}
+  grpcPodConfig:
+    securityContextConfig: restricted
+  icon:
+    base64data: ""
+    mediatype: ""
+  publisher: ${PUBLISHER}
+  sourceType: ${SOURCETYPE}

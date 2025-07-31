@@ -1,0 +1,37 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: itdms-full-mirror-template
+objects:
+- apiVersion: config.openshift.io/v1
+  kind: ImageTagMirrorSet
+  metadata:
+    name: "${NAME}"
+  spec:
+    imageTagMirrors:
+    - mirrors:
+      - "${MIRRORNAMESPACE}"
+      source: "${SOURCENAMESPACE}"
+    - mirrors:
+      - "${MIRRORSITE}"
+      source: "${SOURCESITE}"
+- apiVersion: config.openshift.io/v1
+  kind: ImageDigestMirrorSet
+  metadata:
+    name: "${NAME}"
+  spec:
+    imageDigestMirrors:
+    - mirrors:
+      - "${MIRRORNAMESPACE}"
+      source: "${SOURCENAMESPACE}"
+    - mirrors:
+      - "${MIRRORSITE}"
+      source: "${SOURCESITE}"
+parameters:
+- name: NAME
+- name: MIRRORSITE
+- name: SOURCESITE
+- name: MIRRORNAMESPACE
+- name: SOURCENAMESPACE
+
+

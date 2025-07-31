@@ -1,0 +1,10 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: example-platform-alert
+spec:
+  groups:
+  - name: example-platform
+    rules:
+    - alert: KubeAlert
+      expr: kube_deployment_status_replicas{deployment="prometheus-example-app"} == 1

@@ -1,0 +1,17 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.15
+    packages:
+    - name: devworkspace-operator
+  platform:
+    graph: true # Required for the OSUS ooperator
+    architectures:
+    - amd64
+    channels:
+    - name: eus-4.14
+      minVersion: '4.12.59'
+      maxVersion: '4.13.2'
+      shortestPath: true
+      type: ocp

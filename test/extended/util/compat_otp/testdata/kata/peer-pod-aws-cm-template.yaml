@@ -1,0 +1,57 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: peer-pods-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    data:
+      CLOUD_PROVIDER: "aws"
+      VXLAN_PORT: "${VXLAN_PORT}"
+      PODVM_INSTANCE_TYPE: "${PODVM_INSTANCE_TYPE}"
+      PODVM_INSTANCE_TYPES: "${PODVM_INSTANCE_TYPES}"
+      PROXY_TIMEOUT: "${PROXY_TIMEOUT}"
+      PODVM_AMI_ID: "${PODVM_AMI_ID}"
+      AWS_REGION: "${AWS_REGION}"
+      AWS_SUBNET_ID: "${AWS_SUBNET_ID}"
+      AWS_VPC_ID: "${AWS_VPC_ID}"
+      AWS_SG_IDS: "${AWS_SG_IDS}"
+      TAGS: "${CUSTOM_TAGS}"
+      PEERPODS_LIMIT_PER_NODE: "${PEERPODS_LIMIT}"
+      PODVM_IMAGE_URI: "${PODVM_IMAGE_URI}"
+
+# oc process --ignore-unknown-parameters=true -f $L/peer-pod-aws-cm-template.yaml -p PODVM_AMI_ID=${PODVM_AMI_ID} AWS_SUBNET_ID=${AWS_SUBNET_ID} AWS_VPC_ID=${AWS_VPC_ID} AWS_SG_IDS=${AWS_SG_IDS}
+# This is for end user/Jenkins to create a configmap and apply it to your cluster
+
+parameters:
+  - name: NAME
+    value: "peer-pods-cm"
+  - name: NAMESPACE
+    value: "openshift-sandboxed-containers-operator"
+  - name: PODVM_AMI_ID
+    value: ""
+  - name: AWS_SUBNET_ID
+    value: ""
+  - name: AWS_VPC_ID
+    value: ""
+  - name: AWS_SG_IDS
+    value: ""
+  - name: AWS_REGION
+    value: "us-east-2"
+  - name: PODVM_INSTANCE_TYPE
+    value: "t3.medium"
+  - name: PODVM_INSTANCE_TYPES
+    value: "t3.small,t3.medium,t3.large,t3.xlarge,t3.2xlarge,g4dn.2xlarge,g5.2xlarge,p3.2xlarge"
+  - name: PROXY_TIMEOUT
+    value: "5m"
+  - name: VXLAN_PORT
+    value: "9000"
+  - name: CUSTOM_TAGS
+    value: "key1=value1,key2=value2"
+  - name: PEERPODS_LIMIT
+    value: "10"
+  - name: PODVM_IMAGE_URI
+    value: ""

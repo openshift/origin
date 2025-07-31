@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-resourcequota-template
+objects:
+  # ResourceQuota
+- kind: ResourceQuota
+  apiVersion: v1
+  metadata:
+    name: ${RESOURCEQUOTA_NAME}
+    namespace: ${RESOURCEQUOTA_NAMESPACE}
+  spec:
+    hard:
+      requests.${RESOURCE_TYPE}: ${HARD_REQUESTS}
+      limits.${RESOURCE_TYPE}: ${HARD_LIMITS}
+parameters:
+- name: RESOURCEQUOTA_NAME
+- name: RESOURCEQUOTA_NAMESPACE
+- name: RESOURCE_TYPE
+- name: HARD_REQUESTS
+- name: HARD_LIMITS

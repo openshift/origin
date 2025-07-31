@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-syn-flood-metrics-template
+objects:
+- apiVersion: flows.netobserv.io/v1alpha1
+  kind: FlowMetric
+  metadata:
+    name: flows-with-flags-per-destination
+    namespace: ${Namespace}
+  spec:
+    metricName: flows_with_flags_per_destination_total
+    type: Counter
+    labels: [SrcSubnetLabel,DstSubnetLabel,DstK8S_Name,DstK8S_Type,DstK8S_HostName,DstK8S_Namespace,Flags]
+- apiVersion: flows.netobserv.io/v1alpha1
+  kind: FlowMetric
+  metadata:
+    name: flows-with-flags-per-source
+    namespace: ${Namespace}
+  spec:
+    metricName: flows_with_flags_per_source_total
+    type: Counter
+    labels: [DstSubnetLabel,SrcSubnetLabel,SrcK8S_Name,SrcK8S_Type,SrcK8S_HostName,SrcK8S_Namespace,Flags]
+parameters:
+- name: Namespace
+  value: netobserv

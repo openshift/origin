@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nfs-server-deploy-template
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: ${DNAME}
+    namespace: ${DNAMESPACE}
+  spec:
+    replicas: ${{REPLICASNUM}}
+    selector:
+      matchLabels:
+        app: ${DLABEL}
+    template:
+      metadata:
+        labels:
+          app: ${DLABEL}
+      spec:
+        containers:
+        - name: ${DNAME}
+          image: quay.io/openshifttest/nfs-server@sha256:505779658a0ed49a09771d958396f5ad2d051f67b9358fd894ccb55d5fe5ee76
+          ports:
+            - name: nfs
+              containerPort: 2049
+          securityContext:
+            privileged: true
+          ${VOLUMETYPE}:
+          - name: local
+            ${TYPEPATH}: ${MPATH}
+        volumes:
+        - name: local
+          emptyDir: {}  
+
+parameters:
+- name: DNAME
+- name: DNAMESPACE
+- name: REPLICASNUM
+- name: DLABEL
+- name: MPATH
+- name: VOLUMETYPE
+- name: TYPEPATH

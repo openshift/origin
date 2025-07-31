@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1beta1
+kind: AlertmanagerConfig
+metadata:
+  name: invalid-test-config
+  labels:
+    alertmanagerConfig: example
+spec:
+  route:
+    groupBy: ['job']
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 12hours
+    receiver: webhookk
+  receivers:
+  - name: webhook
+    webhookConfigs:
+    - url: 'https://example.com'
+      sendResolved: "true"
+      httpConfig:
+        followRedirects: true
+  - name: wechat-example
+    wechatConfigs:
+    - apiURL: https://wechatserver:8080/
+      corpID: wechat-corpid
+      apiSecret:
+        name: wechat-config
+        key: apiSecret

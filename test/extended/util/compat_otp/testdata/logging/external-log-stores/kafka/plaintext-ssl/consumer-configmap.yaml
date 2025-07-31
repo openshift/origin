@@ -1,0 +1,22 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: consumer-configmap-template
+objects:
+- apiVersion: v1
+  data:
+    client.properties: |
+      bootstrap.servers=kafka:9093
+      #group.id=test-consumer-group
+      security.protocol=SSL
+      ssl.truststore.location=/etc/kafkacert/ca-bundle.jks
+      ssl.truststore.password=aosqe2021
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: "kafka-client"
+- name: NAMESPACE
+  value: "openshift-logging"

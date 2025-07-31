@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: onfailurepod60352
+  name: onfailurepod60352
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: busybox
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot:
+          true
+        seccompProfile:
+          type: "RuntimeDefault"
+      image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+      command:
+        - /bin/sh
+        - -ec
+        - |
+          while sleep 5; do date; done

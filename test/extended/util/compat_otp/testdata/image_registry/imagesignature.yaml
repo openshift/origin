@@ -1,0 +1,17 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: ${NAME} 
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageSignature
+  metadata:
+   name: ${IMAGEID}@${TITLE}
+   namespace: ${NAMESPACE}
+  type: valid
+  content: ${CONTENT} 
+parameters:
+  - name: NAME 
+  - name: IMAGEID
+  - name: TITLE
+  - name: CONTENT 

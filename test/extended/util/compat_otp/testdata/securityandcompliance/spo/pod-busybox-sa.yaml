@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-busybox-sa-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    serviceAccountName: "${SERVICEACCOUNTNAME}"
+    containers:
+    - name: busybox
+      image: quay.io/openshifttest/busybox:latest
+      command: [ "/bin/sh", "-c", "while true ; do date; sleep 1; done;" ]
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SERVICEACCOUNTNAME

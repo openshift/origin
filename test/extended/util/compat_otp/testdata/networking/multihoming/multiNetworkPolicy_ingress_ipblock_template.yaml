@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: multiNetworkPolicy_ingress_ipblock_template
+objects:
+- kind: MultiNetworkPolicy
+  apiVersion: k8s.cni.cncf.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      k8s.v1.cni.cncf.io/policy-for: "${POLICYFOR}"
+  spec:
+    podSelector: {}
+    policyTypes:
+    - Ingress
+    ingress:
+    - from:
+      - ipBlock:
+          cidr: "${CIDRIPV4}"
+      - ipBlock: 
+          cidr: "${CIDRIPV6}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CIDRIPV4
+- name: CIDRIPV6
+- name: POLICYFOR

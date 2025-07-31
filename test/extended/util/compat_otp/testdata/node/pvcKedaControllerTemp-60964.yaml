@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kedacontroller-template
+objects:
+  - apiVersion: keda.sh/v1alpha1
+    kind: KedaController
+    metadata:
+      name: keda
+      namespace: ${NAMESPACE}
+    spec:
+      metricsServer:
+        logLevel: '0'
+        auditConfig:
+          logFormat: "json"
+          logOutputVolumeClaim: "log-out-pvc"
+          policy:
+             rules:
+             - level: ${LEVEL}
+             omitStages:
+              - RequestReceived
+             omitManagedFields: false
+          lifetime:
+            maxAge: "2"
+            maxBackup: "1"
+            maxSize: "50"
+      operator:
+        logLevel: info
+        logEncoder: console
+      serviceAccount: {}
+      watchNamespace: ${WATCHNAMESPACE}
+parameters:
+  - name: NAMESPACE
+  - name: LEVEL
+  - name: WATCHNAMESPACE
+
+

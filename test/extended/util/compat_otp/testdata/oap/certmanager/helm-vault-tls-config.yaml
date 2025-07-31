@@ -1,0 +1,40 @@
+# xref: https://developer.hashicorp.com/vault/docs/platform/k8s/helm/examples/standalone-tls#3-helm-configuration Configurations to setup a TLS-protected Vault server
+# xref: https://github.com/hashicorp/vault-helm/blob/main/values.yaml All available parameters and default values for the Vault chart.
+# Set 'server.dataStorage.size' to 1Gi as the default 10Gi is too expensive and unnecessary for testing propose in CI.
+global:
+  enabled: true
+  tlsDisable: false
+  openshift: true
+injector:
+  enabled: false
+server:
+  image:
+    repository: "quay.io/openshifttest/vault"
+    tag: "1.19.0"
+  dataStorage:
+    enabled: true
+    size: 1Gi
+  extraEnvironmentVars:
+    VAULT_CACERT: /vault/userconfig/vault-server-tls/ca.crt
+  volumes:
+    - name: userconfig-vault-server-tls
+      secret:
+        defaultMode: 420
+        secretName: vault-server-tls
+  volumeMounts:
+    - mountPath: /vault/userconfig/vault-server-tls
+      name: userconfig-vault-server-tls
+      readOnly: true
+  standalone:
+    enabled: true
+    config: |
+      listener "tcp" {
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_cert_file = "/vault/userconfig/vault-server-tls/tls.crt"
+        tls_key_file  = "/vault/userconfig/vault-server-tls/tls.key"
+        tls_client_ca_file = "/vault/userconfig/vault-server-tls/ca.crt"
+      }
+      storage "file" {
+        path = "/vault/data"
+      }

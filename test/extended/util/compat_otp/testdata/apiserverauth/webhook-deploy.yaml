@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: validationwebhook
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: validationwebhook
+  namespace: validationwebhook
+spec:
+  selector:
+    app: validationwebhook
+  ports:
+  - protocol: TCP
+    port: 443
+    targetPort: 8443
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: validationwebhook
+  name: validationwebhook
+  namespace: validationwebhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validationwebhook
+  template:
+    metadata:
+      labels:
+        app: validationwebhook
+    spec:
+      containers:
+      - name: dev
+        image: quay.io/openshifttest/validationwebhook:multiarch
+        # Image used is build from repository https://github.com/darryk10/CVE-2021-25735.
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8443

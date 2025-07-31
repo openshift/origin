@@ -1,0 +1,15 @@
+apiVersion: quota.openshift.io/v1
+kind: ClusterResourceQuota
+metadata:
+  name: for-user42982
+spec:
+  quota:
+    hard:
+      limits.cpu: "4"
+      limits.memory: 8Gi
+      pods: "4"
+      requests.cpu: "4"
+      requests.memory: 8Gi
+  selector:
+    annotations:
+      openshift.io/requester: username

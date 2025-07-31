@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: icsp-konflux-template
+objects:
+- apiVersion: operator.openshift.io/v1alpha1
+  kind: ImageContentSourcePolicy
+  metadata:
+    name: "${ICSPNAME}"
+  spec:
+    repositoryDigestMirrors:
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-isc-tenant/file-integrity-operator-bundle-release
+      source: registry.redhat.io/compliance/openshift-file-integrity-operator-bundle
+    - mirrors:
+      - quay.io/redhat-user-workloads/ocp-isc-tenant/file-integrity-operator-release
+      source: registry.redhat.io/compliance/openshift-file-integrity-rhel8-operator
+
+parameters:
+- name: ICSPNAME

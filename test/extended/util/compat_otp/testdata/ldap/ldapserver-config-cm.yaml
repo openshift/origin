@@ -1,0 +1,375 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ldap-config
+data:
+  ldap.conf: |
+    TLS_CACERTDIR   /usr/local/etc/ldapcert
+    TLS_CACERT      /usr/local/etc/ldapcert/ca.crt
+
+  tls_conf.ldif: |
+    # Configures the TLS certs for slapd
+    dn: cn=config
+    changetype: modify
+    add: olcTLSCACertificateFile
+    olcTLSCACertificateFile: /usr/local/etc/ldapcert/ca.crt
+    -
+    replace: olcTLSCertificateFile
+    olcTLSCertificateFile: /usr/local/etc/ldapcert/tls.crt
+    -
+    replace: olcTLSCertificateKeyFile
+    olcTLSCertificateKeyFile: /usr/local/etc/ldapcert/tls.key
+
+  base_conf.ldif: |
+    # The base LDIF data
+    dn: dc=example,dc=com
+    objectClass: top
+    objectClass: dcObject
+    objectclass: organization
+    o: Example Com
+    dc: Example
+
+    dn: cn=Manager,dc=example,dc=com
+    objectClass: organizationalRole
+    cn: Manager
+    description: LDAP Directory Manager
+
+    dn: ou=People,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: People
+
+    dn: ou=Group,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: Group
+
+  domain_conf.ldif: |
+    # Domain setup
+    dn: olcDatabase={1}monitor,cn=config
+    changetype: modify
+    replace: olcAccess
+    olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth"
+      read by dn.base="cn=Manager,dc=example,dc=com" read by * none
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    replace: olcSuffix
+    olcSuffix: dc=example,dc=com
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    replace: olcRootDN
+    olcRootDN: cn=Manager,dc=example,dc=com
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    add: olcRootPW
+    olcRootPW: admin
+
+    dn: olcDatabase={2}mdb,cn=config
+    changetype: modify
+    add: olcAccess
+    olcAccess: {0}to attrs=userPassword,shadowLastChange by
+      dn="cn=Manager,dc=example,dc=com" write by anonymous auth by self write by * none
+    olcAccess: {1}to dn.base="" by * read
+    olcAccess: {2}to * by dn="cn=Manager,dc=example,dc=com" write by * read
+
+
+  groupsync.ldif: |
+    # Groupsync LDIF data
+    dn: ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: rfc2307
+    description: RFC2307-style Entries
+
+    dn: ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: User Groups
+
+    dn: ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: Users
+
+    dn: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+
+    dn: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+
+    dn: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+
+    dn: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+
+    dn: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    sn: Smith
+    cn: Person5
+    displayName: person5smith
+    mail: person5smith@example.com
+
+    dn: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group1
+    owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group2
+    owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person2's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group3
+    owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person3's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: ou=ad,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: ad
+    description: Active Directory-style Entries
+
+    dn: ou=people,ou=ad,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: AD-style users
+
+    dn: cn=Person1,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+    testMemberOf: group3
+
+    dn: cn=Person2,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+
+    dn: cn=Person3,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+    testMemberOf: group1
+    testMemberOf: group2
+
+    dn: cn=Person4,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+    testMemberOf: group1
+
+    dn: cn=Person5,ou=people,ou=ad,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person5
+    displayName: person5smith
+    mail: person5smith@example.com
+    testMemberOf: group1
+    testMemberOf: group3
+
+    dn: ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: adextended
+    description: AD-style Entries with Group Entries
+
+    dn: ou=people,ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: people
+    description: AD-style users
+
+    dn: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person1
+    displayName: person1smith
+    mail: person1smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person2
+    displayName: person2smith
+    mail: person2smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person3
+    displayName: person3smith
+    mail: person3smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person4,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: Person4
+    displayName: person4smith
+    mail: person4smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: cn=Person5,ou=people,ou=adextended,dc=example,dc=com
+    objectClass: person
+    objectClass: organizationalPerson
+    objectClass: inetOrgPerson
+    objectClass: testPerson
+    sn: Smith
+    cn: person5smith
+    displayName: person5smith
+    mail: person5smith@example.com
+    testMemberOf: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    testMemberOf: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+
+    dn: ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: Group entries with metadata
+
+    dn: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group1
+    owner: cn=Person1,ou=people,ou=adextended,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group2
+    owner: cn=Person2,ou=people,ou=adextended,dc=example,dc=com
+    description: Person2's Group
+    member: cn=fake
+
+    dn: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: extended-group3
+    owner: cn=Person3,ou=people,ou=adextended,dc=example,dc=com
+    description: Person3's Group
+    member: cn=fake
+
+    dn: ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: incomplete-rfc2307
+    description: OrganizationalUnit to hold malformed entries
+
+    dn: ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: organizationalUnit
+    ou: groups
+    description: Group entries with member lists containing missing members
+
+    dn: cn=group1,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group1
+    owner: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person1's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person4,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+
+    dn: cn=group2,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group2
+    owner: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person2's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person2,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+
+    dn: cn=group3,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
+    objectClass: groupOfNames
+    cn: group3
+    owner: cn=Person3,ou=people,ou=rfc2307,dc=example,dc=com
+    description: Person3's Group
+    member: cn=Person1,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=Person5,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=INVALID,ou=people,ou=rfc2307,dc=example,dc=com
+    member: cn=OUTOFSCOPE,ou=people,ou=OUTOFSCOPE,dc=example,dc=com
+

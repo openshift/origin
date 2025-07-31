@@ -1,0 +1,23 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: secrets-store-inline
+spec:
+  containers:
+  - image: registry.k8s.io/e2e-test-images/busybox:1.29-4
+    name: busybox
+    imagePullPolicy: IfNotPresent
+    command:
+    - "/bin/sleep"
+    - "10000"
+    volumeMounts:
+    - name: secrets-store-inline
+      mountPath: "/mnt/secrets-store"
+      readOnly: true
+  volumes:
+    - name: secrets-store-inline
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "vault-foo"

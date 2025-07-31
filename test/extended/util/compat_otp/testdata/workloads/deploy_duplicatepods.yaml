@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deploy-duplicatepods-template
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${DNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: ${{REPLICASNUM}}
+    selector:
+      matchLabels:
+        app: "${DNAME}"
+    template:
+      metadata:
+        labels:
+          app: "${DNAME}"
+      spec:
+        containers:
+        - name: "${DNAME}"
+          image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+          ports:
+            - containerPort: 8080
+parameters:
+- name: DNAME
+- name: NAMESPACE
+- name: REPLICASNUM

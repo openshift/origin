@@ -1,0 +1,11 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: namespace-temp
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: "${NAME}"
+parameters:
+- name: NAME

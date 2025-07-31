@@ -1,0 +1,82 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: lokiStack-template
+objects:
+- kind: "LokiStack"
+  apiVersion: "loki.grafana.com/v1"
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    limits:
+      global:
+        retention:
+          days: 20
+          streams:
+          - days: 4
+            priority: 1
+            selector: '{kubernetes_namespace_name=~"e2e.+"}'
+          - days: 1
+            priority: 1
+            selector: '{kubernetes_namespace_name="kube.+"}'
+          - days: 15
+            priority: 1
+            selector: '{log_type="audit"}'
+      tenants:
+        application:
+          retention:
+            days: 1
+            streams:
+            - days: 4
+              selector: '{kubernetes_namespace_name=~"test.+"}'
+        audit:
+          retention:
+            days: 15
+        infrastructure:
+          retention:
+            days: 5
+            streams:
+            - days: 1
+              selector: '{kubernetes_namespace_name=~"openshift-cluster.+"}'
+    managementState: "Managed"
+    size: ${SIZE}
+    storage:
+      secret:
+        name: ${SECRET_NAME}
+        type: ${STORAGE_TYPE}
+      schemas:
+      - version: ${STORAGE_SCHEMA_VERSION}
+        effectiveDate: ${SCHEMA_EFFECTIVE_DATE}
+    storageClassName: ${STORAGE_CLASS}
+    tenants:
+      mode: "openshift-logging"
+      openshift:
+        adminGroups: ${{ADMIN_GROUPS}}
+    rules:
+      enabled: true
+      selector:
+        matchLabels:
+          openshift.io/cluster-monitoring: "true"
+      namespaceSelector:
+        matchLabels:
+          openshift.io/cluster-monitoring: "true"
+parameters:
+- name: NAME
+  value: "my-loki"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SIZE
+  value: "1x.demo"
+- name: SECRET_NAME
+  value: "s3-secret"
+- name: STORAGE_TYPE
+  value: "s3"
+- name: STORAGE_CLASS
+  value: "gp2"
+- name: "ADMIN_GROUPS"
+  value: "[]"
+- name: STORAGE_SCHEMA_VERSION
+  value: "v13"
+- name: SCHEMA_EFFECTIVE_DATE
+  value: "2023-10-15"

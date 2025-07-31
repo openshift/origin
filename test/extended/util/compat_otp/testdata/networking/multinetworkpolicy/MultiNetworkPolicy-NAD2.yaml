@@ -1,0 +1,25 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan-nad2
+spec:
+  config: '{
+    "cniVersion": "0.3.1",
+    "type": "macvlan",
+    "mode": "bridge",
+    "ipam": {
+      "type": "whereabouts",
+      "ipRanges": [
+        {
+          "range": "192.168.22.0/24",
+          "range_start": "192.168.22.60",
+          "range_end": "192.168.22.100"
+        },
+        {
+          "range": "fd00:dead:beef:10::/64",
+          "range_start": "fd00:dead:beef:10::60",
+          "range_end": "fd00:dead:beef:10::100"
+        }
+      ]
+    }
+  }'

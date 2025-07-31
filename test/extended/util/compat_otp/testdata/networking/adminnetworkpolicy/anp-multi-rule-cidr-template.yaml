@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: anp_multi_rule_cidr_template
+objects:
+- kind: AdminNetworkPolicy
+  apiVersion: policy.networking.k8s.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+  spec:
+    priority: ${{PRIORITY}}
+    subject:
+      namespaces:
+        matchLabels:
+          "${SUBJECTKEY}": "${SUBJECTVAL}"
+    egress:
+    - action: "${RULEACTION1}"
+      name: "${RULENAME1}"
+      to:
+      - networks:
+        - ${CIDR1}
+    - action: "${RULEACTION2}"
+      name: "${RULENAME2}"
+      to:
+      - networks:
+        - ${CIDR2}
+parameters:
+- name: NAME
+- name: PRIORITY
+- name: SUBJECTKEY
+- name: SUBJECTVAL
+- name: RULENAME1
+- name: RULEACTION1
+- name: CIDR1
+- name: RULENAME2
+- name: RULEACTION2
+- name: CIDR2
+

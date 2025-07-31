@@ -1,0 +1,6 @@
+apiVersion: "bate.example.com/v1"
+kind: Cattoy72217
+metadata:
+  name: my-cattoy-object
+spec:
+  test: test

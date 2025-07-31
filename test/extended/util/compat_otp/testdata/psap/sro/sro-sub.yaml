@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: suboperator-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${SUBNAME}"
+    namespace: "${SUBNAMESPACE}"
+  spec:
+    channel: "${CHANNEL}"
+    installPlanApproval: Automatic
+    name: openshift-special-resource-operator
+    source: ${SOURCE}
+    sourceNamespace: openshift-marketplace
+parameters:
+- name: SUBNAME
+- name: SUBNAMESPACE
+- name: CHANNEL
+- name: SOURCE

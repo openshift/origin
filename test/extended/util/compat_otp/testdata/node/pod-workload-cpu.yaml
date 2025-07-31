@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-workload-cpu
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      io.openshift.manager: "true"
+      io.openshift.workload.manager/cpu-workload-override: "${WORKLOADCPU}"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: cpu-workload-override
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+      command: ["sleep", "3601"]
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: WORKLOADCPU

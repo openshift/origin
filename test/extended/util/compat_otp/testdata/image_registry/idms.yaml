@@ -1,0 +1,19 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: idms-template
+objects:
+- apiVersion: config.openshift.io/v1
+  kind: ImageDigestMirrorSet
+  metadata:
+    name: "${NAME}"
+  spec:
+    imageDigestMirrors:
+    - mirrors:
+      - "${MIRRORS}" 
+      source: "${SOURCE}" 
+      mirrorSourcePolicy: NeverContactSource
+parameters:
+- name: NAME
+- name: MIRRORS
+- name: SOURCE

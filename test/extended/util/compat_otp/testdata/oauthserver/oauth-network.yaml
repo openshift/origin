@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  labels:
+    app: test-oauth-server
+  name: test-oauth-svc
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 6443
+  selector:
+    app: test-oauth-server
+  type: ClusterIP
+---
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: test-oauth-server
+  name: test-oauth-route
+spec:
+  port:
+    targetPort: 6443
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: passthrough
+  to:
+    kind: Service
+    name: test-oauth-svc
+    weight: 100
+  wildcardPolicy: None
+

@@ -1,0 +1,49 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: httpserverpod-specific-node-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    annotations:
+      openshift.io/scc: privileged
+    labels:
+      app.kubernetes.io/name: httpserver
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - command:
+      - python
+      - -m
+      - http.server
+      - -b
+      - "::"
+      - "${CONTAINERPORT}"
+      image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+      imagePullPolicy: IfNotPresent
+      name: httpserver
+      ports:
+      - containerPort: ${{CONTAINERPORT}}
+        hostPort: ${{HOSTPORT}}
+        name: httpport
+        protocol: TCP
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 1m
+          memory: 10Mi
+      securityContext:
+        privileged: true
+    dnsPolicy: ClusterFirst
+    securityContext: {}
+    nodeName: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CONTAINERPORT
+- name: HOSTPORT
+- name: NODENAME

@@ -1,0 +1,5 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: ImageSetConfiguration
+mirror:
+  operators:
+  - catalog: oci:///tmp/case73124/ibm-catalog

@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-loki-reader-crb
+objects:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: netobserv-user-reader
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: netobserv-loki-reader
+    subjects:
+    - kind: User
+      apiGroup: rbac.authorization.k8s.io
+      name: "${USERNAME}"
+parameters:
+  - name: USERNAME
+    required: true

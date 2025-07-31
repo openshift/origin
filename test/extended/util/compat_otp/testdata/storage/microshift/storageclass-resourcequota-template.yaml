@@ -1,0 +1,9 @@
+kind: ResourceQuota
+apiVersion: v1
+metadata:
+  name: ${RESOURCEQUOTA_NAME}
+  namespace: ${RESOURCEQUOTA_NAMESPACE}
+spec:
+  hard:
+    ${STORAGECLASS_NAME}.storageclass.storage.k8s.io/requests.${RESOURCE_TYPE}: ${HARD_REQUESTS}
+    ${STORAGECLASS_NAME}.storageclass.storage.k8s.io/persistentvolumeclaims: ${PVC_LIMITS}

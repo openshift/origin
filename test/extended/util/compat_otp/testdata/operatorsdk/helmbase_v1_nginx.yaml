@@ -1,0 +1,45 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: helmbase-template
+objects:
+- apiVersion: helmbase.previous.com/v1
+  kind: Nginx
+  metadata:
+    name: "${NAME}"
+  spec:
+    affinity: {}
+    autoscaling:
+      enabled: false
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+    fullnameOverride: ""
+    image:
+      pullPolicy: IfNotPresent
+      repository: nginx
+      tag: ""
+    imagePullSecrets: []
+    ingress:
+      annotations: {}
+      enabled: false
+      hosts:
+      - host: chart-example.local
+        paths: []
+      tls: []
+    nameOverride: ""
+    nodeSelector: {}
+    podAnnotations: {}
+    podSecurityContext: {}
+    replicaCount: 2
+    resources: {}
+    securityContext: {}
+    service:
+      port: 8080
+      type: ClusterIP
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: ""
+    tolerations: []
+parameters:
+- name: NAME

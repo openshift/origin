@@ -1,0 +1,18 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "hello-openshift",
+        "labels": {
+            "app": "hello-openshift"
+        }
+    },
+    "spec": {
+        "containers": [
+            {
+                "name": "hello-openshift",
+                "image": "quay.io/openshifttest/nginx-alpine:1.2.1"
+            }
+        ]
+    }
+}

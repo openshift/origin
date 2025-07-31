@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: monitoring-config-template
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  data:
+    config.yaml: |
+      enableUserWorkload: ${ENABLEUSERWORKLOAD}
+      prometheusK8s:
+        logLevel: debug
+        queryLogFile: /tmp/promethues_query.log
+        retentionSize: 10GiB
+        retention: 45d
+        additionalAlertmanagerConfigs:
+        - scheme: http
+          apiVersion: v2
+          staticConfigs:
+          - alertmanager-operated.openshift-user-workload-monitoring.svc:9093
+      alertmanagerMain:
+        logLevel: debug
+      thanosQuerier:
+        enableRequestLogging: true
+        logLevel: debug
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ENABLEUSERWORKLOAD

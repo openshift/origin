@@ -1,0 +1,15 @@
+apiVersion: keda.sh/v1alpha1
+kind: KedaController
+metadata:
+  name: keda
+  namespace: openshift-keda
+spec:
+  admissionWebhooks:
+    logEncoder: console
+    logLevel: info
+  metricsServer:
+    logLevel: '0'
+  operator:
+    logEncoder: console
+    logLevel: info
+  watchNamespace: ''

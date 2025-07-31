@@ -1,0 +1,25 @@
+apiVersion: monitoring.rhobs/v1alpha1
+kind: MonitoringStack
+metadata:
+  labels:
+    hive.openshift.io/managed: "true"
+  name: example-app-monitoring-stack
+  namespace: openshift-observability-operator
+spec:
+  alertmanagerConfig:
+    disabled: true
+  logLevel: debug
+  namespaceSelector: {}
+  prometheusConfig:
+    externalLabels:
+      env: staging
+    replicas: 1
+  resourceSelector: {}
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 512M
+  retention: 1d

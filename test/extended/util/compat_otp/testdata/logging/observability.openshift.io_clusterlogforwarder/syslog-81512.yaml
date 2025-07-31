@@ -1,0 +1,57 @@
+kind: Template
+apiversion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    annotations:
+      observability.openshift.io/log-level: ${LOG_LEVEL}
+  spec:
+    inputs:
+    - application:
+        includes:
+        - namespace: ${NAMESPACE_PATTERN}
+      name: app-input-namespace
+      type: application
+    outputs:
+    - name: syslog-server
+      type: syslog
+      syslog:
+        payloadKey: '{${PAYLOAD_KEY}}'
+        rfc: ${RFC}
+        url: ${URL}
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - inputRefs: 
+        - app-input-namespace
+      name: pipe1
+      outputRefs:
+        - syslog-server
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "logcollector"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: NAMESPACE_PATTERN
+  value: "e2e*"
+- name: URL
+  value: "tls://rsyslogserver.openshift-logging.svc:6514"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: SECRET_NAME
+  value: ""
+- name: RFC
+  value: RFC5424
+- name: PAYLOAD_KEY
+  value: ".message"
+- name: LOG_LEVEL
+  value: "off"

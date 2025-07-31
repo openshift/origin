@@ -1,0 +1,55 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    machine.openshift.io/cluster-api-cluster: <infrastructureID>
+    machine.openshift.io/cluster-api-machine-role: worker
+    machine.openshift.io/cluster-api-machine-type: worker
+  name: <name>
+  namespace: openshift-machine-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: <infrastructureID>
+      machine.openshift.io/cluster-api-machineset: <name>
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: <infrastructureID>
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: <name>
+        machine.openshift.io/os-id: Windows
+        windowsmachineconfig.openshift.io/ignore: "true"
+    spec:
+      lifecycleHooks: {}
+      metadata:
+        labels:
+          node-role.kubernetes.io/worker: ""
+          type: "byoh-node"
+      providerSpec:
+        value:
+          apiVersion: machine.openshift.io/v1
+          bootType: ""
+          categories: null
+          cluster:
+            type: uuid
+            uuid: <cluster_uuid>
+          credentialsSecret:
+            name: nutanix-credentials
+          image:
+            name: <nutanix_windows_image>
+            type: name
+          kind: NutanixMachineProviderConfig
+          memorySize: 16Gi
+          project:
+            type: ""
+          subnets:
+          - type: uuid
+            uuid: <subnet_uuid>
+          systemDiskSize: 120Gi
+          userDataSecret:
+            name: windows-user-data
+          vcpuSockets: 4
+          vcpusPerSocket: 1

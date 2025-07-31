@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-burn-entrypoint
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+    NUM_GPUS=$(nvidia-smi -L | wc -l)
+    if [ $NUM_GPUS -eq 0 ]; then
+      echo "ERROR No GPUs found"
+      exit 1
+    fi
+
+    /usr/local/bin/gpu-burn 300
+
+    if [ ! $? -eq 0 ]; then 
+      exit 1
+    fi
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: gpu-burn-daemonset
+  name: gpu-burn-daemonset
+spec:
+  selector:
+    matchLabels:
+      app: gpu-burn-daemonset
+  template:
+    metadata:
+      labels:
+        app: gpu-burn-daemonset
+    spec:
+      tolerations:
+      - operator: Exists
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - image: quay.io/openshift-psap/gpu-burn
+        imagePullPolicy: Always
+        name: gpu-burn-ctr
+        command: ["/bin/entrypoint.sh"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1 # requesting 1 GPU
+        volumeMounts:
+        - name: entrypoint
+          mountPath: /bin/entrypoint.sh
+          readOnly: true
+          subPath: entrypoint.sh
+      volumes:
+        - name: entrypoint
+          configMap:
+            defaultMode: 0700
+            name: gpu-burn-entrypoint
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+        feature.node.kubernetes.io/pci-10de.present: "true"
+
+

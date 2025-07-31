@@ -1,0 +1,47 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: compliancescan-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: ComplianceScan
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    profile: "${PROFILE}"
+    scanType: "${SCANTYPE}"
+    content: "${CONTENT}"
+    contentImage: "${CONTENTIMAGE}"
+    rule: "${RULE}"
+    debug: true
+    scanTolerations:
+    - effect: NoSchedule
+      key: "${KEY}"
+      value: "${VALUE}"
+      operator: "${OPERATOR}"
+    - effect: NoExecute
+      key: "${KEY1}"
+      value: "${VALUE1}"
+      operator: "${OPERATOR1}"
+    nodeSelector:
+      node-role.kubernetes.io/${NODESELECTOR}: ""
+    rawResultStorage:
+      size: "${SIZE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PROFILE
+- name: SCANTYPE
+- name: CONTENT
+- name: CONTENTIMAGE
+- name: RULE
+- name: KEY
+- name: VALUE
+- name: OPERATOR
+- name: KEY1
+- name: VALUE1
+- name: OPERATOR1
+- name: NODESELECTOR
+- name: SIZE

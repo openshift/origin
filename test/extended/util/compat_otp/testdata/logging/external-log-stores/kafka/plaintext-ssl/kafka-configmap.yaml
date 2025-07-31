@@ -1,0 +1,157 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: consumer-configmap-template
+objects:
+- apiVersion: v1
+  data:
+    init.sh: |
+      #!/bin/bash
+      set -e
+      cp /etc/kafka-configmap/log4j.properties /etc/kafka/
+
+      KAFKA_BROKER_ID=${HOSTNAME##*-}
+      SEDS=("s/#init#broker.id=#init#/broker.id=$KAFKA_BROKER_ID/")
+      LABELS="kafka-broker-id=$KAFKA_BROKER_ID"
+      ANNOTATIONS=""
+
+      hash kubectl 2>/dev/null || {
+        SEDS+=("s/#init#broker.rack=#init#/#init#broker.rack=# kubectl not found in path/")
+      } && {
+        ZONE=$(kubectl get node "$NODE_NAME" -o=go-template='{{index .metadata.labels "failure-domain.beta.kubernetes.io/zone"}}')
+        if [ "x$ZONE" == "x<no value>" ]; then
+          SEDS+=("s/#init#broker.rack=#init#/#init#broker.rack=# zone label not found for node $NODE_NAME/")
+        else
+          SEDS+=("s/#init#broker.rack=#init#/broker.rack=$ZONE/")
+          LABELS="$LABELS kafka-broker-rack=$ZONE"
+        fi
+
+        [ -z "$ADVERTISE_ADDR" ] && echo "ADVERTISE_ADDR is empty, will advertise detected DNS name"
+        OUTSIDE_HOST=$(kubectl get node "$NODE_NAME" -o jsonpath='{.status.addresses[?(@.type=="InternalIP")].address}')
+        OUTSIDE_PORT=$((32400 + ${KAFKA_BROKER_ID}))
+        SEDS+=("s|#init#advertised.listeners=PLAINTEXT://#init#|advertised.listeners=PLAINTEXT://${ADVERTISE_ADDR}:9092,OUTSIDE://${OUTSIDE_HOST}:${OUTSIDE_PORT}|")
+        ANNOTATIONS="$ANNOTATIONS kafka-listener-outside-host=$OUTSIDE_HOST kafka-listener-outside-port=$OUTSIDE_PORT"
+
+        if [ ! -z "$LABELS" ]; then
+          kubectl -n $POD_NAMESPACE label pod $POD_NAME $LABELS || echo "Failed to label $POD_NAMESPACE.$POD_NAME - RBAC issue?"
+        fi
+        if [ ! -z "$ANNOTATIONS" ]; then
+          kubectl -n $POD_NAMESPACE annotate pod $POD_NAME $ANNOTATIONS || echo "Failed to annotate $POD_NAMESPACE.$POD_NAME - RBAC issue?"
+        fi
+      }
+      printf '%s\n' "${SEDS[@]}" | sed -f - /etc/kafka-configmap/server.properties > /etc/kafka/server.properties.tmp
+      [ $? -eq 0 ] && mv /etc/kafka/server.properties.tmp /etc/kafka/server.properties
+    log4j.properties: |
+      # Unspecified loggers and loggers with additivity=true output to server.log and stdout
+      # Note that INFO only applies to unspecified loggers, the log level of the child logger is used otherwise
+      log4j.rootLogger=INFO, stdout
+
+      log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+      log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+      log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      log4j.appender.kafkaAppender=org.apache.log4j.DailyRollingFileAppender
+      log4j.appender.kafkaAppender.DatePattern='.'yyyy-MM-dd-HH
+      log4j.appender.kafkaAppender.File=${kafka.logs.dir}/server.log
+      log4j.appender.kafkaAppender.layout=org.apache.log4j.PatternLayout
+      log4j.appender.kafkaAppender.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      log4j.appender.stateChangeAppender=org.apache.log4j.DailyRollingFileAppender
+      log4j.appender.stateChangeAppender.DatePattern='.'yyyy-MM-dd-HH
+      log4j.appender.stateChangeAppender.File=${kafka.logs.dir}/state-change.log
+      log4j.appender.stateChangeAppender.layout=org.apache.log4j.PatternLayout
+      log4j.appender.stateChangeAppender.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      log4j.appender.requestAppender=org.apache.log4j.DailyRollingFileAppender
+      log4j.appender.requestAppender.DatePattern='.'yyyy-MM-dd-HH
+      log4j.appender.requestAppender.File=${kafka.logs.dir}/kafka-request.log
+      log4j.appender.requestAppender.layout=org.apache.log4j.PatternLayout
+      log4j.appender.requestAppender.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      log4j.appender.cleanerAppender=org.apache.log4j.DailyRollingFileAppender
+      log4j.appender.cleanerAppender.DatePattern='.'yyyy-MM-dd-HH
+      log4j.appender.cleanerAppender.File=${kafka.logs.dir}/log-cleaner.log
+      log4j.appender.cleanerAppender.layout=org.apache.log4j.PatternLayout
+      log4j.appender.cleanerAppender.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      log4j.appender.controllerAppender=org.apache.log4j.DailyRollingFileAppender
+      log4j.appender.controllerAppender.DatePattern='.'yyyy-MM-dd-HH
+      log4j.appender.controllerAppender.File=${kafka.logs.dir}/controller.log
+      log4j.appender.controllerAppender.layout=org.apache.log4j.PatternLayout
+      log4j.appender.controllerAppender.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      log4j.appender.authorizerAppender=org.apache.log4j.DailyRollingFileAppender
+      log4j.appender.authorizerAppender.DatePattern='.'yyyy-MM-dd-HH
+      log4j.appender.authorizerAppender.File=${kafka.logs.dir}/kafka-authorizer.log
+      log4j.appender.authorizerAppender.layout=org.apache.log4j.PatternLayout
+      log4j.appender.authorizerAppender.layout.ConversionPattern=[%d] %p %m (%c)%n
+
+      # Change the two lines below to adjust ZK client logging
+      log4j.logger.org.I0Itec.zkclient.ZkClient=INFO
+      log4j.logger.org.apache.zookeeper=INFO
+
+      # Change the two lines below to adjust the general broker logging level (output to server.log and stdout)
+      log4j.logger.kafka=INFO
+      log4j.logger.org.apache.kafka=INFO
+
+      # Change to DEBUG or TRACE to enable request logging
+      log4j.logger.kafka.request.logger=WARN, requestAppender
+      log4j.additivity.kafka.request.logger=false
+
+      # Uncomment the lines below and change log4j.logger.kafka.network.RequestChannel$ to TRACE for additional output
+      # related to the handling of requests
+      #log4j.logger.kafka.network.Processor=TRACE, requestAppender
+      #log4j.logger.kafka.server.KafkaApis=TRACE, requestAppender
+      #log4j.additivity.kafka.server.KafkaApis=false
+      log4j.logger.kafka.network.RequestChannel$=WARN, requestAppender
+      log4j.additivity.kafka.network.RequestChannel$=false
+
+      log4j.logger.kafka.controller=TRACE, controllerAppender
+      log4j.additivity.kafka.controller=false
+
+      log4j.logger.kafka.log.LogCleaner=INFO, cleanerAppender
+      log4j.additivity.kafka.log.LogCleaner=false
+
+      log4j.logger.state.change.logger=TRACE, stateChangeAppender
+      log4j.additivity.state.change.logger=false
+
+      # Change to DEBUG to enable audit log for the authorizer
+      log4j.logger.kafka.authorizer.logger=WARN, authorizerAppender
+      log4j.additivity.kafka.authorizer.logger=false
+    server.properties: |
+      #init#broker.id=#init#
+      listeners=PLAINTEXT://:9092,SSL://:9093
+      ssl.client.auth=requested
+      ssl.keystore.location=/etc/kafkacert/cluster.jks
+      ssl.keystore.password=aosqe2021
+      ssl.truststore.location=/etc/kafkacert/ca_bundle.jks
+      ssl.truststore.password=aosqe2021
+      security.inter.broker.protocol=PLAINTEXT
+      num.network.threads=3
+      num.io.threads=8
+      message.max.bytes=314572800
+      socket.send.buffer.bytes=102400
+      socket.receive.buffer.bytes=102400
+      socket.request.max.bytes=104857600
+      socket.request.max.bytes=314572800
+      log.dirs=/tmp/kafka-logs
+      num.partitions=1
+      num.recovery.threads.per.data.dir=1
+      offsets.topic.replication.factor=1
+      transaction.state.log.replication.factor=1
+      transaction.state.log.min.isr=1
+      log.retention.hours=2
+      log.segment.bytes=1073741824
+      log.retention.check.interval.ms=300000
+      zookeeper.connect=zookeeper:2181
+      zookeeper.connection.timeout.ms=18000
+      group.initial.rebalance.delay.ms=0
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: "kafka"
+- name: NAMESPACE
+  value: "openshift-logging"

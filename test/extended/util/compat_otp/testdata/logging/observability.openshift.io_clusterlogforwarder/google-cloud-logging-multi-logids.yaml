@@ -1,0 +1,81 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    outputs:
+    - name: gcp-app
+      type: googleCloudLogging
+      googleCloudLogging:
+        authentication:
+          credentials:
+            key: ${CRED_KEY}
+            secretName: ${SECRET_NAME}
+        id:
+          type: ${ID_TYPE}
+          value: ${ID_VALUE}
+        logId: ${LOG_ID}-application
+    - name: gcp-infra
+      type: googleCloudLogging
+      googleCloudLogging:
+        authentication:
+          credentials:
+            key: ${CRED_KEY}
+            secretName: ${SECRET_NAME}
+        id:
+          type: ${ID_TYPE}
+          value: ${ID_VALUE}
+        logId: ${LOG_ID}-infrastructure
+    - name: gcp-audit
+      type: googleCloudLogging
+      googleCloudLogging:
+        authentication:
+          credentials:
+            key: ${CRED_KEY}
+            secretName: ${SECRET_NAME}
+        id:
+          type: ${ID_TYPE}
+          value: ${ID_VALUE}
+        logId: ${LOG_ID}-audit
+    pipelines:
+    - name: gcp-app-pipeline
+      inputRefs:
+        - application
+      outputRefs:
+        - gcp-app
+    - name: gcp-infra-pipeline
+      inputRefs:
+        - infrastructure
+      outputRefs:
+        - gcp-infra
+    - name: gcp-audit-pipeline
+      inputRefs:
+        - audit
+      outputRefs:
+        - gcp-audit
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: CRED_KEY
+  value: "google-application-credentials.json"
+- name: SECRET_NAME
+  value: "gcp-secret"
+- name: LOG_ID
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: ID_TYPE
+  value: "project"
+- name: ID_VALUE
+  value: "openshift-qe"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""

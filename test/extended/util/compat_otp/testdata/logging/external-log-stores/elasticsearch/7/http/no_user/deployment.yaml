@@ -1,0 +1,66 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: external-log-store-template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: ${NAME}
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ${NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: ${NAME}
+      spec:
+        containers:
+        - image: quay.io/openshifttest/elasticsearch@sha256:420ab335838747b1d350ed39f4d88cf075479fc915cda8f91373c7e00de65887
+          imagePullPolicy: IfNotPresent
+          name: ${NAME}
+          ports:
+          - containerPort: 9300
+            protocol: TCP
+          - containerPort: 9200
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+            subPath: elasticsearch.yml
+            name: elasticsearch-config
+          resources:
+            requests:
+              cpu: 1
+              memory: 2Gi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: elasticsearch-config
+        serviceAccount: ${NAME}
+        serviceAccountName: ${NAME}
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+parameters:
+- name: NAME
+  value: elasticsearch-server
+- name: NAMESPACE
+  value: openshift-logging

@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: aws-machineset-template
+objects:
+  - apiVersion: "autoscaling.openshift.io/v1"
+    kind: "ClusterAutoscaler"
+    metadata:
+      name: "default"
+    spec:
+      resourceLimits:
+        maxNodesTotal: ${{MAXNODE}}
+        cores:
+          min: ${{MINCORE}}
+          max: ${{MAXCORE}}
+        memory:
+          min: ${{MINMEMORY}}
+          max: ${{MAXMEMORY}}
+      scaleDown:
+        enabled: true
+        delayAfterAdd: 10s
+        delayAfterDelete: 10s
+        delayAfterFailure: 10s
+        unneededTime: 10s
+        utilizationThreshold: ${UTILIZATIONTHRESHOLD}
+parameters:
+- name: MAXNODE
+- name: MINCORE
+- name: MAXCORE
+- name: MINMEMORY
+- name: MAXMEMORY
+- name: UTILIZATIONTHRESHOLD

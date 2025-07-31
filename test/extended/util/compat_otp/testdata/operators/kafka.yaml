@@ -1,0 +1,23 @@
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+  labels: {}
+  namespace: amq-streams
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      log.message.format.version: '2.5'
+    version: 2.5.0
+    storage:
+      type: ephemeral
+    listeners:
+      plain: {}
+    replicas: 3
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3

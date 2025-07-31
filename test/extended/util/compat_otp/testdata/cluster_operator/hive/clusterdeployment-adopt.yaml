@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterdeployment-adopt-temp
+objects:
+  - apiVersion: hive.openshift.io/v1
+    kind: ClusterDeployment
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      baseDomain: "${BASEDOMAIN}"
+      clusterMetadata:
+        adminKubeconfigSecretRef:
+          name: "${ADMINKUBECONFIGREF}"
+        clusterID: "${CLUSTERID}"
+        infraID: "${INFRAID}"
+      clusterName: "${CLUSTERNAME}"
+      installed: true
+      manageDNS: "${{MANAGEDNS}}"
+      platform:
+        "${PLATFORMTYPE}":
+          credentialsSecretRef:
+            name: "${CREDREF}"
+          region: "${REGION}"
+      pullSecretRef:
+        name: "${PULLSECRETREF}"
+      preserveOnDelete: ${{PRESERVEONDELETE}}
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: BASEDOMAIN
+  - name: ADMINKUBECONFIGREF
+  - name: CLUSTERID
+  - name: INFRAID
+  - name: CLUSTERNAME
+  - name: MANAGEDNS
+  - name: PLATFORMTYPE
+  - name: CREDREF
+  - name: REGION
+  - name: PULLSECRETREF
+  - name: PRESERVEONDELETE

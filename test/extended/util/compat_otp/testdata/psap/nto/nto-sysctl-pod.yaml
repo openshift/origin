@@ -1,0 +1,33 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod_test-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: sysctlpod
+      labels:
+        app: sysctlpod
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker-tuning: ""
+      containers:
+      - name: sysctlpod
+        securityContext:
+          runAsNonRoot: ${{RUNASNONROOT}}
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        image: ${IMAGE_NAME}
+        command: ["/bin/bash"]
+        args: ["-c", "sysctl kernel.pid_max;while true;do pidmax=`sysctl kernel.pid_max`; if [[ $pidmax != *181818 ]];then echo kernel.pid_max not equal 181818; fi;done"]
+        ports:
+        - containerPort: 8080
+        imagePullPolicy: Always
+parameters:
+- name: IMAGE_NAME
+- name: RUNASNONROOT

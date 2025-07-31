@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: osus-sub-temp
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: "${CHANNEL}"
+    installPlanApproval: "${APPROVAL}"
+    name: "${OPERATORNAME}"
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+    startingCSV: "${STARTINGCSV}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CHANNEL
+- name: APPROVAL
+- name: OPERATORNAME
+- name: SOURCENAME
+- name: SOURCENAMESPACE
+- name: STARTINGCSV
+

@@ -1,0 +1,5 @@
+/etcd
+/wrong-etcd.json
+/etcdwrong/etcd.json
+/etcdwrong/package.json
+/.indexignore

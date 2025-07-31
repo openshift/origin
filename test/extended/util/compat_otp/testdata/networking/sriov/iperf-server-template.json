@@ -1,0 +1,57 @@
+{
+    "apiVersion": "template.openshift.io/v1",
+    "kind": "Template",
+    "metadata": {
+        "name": "iperf-server-template"
+    },
+    "objects": [      
+        {
+            "kind": "Pod",
+            "apiVersion":"v1",
+            "metadata": {
+                "name": "${{PODNAME}}",
+                "labels": {
+                        "name": "${{PODNAME}}"
+                    },
+                "annotations": {
+                    "${{NETTYPE}}": "${{NETNAME}}"
+                }
+            },
+            "spec": {
+                "nodeSelector": {
+                    "kubernetes.io/hostname": "${{NODENAME}}"
+                },
+                "containers": [{
+                    "name": "${{PODNAME}}",
+                    "image": "quay.io/openshifttest/mcast-pod@sha256:aa2a8fdcfeddb09097e6a7201cfdb062db8d92d523cbcf758ef7d3545a1f5776",
+                    "command": [
+                        "iperf3"
+                    ],
+                    "args":[
+                        "-s"
+                    ],
+                    "securityContext": {
+                       "privileged": true,
+                       "capabilities": {
+                           "add": ["NET_RAW"]
+                       }
+                    }
+                }]
+            }
+        }
+    ],
+    "parameters": [
+        {
+          "name": "PODNAME"
+        },
+        {
+           "name": "NETTYPE"
+        },
+        {
+          "name": "NETNAME"
+        },
+        {
+          "name": "NODENAME"
+        }    
+    ]
+}

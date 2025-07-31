@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: resourcelocker-lock-configmaps
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - list
+      - get
+      - watch
+      - create
+      - update
+      - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: resource-locker-test-sa-can-manage-configmaps
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: resourcelocker-lock-configmaps
+subjects:
+  - kind: ServiceAccount
+    name: resource-locker-test-sa

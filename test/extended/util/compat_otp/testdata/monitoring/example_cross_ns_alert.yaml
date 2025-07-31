@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: example-alert
+spec:
+  groups:
+  - name: example
+    rules:
+    - alert: TestAlert1
+      expr: kube_namespace_labels{namespace!~"(openshift|kube).*|default",label_pod_security_kubernetes_io_enforce="restricted"}
+      labels:
+        severity: none
+      annotations:
+        message: There are user-defined namespace with restricted label.

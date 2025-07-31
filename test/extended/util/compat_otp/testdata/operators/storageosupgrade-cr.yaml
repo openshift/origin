@@ -1,0 +1,5 @@
+apiVersion: storageos.com/v1
+kind: StorageOSUpgrade
+metadata:
+  name: storageosupgrade-example
+  namespace: storageos

@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: nginx-config
+  data:
+    nginx.conf: |
+      events {
+          worker_connections 1024;
+      }
+
+      http {
+          server {
+              listen		8080;
+              listen       [::]:8080;
+              location / {
+                  root /data/http;
+              }
+          }
+
+          server {
+              listen           	    8443 ssl http2 default;
+              listen           	    [::]:8443 ssl http2 default;
+              server_name      	    _;
+              ssl_certificate  	    certs/tls.crt;
+              ssl_certificate_key  	certs/tls.key;
+              location / {
+                  root /data/https-default;
+              }
+          }
+      }
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: web-server-deploy
+    labels:
+      name: web-server-deploy
+  spec:
+    replicas: 1
+    selector:
+      matchExpressions:
+       - {key: name, operator: In, values: [web-server-deploy]}
+    template:
+      metadata:
+        labels:
+          name: web-server-deploy
+      spec:
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+          volumeMounts:
+          - name: service-secret
+            mountPath: /etc/nginx/certs/
+          - name: nginx-config
+            mountPath: /etc/nginx/
+        volumes:
+        - name: service-secret
+          secret:
+            secretName: service-secret
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+- kind: Service
+  apiVersion: v1
+  metadata:
+      annotations:
+          service.beta.openshift.io/serving-cert-secret-name: service-secret
+      labels:
+          name: service-secure
+      name: service-secure
+  spec:
+      ports:
+         - name: https
+           protocol: TCP
+           port: 27443
+           targetPort: 8443
+      selector:
+        name: web-server-deploy
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: service-unsecure
+    name: service-unsecure
+  spec:
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server-deploy

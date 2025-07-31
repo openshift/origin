@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ingressnodefirewall-template
+objects:
+- kind: IngressNodeFirewall
+  apiVersion: ingressnodefirewall.openshift.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+  spec:
+    interfaces:
+    - "${PRIMARY_INF}"
+    nodeSelector:
+      matchLabels:
+        "${NODELABEL}": ""
+    ingress:
+    - sourceCIDRs:
+         - "${SRC_CIDR1}"
+         - "${SRC_CIDR2}"
+      rules:
+      - order: 1
+        protocolConfig:
+          protocol: "${PROTOCOL_1}"
+          "${PROTOCOLTYPE1}":
+            ports: "${RANGE_1}"
+        action: "${ACTION_1}"
+      - order: 2
+        protocolConfig:
+          protocol: "${PROTOCOL_2}"
+          "${PROTOCOLTYPE2}":
+            ports: "${RANGE_2}"
+        action: "${ACTION_2}"
+parameters:
+- name: NAME
+- name: PRIMARY_INF
+- name: NODELABEL
+- name: SRC_CIDR1
+- name: SRC_CIDR2
+- name: PROTOCOL_1
+- name: PROTOCOLTYPE1
+- name: RANGE_1
+- name: ACTION_1
+- name: PROTOCOL_2
+- name: PROTOCOLTYPE2
+- name: RANGE_2
+- name: ACTION_2

@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ReplicationController
+  metadata:
+    labels:
+      name: web-server-v4v6rc
+    name: web-server-v4v6rc
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          name: web-server-v4v6rc
+      spec:
+        containers:
+        - image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+          name: nginx
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: service-securev4v6
+    name: service-securev4v6
+  spec:
+    ipFamilyPolicy: PreferDualStack
+    ports:
+    - name: https
+      port: 27443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      name: web-server-v4v6rc
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: service-unsecurev4v6
+    name: service-unsecurev4v6
+  spec:
+    ipFamilyPolicy: PreferDualStack
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: web-server-v4v6rc

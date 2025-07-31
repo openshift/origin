@@ -1,0 +1,59 @@
+ apiVersion: kubevirt.io/v1
+ kind: VirtualMachine
+ metadata:
+  name: test-vm1
+  namespace: test-76537
+ spec:
+  dataVolumeTemplates:
+    - metadata:
+        name: test-vm1-volume
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: rhel9 
+          namespace: openshift-virtualization-os-images 
+        storage: {}
+  instancetype:
+    name: u1.medium 
+  preference:
+    name: rhel.9 
+  running: true
+  template:
+    spec:
+      domain:
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - name: default  # order matters, default Pod interface should come before secondary
+              masquerade: {}
+            - name: secondary
+              bridge: {}
+      volumes:
+        - dataVolume:
+            name: test-vm1-volume
+          name: rootdisk
+        - cloudInitNoCloud:
+            networkData: |
+              version: 2
+              ethernets:
+                eth1: 
+                  addresses:
+                  - 10.10.10.15/24 #IP CIDR should be non-overlapping
+            userData: |-
+              #cloud-config
+              user: cloud-user
+              password: byje-7cd2-i8et
+              chpasswd: { expire: False }
+          name: cloudinitdisk
+      networks:
+        - name: default
+          pod: {}
+        - multus:
+            networkName: l2-network
+          name: secondary

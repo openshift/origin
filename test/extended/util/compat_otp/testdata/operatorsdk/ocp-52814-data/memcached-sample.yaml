@@ -1,0 +1,7 @@
+apiVersion: test.disconnected.com/v1
+kind: Memcached52814
+metadata:
+  name: memcached52305-sample
+spec:
+  # Add fields here
+  size: 1

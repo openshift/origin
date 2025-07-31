@@ -1,0 +1,620 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: scenario3
+  namespace: scenario3
+data:
+  customResourceDefinitions: |-
+    - apiVersion: apiextensions.k8s.io/v1beta1
+      kind: CustomResourceDefinition
+      metadata:
+        name: exampleas.examples.io
+      spec:
+        group: examples.io
+        names:
+          kind: ExampleA
+          listKind: ExampleAList
+          plural: exampleas
+          singular: examplea
+        scope: Namespaced
+        subresources:
+          status: {}
+        version: v1alpha1
+        versions:
+        - name: v1alpha1
+          served: true
+          storage: true
+    - apiVersion: apiextensions.k8s.io/v1beta1
+      kind: CustomResourceDefinition
+      metadata:
+        name: examplebs.examples.io
+      spec:
+        group: examples.io
+        names:
+          kind: ExampleB
+          listKind: ExampleBList
+          plural: examplebs
+          singular: exampleb
+        scope: Namespaced
+        subresources:
+          status: {}
+        version: v1alpha1
+        versions:
+        - name: v1alpha1
+          served: true
+          storage: true
+  clusterServiceVersions: |-
+    - apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      metadata:
+        annotations:
+          capabilities: Basic Install
+        name: example-operator-a.v0.0.1
+        namespace: placeholder
+      spec:
+        apiservicedefinitions: {}
+        customresourcedefinitions:
+          owned:
+          - kind: ExampleA
+            name: exampleas.examples.io
+            version: v1alpha1
+            displayName: Example A
+            description: Example A Custom Resource Definition
+          required:
+          - kind: ExampleB
+            name: examplebs.examples.io
+            version: v1alpha1
+            displayName: Example B
+            description: Example B Custom Resource Definition
+        displayName: Example Operator A
+        description: An example operator (A)
+        provider:
+          name: Example Provider A
+        links:
+          - name: Source Code
+            url: https://github.com/djzager/olm-playground
+        keywords:
+          - foo
+          - bar
+          - baz
+        install:
+          spec:
+            clusterPermissions:
+            - rules:
+              - apiGroups:
+                - ""
+                resources:
+                - pods
+                - services
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                verbs:
+                - '*'
+              - apiGroups:
+                - ""
+                resources:
+                - namespaces
+                verbs:
+                - get
+              - apiGroups:
+                - apps
+                resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+                verbs:
+                - '*'
+              - apiGroups:
+                - monitoring.coreos.com
+                resources:
+                - servicemonitors
+                verbs:
+                - get
+                - create
+              - apiGroups:
+                - apps
+                resourceNames:
+                - example-operator-a
+                resources:
+                - deployments/finalizers
+                verbs:
+                - update
+              - apiGroups:
+                - examples.io
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              serviceAccountName: example-operator-a
+            deployments:
+            - name: example-operator-a
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    name: example-operator-a
+                strategy: {}
+                template:
+                  metadata:
+                    labels:
+                      name: example-operator-a
+                  spec:
+                    containers:
+                    - command:
+                      - /usr/local/bin/ao-logs
+                      - /tmp/ansible-operator/runner
+                      - stdout
+                      image: docker.io/djzager/example-operator-a:v1
+                      imagePullPolicy: IfNotPresent
+                      name: ansible
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                        readOnly: true
+                    - env:
+                      - name: WATCH_NAMESPACE
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: example-operator-a
+                      image: docker.io/djzager/example-operator-a:v1
+                      imagePullPolicy: IfNotPresent
+                      name: operator
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                    serviceAccountName: example-operator-a
+                    volumes:
+                    - emptyDir: {}
+                      name: runner
+          strategy: deployment
+        installModes:
+        - supported: true
+          type: OwnNamespace
+        - supported: true
+          type: SingleNamespace
+        - supported: false
+          type: MultiNamespace
+        - supported: true
+          type: AllNamespaces
+        maturity: alpha
+        version: 0.0.1
+    - apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      metadata:
+        annotations:
+          capabilities: Basic Install
+        name: example-operator-a.v1.0.0
+        namespace: placeholder
+      spec:
+        apiservicedefinitions: {}
+        customresourcedefinitions:
+          owned:
+          - kind: ExampleA
+            name: exampleas.examples.io
+            version: v1alpha1
+            displayName: Example A
+            description: Example A Custom Resource Definition
+          required:
+          - kind: ExampleB
+            name: examplebs.examples.io
+            version: v1alpha1
+            displayName: Example B
+            description: Example B Custom Resource Definition
+        displayName: Example Operator A
+        description: An example operator (A)
+        provider:
+          name: Example Provider A
+        links:
+          - name: Source Code
+            url: https://github.com/djzager/olm-playground
+        keywords:
+          - foo
+          - bar
+          - baz
+        install:
+          spec:
+            clusterPermissions:
+            - rules:
+              - apiGroups:
+                - ""
+                resources:
+                - pods
+                - services
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                verbs:
+                - '*'
+              - apiGroups:
+                - ""
+                resources:
+                - namespaces
+                verbs:
+                - get
+              - apiGroups:
+                - apps
+                resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+                verbs:
+                - '*'
+              - apiGroups:
+                - monitoring.coreos.com
+                resources:
+                - servicemonitors
+                verbs:
+                - get
+                - create
+              - apiGroups:
+                - apps
+                resourceNames:
+                - example-operator-a
+                resources:
+                - deployments/finalizers
+                verbs:
+                - update
+              - apiGroups:
+                - examples.io
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              serviceAccountName: example-operator-a
+            deployments:
+            - name: example-operator-a
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    name: example-operator-a
+                strategy: {}
+                template:
+                  metadata:
+                    labels:
+                      name: example-operator-a
+                  spec:
+                    containers:
+                    - command:
+                      - /usr/local/bin/ao-logs
+                      - /tmp/ansible-operator/runner
+                      - stdout
+                      image: docker.io/djzager/example-operator-a:v1stable
+                      imagePullPolicy: IfNotPresent
+                      name: ansible
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                        readOnly: true
+                    - env:
+                      - name: WATCH_NAMESPACE
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: example-operator-a
+                      image: docker.io/djzager/example-operator-a:v1stable
+                      imagePullPolicy: IfNotPresent
+                      name: operator
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                    serviceAccountName: example-operator-a
+                    volumes:
+                    - emptyDir: {}
+                      name: runner
+          strategy: deployment
+        installModes:
+        - supported: true
+          type: OwnNamespace
+        - supported: true
+          type: SingleNamespace
+        - supported: false
+          type: MultiNamespace
+        - supported: true
+          type: AllNamespaces
+        maturity: stable
+        version: 1.0.0
+    - apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      metadata:
+        annotations:
+          capabilities: Basic Install
+        name: example-operator-b.v0.0.1
+        namespace: placeholder
+      spec:
+        apiservicedefinitions: {}
+        customresourcedefinitions:
+          owned:
+          - kind: ExampleB
+            name: examplebs.examples.io
+            version: v1alpha1
+            displayName: Example B
+            description: Example B Custom Resource Definition
+        displayName: Example Operator B
+        description: An example operator (B)
+        provider:
+          name: Example Provider B
+        links:
+          - name: Source Code
+            url: https://github.com/djzager/olm-playground
+        keywords:
+          - foo
+          - bar
+          - baz
+        install:
+          spec:
+            clusterPermissions:
+            - rules:
+              - apiGroups:
+                - ""
+                resources:
+                - pods
+                - services
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                verbs:
+                - '*'
+              - apiGroups:
+                - ""
+                resources:
+                - namespaces
+                verbs:
+                - get
+              - apiGroups:
+                - apps
+                resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+                verbs:
+                - '*'
+              - apiGroups:
+                - monitoring.coreos.com
+                resources:
+                - servicemonitors
+                verbs:
+                - get
+                - create
+              - apiGroups:
+                - apps
+                resourceNames:
+                - example-operator-b
+                resources:
+                - deployments/finalizers
+                verbs:
+                - update
+              - apiGroups:
+                - examples.io
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              serviceAccountName: example-operator-b
+            deployments:
+            - name: example-operator-b
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    name: example-operator-b
+                strategy: {}
+                template:
+                  metadata:
+                    labels:
+                      name: example-operator-b
+                  spec:
+                    containers:
+                    - command:
+                      - /usr/local/bin/ao-logs
+                      - /tmp/ansible-operator/runner
+                      - stdout
+                      image: docker.io/djzager/example-operator-b:v1
+                      imagePullPolicy: IfNotPresent
+                      name: ansible
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                        readOnly: true
+                    - env:
+                      - name: WATCH_NAMESPACE
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: example-operator-b
+                      image: docker.io/djzager/example-operator-b:v1
+                      imagePullPolicy: IfNotPresent
+                      name: operator
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                    serviceAccountName: example-operator-b
+                    volumes:
+                    - emptyDir: {}
+                      name: runner
+          strategy: deployment
+        installModes:
+        - supported: true
+          type: OwnNamespace
+        - supported: true
+          type: SingleNamespace
+        - supported: false
+          type: MultiNamespace
+        - supported: true
+          type: AllNamespaces
+        maturity: alpha
+        version: 0.0.1
+    - apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      metadata:
+        annotations:
+          capabilities: Basic Install
+        name: example-operator-b.v1.0.0
+        namespace: placeholder
+      spec:
+        apiservicedefinitions: {}
+        customresourcedefinitions:
+          owned:
+          - kind: ExampleB
+            name: examplebs.examples.io
+            version: v1alpha1
+            displayName: Example B
+            description: Example B Custom Resource Definition
+        displayName: Example Operator B
+        description: An example operator (B)
+        provider:
+          name: Example Provider B
+        links:
+          - name: Source Code
+            url: https://github.com/djzager/olm-playground
+        keywords:
+          - foo
+          - bar
+          - baz
+        install:
+          spec:
+            clusterPermissions:
+            - rules:
+              - apiGroups:
+                - ""
+                resources:
+                - pods
+                - services
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                verbs:
+                - '*'
+              - apiGroups:
+                - ""
+                resources:
+                - namespaces
+                verbs:
+                - get
+              - apiGroups:
+                - apps
+                resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+                verbs:
+                - '*'
+              - apiGroups:
+                - monitoring.coreos.com
+                resources:
+                - servicemonitors
+                verbs:
+                - get
+                - create
+              - apiGroups:
+                - apps
+                resourceNames:
+                - example-operator-b
+                resources:
+                - deployments/finalizers
+                verbs:
+                - update
+              - apiGroups:
+                - examples.io
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              serviceAccountName: example-operator-b
+            deployments:
+            - name: example-operator-b
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    name: example-operator-b
+                strategy: {}
+                template:
+                  metadata:
+                    labels:
+                      name: example-operator-b
+                  spec:
+                    containers:
+                    - command:
+                      - /usr/local/bin/ao-logs
+                      - /tmp/ansible-operator/runner
+                      - stdout
+                      image: docker.io/djzager/example-operator-b:v1stable
+                      imagePullPolicy: IfNotPresent
+                      name: ansible
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                        readOnly: true
+                    - env:
+                      - name: WATCH_NAMESPACE
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: example-operator-b
+                      image: docker.io/djzager/example-operator-b:v1stable
+                      imagePullPolicy: IfNotPresent
+                      name: operator
+                      resources: {}
+                      volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                    serviceAccountName: example-operator-b
+                    volumes:
+                    - emptyDir: {}
+                      name: runner
+          strategy: deployment
+        installModes:
+        - supported: true
+          type: OwnNamespace
+        - supported: true
+          type: SingleNamespace
+        - supported: false
+          type: MultiNamespace
+        - supported: true
+          type: AllNamespaces
+        maturity: stable
+        version: 1.0.0
+  packages: |-
+    - packageName: example-operator-a
+      channels:
+      - name: alpha
+        currentCSV: example-operator-a.v0.0.1
+      - name: stable
+        currentCSV: example-operator-a.v1.0.0
+    - packageName: example-operator-b
+      channels:
+      - name: alpha
+        currentCSV: example-operator-b.v0.0.1
+      - name: stable
+        currentCSV: example-operator-b.v1.0.0
