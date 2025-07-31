@@ -565,7 +565,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			tests = append(tests, retry)
 		}
 		if len(flaky) > 0 {
-			failing = repeatFailures
+			// Explicitly remove flakes from the failing list
+			var withoutFlakes []*testCase
+		flakeLoop:
+			for _, t := range failing {
+				for _, f := range flaky {
+					if t.name == f {
+						continue flakeLoop
+					}
+				}
+				withoutFlakes = append(withoutFlakes, t)
+			}
+			failing = withoutFlakes
+
 			sort.Strings(flaky)
 			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
 		}
@@ -579,14 +591,24 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 					if t.name == st && t.failed {
 						continue testLoop
 					}
-					withoutPreconditionFailures = append(withoutPreconditionFailures, t)
 				}
+				withoutPreconditionFailures = append(withoutPreconditionFailures, t)
 			}
 			tests = withoutPreconditionFailures
-			failing = repeatFailures
+
+			var failingWithoutPreconditionFailures []*testCase
+		failingLoop:
+			for _, f := range failing {
+				for _, st := range skipped {
+					if f.name == st {
+						continue failingLoop
+					}
+				}
+				failingWithoutPreconditionFailures = append(failingWithoutPreconditionFailures, f)
+			}
+			failing = failingWithoutPreconditionFailures
 			sort.Strings(skipped)
 			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
-
 		}
 	}
 
