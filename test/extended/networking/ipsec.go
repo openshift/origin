@@ -86,6 +86,8 @@ spec:
         esp: aes_gcm256
         ikev2: insist
         type: transport
+        leftprotoport: icmp
+        rightprotoport: icmp
 `
 
 // properties of nsCertMachineConfigFile.
