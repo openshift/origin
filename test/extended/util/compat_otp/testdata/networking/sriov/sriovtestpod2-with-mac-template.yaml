@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriovclientpod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: ${PODNAME}
+    namespace: ${TARGETNS}
+    labels:
+      app: ${PODNAME}
+    annotations:
+      k8s.v1.cni.cncf.io/networks: |-
+        [
+          {
+            "name": "${SRIOVNETNAME}",
+            "mac": "${MAC_ADDR}",
+            "ips": ["${IP_ADDR}"]
+          }
+        ]
+  spec:
+    containers:
+    - name: sample-container
+      imagePullPolicy: IfNotPresent
+      image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+parameters:
+- name: PODNAME 
+- name: TARGETNS
+- name: SRIOVNETNAME
+- name: MAC_ADDR
+- name: IP_ADDR

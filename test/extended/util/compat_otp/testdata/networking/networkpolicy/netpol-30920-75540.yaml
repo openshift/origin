@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: OCPBUGS-30920
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchExpressions:
+        - key: name
+          operator: In
+          values:
+          - invalid value
+  podSelector: {}
+  policyTypes:
+  - Ingress

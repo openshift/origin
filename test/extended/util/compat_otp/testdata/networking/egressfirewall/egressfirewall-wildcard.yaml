@@ -1,0 +1,12 @@
+kind: EgressFirewall
+apiVersion: k8s.ovn.org/v1
+metadata:
+  name: default
+spec:
+  egress:
+  - type: Allow
+    to:
+      dnsName: "*.google.com"
+  - type: Deny
+    to:
+      cidrSelector: 0.0.0.0/0

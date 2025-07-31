@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    openshift.io/node-selector: ""
+    openshift.io/sa.scc.mcs: s0:c29,c9
+    openshift.io/sa.scc.supplemental-groups: 1000830000/10000
+    openshift.io/sa.scc.uid-range: 1000830000/10000
+  labels:
+    hive.openshift.io/managed: "true"
+    kubernetes.io/metadata.name: openshift-observability-operator
+    network.openshift.io/policy-group: monitoring
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/audit-version: v1.24
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/warn-version: v1.24
+    security.openshift.io/scc.podSecurityLabelSync: "true"
+  name: openshift-observability-operator
+spec:
+  finalizers:
+  - kubernetes

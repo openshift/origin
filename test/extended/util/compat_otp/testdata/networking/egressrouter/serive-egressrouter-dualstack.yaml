@@ -1,0 +1,24 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: ovn-egressrouter-multidst-svc
+spec:
+  selector:
+    app: egress-router-cni
+  ipFamilies:
+  - IPv4
+  - IPv6
+  ipFamilyPolicy: PreferDualStack
+  ports:
+  - name: con1
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  - name: con2
+    protocol: TCP
+    port: 5000
+    targetPort: 8080
+  - name: con3
+    protocol: TCP
+    port: 6000
+    targetPort: 8888

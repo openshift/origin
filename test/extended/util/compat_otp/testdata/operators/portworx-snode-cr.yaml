@@ -1,0 +1,5 @@
+apiVersion: core.libopenstorage.org/v1alpha1
+kind: StorageNode
+metadata:
+  name: storagenode-example
+  namespace: portworx-certified

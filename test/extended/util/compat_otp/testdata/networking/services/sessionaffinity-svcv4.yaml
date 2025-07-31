@@ -1,0 +1,18 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: sessionaffinitysvcv4
+spec:
+  ipFamilyPolicy: SingleStack
+  ipFamilies:
+  - IPv4
+  selector:
+    name: blue-openshift
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP: 
+      timeoutSeconds: 10

@@ -1,0 +1,47 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ocp-perfapp-template
+objects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ocp-perfapp
+      labels:
+        app: perfapp
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: perfapp
+      template:
+        metadata:
+          annotations:
+            alpha.image.policy.openshift.io/resolve-names: '*'     
+          labels:
+            app: perfapp
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: ocp-perfapp
+            image: "${IMAGENAME}"
+            command: ["/usr/bin/nc"]
+            args: ["-4","-l","8080"]
+            ports:
+            - containerPort: 8080
+            volumeMounts:
+            - mountPath: /opt/app-root/
+              name: app-root
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+          volumes:
+          - name: app-root
+            emptyDir: {}                
+parameters:
+- name: IMAGENAME

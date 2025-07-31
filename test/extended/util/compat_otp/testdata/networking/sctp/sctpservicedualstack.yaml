@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sctpservice-dualstack
+  labels:
+    name: sctpserver
+spec:
+  ipFamilyPolicy: PreferDualStack
+  ipFamilies:
+  - IPv4
+  - IPv6
+  selector:
+    name: sctpserver
+  ports:
+    - name: sctpservice-dualstack
+      protocol: SCTP
+      port: 30102
+      targetPort: 'sctpserver'
+  type: NodePort

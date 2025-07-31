@@ -1,0 +1,329 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    olm.properties: '[{"type": "olm.maxOpenShiftVersion", "value": "4.8"}]'
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "containo.us/v1alpha1",
+          "kind": "Traefikee",
+          "metadata": {
+            "name": "example-traefikee",
+            "namespace": "traefikee"
+          },
+          "spec": {
+            "cluster": "traefikee",
+            "controllers": 1,
+            "image": "store/containous/traefikee:v2.1.0-ubi",
+            "proxies": 2
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Networking
+    certified: "false"
+    containerImage: containous/traefikee-operator:v2.1.1
+    createdAt: "2019-12-12T09:01:00Z"
+    description: Traefik Enterprise Edition
+    support: https://docs.containo.us
+  name: traefikee-operator.v2.1.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: Represents a TraefikEE installation
+        displayName: TraefikEE
+        kind: Traefikee
+        name: traefikees.containo.us
+        resources:
+          - kind: Service
+            name: ""
+            version: v1
+          - kind: Deployment
+            name: ""
+            version: v1
+          - kind: Pod
+            name: ""
+            version: v1
+          - kind: ConfigMap
+            name: ""
+            version: v1
+          - kind: Secret
+            name: ""
+            version: v1
+          - kind: PersistentVolumeClaim
+            name: ""
+            version: v1
+          - kind: StatefulSets
+            name: ""
+            version: v1
+        specDescriptors:
+          - description: Name of your TraefikEE cluster
+            displayName: clustername
+            path: clustername
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:label
+          - description: Number of controllers to install
+            displayName: controllers
+            path: controllers
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:label
+          - description: Number of proxies to install
+            displayName: proxies
+            path: proxies
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:label
+          - description: TraefikEE image to install
+            displayName: image
+            path: image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:label
+        version: v1alpha1
+  description: |
+    TraefikEE is a distributed, and highly available edge routing solution built on top of the open source Traefik and natively integrates with Openshift to:
+
+    * Load balance any applications and easily scale out to meet production traffic needs
+    * Secure services with end-to-end network and application encryption
+    * Provide end-to-end monitoring and real-time tracing for better insight into application uptime and performance
+
+    ## Before You Start
+
+    To start using the operator you''ll need a license key
+
+    Request your [30-days free trial](https://info.containo.us/free-trial-traefikee-red-hat-openshift)
+
+    * Create a Secret with your License key
+    ```
+    kubectl create namespace traefikee
+    kubectl create -n traefikee secret generic license --from-literal=license=${TRAEFIKEE_LICENSE_KEY}
+    ```
+
+    * Generate the client credentials
+    ```
+    export CLUSTER=test
+    teectl setup --cluster="${CLUSTER}" --kubernetes --force
+    kubectl create secret -n traefikee generic "${CLUSTER}-mtls" --from-file=bundle.zip=./bundle.zip
+    kubectl label secret -n traefikee "${CLUSTER}-mtls" app=traefikee
+    kubectl label secret -n traefikee "${CLUSTER}-mtls" release="${CLUSTER}"
+    ```
+  displayName: Traefikee Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - services
+                - services/finalizers
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                - serviceaccounts
+              verbs:
+                - "*"
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+              verbs:
+                - "*"
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - create
+            - apiGroups:
+                - apps
+              resourceNames:
+                - traefikee-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+                - deployments
+              verbs:
+                - get
+            - apiGroups:
+                - containo.us
+              resources:
+                - "*"
+              verbs:
+                - "*"
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterroles
+                - clusterrolebindings
+              verbs:
+                - "*"
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - "*"
+          serviceAccountName: traefikee-operator
+      deployments:
+        - name: traefikee-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                name: traefikee-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  name: traefikee-operator
+              spec:
+                containers:
+                  - command:
+                      - /usr/local/bin/ao-logs
+                      - /tmp/ansible-operator/runner
+                      - stdout
+                    image: containous/traefikee-operator:v2.1.0
+                    imagePullPolicy: IfNotPresent
+                    name: ansible
+                    resources: {}
+                    volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                        readOnly: true
+                  - env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: traefikee-operator
+                      - name: ANSIBLE_GATHERING
+                        value: explicit
+                      - name: RELATED_IMAGE_TRAEFIKEE
+                        value: docker.io/store/containous/traefikee:v2.1.0-ubi
+                    image: containous/traefikee-operator:v2.1.0
+                    imagePullPolicy: IfNotPresent
+                    name: operator
+                    resources: {}
+                    volumeMounts:
+                      - mountPath: /tmp/ansible-operator/runner
+                        name: runner
+                serviceAccountName: traefikee-operator
+                volumes:
+                  - emptyDir: {}
+                    name: runner
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - services
+                - services/finalizers
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+              verbs:
+                - "*"
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+              verbs:
+                - "*"
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - create
+            - apiGroups:
+                - apps
+              resourceNames:
+                - traefikee-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+                - deployments
+              verbs:
+                - get
+            - apiGroups:
+                - containo.us
+              resources:
+                - "*"
+              verbs:
+                - "*"
+          serviceAccountName: traefikee-operator
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - load balancer
+    - reverse proxy
+    - traefik
+    - traefikee
+    - microservice
+  links:
+    - name: TraefikEE
+      url: https://containo.us/traefikee
+    - name: Documentation
+      url: https://docs.containo.us
+  maintainers:
+    - email: michael@containo.us
+      name: mmatur
+  maturity: stable
+  provider:
+    name: Containous
+  replaces: traefikee-operator.v2.0.2
+  version: 2.1.1

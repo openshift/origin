@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    nodeExporter:
+      collectors:
+        systemd:
+          enabled: true
+          units:
+          - network.+
+          - nss.+
+          - logrotate.timer
+

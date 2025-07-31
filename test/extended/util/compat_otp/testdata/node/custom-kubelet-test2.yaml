@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: max-pod-1-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        pools.operator.machineconfiguration.openshift.io/worker: ""
+    kubeletConfig:
+      maxPods: 270
+parameters:
+- name: NAME
+

@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: testrun-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: gcp-podvm-image-cm
+      namespace: openshift-sandboxed-containers-operator
+    data:
+      BOOT_FIPS: "no"
+      BOOTC_BUILD_CONFIG: |
+        [[customizations.user]]
+        name = "peerpod"
+        password = "peerpod"
+        groups = ["wheel", "root"]
+
+        [[customizations.filesystem]]
+        mountpoint = "/"
+        minsize = "5 GiB"
+
+        [[customizations.filesystem]]
+        mountpoint = "/var/kata-containers"
+        minsize = "15 GiB"
+      DISABLE_CLOUD_CONFIG: "true"
+      IMAGE_BASE_NAME: "${IMAGE_BASE_NAME}"
+      IMAGE_TYPE: pre-built
+      IMAGE_VERSION: "${IMAGE_VERSION}"
+      INSTALL_PACKAGES: "no"
+      PODVM_IMAGE_URI: bootc::quay.io/tbuskey/podvm-bootc:1.9.0::/podvm.qcow2
+      UPDATE_PEERPODS_CM: "yes"
+
+parameters:
+  - name: PODVM_IMAGE_URI
+    value: "bootc::quay.io/tbuskey/podvm-bootc:1.9.0::/podvm.qcow2"
+    description: "Prebuilt image to use for podvm image creation job"
+  - name: IMAGE_BASE_NAME
+    value: "podvmimage-ci"
+    description: "Name to patch peer-pods-cm"
+  - name: IMAGE_VERSION
+    value: "1-9-0"
+    description: "Version to patch peer-pods-cm"

@@ -1,0 +1,42 @@
+---
+schema: olm.package
+name: operator-1
+defaultChannel: alpha
+---
+entries:
+- name: operator-1.v0.1.0
+- name: operator-1.v0.2.0
+  replaces: operator-1.v0.1.0
+name: alpha
+package: operator-1
+schema: olm.channel
+---
+image: quay.io/xzhao/operator-1-bundle:v0.1.0
+name: operator-1.v0.1.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.1.0
+schema: olm.bundle
+---
+image: quay.io/xzhao/operator-1-bundle:v0.2.0
+name: operator-1.v0.2.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.2.0
+schema: olm.bundle

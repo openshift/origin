@@ -1,0 +1,6 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+mirror:
+  additionalImages:
+  - name: quay.io/okd/scos-content@sha256:fc37fb091804ce32411d04559a4b0ba63139bd12b51f7d87dc2e8fa9ff9d3ef7
+  - name: quay.io/okd/scos-content@sha256:df80aa07467d1c6f59a39f3c00e00e130a6b25308b1419264565ca7cd8a76407

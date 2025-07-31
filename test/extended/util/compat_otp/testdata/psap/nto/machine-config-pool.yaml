@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nto-mcp-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: MachineConfigPool
+  metadata:
+    name: ${MCP_NAME}
+    labels:
+      worker-rt: ""
+  spec:
+    machineConfigSelector:
+      matchExpressions:
+        - {key: machineconfiguration.openshift.io/role, operator: In, values: [worker,worker-rt]}
+    nodeSelector:
+      matchLabels:
+        node-role.kubernetes.io/worker-rt: ""
+parameters:
+- name: MCP_NAME

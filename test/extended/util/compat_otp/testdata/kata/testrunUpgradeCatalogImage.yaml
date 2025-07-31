@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: testrunUpgradeTemplate
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    data:
+      imageAfter: "${IMAGEINDEXAFTER}"
+
+# oc process --ignore-unknown-parameters=true -f catalogSourceTemplate.yaml -p IMAGEINDEXAFTER=quay.io/openshift_sandboxed_containers/openshift-sandboxed-containers-operator-catalog:1.5.1 > osc-config-upgrade-catalog.yaml
+# oc apply -f osc-config-upgrade-catalog.yaml
+
+parameters:
+  - name: NAME
+    value: "osc-config-upgrade-catalog"
+  - name: NAMESPACE
+    value: "default"
+  - name: IMAGEINDEXAFTER
+    value: "quay.io/openshift_sandboxed_containers/openshift-sandboxed-containers-operator-catalog:1.5.1"

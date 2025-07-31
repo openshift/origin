@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deploy-nodeaffinity-template
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    labels:
+      app: "${DNAME}"
+    name: "${DNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: ${{REPLICASNUM}}
+    selector:
+      matchLabels:
+        app: "${DNAME}"
+    template:
+      metadata:
+        labels:
+          app: "${DNAME}"
+      spec:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: "${PODAFFINITYKEY}"
+                  operator: "${OPERATORPOLICY}"
+                  values:
+                  - "${PODAFFINITYVALUE}"
+              topologyKey: kubernetes.io/hostname
+        containers:
+        - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+          name: hello-openshift
+        priorityClassName: prioritym
+parameters:
+- name: DNAME
+- name: NAMESPACE
+- name: REPLICASNUM
+- name: PODAFFINITYKEY
+- name: OPERATORPOLICY
+- name: PODAFFINITYVALUE

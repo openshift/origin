@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: rolebinding-template
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: "${ROLE_NAME}"
+  subjects:
+  - kind: ServiceAccount
+    name: "${SA_NAME}"
+    namespace: "${NAMESPACE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SA_NAME
+- name: ROLE_NAME

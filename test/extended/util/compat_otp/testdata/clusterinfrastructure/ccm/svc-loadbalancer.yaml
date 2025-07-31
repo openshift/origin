@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: svc-loadbalancer
+objects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        name: ${NAME}
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      ports:
+      - name: http
+        port: 80
+        protocol: TCP
+        targetPort: 8080
+      selector:
+        name: web-server-rc
+      type: LoadBalancer
+parameters:
+- name: NAME
+- name: NAMESPACE

@@ -1,0 +1,19 @@
+apiVersion: tuned.openshift.io/v1
+kind: Tuned
+metadata:
+  name: openshift-bootcmdline-cpu
+  namespace: openshift-cluster-node-tuning-operator
+spec:
+  profile:
+  - data: |
+      [main]
+      summary=Custom OpenShift profile
+      [bootloader]
+      cmdline=+cpus=${f:exec:/usr/bin/bash:-c:nproc|tr -d '\n'}
+    name: openshift-bootcmdline-cpu
+
+  recommend:
+  - machineConfigLabels:
+      machineconfiguration.openshift.io/role: "worker-diffcpus"
+    priority: 18
+    profile: openshift-bootcmdline-cpu

@@ -1,0 +1,49 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kbs-config-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: kbs-config-cm
+      namespace: "${NAMESPACE}"
+    data:
+      kbs-config.json: |
+        {
+          "insecure_http" : ${INSECUREHTTP},
+          "sockets": ["0.0.0.0:8080"],
+          "auth_public_key": "/etc/auth-secret/publicKey",
+          "attestation_token_config": {
+            "attestation_token_type": "CoCo"
+          },
+          "repository_config": {
+            "type": "LocalFs",
+            "dir_path": "/opt/confidential-containers/kbs/repository"
+          },
+          "as_config": {
+            "work_dir": "/opt/confidential-containers/attestation-service",
+            "policy_engine": "opa",
+            "attestation_token_broker": "Simple",
+              "attestation_token_config": {
+              "duration_min": 5
+              },
+            "rvps_config": {
+              "store_type": "LocalJson",
+              "store_config": {
+                "file_path": "/opt/confidential-containers/rvps/reference-values/reference-values.json"
+              }
+            }
+          },
+          "policy_engine_config": {
+            "policy_path": "/opt/confidential-containers/opa/policy.rego"
+          }
+        }
+
+parameters:
+  - name: INSECUREHTTP
+    description: "Run kbs-service as http instead of https"
+    value: "true"
+  - name: NAMESPACE
+    description: "namespace to place this cm in"
+    value: "trustee-operator-system"

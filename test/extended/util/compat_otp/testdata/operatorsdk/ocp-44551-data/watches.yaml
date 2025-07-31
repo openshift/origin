@@ -1,0 +1,8 @@
+# Use the 'create api' subcommand to add watches to this file.
+- group: kakademo.httpproxy.com
+  version: v1
+  kind: Nginx
+  chart: helm-charts/nginx
+  overrideValues:
+    proxy.http: $HTTP_PROXY
+#+kubebuilder:scaffold:watch

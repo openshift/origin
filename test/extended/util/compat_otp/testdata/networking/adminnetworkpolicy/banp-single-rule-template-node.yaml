@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: banp_single_rule_template_node
+objects:
+- kind: BaselineAdminNetworkPolicy
+  apiVersion: policy.networking.k8s.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+  spec:
+    subject:
+      namespaces:
+        matchLabels:
+          "${SUBJECTKEY}": "${SUBJECTVAL}"
+    "${POLICYTYPE}":
+    - name: "${RULENAME}"
+      action: "${RULEACTION}"
+      "${DIRECTION}":
+      - nodes:
+          matchExpressions:
+            - key: "${RULEKEY}"
+              operator: Exists
+parameters:
+- name: NAME 
+  value: "default"
+- name: SUBJECTKEY
+- name: SUBJECTVAL
+- name: POLICYTYPE
+- name: DIRECTION
+- name: RULENAME
+- name: RULEACTION
+- name: RULEKEY

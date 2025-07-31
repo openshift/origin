@@ -1,0 +1,198 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: olmv1-sa-nginx-insufficient-bundle-template
+objects:
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: "${NAME}-installer-clusterrole"
+    rules:
+    - apiGroups: [rbac.authorization.k8s.io]
+      resources: [clusterroles]
+      verbs: [create]
+    - apiGroups: [rbac.authorization.k8s.io]
+      resources: [clusterroles]
+      verbs: [get, list, watch, update, patch, delete]
+      # resourceNames:
+      # - nginx-ok-v3283-754-15pkpuong3owt1jn01uoyj8lm6p8jlxh03kuouq67dmv
+      # - nginx-ok-v3283-754-2r5zqsa9t9nk0tln1f8x36ws3ks9r8cgwi70s2dgnl82
+      # - nginx-ok-v3283-75493-metrics-reader
+    - apiGroups: [rbac.authorization.k8s.io]
+      resources: [clusterrolebindings]
+      verbs: [create]
+    - apiGroups: [rbac.authorization.k8s.io]
+      resources: [clusterrolebindings]
+      verbs: [get, list, watch, update, patch, delete]
+      # resourceNames:
+      # - nginx-ok-v3283-754-15pkpuong3owt1jn01uoyj8lm6p8jlxh03kuouq67dmv
+      # - nginx-ok-v3283-754-2r5zqsa9t9nk0tln1f8x36ws3ks9r8cgwi70s2dgnl82
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: "${NAME}-installer-clusterrole-binding"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: "${NAME}-installer-clusterrole"
+    subjects:
+    - kind: ServiceAccount
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: "${NAME}-installer-role"
+      namespace: "${NAMESPACE}"
+    rules:
+    - apiGroups: [""]
+      resources: [serviceaccounts]
+      verbs: [get, list, watch, create, update, patch, delete]
+    #   resourceNames: [nginx-ok-v3283-75493-controller-manager]
+    # - apiGroups: [""]
+    #   resources: [serviceaccounts]
+    #   verbs: [create]
+    - apiGroups: [""]
+      resources: [services]
+      verbs: [get, list, watch, create, update, patch, delete]
+      # resourceNames: [nginx-ok-v3283-75493-controller-manager-metrics-service]
+    - apiGroups: [""]
+      resources: [services]
+      verbs: [create]
+    - apiGroups: [apps]
+      resources: [deployments]
+      verbs: [get, list, watch, create, update, patch, delete]
+      # resourceNames: [nginx-ok-v3283-75493-controller-manager]
+    - apiGroups: [apps]
+      resources: [deployments]
+      verbs: [create]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: "${NAME}-installer-role-binding"
+      namespace: "${NAMESPACE}"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: "${NAME}-installer-role"
+    subjects:
+    - kind: ServiceAccount
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: "${NAME}-installer-rbac-clusterrole"
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - configmaps
+      verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    - apiGroups:
+      - coordination.k8s.io
+      resources:
+      - leases
+      verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    - apiGroups:
+      - ""
+      resources:
+      - events
+      verbs:
+      - create
+      - patch
+    - apiGroups:
+      - ""
+      resources:
+      - secrets
+      - pods
+      - pods/exec
+      - pods/log
+      verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    - apiGroups:
+      - apps
+      resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+      verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    - apiGroups:
+      - cache.example.com
+      resources:
+      - "${KINDS}"
+      - "${KINDS}/status"
+      - "${KINDS}/finalizers"
+      verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    - apiGroups:
+      - authentication.k8s.io
+      resources:
+      - tokenreviews
+      verbs:
+      - create
+    - apiGroups:
+      - authorization.k8s.io
+      resources:
+      - subjectaccessreviews
+      verbs:
+      - create
+    - nonResourceURLs:
+      - /metrics
+      verbs:
+      - get
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: "${NAME}-installer-rbac-clusterrole-binding"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: "${NAME}-installer-rbac-clusterrole"
+    subjects:
+    - kind: ServiceAccount
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: KINDS

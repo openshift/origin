@@ -1,0 +1,21 @@
+apiVersion: tuned.openshift.io/v1
+kind: Tuned
+metadata:
+ name: tuning-maxpid
+ namespace: openshift-cluster-node-tuning-operator
+spec:
+ profile:
+ - data: |
+     [main]
+     summary=Custom OpenShift PidMax profile
+     include=openshift-node
+     [sysctl]
+     kernel.pid_max = 181818
+   name: tuning-maxpid
+ 
+ recommend:
+ - match:
+   - label: node-role.kubernetes.io/worker-tuning
+     value: ""
+   priority: 20
+   profile: tuning-maxpid

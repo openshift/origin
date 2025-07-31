@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ipBlock_egress_dual_cidrs_template
+objects:
+- kind: NetworkPolicy
+  apiVersion: networking.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    podSelector: {}
+    egress:
+    - to:
+      - ipBlock:
+          cidr: "${cidrIpv4}"
+      - ipBlock: 
+          cidr: "${cidrIpv6}"
+    policyTypes:
+     - Egress
+parameters:
+- name: NAME  
+- name: cidrIpv4
+- name: cidrIpv6
+- name: NAMESPACE

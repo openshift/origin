@@ -1,0 +1,38 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: workload-job-template
+objects:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: work
+              image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+              command: ["sleep",  "300"]
+              resources:
+                requests:
+                  memory: 500Mi
+                  cpu: 500m
+              securityContext:
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                  - ALL
+          restartPolicy: Never
+      backoffLimit: 4
+      completions: 100
+      parallelism: 100
+parameters:
+  - name: NAME
+  - name: NAMESPACE

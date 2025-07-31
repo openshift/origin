@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-user-namespace
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      io.openshift.builder: "true"
+      io.kubernetes.cri-o.userns-mode: "auto"
+  spec:
+    securityContext:
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: userns-test-1
+      image: quay.io/openshifttest/fedora@sha256:e01002e4dceea4fed7b2883f801a858defe5f9bc2a8a32029457e9d97352648c
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["sleep", "3601"]
+parameters:      
+- name: NAME
+- name: NAMESPACE

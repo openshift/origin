@@ -1,0 +1,8 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: ImageSetConfiguration
+mirror:
+  additionalImages:
+    - name: registry.redhat.io/ubi8/ubi:latest
+    - name: registry.redhat.io/ubi8/ubi:fake
+  blockedImages:
+    - name: registry.redhat.io/ubi8/ubi:fake

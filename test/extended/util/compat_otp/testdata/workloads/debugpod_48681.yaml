@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: debug-testpod
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      app: pod48681
+  spec:
+     securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+     containers:
+     - command: ["/bin/sh", "-ec", "sleep 300"]
+       image: "${CLIIMAGEID}"
+       imagePullPolicy: IfNotPresent
+       securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+       name: test-container
+       resources:
+        limits:
+          cpu: 500m
+          memory: 128Mi
+        requests:
+          cpu: 250m
+          memory: 64Mi
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CLIIMAGEID

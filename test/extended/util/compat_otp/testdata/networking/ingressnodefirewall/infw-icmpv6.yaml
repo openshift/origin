@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ingressnodefirewall-icmpv6-template
+objects:
+- kind: IngressNodeFirewall
+  apiVersion: ingressnodefirewall.openshift.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+  spec:
+    interfaces:
+    - "${PRIMARY_INF}"
+    nodeSelector:
+      matchLabels:
+        "${NODELABEL}": ""
+    ingress:
+    - sourceCIDRs:
+         - "${SRC_CIDR}"
+      rules:
+      - order: 1
+        protocolConfig:
+          protocol: ICMPv6
+          icmpv6:
+            icmpType: 128
+        action: "${ACTION_1}"
+      - order: 2
+        protocolConfig:
+          protocol: ICMPv6
+          icmpv6:
+            icmpType: 128
+        action: "${ACTION_2}"
+parameters:
+- name: NAME
+- name: PRIMARY_INF
+- name: NODELABEL
+- name: SRC_CIDR
+- name: ACTION_1
+- name: ACTION_2

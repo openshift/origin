@@ -1,0 +1,12 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: ImageSetConfiguration
+mirror:
+  helm:
+    repositories:
+      - name: podinfo
+        url: https://stefanprodan.github.io/podinfo
+        charts:
+          - name: podinfo
+            version: 5.0.0
+      - name: sbo
+        url: https://redhat-developer.github.io/service-binding-operator-helm-chart/

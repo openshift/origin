@@ -1,0 +1,54 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: loki-log-store-template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name:  ${LOKISERVERNAME}
+    namespace: ${LOKINAMESPACE}
+    labels:
+      provider: aosqe
+      component: "loki"
+      appname: loki-server
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        provider: aosqe
+        component: "loki"
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          provider: aosqe
+          component: "loki"
+          appname: loki-server
+      spec:
+        containers:
+        - name: "loki"
+          image: quay.io/openshifttest/grafana-loki@sha256:bbf6dbf3264af939a541b6f3c014cba21a2bdc8f22cb7962eee7e9048b41ea5e
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 3100
+            name: tcp
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /etc/loki
+            name: lokiconfig
+            readOnly: true
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${LOKICMNAME}
+          name: lokiconfig
+parameters:
+- name: LOKISERVERNAME
+  value: "loki-server"
+- name: LOKINAMESPACE
+  value: "loki-aosqe"
+- name: LOKICMNAME
+  value: "loki-config"

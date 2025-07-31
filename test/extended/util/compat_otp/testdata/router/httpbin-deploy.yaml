@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: httpbin-pod
+    labels:
+      name: httpbin-pod
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: httpbin-pod
+    template:
+      metadata:
+        labels:
+          name: httpbin-pod
+      spec:
+        containers:
+        - name: httpbin-http
+          image: quay.io/openshifttest/httpbin@sha256:cc44fbd857f4148d8aad8359acc03efa719517e01d390b152e4f3830ad871c9f 
+          ports:
+          - containerPort: 8080
+        - name: httpbin-https
+          image: quay.io/openshifttest/httpbin@sha256:f57f4e682e05bcdadb103c93ae5ab9be166f79bcbbccaf45d92a2cad18da8d64
+          ports:
+          - containerPort: 8443
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: httpbin-svc-insecure
+    name: httpbin-svc-insecure
+  spec:
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: httpbin-pod
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: httpbin-svc-secure
+    name: httpbin-svc-secure
+  spec:
+    ports:
+    - name: https
+      port: 27443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      name: httpbin-pod

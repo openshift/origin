@@ -1,0 +1,105 @@
+kind: Template
+apiversion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    annotations:
+      logging.openshift.io/dev-preview-enable-collector-as-deployment: "${DEPLOYMENT}"
+  spec:
+    collector:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: label-1
+                    operator: Exists
+              weight: 1
+            - preference:
+                matchExpressions:
+                  - key: label-2
+                    operator: In
+                    values:
+                      - key-2
+              weight: 50
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/worker
+                    operator: Exists
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: qe-test
+                      operator: In
+                      values:
+                        - value1
+                topologyKey: kubernetes.io/hostname
+              weight: 50
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: run
+                    operator: In
+                    values:
+                      - centos-logtest
+              namespaceSelector: {}
+              topologyKey: kubernetes.io/hostname
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: security
+                      operator: In
+                      values:
+                        - S2
+                topologyKey: topology.kubernetes.io/zone
+              weight: 100
+    inputs:
+    - name: collector-receiver
+      receiver:
+        http:
+          format: kubeAPIAudit
+        port: 8443
+        type: http
+      type: receiver
+    outputs:
+    - name: rsyslog
+      type: syslog
+      syslog:
+        rfc: ${RFC}
+        url: ${URL}
+    pipelines:
+    - inputRefs:
+      - collector-receiver
+      name: forward-to-syslog
+      outputRefs:
+        - rsyslog
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "logcollector"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: URL
+  value: "udp://rsyslogserver.openshift-logging.svc:514"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: RFC
+  value: RFC5424
+- name: DEPLOYMENT
+  value: "true"

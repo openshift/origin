@@ -1,0 +1,32 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  platform:
+    architectures:
+      - "amd64"
+    channels:
+      - name: stable
+        minVersion: 4.17.0
+        maxVersion: 4.17.3
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.17
+    packages:
+    - name: cluster-kube-descheduler-operator
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.15
+    packages:
+    - name: windows-machine-config-operator
+  - catalog: registry.redhat.io/redhat/redhat-kasturi-index:4
+    packages:
+    - name: cluster-kube-descheduler-operator
+  - catalog: icr.io/cpopen/noi-operator-catalog@sha256:ae39015ec2161a982c85d66456f23883dc19f85c00d5f3b2058f385fc5eacd50
+    packages:
+    - name: noi
+  - catalog: icr.io/cpopen/ibm-netcool-integrations-operator-catalog@sha256:f913349f3c05f02fb48b2faaa9959927266947b64be5884e49e64f8d1e0788a5
+    packages:
+    - name: netcool-integrations-operator
+  - catalog: icr.io/cpopen/tncp-catalog@sha256:dcf3a021269f7900cac8e2e8dd51cd32e087c35b68cf956d8d14565a4b9e7c55
+    packages:
+    - name: ibm-tncp-bundle
+  - catalog: icr.io/cpopen/ibm-cpd-cloud-native-postgresql-operator-catalog@sha256:b5debd3c4b129a67f30ffdd774a385c96b8d33fd9ced8baad4835dd8913eb177
+    packages:
+    - name: cloud-native-postgresql

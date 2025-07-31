@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriov-rc-pod
+objects:
+- kind: ReplicationController
+  apiVersion: v1
+  metadata:
+    name: "${PODNAME}"
+    labels:
+      name: "${PODNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 2
+    template:
+      metadata:
+        labels:
+          name: "${PODNAME}"
+        annotations:
+          k8s.v1.cni.cncf.io/networks: "${SRIOVNETNAME}"
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+        - name: "${PODNAME}"
+          image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]  
+
+parameters:
+- name: PODNAME
+- name: NAMESPACE
+- name: SRIOVNETNAME

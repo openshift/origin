@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+  - apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: nfd
+    spec:
+      channel: "${CHANNEL}"
+      installPlanApproval: Automatic
+      name: nfd
+      source: "${SOURCE}"
+      sourceNamespace: openshift-marketplace
+parameters:
+  - name: CHANNEL
+  - name: SOURCE

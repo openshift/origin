@@ -1,0 +1,58 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterdeployment-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterDeployment
+  metadata:
+    annotations:
+      "hive.openshift.io/fake-cluster": "${FAKE}"
+      "hive.openshift.io/installer-image-name-override": "${INSTALLERTYPE}"
+    creationTimestamp: null
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    baseDomain: "${BASEDOMAIN}"
+    boundServiceAccountSigningKeySecretRef: 
+      name: "${BOUND_SERVICE_ACCOUNT_SIGNING_KEY_SECRET_REF}" 
+    clusterName: "${CLUSTERNAME}"
+    controlPlaneConfig:
+      servingCertificates: {}
+    installed: false
+    manageDNS: "${{MANAGEDNS}}"
+    platform:
+      "${PLATFORMTYPE}":
+        credentialsAssumeRole:
+          externalID: "${EXTERNALID}"
+          roleARN: "${ROLEARN}"
+        region: "${REGION}"
+    provisioning:
+      manifestsSecretRef:
+        name: "${MANIFESTS_SECRET_REF}"
+      imageSetRef:
+        name: "${IMAGESETREF}"
+      installConfigSecretRef:
+        name: "${INSTALLCONFIGSECRET}"
+    pullSecretRef:
+      name: "${PULLSECRETREF}"
+    installAttemptsLimit: ${{INSTALLATTEMPTSLIMIT}}
+parameters:
+- name: FAKE
+- name: INSTALLERTYPE
+- name: NAME
+- name: NAMESPACE
+- name: BASEDOMAIN
+- name: BOUND_SERVICE_ACCOUNT_SIGNING_KEY_SECRET_REF
+- name: MANAGEDNS
+- name: CLUSTERNAME
+- name: PLATFORMTYPE
+- name: EXTERNALID
+- name: ROLEARN
+- name: REGION
+- name: MANIFESTS_SECRET_REF
+- name: IMAGESETREF
+- name: INSTALLCONFIGSECRET
+- name: PULLSECRETREF
+- name: INSTALLATTEMPTSLIMIT
+  value: "3"

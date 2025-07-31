@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: l2advertisement-cr-template
+objects:
+- kind: L2Advertisement
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    interfaces:
+    - "${INTERFACE1}"
+    - "${INTERFACE2}"
+    - "${INTERFACE3}"
+    ipAddressPools:
+    - "${IPADDRESSPOOL1}"
+    nodeSelectors:
+    - matchExpressions:
+        - key: "${NODESLECTORKEY1}"
+          operator: "${NODESELECTOROPERATOR1}"
+          values:
+            - "${WORKER1}"
+            - "${WORKER2}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: INTERFACE1
+- name: INTERFACE2
+- name: INTERFACE3
+- name: IPADDRESSPOOL1
+- name: NODESLECTORKEY1
+  value: "kubernetes.io/hostname"
+- name: NODESELECTOROPERATOR1
+  value: "In"
+- name: WORKER1
+- name: WORKER2

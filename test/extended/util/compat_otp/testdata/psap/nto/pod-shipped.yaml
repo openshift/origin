@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ocp-istream-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        image: "${IMAGENAME}"
+        command: ["/usr/bin/nc"]
+        args: ["-l","-p","8080"]
+        ports:
+        - containerPort: 8080
+        imagePullPolicy: Always
+parameters:
+- name: IMAGENAME

@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: win-webserver-<id>
+  labels:
+    app: win-webserver-<id>
+spec:
+  ports:
+  # the port that this service should serve on
+  - port: 80
+    targetPort: 80
+  selector:
+    app: win-webserver-<id>
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: win-webserver-<id>
+  name: win-webserver-<id>
+spec:
+  selector:
+    matchLabels:
+      app: win-webserver-<id>
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: win-webserver-<id>
+      name: win-webserver-<id>
+    spec:
+      tolerations:
+      - key: "os"
+        value: "Windows"
+        Effect: "NoSchedule"
+      volumes:
+      - name: test-volume
+        persistentVolumeClaim:
+          claimName: <pvc-name>
+      containers:
+      - name: windowswebserver
+        image: <windows_container_image>
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: C:/html/
+          name: test-volume
+        securityContext:
+          runAsNonRoot: false
+          windowsOptions:
+            runAsUserName: "ContainerAdministrator"
+        command:
+        - pwsh.exe
+        - -command
+        - echo "<html><body><H1>Windows Container Web Server</H1></body></html>" > C:/html/index.html;$listener = New-Object System.Net.HttpListener; $listener.Prefixes.Add('http://*:80/'); $listener.Start();Write-Host('Listening at http://*:80/'); while ($listener.IsListening) { $context = $listener.GetContext(); $response = $context.Response; $content=Get-Content C:/html/index.html -Raw; $buffer = [System.Text.Encoding]::UTF8.GetBytes($content); $response.ContentLength64 = $buffer.Length; $response.OutputStream.Write($buffer, 0, $buffer.Length); $response.Close(); };
+      nodeSelector:
+        beta.kubernetes.io/os: windows
+        <node-selector>
+

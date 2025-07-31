@@ -1,0 +1,37 @@
+# © Broadcom. All Rights Reserved.
+# The term “Broadcom” refers to Broadcom Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG ALPINE_VERSION
+FROM alpine:${ALPINE_VERSION}
+
+ENV USER=appuser
+ENV UID=10001
+
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    "${USER}" && \
+    mkdir -p /home/${USER} /tmp && \
+    chown -R "${USER}:${USER}" /home/${USER} /tmp && \
+    apk --no-cache add --no-check-certificate ca-certificates && \
+    update-ca-certificates && \
+    rm -rf /var/cache/apk/*
+
+COPY govc /usr/local/bin/govc
+RUN chmod +x /usr/local/bin/govc
+
+COPY scripts/runner/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+USER "${USER}"
+
+ENV GOVMOMI_HOME=/tmp
+ENV PATH="$PATH:/usr/local/bin"
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+WORKDIR /home/${USER}

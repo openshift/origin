@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kedacontroller-template
+objects:
+  - apiVersion: keda.sh/v1alpha1
+    kind: KedaController
+    metadata:
+      name: keda
+      namespace: ${NAMESPACE}
+    spec:
+      metricsServer:
+        logLevel: '0'
+        auditConfig:
+          logFormat: "json"
+          policy:
+             rules:
+             - level: ${LEVEL}
+             omitStages:
+              - RequestReceived
+             omitManagedFields: false
+      operator:
+        logLevel: info
+        logEncoder: console
+      serviceAccount: {}
+      watchNamespace: ${WATCHNAMESPACE}
+parameters:
+  - name: NAMESPACE
+    value: openshift-keda
+  - name: LEVEL
+  - name: WATCHNAMESPACE
+    value: openshift-keda

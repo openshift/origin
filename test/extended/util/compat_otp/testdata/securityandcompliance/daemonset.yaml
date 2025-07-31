@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: co-workload-daemonset-template
+objects:
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    selector:
+        matchLabels:
+          name: hello-daemonset
+    template:
+      metadata:
+        labels:
+          name: hello-daemonset
+      spec:
+        containers:
+        - name: hello-openshift
+          image: quay.io/openshifttest/hello-openshift:multiarch
+          ports:
+          - containerPort: 80
+
+parameters:
+- name: NAME
+- name: NAMESPACE

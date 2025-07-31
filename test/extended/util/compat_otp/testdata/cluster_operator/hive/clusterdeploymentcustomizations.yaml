@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterdeploymentcustomization-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterDeploymentCustomization
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    installConfigPatches:
+      - op: replace
+        path: /platform/aws/region
+        valueJSON:  '"${REGION}"'
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: REGION

@@ -1,0 +1,18 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: $servicename
+  namespace: $namespace
+  labels:
+    name: $label
+spec:
+  internalTrafficPolicy: $internalTrafficPolicy
+  externalTrafficPolicy: $externalTrafficPolicy
+  ipFamilyPolicy: $ipFamilyPolicy
+  ports:
+  - name: http
+    port: 27017
+    targetPort: 8080
+  selector:
+    name: $selector
+  type: $serviceType

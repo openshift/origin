@@ -1,0 +1,15 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: hiveconfig-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: HiveConfig
+  metadata:
+    name: hive
+  spec:
+    logLevel: "${LOGLEVEL}"
+    targetNamespace: "${TARGETNAMESPACE}"
+parameters:
+- name: LOGLEVEL
+- name: TARGETNAMESPACE

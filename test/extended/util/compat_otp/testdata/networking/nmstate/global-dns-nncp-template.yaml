@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nncp-gloabl-dns-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: ${NODE}
+    desiredState:
+      dns-resolver:
+        config:
+          search: 
+          - ${DNSDOMAIN}
+          server: 
+          - ${SERVERIP1}
+          - ${SERVERIP2}
+
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODE
+- name: DNSDOMAIN
+- name: SERVERIP1
+- name: SERVERIP2

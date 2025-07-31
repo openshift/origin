@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: busybox-NAMESPACEVAR
+resources:
+  - busybox.yaml
+images:
+  - name: BUSYBOX_IMAGE
+    newName: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f

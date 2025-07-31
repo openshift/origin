@@ -1,0 +1,30 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-client-config-template
+objects:
+- apiVersion: v1
+  data:
+    client.property: |-
+      security.protocol=SASL_PLAINTEXT
+      sasl.mechanism=SCRAM-SHA-512
+      sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${USER}" password="${PASSWORD}";
+      bootstrap.servers=${KAFKA_NAME}-kafka-bootstrap:9092
+      ssl.truststore.location=/opt/kafka/qep12/ca.p12
+      ssl.truststore.password=${TRUSTSTORE_PASSWORD}
+      ssl.truststore.type=PKCS12 
+      group.id=my-group
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+parameters:
+- name: NAME
+  value: "client-property"
+- name: USER
+  value: "my-user"
+- name: PASSWORD
+  value: ""
+- name: TRUSTSTORE_PASSWORD
+  value: ""
+- name: KAFKA_NAME
+  value: "my-cluster"

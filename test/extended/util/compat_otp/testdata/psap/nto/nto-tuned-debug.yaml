@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod_test-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: ${TUNED_NAME}
+      namespace: openshift-cluster-node-tuning-operator
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Test change sysctl ${SYSCTLPARM}
+          include=openshift-control-plane
+    
+          [sysctl]
+          ${SYSCTLPARM}=${SYSCTLVALUE}
+    
+        name: ${TUNED_NAME}
+    
+      recommend:
+      - match:
+        - label: tuned.openshift.io/elasticsearch
+          type: pod
+        priority: 5
+        profile: ${TUNED_NAME}
+        operand:
+          debug: ${{ISDEBUG}}
+          #Using ${{ISDEBUG}} to support boolean
+parameters:
+- name: TUNED_NAME
+- name: SYSCTLPARM
+- name: SYSCTLVALUE
+- name: ISDEBUG

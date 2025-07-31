@@ -1,0 +1,20 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: kafka-amqstreams-consumer-scaledobject
+spec:
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  cooldownPeriod: 5
+  pollingInterval: 10
+  scaleTargetRef:
+    name: kafka-amqstreams-consumer
+  triggers:
+  - type: kafka
+    metadata:
+      topic: my-topic
+      bootstrapServers: my-cluster-kafka-bootstrap.kafka-52384.svc:9092
+      consumerGroup: my-group
+      lagThreshold: '1'
+      offsetResetPolicy: 'latest'
+

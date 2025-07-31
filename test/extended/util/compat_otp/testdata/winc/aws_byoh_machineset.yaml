@@ -1,0 +1,70 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  annotations:
+  labels:
+    machine.openshift.io/cluster-api-cluster: <infrastructureID>
+  name: <infrastructureID>-<name>-worker-<zone>
+  namespace: openshift-machine-api
+spec:
+  deletePolicy: Newest
+  replicas: 1
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: <infrastructureID>
+      machine.openshift.io/cluster-api-machineset: <infrastructureID>-<name>-worker-<zone>
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: <infrastructureID>
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: <infrastructureID>-<name>-worker-<zone>
+    spec:
+      metadata:
+        labels:
+          node-role.kubernetes.io/worker: ""
+          type: byoh-node
+      providerSpec:
+        value:
+          ami:
+            id: <windows_image_with_container_runtime_installed>
+          apiVersion: awsproviderconfig.openshift.io/v1beta1
+          blockDevices:
+          - ebs:
+              iops: 0
+              kmsKey: {}
+              volumeSize: 120
+              volumeType: gp2
+          credentialsSecret:
+            name: aws-cloud-credentials
+          deviceIndex: 0
+          iamInstanceProfile:
+            id: <infrastructureID>-worker-profile
+          instanceType: m5a.large
+          kind: AWSMachineProviderConfig
+          metadata:
+            creationTimestamp: null
+          placement:
+            availabilityZone: <zone>
+            region: us-east-2
+          securityGroups:
+            - filters:
+              - name: tag:Name
+                values:
+                - <infrastructureID>-node
+            - filters:
+              - name: tag:Name
+                values:
+                - <infrastructureID>-lb
+          subnet:
+            filters:
+            - name: tag:Name
+              values:
+              - <infrastructureID>-subnet-private-<zone>
+          tags:
+          - name: kubernetes.io/cluster/<infrastructureID>
+            value: owned
+          userDataSecret:
+            name: windows-user-data
+

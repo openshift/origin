@@ -1,0 +1,10 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: ContainerRuntimeConfig
+metadata:
+ name: set-loglevel
+spec:
+ machineConfigPoolSelector:
+   matchLabels:
+    pools.operator.machineconfiguration.openshift.io/worker: ""
+ containerRuntimeConfig:
+   logLevel: debug

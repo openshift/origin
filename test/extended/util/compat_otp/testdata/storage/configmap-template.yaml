@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-configmap-template
+objects:
+  # ConfigMap
+- kind: ConfigMap
+  apiVersion: v1
+  metadata:
+    name: ${CMNAME}
+    namespace: ${CMNAMESPACE}
+  data:
+    storage.properties: |
+      property.storage = configMap-test
+    storage.cnf: |
+      [storage]
+      e2e-test = true
+parameters:
+- name: CMNAME
+- name: CMNAMESPACE

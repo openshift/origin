@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+    labels:
+      shard: alpha
+    name: ${SUBDOMAIN_NAME}-unsecure
+  namespace: ${NAMESPACE}
+  spec:
+    subdomain: ${SUBDOMAIN_NAME}
+    to:
+      kind: Service
+      name: service-unsecure
+parameters:
+- name: NAMESPACE
+- name: SUBDOMAIN_NAME

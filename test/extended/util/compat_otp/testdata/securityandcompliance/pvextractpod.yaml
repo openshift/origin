@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pvExtract-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+      - name: pod-extract
+        image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+        command: ["sleep", "3000"]
+        volumeMounts:
+          - mountPath: "/workers-scan-results"
+            name: workers-scan-vol
+    volumes:
+      - name: workers-scan-vol
+        persistentVolumeClaim:
+          claimName: "${SCANNAME}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SCANNAME

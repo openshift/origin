@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: common-kc-template
+objects:
+  - apiVersion: kataconfiguration.openshift.io/v1
+    kind: KataConfig
+    metadata:
+      name: "${NAME}"
+    spec:
+      checkNodeEligibility: ${{ELIGIBILITY}}
+      logLevel: "${LOGLEVEL}"
+      enablePeerPods: ${{PEERPODS}}
+      kataConfigPoolSelector:
+        matchLabels:
+          custom-label: test
+parameters:
+  - name: NAME
+    value: "example-kataconfig"
+  - name: ELIGIBILITY
+    type: boolean
+    value: "false"
+  - name: LOGLEVEL
+    value: "info"
+  - name: PEERPODS
+    value: "false"

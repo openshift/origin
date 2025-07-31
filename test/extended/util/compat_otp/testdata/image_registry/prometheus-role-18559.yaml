@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus-scraper
+rules:
+- apiGroups:
+  - image.openshift.io
+  resources:
+  - registry/metrics
+  verbs:
+  - get

@@ -1,0 +1,10 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: profile-title
+spec:
+  description: new profile with node rules
+  title:
+  enableRules:
+    - name: ocp4-file-groupowner-cni-conf
+      rationale: Node

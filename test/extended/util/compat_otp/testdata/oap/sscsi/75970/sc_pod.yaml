@@ -1,0 +1,60 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: app-secrets
+spec:
+  provider: gcp
+  parameters:
+    secrets: |
+      - resourceName: "projects/openshift-qe/secrets/secret75970/versions/2"
+        path: "secret75970"
+  secretObjects:
+    - secretName: opaquesecret75970
+      type: Opaque
+      labels:
+        environment: "secret75970"
+      data:
+      - objectName: secret75970
+        key: test-secret-contents
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mypodserviceaccount
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  serviceAccountName: mypodserviceaccount
+  containers:
+  - image: quay.io/olmqe/cloud-sdk:slim
+    imagePullPolicy: IfNotPresent
+    name: mypod2
+    env:
+    - name: SECRET_OPAQUE
+      valueFrom:
+        secretKeyRef:
+          name: opaquesecret75970 
+          key: test-secret-contents
+    resources:
+      requests:
+        cpu: 100m
+    stdin: true
+    stdinOnce: true
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    tty: true
+    volumeMounts:
+      - mountPath: "/mnt/secrets-store"
+        name: mysecret
+  volumes:
+  - name: mysecret
+    csi:
+      driver: secrets-store.csi.k8s.io
+      readOnly: true
+      volumeAttributes:
+        secretProviderClass: "app-secrets"
+      nodePublishSecretRef:
+        name: secret75970

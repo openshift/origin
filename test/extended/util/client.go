@@ -87,6 +87,7 @@ type CLI struct {
 	verb            string
 	configPath      string
 	adminConfigPath string
+	guestConfigPath string // Added for OTP compatibility
 
 	// directory with static manifests, each file is expected to be a single manifest
 	// manifest files can be stored under directory tree

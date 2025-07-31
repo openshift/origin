@@ -1,0 +1,8 @@
+[Unit]
+Description="MCO test 73659 service. Remove the /var/lib/containers/storage/tc-73659-huge-test-file.file"
+
+[Service]
+ExecStart=/bin/rm /var/lib/containers/storage/tc-73659-huge-test-file.file
+
+# We trigger this service using a timeout  with command:
+# systemd-run --on-active="5minutes" --unit=tc-73659-clean-file-timed.service

@@ -1,0 +1,25 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-template
+objects:
+- apiVersion: kafka.strimzi.io/v1beta1
+  kind: KafkaTopic
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      strimzi.io/cluster: ${CLUSTER_NAME}
+  spec:
+    partitions: 1
+    replicas: 1
+    config:
+      retention.ms: 300000
+      segment.bytes: 1073741824
+parameters:
+- name: CLUSTER_NAME
+  value: "my-cluster"
+- name: NAME
+  value: "logging-topic-all"
+- name: NAMESPACE
+  value: "amq-aosqe"

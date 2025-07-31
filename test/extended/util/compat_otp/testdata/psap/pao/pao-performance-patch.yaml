@@ -1,0 +1,18 @@
+apiVersion: tuned.openshift.io/v1
+kind: Tuned
+metadata:
+  name: performance-patch 
+spec:
+  profile:
+  - data: |
+      [main]
+      summary=Configuration changes profile inherited from performance created tuned
+      include=openshift-node-performance-example-performanceprofile
+      [service]
+      service.stalld=stop,disable
+    name: performance-patch 
+  recommend:
+  - machineConfigLabels:
+      machineconfiguration.openshift.io/role: "worker-cnf"
+    priority: 19
+    profile: performance-patch

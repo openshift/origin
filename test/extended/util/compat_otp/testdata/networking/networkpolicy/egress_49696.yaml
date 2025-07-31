@@ -1,0 +1,15 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: egress-all-otherpod
+spec:
+  podSelector:
+    matchLabels:
+      name: hellosdn
+  egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            team: openshift
+  policyTypes:
+    - Egress

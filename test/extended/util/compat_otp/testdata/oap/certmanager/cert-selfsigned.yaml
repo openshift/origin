@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: default-selfsigned-cert
+spec:
+  isCA: true
+  commonName: default-selfsigned-cert
+  subject:
+    organizations:
+      - OpenShift QE
+  issuerRef:
+    kind: Issuer
+    name: default-selfsigned
+  secretName: selfsigned-ca-tls
+  privateKey:
+    algorithm: ECDSA
+    size: 256

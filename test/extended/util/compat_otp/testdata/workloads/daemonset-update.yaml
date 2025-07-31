@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: hello-openshift
+  labels:
+    k8s-app: hello-openshift
+spec:
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 10%
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      name: hello-openshift
+  template:
+    metadata:
+      labels:
+        name: hello-openshift
+    spec:
+      tolerations:
+      - key: test-nonexist
+        operator: Exists
+      containers:
+      - name: hello-openshift
+        image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 30

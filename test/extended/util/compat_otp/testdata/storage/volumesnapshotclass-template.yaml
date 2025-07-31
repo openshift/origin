@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-volumesnapshotclass-template
+objects:
+  # volumesnapshotclass
+- kind: VolumeSnapshotClass
+  apiVersion: snapshot.storage.k8s.io/v1
+  metadata:
+    name: ${VSCNAME}
+  driver: ${DRIVER}
+  deletionPolicy: ${DELETIONPOLICY} # Retain, Delete
+
+parameters:
+- name: VSCNAME
+- name: DRIVER
+- name: DELETIONPOLICY
+

@@ -1,0 +1,9 @@
+kind: AWSLoadBalancerController
+apiVersion: networking.olm.openshift.io/v1
+metadata:
+  name: cluster
+spec:
+  config:
+    replicas: 1
+  ingressClass: alb
+  subnetTagging: Auto

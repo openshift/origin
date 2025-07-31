@@ -1,0 +1,123 @@
+{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "ruby-helloworld-sample-with-resources",
+    "creationTimestamp": null,
+    "annotations": {
+      "description": "This example shows how to create a simple ruby application in openshift origin v3",
+      "iconClass": "icon-ruby",
+      "tags": "instant-app,ruby,mysql"
+    }
+  },
+  "objects": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "origin-ruby-sample",
+        "creationTimestamp": null
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-22-centos7",
+        "creationTimestamp": null
+      },
+      "spec": {
+        "dockerImageRepository": "registry.access.redhat.com/rhscl/ruby-22-rhel7"
+      },
+      "status": {
+        "dockerImageRepository": ""
+      }
+    },
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "ruby-sample-build",
+        "namespace": "quota-demo",
+        "selfLink": "/osapi/v1/namespaces/quota-demo/buildconfigs/ruby-sample-build",
+        "uid": "bf2174b3-fe5e-11e4-8f83-080027893417",
+        "creationTimestamp": "2015-05-19T19:39:21Z",
+        "labels": {
+          "name": "ruby-sample-build",
+          "template": "application-template-stibuild"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "github",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "generic",
+            "generic": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "imageChange",
+            "imageChange": {
+              "lastTriggeredImageID": "registry.access.redhat.com/rhscl/ruby-22-rhel7:latest"
+            }
+          }
+        ],
+        "source": {
+          "type": "Git",
+          "git": {
+            "uri": "https://github.com/openshift/ruby-hello-world.git"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ruby-22-centos7:latest"
+            },
+            "incremental": true
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "origin-ruby-sample:latest"
+          }
+        },
+        "resources": {
+          "limits": {
+            "cpu": "${BUILD_RUBY_RESOURCES_LIMITS_CPU}",
+            "memory": "${BUILD_RUBY_RESOURCES_LIMITS_MEMORY}"
+          }
+        }
+      },
+      "status": {
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "BUILD_RUBY_RESOURCES_LIMITS_MEMORY",
+      "description": "build ruby memory limit",
+      "value": "256Mi"
+    },
+    {
+      "name": "BUILD_RUBY_RESOURCES_LIMITS_CPU",
+      "description": "build ruby cpu limit",
+      "value": "120m"
+    }
+  ],
+  "labels": {
+    "template": "application-template-stibuild"
+  }
+}

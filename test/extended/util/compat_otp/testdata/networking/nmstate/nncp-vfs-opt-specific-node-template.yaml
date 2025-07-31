@@ -1,0 +1,33 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nncp-create-vfs-option-specific-node-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: "${NODENAME}"
+    maxUnavailable: 3 
+    desiredState:
+      interfaces:
+        - name: "${INTFNAME}"
+          description: Create VFs
+          type: ethernet
+          state: up
+          ethernet:
+            sr-iov:
+              total-vfs: ${{TOTALVFS}}
+              vfs:
+              - id: 0
+                mac-address: 00:11:22:33:00:FF
+                spoof-check: true
+                trust: true
+                max-tx-rate: 100
+parameters:
+- name: NAME
+- name: INTFNAME
+- name: NODENAME
+- name: TOTALVFS            

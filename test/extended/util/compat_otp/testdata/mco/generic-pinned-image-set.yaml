@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: generic-pinned-image-set
+objects:
+  - apiVersion: machineconfiguration.openshift.io/v1
+    kind: PinnedImageSet
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: ${POOL}
+      name: ${NAME}
+    spec:
+      pinnedImages: ${{IMAGES}}
+parameters:
+  - name: NAME
+  - name: IMAGES
+  - name: POOL
+    value: worker
+

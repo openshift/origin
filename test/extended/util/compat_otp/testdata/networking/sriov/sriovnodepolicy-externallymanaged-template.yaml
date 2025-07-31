@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriovnodepolicy-externallymanage-template
+objects:
+- kind: SriovNetworkNodePolicy
+  apiVersion: sriovnetwork.openshift.io/v1
+  metadata:
+    name: "${SRIOVNETPOLICY}"
+    namespace: ${NAMESPACE}
+  spec:
+    deviceType: "${DEVICETYPE}"
+    nicSelector:
+      pfNames: 
+        - ${PFNAME}
+    nodeSelector:
+      kubernetes.io/hostname: "${NODENAME}"
+    numVfs: "${{NUMVFS}}"
+    priority: 99
+    resourceName: "${RESOURCENAME}"
+    externallyManaged: true
+parameters:
+- name: SRIOVNETPOLICY 
+- name: NAMESPACE
+- name: DEVICETYPE
+- name: PFNAME
+- name: NODENAME
+- name: RESOURCENAME
+- name: NUMVFS

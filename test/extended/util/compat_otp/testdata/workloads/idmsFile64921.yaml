@@ -1,0 +1,18 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+    name: example
+spec:
+    imageDigestMirrors:
+        - mirrors:
+            - localhost:5000/openshift-release-dev/ocp-release
+          source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+          mirrorSourcePolicy: AllowContactingSource
+        - mirrors:
+            - localhost:5000/ocp/release
+          source: registry.ci.openshift.org/ocp/release
+          mirrorSourcePolicy: AllowContactingSource
+        - mirrors:
+            - localhost:5000/target/release
+          source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+          mirrorSourcePolicy: AllowContactingSource
