@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+data:
+  config.yaml: |
+    prometheus:
+      remoteWrite:
+      - url: https://test.remotewrite.com/api/write
+        remoteTimeout: 30s
+        oauth2:
+          clientId:
+            secret:
+              name: oauth2-credentials
+              key: id
+          clientSecret:
+            name: oauth2-credentials
+            key: secret
+          tokenUrl: https://example.com/oauth2/token
+          scopes:
+          - scope3
+          - scope4
+          endpointParams:
+            param3: value3
+            param4: value4

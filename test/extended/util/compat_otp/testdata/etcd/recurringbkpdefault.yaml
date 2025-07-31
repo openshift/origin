@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-recurbackup-default
+objects:
+  - kind: Backup
+    apiVersion: config.openshift.io/v1alpha1
+    metadata:
+      name: "${NAME}"
+    spec:
+      etcd:
+        schedule: "*/1 * * * *"
+        timeZone: "UTC"
+        pvcName: "${PVCNAME}"
+parameters:
+  - name: NAME
+  - name: PVCNAME
+

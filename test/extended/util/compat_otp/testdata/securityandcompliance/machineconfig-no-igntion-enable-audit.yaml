@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: scansetting-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: MachineConfig
+  metadata:
+    labels:
+      machineconfiguration.openshift.io/role: "${ROLE}"
+    name: "${NAME}"
+  spec:
+    kernelArguments:
+    - audit=1
+
+parameters:
+- name: NAME
+- name: ROLE

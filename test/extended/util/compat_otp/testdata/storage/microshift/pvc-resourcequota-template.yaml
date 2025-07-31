@@ -1,0 +1,9 @@
+kind: ResourceQuota
+apiVersion: v1
+metadata:
+  name: ${RESOURCEQUOTA_NAME}
+  namespace: ${RESOURCEQUOTA_NAMESPACE}
+spec:
+  hard:
+    requests.${RESOURCE_TYPE}: ${HARD_REQUESTS}
+    persistentvolumeclaims: ${PVC_LIMITS}

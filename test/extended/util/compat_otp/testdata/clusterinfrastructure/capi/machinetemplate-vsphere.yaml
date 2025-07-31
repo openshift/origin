@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinetemplate-vsphere
+objects:
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: VSphereMachineTemplate
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      template:
+        spec:
+          template: ${MACHINETEMPLATE}
+          server: ${VSPHERE_SERVER}
+          diskGiB: ${{DISKGIB}}
+          cloneMode: ${CLONEMODE}
+          datacenter: ${DATACENTER}
+          datastore: ${DATASTORE}
+          folder: ${FOLDER}
+          resourcePool: ${RESOURCEPOOL}
+          numCPUs: ${{NUMCPUS}}
+          memoryMiB: ${{MEMORYMIB}}
+          network:
+            devices:
+            - dhcp4: true
+              networkName: ${NETWORKNAME}
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: VSPHERE_SERVER
+- name: DATASTORE
+- name: DATACENTER
+- name: FOLDER
+- name: RESOURCEPOOL
+- name: NUMCPUS
+- name: MEMORYMIB
+- name: DISKGIB
+- name: NETWORKNAME
+- name: CLONEMODE
+- name: MACHINETEMPLATE

@@ -1,0 +1,47 @@
+{
+    "apiVersion": "apps.openshift.io/v1",
+    "kind": "DeploymentConfig",
+    "metadata": {
+        "labels": {
+            "name": "skopeo"
+        },
+        "name": "skopeo"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "name": "skopeo"
+        },
+        "template": {
+            "metadata": {
+                "labels": {
+                    "name": "skopeo"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "args": [
+                            "bash",
+                            "-c",
+                            "while : ; do sleep 15m ; done"
+                        ],
+                        "image": "quay.io/openshifttest/skopeo@sha256:d5f288968744a8880f983e49870c0bfcf808703fe126e4fb5fc393fb9e599f65",
+                        "imagePullPolicy": "IfNotPresent",
+                        "name": "skopeo",
+                        "resources": {},
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File"
+                    }
+                ],
+                "restartPolicy": "Always",
+                "terminationGracePeriodSeconds": 30
+            }
+        },
+        "triggers": [
+            {
+                "type": "ConfigChange"
+            }
+        ]
+    }
+}

@@ -1,0 +1,23 @@
+kind: LDAPSyncConfig
+apiVersion: v1
+url: ldap://127.0.0.1:59738
+insecure: true
+groupUIDNameMapping:
+  "cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com": tc509128group1
+  "cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com": tc509128group2
+  "cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com": tc509128group3
+rfc2307:
+  groupsQuery:
+    baseDN: "ou=groups,ou=rfc2307,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=groupOfNames)
+  groupUIDAttribute: dn
+  groupNameAttributes: [ cn ]
+  groupMembershipAttributes: [ member ]
+  usersQuery:
+    baseDN: "ou=people,ou=rfc2307,dc=example,dc=com"
+    scope: sub
+    derefAliases: never
+  userUIDAttribute: dn
+  userNameAttributes: [ mail ]

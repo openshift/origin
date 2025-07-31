@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinepool-worker-azure-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: MachinePool
+  metadata:
+    creationTimestamp: null
+    name: "${CLUSTERNAME}-worker"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRef:
+      name: ${CLUSTERNAME}
+    name: worker
+    platform:
+      azure:
+        osDisk:
+          diskSizeGB: 128
+        type: Standard_D4s_v3
+    replicas: 3
+  status: {}
+parameters:
+- name: CLUSTERNAME
+- name: NAMESPACE
+

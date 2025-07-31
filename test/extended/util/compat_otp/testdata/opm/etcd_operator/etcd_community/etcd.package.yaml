@@ -1,0 +1,7 @@
+channels:
+- currentCSV: etcdoperator.v0.9.4
+  name: singlenamespace-alpha
+- currentCSV: etcdoperator.v0.9.4-clusterwide
+  name: clusterwide-alpha
+defaultChannel: singlenamespace-alpha
+packageName: etcd

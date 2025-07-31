@@ -1,0 +1,22 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-topic-template
+objects:
+- apiVersion: kafka.strimzi.io/v1beta2
+  kind: KafkaTopic
+  metadata:
+    name: "${TOPIC}"
+    labels:
+      strimzi.io/cluster: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    partitions: 6
+    replicas: 1
+parameters:
+- name: TOPIC
+  value: "network-flows"
+- name: NAME
+  value: "kafka-cluster"
+- name: NAMESPACE
+  value: "netobserv"

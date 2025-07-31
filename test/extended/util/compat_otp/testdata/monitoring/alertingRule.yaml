@@ -1,0 +1,11 @@
+apiVersion: monitoring.openshift.io/v1
+kind: AlertingRule
+metadata:
+  name: monitoring-example
+  namespace: openshift-monitoring
+spec:
+  groups:
+  - name: example-rules
+    rules:
+    - alert: ExampleAlert
+      expr: vector(1)

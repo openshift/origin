@@ -1,0 +1,44 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: rsyslogserver-template
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      provider: aosqe
+  data:
+    rsyslog.conf: |+
+      global(
+        DefaultNetstreamDriverCAFile="/opt/app-root/tls/ca_bundle.crt"
+        DefaultNetstreamDriverCertFile="/opt/app-root/tls/server.crt"
+        DefaultNetstreamDriverKeyFile="/opt/app-root/tls/server.key"
+      )
+      module( load="imtcp"
+        StreamDriver.Name = "gtls"
+        StreamDriver.Mode = "1"
+        #https://www.rsyslog.com/doc/master/concepts/ns_ossl.html
+        StreamDriver.AuthMode = "anon"
+      )
+      module(load="imudp" TimeRequery="500")
+      input(type="imtcp" port="6514")
+      input(type="imudp" port="514")
+      :msg, contains, "\"log_type\":\"application\"" /var/log/clf/app-container.log
+      :msg, contains, "\"log_type\":\"infrastructure\""{
+        if $msg contains "\"log_source\":\"container\"" then /var/log/clf/infra-container.log
+        if $msg contains "\"log_source\":\"node\"" then /var/log/clf/infra.log
+      }
+      :msg, contains, "\"log_type\":\"audit\"" /var/log/clf/audit.log
+      :msg, contains, "\"log_source\":\"auditd\"" /var/log/clf/audit-linux.log
+      :msg, contains, "\"log_source\":\"kubeAPI\"" /var/log/clf/audit-kubeAPI.log
+      :msg, contains, "\"log_source\":\"openshiftAPI\"" /var/log/clf/audit-openshiftAPI.log
+      :msg, contains, "\"log_source\":\"ovn\"" /var/log/clf/audit-ovn.log
+      *.* /var/log/clf/other.log
+parameters:
+- name: NAME
+  value: "rsyslogserver"
+- name: NAMESPACE
+  value: "openshift-logging"

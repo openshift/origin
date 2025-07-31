@@ -1,0 +1,54 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterpool-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterPool
+  metadata:
+    creationTimestamp: null
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    annotations:
+      "hive.openshift.io/fake-cluster": "${FAKE}"
+    baseDomain: "${BASEDOMAIN}"
+    imageSetRef:
+      name: "${IMAGESETREF}"
+    inventory:
+      - kind: ClusterDeploymentCustomization
+        name: "${INVENTORYCDC1}"
+      - kind: ClusterDeploymentCustomization
+        name: "${INVENTORYCDC2}"
+      - kind: ClusterDeploymentCustomization
+        name: "${INVENTORYCDC3}"
+    platform:
+      "${PLATFORMTYPE}":
+        credentialsSecretRef:
+          name: "${CREDREF}"
+        region: "${REGION}"
+    pullSecretRef:
+      name: "${PULLSECRETREF}"
+    size: ${{SIZE}}
+    maxSize: ${{MAXSIZE}}
+    runningCount: ${{RUNNINGCOUNT}}
+    maxConcurrent: ${{MAXCONCURRENT}}
+    hibernateAfter: "${HIBERNATEAFTER}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: FAKE
+- name: BASEDOMAIN
+- name: IMAGESETREF
+- name: INVENTORYCDC1
+- name: INVENTORYCDC2
+- name: INVENTORYCDC3
+- name: PLATFORMTYPE
+- name: CREDREF
+- name: REGION
+- name: PULLSECRETREF
+- name: SIZE
+- name: MAXSIZE
+- name: RUNNINGCOUNT
+- name: MAXCONCURRENT
+- name: HIBERNATEAFTER

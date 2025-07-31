@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nto-cgroup-blacklist-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: ${PROFILE_NAME}
+      namespace: openshift-cluster-node-tuning-operator
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Custom OpenShift profile
+          include=openshift-node
+          [scheduler]
+          isolated_cores=1
+          cgroup_ps_blacklist=${CGROUP_BLACKLIST}
+        name: ${PROFILE_NAME}
+      recommend:
+      - match:
+        - label: tuned-scheduler-node
+        priority: 18
+        profile: ${PROFILE_NAME}
+        operand:
+          debug: false
+parameters:
+- name: PROFILE_NAME
+- name: CGROUP_BLACKLIST

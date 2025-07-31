@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-manual-rule-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    title: My modified profile with manual rules
+    manualRules:
+    - name: ocp4-scc-limit-container-allowed-capabilities
+      rationale: node
+    description: test
+
+parameters:
+- name: NAME
+- name: NAMESPACE

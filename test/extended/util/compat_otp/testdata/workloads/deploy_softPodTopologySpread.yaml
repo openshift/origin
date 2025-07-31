@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deploy-softpodtopologyspread-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${DNAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      ocp432831: ocp432831
+    annotations:
+      "descheduler.alpha.kubernetes.io/evict": ""
+  spec:
+    topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: ocp43283-zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          ocp432831: ocp432831
+    containers:
+    - name: pause
+      image: quay.io/openshifttest/pause@sha256:b53f99c3b7fe37b6e0fd977c3a8b5991ef8d386a00ffa9aa892cfda99a657d55
+
+
+parameters:
+- name: DNAME
+- name: NAMESPACE

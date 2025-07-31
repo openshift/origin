@@ -1,0 +1,40 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ipsec-host2host-policy
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces: 
+      - name: "${TUNELNAME}"
+        type: ipsec
+        libreswan:
+          left: ${LEFT}
+          leftid: '%fromcert'
+          leftrsasigkey: '%cert'
+          leftcert: ${LEFTCERT}
+          right: ${RIGHT}
+          rightid: '%fromcert'
+          rightrsasigkey: '%cert'
+          leftmodecfgclient: no
+          rightsubnet: ${RIGHTSUBNET}
+          ikev2: insist
+          type: ${MODE}
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: TUNELNAME
+- name: LEFT
+- name: LEFTCERT
+- name: RIGHT
+- name: MODE
+- name: RIGHTSUBNET

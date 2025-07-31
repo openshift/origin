@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: compliancescan-template
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1alpha2
+  kind: SelinuxProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    allow:
+      '@self':
+        tcp_socket:
+        - listen
+      http_cache_port_t:
+        tcp_socket:
+        - name_bind
+      node_t:
+        tcp_socket:
+        - node_bind
+    inherit:
+    - kind: System
+      name: container
+
+parameters:
+- name: NAME
+- name: NAMESPACE

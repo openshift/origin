@@ -1,0 +1,56 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    outputs:
+    - kafka:
+        authentication:
+          sasl:
+            mechanism: ${SASL_MECHANISM}
+        url: ${URL}
+      name: kafka-app
+      tls:
+        ca:
+          key: ${TLS_CA_KEY}
+          secretName: ${SECRET_NAME}
+        certificate:
+          key: ${TLS_CERTIFICATE_KEY}
+          secretName: ${SECRET_NAME}
+        key:
+          key: ${TLS_KEY}
+          secretName: ${SECRET_NAME}
+      type: kafka
+    pipelines:
+    - name: test-app
+      inputRefs:
+      - application
+      outputRefs:
+      - kafka-app
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: URL
+  value: "tls://kafka.openshift-logging.svc.cluster.local:9093/clo-topic"
+- name: SECRET_NAME
+  value: "kafka-vector"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: SASL_MECHANISM
+  value: "PLAIN"
+- name: TLS_CA_KEY
+  value: "ca-bundle.crt"
+- name: TLS_CERTIFICATE_KEY
+  value: "tls.crt"
+- name: TLS_KEY
+  value: "tls.key"

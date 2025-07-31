@@ -1,0 +1,12 @@
+apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: example
+spec:
+  repositoryDigestMirrors:
+  - mirrors:
+    - localhost:5000/openshift-release-dev
+    source: quay.io/openshift-release-dev
+  - mirrors:
+    - localhost:5000/openshift-release-dev
+    source: quay.io/openshift-release-dev

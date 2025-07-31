@@ -1,0 +1,32 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: stateful-template
+objects:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    serviceName: example-statefulset
+    replicas: 3
+    selector:
+      matchLabels:
+        app: example-statefulset
+    template:
+      metadata:
+        labels:
+          app: example-statefulset
+      spec:
+        terminationGracePeriodSeconds: 10
+        containers:
+          - name: example-statefulset
+            image: "${IMAGE}"
+            command:
+              - /bin/sleep
+              - '300'
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: IMAGE

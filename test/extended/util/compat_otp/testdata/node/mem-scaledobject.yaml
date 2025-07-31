@@ -1,0 +1,15 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: mem-scaledobject
+spec:
+  scaleTargetRef:
+    name: keda-hpa-demo-deployment
+  minReplicaCount: 1  # Ensure at least one replica is always running
+  maxReplicaCount: 10  # Adjust max replica count as needed
+  triggers:
+    - type: memory
+      metricType: AverageValue  # This specifies using the average value across pods
+      metadata:
+        value: "100Mi"  # Target memory threshold for scaling
+

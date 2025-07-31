@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: apbexternalroute-static
+objects:
+- kind: AdminPolicyBasedExternalRoute
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: ${NAME}
+  spec:
+    from:
+      namespaceSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+    nextHops:
+      dynamic:
+      - podSelector:
+          matchLabels:
+            "${PODLABELKEY}": "${PODLABELVALUE}"
+        bfdEnabled: ${{BFD}}
+        namespaceSelector:
+          matchLabels:
+            "${NSLABELKEY}": "${NSLABELVALUE}"
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE
+- name: PODLABELKEY
+- name: PODLABELVALUE
+- name: NSLABELKEY
+- name: NSLABELVALUE
+- name: BFD

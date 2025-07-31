@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressfirewall1
+objects:
+- kind: EgressFirewall
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: ${NAME} 
+    namespace: "${NAMESPACE}"
+  spec:
+    egress:
+    - type: Deny 
+      to: 
+        dnsName: www.test.com 
+    - type: Allow
+      to: 
+        cidrSelector: 0.0.0.0/0
+parameters:
+- name: NAME
+- name: NAMESPACE

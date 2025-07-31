@@ -1,0 +1,52 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: olmv1-binding-preflight-template
+objects:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: "${CLUSTERROLESANAME}-binding"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: "${CLUSTERROLESANAME}"
+    subjects:
+      - kind: ServiceAccount
+        name: "${SANAME}"
+        namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: "${ROLENAME}-binding"
+      namespace: "${NAMESPACE}"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: "${ROLENAME}"
+      namespace: "${NAMESPACE}"
+    subjects:
+      - kind: ServiceAccount
+        name: "${SANAME}"
+        namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: "${WATCHROLENAME}-binding"
+      namespace: "${WATCHNAMESPACE}"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: "${WATCHROLENAME}"
+      namespace: "${WATCHNAMESPACE}"
+    subjects:
+      - kind: ServiceAccount
+        name: "${SANAME}"
+        namespace: "${NAMESPACE}"
+parameters:
+  - name: SANAME
+  - name: ROLENAME
+  - name: CLUSTERROLESANAME
+  - name: NAMESPACE
+  - name: WATCHROLENAME
+  - name: WATCHNAMESPACE

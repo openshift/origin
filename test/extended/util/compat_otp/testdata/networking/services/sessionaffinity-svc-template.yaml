@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sessionaffinity-svc-template
+objects:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    ipFamilyPolicy: "${IPFAMILYPOLICY}"
+    selector:
+     "${SELLABELKEY}" : "${SELLABELVAL}"
+    ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+    sessionAffinity: ClientIP
+    sessionAffinityConfig:
+       clientIP: 
+         timeoutSeconds: 10  
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IPFAMILYPOLICY
+- name: SELLABELKEY
+- name: SELLABELVAL

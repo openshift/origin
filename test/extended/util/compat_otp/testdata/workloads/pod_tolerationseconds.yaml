@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-toleration-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    labels:
+      name: tolerationseconds-1
+    name: tolerationseconds-1
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+      - image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+        name: tolerationseconds-1
+    tolerations:
+      - key: "${KEYNAME}"
+        operator: "${OPERATORPOLICY}"
+        value: "${VALUENAME}"
+        effect: "${EFFECTPOLICY}"
+        tolerationSeconds: ${{TOLERATETIME}}
+parameters:
+- name: NAMESPACE
+- name: KEYNAME
+- name: OPERATORPOLICY
+- name: VALUENAME
+- name: EFFECTPOLICY
+- name: TOLERATETIME
+

@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operatorgroup-template
+objects:
+  - apiVersion: operators.coreos.com/v1
+    kind: OperatorGroup
+    metadata:
+      generateName: openshift-nfd-
+      name: openshift-nfd
+    spec:
+      targetNamespaces:
+      - openshift-nfd

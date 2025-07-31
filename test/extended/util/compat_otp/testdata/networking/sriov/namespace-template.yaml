@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: namespace-template
+objects:
+- kind: Namespace
+  apiVersion: v1
+  metadata:
+    labels:
+      kubernetes.io/metadata.name: "${NAME}"
+      name: "${NAME}"
+    name: "${NAME}"
+  spec:
+    finalizers:
+    - kubernetes
+parameters:
+- name: NAME

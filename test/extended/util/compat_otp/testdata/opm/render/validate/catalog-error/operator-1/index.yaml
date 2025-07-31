@@ -1,0 +1,155 @@
+---
+schema: olm.package
+name: operator-1
+defaultChannel: beta
+---
+entries:
+- name: operator-1.v0.1.0
+  replaces: operator-1.v0.2.0
+- name: operator-1.v0.2.0
+  replaces: operator-1.v0.1.0
+- name: operator-1.v0.4.0
+  replaces: operator-1.v0.2.0
+name: 45401-1
+package: operator-1
+schema: olm.channel
+---
+entries:
+- name: operator-1.v0.1.0
+- name: operator-1.v0.2.0
+- name: operator-1.v0.4.0
+name: 45401-2
+package: operator-1
+schema: olm.channel
+---
+entries:
+- name: operator-1.v0.1.0
+  replaces: operator-1.v0.2.0
+- name: operator-1.v0.2.0
+  replaces: operator-1.v0.4.0
+- name: operator-1.v0.4.0
+  replaces: operator-1.v0.1.0
+name: 45401-3
+package: operator-1
+schema: olm.channel
+---
+entries:
+- name: operator-1.v0.1.0
+- name: operator-1.v0.2.0
+  replaces: operator-1.v0.1.1
+name: alpha
+package: operator-1
+schema: olm.channel
+---
+entries:
+- name: operator-1.v0.3.0
+  skips:
+    - operator-1.v0.2.0
+name: "4.7"
+package: operator-1
+schema: olm.channel
+---
+entries:
+- name: operator-1.v0.4.0
+  replaces: operator-1.v0.5.0
+- name: operator-1.v0.5.0
+  replaces: operator-1.v0.4.0
+name: "4.8"
+package: operator-1
+schema: olm.channel
+---
+entries:
+- name: operator-1.v0.6.0
+  skipRange: ">=0.1.0 <0.6.0"
+name: "4.9"
+package: operator-1
+schema: olm.channel
+---
+image: quay.io/xzhao/operator-1-bundle:v0.1.0
+name: operator-1.v0.1.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.1.1-1
+schema: olm.bundle
+---
+image: quay.io/xzhao/operator-1-bundle:v0.2.0
+name: operator-1.v0.2.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.2.0
+schema: olm.bundle
+---
+name: operator-1.v0.3.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.3.0
+schema: olm.bundle
+---
+image: quay.io/xzhao/operator-1-bundle:v0.4.0
+name: operator-1.v0.4.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.4.0
+schema: olm.bundle
+---
+image: quay.io/xzhao/operator-1-bundle:v0.5.0
+name: operator-1.v0.5.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.5.0
+schema: olm.bundle
+---
+image: quay.io/xzhao/operator-1-bundle:v0.6.0
+name: operator-1.v0.6.0
+package: operator-1
+properties:
+- type: olm.gvk
+  value:
+    group: example.my.domain
+    kind: Operator
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: operator-1
+    version: 0.6.0
+schema: olm.bundle

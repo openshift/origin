@@ -1,0 +1,7 @@
+apiVersion: test.disconnected.com/v1
+kind: Nginx
+metadata:
+  name: memcached52572-sample
+spec:
+  # Add fields here
+  size: 1

@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-deployment
+objects:
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: test-deployment
+      namespace: ${NAMESPACE}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: test-app
+      template:
+        metadata:
+          labels:
+            app: test-app
+        spec:
+          serviceAccountName: ${SERVICE_ACCOUNT_NAME}
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - resources: {}
+              name: httpd
+              securityContext:
+                capabilities:
+                  drop:
+                    - ALL
+                allowPrivilegeEscalation: false
+              image: 'image-registry.openshift-image-registry.svc:5000/openshift/httpd:latest'
+parameters:
+  - name: NAMESPACE
+  - name: SERVICE_ACCOUNT_NAME

@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bfdprofile-cr-template
+objects:
+- kind: BFDProfile
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    detectMultiplier: ${{DETECTMULTIPLIER}}
+    echoMode: ${{ECHOMODE}}
+    echoReceiveInterval: ${{ECHORECEIVEINTERVAL}}
+    echoTransmitInterval: ${{ECHOTRANSMILINTERVAL}}
+    minimumTtl: ${{MINIMUMTTL}}
+    passiveMode: ${{PASSIVEMODE}}
+    receiveInterval: ${{RECEIVEINTERVAL}}
+    transmitInterval: ${{TRANSMITINTERVAL}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: DETECTMULTIPLIER
+- name: ECHOMODE
+- name: ECHORECEIVEINTERVAL
+- name: ECHOTRANSMILINTERVAL
+- name: MINIMUMTTL
+- name: PASSIVEMODE
+- name: RECEIVEINTERVAL
+- name: TRANSMITINTERVAL

@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operatorgroup-subscription-template
+objects:
+- kind: Subscription
+  apiVersion: operators.coreos.com/v1alpha1
+  metadata:
+    labels:
+      operators.coreos.com/kubernetes-nmstate-operator.openshift-nmstate: ""
+    name: "${SUBSCRIPTIONNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    name: "${OPERATORNAME}"
+    channel: "${CHANNEL}"
+    installPlanApproval: Automatic
+    source: "${CATALOGSOURCE}"
+    sourceNamespace: "${CATALOGSOURCENAMESPACE}"
+parameters:
+- name: OPERATORNAME
+  value: "kubernetes-nmstate-operator"
+- name: SUBSCRIPTIONNAME
+- name: NAMESPACE
+- name: CHANNEL
+- name: CATALOGSOURCE
+- name: CATALOGSOURCENAMESPACE

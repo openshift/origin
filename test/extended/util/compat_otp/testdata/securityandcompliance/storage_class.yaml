@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storageclass-Template 
+objects:
+- kind: StorageClass
+  apiVersion: storage.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+  provisioner: "${PROVISIONER}"
+  reclaimPolicy: "${RECLAIMPOLICY}"
+  volumeBindingMode: "${VOLUMEBINDINGMODE}"
+parameters:
+- name: NAME
+- name: PROVISIONER
+- name: RECLAIMPOLICY
+- name: VOLUMEBINDINGMODE
+

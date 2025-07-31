@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    domain: ${DOMAIN}
+    replicas: 1
+    endpointPublishingStrategy:
+      hostNetwork:
+        protocol: PROXY
+      type: HostNetwork
+    nodePlacement:
+      nodeSelector:
+        matchLabels:
+          kubernetes.io/os: linux
+          node-role.kubernetes.io/worker: ""
+parameters:
+- name: NAME
+- name: NAMESPACE
+  value: openshift-ingress-operator
+- name: DOMAIN

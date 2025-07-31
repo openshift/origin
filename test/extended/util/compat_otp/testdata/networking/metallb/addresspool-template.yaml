@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: addresspool-cr-template
+objects:
+- kind: AddressPool
+  apiVersion: metallb.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    protocol: "${PROTOCOL}"
+    addresses:
+      - "${ADDRESS1}"
+      - "${ADDRESS2}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PROTOCOL
+- name: ADDRESS1
+- name: ADDRESS2

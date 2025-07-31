@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: descheduler-template
+objects:
+- kind: KubeDescheduler
+  apiVersion: operator.openshift.io/v1
+  metadata:
+    name: cluster
+    namespace: "${NAMESPACE}"
+  spec:
+    deschedulingIntervalSeconds: ${{INTERSECONDS}}
+    image: "${IMAGEINFO}"
+    logLevel: "${LOGLEVEL}"
+    operatorLogLevel: "${OPERATORLOGLEVEL}"
+    profileCustomizations:
+     podLifetime: 2m
+     namespaces:
+       included:
+         - test-52303
+    profiles:
+      - "${PROFILE1}"
+      - "${PROFILE2}"
+      - "${PROFILE3}"
+    managementState: Managed
+parameters:
+- name: NAMESPACE
+- name: INTERSECONDS
+- name: IMAGEINFO
+- name: LOGLEVEL
+- name: OPERATORLOGLEVEL
+- name: PROFILE1
+- name: PROFILE2
+- name: PROFILE3

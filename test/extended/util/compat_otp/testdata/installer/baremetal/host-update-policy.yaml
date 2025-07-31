@@ -1,0 +1,8 @@
+apiVersion: metal3.io/v1alpha1
+kind: HostUpdatePolicy
+metadata:
+  name: <BMH name>
+  namespace: openshift-machine-api
+spec:
+  firmwareSettings: onReboot
+  firmwareUpdates: onReboot

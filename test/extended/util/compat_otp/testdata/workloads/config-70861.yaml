@@ -1,0 +1,12 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+mirror:
+  operators:
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.16
+      packages:
+        - name: cincinnati-operator
+        - name: cluster-logging
+          channels:
+            - name: stable 
+              minVersion: 5.7.7
+              maxVersion: 5.7.7

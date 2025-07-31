@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinetemplate-gcp
+objects:
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: GCPMachineTemplate
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      template:
+        spec:
+          image: ${IMAGE}
+          instanceType: ${MACHINETYPE}
+          ipForwarding: Enabled
+          rootDeviceSize: 128
+          rootDeviceType: pd-ssd
+          serviceAccounts:
+            email: ${SERVICEACCOUNT}
+            scopes:
+            - https://www.googleapis.com/auth/cloud-platform
+          subnet: ${SUBNETWORK}
+          additionalNetworkTags:
+          - ${CLUSTERID}-worker
+          additionalLabels:
+            kubernetes-io-cluster-${CLUSTERID}: owned
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IMAGE
+- name: MACHINETYPE
+- name: CLUSTERID
+- name: SUBNETWORK
+- name: SERVICEACCOUNT

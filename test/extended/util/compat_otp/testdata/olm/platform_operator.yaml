@@ -1,0 +1,15 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: platform-operator-template
+objects:
+- apiVersion: platform.openshift.io/v1alpha1
+  kind: PlatformOperator
+  metadata:
+    name: "${NAME}"
+  spec:
+    package:
+      name: "${PACKAGE}"
+parameters:
+- name: NAME
+- name: PACKAGE

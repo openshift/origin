@@ -1,0 +1,44 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    outputs:
+    - name: loki-server
+      type: loki
+      loki:
+        labelKeys: ${{LABEL_KEYS}}
+        tenantKey: ${TENANT_KEY}
+        tuning: ${{TUNING}}
+        url: ${URL}
+    pipelines:
+    - name: forward-to-loki
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - loki-server
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: LABEL_KEYS
+  value: "[]"
+- name: URL
+  value: ""
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: TENANT_KEY
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: TUNING
+  value: "{}"

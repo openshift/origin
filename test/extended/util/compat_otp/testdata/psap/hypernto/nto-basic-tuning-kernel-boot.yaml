@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: tuned-hugepages
+data:
+ tuning: |
+   apiVersion: tuned.openshift.io/v1
+   kind: Tuned
+   metadata:
+     name: hugepages
+     namespace: openshift-cluster-node-tuning-operator
+   spec:
+     profile:
+     - data: |
+         [main]
+         summary=Boot time configuration for hugepages
+         include=openshift-node
+         [bootloader]
+         cmdline_openshift_node_hugepages=hugepagesz=2M hugepages=50
+       name: openshift-node-hugepages
+     recommend:
+     - priority: 20
+       profile: openshift-node-hugepages

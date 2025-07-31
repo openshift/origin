@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: compliancescan-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+      - image: quay.io/openshifttest/nginx-unprivileged:1.27.5
+        name: nginx
+        securityContext:
+          seLinuxOptions:
+            type: "${USAGE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: USAGE
+

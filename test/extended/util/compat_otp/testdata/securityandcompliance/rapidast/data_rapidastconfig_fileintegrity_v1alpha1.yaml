@@ -1,0 +1,45 @@
+config:
+    # WARNING: `configVersion` indicates the schema version of the config file.
+    # This value tells RapiDAST what schema should be used to read this configuration.
+    # Therefore you should only change it if you update the configuration to a newer schema
+    # It is intended to keep backward compatibility (newer RapiDAST running an older config)
+    configVersion: 4
+
+   # `application` contains data related to the application, not to the scans.
+application:
+  shortName: "ocptest"
+  url: "https://kubernetes.default.svc"
+
+# `general` is a section that will be applied to all scanners.
+general:
+
+    authentication:
+        type: "http_header"
+        parameters:
+            name: "Authorization"
+            value: "Bearer sha256~xxxxxxxx"
+    container:
+        # currently supported: `podman` and `none`
+        type: "none"
+
+scanners:
+    zap:
+    # define a scan through the ZAP scanner
+        apiScan:
+            apis:
+                apiUrl: "https://kubernetes.default.svc/openapi/v3/apis/fileintegrity.openshift.io/v1alpha1"  # Replace this to scan other APi groups/version
+        passiveScan:
+            # optional list of passive rules to disable
+            disabledRules: "2,10015,10027,10096,10024,10054"
+
+#   Remove comment symbols to enable activeScan once it is made sure that scanning with 'passiveScan' runs successfully. 
+        activeScan:
+#            # If no policy is chosen, a default ("API-scan-minimal") will be selected
+#            # The list of policies can be found in scanners/zap/policies/
+            policy: "Operator-scan"
+
+        miscOptions:
+          # enableUI (default: false), requires a compatible runtime (e.g.: flatpak or no containment)
+          enableUI: False
+          # Defaults to True, set False to prevent auto update of ZAP plugins
+          updateAddons: False

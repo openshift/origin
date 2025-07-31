@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: scansettingbinding-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: ScanSettingBinding
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  profiles:
+    # Node checks
+    - name: "${PROFILENAME1}"
+      kind: "${PROFILEKIND1}"
+      apiGroup: compliance.openshift.io/v1alpha1
+  settingsRef:
+    name: "${SCANSETTINGNAME}"
+    kind: ScanSetting
+    apiGroup: compliance.openshift.io/v1alpha1
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PROFILENAME1
+- name: PROFILEKIND1
+- name: SCANSETTINGNAME
+

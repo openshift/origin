@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: custom-kubeletconfig-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: KubeletConfig
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        pools.operator.machineconfiguration.openshift.io/${ROLE}:  ""
+    autoSizingReserved: true
+    kubeletConfig:
+      eventBurst: 9
+      cpuManagerPolicy: static
+      cpuManagerReconcilePeriod: 5s
+      systemReserved:
+        memory: 1Gi
+        cpu: 500m
+        ephemeral-storage: 1Gi
+
+parameters:
+- name: NAME
+- name: ROLE

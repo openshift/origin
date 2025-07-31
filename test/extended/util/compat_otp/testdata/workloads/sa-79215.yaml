@@ -1,0 +1,30 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: "test-79215-installer-admin-clusterrole"
+rules:
+  - apiGroups:
+    - "*"
+    resources:
+    - "*"
+    verbs:
+    - "*"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "test-79215"
+  namespace: "ns-79215"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "test-79215-installer-admin-clusterrole-binding"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "test-79215-installer-admin-clusterrole"
+subjects:
+  - kind: ServiceAccount
+    name: "test-79215"
+    namespace: "ns-79215"

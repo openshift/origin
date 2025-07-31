@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+spec:
+  nodeSelector:
+    nginx-node: "true"
+  volumes:
+    - name: firmware-dir
+      emptyDir: {}  # Empty directory to hold the downloaded firmware files
+    - name: firmware-config
+      configMap:
+        name: firmware-download
+  initContainers:
+    - name: init-download-firmware
+      image: ghcr.io/crazy-max/7zip
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: FIRMWARE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: firmware-download
+              key: firmware_url
+      command:
+      - /bin/sh
+      - -c
+      - |
+        rm -f /html/fw/* && wget $FIRMWARE_URL -P /html/fw && 7za e /html/fw/* -o/html/fw
+      volumeMounts:
+        - name: firmware-config
+          mountPath: /config
+        - name: firmware-dir
+          mountPath: /html/fw
+  containers:
+    - name: nginx
+      image: quay.io/openshifttest/nginx-alpine:latest
+      volumeMounts:
+        - name: firmware-dir
+          mountPath: /data/http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

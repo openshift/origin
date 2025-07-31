@@ -1,0 +1,43 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-consumer-job-template
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: ${NAME}
+  spec:
+    ttlSecondsAfterFinished: 60
+    template:
+      spec:
+        containers:
+        - name: kafka-consumer
+          image: registry.redhat.io/amq-streams/kafka-35-rhel8@sha256:fc900527fa19b35ec909c2a44e9e22ff0119934dcdf6e5da3665631d724a1bf4
+          command: ["bin/kafka-console-consumer.sh","--bootstrap-server=${CLUSTER_NAME}-kafka-bootstrap:9092","--topic=${TOPIC_NAME}","--consumer.config=/opt/kafka/qeclient/client.property", "--from-beginning"]
+          volumeMounts:
+          - mountPath: /opt/kafka/qeclient
+            name: kafka-config
+          - mountPath: /opt/kafka/qep12
+            name: cluster-ca
+        restartPolicy: Never
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${CLIENT_CONFIGMAP_NAME}
+          name: kafka-config
+        - name: cluster-ca
+          secret:
+            defaultMode: 288
+            secretName: ${CA_SECRET_NAME}
+parameters:
+- name: NAME
+  value: "topic-logging-consumer"
+- name: CLUSTER_NAME
+  value: "my-cluster"
+- name: TOPIC_NAME
+  value: "topic-logging"
+- name: CLIENT_CONFIGMAP_NAME
+  value: ""
+- name: CA_SECRET_NAME
+  value: ""

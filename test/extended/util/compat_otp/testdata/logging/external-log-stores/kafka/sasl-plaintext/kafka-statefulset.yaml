@@ -1,0 +1,163 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafkaserver-template
+objects:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    labels:
+      app: kafka
+      component: kafka
+      provider: openshift
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    podManagementPolicy: Parallel
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: kafka
+    serviceName: ${SERVICENAME}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: kafka
+          component: kafka
+          provider: openshift
+      spec:
+        containers:
+        - command:
+          - /opt/kafka/bin/kafka-server-start.sh
+          - /etc/kafka/server.properties
+          env:
+          - name: CLASSPATH
+            value: /opt/kafka/libs/extensions/*
+          - name: KAFKA_LOG4J_OPTS
+            value: -Dlog4j.configuration=file:/etc/kafka/log4j.properties
+          - name: KAFKA_OPTS
+            value: -Djava.security.auth.login.config=/etc/kafka-configmap/kafka_server_jaas.conf
+          - name: JMX_PORT
+            value: "5555"
+          image: quay.io/openshifttest/kafka@sha256:2411662d89dd5700e1fe49aa8be1219843948da90cfe51a1c7a49bcef9d22dab
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - sh
+                - -ce
+                - kill -s TERM 1; while $(kill -0 1 2>/dev/null); do sleep 1; done
+          name: broker
+          ports:
+          - containerPort: 9092
+            name: inside
+            protocol: TCP
+          - containerPort: 9093
+            name: ssl
+            protocol: TCP
+          - containerPort: 9094
+            name: outide
+            protocol: TCP
+          - containerPort: 5555
+            name: jmx
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 9092
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              memory: 500Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/kafka-configmap
+            name: brokerconfig
+          - mountPath: /etc/kafka
+            name: config
+          - mountPath: /etc/kafkacert
+            name: kafkacert
+          - mountPath: /opt/kafka/logs
+            name: brokerlogs
+          - mountPath: /opt/kafka/libs/extensions
+            name: extensions
+          - mountPath: /var/lib/kafka/data
+            name: data
+        dnsPolicy: ClusterFirst
+        initContainers:
+        - command:
+          - /bin/bash
+          - /etc/kafka-configmap/init.sh
+          env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: ADVERTISE_ADDR
+            value: kafka
+          image: quay.io/openshifttest/kafka-initutils@sha256:e73ff7a44b43b85b53849c0459ba32e704540852b885a5c78af9753f86a49d68
+          imagePullPolicy: IfNotPresent
+          name: init-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/kafka-configmap
+            name: brokerconfig
+          - mountPath: /etc/kafka
+            name: config
+          - mountPath: /opt/kafka/libs/extensions
+            name: extensions
+        restartPolicy: Always
+        nodeSelector:
+          kubernetes.io/arch: amd64
+          kubernetes.io/os: linux
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${CM_NAME}
+          name: brokerconfig
+        - emptyDir: {}
+          name: kafkacert
+        - emptyDir: {}
+          name: brokerlogs
+        - emptyDir: {}
+          name: config
+        - emptyDir: {}
+          name: extensions
+        - emptyDir: {}
+          name: data
+    updateStrategy:
+      type: RollingUpdate
+parameters:
+- name: NAME
+  value: "kafka"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SERVICENAME
+  value: "kafka"
+- name: CM_NAME
+  value: "kafka"

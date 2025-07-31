@@ -1,0 +1,52 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-iso-configmap
+data:
+  iso.gz.b64: |
+    H4sICLBAhWYAA25iLmlzbwDt201rE0EYAOCJFowBhSKSHpeeVDCdfJAQPIVkm27Nh2RTsEcL3sRcPPqf/ImaTRpEa9NLjRKeh92d3Zl3d2dhmGUGJgQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoNQfxFgvhVE2uXif3K4/mE3HW8o3z/v2S7Llvcut2EO5HCrrrMqzn8XPi8NxqK6vqqFcJOXw9dHDJ0+PDx5s7t9SIXZgmE6yfJqNe8M0WZ4k3XY7npyd5slpNkrzy3yejpP+LO3Np7PkRf9lUu92m0lau5xeTIaD3ijdZHZeN2JsJ+e1d2lvlk8nJ+e1vH+WjZatcriKKYqLmE7REN9m82Se9rY1x7+jERut2InNerPeasUYD25kxN+EGxGlsPNq81+5j24b7sX36/8/AAAAsL9Kqzl2438AAADYZ6uRf9UEAAAAAOyzu9fY3RlRehWO1hFHh+v08DoirCMez9LeYJzW3tR3+mkAwC0mi8/J1WLx5cPVp4/FEu7Kv64QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD8wQ9XmJ9tAHgFAA==
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    app: nginx
+spec:
+  nodeSelector:
+    nginx-node: "true"
+  volumes:
+    - name: iso-dir
+      emptyDir: {}  # Empty directory to hold the decoded ISO
+    - name: iso-config
+      configMap:
+        name: nginx-iso-configmap
+  initContainers:
+    - name: init-decode-iso
+      image: quay.io/openshifttest/busybox
+      command: ['sh', '-c', 'base64 -d /config/iso.gz.b64 | gunzip > /iso/non-bootable.iso']
+      volumeMounts:
+        - name: iso-config
+          mountPath: /config
+        - name: iso-dir
+          mountPath: /iso
+  containers:
+    - name: nginx
+      image: quay.io/openshifttest/nginx-alpine:latest
+      volumeMounts:
+        - name: iso-dir
+          mountPath: /data/http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

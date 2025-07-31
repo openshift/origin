@@ -1,0 +1,99 @@
+kind: Template
+apiversion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    filters:
+    - name: my-policy
+      type: kubeAPIAudit
+      kubeAPIAudit:
+        omitStages:
+        - "RequestReceived"
+        rules:
+        - level: RequestResponse
+          resources:
+          - group: ""
+            resources: ["pods"]
+        - level: Request
+          resources:
+          - group: ""
+            resources: ["pods/binding", "pods/status"]
+        - level: None
+          resources:
+          - group: ""
+            resources: ["configmaps"]
+            resourceNames: ["merged-trusted-image-registry-ca"]
+        - level: Request
+          resources:
+          - group: ""
+            resources: ["configmaps"]
+          namespaces: ["openshift-multus"]
+        - level: RequestResponse
+          resources:
+          - group: ""
+            resources: ["secrets", "configmaps"]
+        - level: None
+          users: ["system:serviceaccount:openshift-monitoring:prometheus-k8s"]
+          verbs: ["watch"]
+          resources:
+          - group: ""
+            resources: ["endpoints", "services", "pods"]
+        - level: None
+          userGroups: ["system:authenticated"]
+          nonResourceURLs:
+          - "/openapi*"
+          - "/metrics"
+        - level: Request
+          resources:
+          - group: ""
+          - group: "operators.coreos.com"
+          - group: "rbac.authorization.k8s.io"
+        - level: Metadata
+    managementState: ${MANAGEMENT_STATE}
+    outputs:
+    - name: lokistack
+      type: lokiStack
+      lokiStack:
+        authentication:
+          token:
+            from: serviceAccount
+        target:
+          name: ${LOKISTACK_NAME}
+          namespace: ${LOKISTACK_NAMESPACE}
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - name: enable-audit-polciy
+      filterRefs: ${{FILTER_REFS}}
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - lokistack
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: LOKISTACK_NAME
+  value: "logging-loki"
+- name: LOKISTACK_NAMESPACE
+  value: "openshift-logging"
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: FILTER_REFS
+  value: "[\"my-policy\"]"
+- name: SECRET_NAME
+  value: ""

@@ -1,0 +1,45 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-initcontainer
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    initContainers:
+    - name: inittest
+      image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["bin/sh", "-ec", "echo running >> /mnt/data/test"]
+      volumeMounts:
+      - name: my-volume
+        mountPath: /mnt/data
+    containers:
+    - name: my-container
+      image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["/bin/sh", "-ec", "ls /mnt/data; sleep 999999"]
+      volumeMounts:
+      - mountPath: /mnt/data
+        name: my-volume
+    volumes:
+    - name: my-volume
+      emptyDir: {}
+parameters:      
+- name: NAME
+- name: NAMESPACE

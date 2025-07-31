@@ -1,0 +1,214 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: splunk-s1-standalone-template
+objects:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: ${NAME}
+  spec:
+    podManagementPolicy: Parallel
+    replicas: 1
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: splunk
+        app.kubernetes.io/instance: ${NAME}
+        app.kubernetes.io/name: splunk
+    serviceName: ${NAME}-headless
+    template:
+      metadata:
+        annotations:
+          traffic.sidecar.istio.io/excludeOutboundPorts: 8089,8191,9997
+          traffic.sidecar.istio.io/includeInboundPorts: 8000,8088
+        labels:
+          app.kubernetes.io/component: splunk
+          app.kubernetes.io/instance: ${NAME}
+          app.kubernetes.io/name: splunk
+      spec:
+        containers:
+        - env:
+          - name: DEBUG
+            value: "false"
+          - name: ANSIBLE_EXTRA_FLAGS
+            value: "-v"
+          - name: SPLUNK_DECLARATIVE_ADMIN_PASSWORD
+            value: "true"
+          - name: SPLUNK_DEFAULTS_URL
+            value: /mnt/splunk-secrets/default.yml
+          - name: SPLUNK_HOME
+            value: /opt/splunk
+          - name: SPLUNK_HOME_OWNERSHIP_ENFORCEMENT
+            value: "false"
+          - name: SPLUNK_ROLE
+            value: splunk_standalone
+          - name: SPLUNK_START_ARGS
+            value: --accept-license
+          image: quay.io/openshifttest/splunk@sha256:5762a3b61ad5090f24ad33360fc03f3ced469e16c3c75f6d8590b5ef39d95751
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+              - /sbin/checkstate.sh
+            failureThreshold: 3
+            initialDelaySeconds: 300
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 30
+          name: splunk
+          ports:
+          - containerPort: 8000
+            name: http-splunkweb
+            protocol: TCP
+          - containerPort: 8088
+            name: http-hec
+            protocol: TCP
+          - containerPort: 8089
+            name: https-splunkd
+            protocol: TCP
+          - containerPort: 9997
+            name: tcp-s2s
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /bin/grep
+              - started
+              - /opt/container_artifact/splunk-container.state
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: "4"
+              memory: 8Gi
+            requests:
+              cpu: 100m
+              memory: 512Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /mnt/splunk-secrets
+            name: mnt-splunk-secrets
+          - mountPath: /opt/splunk/etc
+            name: pvc-etc
+          - mountPath: /opt/splunk/var
+            name: pvc-var
+        dnsPolicy: ClusterFirst
+        nodeSelector:
+          kubernetes.io/arch: amd64
+          kubernetes.io/os: linux
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext:
+          fsGroup: 41812
+          runAsNonRoot: true
+          runAsUser: 41812
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: mnt-splunk-secrets
+          secret:
+            defaultMode: 420
+            secretName: ${NAME}
+    updateStrategy:
+      type: OnDelete
+    volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        labels:
+          app.kubernetes.io/component: splunk
+          app.kubernetes.io/instance: ${NAME}
+          app.kubernetes.io/name: splunk
+        name: pvc-etc
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+        volumeMode: Filesystem
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        labels:
+          app.kubernetes.io/component: splunk
+          app.kubernetes.io/instance: ${NAME}
+          app.kubernetes.io/name: splunk
+        name: pvc-var
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        volumeMode: Filesystem
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/component: splunk
+      app.kubernetes.io/instance: ${NAME}
+      app.kubernetes.io/name: splunk
+    name: ${NAME}-headless
+  spec:
+    type: ClusterIP
+    clusterIP: None
+    selector:
+      app.kubernetes.io/component: splunk
+      app.kubernetes.io/instance: ${NAME}
+      app.kubernetes.io/name: splunk
+    ports:
+    - name: http-splunkweb
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    - name: http-hec
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    - name: https-splunkd
+      port: 8089
+      protocol: TCP
+      targetPort: 8089
+    - name: tcp-s2s
+      port: 9997
+      protocol: TCP
+      targetPort: 9997
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/component: splunk
+      app.kubernetes.io/instance: ${NAME}
+      app.kubernetes.io/name: splunk
+    name: ${NAME}-0
+  spec:
+    type: ClusterIP
+    selector:
+      app.kubernetes.io/component: splunk
+      app.kubernetes.io/instance: ${NAME}
+      app.kubernetes.io/name: splunk
+    internalTrafficPolicy: Cluster
+    ports:
+    - name: http-splunkweb
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    - name: http-hec
+      port: 8088
+      protocol: TCP
+      targetPort: 8088
+    - name: https-splunkd
+      port: 8089
+      protocol: TCP
+      targetPort: 8089
+    - name: tcp-s2s
+      port: 9997
+      protocol: TCP
+      targetPort: 9997
+parameters:
+- name: NAME
+  value: "splunk-s1-standalone"

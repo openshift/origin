@@ -1,0 +1,12 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+    name: example
+spec:
+    imageDigestMirrors:
+        - mirrors:
+            - ec2-3-133-161-121.us-east-2.compute.amazonaws.com:5000/ocp/release
+          source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+        - mirrors:
+            - ec2-3-133-161-121.us-east-2.compute.amazonaws.com:5000/ocp/release
+          source: registry.ci.openshift.org/ocp/release

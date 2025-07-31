@@ -1,0 +1,19 @@
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: ResourceLocker
+metadata:
+  name: locked-configmap-foo-bar-configmap
+spec:
+  resources:
+    - excludedPaths:
+        - .metadata
+        - .status
+        - .spec.replicas
+      object:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: foo-bar-configmap
+        data:
+          foo: bar
+  serviceAccountRef:
+    name: resource-locker-test-sa

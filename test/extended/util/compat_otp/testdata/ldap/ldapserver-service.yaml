@@ -1,0 +1,14 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: openldap-server
+spec:
+  ports:
+  - name: ldap
+    protocol: TCP
+    port: 389
+    targetPort: 389
+  selector:
+    app: openldap-server
+  type: ClusterIP

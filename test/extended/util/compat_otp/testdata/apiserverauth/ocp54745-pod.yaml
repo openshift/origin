@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-pod
+objects:
+  - kind: Pod
+    apiVersion: v1
+    metadata:
+      labels:
+        app: "${NAME}"
+      name: "${NAME}"
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: "${NAME}"
+          image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+          resources:
+            requests:
+              memory: "${REQUEST_MEMORY}"
+              cpu: "${REQUEST_CPU}"
+            limits:
+              memory: "${LIMITS_MEMORY}"
+              cpu: "${LIMITS_CPU}"
+parameters:
+  - name: NAME
+  - name: REQUEST_MEMORY
+  - name: REQUEST_CPU
+  - name: LIMITS_MEMORY
+  - name: LIMITS_CPU

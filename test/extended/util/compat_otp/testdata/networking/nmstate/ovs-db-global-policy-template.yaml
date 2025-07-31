@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ovs-db-global-policy-template
+objects:
+  - apiVersion: nmstate.io/v1
+    kind: NodeNetworkConfigurationPolicy
+    metadata:
+      name: "${NAME}"
+    spec:
+      nodeSelector:
+        "${NODELABEL}": "${LABELVALUE}"
+      desiredState:
+        ovs-db:
+          other_config:
+            "${OVSCONFIG}": "${OVSVALUE}"
+
+parameters:
+  - name: NAME
+  - name: NODELABEL
+    value: "kubernetes.io/hostname"
+  - name: LABELVALUE
+  - name: OVSCONFIG
+  - name: OVSVALUE

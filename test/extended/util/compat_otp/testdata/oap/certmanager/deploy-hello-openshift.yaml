@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-openshift
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hello-openshift
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hello-openshift
+    spec:
+      containers:
+        - image: quay.io/openshifttest/hello-openshift:1.2.0
+          imagePullPolicy: IfNotPresent
+          name: hello-openshift
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-openshift
+spec:
+  ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/name: hello-openshift
+  type: ClusterIP

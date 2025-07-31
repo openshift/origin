@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: localvolume-template
+objects:
+# LocalVolume
+- kind: LocalVolume
+  apiVersion: local.storage.openshift.io/v1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    storageClassDevices:
+      - devicePaths:
+          - ${DEVICEID}
+        fsType: ${FSTYPE}
+        storageClassName: ${SCNAME}
+        volumeMode: ${VOLUMEMODE}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: DEVICEID
+- name: FSTYPE
+- name: SCNAME
+- name: VOLUMEMODE

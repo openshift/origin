@@ -1,0 +1,34 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: loki-app-alerting-rule-template
+objects:
+- apiVersion: loki.grafana.com/v1
+  kind: AlertingRule
+  metadata:
+    labels:
+      openshift.io/cluster-monitoring: 'true'
+    name: ${ALERTING_RULE_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    groups:
+      - interval: 1m
+        name: MyAppLogVolumeAlert
+        rules:
+          - alert: MyAppLogVolumeIsHigh
+            annotations:
+              description: My application has high amount of logs.
+              summary: Your application project has high amount of logs.
+            expr: ${ALERT_LOGQL_EXPR}
+            for: 1m
+            labels:
+              severity: info
+              project: ${NAMESPACE}
+    tenantID: application
+parameters:
+- name: NAMESPACE
+  value: "my-app-1"
+- name: ALERTING_RULE_NAME
+  value: "my-app-workload-alert"
+- name: ALERT_LOGQL_EXPR
+  value: ""

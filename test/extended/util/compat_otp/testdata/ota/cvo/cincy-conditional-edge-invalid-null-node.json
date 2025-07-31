@@ -1,0 +1,28 @@
+{
+  "nodes": [
+    {
+      "version": "sourceversion",
+      "payload": "sourcepayload"
+    }
+  ],
+  "conditionalEdges":[
+    {
+      "edges": [
+        {"from": "sourceversion", "to": ""}
+      ],
+      "risks": [
+        {
+          "url": "https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/releasestream/4.10.0-0.nightly/release/4.10.0-0.nightly-2021-11-24-075634",
+          "name": "TargetNull",
+          "message": "Empty target node",
+          "matchingRules": [
+            {
+              "type": "Always"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

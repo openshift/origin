@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: hive-controllers
+  namespace: hive
+spec:
+  endpoints:
+    - interval: 30s
+      path: /metrics
+      port: metrics
+      scheme: http
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: '^rest_client_.*'
+          action: drop
+  selector:
+    matchLabels:
+      control-plane: controller-manager

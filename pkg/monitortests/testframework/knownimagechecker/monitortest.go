@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const testName = "[sig-arch] Only known images used by tests"

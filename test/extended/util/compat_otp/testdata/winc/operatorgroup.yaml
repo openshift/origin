@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  annotations:
+    olm.providedAPIs: WindowsMachineConfig.v1alpha1.wmc.openshift.io
+  name: windows-machine-config-operator
+  namespace: <namespace>
+spec:
+  targetNamespaces:
+  - <namespace>

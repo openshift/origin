@@ -1,0 +1,9 @@
+kind: DeleteImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+delete:
+  operators:
+    - catalog: oci:///tmp/case79217/redhat-operator-index
+      targetCatalog: "ocicatalog73452"
+      targetTag: "v16"
+      packages:
+        - name: cluster-kube-descheduler-operator

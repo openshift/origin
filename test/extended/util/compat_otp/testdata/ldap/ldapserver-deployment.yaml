@@ -1,0 +1,51 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: openldap-server
+  labels:
+    app: openldap-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openldap-server
+  template:
+    metadata:
+      name: openldap-server
+      labels:
+        app: openldap-server
+    spec:
+      serviceAccountName: ldap
+      containers:
+      - name: openldap-server
+        securityContext:
+          privileged: true
+        # This image is built from the images/openldap directory. Temporary repo location.
+        image: docker.io/mrogers950/origin-openldap-test:fedora29
+        ports:
+        # StartTLS works over 389
+        - containerPort: 389
+          protocol: TCP
+        terminationMessagePath: "/dev/termination-log"
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: ldap-config
+          # Configs get copied to /etc/openldap by container run script.
+          mountPath: /usr/local/etc/ldapconf
+        - name: scripts
+          mountPath: /usr/local/bin
+        - name: ldap-cert
+          mountPath: /usr/local/etc/ldapcert
+      volumes:
+      - name: ldap-cert
+        secret:
+          secretName: ldap-cert
+      - name: ldap-config
+        configMap:
+          name: ldap-config
+      - name: scripts
+        configMap:
+          name: scripts
+          defaultMode: 0777
+      restartPolicy: Always

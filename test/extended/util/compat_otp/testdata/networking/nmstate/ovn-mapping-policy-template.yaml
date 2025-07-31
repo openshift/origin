@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ovn-mapping-policy-template
+objects:
+  - apiVersion: nmstate.io/v1
+    kind: NodeNetworkConfigurationPolicy
+    metadata:
+      name: "${NAME}"
+    spec:
+      nodeSelector:
+        "${NODELABEL}": "${LABELVALUE}"
+      desiredState:
+        ovn:
+          bridge-mappings:
+          - localnet: "${LOCALNET1}"
+            bridge: "${BRIDGE1}"
+
+parameters:
+  - name: NAME
+  - name: NODELABEL
+    value: "kubernetes.io/hostname"
+  - name: LABELVALUE
+  - name: LOCALNET1
+  - name: BRIDGE1

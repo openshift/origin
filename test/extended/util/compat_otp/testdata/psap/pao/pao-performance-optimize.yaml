@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pao-template
+objects:
+  - apiVersion: performance.openshift.io/v2
+    kind: PerformanceProfile
+    metadata:
+      finalizers:
+      - foreground-deletion
+      name: optimize
+    spec:
+      additionalKernelArgs:
+      - idle=poll
+      cpu:
+        isolated: 0,3
+        reserved: 1-2
+      globallyDisableIrqLoadBalancing: true
+      hugepages:
+        defaultHugepagesSize: 1G
+        pages:
+        - count: 2
+          size: 1G
+      nodeSelector:
+        #Role Name, master for SNO, worker-optimize for normal cluster
+        node-role.kubernetes.io/${ROLENAME}: ""
+      numa:
+        topologyPolicy: restricted
+      realTimeKernel:
+        enabled: false
+parameters:
+  - name: ROLENAME    

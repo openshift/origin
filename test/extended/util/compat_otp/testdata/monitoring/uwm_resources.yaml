@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+data:
+  config.yaml: |
+    prometheusOperator:
+      resources:
+        requests:
+          cpu: 2m
+          memory: 20Mi
+        limits:
+          cpu: 10m
+          memory: 100Mi
