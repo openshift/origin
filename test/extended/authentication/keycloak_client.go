@@ -104,7 +104,7 @@ func (kc *keycloakClient) CreateUser(username, password string, groups ...string
 		Groups:        groups,
 		Credentials: []credential{
 			{
-				Temporary: true,
+				Temporary: false,
 				Type:      credentialTypePassword,
 				Value:     password,
 			},
@@ -131,8 +131,10 @@ func (kc *keycloakClient) CreateUser(username, password string, groups ...string
 }
 
 type authenticationResponse struct {
-	AccessToken string `json:"access_token"`
-	IDToken     string `json:"id_token"`
+	AccessToken      string `json:"access_token"`
+	IDToken          string `json:"id_token"`
+	Error            string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description,omitempty"`
 }
 
 func (kc *keycloakClient) Authenticate(clientID, username, password string) error {
@@ -157,6 +159,10 @@ func (kc *keycloakClient) Authenticate(clientID, username, password string) erro
 	err = json.NewDecoder(resp.Body).Decode(respBody)
 	if err != nil {
 		return fmt.Errorf("unmarshalling response data: %w", err)
+	}
+
+	if respBody.Error != "" {
+		return fmt.Errorf("%s: %s", respBody.Error, respBody.ErrorDescription)
 	}
 
 	kc.accessToken = respBody.AccessToken
