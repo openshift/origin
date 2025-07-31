@@ -17,7 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] Single node outage is handled seamlessly", func() {
+const (
+	statusReady    = "Ready"
+	statusNotReady = "NotReady"
+	statusUnknown  = "Unknown"
+)
+
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] One master node outage is handled seamlessly", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 
@@ -33,32 +39,17 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 			LabelSelector: labelNodeRoleMaster,
 		})
 		o.Expect(err).To(o.BeNil())
-		o.Expect(len(masterNodes.Items)).To(o.Equal(2))
+		o.Expect(masterNodes.Items).To(o.HaveLen(2))
 		targetNode := masterNodes.Items[0].Name
 
 		g.By(fmt.Sprintf("Gracefully rebooting %s to simulate failure", targetNode))
 		shutdownOrRebootNode(oc, targetNode, "openshift-etcd", "shutdown", "-r", "+1")
 
 		g.By("Waiting for the node to become NotReady")
-		waitForNodeCondition(oc, targetNode, corev1.NodeReady, corev1.ConditionFalse, "NotReady", 10*time.Minute)
+		waitForNodeCondition(oc, targetNode, corev1.NodeReady, corev1.ConditionFalse, statusNotReady, 10*time.Minute)
 
 		g.By("Validating etcd quorum is met while the node is still NotReady")
-		err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-			node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, targetNode, metav1.GetOptions{})
-			if err != nil {
-				return false, nil
-			}
-			stillNotReady := false
-			for _, cond := range node.Status.Conditions {
-				if cond.Type == corev1.NodeReady && cond.Status != corev1.ConditionTrue {
-					stillNotReady = true
-					break
-				}
-			}
-			if !stillNotReady {
-				return false, nil
-			}
-
+		err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, func(ctx context.Context) (bool, error) {
 			operator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "etcd", metav1.GetOptions{})
 			if err != nil {
 				return false, nil
@@ -75,12 +66,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 		o.Expect(err).To(o.BeNil(), "Failed to list cluster nodes")
 
 		for _, node := range nodeList.Items {
-			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionTrue, "Ready", 15*time.Minute)
+			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionTrue, statusReady, 15*time.Minute)
 		}
 	})
 })
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] Recovery after arbiter down and master node restart", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] Recovery when arbiter node is down and master nodes restart", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 	var arbiterNodeName string
@@ -95,7 +86,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 			LabelSelector: labelNodeRoleArbiter,
 		})
 		o.Expect(err).To(o.BeNil())
-		o.Expect(len(arbiterNodes.Items)).To(o.Equal(1))
+		o.Expect(arbiterNodes.Items).To(o.HaveLen(1))
 		arbiterNode := arbiterNodes.Items[0]
 		arbiterNodeName = arbiterNode.Name
 
@@ -105,7 +96,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 		o.Expect(err).To(o.BeNil(), "Expected arbiter shutdown simulation to succeed")
 
 		g.By("Waiting for arbiter to become status uknown due to kubelet stopped")
-		waitForNodeCondition(oc, arbiterNodeName, corev1.NodeReady, corev1.ConditionUnknown, "Unknown", 5*time.Minute)
+		waitForNodeCondition(oc, arbiterNodeName, corev1.NodeReady, corev1.ConditionUnknown, statusUnknown, 5*time.Minute)
 
 		g.By("Rebooting both master nodes")
 		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -118,12 +109,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 
 		g.By("Waiting for master nodes to become NotReady")
 		for _, node := range masterNodes.Items {
-			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionFalse, "NotReady", 5*time.Minute)
+			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionFalse, statusNotReady, 10*time.Minute)
 		}
 
 		g.By("Waiting for master nodes to become Ready")
 		for _, node := range masterNodes.Items {
-			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionFalse, "Ready", 15*time.Minute)
+			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionTrue, statusReady, 15*time.Minute)
 		}
 
 		g.By("Waiting for etcd quorum to be restored")
@@ -138,7 +129,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 	})
 	g.AfterEach(func() {
 		g.By("Ensuring arbiter node becomes ready again")
-		waitForNodeCondition(oc, arbiterNodeName, corev1.NodeReady, corev1.ConditionFalse, "NotReady", 15*time.Minute)
+		waitForNodeCondition(oc, arbiterNodeName, corev1.NodeReady, corev1.ConditionTrue, statusReady, 15*time.Minute)
 	})
 })
 

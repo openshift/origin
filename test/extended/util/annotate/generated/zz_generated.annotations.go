@@ -1273,9 +1273,9 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] Recovery after arbiter down and master node restart should regain quorum after arbiter down and master nodes restart": " [Serial]",
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] One master node outage is handled seamlessly should maintain etcd quorum and workloads with one master node down": " [Serial]",
 
-	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] Single node outage is handled seamlessly should maintain etcd quorum and workloads with one master node down": " [Serial]",
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] Recovery when arbiter node is down and master nodes restart should regain quorum after arbiter down and master nodes restart": " [Serial]",
 
 	"[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should fail clusterimagepolicy signature validation root of trust does not match the identity in the signature": " [Suite:openshift/conformance/serial]",
 

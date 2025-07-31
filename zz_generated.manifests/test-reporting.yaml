@@ -444,11 +444,11 @@ spec:
         Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all
         etcd pods running and quorum met'
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive]
-        Recovery after arbiter down and master node restart should regain quorum after
-        arbiter down and master nodes restart'
+        One master node outage is handled seamlessly should maintain etcd quorum and
+        workloads with one master node down'
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive]
-        Single node outage is handled seamlessly should maintain etcd quorum and workloads
-        with one master node down'
+        Recovery when arbiter node is down and master nodes restart should regain
+        quorum after arbiter down and master nodes restart'
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter]
         expected Master and Arbiter node counts Should validate that there are Master
         and Arbiter nodes as specified in the cluster'
