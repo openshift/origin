@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    {
+      "version": "sourceversion",
+      "payload": "sourcepayload",
+      "metadata": {
+	"io.openshift.upgrades.graph.release.channels": "channel-a,channel-b"
+      }
+    },
+    {
+      "version": "targetversion",
+      "payload": "targetpayload",
+      "metadata": {
+	"io.openshift.upgrades.graph.release.channels": "channel-a,channel-b"
+      }
+    }
+  ],
+  "edges": [
+    [0,1]
+  ]
+}
+

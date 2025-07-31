@@ -1,0 +1,50 @@
+{
+    "schema": "olm.bundle",
+    "name": "windup-operator.0.0.5",
+    "package": "mta-operator",
+    "image": "quay.io/olmqe/mta-operator:v0.0.5-2199",
+    "properties": [
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha",
+                "replaces": "windup-operator.0.0.4"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "windup.jboss.org",
+                "kind": "Windup",
+                "version": "v1"
+            }
+        },
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "mta-operator",
+                "version": "0.0.5"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+            }
+        }
+    ],
+    "relatedImages": [
+        {
+            "name": "",
+            "image": "quay.io/olmqe/mta-operator:v0.0.5-2199"
+        },
+        {
+            "name": "",
+            "image": "quay.io/windupeng/windup-operator-native:0.0.5"
+        }
+    ]
+}

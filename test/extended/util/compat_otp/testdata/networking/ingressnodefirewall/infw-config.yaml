@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ingressnodefirewallconfig-template
+objects:
+- kind: IngressNodeFirewallConfig
+  apiVersion: ingressnodefirewall.openshift.io/v1alpha1
+  metadata:
+    name: ingressnodefirewallconfig
+    namespace: "${NAMESPACE}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": ""
+    tolerations:
+    - key: "Example"
+      operator: "Exists"
+      effect: "NoExecute"
+parameters:
+- name: NAMESPACE
+- name: NODELABEL

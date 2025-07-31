@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: updateservice-temp
+objects:
+- kind: UpdateService
+  apiVersion: updateservice.operator.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    graphDataImage: "${GRAPHDATA}"
+    releases: "${RELEASES}"
+    replicas: ${{REPLICAS}}
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: GRAPHDATA
+- name: RELEASES
+- name: REPLICAS

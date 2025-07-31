@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: hello-pod
+  name: hello-pod
+spec:
+  initContainers:
+    - name: wait
+      image: quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c
+      command: ["/bin/sh", "-c", "sleep 10"]
+  containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+      imagePullPolicy: IfNotPresent
+      name: hello-pod
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+      resources: {}
+      securityContext:
+        capabilities: {}
+        privileged: false
+      terminationMessagePath: /dev/termination-log
+      volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  serviceAccount: ""
+  volumes:
+    - emptyDir: {}
+      name: tmp

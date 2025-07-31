@@ -1,0 +1,12 @@
+kind: ConfigMap
+apiVersion: v1
+immutable: false
+data:
+  files: '[]'
+  services: '[{"name":"windows_dummy","path":"C:\\k\\windows_dummy.exe --collectors.enabled
+    cpu,cs,logical_disk,net,os,service,system,textfile,container,memory,cpu_info","bootstrap":false,"priority":1},{"name":"hybrid-dummy-node","path":"C:\\k\\hybrid-dummy-node.exe
+    --node NODE_NAME --k8s-kubeconfig C:\\k\\kubeconfig --windows-service --logfile
+    C:\\var\\log\\hybrid-dummy\\hybrid-dummy.log --loglevel 5","nodeVariablesInCommand":[{"name":"NODE_NAME","nodeObjectJsonPath":"{.metadata.name}"}],"dependencies":["minesweeper"],"bootstrap":false,"priority":1}]'
+metadata:
+  name: windows-services-<version>
+  namespace: openshift-windows-machine-config-operator

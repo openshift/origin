@@ -1,0 +1,27 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: testpod
+  labels:
+    name: testpod
+  annotations:
+    sidecar.istio.io/inject: 'true'
+    k8s.v1.cni.cncf.io/networks: '[
+      {
+        "name": "test-nad",
+        "interface": "net1",
+        "default-route": ["172.19.55.99"]
+      }
+    ]'
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: testpod
+    image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]

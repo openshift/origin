@@ -1,0 +1,22 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: <resourceName>
+  namespace: <namespace>
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: win-webserver
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: <resource>
+      target:
+        type: AverageValue
+        averageValue: <averageValue>
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 20  # Add stabilization window for scale down

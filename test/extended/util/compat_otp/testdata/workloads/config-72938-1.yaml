@@ -1,0 +1,13 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: ImageSetConfiguration
+mirror:
+  operators:
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.14
+      full: true
+      packages:
+        - name: 3scale-operator
+          defaultChannel: threescale-2.13
+          channels:
+            - name: threescale-2.13
+          minVersion: 0.8.1
+          maxVersion: 0.8.3

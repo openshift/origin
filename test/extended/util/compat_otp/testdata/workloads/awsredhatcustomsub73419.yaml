@@ -1,0 +1,14 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    operators.coreos.com/aws-load-balancer-operator.aws-load-balancer-operator: ""
+  namespace: aws-load-balancer-operator
+  name: aws-load-balancer-operator
+spec:
+    channel: stable-v1
+    installPlanApproval: Automatic
+    name: aws-load-balancer-operator
+    source: cs-redhat-operator-index-v4-14
+    sourceNamespace: openshift-marketplace
+    startingCSV: aws-load-balancer-operator.v1.1.1

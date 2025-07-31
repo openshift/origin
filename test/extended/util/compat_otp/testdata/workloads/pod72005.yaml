@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod72005
+spec:
+  containers:
+  - name: container0
+    image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+    command: ["sleep", "9999"]
+    resources:
+      claims:
+      - name: cat-0
+  - name: container1
+    image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+    command: ["sleep", "9999"]
+    resources:
+      claims:
+      - name: cat-1
+  resourceClaims:
+  - name: cat-0
+    source:
+      resourceClaimTemplateName: large-black-cat-claim-template
+  - name: cat-1
+    source:
+      resourceClaimTemplateName: large-black-cat-claim-template

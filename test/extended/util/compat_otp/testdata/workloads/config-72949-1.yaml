@@ -1,0 +1,9 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: ImageSetConfiguration
+archiveSize: 2
+mirror:
+  operators:
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.15
+      targetCatalog: 72949/redhat-operator-index
+      packages:
+       - name: elasticsearch-operator 

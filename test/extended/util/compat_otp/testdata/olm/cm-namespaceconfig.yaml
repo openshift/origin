@@ -1,0 +1,564 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cm-namespaceconfig-template
+objects:
+- apiVersion: v1
+  data:
+    clusterServiceVersions: |
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: |-
+              [
+                {
+                  "apiVersion": "redhatcop.redhat.io/v1alpha1",
+                  "kind": "NamespaceConfig",
+                  "metadata": {
+                    "name": "example-namespaceconfig"
+                  },
+                  "spec": {
+                    "size": 3
+                  }
+                }
+              ]
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: "false"
+            containerImage: quay.io/redhat-cop/namespace-configuration-operator:latest
+            createdAt: 5/28/2019
+            description: This operator provides a facility to define and enforce namespace
+              configurations
+            repository: https://github.com/redhat-cop/namespace-configuration-operator
+            support: Best Effort
+          name: namespace-configuration-operator.v0.1.0
+          namespace: namespace-configuration-operator
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - description: Represent the desired configuration for a set of namespaces selected
+                via labels
+              displayName: Namespace Configuration
+              kind: NamespaceConfig
+              name: namespaceconfigs.redhatcop.redhat.io
+              version: v1alpha1
+          description: "The namespace configuration operator helps keeping a namespace's configuration
+            aligned with one of more policies specified as a CRs.\n\nThe `NamespaceConfig`
+            CR allows specifying one or more objects that will be created in the selected
+            namespaces.\n\nFor example using this operator an administrator can enforce a
+            specific ResourceQuota or LimitRange on a set of namespaces. For example with
+            the following snippet:\n\n```\napiVersion: redhatcop.redhat.io/v1alpha1\nkind:
+            NamespaceConfig\nmetadata:\n  name: small-size\nspec:\n  selector:\n    matchLabels:\n
+            \     size: small  \n  resources:\n  - apiVersion: v1\n    kind: ResourceQuota\n
+            \   metadata:\n      name: small-size  \n    spec:\n      hard:\n        requests.cpu:
+            \"4\"\n        requests.memory: \"2Gi\"\n```\n\nwe are enforcing that all the
+            namespaces with label: `size=small` receive the specified resource quota.  \n"
+          displayName: Namespace Configuration Operator
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - '*'
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: namespace-configuration-operator
+              deployments:
+              - name: namespace-configuration-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: namespace-configuration-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: namespace-configuration-operator
+                    spec:
+                      containers:
+                      - command:
+                        - namespace-configuration-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: namespace-configuration-operator
+                        image: quay.io/redhat-cop/namespace-configuration-operator:v0.1.0
+                        imagePullPolicy: Always
+                        name: namespace-configuration-operator
+                        resources: {}
+                      serviceAccountName: namespace-configuration-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ""
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - namespace-configuration-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: namespace-configuration-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - namespace
+          - configuration
+          - policy
+          - management
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/namespace-configuration-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/namespace-configuration-operator:latest
+          - name: blog
+            url: https://blog.openshift.com/controlling-namespace-configurations
+          maintainers:
+          - email: rspazzol@redhat.com
+            name: Raffaele Spazzoli
+          maturity: alpha
+          minKubeVersion: 1.10.0
+          provider:
+            name: Containers & PaaS CoP
+          replaces: namespace-configuration-operator.v0.0.1
+          skips:
+          - namespace-configuration-operator.v0.0.2
+          version: 0.1.0
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            alm-examples: '[{"apiVersion":"redhatcop.redhat.io/v1alpha1","kind":"NamespaceConfig","metadata":{"name":"example-namespaceconfig"},"spec":{"size":3}}]'
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: "false"
+            containerImage: quay.io/redhat-cop/namespace-configuration-operator:latest
+            createdAt: 5/28/2019
+            description: This operator provides a facility to define and enforce namespace
+              configurations
+            repository: https://github.com/redhat-cop/namespace-configuration-operator
+            support: Best Effort
+          name: namespace-configuration-operator.v0.0.2
+          namespace: namespace-configuration-operator
+        spec:
+          apiservicedefinitions: {}
+          customresourcedefinitions:
+            owned:
+            - description: Represent the desired configuration for a set of namespaces selected
+                via labels
+              displayName: Namespace Configuration
+              kind: NamespaceConfig
+              name: namespaceconfigs.redhatcop.redhat.io
+              version: v1alpha1
+          description: "The namespace configuration operator helps keeping a namespace's configuration
+            aligned with one of more policies specified as a CRs.\n\nThe `NamespaceConfig`
+            CR allows specifying one or more objects that will be created in the selected
+            namespaces.\n\nFor example using this operator an administrator can enforce a
+            specific ResourceQuota or LimitRange on a set of namespaces. For example with
+            the following snippet:\n\n```\napiVersion: redhatcop.redhat.io/v1alpha1\nkind:
+            NamespaceConfig\nmetadata:\n  name: small-size\nspec:\n  selector:\n    matchLabels:\n
+            \     size: small  \n  resources:\n  - apiVersion: v1\n    kind: ResourceQuota\n
+            \   metadata:\n      name: small-size  \n    spec:\n      hard:\n        requests.cpu:
+            \"4\"\n        requests.memory: \"2Gi\"\n```\n\nwe are enforcing that all the
+            namespaces with label: `size=small` receive the specified resource quota.  \n"
+          displayName: Namespace Configuration Operator
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - '*'
+                  resources:
+                  - '*'
+                  verbs:
+                  - '*'
+                serviceAccountName: namespace-configuration-operator
+              deployments:
+              - name: namespace-configuration-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: namespace-configuration-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: namespace-configuration-operator
+                    spec:
+                      containers:
+                      - command:
+                        - namespace-configuration-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.annotations['olm.targetNamespaces']
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: namespace-configuration-operator
+                        image: quay.io/redhat-cop/namespace-configuration-operator:v0.0.2
+                        imagePullPolicy: Always
+                        name: namespace-configuration-operator
+                        resources: {}
+                      serviceAccountName: namespace-configuration-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ""
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - namespace-configuration-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: namespace-configuration-operator
+            strategy: deployment
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          keywords:
+          - namespace
+          - configuration
+          - policy
+          - management
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/namespace-configuration-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/namespace-configuration-operator:latest
+          - name: blog
+            url: https://blog.openshift.com/controlling-namespace-configurations
+          maintainers:
+          - email: rspazzol@redhat.com
+            name: Raffaele Spazzoli
+          maturity: alpha
+          provider:
+            name: Containers & PaaS CoP
+          replaces: namespace-configuration-operator.v0.0.1
+          version: 0.0.2
+      - apiVersion: operators.coreos.com/v1alpha1
+        kind: ClusterServiceVersion
+        metadata:
+          annotations:
+            capabilities: Full Lifecycle
+            categories: Security
+            certified: "false"
+            description: This operator provides a facility to define and enforce namespace configurations
+            containerImage: quay.io/redhat-cop/namespace-configuration-operator:latest
+            createdAt: 5/28/2019
+            support: Best Effort
+            repository: https://github.com/redhat-cop/namespace-configuration-operator
+            alm-examples: |
+              [
+                {
+                  "apiVersion": "redhatcop.redhat.io/v1alpha1",
+                  "kind": "NamespaceConfig",
+                  "metadata": {
+                      "name": "small-size"
+                  },
+                  "spec": {
+                      "selector": {
+                        "matchLabels": {
+                            "size": "small"
+                        }
+                      },
+                      "resources": [
+                        {
+                            "apiVersion": "v1",
+                            "kind": "ResourceQuota",
+                            "metadata": {
+                              "name": "small-size"
+                            },
+                            "spec": {
+                              "hard": {
+                                  "requests.cpu": "4",
+                                  "requests.memory": "2Gi"
+                              }
+                            }
+                        }
+                      ]
+                  }
+                }
+              ]
+          name: namespace-configuration-operator.v0.0.1
+          namespace: namespace-configuration-operator
+        spec:
+          icon:
+          - base64data: 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
+            mediatype: image/png
+          links:
+          - name: repository
+            url: https://github.com/redhat-cop/namespace-configuration-operator
+          - name: conatinerImage
+            url: https://quay.io/redhat-cop/namespace-configuration-operator:latest
+          - name: blog
+            url: https://blog.openshift.com/controlling-namespace-configurations
+          installModes:
+          - supported: true
+            type: OwnNamespace
+          - supported: true
+            type: SingleNamespace
+          - supported: false
+            type: MultiNamespace
+          - supported: false
+            type: AllNamespaces
+          maturity: alpha
+          version: 0.0.1
+          keywords: ['namespace', 'configuration', 'policy', 'management']
+          maintainers:
+          - name: Raffaele Spazzoli
+            email: rspazzol@redhat.com
+          provider:
+            name: Containers & PaaS CoP
+          apiservicedefinitions: {}
+          description: |
+            The namespace configuration operator helps keeping a namespace's configuration aligned with one of more policies specified as a CRs.
+            The `NamespaceConfig` CR allows specifying one or more objects that will be created in the selected namespaces.
+            For example using this operator an administrator can enforce a specific ResourceQuota or LimitRange on a set of namespaces. For example with the following snippet:
+            ```
+            apiVersion: redhatcop.redhat.io/v1alpha1
+            kind: NamespaceConfig
+            metadata:
+              name: small-size
+            spec:
+              selector:
+                matchLabels:
+                  size: small
+              resources:
+              - apiVersion: v1
+                kind: ResourceQuota
+                metadata:
+                  name: small-size
+                spec:
+                  hard:
+                    requests.cpu: "4"
+                    requests.memory: "2Gi"
+            ```
+            we are enforcing that all the namespaces with label: `size=small` receive the specified resource quota.
+          customresourcedefinitions:
+            owned:
+            - kind: NamespaceConfig
+              name: namespaceconfigs.redhatcop.redhat.io
+              version: v1alpha1
+              displayName: Namespace Configuration
+              description: Represent the desired configuration for a set of namespaces selected via labels
+          displayName: Namespace Configuration Operator
+          install:
+            spec:
+              clusterPermissions:
+              - rules:
+                - apiGroups:
+                  - "*"
+                  resources:
+                  - "*"
+                  verbs:
+                  - '*'
+                serviceAccountName: namespace-configuration-operator
+              deployments:
+              - name: namespace-configuration-operator
+                spec:
+                  replicas: 1
+                  selector:
+                    matchLabels:
+                      name: namespace-configuration-operator
+                  strategy: {}
+                  template:
+                    metadata:
+                      labels:
+                        name: namespace-configuration-operator
+                    spec:
+                      containers:
+                      - command:
+                        - namespace-configuration-operator
+                        env:
+                        - name: WATCH_NAMESPACE
+                          value: ""
+                        - name: POD_NAME
+                          valueFrom:
+                            fieldRef:
+                              fieldPath: metadata.name
+                        - name: OPERATOR_NAME
+                          value: namespace-configuration-operator
+                        image: quay.io/redhat-cop/namespace-configuration-operator:latest
+                        imagePullPolicy: Always
+                        name: namespace-configuration-operator
+                        resources: {}
+                      serviceAccountName: namespace-configuration-operator
+              permissions:
+              - rules:
+                - apiGroups:
+                  - ""
+                  resources:
+                  - configmaps
+                  - pods
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - ""
+                  resources:
+                  - services
+                  verbs:
+                  - '*'
+                - apiGroups:
+                  - apps
+                  resources:
+                  - replicasets
+                  - deployments
+                  verbs:
+                  - get
+                  - list
+                - apiGroups:
+                  - monitoring.coreos.com
+                  resources:
+                  - servicemonitors
+                  verbs:
+                  - get
+                  - create
+                - apiGroups:
+                  - apps
+                  resourceNames:
+                  - namespace-configuration-operator
+                  resources:
+                  - deployments/finalizers
+                  verbs:
+                  - update
+                serviceAccountName: namespace-configuration-operator
+            strategy: deployment
+    customResourceDefinitions: |
+      - apiVersion: apiextensions.k8s.io/v1
+        kind: CustomResourceDefinition
+        metadata:
+          name: namespaceconfigs.redhatcop.redhat.io
+        spec:
+          group: redhatcop.redhat.io
+          names:
+            kind: NamespaceConfig
+            listKind: NamespaceConfigList
+            plural: namespaceconfigs
+            singular: namespaceconfig
+          scope: Namespaced
+          versions:
+          - name: v1alpha1
+            served: true
+            storage: true
+            schema:
+              openAPIV3Schema:
+                type: object
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  metadata:
+                    type: object
+                  spec:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  status:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+    packages: |
+      - channels:
+        - currentCSV: namespace-configuration-operator.v0.1.0
+          name: alpha
+        defaultChannel: alpha
+        packageName: namespace-configuration-operator
+  kind: ConfigMap
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+

@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: namespace-template
+objects:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: "${NAME}"
+
+parameters:
+  - name: NAME
+    value: "openshift-sandboxed-containers-operator"

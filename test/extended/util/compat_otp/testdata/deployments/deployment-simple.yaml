@@ -1,0 +1,30 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-simple
+spec:
+  replicas: 1
+  selector:
+    name: deployment-simple
+  strategy:
+    type: Rolling
+    rollingParams:
+  template:
+    metadata:
+      labels:
+        name: deployment-simple
+    spec:
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+        name: myapp
+        readinessProbe:
+          exec:
+            command:
+            - "true"
+  triggers:
+  - type: ConfigChange
+

@@ -1,0 +1,50 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- kind: NetworkAttachmentDefinition
+  apiVersion: k8s.cni.cncf.io/v1
+  metadata:
+    name: "${NADNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    config: |2
+      {
+        "cniVersion": "0.4.0",
+        "name": "${NADNAME}",
+        "type": "${PLUGINTYPE}",
+        "portIsolation": ${PORTISOLATION},
+        "ipam": {
+          "type": "${IPAMTYPE}",
+          "ranges": [
+            [
+              {
+                "subnet": "${IPV4RANGE}",
+                "rangeStart": "${IPV4RANGESTART}",
+                "rangeEnd": "${IPV4RANGEEND}"
+              }
+            ],
+            [
+              {
+                "subnet": "${IPV6RANGE}",
+                "rangeStart": "${IPV6RANGESTART}",
+                "rangeEnd": "${IPV6RANGEEND}"
+              }
+            ]
+          ]
+        }
+      }
+
+parameters:
+- name: NADNAME
+- name: NAMESPACE
+- name: PLUGINTYPE
+- name: IPAMTYPE
+- name: IPV4RANGE
+- name: IPV6RANGE
+- name: IPV4RANGESTART
+- name: IPV4RANGEEND
+- name: IPV6RANGESTART
+- name: IPV6RANGEEND
+- name: PORTISOLATION
+  description: "Enable or disable portIsolation (true or false)"
+  value: "false"

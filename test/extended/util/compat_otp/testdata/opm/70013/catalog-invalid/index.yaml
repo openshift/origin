@@ -1,0 +1,99 @@
+---
+defaultChannel: candidate-v1.0
+name: nginx70050
+schema: olm.package
+---
+entries:
+- name: nginx70050.v1.0.1
+name: candidate-v1.0
+package: nginx70050
+schema: olm.channel
+---
+image: quay.io/olmqe/olmtest-operator-bundle:v1.0.1-nginxolm70050
+name: nginx70050.v1.0.1
+package: nginx70050
+properties:
+- type: olm.gvk
+  value:
+    group: cache.example.com
+    kind: Nginxolm70050
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: nginx70050
+    version: 1.0.1
+- type: olm.csv.metadata
+  value:
+    annotations:
+      alm-examples: |-
+        [
+          {
+            "apiVersion": "cache.example.com/v1alpha1",
+            "kind": "Nginxolm70050",
+            "metadata": {
+              "labels": {
+                "app.kubernetes.io/created-by": "nginx70050",
+                "app.kubernetes.io/instance": "nginxolm70050-sample",
+                "app.kubernetes.io/managed-by": "kustomize",
+                "app.kubernetes.io/name": "nginxolm70050",
+                "app.kubernetes.io/part-of": "nginx70050"
+              },
+              "name": "nginxolm70050-sample"
+            },
+            "spec": null
+          }
+        ]
+      capabilities: Basic Install
+      createdAt: "2023-12-15T08:14:59Z"
+      operators.operatorframework.io/builder: operator-sdk-v1.32.0+git
+      operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+    apiServiceDefinitions: {}
+    crdDescriptions:
+      owned:
+      - kind: Nginxolm70050
+        name: nginxolm70050s.cache.example.com
+        version: v1alpha1
+    description: nginxolm70050
+    displayName: nginxolm70050
+    installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+    keywords:
+    - nginxolm70050
+    links:
+    - name: Nginx70050
+      url: https://nginx70050.domain
+    maturity: alpha
+    provider:
+      name: nginxolm70050
+      url: nginxolm70050
+relatedImages:
+- image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.1
+  name: ""
+- image: quay.io/olmqe/olmtest-operator-base:nginxolm70050
+  name: ""
+- image: quay.io/olmqe/olmtest-operator-bundle:v1.0.1-nginxolm70050
+  name: ""
+schema: olm.bundle
+---
+schema: olm.deprecations
+package: nginx70050
+entries:
+  - reference:
+      schema: olm.package
+    message: nginx70050 has been deprecated. Please switch to nginx69986.
+  - reference:
+      schema: olm.channel
+      name: candidate-v1.0
+    message: channel "candidate-v1.0" has been deprecated. Please switch to a different one.
+    message: channel "candidate-v0.0" has been deprecated. Please switch to a different one.
+  - reference:
+      schema: olm.bundle
+      name: nginx70050.v1.0.1
+

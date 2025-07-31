@@ -1,0 +1,45 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: memcached-operator-52814.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Memcached52814 is the Schema for the memcached52814s API
+      displayName: Memcached52814
+      kind: Memcached52814
+      name: memcached52814s.test.disconnected.com
+      version: v1
+  description: kaka
+  displayName: godigest
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - kaka
+  links:
+  - name: Memcached Operator 52814
+    url: https://memcached-operator-52814.domain
+  maturity: alpha
+  provider:
+    name: kaka
+    url: kaka
+  version: 0.0.0

@@ -1,0 +1,30 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.15
+    packages:
+    - name: devworkspace-operator
+      minVersion: "0.31.2"
+    - name: nfd
+      maxVersion: "4.15.0-202402210006"
+    - name: cluster-logging
+      defaultChannel: stable-6.0
+      minVersion: 6.0.1
+      maxVersion: 6.0.2
+    - name: quay-bridge-operator
+      defaultChannel: stable-3.12
+      channels:
+      - name: stable-3.12
+        minVersion: 3.12.5
+    - name: quay-operator
+      defaultChannel: stable-3.12
+      channels:
+      - name: stable-3.12
+        maxVersion: "3.12.1"
+    - name: odf-operator
+      defaultChannel: stable-4.14
+      channels:
+      - name: stable-4.14
+        minVersion: "4.14.10-rhodf"
+        maxVersion: "4.14.10-rhodf"

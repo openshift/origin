@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- kind: OperatorSource
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      opsrc-provider: "${NAMELABEL}"
+  spec:
+    type: appregistry
+    endpoint: "https://quay.io/cnr"
+    registryNamespace: "${REGISTRYNAMESPACE}"
+    displayName: "${DISPLAYNAME}"
+    publisher: "${PUBLISHER}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NAMELABEL
+- name: REGISTRYNAMESPACE
+- name: DISPLAYNAME
+- name: PUBLISHER

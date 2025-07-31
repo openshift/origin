@@ -1,0 +1,88 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: external-log-store-template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: ${NAME}
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ${NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: ${NAME}
+      spec:
+        containers:
+        - image: quay.io/openshifttest/elasticsearch@sha256:234e8ecfb6c1bdafffeb190c4a48e8e3c4b74b69d1b541b913dfbca29e952f63
+          imagePullPolicy: IfNotPresent
+          name: ${NAME}
+          ports:
+          - containerPort: 9300
+            protocol: TCP
+          - containerPort: 9200
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - /usr/share/elasticsearch/add-user.sh
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 10
+          resources:
+            requests:
+              cpu: 1
+              memory: 2Gi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+            name: elasticsearch-config
+            subPath: elasticsearch.yml
+          - mountPath: /usr/share/elasticsearch/add-user.sh
+            name: elasticsearch-config
+            subPath: add-user.sh
+          - mountPath: /usr/share/elasticsearch/config/secret
+            name: certificates
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: ${NAME}
+        serviceAccountName: ${NAME}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: elasticsearch-config
+        - name: certificates
+          secret:
+            defaultMode: 420
+            secretName: ${NAME}
+parameters:
+- name: NAME
+  value: elasticsearch-server
+- name: NAMESPACE
+  value: openshift-logging

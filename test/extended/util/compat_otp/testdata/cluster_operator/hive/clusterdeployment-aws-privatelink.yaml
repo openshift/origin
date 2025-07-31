@@ -1,0 +1,49 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterdeployment-awsprivatelink-temp
+objects:
+  - apiVersion: hive.openshift.io/v1
+    kind: ClusterDeployment
+    metadata:
+      annotations:
+        "hive.openshift.io/fake-cluster": "${FAKE}"
+      creationTimestamp: null
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      baseDomain: "${BASEDOMAIN}"
+      clusterName: "${CLUSTERNAME}"
+      controlPlaneConfig:
+        servingCertificates: {}
+      installed: false
+      manageDNS: "${{MANAGEDNS}}"
+      platform:
+        aws:
+          credentialsSecretRef:
+            name: "${CREDREF}"
+          region: "${REGION}"
+          privateLink:
+            enabled: true
+      provisioning:
+        imageSetRef:
+          name: "${IMAGESETREF}"
+        installConfigSecretRef:
+          name: "${INSTALLCONFIGSECRET}"
+      pullSecretRef:
+        name: "${PULLSECRETREF}"
+      installAttemptsLimit: ${{INSTALLATTEMPTSLIMIT}}
+parameters:
+  - name: FAKE
+  - name: NAME
+  - name: NAMESPACE
+  - name: BASEDOMAIN
+  - name: MANAGEDNS
+  - name: CLUSTERNAME
+  - name: CREDREF
+  - name: REGION
+  - name: IMAGESETREF
+  - name: INSTALLCONFIGSECRET
+  - name: PULLSECRETREF
+  - name: INSTALLATTEMPTSLIMIT
+    value: "3"

@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- kind: Subscription
+  apiVersion: operators.coreos.com/v1alpha1
+  metadata:
+    name: "${SUBSCRIPTIONNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    name: "${OPERATORNAME}"
+    channel: stable
+    source: "${CATALOGSOURCE}"
+    sourceNamespace: openshift-marketplace
+parameters:
+- name: OPERATORNAME
+- name: SUBSCRIPTIONNAME
+- name: NAMESPACE
+- name: CATALOGSOURCE

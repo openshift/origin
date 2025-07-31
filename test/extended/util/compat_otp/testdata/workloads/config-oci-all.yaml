@@ -1,0 +1,17 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+mirror:
+  additionalImages:
+   - name: quay.io/openshifttest/bench-army-knife@sha256:078db36d45ce0ece589e58e8de97ac1188695ac155bc668345558a8dd77059f6
+  platform:
+    channels:
+    - name: stable-4.12
+      type: ocp
+    graph: true
+  operators:
+    - catalog: oci:///tmp/case60594/redhat-operator-index
+      packages:
+        - name: node-healthcheck-operator
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.12
+      packages:
+      - name: cluster-kube-descheduler-operator

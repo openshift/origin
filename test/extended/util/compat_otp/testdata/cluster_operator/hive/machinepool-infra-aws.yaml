@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinepool-infra-aws-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: MachinePool
+  metadata:
+    creationTimestamp: null
+    name: "${CLUSTERNAME}-infra"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRef:
+      name: ${CLUSTERNAME}
+    labels: 
+      node-role.kubernetes.io: infra
+      node-role.kubernetes.io/infra: ""
+    name: infra
+    platform:
+      aws:
+        metadataService:
+          authentication: ${AUTHENTICATION}
+        rootVolume:
+          iops: ${{IOPS}}
+          size: 22
+          type: gp2
+        type: m4.xlarge
+        userTags:
+          hive-qe-tag3: hive-qe-value3
+          hive-qe-customizedtag: "${CUSTOMIZEDTAG}"
+    replicas: 1
+    taints: 
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/infra
+  status: {}
+parameters:
+- name: CLUSTERNAME
+- name: NAMESPACE
+- name: IOPS
+  value: "100"
+- name: AUTHENTICATION
+- name: CUSTOMIZEDTAG

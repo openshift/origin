@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    monitoringPlugin:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+      resources:
+        requests:
+          cpu: 15m
+          memory: 60Mi
+        limits:
+          cpu: 30m
+          memory: 120Mi
+      tolerations:
+        - operator: "Exists"

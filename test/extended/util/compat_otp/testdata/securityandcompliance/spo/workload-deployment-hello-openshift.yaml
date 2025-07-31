@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-workload-deployment-template
+objects:
+- apiVersion: apps/v1
+  kind: "${WORKLOADKIND}"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    template:
+      metadata:
+        labels:
+          "${LABELKEY}": "${LABELVALUE}"
+      spec:
+        serviceAccountName: "${SANAME}"
+        containers:
+        - name: openshift
+          image: quay.io/openshifttest/hello-openshift:multiarch
+          ports:
+          - containerPort: 80
+
+parameters:
+- name: WORKLOADKIND
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+- name: SANAME

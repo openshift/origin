@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cudn-crd-layer2-singlestack-template
+objects:
+  - apiVersion: k8s.ovn.org/v1
+    kind: ClusterUserDefinedNetwork
+    metadata:
+      name: "${CRDNAME}"
+    spec:
+      namespaceSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+      network:
+        topology: Layer2
+        layer2:
+          role: "${ROLE}"
+          mtu: ${{MTU}}
+          subnets: ["${CIDR}"]
+parameters:
+- name: CRDNAME
+- name: LABELVALUE
+- name: LABELKEY
+- name: CIDR
+- name: MTU
+- name: ROLE
+

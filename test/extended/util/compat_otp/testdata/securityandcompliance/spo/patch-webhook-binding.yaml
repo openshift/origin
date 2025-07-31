@@ -1,0 +1,10 @@
+spec:
+  webhookOptions:
+    - name: binding.spo.io
+      failurePolicy: Ignore
+      namespaceSelector:
+        matchExpressions:
+          - key: spo.x-k8s.io/bind-here
+            operator: In
+            values:
+              - "true"

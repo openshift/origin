@@ -1,0 +1,50 @@
+apiVersion: machine.openshift.io/v1beta1
+kind: MachineSet
+metadata:
+  labels:
+    machine.openshift.io/cluster-api-cluster: <infrastructureID>
+  name: <name>
+  namespace: openshift-machine-api
+spec:
+  deletePolicy: Newest
+  replicas: 1
+  selector:
+    matchLabels:
+      machine.openshift.io/cluster-api-cluster: <infrastructureID>
+      machine.openshift.io/cluster-api-machineset: <name>
+  template:
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: <infrastructureID>
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+        machine.openshift.io/cluster-api-machineset: <name>
+    spec:
+      metadata:
+        labels:
+          node-role.kubernetes.io/worker: ""
+          type: byoh-node
+      providerSpec:
+        value:
+          apiVersion: vsphereprovider.openshift.io/v1beta1
+          credentialsSecret:
+            name: vsphere-cloud-credentials
+          diskGiB: 128
+          kind: VSphereMachineProviderSpec
+          memoryMiB: 16384
+          metadata:
+            creationTimestamp: null
+          network:
+            devices:
+            - networkName: devqe-segment-221
+          numCPUs: 4
+          numCoresPerSocket: 1
+          snapshot: ""
+          template: <template>
+          userDataSecret:
+            name: windows-user-data
+          workspace:
+            datacenter: DEVQEdatacenter
+            datastore: /DEVQEdatacenter/datastore/vsanDatastore
+            folder: /DEVQEdatacenter/vm/<infrastructureID>
+            server: vcenter.devqe.ibmc.devcluster.openshift.com

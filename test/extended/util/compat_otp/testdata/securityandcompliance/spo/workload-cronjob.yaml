@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-workload-cronjob-template
+objects:
+- apiVersion: batch/v1
+  kind: "${WORKLOADKIND}"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    schedule: "*/3 * * * *"
+    jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              "${LABELKEY}": "${LABELVALUE}"
+          spec:
+            restartPolicy: Never
+            serviceAccount: "${SANAME}"
+            containers:
+            - name: nginx
+              image: quay.io/openshifttest/nginx-unprivileged:1.27.5
+              ports:
+              - containerPort: 8080
+            - name: redis
+              image: quay.io/openshifttest/redis:6.2.18
+              ports:
+              - containerPort: 6379
+
+parameters:
+- name: WORKLOADKIND
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+- name: SANAME

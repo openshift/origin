@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: apply-route-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      routes:
+        config:
+        - destination: "${DESTADDR}"
+          metric: 150
+          next-hop-address: "${NEXTHOPADDR}"
+          next-hop-interface: "${IFACENAME}"
+          table-id: "${{ID}}"
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESTADDR
+- name: NEXTHOPADDR
+- name: ID
+

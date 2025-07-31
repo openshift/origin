@@ -1,0 +1,11 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+storageConfig:
+  registry:
+    imageURL: registryroute/metadatanew:latest
+    skipTLS: true
+mirror:
+  operators:
+  - catalog: oci:///tmp/case60601/redhat-operator-index
+    packages:
+    - name: elasticsearch-operator

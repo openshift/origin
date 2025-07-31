@@ -1,0 +1,64 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ${DEPLOY_NAME}
+      labels:
+        name: ${DEPLOY_NAME}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          name: ${DEPLOY_NAME}
+      template:
+        metadata:
+          labels:
+            name: ${DEPLOY_NAME}
+        spec:
+          containers:
+          - image: quay.io/openshifttest/nginx-alpine@sha256:cee6930776b92dc1e93b73f9e5965925d49cff3d2e91e1d071c2f0ff72cbca29
+            name: nginx
+            ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 8443
+              name: https
+              protocol: TCP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        name: ${SVC_SECURE_NAME}
+      name: ${SVC_SECURE_NAME}
+    spec:
+      ports:
+      - name: https
+        port: 27443
+        protocol: TCP
+        targetPort: 8443
+      selector:
+        name: ${DEPLOY_NAME}
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        name: ${SVC_UNSECURE_NAME}
+      name: ${SVC_UNSECURE_NAME}
+    spec:
+      ports:
+      - name: http
+        port: 27017
+        protocol: TCP
+        targetPort: 8080
+      selector:
+        name: ${DEPLOY_NAME}
+parameters:
+- name: DEPLOY_NAME
+  value: web-server-deploy
+- name: SVC_SECURE_NAME
+  value: service-secure
+- name: SVC_UNSECURE_NAME
+  value: service-unsecure

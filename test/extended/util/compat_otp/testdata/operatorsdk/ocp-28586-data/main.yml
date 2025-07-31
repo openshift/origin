@@ -1,0 +1,12 @@
+---
+- name: Create ConfigMap
+  k8s:
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: test-this-collection
+        namespace: "{{ meta.namespaces }}"
+      data:
+        did_it_work: "indeed"
+    state: present

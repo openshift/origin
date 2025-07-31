@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+data:
+  config.yaml: |-
+    prometheus:
+      logLevel: warn
+      queryLogFile: /tmp/uwm_query.log
+      enforcedTargetLimit: 1
+      externalLabels:
+        labelmy: test
+      retentionSize: 5GiB
+      retention: 15d
+      additionalAlertmanagerConfigs:
+      - scheme: http
+        pathPrefix: /
+        timeout: 30s
+        apiVersion: v2
+        staticConfigs:
+        - alertmanager-operated.openshift-user-workload-monitoring.svc:9093
+      remoteWrite:
+      - url: "https://test.remotewrite.com/api/write"
+        sendExemplars: true
+    thanosRuler:
+      retention: 15d
+      additionalAlertmanagerConfigs:
+      - scheme: http
+        pathPrefix: /
+        timeout: 30s
+        apiVersion: v2
+        staticConfigs:
+        - alertmanager-operated.openshift-user-workload-monitoring.svc:9093
+    namespacesWithoutLabelEnforcement: [ns-monitoring-75384]
+

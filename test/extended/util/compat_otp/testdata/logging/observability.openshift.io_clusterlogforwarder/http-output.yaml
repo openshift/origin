@@ -1,0 +1,72 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    outputs:
+    - http:
+        headers:
+          h1: v1
+          h2: v2
+        method: POST
+        timeout:
+        tuning: ${{TUNING}}
+        url: ${URL}/logs/app
+      name: httpout-app
+      type: http
+    - http:
+        headers:
+          h1: v1
+          h2: v2
+        method: POST
+        timeout:
+        tuning: ${{TUNING}}
+        url: ${URL}/logs/infra
+      name: httpout-infra
+      type: http
+    - http:
+        headers:
+          h1: v1
+          h2: v2
+        method: POST
+        timeout:
+        tuning: ${{TUNING}}
+        url: ${URL}/logs/audit
+      name: httpout-audit
+      type: http
+    pipelines:
+    - inputRefs:
+      - application
+      name: app-logs
+      outputRefs:
+      - httpout-app
+    - inputRefs:
+      - infrastructure
+      name: infra-logs
+      outputRefs:
+      - httpout-infra
+    - inputRefs:
+      - audit
+      name: audit-logs
+      outputRefs:
+      - httpout-audit
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: instance
+- name: NAMESPACE
+  value: openshift-logging
+- name: URL
+  value: http://fluentdserver.openshift-logging.svc:24224
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: TUNING
+  value: "{}"

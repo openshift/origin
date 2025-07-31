@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ingressController-template
+objects:
+  - apiVersion: operator.openshift.io/v1
+    kind: IngressController
+    metadata:
+      name: ${NAME}
+      namespace: openshift-ingress-operator
+    spec:
+      domain: ${NAME}.test-cluster.com
+      endpointPublishingStrategy:
+        loadBalancer:
+          scope: Internal
+        type: LoadBalancerService
+      namespaceSelector:
+        matchLabels:
+          type: ${NAME}ManagementPolicy
+      nodePlacement:
+        nodeSelector:
+          matchLabels:
+            "node-role.kubernetes.io/infra": "" 
+      routeSelector:
+        matchLabels:
+          type: ${NAME}
+parameters:
+- name: NAME
+

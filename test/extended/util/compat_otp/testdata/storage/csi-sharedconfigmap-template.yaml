@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: csi-sharedconfigmap-template
+objects:
+- kind: SharedConfigMap
+  apiVersion: sharedresource.openshift.io/v1alpha1
+  metadata:
+    name: ${NAME}
+  spec:
+    configMapRef:
+      name: ${REF_CM_NAME}
+      namespace: ${REF_CM_NAMESPACE}
+parameters:
+- name: NAME
+- name: REF_CM_NAME
+- name: REF_CM_NAMESPACE

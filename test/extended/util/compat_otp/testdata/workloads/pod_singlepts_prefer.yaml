@@ -1,0 +1,49 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-affinity-preferred-sigle-pts-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      "${LABELKEY}": "${LABELVALUE}"
+  spec:
+    topologySpreadConstraints:
+    - maxSkew: ${{SKEWNUM}}
+      topologyKey: "${PTSKEYNAME}"
+      whenUnsatisfiable: "${PTSPOLICY}"
+      labelSelector:
+        matchLabels:
+          "${LABELKEY}": "${LABELVALUE}"
+    affinity:
+      "${AFFINITYMETHOD}":
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: ${{WEIGHTNUM}}
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: "${KEYNAME}"
+                operator: "${OPERATORNAME}"
+                values:
+                - "${VALUENAME}"
+            topologyKey: kubernetes.io/hostname
+    containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+      name: hello-pod
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+- name: SKEWNUM
+- name: PTSKEYNAME
+- name: PTSPOLICY
+- name: AFFINITYMETHOD
+- name: WEIGHTNUM
+- name: KEYNAME
+- name: VALUENAME
+- name: OPERATORNAME
+

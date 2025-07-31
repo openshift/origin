@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: external-lb-57089
+  spec:
+    ports:
+    - name: https
+      port: 28443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      name: web-server-rc
+    type: LoadBalancer
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: internal-lb-57089
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  spec:
+    ports:
+    - name: https
+      port: 29443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      name: web-server-rc
+    type: LoadBalancer

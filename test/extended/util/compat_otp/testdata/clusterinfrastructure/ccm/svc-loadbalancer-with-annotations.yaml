@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: svc-loadbalancer
+objects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        name: ${NAME}
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-subnets: ${AWSSUBNET}
+        service.beta.kubernetes.io/aws-load-balancer-target-node-labels: ${AWSLABEL}
+        cloud.google.com/load-balancer-type: ${GCPTYPE}
+        service.beta.kubernetes.io/azure-load-balancer-internal: ${AZUREINTERNAL}
+        service.beta.kubernetes.io/azure-load-balancer-internal-subnet: ${AZURESUBNET}
+    spec:
+      ports:
+      - name: http
+        port: 80
+        protocol: TCP
+        targetPort: 8080
+      selector:
+        name: ${NAME}
+      type: LoadBalancer
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: AWSSUBNET
+- name: AWSLABEL
+- name: GCPTYPE
+- name: AZUREINTERNAL
+- name: AZURESUBNET
+

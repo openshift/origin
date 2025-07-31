@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cronjob56176
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: "Replace" 
+  startingDeadlineSeconds: 200
+  suspend: true
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            parent: "cronjobpi"
+        spec:
+          containers:
+          - name: pi
+            image: quay.io/openshifttest/mysql@sha256:0c76fd1a2eb31b0a196c7c557e4e56a11a6a8b26d745289e75fc983602035ba5
+            command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+          restartPolicy: OnFailure 

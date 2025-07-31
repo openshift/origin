@@ -1,0 +1,62 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bond-vlan-policy-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+      - name: "${PORT1}"
+        type: "${PORT1TYPE}"
+        state: "${STATE}"
+      - name: "${PORT2}"
+        type: "${PORT2TYPE}"
+        state: "${STATE}"
+      - name: "${BONDNAME}"
+        description: "${DESCR}"
+        type: bond
+        state: "${STATE}"
+        link-aggregation:
+          mode: active-backup
+          port:
+          - "${PORT1}"
+          - "${PORT2}"
+      - name: "${VLANIFNAME}"
+        state: up
+        type: vlan
+        vlan:
+          base-iface: "${BONDNAME}"
+          id: "${{VLANID}}"
+        ipv4:
+          address:
+          - ip: "${IPADDRV4}"
+            prefix-length: 24
+          enabled: true
+        ipv6:
+          address:
+          - ip: "${IPADDRV6}"
+            prefix-length: 96
+          enabled: true
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: BONDNAME
+- name: DESCR
+- name: STATE
+- name: PORT1
+- name: PORT1TYPE
+- name: PORT2
+- name: PORT2TYPE
+- name: VLANIFNAME
+- name: VLANID
+- name: IPADDRV4
+- name: IPADDRV6

@@ -1,0 +1,55 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: iscsi-server-deploy-template
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: ${DNAME}
+    namespace: ${DNAMESPACE}
+  spec:
+    replicas: ${{REPLICASNUM}}
+    selector:
+      matchLabels:
+        app: ${DLABEL}
+    template:
+      metadata:
+        labels:
+          app: ${DLABEL}
+      spec:
+        tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+        nodeSelector:
+          node-role.kubernetes.io/master: ''
+        containers:
+        - name: ${DNAME}
+          image: quay.io/openshifttest/iscsi@sha256:d941ccc221e05d765dfa1088200746f816075e525096aa8aef197b64c9ce497b
+          readinessProbe:
+            exec:
+              command:
+              - targetcli
+              - ls
+              - '/iscsi/iqn.2016-04.test.com:storage.target00/tpg1'
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+          securityContext:
+            privileged: true
+          ${VOLUMETYPE}:
+          - name: local
+            ${TYPEPATH}: ${MPATH}
+        volumes:
+        - name: local
+          hostPath:
+            path: ${MPATH}
+
+parameters:
+- name: DNAME
+- name: DNAMESPACE
+- name: REPLICASNUM
+- name: DLABEL
+- name: MPATH
+- name: VOLUMETYPE
+- name: TYPEPATH

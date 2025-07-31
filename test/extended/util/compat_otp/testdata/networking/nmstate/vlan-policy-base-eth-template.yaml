@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: vlan-policy-base-eth-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+      - name: "${IFACENAME}"
+        description: "${DESCR}"
+        type: vlan
+        state: "${STATE}"
+        vlan:
+          base-iface: "${BASEIFACE}"
+          id: "${{VLANID}}"
+        ipv4:
+          address:
+          - ip: "${IPADDRV4}"
+            prefix-length: 24
+          enabled: true
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESCR
+- name: STATE
+- name: BASEIFACE
+- name: VLANID
+- name: IPADDRV4
+

@@ -1,0 +1,81 @@
+---
+defaultChannel: alpha
+name: nginx-operator
+schema: olm.package
+---
+entries:
+- name: nginx-operator.v0.0.1
+name: channel-v0
+package: nginx-operator
+schema: olm.channel
+---
+entries:
+- name: nginx-operator.v0.0.1
+name: alpha
+package: nginx-operator
+schema: olm.channel
+---
+image: quay.io/olmqe/nginxolm-operator-bundle:v0.0.1-multi
+name: nginx-operator.v0.0.1
+package: nginx-operator
+properties:
+- type: olm.gvk
+  value:
+    group: olm.example.com
+    kind: NginxOLM
+    version: v1alpha1
+- type: olm.package
+  value:
+    packageName: nginx-operator
+    version: 0.0.1
+- type: olm.csv.metadata
+  value:
+    annotations:
+      alm-examples: |-
+        [
+          {
+            "apiVersion": "olm.example.com/v1alpha1",
+            "kind": "NginxOLM",
+            "metadata": {
+              "name": "nginxolm-sample"
+            },
+            "spec": null
+          }
+        ]
+      capabilities: Basic Install
+      createdAt: "2023-07-12T02:49:33Z"
+      operators.operatorframework.io/builder: operator-sdk-v1.30.0
+      operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+    apiServiceDefinitions: {}
+    crdDescriptions:
+      owned:
+      - kind: NginxOLM
+        name: nginxolms.olm.example.com
+        version: v1alpha1
+    description: nginxolm
+    displayName: nginxolm
+    installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+    keywords:
+    - nginxolm
+    links:
+    - name: Nginx Operator
+      url: https://nginx-operator.domain
+    maturity: alpha
+    provider:
+      name: redhat
+relatedImages:
+- image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+  name: ""
+- image: quay.io/olmqe/nginxolm-operator-base:multi-arch
+  name: ""
+- image: quay.io/olmqe/nginxolm-operator-bundle:v0.0.1-multi
+  name: ""
+schema: olm.bundle

@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-syn-flood-alert-template
+objects:
+- apiVersion: monitoring.openshift.io/v1
+  kind: AlertingRule
+  metadata:
+    name: netobserv-syn-alerts
+    namespace: ${Namespace}
+  spec:
+    groups:
+    - name: NetObservSYNAlerts
+      rules:
+      - alert: NetObserv-SYNFlood-in
+        annotations:
+          message: |-
+            {{ $labels.job }}: incoming SYN-flood attack suspected to Host={{ $labels.DstK8S_HostName}}, Namespace={{ $labels.DstK8S_Namespace }}, Resource={{ $labels.DstK8S_Name }}. This is characterized by a high volume of SYN-only flows with different source IPs and/or ports.
+          summary: "Incoming SYN-flood"
+        expr: sum(rate(netobserv_flows_with_flags_per_destination_total{Flags="[SYN]"}[2m])) by (job, DstK8S_HostName, DstK8S_Namespace, DstK8S_Name) > 0.9
+        for: 15s
+        labels:
+          severity: warning
+          app: netobserv
+      - alert: NetObserv-SYNFlood-out
+        annotations:
+          message: |-
+            {{ $labels.job }}: outgoing SYN-flood attack suspected from Host={{ $labels.SrcK8S_HostName}}, Namespace={{ $labels.SrcK8S_Namespace }}, Resource={{ $labels.SrcK8S_Name }}. This is characterized by a high volume of SYN-only flows with different source IPs and/or ports.
+          summary: "Outgoing SYN-flood"
+        expr: sum(rate(netobserv_flows_with_flags_per_source_total{Flags="[SYN]"}[2m])) by (job, SrcK8S_HostName, SrcK8S_Namespace, SrcK8S_Name) > 0.9
+        for: 15s
+        labels:
+          severity: warning
+          app: netobserv
+parameters:
+- name: Namespace
+  value: openshift-monitoring

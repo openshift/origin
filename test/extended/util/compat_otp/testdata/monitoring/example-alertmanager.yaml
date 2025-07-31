@@ -1,0 +1,8 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  annotations:
+    operator.prometheus.io/controller-id: openshift-user-workload-monitoring/prometheus-operator
+  name: test-alertmanager
+spec:
+  replicas: 1

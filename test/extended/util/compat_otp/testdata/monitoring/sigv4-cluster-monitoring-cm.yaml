@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    enableUserWorkload: true
+    prometheusK8s:
+      remoteWrite:
+      - url: "https://authorization.remotewrite.com/api/write"
+        sigv4:
+          region: us-central1
+          accessKey:
+            name: sigv4-credentials
+            key: access
+          secretKey:
+            name: sigv4-credentials
+            key: secret
+          profile: "SomeProfile"
+          roleArn: "SomeRoleArn"

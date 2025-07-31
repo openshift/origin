@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: system-reserve-es-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+      #aro.openshift.io/limits: ""
+    kubeletConfig:
+       runtimeRequestTimeout: 3m0s
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE
+

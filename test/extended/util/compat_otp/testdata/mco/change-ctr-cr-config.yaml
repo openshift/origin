@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: container-runtime-config
+objects:
+  - kind: ContainerRuntimeConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      name: "${NAME}"
+    spec:
+      machineConfigPoolSelector:
+        matchLabels:
+          pools.operator.machineconfiguration.openshift.io/${POOL}: ''
+      containerRuntimeConfig:
+        pidsLimit: 2048
+        logLevel: debug
+        overlaySize: 8G
+        logSizeMax: "-1"
+        defaultRuntime: runc
+parameters:
+  - name: NAME
+  - name: POOL
+    value: worker

@@ -1,0 +1,12 @@
+apiVersion: monitoring.openshift.io/v1
+kind: AlertRelabelConfig
+metadata:
+  name: monitoring-watchdog
+  namespace: openshift-monitoring
+spec:
+  configs:
+  - sourceLabels: [alertname,severity]
+    regex: "Watchdog;none"
+    targetLabel: severity
+    replacement: critical
+    action: Replace

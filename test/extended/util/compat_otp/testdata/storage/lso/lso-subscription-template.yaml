@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: lso-subscription-template
+objects:
+# Subscription
+- kind: Subscription
+  apiVersion: operators.coreos.com/v1alpha1
+  metadata:
+    name: ${SUBNAME}
+    namespace: ${NAMESPACE}
+  spec:
+    channel: ${CHANNEL}
+    installPlanApproval: Automatic
+    name: local-storage-operator
+    # qe source: "qe-app-registry" product source: "redhat-operators"
+    source: ${SOURCE}
+    sourceNamespace: openshift-marketplace
+# OperatorGroup
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: local-operator-group
+    #generateName: local-storage-
+    namespace: ${NAMESPACE}
+    labels:
+      og_label: local-storage
+  spec:
+    targetNamespaces:
+    - ${NAMESPACE}
+parameters:
+- name: SUBNAME
+- name: NAMESPACE
+- name: CHANNEL
+- name: SOURCE

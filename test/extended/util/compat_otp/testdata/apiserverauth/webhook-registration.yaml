@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: crdwebhooktemplate
+objects:
+- apiVersion: admissionregistration.k8s.io/v1
+  kind: ValidatingWebhookConfiguration
+  metadata:
+    name: "${NAME}"
+  webhooks:
+  - name: "${NAME}"
+    failurePolicy: Fail
+    rules:
+    - apiGroups: ["*"]
+      apiVersions: ["v1"]
+      operations: ["UPDATE"]
+      resources: ["nodes"]
+    clientConfig:
+      service:
+        namespace: "${NAMESPACE}"
+        name: validationwebhook
+        path: "/"
+      caBundle: "${CABUNDLE}"
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CABUNDLE
+  description: "The CA bundle to use for the webhook"

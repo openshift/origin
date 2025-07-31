@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: basic-bd-image-template
+objects:
+- apiVersion: core.rukpak.io/v1alpha2
+  kind: BundleDeployment
+  metadata:
+    name: "${NAME}"
+  spec:
+    installNamespace: "${NAMESPACE}"
+    provisionerClassName: "core-rukpak-io-plain"
+    source:
+      image:
+        ref: "${ADDRESS}"
+      type: image
+parameters:
+- name: NAME
+- name: ADDRESS
+- name: NAMESPACE

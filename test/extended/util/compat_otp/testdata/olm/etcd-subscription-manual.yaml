@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    channel: "${CHANNEL}"
+    installPlanApproval: "${APPROVAL}"
+    name: etcd
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+    startingCSV: "${STARTINGCSV}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SOURCENAME
+- name: SOURCENAMESPACE
+- name: CHANNEL
+  value: "singlenamespace-alpha"
+- name: STARTINGCSV
+  value: "etcdoperator.v0.9.4"
+- name: APPROVAL
+  value: "Manual"

@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flowlogs-pipeline
+  labels:
+    app: flowlogs-pipeline
+  namespace: ipfix
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flowlogs-pipeline
+  template:
+    metadata:
+      labels:
+        app: flowlogs-pipeline
+    spec:
+      containers:
+        - name: flowlogs-pipeline
+          image: quay.io/netobserv/flowlogs-pipeline:main
+          args:
+          - "--config=/etc/flowlogs-pipeline/config.yaml"
+          ports:
+            - containerPort: 2055
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: configuration
+              mountPath: "/etc/flowlogs-pipeline/"
+      volumes:
+        - name: configuration
+          configMap:
+            name: flp-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flowlogs-pipeline
+  labels:
+    app: flowlogs-pipeline
+  namespace: ipfix
+spec:
+  ports:
+    - port: 2055
+      targetPort: 2055
+      protocol: UDP
+      name: ipfix
+  selector:
+    app: flowlogs-pipeline
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flp-config
+  namespace: ipfix
+data:
+  config.yaml: |
+    log-level: info
+    pipeline:
+      - name: ingest
+      - name: write
+        follows: ingest
+    parameters:
+      - name: ingest
+        ingest:
+          type: collector
+          collector:
+            hostName: 0.0.0.0
+            port: 2055
+      - name: write
+        write:
+          type: stdout

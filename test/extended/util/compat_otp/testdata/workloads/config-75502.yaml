@@ -1,0 +1,10 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+archiveSize: 4
+mirror:
+  operators:
+  - catalog: icr.io/cpopen/ibm-operator-catalog:v1.22
+    packages:
+    - name: ibm-ftm-operator
+      channels:
+      - name: v4.4

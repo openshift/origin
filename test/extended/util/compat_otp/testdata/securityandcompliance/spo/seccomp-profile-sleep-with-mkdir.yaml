@@ -1,0 +1,73 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: seccomp-profile-sleep-template
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1beta1
+  kind: SeccompProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    defaultAction: SCMP_ACT_ERRNO
+    architectures:
+    - SCMP_ARCH_X86_64
+    syscalls:
+    - action: SCMP_ACT_ALLOW
+      names:
+      - arch_prctl
+      - brk
+      - capget
+      - capset
+      - chdir
+      - clone
+      - close
+      - dup3
+      - epoll_ctl
+      - epoll_pwait
+      - execve
+      - exit_group
+      - fchdir
+      - fchown
+      - fcntl
+      - fstat
+      - fstatfs
+      - futex
+      - getcwd
+      - getdents64
+      - getpid
+      - getppid
+      - getuid
+      - ioctl
+      - lseek
+      - mmap
+      - mount
+      - mprotect
+      - nanosleep
+      - newfstatat
+      - open
+      - openat
+      - pivot_root
+      - prctl
+      - read
+      - rt_sigaction
+      - rt_sigprocmask
+      - rt_sigreturn
+      - set_tid_address
+      - setgid
+      - setgroups
+      - sethostname
+      - setuid
+      - stat
+      - statfs
+      - tgkill
+      - time
+      - umask
+      - umount2
+      - wait4
+      - mkdir
+      - write
+
+parameters:
+- name: NAME
+- name: NAMESPACE

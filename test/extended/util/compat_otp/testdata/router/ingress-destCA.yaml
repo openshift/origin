@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: ${NAME}
+    annotations:
+      route.openshift.io/destination-ca-certificate-secret: service-secret
+      route.openshift.io/termination: reencrypt
+  namespace: ${NAMESPACE}
+  spec:
+    rules:
+    - host: ${SERVICE_NAME}-${NAMESPACE}.${DOMAIN}
+      http:
+        paths:
+        - backend:
+            service:
+              name: ${SERVICE_NAME}
+              port:
+                number: 27443
+          path: "/"
+          pathType: Prefix
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: DOMAIN
+- name: SERVICE_NAME

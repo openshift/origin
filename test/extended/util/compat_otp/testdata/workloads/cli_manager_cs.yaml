@@ -1,0 +1,18 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: custom-cli-app-registry
+  namespace: openshift-marketplace
+spec:
+  displayName: Production Operators
+  grpcPodConfig:
+    extractContent:
+      cacheDir: /tmp/cache
+      catalogDir: /configs
+    memoryTarget: 30Mi
+  publisher: OpenShift QE
+  sourceType: grpc
+  updateStrategy:
+    registryPoll:
+      interval: 15m
+  image: registry-proxy.engineering.redhat.com/rh-osbs/iib@sha256:bd6382120df0d655b63a5240f4d0ed5df75ba8e53af15560c401f8b8e76d5e1c

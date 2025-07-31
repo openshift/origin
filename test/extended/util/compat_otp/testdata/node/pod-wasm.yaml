@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-wasm-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: http-server
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: http-server
+      image: quay.io/crio/example-wasm-http:latest
+      command: ["/http_server.wasm"]
+      ports:
+        - containerPort: 1234
+          protocol: TCP
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+      livenessProbe:
+        tcpSocket:
+          port: 1234
+        initialDelaySeconds: 3
+        periodSeconds: 30
+parameters:
+- name: NAME
+- name: NAMESPACE

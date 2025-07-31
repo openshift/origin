@@ -1,0 +1,47 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: lokiStack-template
+objects:
+- kind: "LokiStack"
+  apiVersion: "loki.grafana.com/v1"
+  metadata:
+    name: ${Name}
+    namespace: ${Namespace}
+  spec:
+    managementState: "Managed"
+    size: ${TSize}
+    storage:
+      secret:
+        name: ${StorageSecret}
+        type: ${StorageType}
+      schemas:
+      - version: ${StorageSchemaVersion}
+        effectiveDate: ${SchemaEffectiveDate}
+    storageClassName: ${StorageClass}
+    hashRing:
+      memberlist:
+        enableIPv6: "${{EnableIPV6}}"
+    tenants:
+      mode: ${Tenant}
+parameters:
+- name: Name
+  value: "lokistack"
+- name: Namespace
+  value: "netobserv"
+- name: TSize
+  value: "1x.extra-small"
+- name: StorageSecret
+  value: "s3-secret"
+- name: StorageType
+  value: "s3"
+- name: StorageClass
+  value: "gp3-csi"
+- name: Tenant
+  value: openshift-network
+- name: EnableIPV6
+  value: "false"
+- name: StorageSchemaVersion
+  value: "v13"
+- name: SchemaEffectiveDate
+  value: "2023-10-15"

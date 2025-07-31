@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: window-test-service-template
+objects:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${SERVICENAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: win-service
+  spec:
+    internalTrafficPolicy: "${internalTrafficPolicy}"
+    externalTrafficPolicy: "${externalTrafficPolicy}"
+    ipFamilyPolicy: "${ipFamilyPolicy}" 
+    ports:
+    - name: http
+      port: 27017
+      protocol: "${PROTOCOL}"
+      targetPort: 80
+    selector:
+      app: "${SELECTOR}"
+    type: "${serviceType}"
+parameters:
+- name: SERVICENAME
+- name: NAMESPACE
+- name: internalTrafficPolicy
+- name: externalTrafficPolicy
+- name: ipFamilyPolicy
+- name: PROTOCOL
+- name: SELECTOR
+- name: serviceType
+- name: PORT

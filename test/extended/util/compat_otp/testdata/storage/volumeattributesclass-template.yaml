@@ -1,0 +1,15 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: volumeattributesclass-template
+objects:
+  # VolumeAttributesClass
+- kind: VolumeAttributesClass
+  apiVersion: storage.k8s.io/v1beta1
+  metadata:
+    name: "${VACNAME}"
+  driverName: ${DRIVERNAME} # default: ebs.csi.aws.com
+  parameters: {}
+parameters:
+- name: VACNAME
+- name: DRIVERNAME

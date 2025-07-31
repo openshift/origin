@@ -1,0 +1,21 @@
+apiVersion: kiali.io/v1alpha1
+kind: Kiali
+metadata:
+  name: kiali-27301
+  namespace: openshift-operators
+spec:
+  installation_tag: My Kiali
+  istio_namespace: istio-system
+  deployment:
+    namespace: istio-system
+    verbose_mode: "4"
+    view_only_mode: false
+  external_services:
+    grafana:
+      url: ""
+    prometheus:
+      url: ""
+    tracing:
+      url: ""
+  server:
+    web_root: /mykiali

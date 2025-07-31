@@ -1,0 +1,61 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: build-template
+objects:
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: "${OUTNAME}"
+    name: "${OUTNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${OUTNAME}:latest"
+    source:
+      dockerfile: |-
+        FROM ruby
+        RUN mkdir -p /opt/app-root/test-links
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby:latest
+          namespace: openshift
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      build: "${NAME}"
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: "${OUTNAME}:latest"
+        paths:
+        - destinationDir: injected/opt/app-root/test-links
+          sourcePath: /opt/app-root/test-links/.
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: ruby:3.0-ubi8
+          namespace: openshift
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: "${OUTNAME}"
+    namespace: "${NAMESPACE}"
+  spec: {}
+parameters:
+  - name: OUTNAME
+  - name: NAME
+  - name: NAMESPACE

@@ -1,0 +1,66 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    collector: ${{COLLECTOR}}
+    managementState: ${MANAGEMENT_STATE}
+    outputs:
+    - name: es-created-by-user
+      type: elasticsearch
+      elasticsearch:
+        index: ${INDEX}
+        tuning: ${{TUNING}}
+        url: ${ES_URL}
+        version: ${{ES_VERSION}}
+      tls:
+        ca:
+          configMapName:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME} #configmap or secret
+        certificate:
+          configMapName:
+          key: tls.crt
+          secretName: ${SECRET_NAME} #configmap or secret
+        insecureSkipVerify: ${{INSECURE_SKIP_VERIFY}}
+        key:
+          key: tls.key
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - name: forward-to-external-es
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - es-created-by-user
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: ES_URL
+  value: "https://elasticsearch-server.es-aosqe-qa.svc:9200"
+- name: SECRET_NAME
+  value: "pipelinesecret"
+- name: ES_VERSION
+  value: "6"
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: COLLECTOR
+  value: "{}"
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: TUNING
+  value: "{}"
+- name: INDEX
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: INSECURE_SKIP_VERIFY
+  value: "false"

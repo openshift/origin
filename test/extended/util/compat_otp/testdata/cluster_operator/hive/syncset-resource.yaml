@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: syncset-resource-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: SyncSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRefs:
+    - name: "${CDREFNAME}"
+    resourceApplyMode: "${RAMODE}"
+    applyBehavior: "${APPLYBEHAVIOR}"
+    resources:
+    - kind: Namespace
+      apiVersion: v1
+      metadata:
+        name: "${NAMESPACE2}" 
+    - kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: "${CMNAME}"
+        namespace: "${CMNAMESPACE}"
+      data:
+        foo: bar
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NAMESPACE2
+- name: CDREFNAME
+- name: RAMODE
+- name: APPLYBEHAVIOR
+- name: CMNAME
+- name: CMNAMESPACE

@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod 
+metadata:
+  name: testpod-60350
+  labels:
+    app: testpod-60350
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: myapp-container
+    image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+    name: testpod-60350
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  dnsPolicy: ClusterFirst
+  dnsConfig:
+     searches: [8th.com, 9th.com, 10th.com, 11th.com, 12th.com, 13th.com, 14th.com, 15th.com, 16th.com, 17th.com, 18th.com, 19th.com, 20th.com, 21th.com, 22th.com, 23th.com, 24th.com, 25th.com, 26th.com, 27th.com, 28th.com, 29th.com, 30th.com, 31th.com, 32th.com]

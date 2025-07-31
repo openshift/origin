@@ -1,0 +1,26 @@
+config:
+    configVersion: 4
+application:
+  shortName: "ocptest"
+  url: "https://kubernetes.default.svc"
+general:
+    authentication:
+        type: "http_header"
+        parameters:
+            name: "Authorization"
+            value: "Bearer sha256~xxxxxxxx"
+    container:
+        # currently supported: `podman` and `none`
+        type: "none"
+scanners:
+    zap:
+        apiScan:
+            apis:
+                apiUrl: "https://kubernetes.default.svc/openapi/v3/apis/observability.openshift.io/v1"
+        passiveScan:
+            disabledRules: "2,10015,10027,10096,10024,10054"
+        activeScan:
+            policy: "Operator-scan"
+        miscOptions:
+          enableUI: False
+          updateAddons: False

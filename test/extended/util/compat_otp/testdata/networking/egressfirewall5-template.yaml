@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressfirewall5
+objects:
+- kind: EgressFirewall
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    egress:
+    - type: "${RULETYPE1}" 
+      to: 
+        "${RULENAME1}": "${RULEVALUE1}" 
+      ports:
+      - protocol: "${PROTOCOL1}"
+        port: "${{PORTNUMBER1}}"
+    - type: "${RULETYPE2}" 
+      to:
+        "${RULENAME2}": "${RULEVALUE2}" 
+      ports:
+      - protocol: "${PROTOCOL2}"
+        port: "${{PORTNUMBER2}}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RULETYPE1
+- name: RULENAME1
+- name: RULEVALUE1
+- name: PROTOCOL1
+- name: PORTNUMBER1
+- name: RULETYPE2
+- name: RULENAME2
+- name: RULEVALUE2
+- name: PROTOCOL2
+- name: PORTNUMBER2

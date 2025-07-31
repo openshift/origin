@@ -1,0 +1,18 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: observability.openshift.io/v1alpha1
+  kind: UIPlugin
+  metadata:
+    name: logging
+  spec:
+    logging:
+      logsLimit: 50
+      lokiStack:
+        name: ${LOKISTACK_NAME}
+    type: Logging
+parameters:
+  - name: LOKISTACK_NAME
+    value: logging-loki

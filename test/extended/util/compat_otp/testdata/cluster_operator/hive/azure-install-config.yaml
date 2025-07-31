@@ -1,0 +1,59 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: azure-install-config-temp
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    creationTimestamp: null
+    name: "${NAME1}"
+    namespace: "${NAMESPACE}"
+  stringData:
+    install-config.yaml: |
+      apiVersion: v1
+      baseDomain: "${BASEDOMAIN}"
+      compute:
+      - name: worker
+        platform:
+          azure:
+            osDisk:
+              diskSizeGB: 0
+              diskType: ""
+            type: ""
+        replicas: 3
+      controlPlane:
+        name: master
+        platform:
+          azure:
+            osDisk:
+              diskSizeGB: 0
+              diskType: ""
+            type: ""
+        replicas: 3
+      metadata:
+        creationTimestamp: null
+        name: "${NAME2}"
+      networking:
+        clusterNetwork:
+        - cidr: 10.128.0.0/14
+          hostPrefix: 23
+        machineNetwork:
+        - cidr: 10.0.0.0/16
+        serviceNetwork:
+        - 172.30.0.0/16
+      platform:
+        azure:
+          baseDomainResourceGroupName: "${RESGROUP}"
+          cloudName: "${AZURETYPE}"
+          outboundType: ""
+          region: "${REGION}"
+  type: Opaque
+parameters:
+- name: NAME1
+- name: NAMESPACE
+- name: BASEDOMAIN
+- name: NAME2
+- name: RESGROUP
+- name: AZURETYPE
+- name: REGION

@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: seccompprofile-template
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1beta1
+  kind: SeccompProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    defaultAction: SCMP_ACT_ERRNO
+    architectures:
+    - SCMP_ARCH_X86_64
+    baseProfileName: "${BASEPROFILENAME}"
+    syscalls:
+    - action: SCMP_ACT_ALLOW
+      names:
+      - mkdir
+      - mkdirat
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: BASEPROFILENAME
+

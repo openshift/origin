@@ -1,0 +1,27 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: ${PODNAME}
+  namespace: ${PODNAMESPACE}
+spec:
+  containers:
+  - image: ${PODIMAGE} # default: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+    name: ${PODNAME}
+    securityContext:
+      runAsUser: 1000
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      seccompProfile:
+        type: RuntimeDefault
+    ${VOLUMETYPE}:
+    - name: data
+      ${PATHTYPE}: ${PODMOUNTPATH}    
+  securityContext:
+    seLinuxOptions:
+      level: "s0:c345,c789"
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: ${PVCNAME}

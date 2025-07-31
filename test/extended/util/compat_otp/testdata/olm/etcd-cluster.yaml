@@ -1,0 +1,16 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: etcdCluster-template
+objects:
+- apiVersion: etcd.database.coreos.com/v1beta2
+  kind: EtcdCluster
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    size: 3
+    version: 3.2.13
+parameters:
+- name: NAME
+- name: NAMESPACE

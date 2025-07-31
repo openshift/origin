@@ -1,0 +1,12 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+storageConfig:
+  registry:
+    imageURL: registryroute/metadata6:latest
+    skipTLS: true
+mirror:
+  operators:
+    - catalog: oci:///tmp/redhat-operator-index
+      packages:
+        - name: openshift-secondary-scheduler-operator
+        - name: cluster-kube-descheduler-operator

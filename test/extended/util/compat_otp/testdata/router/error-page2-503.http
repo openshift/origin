@@ -1,0 +1,10 @@
+HTTP/1.0 503 Service Unavailable
+Connection: close
+Content-Type: text/html
+
+<html>
+<head><title>Custom:Application Unavailable</title></head>
+<body>
+<p>Custom error page:THE REQUESTED APPLICATION IS NOT AVAILABLE YET!</p>
+</body>
+</html>

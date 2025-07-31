@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pao-template
+objects:
+  - apiVersion: performance.openshift.io/v2
+    kind: PerformanceProfile
+    metadata:
+      name: pao-baseprofile
+    spec:
+      additionalKernelArgs:        
+      - tsc=reliable    #      - nosmt  removed nosmt to improve succeed rate due to limited cpu cores
+      cpu:              #but manually renabled when have enough cpu cores
+       isolated: "1"
+       reserved: "0"
+      net:
+        userLevelNetworking: true       
+      hugepages:
+        defaultHugepagesSize: 1G
+        pages:
+        - count: 1
+          size: 1G
+      realTimeKernel:
+       enabled: ${{ISENABLED}}
+      numa:
+       topologyPolicy: "best-effort"
+      nodeSelector:
+       node-role.kubernetes.io/worker-pao: ""
+parameters:
+  - name: ISENABLED
+
+

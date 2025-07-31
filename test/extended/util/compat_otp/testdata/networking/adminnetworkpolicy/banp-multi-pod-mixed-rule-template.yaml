@@ -1,0 +1,65 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: banp_multi_mixed_rule_template
+objects:
+- kind: BaselineAdminNetworkPolicy
+  apiVersion: policy.networking.k8s.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      k8s.ovn.org/acl-logging: '{ "deny": "alert", "allow": "alert"}'
+  spec:
+    subject:
+      pods:
+        namespaceSelector:
+          matchLabels:
+            "${SUBJECTKEY}": "${SUBJECTVAL}"
+        podSelector:
+          matchLabels:
+            "${SUBJECTPODKEY}": "${SUBJECTPODVAL}"
+    "${POLICYTYPE1}":
+    - name: "${RULENAME1}"
+      action: "${RULEACTION1}"
+      "${DIRECTION1}":
+      - pods:
+          namespaceSelector:
+            matchLabels:
+              "${RULEKEY1}": "${RULEVAL1}"
+          podSelector:
+            matchLabels:
+               "${RULEPODKEY1}": "${RULEPODVAL1}"
+    "${POLICYTYPE2}":
+    - name: "${RULENAME2}"
+      action: "${RULEACTION2}"
+      "${DIRECTION2}":
+      - pods:
+          namespaceSelector:
+            matchLabels:
+              "${RULEKEY2}": "${RULEVAL2}"
+          podSelector:
+            matchLabels:
+              "${RULEPODKEY2}": "${RULEPODVAL2}"
+parameters:
+- name: NAME 
+  value: "default"
+- name: SUBJECTKEY
+- name: SUBJECTVAL
+- name: SUBJECTPODKEY
+- name: SUBJECTPODVAL
+- name: POLICYTYPE1
+- name: DIRECTION1
+- name: RULENAME1
+- name: RULEACTION1
+- name: RULEKEY1
+- name: RULEVAL1
+- name: RULEPODKEY1
+- name: RULEPODVAL1
+- name: POLICYTYPE2
+- name: DIRECTION2
+- name: RULENAME2
+- name: RULEACTION2
+- name: RULEKEY2
+- name: RULEVAL2
+- name: RULEPODKEY2
+- name: RULEPODVAL2
