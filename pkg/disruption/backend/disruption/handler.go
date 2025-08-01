@@ -76,7 +76,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
 		nil, v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
 
-	interval := monitorapi.NewInterval(h.getSource(), level).Locator(h.descriptor.DisruptionLocator()).
+	interval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).Locator(h.descriptor.DisruptionLocator()).
 		Display().
 		Message(message).Build(fs.StartedAt, time.Time{})
 	openIntervalID := h.monitorRecorder.StartInterval(interval)
@@ -100,16 +100,8 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
 		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message.BuildString())
-	interval := monitorapi.NewInterval(h.getSource(), monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
+	interval := monitorapi.NewInterval(monitorapi.SourceDisruption, monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
 		Message(message).Build(fs.StartedAt, time.Time{})
 	openIntervalID := h.monitorRecorder.StartInterval(interval)
 	h.monitorRecorder.EndInterval(openIntervalID, ts.StartedAt)
-}
-
-// getSource returns the source of the interval based on the load balancer type. Localhost disruptions need to be separated, as in some cases these are expected
-func (h *ciHandler) getSource() monitorapi.IntervalSource {
-	if h.descriptor.GetLoadBalancerType() == backend.LocalhostType {
-		return monitorapi.SourceDisruptionLocalhost
-	}
-	return monitorapi.SourceDisruption
 }
