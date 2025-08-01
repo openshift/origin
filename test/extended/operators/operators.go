@@ -118,6 +118,10 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 				if name == "network" && isNetworkOperatorUpgradableOpenShiftSDNConfiguredCondition(worstCondition) {
 					continue
 				}
+				// For 4.18 onwards the machine-config operator prevents upgrades when RHEL8 workers are present
+				if isNoUpgrade && name == "machine-config" && isMachineConfigOperatorUpgradableRHELNodesCondition(worstCondition) {
+					continue
+				}
 
 				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
 					name,
@@ -341,6 +345,13 @@ func isNetworkOperatorUpgradableKuryrConfiguredCondition(cond configv1.ClusterOp
 // OpenShiftSDN is removed from 4.17, and 4.16 CNO blocks upgrades if it's configured.
 func isNetworkOperatorUpgradableOpenShiftSDNConfiguredCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return cond.Reason == "OpenShiftSDNConfigured" &&
+		cond.Status == "False" &&
+		cond.Type == "Upgradeable"
+}
+
+// RHEL8 Workers removed in 4.19, therefore Upgradeable=False is set by MCO in 4.18
+func isMachineConfigOperatorUpgradableRHELNodesCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "RHELNodes" &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
 }
