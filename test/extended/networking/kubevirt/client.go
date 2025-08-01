@@ -93,6 +93,29 @@ func (c *Client) GetJSONPath(resource, name, jsonPath string) (string, error) {
 	}
 	return strings.TrimSuffix(strings.TrimPrefix(output, `"`), `"`), nil
 }
+
+func (c *Client) GetPodsByLabel(labelKey, labelValue string) ([]string, error) {
+	output, err := c.oc.AsAdmin().Run("get").Args("pods", "-n", c.oc.Namespace(), "-l", fmt.Sprintf("%s=%s", labelKey, labelValue), "-o", "jsonpath={.items[*].metadata.name}").Output()
+	if err != nil {
+		return nil, err
+	}
+	if output == "" {
+		return []string{}, nil
+	}
+	return strings.Fields(output), nil
+}
+
+func (c *Client) GetEventsForPod(podName string) ([]string, error) {
+	output, err := c.oc.AsAdmin().Run("get").Args("events", "-n", c.oc.Namespace(), "--field-selector", fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=Pod", podName), "-o", "jsonpath={.items[*].message}").Output()
+	if err != nil {
+		return nil, err
+	}
+	if output == "" {
+		return []string{}, nil
+	}
+	return strings.Fields(output), nil
+}
+
 func ensureVirtctl(oc *exutil.CLI, dir string) (string, error) {
 	filepath := filepath.Join(dir, "virtctl")
 	_, err := os.Stat(filepath)

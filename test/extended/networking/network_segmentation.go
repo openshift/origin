@@ -1888,6 +1888,8 @@ type networkAttachmentConfigParams struct {
 	vlanID             int
 	allowPersistentIPs bool
 	role               string
+	preconfiguredIP    string
+	preconfiguredMAC   string
 }
 
 type networkAttachmentConfig struct {
