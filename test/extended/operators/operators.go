@@ -122,6 +122,10 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 				if isNoUpgrade && name == "machine-config" && isMachineConfigOperatorUpgradableRHELNodesCondition(worstCondition) {
 					continue
 				}
+				// For 4.18 onwards the machine-config operator prevents upgrades when configured for cgroup v1
+				if isNoUpgrade && name == "machine-config" && isMachineConfigOperatorUpgradableClusterOnCgroupV1Condition(worstCondition) {
+					continue
+				}
 
 				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
 					name,
@@ -350,8 +354,17 @@ func isNetworkOperatorUpgradableOpenShiftSDNConfiguredCondition(cond configv1.Cl
 }
 
 // RHEL8 Workers removed in 4.19, therefore Upgradeable=False is set by MCO in 4.18
+// Ref: https://github.com/openshift/machine-config-operator/pull/4956
 func isMachineConfigOperatorUpgradableRHELNodesCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return cond.Reason == "RHELNodes" &&
+		cond.Status == "False" &&
+		cond.Type == "Upgradeable"
+}
+
+// cgroup v1 support removed in 4.19, therefore Upgradeable=False is set by MCO in 4.18 when configured for v1
+// Ref: https://github.com/openshift/machine-config-operator/pull/4921
+func isMachineConfigOperatorUpgradableClusterOnCgroupV1Condition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "ClusterOnCgroupV1" &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
 }
