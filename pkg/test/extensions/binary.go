@@ -185,6 +185,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-monitoring-operator",
 		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-storage-operator",
+		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
