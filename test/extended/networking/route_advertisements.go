@@ -128,17 +128,17 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			workerNodesOrderedNames []string
 			advertisedPodsNodes     []string
 			egressIPNodes           []string
-			externalNodeName        string
-			targetNamespace         string
-			snifferNamespace        string
-			cloudType               configv1.PlatformType
-			deployName              string
-			svcUrl                  string
-			packetSnifferDaemonSet  *v1.DaemonSet
-			podList                 *corev1.PodList
-			v4PodIPSet              map[string]string
-			v6PodIPSet              map[string]string
-			clusterIPFamily         IPFamily
+			// externalNodeName        string
+			targetNamespace        string
+			snifferNamespace       string
+			cloudType              configv1.PlatformType
+			deployName             string
+			svcUrl                 string
+			packetSnifferDaemonSet *v1.DaemonSet
+			podList                *corev1.PodList
+			v4PodIPSet             map[string]string
+			v6PodIPSet             map[string]string
+			clusterIPFamily        IPFamily
 		)
 
 		g.BeforeEach(func() {
@@ -207,7 +207,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 			g.By("Selecting a node to act as as an external host")
 			o.Expect(len(workerNodesOrderedNames)).Should(o.BeNumerically(">", 1))
-			externalNodeName = workerNodesOrderedNames[0]
+			// externalNodeName = workerNodesOrderedNames[0]
 			advertisedPodsNodes = workerNodesOrderedNames[1:]
 			egressIPNodes = workerNodesOrderedNames[1:]
 
@@ -278,8 +278,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			g.It("External host should be able to query route advertised pods by the pod IP", func() {
 				g.By("Launching an agent pod")
 				nodeSelection := e2epod.NodeSelection{}
-				e2epod.SetAffinity(&nodeSelection, externalNodeName)
-				proberPod := createProberPod(oc, snifferNamespace, bgpAgentPodName)
+				// e2epod.SetAffinity(&nodeSelection, externalNodeName)
+				e2epod.SetAffinity(&nodeSelection, advertisedPodsNodes[0])
+				proberPod := createProberPodWithNodeSelection(oc, snifferNamespace, bgpAgentPodName, nodeSelection)
 
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("checking the external host to pod traffic works for IPv4")
@@ -360,8 +361,9 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 
 				g.By("Launching an agent pod")
 				nodeSelection := e2epod.NodeSelection{}
-				e2epod.SetAffinity(&nodeSelection, externalNodeName)
-				proberPod := createProberPod(oc, targetNamespace, bgpAgentPodName)
+				// e2epod.SetAffinity(&nodeSelection, externalNodeName)
+				e2epod.SetAffinity(&nodeSelection, advertisedPodsNodes[0])
+				proberPod := createProberPodWithNodeSelection(oc, targetNamespace, bgpAgentPodName, nodeSelection)
 
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("checking the external host to pod traffic works for IPv4")
