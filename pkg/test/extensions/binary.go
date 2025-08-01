@@ -59,6 +59,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "machine-api-operator",
 		binaryPath: "/machine-api-tests-ext.gz",
 	},
+	{
+		imageTag:   "machine-config-operator",
+		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
