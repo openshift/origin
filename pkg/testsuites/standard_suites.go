@@ -447,6 +447,7 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:openshift/machine-config-operator/disruptive")
 		},
-		TestTimeout: 120 * time.Minute,
+		TestTimeout:                120 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 }
