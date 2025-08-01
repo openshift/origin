@@ -274,10 +274,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				} else {
 					return "", nil
 				}
-			case "monitoring":
-				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-					return "https://issues.redhat.com/browse/OCPBUGS-39026", nil
-				}
 			case "network":
 				if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 					logrus.Infof("Operator %s is in Degraded=True state outside of upgrade window, but we will check for exceptions", operator)
@@ -376,9 +372,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 						condition.Reason == "UpdatingPrometheusOperatorFailed")) ||
 				(condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
-			}
-			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
-				return "https://issues.redhat.com/browse/OCPBUGS-39026", nil
 			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
