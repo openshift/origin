@@ -31,6 +31,7 @@ type monitor struct {
 	ocAdmUpgradeStatus map[time.Time]*snapshot
 	notSupportedReason error
 	isSNO              bool
+	isUpgradeTest      bool
 }
 
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
@@ -69,6 +70,10 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 		return fmt.Errorf("unable to determine if cluster is single node: %v", err)
 	} else {
 		w.isSNO = ok
+	}
+	// This might be too coarse, but it is simple enough to avoid checking all the manifests
+	if os.Getenv("RELEASE_IMAGE_INITIAL") != "" && strings.HasSuffix(os.Getenv("JOB_NAME"), "upgrade") {
+		w.isUpgradeTest = true
 	}
 	return nil
 }
@@ -135,7 +140,7 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
-	return nil, []*junitapi.JUnitTestCase{w.noFailures()}, nil
+	return nil, []*junitapi.JUnitTestCase{w.noFailures(), w.controlPlaneUpgrading()}, nil
 }
 
 func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -172,7 +177,7 @@ func (*monitor) Cleanup(ctx context.Context) error {
 
 func (w *monitor) noFailures() *junitapi.JUnitTestCase {
 	noFailures := &junitapi.JUnitTestCase{
-		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status never fails",
 	}
 
 	var failures []string
@@ -193,4 +198,30 @@ func (w *monitor) noFailures() *junitapi.JUnitTestCase {
 		}
 	}
 	return noFailures
+}
+
+func (w *monitor) controlPlaneUpgrading() *junitapi.JUnitTestCase {
+	controlPlane := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status contains control plane upgrading transitions in an upgrade test",
+	}
+
+	c := 0
+	for _, observed := range w.ocAdmUpgradeStatus {
+		if observed.err != nil {
+			continue
+		}
+		if w.isUpgradeTest && strings.Contains(observed.out, "= Control Plane =") {
+			c++
+		}
+	}
+
+	expected := 10
+	if c > expected {
+		msg := fmt.Sprintf("oc adm upgrade status saw control plane upgrading section %d times (of %d with expected %d)", c, len(w.ocAdmUpgradeStatus), expected)
+		controlPlane.FailureOutput = &junitapi.FailureOutput{
+			Message: msg,
+			Output:  msg,
+		}
+	}
+	return controlPlane
 }
