@@ -133,31 +133,9 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	// the collection goroutines spawned in StartedCollection to finish
 	<-w.collectionDone
 
-	noFailures := &junitapi.JUnitTestCase{
-		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
-	}
-
-	var failures []string
-	var total int
-	for when, observed := range w.ocAdmUpgradeStatus {
-		total++
-		if observed.err != nil {
-			failures = append(failures, fmt.Sprintf("- %s: %v", when.Format(time.RFC3339), observed.err))
-		}
-	}
-
-	// Zero failures is too strict for at least SNO clusters
-	p := (len(failures) / total) * 100
-	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
-		noFailures.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
-			Output:  strings.Join(failures, "\n"),
-		}
-	}
-
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
-	return nil, []*junitapi.JUnitTestCase{noFailures}, nil
+	return nil, []*junitapi.JUnitTestCase{w.noFailures()}, nil
 }
 
 func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -190,4 +168,29 @@ func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuf
 
 func (*monitor) Cleanup(ctx context.Context) error {
 	return nil
+}
+
+func (w *monitor) noFailures() *junitapi.JUnitTestCase {
+	noFailures := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
+	}
+
+	var failures []string
+	var total int
+	for when, observed := range w.ocAdmUpgradeStatus {
+		total++
+		if observed.err != nil {
+			failures = append(failures, fmt.Sprintf("- %s: %v", when.Format(time.RFC3339), observed.err))
+		}
+	}
+
+	// Zero failures is too strict for at least SNO clusters
+	p := (len(failures) / total) * 100
+	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
+		noFailures.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
+			Output:  strings.Join(failures, "\n"),
+		}
+	}
+	return noFailures
 }
