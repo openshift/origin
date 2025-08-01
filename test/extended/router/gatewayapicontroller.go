@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
@@ -218,6 +219,14 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
+		isDNSManaged, err := isDNSManaged(oc, time.Minute)
+		if err != nil {
+			e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+		}
+		if !isDNSManaged {
+			g.Skip("Skipping on this cluster since DNSManaged is false")
+		}
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -425,14 +434,32 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 		for _, record := range gatewayDNSRecords.Items {
 			if record.Labels["gateway.networking.k8s.io/gateway-name"] == gatewayName {
 				gatewayDNSRecord = &record
+				e2e.Logf("Found the desired dnsrecord and spec is: %v", gatewayDNSRecord.Spec)
 				break
 			}
+		}
+
+		// skip status check if privateZone/publicZone in dns.config is nil or empty
+		emptyDNSZone := &configv1.DNSZone{}
+		dns, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(context, "cluster", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Get dnses.config/cluster failed: %v, retrying...", err)
+			return false, nil
+		}
+		if dns.Spec.PublicZone == nil && dns.Spec.PrivateZone == nil {
+			e2e.Logf("All zones in dns.config are nil, needn't to check status")
+			return true, nil
+		}
+		if reflect.DeepEqual(dns.Spec.PublicZone, emptyDNSZone) || reflect.DeepEqual(dns.Spec.PrivateZone, emptyDNSZone) {
+			e2e.Logf("Zone in dns.config is empty, needn't to check status")
+			return true, nil
 		}
 
 		// checking the gateway DNS record status
 		for _, zone := range gatewayDNSRecord.Status.Zones {
 			for _, condition := range zone.Conditions {
 				if condition.Type == "Published" && condition.Status == "True" {
+					e2e.Logf("The published status is true for zone %v", zone.DNSZone)
 					return true, nil
 				}
 			}
