@@ -1,0 +1,10 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+storageConfig:
+  local:
+    path: /tmp/case60597
+mirror:
+  operators:
+    - catalog: oci:///tmp/case60597/redhat-operator-index
+      packages:
+        - name: local-storage-operator

@@ -1,0 +1,68 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ipaddresspool-cr-template
+objects:
+- kind: IPAddressPool
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    labels:
+      "${LABELKEY1}": "${LABELVALUE1}"
+    namespace: "${NAMESPACE}"
+  spec:
+    addresses:
+    - "${ADDRESS1}"
+    - "${ADDRESS2}"
+    autoAssign: ${{AUTOASSIGN}}
+    avoidBuggyIPs: ${{AVOIDBUGGYIPS}}
+    serviceAllocation:
+      priority: ${{PRIORITY}}
+      namespaces:
+      - "${NAMESPACE1}"
+      - "${NAMESPACE2}"
+      serviceSelectors:
+        - matchLabels:
+            "${MLSERVICEKEY1}": "${MLSERVICEVALUE1}"
+        - matchExpressions:
+          - key: "${MESERVICEKEY1}"
+            operator: "${MESERVICEOPERATOR1}"
+            values: 
+            - "${MESERVICEKEY1VALUE1}"
+      namespaceSelectors:
+        - matchLabels:
+            "${MLNAMESPACEKEY1}": "${MLNAMESPACEVALUE1}"
+        - matchExpressions:
+          - key: "${MENAMESPACEKEY1}"
+            operator: "${MENAMESPACEOPERATOR1}"
+            values: 
+            - "${MENAMESPACEKEY1VALUE1}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY1
+  value: "zone"
+- name: LABELVALUE1
+  value: "east"
+- name: ADDRESS1
+- name: ADDRESS2
+- name: AUTOASSIGN
+  type: boolean
+  value: "true"
+- name: AVOIDBUGGYIPS
+  type: boolean
+  value: "true"
+- name: PRIORITY
+  value: "0"
+- name: NAMESPACE1
+- name: NAMESPACE2
+- name: MLSERVICEKEY1
+- name: MLSERVICEVALUE1
+- name: MESERVICEKEY1
+- name: MESERVICEKEY1VALUE1
+- name: MESERVICEOPERATOR1
+- name: MLNAMESPACEKEY1
+- name: MLNAMESPACEVALUE1
+- name: MENAMESPACEKEY1
+- name: MENAMESPACEKEY1VALUE1
+- name: MENAMESPACEOPERATOR1

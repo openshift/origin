@@ -1,0 +1,11 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: ns-template
+objects:
+- kind: Namespace
+  apiVersion: v1
+  metadata:
+    name: ${NAME}
+parameters:
+- name: NAME

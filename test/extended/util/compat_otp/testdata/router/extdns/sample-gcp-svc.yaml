@@ -1,0 +1,20 @@
+apiVersion: externaldns.olm.openshift.io/v1beta1
+kind: ExternalDNS
+metadata:
+  name: sample-gcp-svc
+spec:
+  provider:
+    type: GCP
+  source:
+    labelFilter:
+      matchLabels:
+        external-dns.mydomain.org/publish: "yes"
+    service:
+      serviceType:
+        - LoadBalancer
+        - ClusterIP
+    type: Service
+    fqdnTemplate:
+    - "{{.Name}}.mydomain.org"
+  zones:
+  - "mydomain.org"

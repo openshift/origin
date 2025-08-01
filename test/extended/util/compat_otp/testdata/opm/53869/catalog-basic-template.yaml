@@ -1,0 +1,16 @@
+schema: olm.template.basic
+entries: 
+  - schema: olm.package
+    name: nginx-operator
+    defaultChannel: stable
+  - schema: olm.channel
+    package: nginx-operator
+    name: stable
+    entries:
+    - name: nginx-operator.v0.0.1
+    - name: nginx-operator.v1.0.1
+      replaces: nginx-operator.v0.0.1
+  - schema: olm.bundle
+    image: quay.io/olmqe/nginxolm-operator-bundle:v0.0.1
+  - schema: olm.bundle
+    image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1

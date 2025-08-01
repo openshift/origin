@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-ms-reen
+  annotations:
+    route.openshift.io/destination-ca-certificate-secret: service-secret
+    route.openshift.io/termination: reencrypt
+spec:
+  rules:
+  - host: service-secure-test.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: service-secure
+            port:
+              number: 27443
+        path: "/"
+        pathType: Prefix

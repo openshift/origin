@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+  - apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: "${SUBNAME}"
+      namespace: "${SUBNAMESPACE}"
+    spec:
+      channel: "${CHANNEL}"
+      installPlanApproval: "${APPROVAL}"
+      name: "${OPERATORNAME}"
+      source: "${SOURCENAME}"
+      sourceNamespace: "${SOURCENAMESPACE}"
+
+parameters:
+  - name: SUBNAME
+    value: "sandboxed-containers-operator"
+  - name: SUBNAMESPACE
+    value: "openshift-sandboxed-containers-operator"
+  - name: CHANNEL
+    value: "stable"
+  - name: APPROVAL
+    value: "Automatic"
+  - name: OPERATORNAME
+    value: "sandboxed-containers-operator"
+  - name: SOURCENAME
+    value: "redhat-operators"
+  - name: SOURCENAMESPACE
+    value: "openshift-marketplace"

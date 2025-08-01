@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: mutatingwebhooktemplate
+objects:
+- apiVersion: admissionregistration.k8s.io/v1
+  kind: MutatingWebhookConfiguration
+  metadata:
+    name: "${NAME}"
+  webhooks:
+  - name: "${WEBHOOKNAME}"
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: "${NAMESPACE}"
+    rules:
+    - apiGroups:   ["${APIGROUPS}"]
+      apiVersions: ["${APIVERSIONS}"]
+      operations:  ["${OPERATIONS}"]
+      resources:   ["${RESOURCES}"]
+      scope: "Namespaced"
+    clientConfig:
+      service:
+        namespace: "${SERVICENAMESPACE}"
+        name: "${SERVICENAME}"
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+parameters:
+- name: NAME
+- name: WEBHOOKNAME
+- name: SERVICENAMESPACE
+- name: SERVICENAME
+- name: NAMESPACE
+- name: APIGROUPS
+- name: APIVERSIONS
+- name: OPERATIONS
+- name: RESOURCES

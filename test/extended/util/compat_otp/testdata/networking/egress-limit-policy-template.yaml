@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: EgressNetworkPolicy-template 
+objects: 
+- kind: EgressNetworkPolicy
+  apiVersion: network.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    egress:
+      - type: Deny
+        to:
+          cidrSelector: "${CIDRSELECTOR}"
+parameters:
+- name: NAME
+- name: CIDRSELECTOR

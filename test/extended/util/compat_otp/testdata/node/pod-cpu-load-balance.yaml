@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-cpu-load-balancing-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      irq-load-balancing.crio.io: "disable"
+      cpu-quota.crio.io: "disable"
+      cpu-load-balancing.crio.io: "disable"
+  spec:
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    runtimeClassName: "${RUNTIMECLASS}"
+    containers:
+    - name: container-perf-tools
+      image: busybox
+      imagePullPolicy: Always
+      args:
+        - sleep
+        - "100000"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      resources:
+        limits:
+          cpu: 1
+          memory: 200Mi
+        requests:
+          cpu: 1
+          memory: 200Mi
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RUNTIMECLASS

@@ -1,0 +1,60 @@
+
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: hp-performanceprofile-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: openshift-node-performance-hp-performanceprofile
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Openshift node optimized for deterministic performance at the cost of increased power consumption, focused on low latency network performance. Based on Tuned 2.11 and Cluster node tuning (oc 4.5)
+          include=openshift-node,cpu-partitioning
+          [variables]
+          isolated_cores=1
+          not_isolated_cores_expanded=${f:cpulist_invert:${isolated_cores_expanded}}
+          [cpu]
+          force_latency=cstate.id:1|3
+          governor=performance
+          energy_perf_bias=performance
+          min_perf_pct=100
+          [vm]
+          transparent_hugepages=never
+          [sysctl]
+          kernel.hung_task_timeout_secs = 600
+          kernel.nmi_watchdog = 0
+          kernel.sched_rt_runtime_us = -1
+          kernel.timer_migration = 0
+          kernel.numa_balancing=0
+          net.core.busy_read=50
+          net.core.busy_poll=50
+          net.ipv4.tcp_fastopen=3
+          vm.stat_interval = 10
+          kernel.sched_min_granularity_ns=10000000
+          vm.dirty_ratio=10
+          vm.dirty_background_ratio=3
+          vm.swappiness=10
+          kernel.sched_migration_cost_ns=5000000
+          [selinux]
+          avc_cache_threshold=8192
+          [net]
+          nf_conntrack_hashsize=131072
+          [bootloader]
+          initrd_remove_dir=
+          initrd_dst_img=
+          initrd_add_dir=
+          cmdline_cpu_part=+nohz=on rcu_nocbs=${isolated_cores} tuned.non_isolcpus=${not_isolated_cpumask} intel_pstate=disable nosoftlockup
+          cmdline_realtime=+tsc=nowatchdog intel_iommu=on iommu=pt isolcpus=managed_irq,${isolated_cores} systemd.cpu_affinity=${not_isolated_cores_expanded}
+          cmdline_hugepages=+ default_hugepagesz=2M
+          cmdline_additionalArg=+
+        name: openshift-node-performance-hp-performanceprofile
+
+      recommend:
+      - machineConfigLabels:
+          machineconfiguration.openshift.io/role: "master"
+        priority: 30
+        profile: openshift-node-performance-hp-performanceprofile

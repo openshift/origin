@@ -1,0 +1,13 @@
+apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: nodetest-ubi8repo
+spec:
+  repositoryDigestMirrors:
+  - mirrors:
+    - example.io/example/ubi-minimal
+    - example.com/example/ubi-minimal
+    source: registry.access.redhat.com/ubi8/ubi-minimal
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example

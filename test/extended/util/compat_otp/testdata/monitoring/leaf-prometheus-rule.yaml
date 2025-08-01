@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: example-alert
+  labels:
+    openshift.io/prometheus-rule-evaluation-scope: leaf-prometheus
+spec:
+  groups:
+  - name: example
+    rules:
+    - alert: TestAlert2
+      expr: vector(2)
+      labels:
+        severity: none
+      annotations:
+        message: This is TestAlert2 alert.

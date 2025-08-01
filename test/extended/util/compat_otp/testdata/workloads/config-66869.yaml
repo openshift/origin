@@ -1,0 +1,10 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+mirror:
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-marketplace-index:v4.16
+    packages:
+    - name: aerospike-kubernetes-operator-rhmp
+  - catalog: registry.redhat.io/redhat/community-operator-index:v4.16
+    packages:
+    - name: namespace-configuration-operator

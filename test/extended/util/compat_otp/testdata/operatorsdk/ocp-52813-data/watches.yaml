@@ -1,0 +1,8 @@
+# Use the 'create api' subcommand to add watches to this file.
+- group: test.disconnected.com
+  version: v1
+  kind: Nginx
+  chart: helm-charts/nginx
+  overrideValues:
+    relatedImage: $RELATED_IMAGE_NGINX
+#+kubebuilder:scaffold:watch

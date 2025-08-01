@@ -1,0 +1,57 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: apply-static-ip-route-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+      - name: "${IFACENAME}"
+        description: "${DESCR}"
+        type: dummy
+        state: "${STATE}"
+        ipv4:
+          address:
+          - ip: "${IPADDRV4}"
+            prefix-length: 24
+          dhcp: false
+          enabled: true
+        ipv6:
+          address:
+          - ip: "${IPADDRV6}"
+            prefix-length: 64
+          dhcp: false
+          enabled: true
+      routes:
+        config:
+        - destination: "${DESTADDRV4}"
+          metric: 150
+          next-hop-address: "${NEXTHOPADDRV4}"
+          next-hop-interface: "${IFACENAME}"
+          table-id: 254
+        - destination: "${DESTADDRV6}"
+          metric: 150
+          next-hop-address: "${NEXTHOPADDRV6}"
+          next-hop-interface: "${IFACENAME}"
+          table-id: 254
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESCR
+- name: STATE
+- name: IPADDRV4
+- name: DESTADDRV4
+- name: NEXTHOPADDRV4
+- name: IPADDRV6
+- name: DESTADDRV6
+- name: NEXTHOPADDRV6

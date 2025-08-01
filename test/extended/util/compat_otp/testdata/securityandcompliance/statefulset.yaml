@@ -1,0 +1,48 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: co-workload-statefulset-template
+objects:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    selector:
+      matchLabels:
+        app: hello-pod
+    replicas: 2
+    template:
+      metadata:
+        labels:
+          app: hello-pod
+        annotations:
+          pod.alpha.kubernetes.io/initialized: "true"
+      spec:
+        terminationGracePeriodSeconds: 0
+        containers:
+          - image: "quay.io/openshifttest/hello-openshift:multiarch"
+            imagePullPolicy: IfNotPresent
+            name: hello-pod
+            ports:
+              - containerPort: 80
+                protocol: TCP
+            resources: {}
+            securityContext:
+              capabilities: {}
+              privileged: false
+            terminationMessagePath: /dev/termination-log
+            volumeMounts:
+              - mountPath: /tmp
+                name: tmp
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        serviceAccount: ""
+        volumes:
+          - emptyDir: {}
+            name: tmp
+
+parameters:
+- name: NAME
+- name: NAMESPACE

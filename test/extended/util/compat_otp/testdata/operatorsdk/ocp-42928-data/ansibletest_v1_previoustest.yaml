@@ -1,0 +1,12 @@
+apiVersion: ansibletest.qetest.com/v1
+kind: Previoustest
+metadata:
+  labels:
+    app.kubernetes.io/name: previoustest
+    app.kubernetes.io/instance: previoustest-sample
+    app.kubernetes.io/part-of: previousansibletest
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: previousansibletest
+  name: previoustest-sample
+spec:
+  size: 2

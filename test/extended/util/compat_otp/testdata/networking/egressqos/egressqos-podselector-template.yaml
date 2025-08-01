@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: testpod-template
+objects:
+- kind: EgressQoS
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    egress:
+    - dscp: 40
+      dstCIDR: "${CIDR1}"
+      podSelector:
+        matchLabels:
+          priority: "${PRIORITY}"
+    - dscp: 30
+      dstCIDR: "${CIDR2}"
+      podSelector:
+        matchLabels:
+          name: "${LABELNAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CIDR1
+- name: CIDR2
+- name: PRIORITY
+- name: LABELNAME

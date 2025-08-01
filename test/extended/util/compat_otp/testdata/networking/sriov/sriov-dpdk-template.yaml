@@ -1,0 +1,45 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriovpod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: ${PODNAME}
+    namespace: "${NAMESPACE}"
+    labels:
+      name: sriov-dpdk
+    annotations:
+      k8s.v1.cni.cncf.io/networks: ${SRIOVNETNAME}
+  spec:
+    containers:
+    - name: dpdk
+      image: registry.redhat.io/openshift4/dpdk-base-rhel8:v4.8.0-8.1628601733
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        runAsUser: 0
+        capabilities:
+          add: ["IPC_LOCK","SYS_RESOURCE","NET_RAW"]
+      resources:
+        requests:
+          hugepages-1Gi: 4Gi
+          cpu: "4"
+          memory: "1Gi"
+        limits:
+          hugepages-1Gi: 4Gi
+          cpu: "4"
+          memory: "1Gi"
+      volumeMounts:
+      - mountPath: /dev/hugepages
+        name: hugepage
+      command: ["sleep", "infinity"]
+    volumes:
+    - name: hugepage
+      emptyDir:
+        medium: HugePages      
+
+parameters:
+- name: PODNAME
+- name: SRIOVNETNAME
+- name: NAMESPACE

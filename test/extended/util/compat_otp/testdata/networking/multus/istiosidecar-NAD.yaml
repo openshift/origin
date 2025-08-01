@@ -1,0 +1,24 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: test-nad
+  namespace: test-64958
+spec:
+  config: '{
+      "cniVersion": "0.3.1",
+      "name": "test-nad-notun",
+      "plugins": [
+            { 
+               "type": "bridge",
+               "bridge": "br-test",
+               "vlan": 0,
+               "ipMasq": true,
+               "ipam": {
+                     "type": "whereabouts",
+                     "range": "172.19.55.0/24",
+                     "range_start": "172.19.55.50",
+                     "range_end": "172.19.55.59"
+               }
+            }
+         ]
+    }'

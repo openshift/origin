@@ -1,0 +1,15 @@
+apiVersion: quota.openshift.io/v1
+kind: ClusterResourceQuota
+metadata:
+  creationTimestamp: null
+  name: blue
+spec:
+  quota:
+    hard:
+      pods: "10"
+      secrets: "20"
+  selector:
+    annotations: null
+    labels:
+      matchLabels:
+        color: nocolor

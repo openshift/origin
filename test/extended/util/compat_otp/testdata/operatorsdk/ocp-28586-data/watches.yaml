@@ -1,0 +1,7 @@
+---
+# Use the 'create api' subcommand to add watches to this file.
+- version: v1
+  group: cache5.cotentcollect.com
+  kind: CollectionTest
+  role: operator_sdk.test_fixtures.dummy
+#+kubebuilder:scaffold:watch

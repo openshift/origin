@@ -1,0 +1,16 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: priorityclass-template
+objects:
+- kind: PriorityClass
+  apiVersion: scheduling.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+  value: ${{PRIORITYVALUE}}
+  globalDefault: false
+  description: "This priority class should be used for XYZ service pods only."
+  preemptionPolicy: Never
+parameters:
+- name: NAME
+- name: PRIORITYVALUE

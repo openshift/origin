@@ -1,0 +1,12 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v1alpha2
+storageConfig:
+  registry:
+    imageURL: REGISTRY 
+    skipTLS: True 
+mirror:
+  platform:
+    channels:
+    - name: candidate-4.14
+      type: ocp 
+    graph: true

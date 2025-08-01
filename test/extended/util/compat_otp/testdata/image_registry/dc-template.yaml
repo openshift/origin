@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: dc-template
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      app: "${NAME}"
+    template:
+      metadata:
+        annotations:
+          alpha.image.policy.openshift.io/resolve-names: '*'
+        labels:
+          app: "${NAME}"
+      spec:
+        containers:
+        - image: "${IMAGE}"
+          name: mycontainer
+          command:
+            - /bin/sleep
+            - '300'
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IMAGE

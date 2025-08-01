@@ -1,0 +1,7 @@
+apiVersion: cache.example.com/v1
+kind: Memcached52377
+metadata:
+  name: memcached52377-sample
+spec:
+  # Add fields here
+  size: 1

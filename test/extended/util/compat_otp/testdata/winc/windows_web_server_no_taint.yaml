@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: win-webserver
+  name: win-webserver
+spec:
+  selector:
+    matchLabels:
+      app: win-webserver
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: win-webserver
+      name: win-webserver
+    spec:
+      containers:
+        - name: win-webserver
+          image: <windows_container_image>
+          imagePullPolicy: IfNotPresent
+          command:
+            - pwsh.exe
+            - -command
+            - $listener = New-Object System.Net.HttpListener; $listener.Prefixes.Add('http://*:80/'); $listener.Start();Write-Host('Listening at http://*:80/'); while ($listener.IsListening) { $context = $listener.GetContext(); $response = $context.Response; $content='<html><body><H1>Windows Container Web Server</H1></body></html>'; $buffer = [System.Text.Encoding]::UTF8.GetBytes($content); $response.ContentLength64 = $buffer.Length; $response.OutputStream.Write($buffer, 0, $buffer.Length); $response.Close(); };
+          securityContext:
+            runAsNonRoot: false
+            windowsOptions:
+              runAsUserName: "ContainerAdministrator"
+      nodeSelector:
+        beta.kubernetes.io/os: windows
+      os:
+        name: windows
+

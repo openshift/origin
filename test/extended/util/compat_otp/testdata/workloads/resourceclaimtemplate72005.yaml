@@ -1,0 +1,11 @@
+apiVersion: resource.k8s.io/v1alpha2
+kind: ResourceClaimTemplate
+metadata:
+  name: large-black-cat-claim-template
+spec:
+  spec:
+    resourceClassName: resource.example.com
+    parametersRef:
+      apiGroup: cats.resource.example.com
+      kind: ClaimParameters
+      name: large-black-cat-claim-parameters

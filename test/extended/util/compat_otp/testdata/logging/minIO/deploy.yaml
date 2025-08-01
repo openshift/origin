@@ -1,0 +1,140 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: minio-template
+  annotations:
+    description: "A MinIO service"
+objects:
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: minio-pv-claim
+    namespace: ${NAMESPACE}
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    selector:
+      matchLabels:
+        app: ${NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: ${NAME}
+      spec:
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: minio-pv-claim
+        containers:
+        - name: minio
+          volumeMounts:
+          - name: data
+            mountPath: "/data"
+          image: ${IMAGE}
+          args:
+          - server
+          - /data
+          - --console-address
+          - ":9001"
+          env:
+          - name: MINIO_ROOT_USER
+            valueFrom:
+              secretKeyRef:
+                name: ${SECRET_NAME}
+                key: access_key_id
+          - name: MINIO_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ${SECRET_NAME}
+                key: secret_access_key
+          - name: MINIO_DOMAIN
+            value: ${MINIO_DOMAIN}
+          ports:
+          - containerPort: 9000
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 120
+            periodSeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 120
+            periodSeconds: 20
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+      - port: 9000
+        targetPort: 9000
+        protocol: TCP
+    selector:
+      app: ${NAME}
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: minio-service-console
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+      - port: 9001
+        targetPort: 9001
+        protocol: TCP
+    selector:
+      app: ${NAME}
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    labels:
+      app: ${NAME}
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    host: ${MINIO_DOMAIN}
+    port:
+      targetPort: 9000
+    to:
+      kind: Service
+      name: ${NAME}
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    labels:
+      app: ${NAME}
+    name: minio-console
+    namespace: ${NAMESPACE}
+  spec:
+    port:
+      targetPort: 9001
+    to:
+      kind: Service
+      name: minio-service-console
+parameters:
+  - name: IMAGE
+    displayName: " The MinIO image"
+    value: "quay.io/openshifttest/minio:latest"
+  - name: NAMESPACE
+    displayName: Namespace
+    value: "minio-aosqe"
+  - name: NAME
+    value: "minio"
+  - name: SECRET_NAME
+    value: "minio-creds"
+  - name: MINIO_DOMAIN
+    value: ""

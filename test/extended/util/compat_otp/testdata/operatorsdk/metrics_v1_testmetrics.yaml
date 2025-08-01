@@ -1,0 +1,13 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metrics-template
+objects:
+- apiVersion: metrics.testmetrics.com/v1
+  kind: Testmetrics
+  metadata:
+    name: "${NAME}"
+  spec:
+    size: 1
+parameters:
+- name: NAME

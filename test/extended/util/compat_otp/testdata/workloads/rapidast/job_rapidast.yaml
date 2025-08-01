@@ -1,0 +1,66 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: rapidast-job-template
+objects:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: ${NAME}
+  spec:
+    backoffLimit: 0
+    completionMode: NonIndexed
+    completions: 1
+    parallelism: 1
+    selector:
+      matchLabels:
+        job-name: ${NAME}
+    suspend: false
+    template:
+      metadata:
+        labels:
+          job-name: ${NAME}
+        name: rapidast-job
+      spec:
+        containers:
+        - command: ["/bin/sh"]
+          args:
+          - "-c"
+          - | 
+            export HOME=/tmp
+            rapidast.py --config /opt/rapidast/config/rapidastconfig.yaml
+            echo "--------------- show rapidash result -----------------"  
+            
+            echo "--------------- rapidash result end -----------------" 
+          image: quay.io/redhatproductsecurity/rapidast:2.7.0
+          workingDir: "/tmp"
+          imagePullPolicy: Always
+          name: rapidast
+          resources: {}
+          securityContext: 
+            readOnlyRootFilesystem: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /opt/rapidast/config
+            name: config-volume
+          - mountPath: /tmp
+            name: tmp
+        dnsPolicy: ClusterFirst
+        restartPolicy: Never
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        nodeSelector:
+          kubernetes.io/os: linux
+          kubernetes.io/arch: amd64
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: config-volume
+        - name: tmp
+          emptyDir: {}
+parameters:
+- name: NAME
+  value: rapidast-job

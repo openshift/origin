@@ -1,0 +1,28 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    labels:
+      operators.coreos.com/${PACKAGE_NAME}.${NAMESPACE}: ""
+    name: ${PACKAGE_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    channel: ${CHANNEL}
+    installPlanApproval: ${INSTALL_PLAN_APPROVAL}
+    name: ${PACKAGE_NAME}
+    source: ${SOURCE}
+    sourceNamespace: ${SOURCE_NAMESPACE}
+parameters:
+  - name: PACKAGE_NAME
+  - name: NAMESPACE
+  - name: CHANNEL
+  - name: SOURCE
+    value: "qe-app-registry"
+  - name: SOURCE_NAMESPACE
+    value: "openshift-marketplace"
+  - name: INSTALL_PLAN_APPROVAL
+    value: Automatic

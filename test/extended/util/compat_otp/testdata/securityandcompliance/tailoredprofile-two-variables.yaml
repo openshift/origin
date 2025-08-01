@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-two-variables-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    extends: "${EXTENDS}"
+    title: My little profile
+    description: This profile test required rules
+    setValues:
+    - name: "${VARNAME1}"
+      rationale: test
+      value: "${VALUE1}"
+    - name: "${VARNAME2}"
+      rationale: test
+      value: "${VALUE2}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE  
+- name: EXTENDS
+- name: VARNAME1
+- name: VALUE1
+- name: VARNAME2
+- name: VALUE2

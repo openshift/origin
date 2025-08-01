@@ -1,0 +1,27 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: route-splunk-passthrough-template
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: ${NAME}
+  spec:
+    host: ${ROUTE_HOST}
+    port:
+      targetPort: ${PORT_NAME}
+    tls:
+      termination: passthrough
+    to:
+      kind: Service
+      name: ${SERVICE_NAME}
+parameters:
+- name: NAME
+  value: "splunk-default-hec"
+- name: PORT_NAME
+  value: "http-hec"
+- name: SERVICE_NAME
+  value: "splunk-default-service"
+- name: ROUTE_HOST
+  value: ""

@@ -1,0 +1,155 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: packageserver-csv-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: ClusterServiceVersion
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    apiservicedefinitions:
+      owned:
+      - containerPort: 5443
+        deploymentName: packageserver
+        description: A PackageManifest is a resource generated from existing CatalogSources
+          and their ConfigMaps
+        displayName: PackageManifest
+        group: packages.operators.coreos.com
+        kind: PackageManifest
+        name: packagemanifests
+        version: v1
+    customresourcedefinitions: {}
+    description: Represents an Operator package that is available from a given CatalogSource
+      which will resolve to a ClusterServiceVersion.
+    displayName: Package Server
+    install:
+      spec:
+        clusterPermissions:
+        - rules:
+          - apiGroups:
+            - authorization.k8s.io
+            resources:
+            - subjectaccessreviews
+            verbs:
+            - create
+            - get
+          - apiGroups:
+            - ""
+            resources:
+            - configmaps
+            verbs:
+            - get
+            - list
+            - watch
+          - apiGroups:
+            - operators.coreos.com
+            resources:
+            - catalogsources
+            verbs:
+            - get
+            - list
+            - watch
+          - apiGroups:
+            - packages.operators.coreos.com
+            resources:
+            - packagemanifests
+            verbs:
+            - get
+            - list
+          serviceAccountName: olm-operator-serviceaccount
+        deployments:
+        - name: packageserver
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: packageserver
+            strategy:
+              type: RollingUpdate
+            template:
+              metadata:
+                labels:
+                  app: packageserver
+              spec:
+                containers:
+                - command:
+                  - /bin/package-server
+                  - -v=4
+                  - --secure-port
+                  - "5443"
+                  - --global-namespace
+                  - olm
+                  - --debug
+                  image: quay.io/operator-framework/olm:local
+                  imagePullPolicy: IfNotPresent
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: 5443
+                      scheme: HTTPS
+                  name: packageserver
+                  ports:
+                  - containerPort: 5443
+                    protocol: TCP
+                  readinessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: 5443
+                      scheme: HTTPS
+                  resources:
+                    requests:
+                      cpu: 10m
+                      memory: 50Mi
+                  terminationMessagePolicy: FallbackToLogsOnError
+                  volumeMounts:
+                  - mountPath: /tmp
+                    name: tmpfs
+                nodeSelector:
+                  kubernetes.io/os: linux
+                serviceAccountName: olm-operator-serviceaccount
+                tolerations:
+                - effect: NoSchedule
+                  key: node-role.kubernetes.io/master
+                  operator: Exists
+                - effect: NoExecute
+                  key: node.kubernetes.io/unreachable
+                  operator: Exists
+                  tolerationSeconds: 120
+                - effect: NoExecute
+                  key: node.kubernetes.io/not-ready
+                  operator: Exists
+                  tolerationSeconds: 120
+                volumes:
+                - emptyDir: {}
+                  name: tmpfs
+      strategy: deployment
+    installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+    keywords:
+    - packagemanifests
+    - olm
+    - packages
+    links:
+    - name: Package Server
+      url: https://github.com/operator-framework/operator-lifecycle-manager/tree/master/pkg/package-server
+    maintainers:
+    - email: openshift-operators@redhat.com
+      name: Red Hat
+    maturity: alpha
+    minKubeVersion: 1.11.0
+    provider:
+      name: Red Hat
+    replaces: packageserver
+    version: 1.0.0
+parameters:
+- name: NAMESPACE
+- name: NAME

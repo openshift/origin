@@ -1,0 +1,13 @@
+---
+kind: EgressNetworkPolicy
+apiVersion: network.openshift.io/v1
+metadata:
+  name: sdn-egressnetworkpolicy
+spec:
+  egress:
+  - type: Deny
+    to:
+      dnsName: www.cisco.com
+  - type: Allow
+    to:
+      cidrSelector: 0.0.0.0/0

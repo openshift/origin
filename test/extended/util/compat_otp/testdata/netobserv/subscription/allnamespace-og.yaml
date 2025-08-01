@@ -1,0 +1,17 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: netobserv-operator-og-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorGroup
+  metadata:
+    name: ${OG_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    upgradeStratergy: Default
+parameters:
+  - name: OG_NAME
+    value: "netobserv-operator"
+  - name: NAMESPACE
+    value: "openshift-netobserv-operator"

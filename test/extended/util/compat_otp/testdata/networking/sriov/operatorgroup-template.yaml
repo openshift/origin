@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sriov-operatorgroup-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    targetNamespaces: 
+    - "${TARGETNAMESPACES}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TARGETNAMESPACES
+    

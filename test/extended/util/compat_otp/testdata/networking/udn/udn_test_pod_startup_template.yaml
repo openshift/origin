@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: udn-pod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: "${LABEL}"
+  spec:
+  spec:
+    containers:
+    - name: hello-pod
+      image: "quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4"
+      securityContext:
+        capabilities:
+          add: ["NET_ADMIN"]
+        privileged: true
+      startupProbe:
+        httpGet:
+          path: /
+          port: "${{PORT}}"
+        failureThreshold: "${{FAILURETHRESHOLD}}"
+        periodSeconds: "${{PERIODSECONDS}}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABEL
+- name: PORT
+- name: FAILURETHRESHOLD
+- name: PERIODSECONDS

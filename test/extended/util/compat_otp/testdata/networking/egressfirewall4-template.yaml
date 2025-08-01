@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressfirewall4
+objects:
+- kind: EgressFirewall
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: ${NAME}
+    namespace: "${NAMESPACE}"
+  spec:
+    egress:
+    - type: Allow
+      to:
+        nodeSelector:
+          matchExpressions:
+            - { key: ef-org, operator: In, values: [dev] }
+    - type: ${RULETYPE}
+      to:
+        cidrSelector: ${CIDR}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RULETYPE
+- name: CIDR

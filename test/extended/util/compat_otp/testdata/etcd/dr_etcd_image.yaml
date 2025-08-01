@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etcd-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etcd-data
+  template:
+    metadata:
+      labels:
+        app: etcd-data
+    spec:
+      containers:
+      - name: access
+        image: ETCD_IMAGE
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib
+        command:
+        - /usr/bin/bash
+        args:
+        - -c
+        - |-
+          while true; do
+            sleep 1000
+          done
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data-etcd-0

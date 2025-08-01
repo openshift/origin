@@ -1,0 +1,31 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: rsyslogserver-template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      provider: aosqe
+      component: ${NAME}
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+    - name: rsyslogserver-tcp
+      port: 514
+      targetPort: 514
+      protocol: TCP
+    - name: rsyslogserver-udp
+      port: 514
+      targetPort: 514
+      protocol: UDP
+    selector:
+      component: ${NAME}
+      provider: aosqe
+parameters:
+- name: NAME
+  value: "rsyslogserver"
+- name: NAMESPACE
+  value: "openshift-logging"

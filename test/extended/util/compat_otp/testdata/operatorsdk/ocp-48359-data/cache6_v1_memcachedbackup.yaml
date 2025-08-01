@@ -1,0 +1,12 @@
+apiVersion: cache6.hybird.com/v1
+kind: MemcachedBackup
+metadata:
+  labels:
+    app.kubernetes.io/name: memcachedbackup
+    app.kubernetes.io/instance: memcachedbackup-sample
+    app.kubernetes.io/part-of: memcached-operator-48359
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: memcached-operator-48359
+  name: memcachedbackup-sample
+spec:
+  size: 1

@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-workload-replicate-template
+objects:
+- apiVersion: apps/v1
+  kind: ReplicaSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    template:
+      metadata:
+        labels:
+          "${LABELKEY}": "${LABELVALUE}"
+      spec:
+        serviceAccountName: "${SANAME}"
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-unprivileged:1.27.5
+          ports:
+          - containerPort: 8080
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: REPLICAS
+- name: LABELKEY
+- name: LABELVALUE
+- name: SANAME

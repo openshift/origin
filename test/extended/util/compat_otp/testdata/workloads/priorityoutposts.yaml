@@ -1,0 +1,40 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: prioritypod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+     env: "${LABEL}"
+  spec:
+    containers:
+    - name: sleep
+      image: quay.io/openshifttest/hello-openshift@sha256:f79669a4290b8917fc6f93eb1d2508a9517f36d8887e38745250db2ef4b0bc40
+      imagePullPolicy: IfNotPresent
+      resources:
+        requests:
+         cpu: 50m
+         memory: "${MEMORY}"
+      env:
+      - name: PORT
+        value: ''
+      - name: SECOND_PORT
+        value: ''
+      - name: TRAP_SIGNALS
+        value: 'yes'
+    tolerations:
+    - key: "node-role.kubernetes.io/outposts"
+      operator: "Exists"
+      effect: "NoSchedule"
+    priorityClassName: "${PRIORITYCLASSNAME}"
+    terminationGracePeriodSeconds: 60
+parameters:
+- name: NAME
+- name: LABEL
+- name: MEMORY
+- name: PRIORITYCLASSNAME
+- name: NAMESPACE

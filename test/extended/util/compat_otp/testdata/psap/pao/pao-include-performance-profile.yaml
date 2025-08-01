@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pao-template
+objects:  
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: include-performance-profile
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Configuration changes profile inherited from performance created tuned
+          include=openshift-node-performance-optimize
+          [bootloader]
+          cmdline_crash=nohz_full=0,2-4
+          [sysctl]
+          kernel.timer_migration=1
+          [service]
+          service.stalld=start,enable
+        name: include-performance-profile
+      recommend:
+      - machineConfigLabels:
+          #Role Name, master for SNO, worker-optimize for normal cluster
+          machineconfiguration.openshift.io/role: "${ROLENAME}"
+        priority: 19
+        profile: include-performance-profile
+parameters:
+  - name: ROLENAME

@@ -1,0 +1,56 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: scansetting-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  schedule: "${SCHEDULE}"
+  debug: ${{DEBUG}}
+  # Scan-specific settings
+  strictNodeScan: ${{STRICTNODESCAN}}
+  # Scan-specific settings
+  rawResultStorage:
+    size: "${SIZE}"
+    rotation: ${{ROTATION}}
+    nodeSelector:
+      node-role.kubernetes.io/master: ""
+    tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoSchedule
+      key: node.kubernetes.io/memory-pressure
+      operator: Exists
+  # For each role, a separate scan will be created pointing
+  # to a node-role specified in roles
+  roles:
+    - "${ROLES1}"
+    - "${ROLES2}"
+  scanLimits:
+    cpu: "${CPU_LIMIT}"
+    memory: "${MEMORY_LIMIT}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SCHEDULE
+- name: SIZE
+- name: ROTATION
+- name: ROLES1
+- name: ROLES2
+- name: DEBUG
+- name: STRICTNODESCAN
+- name: CPU_LIMIT
+- name: MEMORY_LIMIT

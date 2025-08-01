@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bond-policy-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+      - name: "${PORT1}"
+        type: dummy
+        state: "${STATE}"
+      - name: "${PORT2}"
+        type: dummy
+        state: "${STATE}"
+      - name: "${IFACENAME}"
+        description: "${DESCR}"
+        type: bond
+        state: "${STATE}"
+        link-aggregation:
+          mode: balance-rr
+          options:
+            miimon: '140'
+          port:
+          - "${PORT1}"
+          - "${PORT2}"
+parameters:
+- name: NAME
+- name: NODELABEL
+  value: "node-role.kubernetes.io/worker"
+- name: LABELVALUE
+  value: ""
+- name: IFACENAME
+- name: DESCR
+- name: STATE
+- name: PORT1
+- name: PORT2

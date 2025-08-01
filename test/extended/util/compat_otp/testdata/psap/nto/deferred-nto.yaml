@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nto-tuned-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: ${TUNED_PROFILE}
+      namespace: openshift-cluster-node-tuning-operator
+      annotations:
+        tuned.openshift.io/deferred: "${DEFERRED_VALUE}"
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Custom OpenShift profile
+          include=openshift-node
+          [sysctl]
+          ${SYSCTL_NAME}=${SYSCTL_VALUE}
+        name: ${TUNED_PROFILE}
+      recommend:
+      - match:
+        - label: ${LABEL_NAME}
+        priority: 20
+        profile: ${TUNED_PROFILE}
+parameters:
+- name: TUNED_PROFILE
+- name: SYSCTL_NAME
+- name: SYSCTL_VALUE   
+- name: LABEL_NAME 
+- name: DEFERRED_VALUE

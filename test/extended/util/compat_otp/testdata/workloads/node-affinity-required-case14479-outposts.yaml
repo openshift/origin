@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: node-affinity-required-case14479
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: key14479
+            operator: In
+            values:
+            - value14479
+  tolerations:
+    - key: "node-role.kubernetes.io/outposts"
+      operator: "Exists"
+      effect: "NoSchedule"
+  containers:
+  - name: hello-openshift
+    image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83

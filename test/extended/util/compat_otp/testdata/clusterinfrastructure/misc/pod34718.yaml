@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: ${NAME}
+    spec:
+      volumes:
+        - name: task-pv-storage
+          persistentVolumeClaim:
+            claimName: pvc-cloud
+      containers:
+        - name: task-pv-container
+          image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+          ports:
+            - containerPort: 80
+              name: "http-server"
+          volumeMounts:
+            - mountPath: "/mnt/rbd"
+              name: task-pv-storage
+parameters:
+- name: NAME

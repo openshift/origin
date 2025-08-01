@@ -1,0 +1,50 @@
+{
+    "apiVersion": "template.openshift.io/v1",
+    "kind": "Template",
+    "metadata": {
+        "name": "iperf-service-template"
+    },
+    "objects": [     
+        {           
+          "kind": "Service",
+          "apiVersion": "v1",
+          "metadata": {
+            "name": "${{SVCNAME}}",
+            "labels": {
+                "name": "${{SVCNAME}}"
+            }
+          },
+          "spec": {
+            "ports": [
+              {
+                "name": "iperf-tcp",
+                "protocol": "TCP",
+                "port": 5201,
+                "targetPort": 5201
+              },
+              {
+                "name": "iperf-udp",
+                "protocol": "UDP",
+                "port": 5201,
+                "targetPort": 5201
+              }
+            ],
+            "type": "${{SVCTYPE}}",
+            "selector": {
+              "name": "${{PODNAME}}"
+            }
+          }
+        }
+    ],
+    "parameters": [
+        {
+          "name": "PODNAME"
+        },
+        {
+          "name": "SVCNAME"
+        },
+        {
+          "name": "SVCTYPE"
+        }
+    ]
+}

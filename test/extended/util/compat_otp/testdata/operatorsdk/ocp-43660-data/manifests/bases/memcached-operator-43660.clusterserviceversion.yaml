@@ -1,0 +1,41 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: memcached-operator-43660.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions: {}
+  description: memcached-operator-43660
+  displayName: memcached-operator-43660
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - memcached-operator-43660
+  links:
+  - name: Memcached Operator 43660
+    url: https://memcached-operator-43660.domain
+  maintainers:
+  - email: email
+    name: test
+  maturity: alpha
+  provider:
+    name: memcached-operator-43660
+  version: 0.0.0

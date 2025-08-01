@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-test-client
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${CLIENT_NS}
+    labels:
+      name: ${CLIENT_NS}
+      pod-security.kubernetes.io/enforce: privileged
+      pod-security.kubernetes.io/enforce-version: v1.24
+      pod-security.kubernetes.io/audit: privileged
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    labels:
+      run: client
+    name: client
+    namespace: ${CLIENT_NS}
+  spec:
+    containers:
+    - command: ['/bin/sh', '-c']
+      args: ["hping3 -c 5000 -S -p 80 --rand-source 192.168.1.159"]
+      image: quay.io/openshifttest/hello-sdn:1.2.1
+      securityContext:
+        allowPrivilegeEscalation: true
+        privileged: true
+        runAsUser: 0
+        seccompProfile:
+          type: RuntimeDefault
+      name: client
+    restartPolicy: Never
+parameters:
+- name: CLIENT_NS
+  value: test-client

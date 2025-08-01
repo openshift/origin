@@ -1,0 +1,17 @@
+Schema: olm.semver
+Candidate:
+  Bundles:
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v0.0.1
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-alpha
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-beta
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-alpha20220829
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-alpha20220830
+Stable:
+  Bundles:
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-beta
+Fast:
+  Bundles:
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v0.0.1
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-beta
+

@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metallb-cr-node-affinity-template.yaml
+objects:
+- apiVersion: metallb.io/v1beta1
+  kind: MetalLB
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    controllerConfig:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchFields:
+              - key: metadata.name
+                operator: In
+                values:
+                - "${PARAM1}"
+    speakerConfig:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchFields:
+              - key: metadata.name
+                operator: In
+                values:
+                - "${PARAM2}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PARAM1
+- name: PARAM2

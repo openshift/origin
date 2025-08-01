@@ -1,0 +1,30 @@
+# xref: https://github.com/hashicorp/vault-helm/blob/main/values.yaml All available parameters and default values for the Vault chart.
+# Set 'server.dataStorage.size' to 1Gi as the default 10Gi is too expensive and unnecessary for testing propose in CI.
+global:
+  enabled: true
+  tlsDisable: true
+  openshift: true
+injector:
+  enabled: false
+server:
+  ui:
+    enabled: true
+  image:
+    repository: "quay.io/openshifttest/vault"
+    tag: "1.19.0"
+  dataStorage:
+    enabled: true
+    size: 1Gi
+  extraEnvironmentVars: {}
+  standalone:
+    enabled: true
+    config: |
+      listener "tcp" {
+        tls_disable = 1
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+      storage "file" {
+        path = "/vault/data"
+      }
+      ui = true

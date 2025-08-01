@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: community-cr-template
+objects:
+- kind: Community
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    communities:
+    - name: "${COMMUNITYNAME}"
+      value: "${VALUE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: COMMUNITYNAME
+- name: VALUE

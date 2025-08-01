@@ -1,0 +1,51 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: window-pod-window-node-template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+        app: win-webserver
+  spec:
+    selector:
+      matchLabels:
+        app: win-webserver
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: win-webserver
+        name: win-webserver
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        tolerations:
+        - key: "os"
+          value: "Windows"
+          Effect: "NoSchedule"
+        containers:
+        - name: windowswebserver
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          image: "${IMAGE}"
+          imagePullPolicy: IfNotPresent
+          command:
+          - powershell.exe
+          - -command
+          - $listener = New-Object System.Net.HttpListener; $listener.Prefixes.Add('http://*:80/'); $listener.Start();Write-Host('Listening at http://*:80/'); while ($listener.IsListening) { $context = $listener.GetContext(); $response = $context.Response; $content='<html><body><H1>Windows Container Web Server</H1></body></html>'; $buffer = [System.Text.Encoding]::UTF8.GetBytes($content); $response.ContentLength64 = $buffer.Length; $response.OutputStream.Write($buffer, 0, $buffer.Length); $response.Close(); };
+        nodeSelector:
+          kubernetes.io/os: windows
+        nodeName: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IMAGE
+- name: NODENAME

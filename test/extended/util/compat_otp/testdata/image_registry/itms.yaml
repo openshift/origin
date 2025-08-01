@@ -1,0 +1,20 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: itms-template
+objects:
+- apiVersion: config.openshift.io/v1
+  kind: ImageTagMirrorSet
+  metadata:
+    name: "${NAME}"
+  spec:
+    imageTagMirrors:
+    - mirrors:
+      - "${MIRRORS}" 
+      source: "${SOURCE}" 
+      mirrorSourcePolicy: NeverContactSource
+parameters:
+- name: NAME
+- name: MIRRORS
+- name: SOURCE
+

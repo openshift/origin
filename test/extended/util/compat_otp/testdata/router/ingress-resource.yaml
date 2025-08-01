@@ -1,0 +1,86 @@
+kind: List
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: ingress-edge
+    annotations:
+      route.openshift.io/termination: "edge"
+  spec:
+    rules:
+    - host: edgehostname
+      http:
+        paths:
+        - path: "/"
+          backend:
+            service:
+              name: service-unsecure
+              port: 
+                number: 27017
+          pathType: "Prefix"
+    tls:
+    - hosts:
+      - hostname1
+      secretName: ingress-secret
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: ingress-passth
+    annotations:
+      route.openshift.io/termination: passthrough
+  spec:
+    rules:
+    - host: passhostname
+      http:
+        paths:
+        - path: ''
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: service-secure
+              port: 
+                number: 27443
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: ingress-reencrypt
+    annotations:
+      route.openshift.io/termination: "reencrypt"
+  spec:
+    rules:
+    - host: reenhostname
+      http:
+        paths:
+        - path: "/"
+          backend:
+            service:
+              name: service-secure
+              port: 
+                number: 27443
+          pathType: "Prefix"
+    tls:
+    - hosts:
+      - hostname3
+      secretName: ingress-secret
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: ingress-random
+    annotations:
+      route.openshift.io/termination: "abcd"
+  spec:
+    rules:
+    - host: randomhostname
+      http:
+        paths:
+        - path: "/"
+          backend:
+            service:
+              name: service-unsecure
+              port: 
+                number: 27017
+          pathType: "Prefix"
+    tls:
+    - hosts:
+      - randomhostname
+      secretName: ingress-secret

@@ -1,0 +1,18 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogging-og-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorGroup
+  metadata:
+    name: ${OG_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    targetNamespaces:
+    - ${NAMESPACE}
+parameters:
+  - name: OG_NAME
+    value: "openshift-logging"
+  - name: NAMESPACE
+    value: "openshift-logging"

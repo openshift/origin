@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-recurbackup
+objects:
+  - kind: Backup
+    apiVersion: config.openshift.io/v1alpha1
+    metadata:
+      name: "${NAME}"
+    spec:
+      etcd:
+        schedule: "*/1 * * * *"
+        timeZone: "UTC"
+        retentionPolicy:
+          retentionType: RetentionNumber
+          retentionNumber:
+            maxNumberOfBackups: ${{MNUMBACKUP}}
+        pvcName: "${PVCNAME}"
+parameters:
+  - name: NAME
+  - name: MNUMBACKUP
+  - name: PVCNAME
+

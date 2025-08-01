@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: frrconfiguration-receive-all-dualstack-template
+objects:
+- kind: FRRConfiguration
+  apiVersion: frrk8s.metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    bgp:
+      routers:
+      - asn: ${{ASN_LOCAL}}
+        neighbors:
+        - address: "${FRR_IPv4}"
+          asn: ${{ASN_REMOTE}}
+          disableMP: true
+          toReceive:
+            allowed:
+              mode: all
+        - address: "${FRR_IPv6}"
+          asn: ${{ASN_REMOTE}}
+          disableMP: true
+          toReceive:
+            allowed:
+              mode: all
+parameters:
+- name: NAME 
+- name: NAMESPACE
+- name: ASN_LOCAL
+- name: ASN_REMOTE
+- name: FRR_IPv4
+- name: FRR_IPv6

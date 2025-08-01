@@ -1,0 +1,32 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: $nadname
+  namespace: $namespace 
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.1",
+      "name": "$nadname",
+      "type": "$plugintype",
+      "mode": "$mode",
+      "ipam": {
+        "type": "$ipamtype",
+        "ranges": [
+          [
+            {
+              "subnet": "$ipv4range",
+              "rangeStart": "$v4rangestart",
+              "rangeEnd": "$v4rangeend"
+            }
+          ],
+          [
+            {
+              "subnet": "$ipv6range",
+              "rangeStart": "$v6rangestart",
+              "rangeEnd": "$v6rangeend"
+            }
+          ]
+        ]
+      }
+    }

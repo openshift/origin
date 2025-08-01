@@ -1,0 +1,188 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: flowcollector-template
+objects:
+  - apiVersion: flows.netobserv.io/v1beta2
+    kind: FlowCollector
+    metadata:
+      name: cluster
+    spec:
+      namespace: "${Namespace}"
+      deploymentModel: "${DeploymentModel}"
+      agent:
+        type: eBPF
+        ebpf:
+          imagePullPolicy: IfNotPresent
+          sampling: ${{Sampling}}
+          cacheActiveTimeout: ${EBPFCacheActiveTimeout}
+          cacheMaxFlows: ${{CacheMaxFlows}}
+          interfaces: [ ]
+          excludeInterfaces: ["lo"]
+          features: "${{EBPFeatures}}"
+          logLevel: info
+          privileged: "${{EBPFPrivileged}}"
+          flowFilter:
+            enable: "${{EBPFFilterEnable}}"
+            rules: "${{EBPFFilterRules}}"
+          metrics:
+            enable: "${{EBPFMetrics}}"
+            server:
+              port: 9400
+              tls:
+                type: "${EBPFMetricServerTLSType}"
+      processor:
+        multiClusterDeployment: "${{MultiClusterDeployment}}"
+        addZone: "${{AddZone}}"
+        metrics:
+          server:
+            tls:
+              type: "${FLPMetricServerTLSType}"
+          disableAlerts: []
+        logTypes: "${LogType}"
+        filters: "${{FLPFilters}}"
+        advanced:
+          dropUnusedFields: true
+          conversationTerminatingTimeout: 5s
+          conversationHeartbeatInterval: 5s
+          conversationEndTimeout: 20s
+          secondaryNetworks: "${{SecondaryNetworks}}"
+      kafka:
+        address: "${KafkaAddress}"
+        topic: "${KafkaTopic}"
+        tls:
+          enable: "${{KafkaTLSEnable}}"
+          caCert:
+            type: secret
+            name: "${KafkaClusterName}-cluster-ca-cert"
+            certFile: ca.crt
+            namespace: "${KafkaNamespace}"
+          userCert:
+            type: secret
+            name: "${KafkaUser}"
+            certFile: user.crt
+            certKey: user.key
+            namespace: "${KafkaNamespace}"
+      loki:
+        mode: "${LokiMode}"
+        enable: "${{LokiEnable}}"
+        lokiStack:
+          name: ${LokistackName}
+          namespace: ${LokiNamespace}
+        manual:
+          authToken: Forward
+          querierUrl: "${LokiURL}"
+          ingesterUrl: "${LokiURL}"
+          statusUrl: "${LokiStatusURL}"
+          tls:
+            enable: true
+            caCert:
+              type: configmap
+              name: "${LokiTLSCertName}"
+              certFile: service-ca.crt
+              namespace: "${LokiNamespace}"
+            insecureSkipVerify: false
+          statusTls:
+            enable: "${{LokiStatusTLSEnable}}"
+            caCert:
+              certFile: service-ca.crt
+              name: "${LokiStatusTLSCertName}"
+              type: configmap
+              namespace: "${LokiNamespace}"
+            insecureSkipVerify: false
+            userCert:
+              certFile: tls.crt
+              certKey: tls.key
+              name: "${LokiStatusTLSUserCertName}"
+              type: secret
+              namespace: "${LokiNamespace}"
+        monolithic:
+          url: ${MonolithicLokiURL}
+      networkPolicy:
+        additionalNamespaces: "${{NetworkPolicyAdditionalNamespaces}}"
+        enable: "${{NetworkPolicyEnable}}"
+      consolePlugin:
+        enable: "${{PluginEnable}}"
+        portNaming:
+          enable: true
+          portNames:
+            "3100": loki
+      exporters: "${{Exporters}}"
+parameters:
+  - name: Namespace
+    description: "namespace where you want flowlogsPipeline and consoleplugin pods to be deployed"
+    value: "netobserv"
+  - name: DeploymentModel
+    value: "Direct"
+  - name: EBPFCacheActiveTimeout
+    value: 15s
+  - name: Sampling
+    value: "1"
+  - name: EBPFPrivileged
+    value: "false"
+  - name: EBPFMetrics
+    value: "true"
+  - name: FLPMetricServerTLSType
+    value: "Auto"
+  - name: EBPFMetricServerTLSType
+    value: "Disabled"
+  - name: EBPFeatures
+    value: '[]'
+  - name: EBPFFilterEnable
+    value: "true"
+  - name: EBPFFilterRules
+    value: '[{"action": "Accept","cidr": "0.0.0.0/0"}]'
+  - name: CacheMaxFlows
+    value: "100000"
+  - name: MultiClusterDeployment
+    value: "false"
+  - name: AddZone
+    value: "false"
+  - name: LogType
+    value: "Flows"
+  - name: FLPFilters
+    value: '[]'
+  - name: LokiMode
+    value: "LokiStack"
+  - name: LokiEnable
+    value: "true"
+  - name: LokistackName
+    value: lokistack
+  - name: LokiURL
+    value: "https://lokistack-gateway-http.netobserv.svc.cluster.local:8080/api/logs/v1/network/"
+  - name: LokiTLSCertName
+    value: "lokistack-gateway-ca-bundle"
+  - name: LokiStatusURL
+    value: ""
+  - name: LokiStatusTLSEnable
+    value: "false"
+  - name: LokiStatusTLSCertName
+    value: "lokistack-ca-bundle"
+  - name: LokiStatusTLSUserCertName
+    value: "lokistack-query-frontend-http"
+  - name: MonolithicLokiURL
+    value: "http://loki.netobserv.svc:3100/"
+  - name: LokiNamespace
+    value: "netobserv"
+  - name: KafkaAddress
+    value: "kafka-cluster-kafka-bootstrap.netobserv"
+  - name: KafkaTLSEnable
+    value: "false"
+  - name: KafkaClusterName
+    value: "kafka-cluster"
+  - name: KafkaTopic
+    value: "network-flows"
+  - name: KafkaUser
+    value: "flp-kafka"
+  - name: KafkaNamespace
+    value: "netobserv"
+  - name: PluginEnable
+    value: "true"
+  - name: NetworkPolicyEnable
+    value: "false"
+  - name: NetworkPolicyAdditionalNamespaces
+    value: '[]'
+  - name: Exporters
+    value: '[]'
+  - name: SecondaryNetworks
+    value: '[]'

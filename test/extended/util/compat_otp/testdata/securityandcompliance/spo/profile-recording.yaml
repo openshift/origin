@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-profile-recording-template
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1alpha1
+  kind: ProfileRecording
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    kind: "${KIND}"
+    recorder: logs
+    mergeStrategy: "${MERGESTRATEGY}"
+    podSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: KIND
+- name: MERGESTRATEGY
+- name: LABELKEY
+- name: LABELVALUE

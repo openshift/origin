@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machineconfig-fio-test-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: MachineConfig
+  metadata:
+    labels:
+      machineconfiguration.openshift.io/role: "${ROLE}"
+    name: "${NAME}"
+  spec:
+    config:
+      ignition:
+        version: 3.2.0
+      storage:
+        files:
+        - contents:
+            source: data:,file-integrity-operator-was-here
+            verification: {}
+          filesystem: root
+          mode: 644
+          path: /etc/fi-test-file
+          overwrite: true
+
+parameters:
+- name: NAME
+- name: ROLE

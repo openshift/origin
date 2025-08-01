@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-modify-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    nodeName: "${NODENAME}"
+    containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+      name: hello-pod
+      args: 
+      - "-c"
+      - "${PARAC}"
+      command:
+      - "/bin/sh"
+      imagePullPolicy: Always
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      volumeMounts:
+      - mountPath: /hostroot
+        name: hostroot
+    restartPolicy: Never
+    volumes:
+    - hostPath:
+        path: /
+        type: ""
+      name: hostroot
+parameters:
+- name: NAME
+- name: NODENAME
+- name: NAMESPACE
+- name: PARAC
+

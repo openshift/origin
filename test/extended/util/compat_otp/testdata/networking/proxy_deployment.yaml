@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: squid
+  name: squid-deployment
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: squid
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: squid
+    spec:
+      containers:
+      - command:
+        - /bin/bash
+        - -c
+        - |
+          #!/bin/bash
+          set -e
+ 
+          # allow arguments to be passed to squid
+          if [[ ${1:0:1} = '-' ]]; then
+            EXTRA_ARGS="$@"
+            set --
+          elif [[ ${1} == squid || ${1} == $(which squid) ]]; then
+            EXTRA_ARGS="${@:2}"
+            set --
+          fi
+          cat << EOF > /etc/squid/squid.conf
+          acl SSL_ports port 443
+          acl SSL_ports port 6443
+          acl Safe_ports port 80
+          acl Safe_ports port 21
+          acl Safe_ports port 443
+          acl Safe_ports port 6443
+          acl Safe_ports port 70
+          acl Safe_ports port 210
+          acl Safe_ports port 1025-65535
+          acl Safe_ports port 280
+          acl Safe_ports port 488
+          acl Safe_ports port 591
+          acl Safe_ports port 777
+          acl CONNECT method CONNECT
+          http_access deny !Safe_ports
+          http_access deny CONNECT !SSL_ports
+          # http_access allow localhost manager
+          # http_access deny manager
+          # http_access allow all
+          # http_access deny all
+          http_port 3128
+          coredump_dir /var/spool/squid3
+          refresh_pattern ^ftp:           1440    20%     10080
+          refresh_pattern ^gopher:        1440    0%      1440
+          refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+          refresh_pattern .               0       20%     4320
+          EOF
+ 
+          # default behaviour is to launch squid
+          if [[ -z ${1} ]]; then
+            echo "Starting squid..."
+            exec $(which squid) -f /etc/squid/squid.conf -NYCd 1 ${EXTRA_ARGS}
+          else
+            exec "$@"
+          fi
+        image: sameersbn/squid:3.5.27-2
+        imagePullPolicy: IfNotPresent
+        name: squid
+        ports:
+        - containerPort: 3128
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/log/squid
+          name: log-dir
+      - args:
+        - tail -F /var/log/squid/access.log
+        command:
+        - /bin/sh
+        - -c
+        image: busybox
+        imagePullPolicy: Always
+        name: tailer
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/log/squid
+          name: log-dir
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: log-dir

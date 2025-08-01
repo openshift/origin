@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tcpdump-daemonset-template
+objects:
+- apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    selector:
+      matchLabels:
+        name: "${NAME}"
+    template:
+      metadata:
+        labels:
+          name: "${NAME}"
+      spec:
+        nodeSelector:
+          "${NODELABEL}": "${LABELKEY}"
+        securityContext:
+          runAsUser: 0
+          seccompProfile:
+            type: RuntimeDefault
+        hostNetwork: true
+        containers:
+        - image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+          name: tcpdump
+          securityContext:
+            capabilities:
+              add: ["SETFCAP","CAP_NET_RAW","CAP_NET_ADMIN"]
+          command: ["/bin/bash","-c"]
+          args:
+          - tcpdump -nne -i ${INF} -l -s 0  'port ${DSTPORT} and host ${HOST} and tcp[((tcp[12:1] & 0xf0) >> 2):4] = 0x47455420'
+        serviceAccount: default
+        terminationGracePeriodSeconds: 10
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODELABEL
+- name: LABELKEY
+- name: INF
+- name: DSTPORT
+- name: HOST
+

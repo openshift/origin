@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-service-template
+objects:
+  # Service
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+    - name: storage-svc
+      nodePort: ${{NODEPORT}}
+      port: ${{PORT}}
+      protocol: ${PROTOCOL}
+      targetPort: ${{TARGETPORT}}
+    selector:
+      app: ${SELECTORLABEL}
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PORT
+- name: NODEPORT
+- name: PROTOCOL
+- name: TARGETPORT
+- name: SELECTORLABEL

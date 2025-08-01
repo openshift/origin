@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kubeletconfig-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    kubeletConfig:
+      evictionHard:
+        memory.available: "2Gi"
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE

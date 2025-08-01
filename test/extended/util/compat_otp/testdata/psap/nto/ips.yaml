@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ips-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: ips
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=A custom OpenShift IPS host profile
+          [sysctl]
+          kernel.msgmni=4096
+          ${SYSCTLPARM1}=${SYSCTLVALUE1}
+          kernel.shmmax=180000000
+          kernel.sem="128 1048576 32 32768"
+          net.core.rmem_default=>33554431
+          net.core.rmem_max=>33554431
+          fs.file-max=>240000
+          vm.dirty_background_ratio=64
+          vm.dirty_ratio=72
+          ${SYSCTLPARM2}=${SYSCTLVALUE2}
+        name: ips-host
+      recommend:
+      - match:
+        - label: tuned
+          value: ips
+        priority: 18
+        profile: ips-host
+parameters:
+- name: SYSCTLPARM1
+- name: SYSCTLVALUE1
+- name: SYSCTLPARM2
+- name: SYSCTLVALUE2

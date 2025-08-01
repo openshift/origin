@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: static-hostname-policy-template
+objects:
+  - apiVersion: nmstate.io/v1
+    kind: NodeNetworkConfigurationPolicy
+    metadata:
+      name: "${NAME}"
+    spec:
+      nodeSelector:
+        "${NODELABEL}": "${LABELVALUE}"
+      desiredState:
+        hostname:
+          config: "${HOSTDOMAIN}"
+
+parameters:
+  - name: NAME
+  - name: NODELABEL
+    value: "kubernetes.io/hostname"
+  - name: LABELVALUE
+  - name: HOSTDOMAIN
