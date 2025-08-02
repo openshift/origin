@@ -1,0 +1,42 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webhook-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-operator-installer
+  namespace: webhook-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: webhook-operator-installer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: webhook-operator-installer
+    namespace: webhook-operator
+---
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: webhook-operator
+spec:
+  namespace: webhook-operator
+  serviceAccount:
+    name: webhook-operator-installer
+  source:
+    catalog:
+      packageName: webhook-operator
+      version: 0.0.1
+      selector:
+        matchLabels:
+          olm.operatorframework.io/metadata.name: webhook-operator-catalog
+      upgradeConstraintPolicy: CatalogProvided
+    sourceType: Catalog
