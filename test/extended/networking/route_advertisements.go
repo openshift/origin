@@ -279,7 +279,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				g.By("Launching an agent pod")
 				nodeSelection := e2epod.NodeSelection{}
 				e2epod.SetAffinity(&nodeSelection, externalNodeName)
-				proberPod := createProberPod(oc, snifferNamespace, bgpAgentPodName)
+				proberPod := createProberPodWithNodeSelection(oc, snifferNamespace, bgpAgentPodName, nodeSelection)
 
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("checking the external host to pod traffic works for IPv4")
@@ -361,7 +361,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				g.By("Launching an agent pod")
 				nodeSelection := e2epod.NodeSelection{}
 				e2epod.SetAffinity(&nodeSelection, externalNodeName)
-				proberPod := createProberPod(oc, targetNamespace, bgpAgentPodName)
+				proberPod := createProberPodWithNodeSelection(oc, targetNamespace, bgpAgentPodName, nodeSelection)
 
 				if clusterIPFamily == DualStack || clusterIPFamily == IPv4 {
 					g.By("checking the external host to pod traffic works for IPv4")

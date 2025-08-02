@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -1140,6 +1141,16 @@ func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string) *
 	clientset := f.ClientSet
 
 	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {})
+}
+
+// createProberPodWithNodeSelection creates a prober pod in the proberPodNamespace with the given node selection.
+func createProberPodWithNodeSelection(oc *exutil.CLI, proberPodNamespace, proberPodName string, nodeSelection e2epod.NodeSelection) *v1.Pod {
+	f := oc.KubeFramework()
+	clientset := f.ClientSet
+
+	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {
+		e2epod.SetNodeSelection(&pod.Spec, nodeSelection)
+	})
 }
 
 // destroyProberPod destroys the given proberPod.
