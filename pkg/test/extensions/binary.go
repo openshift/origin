@@ -414,6 +414,9 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		return nil, nil, errors.New("parallelism must be greater than zero")
 	}
 
+	// Filter extension binaries based on environment variables
+	filteredBinaries := filterExtensionBinariesByTags(extensionBinaries)
+
 	releaseImage, err := DetermineReleasePayloadImage()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "couldn't determine release image")
@@ -441,14 +444,14 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		binaries []*TestBinary
 		mu       sync.Mutex
 		wg       sync.WaitGroup
-		errCh    = make(chan error, len(extensionBinaries))
+		errCh    = make(chan error, len(filteredBinaries))
 		jobCh    = make(chan TestBinary)
 	)
 
 	// Producer: sends jobs to the jobCh channel
 	go func() {
 		defer close(jobCh)
-		for _, b := range extensionBinaries {
+		for _, b := range filteredBinaries {
 			select {
 			case <-ctx.Done():
 				return // Exit if context is cancelled
@@ -745,6 +748,77 @@ func safeComponentPath(c *extension.Component) string {
 		safePathRegexp.ReplaceAllString(c.Kind, "_"),
 		safePathRegexp.ReplaceAllString(c.Name, "_"),
 	)
+}
+
+// filterExtensionBinariesByTags filters the extension binaries based on environment variables:
+// - EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS: comma-separated list of image tags to exclude
+// - EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS: comma-separated list of image tags to include (use only these)
+func filterExtensionBinariesByTags(binaries []TestBinary) []TestBinary {
+	excludeTags := os.Getenv("EXTENSION_BINARY_OVERRIDE_EXCLUDE_TAGS")
+	includeTags := os.Getenv("EXTENSION_BINARY_OVERRIDE_INCLUDE_TAGS")
+
+	// If neither environment variable is set, return all binaries
+	if excludeTags == "" && includeTags == "" {
+		return binaries
+	}
+
+	var filtered []TestBinary
+
+	// Parse exclude tags
+	var excludeSet sets.Set[string]
+	if excludeTags != "" {
+		excludeList := strings.Split(excludeTags, ",")
+		excludeSet = sets.New[string]()
+		for _, tag := range excludeList {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				excludeSet.Insert(tag)
+			}
+		}
+		logrus.Infof("Excluding extension binaries with image tags: %v", excludeSet.UnsortedList())
+	}
+
+	// Parse include tags
+	var includeSet sets.Set[string]
+	if includeTags != "" {
+		includeList := strings.Split(includeTags, ",")
+		includeSet = sets.New[string]()
+		for _, tag := range includeList {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				includeSet.Insert(tag)
+			}
+		}
+		logrus.Infof("Including only extension binaries with image tags: %v", includeSet.UnsortedList())
+	}
+
+	// Filter binaries
+	for _, binary := range binaries {
+		imageTag := binary.imageTag
+
+		// If include tags are specified, only include binaries with those tags
+		if includeSet != nil {
+			if includeSet.Has(imageTag) {
+				filtered = append(filtered, binary)
+				logrus.Infof("Including extension binary with image tag: %s", imageTag)
+			} else {
+				logrus.Infof("Excluding extension binary with image tag: %s (not in include list)", imageTag)
+			}
+			continue
+		}
+
+		// If exclude tags are specified, exclude binaries with those tags
+		if excludeSet != nil && excludeSet.Has(imageTag) {
+			logrus.Infof("Excluding extension binary with image tag: %s", imageTag)
+			continue
+		}
+
+		// Include the binary
+		filtered = append(filtered, binary)
+	}
+
+	logrus.Infof("Filtered extension binaries: %d out of %d binaries will be processed", len(filtered), len(binaries))
+	return filtered
 }
 
 // filterToApplicableEnvironmentFlags filters the provided envFlags to only those that are applicable to the
