@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -137,7 +138,8 @@ func discoverAPIGroups(coreClient clientset.Interface) (sets.Set[string], error)
 // discoverFeatureGates discovers feature gates in the cluster
 func discoverFeatureGates(configClient configclient.Interface, clusterVersion *configv1.ClusterVersion) (enabled, disabled sets.Set[string], err error) {
 	logrus.Debugf("Discovering feature gates...")
-	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	ctx := context.Background()
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "encountered an error while discovering feature gates")
 	}
@@ -163,7 +165,13 @@ func discoverFeatureGates(configClient configclient.Interface, clusterVersion *c
 		break
 	}
 
-	sortedEnabledGates := enabled.UnsortedList()
+	featureGatesEnabledAPI, err := getFeatureGatesAPIServerMetrics(ctx, configClient)
+	if err != nil {
+		return nil, nil, errors.WithMessage(err, "couldn't determine FeatureGates from API /metrics")
+	}
+	enabled.Insert(featureGatesEnabledAPI...)
+
+	sortedEnabledGates := append(enabled.UnsortedList(), featureGatesEnabledAPI...)
 	slices.Sort(sortedEnabledGates)
 
 	logrus.WithField("featureGates", strings.Join(sortedEnabledGates, ", ")).
@@ -380,4 +388,27 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	config.DisabledFeatureGates = state.DisabledFeatureGates
 
 	return config, nil
+}
+
+// getFeatureGatesAPIServerMetrics extracts enabled feature gates from the API server metrics endpoint.
+// It returns a list of feature gate names that are enabled.
+func getFeatureGatesAPIServerMetrics(ctx context.Context, configClient configclient.Interface) ([]string, error) {
+	rsp, err := configClient.ConfigV1().RESTClient().Get().AbsPath("/metrics").Do(ctx).Raw()
+	if err != nil {
+		return nil, err
+	}
+	featureGates := sets.NewString()
+	lines := strings.Split(string(rsp), "\n")
+	re := regexp.MustCompile(`kubernetes_feature_enabled\{name="([^"]+)".*\} 1`)
+	for _, line := range lines {
+		if strings.HasPrefix(line, "kubernetes_feature_enabled{") && strings.HasSuffix(line, "} 1") {
+			matches := re.FindStringSubmatch(line)
+			if len(matches) == 2 {
+				featureGates.Insert(matches[1])
+			}
+		}
+	}
+	logrus.WithField("featureGates", strings.Join(featureGates.List(), ", ")).
+		Debugf("Discovered %d enabled feature gates from API server metrics", len(featureGates.List()))
+	return featureGates.List(), nil
 }
