@@ -1,12 +1,20 @@
 reviewers:
+  - arghosh93
+  - arkadeepsen
   - jcaamano
-  - knobunc
-  - danwinship
-  - trozet
+  - jluhrsen
+  - kyrtapz
+  - martinkennelly
+  - miheer
+  - pliurh
+  - pperiyasamy
+  - ricky-rav
   - tssurya
 approvers:
+  - danwinship
   - jcaamano
   - knobunc
-  - danwinship
-  - trozet
+  - kyrtapz
+  - martinkennelly
+  - pliurh
   - tssurya
