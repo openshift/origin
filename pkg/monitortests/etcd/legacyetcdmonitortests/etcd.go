@@ -98,3 +98,41 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals)
 	}
 	return []*junitapi.JUnitTestCase{failure}
 }
+
+// etcdOverloadedNetworkLimit is the max number of times etcd can log
+//
+//	dropped internal Raft message since sending buffer is full (overloaded network)
+//
+// before we fail this test. We've seen instances of total network failure due to this with up to
+// 300k log lines.
+const etcdOverloadedNetworkLimit = 10000
+
+func testEtcdDoesNotLogExcessiveOverloadedNetworkMessages(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-etcd] etcd should not log excessive overloaded network messages"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	counter := 0
+	for _, event := range events {
+		if event.Source == monitorapi.SourceEtcdLog &&
+			// Actual message: dropped internal Raft message since sending buffer is full (overloaded network)
+			strings.Contains(event.Message.HumanMessage, "overloaded network") {
+			counter++
+		}
+	}
+
+	if counter < etcdOverloadedNetworkLimit {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	msg := fmt.Sprintf("Etcd logged %d 'overloaded network' messages, this test fails on any value over %d as "+
+		"this is a strong indicator of a total network outage. Intervals charts for these runs will often show "+
+		"mass sparodic disruption and subsequent failed tests.",
+		counter, etcdOverloadedNetworkLimit)
+	failure := &junitapi.JUnitTestCase{
+		Name: testName,
+		FailureOutput: &junitapi.FailureOutput{
+			Output: msg,
+		},
+	}
+	return []*junitapi.JUnitTestCase{failure}
+}
