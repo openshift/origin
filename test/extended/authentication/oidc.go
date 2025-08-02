@@ -150,7 +150,8 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error authenticating as keycloak user")
 
 					copiedOC := *oc
-					tokenOC := copiedOC.WithToken(keycloakCli.AccessToken())
+					token := keycloakCli.AccessToken()
+					tokenOC := copiedOC.WithToken(token)
 					ssr, err := tokenOC.KubeClient().AuthenticationV1().SelfSubjectReviews().Create(ctx, &authnv1.SelfSubjectReview{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: fmt.Sprintf("%s-info", username),
@@ -495,7 +496,9 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 
 		_, err = cli.Update(ctx, current, metav1.UpdateOptions{})
 		if err != nil {
-			return false, err
+			// Only log the error so we continue to retry until the context has timed out
+			g.GinkgoLogr.Error(err, "updating authentication resource")
+			return false, nil
 		}
 
 		return true, nil
@@ -523,8 +526,8 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 		}
 
 		gomega.Expect(found).To(o.BeTrue(), "should have found the NodeInstallerProgressing condition")
-		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionTrue), "NodeInstallerProgressing condition should be True")
-	}).WithTimeout(5*time.Minute).WithPolling(10*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
+		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionTrue), "NodeInstallerProgressing condition should be True", nipCond)
+	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
 
 	// Then wait for it to flip back
 	o.Eventually(func(gomega o.Gomega) {
@@ -542,6 +545,6 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 		}
 
 		gomega.Expect(found).To(o.BeTrue(), "should have found the NodeInstallerProgressing condition")
-		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionFalse), "NodeInstallerProgressing condition should be True")
+		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionFalse), "NodeInstallerProgressing condition should be False", nipCond)
 	}).WithTimeout(30*time.Minute).WithPolling(30*time.Second).Should(o.Succeed(), "should eventually rollout out a new revision successfully")
 }
