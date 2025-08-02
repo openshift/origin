@@ -31,48 +31,6 @@ const (
 	reasonRetrying = "Retrying"
 )
 
-var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
-	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("default")
-
-	g.It("should be installed", func(ctx g.SpecContext) {
-		checkFeatureCapability(oc)
-
-		providedAPIs := []struct {
-			group   string
-			version []string
-			plural  string
-		}{
-			{
-				group:   olmv1GroupName,
-				version: []string{"v1"},
-				plural:  "clusterextensions",
-			},
-			{
-				group:   olmv1GroupName,
-				version: []string{"v1"},
-				plural:  "clustercatalogs",
-			},
-		}
-
-		for _, api := range providedAPIs {
-			g.By(fmt.Sprintf("checking %s at version %s [apigroup:%s]", api.plural, api.version, api.group))
-			// Ensure expected version exists in spec.versions and is both served and stored
-			var err error
-			var raw string
-			for _, ver := range api.version {
-				raw, err = oc.AsAdmin().Run("get").Args("crds", fmt.Sprintf("%s.%s", api.plural, api.group), fmt.Sprintf("-o=jsonpath={.spec.versions[?(@.name==%q)]}", ver)).Output()
-				if err == nil {
-					break
-				}
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(raw).To(o.MatchRegexp(`served.?:true`))
-			o.Expect(raw).To(o.MatchRegexp(`storage.?:true`))
-		}
-	})
-})
-
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 

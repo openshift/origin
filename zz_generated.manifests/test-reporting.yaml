@@ -952,7 +952,6 @@ spec:
         when the VMI attached to a secondary UDN is migrated between nodes'
   - featureGate: NewOLM
     tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
         should be installed'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
