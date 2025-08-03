@@ -83,7 +83,8 @@ func (r *monitorTestRegistry) PrepareCollection(ctx context.Context, adminRESTCo
 	errs := []error{}
 
 	for _, invariant := range r.monitorTests {
-		testName := fmt.Sprintf("[Jira:%q] monitor test %v preparation", invariant.jiraComponent, invariant.name)
+		monitorAnnotation := fmt.Sprintf("[Monitor:%s]", invariant.name)
+		testName := fmt.Sprintf("%s[Jira:%q] monitor test %v preparation", monitorAnnotation, invariant.jiraComponent, invariant.name)
 		logrus.Infof("  Preparing %v for %v", invariant.name, invariant.jiraComponent)
 
 		start := time.Now()
@@ -135,7 +136,8 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 		go func(ctx context.Context, invariant *monitorTesttItem) {
 			defer wg.Done()
 
-			testName := fmt.Sprintf("[Jira:%q] monitor test %v setup", invariant.jiraComponent, invariant.name)
+			monitorAnnotation := fmt.Sprintf("[Monitor:%s]", invariant.name)
+			testName := fmt.Sprintf("%s[Jira:%q] monitor test %v setup", monitorAnnotation, invariant.jiraComponent, invariant.name)
 			logrus.Infof("  Starting %v for %v", invariant.name, invariant.jiraComponent)
 
 			start := time.Now()
@@ -204,11 +206,20 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 		wg.Add(1)
 		go func(ctx context.Context, monitorTest *monitorTesttItem) {
 			defer wg.Done()
-			testName := fmt.Sprintf("[Jira:%q] monitor test %v collection", monitorTest.jiraComponent, monitorTest.name)
+			monitorAnnotation := fmt.Sprintf("[Monitor:%s]", monitorTest.name)
+			testName := fmt.Sprintf("%s[Jira:%q] monitor test %v collection", monitorAnnotation, monitorTest.jiraComponent, monitorTest.name)
 
 			start := time.Now()
 			logrus.Infof("  Starting CollectData for %s", testName)
 			localIntervals, localJunits, err := collectDataWithPanicProtection(ctx, monitorTest.monitorTest, storageDir, beginning, end)
+
+			// make sure we have the annotation
+			for i := range localJunits {
+				if localJunits[i] != nil && !strings.Contains(localJunits[i].Name, monitorAnnotation) {
+					localJunits[i].Name = fmt.Sprintf("%s%s", monitorAnnotation, localJunits[i].Name)
+				}
+			}
+
 			intervalsCh <- localIntervals
 			junitCh <- localJunits
 			end := time.Now()
@@ -283,7 +294,8 @@ func (r *monitorTestRegistry) ConstructComputedIntervals(ctx context.Context, st
 	errs := []error{}
 
 	for _, monitorTest := range r.monitorTests {
-		testName := fmt.Sprintf("[Jira:%q] monitor test %v interval construction", monitorTest.jiraComponent, monitorTest.name)
+		monitorAnnotation := fmt.Sprintf("[Monitor:%s]", monitorTest.name)
+		testName := fmt.Sprintf("%s[Jira:%q] monitor test %v interval construction", monitorAnnotation, monitorTest.jiraComponent, monitorTest.name)
 
 		start := time.Now()
 		localIntervals, err := constructComputedIntervalsWithPanicProtection(ctx, monitorTest.monitorTest, startingIntervals, recordedResources, beginning, end)
@@ -332,10 +344,19 @@ func (r *monitorTestRegistry) EvaluateTestsFromConstructedIntervals(ctx context.
 	errs := []error{}
 
 	for _, monitorTest := range r.monitorTests {
-		testName := fmt.Sprintf("[Jira:%q] monitor test %v test evaluation", monitorTest.jiraComponent, monitorTest.name)
+		monitorAnnotation := fmt.Sprintf("[Monitor:%s]", monitorTest.name)
+		testName := fmt.Sprintf("%s[Jira:%q] monitor test %v test evaluation", monitorAnnotation, monitorTest.jiraComponent, monitorTest.name)
 
 		start := time.Now()
 		localJunits, err := evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx, monitorTest.monitorTest, finalIntervals)
+
+		// make sure we have the annotation
+		for i := range localJunits {
+			if localJunits[i] != nil && !strings.Contains(localJunits[i].Name, monitorAnnotation) {
+				localJunits[i].Name = fmt.Sprintf("%s%s", monitorAnnotation, localJunits[i].Name)
+			}
+		}
+
 		junits = append(junits, localJunits...)
 		end := time.Now()
 		duration := end.Sub(start)
@@ -381,7 +402,8 @@ func (r *monitorTestRegistry) WriteContentToStorage(ctx context.Context, storage
 	errs := []error{}
 
 	for _, monitorTest := range r.monitorTests {
-		testName := fmt.Sprintf("[Jira:%q] monitor test %v writing to storage", monitorTest.jiraComponent, monitorTest.name)
+		monitorAnnotation := fmt.Sprintf("[Monitor:%s]", monitorTest.name)
+		testName := fmt.Sprintf("%s[Jira:%q] monitor test %v writing to storage", monitorAnnotation, monitorTest.jiraComponent, monitorTest.name)
 
 		start := time.Now()
 
@@ -438,7 +460,8 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 	errs := []error{}
 
 	for _, monitorTest := range r.monitorTests {
-		testName := fmt.Sprintf("[Jira:%q] monitor test %v cleanup", monitorTest.jiraComponent, monitorTest.name)
+		monitorAnnotation := fmt.Sprintf("[Monitor:%s]", monitorTest.name)
+		testName := fmt.Sprintf("%s[Jira:%q] monitor test %v cleanup", monitorAnnotation, monitorTest.jiraComponent, monitorTest.name)
 		log := logrus.WithField("monitorTest", monitorTest.name)
 
 		start := time.Now()
