@@ -290,6 +290,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return []error{errors.WithMessage(err, "could not convert test specs to origin test cases")}
 	}
 
+	for _, test := range tests {
+		fmt.Fprintf(o.Out, "%q\n", test.name)
+	}
+
 	// start test invocation loop here?
 	var errs = make([]error, invocations)
 	for inv := invocation; inv <= invocations; inv++ {
