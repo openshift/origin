@@ -2,10 +2,12 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +25,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/rest"
 )
+
+const invariantAnnotation = "[invariant]"
 
 type Monitor struct {
 	adminKubeConfig     *rest.Config
@@ -227,8 +231,18 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 		TestCases:  nil,
 		Children:   nil,
 	}
+
+	testRenames := map[string]string{}
 	for i := range m.junits {
 		currJunit := m.junits[i]
+
+		if !strings.Contains(currJunit.Name, invariantAnnotation) {
+			// create mapping
+			previousName := currJunit.Name
+			// easy prepending it, could search for last ] and insert it after if preferred
+			currJunit.Name = fmt.Sprintf("%s%s", invariantAnnotation, currJunit.Name)
+			testRenames[currJunit.Name] = previousName
+		}
 
 		junitSuite.NumTests++
 		if currJunit.FailureOutput != nil {
@@ -237,6 +251,16 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 			junitSuite.NumSkipped++
 		}
 		junitSuite.TestCases = append(junitSuite.TestCases, currJunit)
+	}
+
+	renameOut, err := json.MarshalIndent(testRenames, "", "    ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to serialize monitor test-renames")
+	} else {
+		filePrefix := "e2e-monitor-test-renames"
+		path := filepath.Join(storageDir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
+		fmt.Fprintf(os.Stderr, "Writing Test Rename report to %s\n", path)
+		os.WriteFile(path, test.StripANSI(renameOut), 0640)
 	}
 
 	out, err := xml.MarshalIndent(junitSuite, "", "    ")
