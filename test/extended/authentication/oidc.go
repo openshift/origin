@@ -15,6 +15,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	authnv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/errors"
 
@@ -184,10 +185,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					gomega.Expect(err).NotTo(o.HaveOccurred(), "should be able to create a SelfSubjectReview")
 				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 
-				err := resetAuthentication(ctx, oc, originalAuth)
+				err, modified := resetAuthentication(ctx, oc, originalAuth)
 				o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 
-				waitForRollout(ctx, oc)
+				if modified {
+					waitForRollout(ctx, oc)
+				}
 			})
 
 			g.It("should rollout configuration on the kube-apiserver successfully", func() {
@@ -364,10 +367,13 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		err := removeResources(ctx, cleanups...)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
 
-		err = resetAuthentication(ctx, oc, originalAuth)
+		err, modified := resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 
-		waitForRollout(ctx, oc)
+		// Only if we modified the Authentication resource during the reset should we wait for a rollout
+		if modified {
+			waitForRollout(ctx, oc)
+		}
 	})
 })
 
@@ -478,11 +484,12 @@ func admittedURLForRoute(ctx context.Context, client *exutil.CLI, routeName, nam
 	return fmt.Sprintf("https://%s", admittedURL), err
 }
 
-func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) error {
+func resetAuthentication(ctx context.Context, client *exutil.CLI, original *configv1.Authentication) (error, bool) {
 	if original == nil {
-		return nil
+		return nil, false
 	}
 
+	modified := false
 	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
 	defer cancel()
 	cli := client.AdminConfigClient().ConfigV1().Authentications()
@@ -492,19 +499,24 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 			return false, fmt.Errorf("getting the current authentications.config.openshift.io/cluster: %w", err)
 		}
 
+		if equality.Semantic.DeepEqual(current.Spec, original.Spec) {
+			return true, nil
+		}
+
 		current.Spec = original.Spec
+		modified = true
 
 		_, err = cli.Update(ctx, current, metav1.UpdateOptions{})
 		if err != nil {
 			// Only log the error so we continue to retry until the context has timed out
-			g.GinkgoLogr.Error(err, "updating authentication resource")
+			fmt.Println("updating authentication resource:", err)
 			return false, nil
 		}
 
 		return true, nil
 	})
 
-	return err
+	return err, modified
 }
 
 func waitForRollout(ctx context.Context, client *exutil.CLI) {
