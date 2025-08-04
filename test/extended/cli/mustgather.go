@@ -340,6 +340,50 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			})
 		})
 	})
+
+	g.It("runs successfully for metrics gathering", func() {
+		tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		args := []string{
+			"--dest-dir", tempDir,
+			"--",
+			"/usr/bin/gather_metrics",
+			fmt.Sprintf("--min-time=%d", time.Now().Add(-5*time.Minute).UnixMilli()),
+			fmt.Sprintf("--max-time=%d", time.Now().UnixMilli()),
+			"--match=prometheus_ready",
+			"--match=prometheus_build_info",
+		}
+		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+
+		// wait for the contents to show up in the plugin output directory
+		time.Sleep(5 * time.Second)
+
+		pluginOutputDir := GetPluginOutputDir(tempDir)
+		metricsFile := path.Join(pluginOutputDir, "monitoring", "metrics", "metrics.openmetrics")
+		errorFile := path.Join(pluginOutputDir, "monitoring", "metrics", "metrics.stderr")
+
+		// The error file should be empty
+		o.Expect(errorFile).To(o.BeAnExistingFile())
+		errorContent, err := os.ReadFile(errorFile)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(errorContent).To(o.BeEmpty())
+
+		// The metrics file should contain some series with a given format
+		o.Expect(metricsFile).To(o.BeAnExistingFile())
+		metrics, err := os.ReadFile(metricsFile)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		lines := strings.Split(strings.TrimSpace(string(metrics)), "\n")
+		count := len(lines)
+		o.Expect(count).To(o.BeNumerically(">=", 5))
+		for _, line := range lines[:count-1] {
+			o.Expect(line).To(o.MatchRegexp(`^(prometheus_ready|prometheus_build_info)\{.*\} \d+ \d+`))
+		}
+
+		o.Expect(lines[count-1]).To(o.Equal("# EOF"))
+	})
 })
 
 // GetPluginOutputDir returns the directory containing must-gather assets.
