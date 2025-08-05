@@ -119,11 +119,11 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 					continue
 				}
 				// For 4.18 onwards the machine-config operator prevents upgrades when RHEL8 workers are present
-				if isNoUpgrade && name == "machine-config" && isMachineConfigOperatorUpgradableRHELNodesCondition(worstCondition) {
+				if name == "machine-config" && isMachineConfigOperatorUpgradableRHELNodesCondition(worstCondition) {
 					continue
 				}
 				// For 4.18 onwards the machine-config operator prevents upgrades when configured for cgroup v1
-				if isNoUpgrade && name == "machine-config" && isMachineConfigOperatorUpgradableClusterOnCgroupV1Condition(worstCondition) {
+				if name == "machine-config" && isMachineConfigOperatorUpgradableClusterOnCgroupV1Condition(worstCondition) {
 					continue
 				}
 
