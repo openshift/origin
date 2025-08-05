@@ -25,7 +25,7 @@ for easy mirroring by the `openshift-tests images` command.
 
 When adding a new image, first make the code changes and compile the `openshift-tests` binary. Then run `hack/update-generated-bindata.sh` to update `test/extended/util/image/zz_generated.txt`. Contact one of the OWNERS of this directory and have them review the image for inclusion into our suite (usually granted in the process above). Before merge and after review they will run the following command to mirror the content to quay:
 
-    openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
+    OPENSHIFT_SKIP_EXTERNAL_TESTS=1 ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
 
 Note: The `registry.k8s.io/pause:3.9` image (and possibly others) contains uncompressed layers which quay.io does not allow.  The `oc image mirror` command always
 mirrors the layers as is and thus fails to mirror that image.  You can use skopeo instead which will successfully mirror the image, but changes the 
@@ -55,7 +55,7 @@ When a new version of Kubernetes is introduced new images will likely need to be
 2. Observe whether any tests fail due to missing images
 3. Notify an OWNER in this file, who will run:
 
-        openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
+        OPENSHIFT_SKIP_EXTERNAL_TESTS=1 ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
 
   Note: see above information about using skopeo to mirror images that contain uncompressed layers, such as the `pause` image.
 
@@ -94,10 +94,10 @@ When mirroring from a PR (granting access), you should check out the PR in quest
 
 Then run
 
-    openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images
+    OPENSHIFT_SKIP_EXTERNAL_TESTS=1 ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images
 
 to verify that all things check out. If everything looks good, run
 
-    openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
+    OPENSHIFT_SKIP_EXTERNAL_TESTS=1 ./openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
 
 You must be logged in (to docker, using `oc registry login --registry=quay.io` or `skopeo login` or `docker login`) to a quay account that has write permission to `quay.io/openshift/community-e2e-images` which every OWNER should have.
