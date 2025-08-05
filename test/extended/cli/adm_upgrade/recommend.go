@@ -67,7 +67,8 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 
 		out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.MatchRegexp(`.*The update channel has not been configured.*`))
+		err = matchRegexp(out, `.*The update channel has not been configured.*`)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.Context("When the update service has no recommendations", func() {
@@ -100,9 +101,10 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 		g.It("runs successfully", func() {
 			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.MatchRegexp(`.*Upstream update service: http://.*
+			err = matchRegexp(out, `.*Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
-No updates available. You may still upgrade to a specific release image.*`))
+No updates available. You may still upgrade to a specific release image.*`)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 
@@ -179,7 +181,7 @@ No updates available. You may still upgrade to a specific release image.*`))
 		g.It("runs successfully when listing all updates", func() {
 			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.MatchRegexp(`Upstream update service: http://.*
+			err = matchRegexp(out, `Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
 
 Updates to 4.[0-9]*:
@@ -192,22 +194,22 @@ Updates to 4.[0-9]*:
 Updates to 4[.][0-9]*:
   VERSION  *ISSUES
   4[.][0-9]*[.]999  *no known issues relevant to this cluster
-  4[.][0-9]*[.]998  *no known issues relevant to this cluster
-.*`))
+  4[.][0-9]*[.]998  *no known issues relevant to this cluster`)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.It("runs successfully with conditional recommendations to the --version target", func() {
 			out, err := oc.Run("adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1)).EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(out).To(o.MatchRegexp(`Upstream update service: http://.*
+			err = matchRegexp(out, `Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
 
 Update to 4[.][0-9]*[.]0 Recommended=False:
 Image: example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
 Reason: TestRiskA
-Message: This is a test risk. https://example.com/testRiskA
-`))
+Message: This is a test risk. https://example.com/testRiskA`)
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 })
