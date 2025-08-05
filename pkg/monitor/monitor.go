@@ -26,7 +26,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const invariantAnnotation = "[invariant]"
+const invariantAnnotation = "[Monitor:"
+const defaultInvariantAnnotation = "[Monitor:Unknown]"
 
 type Monitor struct {
 	adminKubeConfig     *rest.Config
@@ -240,7 +241,7 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 			// create mapping
 			previousName := currJunit.Name
 			// easy prepending it, could search for last ] and insert it after if preferred
-			currJunit.Name = fmt.Sprintf("%s%s", invariantAnnotation, currJunit.Name)
+			currJunit.Name = fmt.Sprintf("%s%s", defaultInvariantAnnotation, currJunit.Name)
 			testRenames[currJunit.Name] = previousName
 		}
 
