@@ -143,6 +143,11 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 			})
 		o.Expect(lastReason).To(o.BeEmpty())
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Describe output for ClusterExtension %q", ceName))
+		describeOut, err := oc.AsAdmin().WithoutNamespace().Run("describe").Args("clusterextension", ceName).Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		g.GinkgoLogr.Info("ClusterExtension describe output:\n" + describeOut)
 	})
 })
 
