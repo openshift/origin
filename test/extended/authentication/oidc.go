@@ -364,9 +364,6 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	})
 
 	g.AfterAll(func() {
-		err := removeResources(ctx, cleanups...)
-		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
-
 		err, modified := resetAuthentication(ctx, oc, originalAuth)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error reverting authentication to original state")
 
@@ -374,6 +371,9 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		if modified {
 			waitForRollout(ctx, oc)
 		}
+
+		err = removeResources(ctx, cleanups...)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up keycloak resources")
 	})
 })
 
