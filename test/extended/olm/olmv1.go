@@ -108,8 +108,8 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 		checkFeatureCapability(oc)
 
 		const (
-			packageName = "cluster-logging"
-			version     = "6.2.2"
+			packageName = "quay-operator"
+			version     = "3.13.0"
 		)
 
 		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
@@ -128,6 +128,13 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 				return b, err
 			})
 		o.Expect(lastReason).To(o.BeEmpty())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		patch := `[{"op": "add", "path": "/metadata/annotations/olm.maxOpenShiftVersion", "value": "4.20"}]`
+		err = oc.AsAdmin().
+			Run("patch").
+			Args("clusterextensions.olm.operatorframework.io", ceName, "--type=json", "-p", patch).
+			Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("ensuring the cluster is not upgradeable when olm.maxopenshiftversion is specified")
