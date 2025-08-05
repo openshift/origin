@@ -499,6 +499,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	newCrioReloadedTooOftenEventMatcher := newCrioReloadedTooOftenEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(newCrioReloadedTooOftenEventMatcher)
 
+	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
+
 	return registry
 }
 
@@ -713,6 +716,20 @@ var KubeAPIServerAvoids500s = &SimplePathologicalEventMatcher{
 var CertificateRotation = &SimplePathologicalEventMatcher{
 	name:               "CertificateRotation",
 	messageReasonRegex: regexp.MustCompile(`^(CABundleUpdateRequired|SignerUpdateRequired|TargetUpdateRequired|CertificateUpdated|CertificateRemoved|CertificateUpdateFailed|CSRCreated|CSRApproved|CertificateRotationStarted|ClientCertificateCreated|NoValidCertificateFound)$`),
+}
+
+func newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	// Use topology-based detection for DualReplica (two-node fencing) clusters
+	dualReplicaTopology := v1.DualReplicaTopologyMode
+	return &SimplePathologicalEventMatcher{
+		name: "EtcdEndpointsConfigMissingDuringTwoNodeTests",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-kube-apiserver-operator$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^ConfigMissing$`),
+		messageHumanRegex:  regexp.MustCompile(`apiServerArguments\.etcd-servers has less than two live etcd endpoints`),
+		topology:           &dualReplicaTopology,
+	}
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
