@@ -3689,7 +3689,6 @@ k8s.io/kubernetes/cmd/kube-apiserver/app/options
 k8s.io/kubernetes/cmd/kubelet/app
 k8s.io/kubernetes/cmd/kubelet/app/options
 k8s.io/kubernetes/openshift-hack/e2e
-k8s.io/kubernetes/openshift-hack/e2e/annotate
 k8s.io/kubernetes/openshift-hack/e2e/annotate/generated
 k8s.io/kubernetes/openshift-kube-apiserver/admission/admissionenablement
 k8s.io/kubernetes/openshift-kube-apiserver/admission/authorization/restrictusers

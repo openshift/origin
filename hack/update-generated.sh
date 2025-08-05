@@ -7,11 +7,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 # https://github.com/kubernetes/kubernetes/pull/109541
 ENABLE_STORAGE_GCE_PD_DRIVER=yes go generate -mod vendor ./test/extended
 
-# the test names are now contained in test/extended/util/annotate/generated/zz_generated.annotations.go
-# A txt file would be more extensible, but Maciej stacked the debt here and he's the same person who will have pay it down
-# as we add more images with more tests, so this seems acceptable.
-go run -mod vendor ./cmd/openshift-tests render test-report --output-dir=./zz_generated.manifests
-
 # Update mirror mapping from upstream to quay
 # By default, "openshift-tests images" lists images from external binaries. However, we force
 # this script to list images from built-in tests in order to avoid requiring an OCP release image.
