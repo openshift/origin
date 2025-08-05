@@ -108,8 +108,8 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 		checkFeatureCapability(oc)
 
 		const (
-			packageName = "cluster-logging"
-			version     = "6.2.2"
+			packageName = "kubevirt-hyperconverged-operator"
+			version     = "v4.12.2"
 		)
 
 		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
