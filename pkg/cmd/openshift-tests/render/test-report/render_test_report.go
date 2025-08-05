@@ -118,6 +118,8 @@ func (o *RenderTestReportOptions) Run() error {
 func createFeatureGatesToTestNames() map[string]sets.Set[string] {
 	featureGatesToTestNames := map[string]sets.Set[string]{}
 
+	//TODO: we don't actually need any of the annotations, we just need the test names...is there some other way to get those?
+	// we could do OTE list command
 	for testName := range origingenerated.Annotations {
 		featureGates := featureGatesFromTestName(testName)
 		if len(featureGates) == 0 {
