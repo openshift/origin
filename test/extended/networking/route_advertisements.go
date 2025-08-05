@@ -214,7 +214,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 			g.By("Creating a project for the sniffer pod")
 			snifferNamespace = oc.SetupProject()
 
-			clusterIPFamily = getIPFamilyForCluster(f)
+			clusterIPFamily = GetIPFamilyForCluster(f)
 		})
 
 		// Do not check for errors in g.AfterEach as the other cleanup steps will fail, otherwise.

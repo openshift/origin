@@ -15,7 +15,7 @@ var _ = g.Describe("[sig-network] external gateway address", func() {
 		f := oc.KubeFramework()
 
 		g.It("should match the address family of the pod", func() {
-			podIPFamily := getIPFamilyForCluster(f)
+			podIPFamily := GetIPFamilyForCluster(f)
 			o.Expect(podIPFamily).NotTo(o.Equal(Unknown))
 			// Set external gateway address into an IPv6 address and make sure
 			// pod ip address matches with IPv6 address family.
