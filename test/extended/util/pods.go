@@ -124,3 +124,72 @@ func ExecCommandOnMachineConfigDaemon(c clientset.Interface, oc *CLI, node *core
 	args := append(initialArgs, command...)
 	return oc.AsAdmin().Run("rsh").Args(args...).Output()
 }
+
+// Get the pods List by label
+func GetPodsListByLabel(oc *CLI, namespace string, selectorLabel string) ([]string, error) {
+	var podNames []string
+	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: selectorLabel})
+		if err != nil {
+			e2e.Logf("Failed to get pods from namespace %s: %v, retrying...", namespace, err)
+			return false, nil
+		}
+
+		podNames = make([]string, len(pods.Items))
+		for i, pod := range pods.Items {
+			podNames[i] = pod.Name
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return podNames, nil
+}
+
+// Get the pods List
+func GetPodsList(oc *CLI, namespace string) ([]string, error) {
+	var podNames []string
+	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get pods from namespace %s: %v, retrying...", namespace, err)
+			return false, nil
+		}
+
+		podNames = make([]string, len(pods.Items))
+		for i, pod := range pods.Items {
+			podNames[i] = pod.Name
+		}
+		e2e.Logf("Namespace %s pods are: %v", namespace, podNames)
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return podNames, nil
+}
+
+// AssertPodToBeReady poll pod status to determine it is ready and returns error
+func AssertPodToBeReady(oc *CLI, podName string, namespace string) error {
+	return wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 3*time.Minute, true, func(ctx context.Context) (bool, error) {
+		pod, err := oc.AdminKubeClient().CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("the err:%v, and try next round", err)
+			return false, nil
+		}
+
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == corev1.PodReady {
+				if condition.Status == corev1.ConditionTrue {
+					e2e.Logf("Pod %s is ready!", podName)
+					return true, nil
+				}
+				break
+			}
+		}
+		return false, nil
+	})
+}
