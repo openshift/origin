@@ -779,7 +779,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 	if clusterState == nil { // If we know we cannot discover the clusterState, the provider must be set to "none" in order for the config to be loaded without error
 		provider = "none"
 	}
-	config, err := clusterdiscovery.DecodeProvider(provider, dryRun, true, clusterState)
+	config, err := clusterdiscovery.DecodeProvider(provider, true, clusterState)
 	if err != nil {
 		logrus.WithError(err).Error("error determining information about the cluster")
 		return nil, err

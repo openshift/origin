@@ -98,11 +98,10 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 	return nil
 }
 
-func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterState *ClusterState) (*ClusterConfiguration, error) {
+func DecodeProvider(providerTypeOrJSON string, discover bool, clusterState *ClusterState) (*ClusterConfiguration, error) {
 	log := logrus.WithField("func", "DecodeProvider")
 	log.WithFields(logrus.Fields{
 		"providerType": providerTypeOrJSON,
-		"dryRun":       dryRun,
 		"discover":     discover,
 		"clusterState": clusterState,
 	}).Debug("Decoding provider")
@@ -132,18 +131,13 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		}
 
 		return config, nil
-
 	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
 				return &ClusterConfiguration{ProviderName: "local"}, nil
 			}
 		}
-		if dryRun {
-			return &ClusterConfiguration{ProviderName: "skeleton"}, nil
-		}
 		fallthrough
-
 	case "azure", "aws", "baremetal", "gce", "vsphere", "alibabacloud", "external":
 		if clusterState == nil {
 			clientConfig, err := e2e.LoadConfig(true)
