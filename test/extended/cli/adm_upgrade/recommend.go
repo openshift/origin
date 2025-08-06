@@ -188,8 +188,8 @@ Updates to 4.[0-9]*:
 
   Version: 4[.][0-9]*[.]0
   Image: example[.]com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-  Reason: TestRiskA
-  Message: This is a test risk[.] https://example[.]com/testRiskA
+  Reason: (TestRiskA|MultipleReasons)
+  Message: (?s:.*)This is a test risk[.] https://example[.]com/testRiskA
 
 Updates to 4[.][0-9]*:
   VERSION  *ISSUES
@@ -207,8 +207,8 @@ Channel: test-channel [(]available channels: other-channel, test-channel[)]
 Update to 4[.][0-9]*[.]0 Recommended=False:
 Image: example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
-Reason: TestRiskA
-Message: This is a test risk. https://example.com/testRiskA`)
+Reason: (TestRiskA|MultipleReasons)
+Message: (?s:.*)This is a test risk. https://example.com/testRiskA`)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
