@@ -53,6 +53,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/project"
 	_ "github.com/openshift/origin/test/extended/prometheus"
 	_ "github.com/openshift/origin/test/extended/quota"
+	_ "github.com/openshift/origin/test/extended/rorfs"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/scheduling"
 	_ "github.com/openshift/origin/test/extended/security"
