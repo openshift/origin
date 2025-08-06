@@ -1,0 +1,63 @@
+{
+  "apiVersion": "template.openshift.io/v1",
+  "kind": "Template",
+  "metadata": {
+      "name": "iperf-rc-template"
+  },
+  "objects": [
+   {
+        "apiVersion": "v1",
+        "kind": "ReplicationController",
+        "metadata": {
+            "labels": {
+                "name": "${{PODNAME}}"
+            },
+            "name": "${{PODNAME}}"
+        },
+        "spec": {
+            "replicas": 1,
+            "template": {
+                "metadata": {
+                    "labels": {
+                        "name": "${{PODNAME}}"
+                    },
+                    "annotations": {
+                      "${{NETTYPE}}": "${{NETNAME}}"
+                    }
+                },
+                "spec": {
+                   "nodeSelector": {
+                     "kubernetes.io/hostname": "${{NODENAME}}"
+                   },
+                    "containers": [
+                        {
+                            "image": "quay.io/openshifttest/iperf3@sha256:440c59251338e9fcf0a00d822878862038d3b2e2403c67c940c7781297953614",
+                            "name": "${{PODNAME}}",
+                            "imagePullPolicy": "IfNotPresent",
+                            "resources":{
+                              "limits":{
+                                "memory":"340Mi"
+                              }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "PODNAME"
+    },
+    {
+      "name": "NETTYPE"
+    },
+    {
+      "name": "NETNAME"
+    },
+    {
+      "name": "NODENAME"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pvc-template
+objects:
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    accessModes:
+    - "${ACCESSMODE}"
+    resources:
+      requests:
+        storage: "${MEMORYSIZE}"
+    storageClassName: "${STORAGECLASSNAME}"
+    volumeMode: Filesystem
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ACCESSMODE
+- name: STORAGECLASSNAME
+- name: MEMORYSIZE

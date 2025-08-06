@@ -1,0 +1,60 @@
+---
+# tasks file for Memcached
+- name: start k8sstatus
+  k8s:
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: '{{ ansible_operator_meta.name }}-memcached'
+        namespace: '{{ ansible_operator_meta.namespace }}'
+      spec:
+        replicas: "{{size}}"
+        selector:
+          matchLabels:
+            app: memcached
+        template:
+          metadata:
+            labels:
+              app: memcached
+          spec:
+            containers:
+            - name: memcached
+              command:
+              - memcached
+              - -m=64
+              - -o
+              - modern
+              - -v
+              image: "docker.io/memcached:1.4.36-alpine"
+              ports:
+                - containerPort: 11211
+
+- operator_sdk.util.osdk_metric:
+    name: my_thing_counter
+    description: This metric counts things
+    counter: {}
+
+- operator_sdk.util.osdk_metric:
+    name: my_counter_metric
+    description: Add 3.14 to the counter
+    counter:
+      increment: yes
+
+- operator_sdk.util.osdk_metric:
+    name: my_gauge_metric
+    description: Create my gague and set it to 2.
+    gauge:
+      set: 2
+
+- operator_sdk.util.osdk_metric:
+    name: my_histogram_metric
+    description: Observe my histogram
+    histogram:
+      observe: 2
+
+- operator_sdk.util.osdk_metric:
+    name: my_summary_metric
+    description: Observe my summary
+    summary:
+      observe: 2

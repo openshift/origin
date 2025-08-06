@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kubelet-killer-pod-specific-node-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    labels:
+      kubelet-killer: ""
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - command:
+      - pkill
+      - -STOP
+      - kubelet
+      image: quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c
+      imagePullPolicy: Always
+      name: kubelet-killer
+      securityContext:
+        privileged: true
+    enableServiceLinks: true
+    hostPID: true
+    nodeName: "${NODENAME}"
+    restartPolicy: Never
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODENAME

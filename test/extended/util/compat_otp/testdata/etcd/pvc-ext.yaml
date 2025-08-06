@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-pvc
+objects:
+  - kind: PersistentVolumeClaim 
+    apiVersion: v1
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: "${STORAGE}"
+      storageClassName: "${SCNAME}"
+      volumeMode: Filesystem
+parameters:
+  - name: NAME 
+  - name: NAMESPACE 
+  - name: STORAGE 
+  - name: SCNAME 

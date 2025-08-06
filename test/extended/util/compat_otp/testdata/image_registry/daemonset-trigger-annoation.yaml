@@ -1,0 +1,45 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: daemonset-template
+objects:
+- apiVersion: apps/v1
+  kind: DaemonSet 
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      image.openshift.io/triggers: |-
+        [
+          {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "ds:latest"
+            },
+            "fieldPath": "spec.template.spec.containers[0].image"
+          }
+        ]
+  spec:
+    serviceName: example-daemonset
+    replicas: 3
+    selector:
+      matchLabels:
+        app: example-daemonset
+    template:
+      metadata:
+        labels:
+          app: example-daemonset
+      spec:
+        terminationGracePeriodSeconds: 10
+        containers:
+          - name: "${NAME}"
+            image: "${IMAGE}"
+            imagePullPolicy: Always
+            resources: {}
+            terminationMessagePath: /dev/termination-log
+        serviceAccount: default
+        terminationGracePeriodSeconds: 10
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: IMAGE

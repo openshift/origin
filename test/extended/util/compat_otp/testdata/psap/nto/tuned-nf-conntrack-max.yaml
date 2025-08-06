@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tuned-nf-conntrack-max-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Tuned
+    metadata:
+      name: nf-conntrack-max
+      namespace: openshift-cluster-node-tuning-operator
+    spec:
+      profile:
+      - data: |
+          [main]
+          summary=Test if user can apply custom tuning: sysctl net.netfilter.nf_conntrack_max
+          include=openshift-node
+
+          [sysctl]
+          net.netfilter.nf_conntrack_max=1048578
+
+        name: nf-conntrack-max
+
+      recommend:
+      - match:
+        - label: tuned.openshift.io/elasticsearch
+          type: pod
+        priority: 15
+        profile: nf-conntrack-max

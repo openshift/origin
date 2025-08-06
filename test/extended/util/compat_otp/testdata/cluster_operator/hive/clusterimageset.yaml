@@ -1,0 +1,14 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterimageset-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterImageSet
+  metadata:
+    name: "${NAME}"
+  spec:
+    releaseImage: "${RELEASEIMAGE}"
+parameters:
+- name: NAME
+- name: RELEASEIMAGE

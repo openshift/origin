@@ -1,0 +1,45 @@
+
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- kind: NetworkAttachmentDefinition
+  apiVersion: k8s.cni.cncf.io/v1
+  metadata:
+    name: "${NADNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    config: |2
+      {
+              "cniVersion": "0.3.1",
+              "name": "${NADNAME}",
+              "type": "${PLUGINTYPE}",
+              "mode": "${MODE}",
+              "ipam": {
+                "type": "${IPAMTYPE}",
+                "ipRanges": [
+                  {
+                    "range": "${IPV4RANGE}",
+                    "range_start": "${IPV4RANGESTART}",
+                    "range_end": "${IPV4RANGEEND}"
+                  }, 
+                  {
+                    "range": "${IPV6RANGE}",
+                    "range_start": "${IPV6RANGESTART}",
+                    "range_end": "${IPV6RANGEEND}"
+                  }
+                ]
+              }
+      }
+  
+parameters:
+- name: NADNAME
+- name: NAMESPACE
+- name: PLUGINTYPE
+- name: MODE
+- name: IPAMTYPE
+- name: IPV4RANGE
+- name: IPV6RANGE
+- name: IPV4RANGESTART
+- name: IPV4RANGEEND
+- name: IPV6RANGESTART
+- name: IPV6RANGEEND

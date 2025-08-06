@@ -1,0 +1,121 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafkaserver-template
+objects:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    labels:
+      app: zookeeper
+      component: zookeeper
+      provider: openshift
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    podManagementPolicy: Parallel
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: zookeeper
+    serviceName: ${SERVICENAME}
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: zookeeper
+          component: zookeeper
+          provider: openshift
+      spec:
+        containers:
+        - command:
+          - /opt/kafka/bin/zookeeper-server-start.sh
+          - /etc/kafka/zookeeper.properties
+          env:
+          - name: KAFKA_LOG4J_OPTS
+            value: -Dlog4j.configuration=file:/etc/kafka/log4j.properties
+          image: quay.io/openshifttest/kafka@sha256:2411662d89dd5700e1fe49aa8be1219843948da90cfe51a1c7a49bcef9d22dab
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - sh
+                - -ce
+                - kill -s TERM 1; while $(kill -0 1 2>/dev/null); do sleep 1; done
+          name: zookeeper
+          ports:
+          - containerPort: 2181
+            name: client
+            protocol: TCP
+          - containerPort: 2888
+            name: peer
+            protocol: TCP
+          - containerPort: 3888
+            name: leader-election
+            protocol: TCP
+          resources:
+            limits:
+              memory: 120Mi
+            requests:
+              cpu: 10m
+              memory: 100Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/kafka
+            name: config
+          - mountPath: /opt/kafka/logs
+            name: zookeeperlogs
+          - mountPath: /var/lib/zookeeper
+            name: data
+          - mountPath: /etc/kafka-configmap
+            name: configmap
+        dnsPolicy: ClusterFirst
+        initContainers:
+        - command:
+          - /bin/bash
+          - /etc/kafka-configmap/init.sh
+          image: quay.io/openshifttest/kafka-initutils@sha256:e73ff7a44b43b85b53849c0459ba32e704540852b885a5c78af9753f86a49d68
+          imagePullPolicy: IfNotPresent
+          name: init-config
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/kafka-configmap
+            name: configmap
+          - mountPath: /etc/kafka
+            name: config
+          - mountPath: /var/lib/zookeeper
+            name: data
+        restartPolicy: Always
+        nodeSelector:
+          kubernetes.io/arch: amd64
+          kubernetes.io/os: linux
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 10
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${CM_NAME}
+          name: configmap
+        - emptyDir: {}
+          name: config
+        - emptyDir: {}
+          name: zookeeperlogs
+        - emptyDir: {}
+          name: data
+    updateStrategy:
+      type: RollingUpdate
+parameters:
+- name: NAME
+  value: "zookeeper"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SERVICENAME
+  value: "zookeeper"
+- name: CM_NAME
+  value: "zookeeper"

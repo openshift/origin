@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: udn-crd-singlestack-template
+objects:
+- apiVersion: k8s.ovn.org/v1
+  kind: UserDefinedNetwork
+  metadata:
+    name:  "${CRDNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    topology: Layer3
+    layer3:
+      role: "${ROLE}"
+      mtu: ${{MTU}}
+      subnets:
+      - cidr: "${CIDR}"
+        hostSubnet: ${{PREFIX}}
+parameters:
+- name: CRDNAME
+- name: NAMESPACE
+- name: CIDR
+- name: MTU
+- name: PREFIX
+- name: ROLE

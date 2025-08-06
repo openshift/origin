@@ -1,0 +1,19 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: registry-name
+spec:
+  replicas: 1
+  selector:
+    deployment-config.name: registry-name
+  strategy:
+    resources: {}
+  template:
+    metadata:
+      labels:
+        deployment-config.name: registry-name
+    spec:
+      containers:
+      - image: quay.io/openshifttest/registry@sha256:1106aedc1b2e386520bc2fb797d9a7af47d651db31d8e7ab472f2352da37d1b3
+        name: default-container
+        resources: {}

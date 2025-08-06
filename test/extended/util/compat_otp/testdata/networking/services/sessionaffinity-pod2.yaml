@@ -1,0 +1,25 @@
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: blue-pod-2
+  labels:
+    name: blue-openshift
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: blue-pod-container
+    image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    env:
+    - name: RESPONSE
+      value: Hello Blue Pod-2
+    ports:
+    - containerPort: 8080
+    - containerPort: 443

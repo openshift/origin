@@ -1,0 +1,9 @@
+spec:
+  profile:
+  - data: |
+      [main]
+      summary=Custom OpenShift profile
+      include=openshift-node
+      [sysctl]
+      kernel.shmmni=10240
+    name: deferred-update-profile

@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressrouter-multiple-destination-template
+objects:
+- kind: EgressRouter
+  apiVersion: network.operator.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    networkInterface:
+      macvlan:
+        mode: "Bridge"
+    addresses:
+      - ip: "${RESERVEDIP}"
+        gateway: "${GATEWAY}"
+    mode: Redirect
+    redirect:
+      redirectRules:
+        - destinationIP: "${DSTIP1}"
+          port: 80
+          protocol: TCP
+        - destinationIP: "${DSTIP2}"
+          port: 8080
+          protocol: TCP
+          targetPort: 80
+        - destinationIP: "${DSTIP3}"
+          port: 8888
+          protocol: TCP
+          targetPort: 80
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RESERVEDIP
+- name: GATEWAY
+- name: DSTIP1
+  value: "142.250.188.206"
+- name: DSTIP2
+  value: "142.250.188.206"
+- name: DSTIP3
+  value: "142.250.188.206"
+

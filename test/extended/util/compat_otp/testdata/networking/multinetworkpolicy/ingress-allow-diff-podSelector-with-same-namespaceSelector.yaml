@@ -1,0 +1,21 @@
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name:  ingress-allow-diff-podselector-with-same-namespaceselector
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: macvlan-nad1
+spec:
+  podSelector: 
+    matchLabels:
+      name: blue-openshift
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:     
+        matchLabels:
+          user: project41169a
+      podSelector:
+        matchLabels:
+          name: red-openshift
+

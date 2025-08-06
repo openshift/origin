@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: mem-hog-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    generateName: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: ${LABELKEY}"
+            operator: In
+            values:
+            - "${LABELVALUE}"
+        topologyKey: "kubernetes.io/hostname"
+    containers:
+    - args:
+      - -mem-alloc-size
+      - 36Mi
+      - -mem-alloc-sleep
+      - 1s
+      - -mem-total
+      - $(MEMORY_LIMIT)
+      env:
+      - name: MEMORY_LIMIT
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.memory
+      image: k8s.gcr.io/stress:v1
+      name: memory-hog
+    restartPolicy: Never
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE

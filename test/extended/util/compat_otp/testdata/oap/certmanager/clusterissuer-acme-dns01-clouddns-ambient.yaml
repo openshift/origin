@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterissuer-acme-dns01-clouddns-ambient-template
+objects:
+  - apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: "${ISSUER_NAME}"
+    spec:
+      acme:
+        server: "${ACME_SERVER}"
+        skipTLSVerify: true
+        privateKeySecretRef:
+          name: acme-account-key
+        solvers:
+          - dns01:
+              cloudDNS:
+                project: "${PROJECT_ID}"
+parameters:
+  - name: ISSUER_NAME
+  - name: ACME_SERVER
+  - name: PROJECT_ID

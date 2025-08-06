@@ -1,0 +1,42 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: workload-template
+objects:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+      labels:
+        app: ${LABEL} 
+    spec:
+      manualSelector: true
+      selector:
+        matchLabels:
+          app: ${LABEL}
+      template: 
+        metadata:
+          labels:
+            app: ${LABEL}
+        spec:
+          containers:
+          - name: work
+            image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+            command: ["sleep",  "300"]
+            resources:
+              requests:
+                memory: 500Mi
+                cpu: 1100m
+          restartPolicy: Never
+          tolerations:
+          - key: mapi
+            value: mapi_test
+            effect: NoSchedule
+      backoffLimit: 4
+      completions: 100
+      parallelism: 100
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABEL

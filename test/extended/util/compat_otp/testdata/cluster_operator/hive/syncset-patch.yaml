@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: syncset-patch-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: SyncSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRefs:
+    - name: "${CDREFNAME}"
+    patches:
+    - kind: ConfigMap
+      apiVersion: v1
+      name: "${CMNAME}"
+      namespace: "${CMNAMESPACE}"
+      patch: "${PCONTENT}"
+      patchType: "${PATCHTYPE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CDREFNAME
+- name: CMNAME
+- name: CMNAMESPACE
+- name: PCONTENT
+- name: PATCHTYPE

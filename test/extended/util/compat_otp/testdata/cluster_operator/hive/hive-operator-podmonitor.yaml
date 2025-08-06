@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: hive-operator
+  namespace: hive
+spec:
+  podMetricsEndpoints:
+  - bearerTokenSecret:
+      key: ""
+    interval: 30s
+    metricRelabelings:
+    - action: drop
+      regex: ^rest_client_.*
+      sourceLabels:
+      - __name__
+    path: /metrics
+    port: metrics
+    scheme: http
+  namespaceSelector: {}
+  selector:
+    matchLabels:
+      control-plane: hive-operator

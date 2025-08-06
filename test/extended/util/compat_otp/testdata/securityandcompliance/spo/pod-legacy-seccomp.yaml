@@ -1,0 +1,44 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: compliancescan-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    labels:
+      name: pod-seccomp_1
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      seccomp.security.alpha.kubernetes.io/pod: "${SECCOMPPATH}"
+  spec:
+    containers:
+      - image: "quay.io/openshifttest/hello-openshift:multiarch"
+        imagePullPolicy: IfNotPresent
+        name: hello-pod
+        ports:
+          - containerPort: 8080
+            protocol: TCP
+        resources: {}
+        securityContext:
+          capabilities: {}
+          privileged: false
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+          - mountPath: /tmp
+            name: tmp
+    nodeName: "${NODENAME}"
+    dnsPolicy: ClusterFirst
+    restartPolicy: Always
+    serviceAccount: ""
+    volumes:
+      - emptyDir: {}
+        name: tmp
+  status: {}
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODENAME
+- name: SECCOMPPATH

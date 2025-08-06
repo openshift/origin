@@ -1,0 +1,14 @@
+apiVersion: build.openshift.io/v1
+kind: Build
+metadata:
+  name: ruby-hello-world-2
+spec:
+  strategy:
+    sourceStrategy:
+      env:
+      - name: EXAMPLE
+        value: sample-app
+      from:
+        kind: DockerImage
+        name: quay.io/openshifttest/ruby-27@sha256:8f71dd40e3f55d90662a63cb9f02b59e75ed7ac1e911c7919fd14fbfad431348
+    type: Source

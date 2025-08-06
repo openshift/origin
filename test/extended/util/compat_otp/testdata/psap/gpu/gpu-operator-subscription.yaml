@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: subscription-template
+objects:
+  - apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: gpu-operator-certified
+      namespace: ${GPU_NAMESPACE}
+    spec:
+      channel: ${CHANNEL}
+      installPlanApproval: "Automatic"
+      name: gpu-operator-certified
+      source: certified-operators
+      sourceNamespace: openshift-marketplace
+      startingCSV: ${CSV_VERSION}
+parameters:
+  - name: CHANNEL
+  - name: CSV_VERSION
+  - name: GPU_NAMESPACE
+

@@ -1,0 +1,591 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "charts.operatorhub.io/v1alpha1",
+          "kind": "Cockroachdb",
+          "metadata": {
+            "name": "cockroachdb-sample"
+          },
+          "spec": {
+            "clusterDomain": "cluster.local",
+            "conf": {
+              "attrs": [],
+              "cache": "25%",
+              "cluster-name": "",
+              "disable-cluster-name-verification": false,
+              "http-port": 8080,
+              "join": [],
+              "locality": "",
+              "logtostderr": "INFO",
+              "max-sql-memory": "25%",
+              "port": 26257,
+              "single-node": false,
+              "sql-audit-dir": ""
+            },
+            "image": {
+              "credentials": {},
+              "pullPolicy": "IfNotPresent",
+              "repository": "cockroachdb/cockroach",
+              "tag": "v20.2.3"
+            },
+            "ingress": {
+              "annotations": {},
+              "enabled": false,
+              "hosts": [],
+              "labels": {},
+              "paths": [
+                "/"
+              ],
+              "tls": []
+            },
+            "init": {
+              "affinity": {},
+              "annotations": {},
+              "labels": {
+                "app.kubernetes.io/component": "init"
+              },
+              "nodeSelector": {},
+              "resources": {},
+              "tolerations": []
+            },
+            "labels": {},
+            "networkPolicy": {
+              "enabled": false,
+              "ingress": {
+                "grpc": [],
+                "http": []
+              }
+            },
+            "service": {
+              "discovery": {
+                "annotations": {},
+                "labels": {
+                  "app.kubernetes.io/component": "cockroachdb"
+                }
+              },
+              "ports": {
+                "grpc": {
+                  "external": {
+                    "name": "grpc",
+                    "port": 26257
+                  },
+                  "internal": {
+                    "name": "grpc-internal",
+                    "port": 26257
+                  }
+                },
+                "http": {
+                  "name": "http",
+                  "port": 8080
+                }
+              },
+              "public": {
+                "annotations": {},
+                "labels": {
+                  "app.kubernetes.io/component": "cockroachdb"
+                },
+                "type": "ClusterIP"
+              }
+            },
+            "serviceMonitor": {
+              "annotations": {},
+              "enabled": false,
+              "interval": "10s",
+              "labels": {}
+            },
+            "statefulset": {
+              "annotations": {},
+              "args": [],
+              "budget": {
+                "maxUnavailable": 1
+              },
+              "env": [],
+              "labels": {
+                "app.kubernetes.io/component": "cockroachdb"
+              },
+              "nodeAffinity": {},
+              "nodeSelector": {},
+              "podAffinity": {},
+              "podAntiAffinity": {
+                "topologyKey": "kubernetes.io/hostname",
+                "type": "soft",
+                "weight": 100
+              },
+              "podManagementPolicy": "Parallel",
+              "priorityClassName": "",
+              "replicas": 3,
+              "resources": {},
+              "secretMounts": [],
+              "tolerations": [],
+              "topologySpreadConstraints": {
+                "maxSkew": 1,
+                "topologyKey": "topology.kubernetes.io/zone",
+                "whenUnsatisfiable": "ScheduleAnyway"
+              },
+              "updateStrategy": {
+                "type": "RollingUpdate"
+              }
+            },
+            "storage": {
+              "hostPath": "",
+              "persistentVolume": {
+                "annotations": {},
+                "enabled": true,
+                "labels": {},
+                "size": "100Gi",
+                "storageClass": ""
+              }
+            },
+            "tls": {
+              "certs": {
+                "clientRootSecret": "cockroachdb-root",
+                "nodeSecret": "cockroachdb-node",
+                "provided": false,
+                "tlsSecret": false
+              },
+              "enabled": false,
+              "init": {
+                "image": {
+                  "credentials": {},
+                  "pullPolicy": "IfNotPresent",
+                  "repository": "cockroachdb/cockroach-k8s-request-cert",
+                  "tag": "0.4"
+                }
+              },
+              "serviceAccount": {
+                "create": true,
+                "name": ""
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Database
+    certified: "false"
+    containerImage: quay.io/helmoperators/cockroachdb:v5.0.3
+    createdAt: 2021-01-23T10-00-00Z
+    description: CockroachDB Operator based on the CockroachDB helm chart
+    operators.operatorframework.io/builder: operator-sdk-v1.3.0
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    repository: https://github.com/dmesser/cockroachdb-operator
+    support: dmesser
+  name: cockroachdb.v5.0.3
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Represents a CockroachDB cluster
+      displayName: CockroachDB
+      kind: Cockroachdb
+      name: cockroachdbs.charts.operatorhub.io
+      resources:
+      - kind: Deployment
+        name: ""
+        version: apps/v1
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: ReplicaSet
+        name: ""
+        version: apps/v1
+      - kind: Pod
+        name: ""
+        version: v1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: ConfigMap
+        name: ""
+        version: v1
+      - kind: PersistentVolumeClaim
+        name: ""
+        version: v1
+      - kind: StatefulSet
+        name: ""
+        version: apps/v1
+      - kind: Job
+        name: ""
+        version: batch/v1
+      version: v1alpha1
+  description: |
+    CockroachDB is a scalable, survivable, strongly-consistent SQL database.
+    ## About this Operator
+    This Operator is based on a Helm chart for CockroachDB. It supports reconfiguration for some parameters, but notably does not handle scale down of the replica count in a seamless manner. Scale up works great.
+
+    ## Core capabilities
+    * **StatefulSet** - Sets up a dynamically scalable CockroachDB cluster using a Kubernetes StatefulSet
+    * **Expand Replicas** - Supports expanding the set of replicas by simply editing your object
+    * **Dashboard** - Installs the CockroachDB user interface to administer your cluster. Easily expose it via an Ingress rule.
+    Review all of the [confiuguration options](https://github.com/helm/charts/tree/master/stable/cockroachdb#configuration) to best run your database instance. The example configuration is derived from the chart's [`values.yaml`](https://github.com/helm/charts/blob/master/stable/cockroachdb/values.yaml).
+    ## Using the cluster
+    The resulting cluster endpoint can be consumed from a `Service` that follows the pattern: `<StatefulSet-name>-public`. For example to connect using the command line client, use something like the following to obtain the name of the service:
+    ```
+    kubectl get service -l chart=cockroachdb-3.0.7
+    NAME                                           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+    example-9f8ngwzrxbxrulxqmdqfhn51h-cdb          ClusterIP   None             <none>        26257/TCP,8080/TCP   24m
+    example-9f8ngwzrxbxrulxqmdqfhn51h-cdb-public   ClusterIP   10.106.249.134   <none>        26257/TCP,8080/TCP   24m
+    ```
+    Then you can use the CockroachDB command line client to connect to the database cluster:
+    ```
+    kubectl run -it --rm cockroach-client --image=cockroachdb/cockroach --restart=Never --command -- ./cockroach sql --insecure --host example-9f8ngwzrxbxrulxqmdqfhn51h-cdb-public
+    ```
+    ## Before you start
+    This Operator requires a cluster with PV support in order to run correctly.
+    ## Supported configuration parameters
+      | Parameter                                                 | Description                                                     | Default                                          |
+      | ---------                                                 | -----------                                                     | -------                                          |
+      | `clusterDomain`                                           | Cluster's default DNS domain                                    | `cluster.local`                                  |
+      | `conf.attrs`                                              | CockroachDB node attributes                                     | `[]`                                             |
+      | `conf.cache`                                              | Size of CockroachDB's in-memory cache                           | `25%`                                            |
+      | `conf.cluster-name`                                       | Name of CockroachDB cluster                                     | `""`                                             |
+      | `conf.disable-cluster-name-verification`                  | Disable CockroachDB cluster name verification                   | `no`                                             |
+      | `conf.join`                                               | List of already-existing CockroachDB instances                  | `[]`                                             |
+      | `conf.max-disk-temp-storage`                              | Max storage capacity for temp data                              | `0`                                              |
+      | `conf.max-offset`                                         | Max allowed clock offset for CockroachDB cluster                | `500ms`                                          |
+      | `conf.max-sql-memory`                                     | Max memory to use processing SQL querie                         | `25%`                                            |
+      | `conf.locality`                                           | Locality attribute for this deployment                          | `""`                                             |
+      | `conf.single-node`                                        | Disable CockroachDB clustering (standalone mode)                | `no`                                             |
+      | `conf.sql-audit-dir`                                      | Directory for SQL audit log                                     | `""`                                             |
+      | `conf.port`                                               | CockroachDB primary serving port in Pods                        | `26257`                                          |
+      | `conf.http-port`                                          | CockroachDB HTTP port in Pods                                   | `8080`                                           |
+      | `image.repository`                                        | Container image name                                            | `cockroachdb/cockroach`                          |
+      | `image.tag`                                               | Container image tag                                             | `v20.2.3`                                        |
+      | `image.pullPolicy`                                        | Container pull policy                                           | `IfNotPresent`                                   |
+      | `image.credentials`                                       | `registry`, `user` and `pass` credentials to pull private image | `{}`                                             |
+      | `statefulset.replicas`                                    | StatefulSet replicas number                                     | `3`                                              |
+      | `statefulset.updateStrategy`                              | Update strategy for StatefulSet Pods                            | `{"type": "RollingUpdate"}`                      |
+      | `statefulset.podManagementPolicy`                         | `OrderedReady`/`Parallel` Pods creation/deletion order          | `Parallel`                                       |
+      | `statefulset.budget.maxUnavailable`                       | k8s PodDisruptionBudget parameter                               | `1`                                              |
+      | `statefulset.args`                                        | Extra command-line arguments                                    | `[]`                                             |
+      | `statefulset.env`                                         | Extra env vars                                                  | `[]`                                             |
+      | `statefulset.secretMounts`                                | Additional Secrets to mount at cluster members                  | `[]`                                             |
+      | `statefulset.labels`                                      | Additional labels of StatefulSet and its Pods                   | `{"app.kubernetes.io/component": "cockroachdb"}` |
+      | `statefulset.annotations`                                 | Additional annotations of StatefulSet Pods                      | `{}`                                             |
+      | `statefulset.nodeAffinity`                                | [Node affinity rules][2] of StatefulSet Pods                    | `{}`                                             |
+      | `statefulset.podAffinity`                                 | [Inter-Pod affinity rules][1] of StatefulSet Pods               | `{}`                                             |
+      | `statefulset.podAntiAffinity`                             | [Anti-affinity rules][1] of StatefulSet Pods                    | auto                                             |
+      | `statefulset.podAntiAffinity.topologyKey`                 | The topologyKey for auto [anti-affinity rules][1]               | `kubernetes.io/hostname`                         |
+      | `statefulset.podAntiAffinity.type`                        | Type of auto [anti-affinity rules][1]                           | `soft`                                           |
+      | `statefulset.podAntiAffinity.weight`                      | Weight for `soft` auto [anti-affinity rules][1]                 | `100`                                            |
+      | `statefulset.nodeSelector`                                | Node labels for StatefulSet Pods assignment                     | `{}`                                             |
+      | `statefulset.priorityClassName`                           | [PriorityClassName][4] for StatefulSet Pods                     | `""`                                             |
+      | `statefulset.tolerations`                                 | Node taints to tolerate by StatefulSet Pods                     | `[]`                                             |
+      | `statefulset.topologySpreadConstraints`                   | [Topology Spread Constraints rules][5] of StatefulSet Pods      | auto                                             |
+      | `statefulset.topologySpreadConstraints.maxSkew`           | Degree to which Pods may be unevenly distributed                | `1`                                              |
+      | `statefulset.topologySpreadConstraints.topologyKey`       | The key of node labels                                          | `topology.kubernetes.io/zone`                    |
+      | `statefulset.topologySpreadConstraints.whenUnsatisfiable` | `ScheduleAnyway`/`DoNotSchedule` for unsatisfiable constraints  | `ScheduleAnyway`                                 |
+      | `statefulset.resources`                                   | Resource requests and limits for StatefulSet Pods               | `{}`                                             |
+      | `service.ports.grpc.external.port`                        | CockroachDB primary serving port in Services                    | `26257`                                          |
+      | `service.ports.grpc.external.name`                        | CockroachDB primary serving port name in Services               | `grpc`                                           |
+      | `service.ports.grpc.internal.port`                        | CockroachDB inter-communication port in Services                | `26257`                                          |
+      | `service.ports.grpc.internal.name`                        | CockroachDB inter-communication port name in Services           | `grpc-internal`                                  |
+      | `service.ports.http.port`                                 | CockroachDB HTTP port in Services                               | `8080`                                           |
+      | `service.ports.http.name`                                 | CockroachDB HTTP port name in Services                          | `http`                                           |
+      | `service.public.type`                                     | Public Service type                                             | `ClusterIP`                                      |
+      | `service.public.labels`                                   | Additional labels of public Service                             | `{"app.kubernetes.io/component": "cockroachdb"}` |
+      | `service.public.annotations`                              | Additional annotations of public Service                        | `{}`                                             |
+      | `service.discovery.labels`                                | Additional labels of discovery Service                          | `{"app.kubernetes.io/component": "cockroachdb"}` |
+      | `service.discovery.annotations`                           | Additional annotations of discovery Service                     | `{}`                                             |
+      | `ingress.enabled`                                         | Enable ingress resource for CockroachDB                         | `false`                                          |
+      | `ingress.labels`                                          | Additional labels of Ingress                                    | `{}`                                             |
+      | `ingress.annotations`                                     | Additional annotations of Ingress                               | `{}`                                             |
+      | `ingress.paths`                                           | Paths for the default host                                      | `[/]`                                            |
+      | `ingress.hosts`                                           | CockroachDB Ingress hostnames                                   | `[]`                                             |
+      | `ingress.tls[0].hosts`                                    | CockroachDB Ingress tls hostnames                               | `nil`                                            |
+      | `ingress.tls[0].secretName`                               | CockroachDB Ingress tls secret name                             | `nil`                                            |
+      | `serviceMonitor.enabled`                                  | Create [ServiceMonitor](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/design.md#servicemonitor) Resource for scraping metrics using [PrometheusOperator](https://github.com/prometheus-operator/prometheus-operator/blob/master/Documentation/user-guides/getting-started.md#prometheus-operator)                     | `false`                                             |
+      | `serviceMonitor.labels`                                   | Additional labels of ServiceMonitor                             | `{}`                                             |
+      | `serviceMonitor.annotations`                              | Additional annotations of ServiceMonitor                        | `{}`                                             |
+      | `serviceMonitor.interval`                                 | ServiceMonitor scrape metrics interval                          | `10s`                                            |
+      | `serviceMonitor.scrapeTimeout`                            | ServiceMonitor scrape timeout                                   | `nil`                                            |
+      | `storage.hostPath`                                        | Absolute path on host to store data                             | `""`                                             |
+      | `storage.persistentVolume.enabled`                        | Whether to use PersistentVolume to store data                   | `yes`                                            |
+      | `storage.persistentVolume.size`                           | PersistentVolume size                                           | `100Gi`                                          |
+      | `storage.persistentVolume.storageClass`                   | PersistentVolume class                                          | `""`                                             |
+      | `storage.persistentVolume.labels`                         | Additional labels of PersistentVolumeClaim                      | `{}`                                             |
+      | `storage.persistentVolume.annotations`                    | Additional annotations of PersistentVolumeClaim                 | `{}`                                             |
+      | `init.labels`                                             | Additional labels of init Job and its Pod                       | `{"app.kubernetes.io/component": "init"}`        |
+      | `init.annotations`                                        | Additional labels of the Pod of init Job                        | `{}`                                             |
+      | `init.affinity`                                           | [Affinity rules][2] of init Job Pod                             | `{}`                                             |
+      | `init.nodeSelector`                                       | Node labels for init Job Pod assignment                         | `{}`                                             |
+      | `init.tolerations`                                        | Node taints to tolerate by init Job Pod                         | `[]`                                             |
+      | `init.resources`                                          | Resource requests and limits for the Pod of init Job            | `{}`                                             |
+      | `tls.enabled`                                             | Whether to run securely using TLS certificates                  | `no`                                             |
+      | `tls.serviceAccount.create`                               | Whether to create a new RBAC service account                    | `yes`                                            |
+      | `tls.serviceAccount.name`                                 | Name of RBAC service account to use                             | `""`                                             |
+      | `tls.certs.provided`                                      | Bring your own certs scenario, i.e certificates are provided    | `no`                                             |
+      | `tls.certs.clientRootSecret`                              | If certs are provided, secret name for client root cert         | `cockroachdb-root`                               |
+      | `tls.certs.nodeSecret`                                    | If certs are provided, secret name for node cert                | `cockroachdb-node`                               |
+      | `tls.certs.tlsSecret`                                     | Own certs are stored in TLS secret                              | `no`                                             |
+      | `tls.init.image.repository`                               | Image to use for requesting TLS certificates                    | `cockroachdb/cockroach-k8s-request-cert`         |
+      | `tls.init.image.tag`                                      | Image tag to use for requesting TLS certificates                | `0.4`                                            |
+      | `tls.init.image.pullPolicy`                               | Requesting TLS certificates container pull policy               | `IfNotPresent`                                   |
+      | `tls.init.image.credentials`                              | `registry`, `user` and `pass` credentials to pull private image | `{}`                                             |
+      | `networkPolicy.enabled`                                   | Enable NetworkPolicy for CockroachDB's Pods                     | `no`                                             |
+      | `networkPolicy.ingress.grpc`                              | Whitelist resources to access gRPC port of CockroachDB's Pods   | `[]`                                             |
+      | `networkPolicy.ingress.http`                              | Whitelist resources to access gRPC port of CockroachDB's Pods   | `[]`                                             |
+    ## Upgrading the cluster
+    Assuming the name of the `CockroachDB` instance is `example`, follow the steps below to update to a newer version (example used os v19.2.5->v19.2.7) of CockroachDB:
+    Launch a temporary interactive pod and start the built-in SQL client:
+    ```shell
+    kubectl run cockroachdb --rm -it \
+    --image=cockroachdb/cockroach \
+    --restart=Never \
+    -- sql --insecure --host=example-cockroachdb-public
+    ```
+    > If you are running in secure mode, you will have to provide a client certificate to the cluster in order to authenticate, so the above command will not work. See [here](https://github.com/cockroachdb/cockroach/blob/master/cloud/kubernetes/client-secure.yaml) for an example of how to set up an interactive SQL shell against a secure cluster or [here](https://github.com/cockroachdb/cockroach/blob/master/cloud/kubernetes/example-app-secure.yaml) for an example application connecting to a secure cluster.
+    Set `cluster.preserve_downgrade_option`, where `$current_version` is the CockroachDB version currently running (e.g., `19.2`):
+    ```sql
+    > SET CLUSTER SETTING cluster.preserve_downgrade_option = '$current_version';
+    ```
+    Exit the shell and delete the temporary pod:
+    ```sql
+    > \q
+    ```
+    Kick off the upgrade process by changing the new Docker image, where `$new_version` is the CockroachDB version to which you are upgrading:
+    ```shell
+    kubectl delete job example-cockroachdb-init
+    ```
+    ```shell
+    kubectl patch cockroachdbs example -p '{"spec": {"image":{"tag":"v19.2.7"}}}' --type merge
+    ```
+    Kubernetes will carry out a safe [rolling upgrade](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#updating-statefulsets) of your CockroachDB nodes one-by-one. Monitor the cluster's pods until all have been successfully restarted:
+    ```shell
+    kubectl get pods
+    ```
+    ```
+    NAME                                READY     STATUS              RESTARTS   AGE
+    example-cockroachdb-0            1/1       Running             0          2m
+    example-cockroachdb-1            1/1       Running             0          3m
+    example-cockroachdb-2            1/1       Running             0          3m
+    example-cockroachdb-3            0/1       ContainerCreating   0          25s
+    example-cockroachdb-init-nwjkh   0/1       ContainerCreating   0          6s
+    ```
+    ```shell
+    kubectl get pods \
+    -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].image}{"\n"}'
+    ```
+    ```
+    example-cockroachdb-0    cockroachdb/cockroach:v19.2.7
+    example-cockroachdb-1    cockroachdb/cockroach:v19.2.7
+    example-cockroachdb-2    cockroachdb/cockroach:v19.2.7
+    ```
+    Resume normal operations. Once you are comfortable that the stability and performance of the cluster is what you'd expect post-upgrade, finalize the upgrade:
+    ```shell
+    kubectl run cockroachdb --rm -it \
+    --image=cockroachdb/cockroach \
+    --restart=Never \
+    -- sql --insecure --host=example-cockroachdb-public
+    ```
+    ```sql
+    > RESET CLUSTER SETTING cluster.preserve_downgrade_option;
+    > \q
+    ```
+  displayName: CockroachDB
+  icon:
+  - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMS44MiAzMiIgd2lkdGg9IjI0ODYiIGhlaWdodD0iMjUwMCI+PHRpdGxlPkNMPC90aXRsZT48cGF0aCBkPSJNMTkuNDIgOS4xN2ExNS4zOSAxNS4zOSAwIDAgMS0zLjUxLjQgMTUuNDYgMTUuNDYgMCAwIDEtMy41MS0uNCAxNS42MyAxNS42MyAwIDAgMSAzLjUxLTMuOTEgMTUuNzEgMTUuNzEgMCAwIDEgMy41MSAzLjkxek0zMCAuNTdBMTcuMjIgMTcuMjIgMCAwIDAgMjUuNTkgMGExNy40IDE3LjQgMCAwIDAtOS42OCAyLjkzQTE3LjM4IDE3LjM4IDAgMCAwIDYuMjMgMGExNy4yMiAxNy4yMiAwIDAgMC00LjQ0LjU3QTE2LjIyIDE2LjIyIDAgMCAwIDAgMS4xM2EuMDcuMDcgMCAwIDAgMCAuMDkgMTcuMzIgMTcuMzIgMCAwIDAgLjgzIDEuNTcuMDcuMDcgMCAwIDAgLjA4IDAgMTYuMzkgMTYuMzkgMCAwIDEgMS44MS0uNTQgMTUuNjUgMTUuNjUgMCAwIDEgMTEuNTkgMS44OCAxNy41MiAxNy41MiAwIDAgMC0zLjc4IDQuNDhjLS4yLjMyLS4zNy42NS0uNTUgMXMtLjIyLjQ1LS4zMy42OS0uMzEuNzItLjQ0IDEuMDhhMTcuNDYgMTcuNDYgMCAwIDAgNC4yOSAxOC43Yy4yNi4yNS41My40OS44MS43M3MuNDQuMzcuNjcuNTQuNTkuNDQuODkuNjRhLjA3LjA3IDAgMCAwIC4wOCAwYy4zLS4yMS42LS40Mi44OS0uNjRzLjQ1LS4zNS42Ny0uNTQuNTUtLjQ4LjgxLS43M2ExNy40NSAxNy40NSAwIDAgMCA1LjM4LTEyLjYxIDE3LjM5IDE3LjM5IDAgMCAwLTEuMDktNi4wOWMtLjE0LS4zNy0uMjktLjczLS40NS0xLjA5cy0uMjItLjQ3LS4zMy0uNjktLjM1LS42Ni0uNTUtMWExNy42MSAxNy42MSAwIDAgMC0zLjc4LTQuNDggMTUuNjUgMTUuNjUgMCAwIDEgMTEuNi0xLjg0IDE2LjEzIDE2LjEzIDAgMCAxIDEuODEuNTQuMDcuMDcgMCAwIDAgLjA4IDBxLjQ0LS43Ni44Mi0xLjU2YS4wNy4wNyAwIDAgMCAwLS4wOUExNi44OSAxNi44OSAwIDAgMCAzMCAuNTd6IiBmaWxsPSIjMTUxZjM0Ii8+PHBhdGggZD0iTTIxLjgyIDE3LjQ3YTE1LjUxIDE1LjUxIDAgMCAxLTQuMjUgMTAuNjkgMTUuNjYgMTUuNjYgMCAwIDEtLjcyLTQuNjggMTUuNSAxNS41IDAgMCAxIDQuMjUtMTAuNjkgMTUuNjIgMTUuNjIgMCAwIDEgLjcyIDQuNjgiIGZpbGw9IiMzNDg1NDAiLz48cGF0aCBkPSJNMTUgMjMuNDhhMTUuNTUgMTUuNTUgMCAwIDEtLjcyIDQuNjggMTUuNTQgMTUuNTQgMCAwIDEtMy41My0xNS4zN0ExNS41IDE1LjUgMCAwIDEgMTUgMjMuNDgiIGZpbGw9IiM3ZGJjNDIiLz48L3N2Zz4=
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          - clusterroles
+          - rolebindings
+          - clusterrolebindings
+          verbs:
+          - '*'
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: default
+      deployments:
+      - name: cockroachdb-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources: {}
+              - args:
+                - --metrics-addr=127.0.0.1:8080
+                - --enable-leader-election
+                - --leader-election-id=cockroachdb
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: cockroachdb
+                image: quay.io/helmoperators/cockroachdb:v5.0.3
+                name: manager
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 90Mi
+                  requests:
+                    cpu: 100m
+                    memory: 60Mi
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - configmaps
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - charts.operatorhub.io
+          resources:
+          - cockroachdbs
+          - cockroachdbs/status
+          - cockroachdbs/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - '*'
+        - apiGroups:
+          - policy
+          resources:
+          - poddisruptionbudgets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          - pods
+          verbs:
+          - '*'
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - '*'
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - '*'
+        serviceAccountName: default
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - cockroach
+  - cockroachdb
+  links:
+  - name: Helm Chart Source
+    url: https://github.com/helm/charts/tree/master/stable/cockroachdb
+  - name: Configuration Options
+    url: https://github.com/helm/charts/tree/master/stable/cockroachdb#configuration
+  - name: CockroachDB Source
+    url: https://github.com/cockroachdb/cockroach
+  maintainers:
+  - email: dmesser@redhat.com
+    name: Daniel Messer
+  maturity: stable
+  minKubeVersion: 1.8.0
+  provider:
+    name: Helm Community
+    url: https://artifacthub.io/packages/helm/cockroachdb/cockroachdb
+  version: 5.0.3

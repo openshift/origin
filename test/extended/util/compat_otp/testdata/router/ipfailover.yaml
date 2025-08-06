@@ -1,0 +1,95 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      ipfailover: hello-openshift
+  spec:
+    strategy:
+      type: Recreate
+    replicas: 2
+    selector:
+      matchLabels:
+        ipfailover: hello-openshift
+    template:
+      metadata:
+        labels:
+          ipfailover: hello-openshift
+      spec:
+        serviceAccountName: ipfailover
+        privileged: true
+        hostNetwork: true
+        nodeSelector:
+          node-role.kubernetes.io/worker: ""
+        containers:
+        - name: openshift-ipfailover
+          image: ${IMAGE}
+          ports:
+          - containerPort: 63000
+            hostPort: 63000
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          volumeMounts:
+          - name: lib-modules
+            mountPath: /lib/modules
+            readOnly: true
+          - name: host-slash
+            mountPath: /host
+            readOnly: true
+            mountPropagation: HostToContainer
+          - name: etc-sysconfig
+            mountPath: /etc/sysconfig
+            readOnly: true
+          env:
+          - name: OPENSHIFT_HA_CONFIG_NAME
+            value: "ipfailover"
+          - name: OPENSHIFT_HA_VIRTUAL_IPS
+            value: ${VIRTUALIPS}
+          - name: OPENSHIFT_HA_VIP_GROUPS
+            value: "10"
+          - name: OPENSHIFT_HA_NETWORK_INTERFACE
+            value: ${HAINTERFACE}
+          - name: OPENSHIFT_HA_MONITOR_PORT
+            value: ${MONITORPORT}
+          - name: OPENSHIFT_HA_VRRP_ID_OFFSET
+            value: ${VRRP_ID_OFFSET}
+          - name: OPENSHIFT_HA_REPLICA_COUNT
+            value: "2"
+          - name: OPENSHIFT_HA_IPTABLES_CHAIN
+            value: "INPUT"
+          - name: OPENSHIFT_HA_PREEMPTION
+            value: "nopreempt"
+          - name: OPENSHIFT_HA_CHECK_INTERVAL
+            value: "5"
+          livenessProbe:
+            initialDelaySeconds: 10
+            exec:
+              command:
+              - pgrep
+              - keepalived
+        volumes:
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+        - name: host-slash
+          hostPath:
+            path: /
+        - name: etc-sysconfig
+          hostPath:
+            path: /etc/sysconfig
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IMAGE
+- name: VIRTUALIPS
+  value: "192.168.123.123"
+- name: MONITORPORT
+  value: "22"
+- name: HAINTERFACE
+- name: VRRP_ID_OFFSET
+  value: "9"

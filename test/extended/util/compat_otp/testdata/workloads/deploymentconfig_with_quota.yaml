@@ -1,0 +1,62 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: hello-openshift
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    deploymentconfig: hello-openshift
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources:
+      limits:
+        cpu: 100m
+        memory: 300Mi
+      requests:
+        cpu: 100m
+        memory: 300Mi
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        deploymentconfig: hello-openshift
+    spec:
+      containers:
+      - image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+        imagePullPolicy: Always
+        name: hello-openshift
+        resources:
+          limits:
+            cpu: 60m
+            memory: 60Mi
+          requests:
+            cpu: 50m
+            memory: 40M
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      - image: quay.io/openshifttest/registry@sha256:1106aedc1b2e386520bc2fb797d9a7af47d651db31d8e7ab472f2352da37d1b3
+        imagePullPolicy: Always
+        name: hello-openshift2
+        resources:
+          limits:
+            cpu: 60m
+            memory: 60Mi
+          requests:
+            cpu: 50m
+            memory: 40Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  test: false

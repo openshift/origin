@@ -1,0 +1,37 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: logfilesmetricexporter-template
+objects:
+- apiVersion: "logging.openshift.io/v1alpha1"
+  kind: LogFileMetricExporter
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    resources:
+      limits:
+        cpu: ${LIMIT_CPU}
+        memory: ${LIMIT_MEMORY}
+      requests:
+        cpu: ${REQUEST_CPU}
+        memory: ${REQUEST_MEMORY}
+    tolerations: ${{TOLERATIONS}}
+    nodeSelector: ${{NODE_SELECTOR}}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: TOLERATIONS
+  value: "[]"
+- name: NODE_SELECTOR
+  value: "{}"
+- name: LIMIT_CPU
+  value: "500m"
+- name: LIMIT_MEMORY
+  value: "256Mi"
+- name: REQUEST_CPU
+  value: "200m"
+- name: REQUEST_MEMORY
+  value: "128Mi"

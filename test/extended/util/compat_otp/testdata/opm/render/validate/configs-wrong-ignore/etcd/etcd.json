@@ -1,0 +1,43 @@
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
+    "image": "quay.io/openshift-community-operators/etcd:v0.9.0",
+    "properties": [
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdRestore",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.maxOpenShiftVersion",
+            "value": "4.8"
+        },
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        }
+    ]
+}

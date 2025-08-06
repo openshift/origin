@@ -1,0 +1,67 @@
+apiVersion: config.openshift.io/v1
+kind: ImageTagMirrorSet
+metadata:
+  name: osc-registry
+spec:
+  imageTagMirrors:
+    - mirrors:
+      - quay.io/redhat-user-workloads/ose-osc-tenant/osc-monitor
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-monitor-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ose-osc-tenant/osc-caa
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-cloud-api-adaptor-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-caa-webhook
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-cloud-api-adaptor-webhook-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-podvm-builder
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-podvm-builder-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-podvm-payload
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-podvm-payload-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-operator
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-rhel9-operator
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-must-gather
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-must-gather-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-operator-bundle
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-operator-bundle
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-dm-verity-image
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-dm-verity-image
+---
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: osc-registry
+spec:
+  imageDigestMirrors:
+    - mirrors:
+      - quay.io/redhat-user-workloads/ose-osc-tenant/osc-monitor
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-monitor-rhel9
+    - mirrors:
+      - quay.io/redhat-user-workloads/ose-osc-tenant/osc-caa
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-cloud-api-adaptor-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-caa-webhook
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-cloud-api-adaptor-webhook-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-podvm-builder
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-podvm-builder-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-podvm-payload
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-podvm-payload-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-operator
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-rhel9-operator
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-must-gather
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-must-gather-rhel9
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-operator-bundle
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-operator-bundle
+    - mirrors:
+        - quay.io/redhat-user-workloads/ose-osc-tenant/osc-dm-verity-image
+      source: registry.redhat.io/openshift-sandboxed-containers/osc-dm-verity-image

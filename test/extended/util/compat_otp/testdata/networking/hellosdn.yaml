@@ -1,0 +1,58 @@
+{
+    "apiVersion": "v1",
+    "kind": "List",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "ReplicationController",
+            "metadata": {
+                "labels": {
+                    "name": "hello-sdn"
+                },
+                "name": "hello-sdn"
+            },
+            "spec": {
+                "replicas": 2,
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "name": "hellosdn"
+                        }
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "image": "quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4",
+                                "name": "hellosdn",
+                                "imagePullPolicy": "IfNotPresent"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": {
+                "labels": {
+                    "name": "hello-service"
+                },
+                "name": "hello-service"
+            },
+            "spec": {
+                "ports": [
+                    {
+                        "name": "http",
+                        "port": 27017,
+                        "protocol": "TCP",
+                        "targetPort": 8080
+                    }
+                ],
+                "selector": {
+                    "name": "hellosdn"
+                }
+            }
+        }
+    ]
+}

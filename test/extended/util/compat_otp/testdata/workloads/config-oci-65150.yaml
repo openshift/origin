@@ -1,0 +1,11 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+storageConfig:
+  registry:
+    imageURL: registryroute/metadatamulti:latest
+    skipTLS: true
+mirror:
+  operators:
+    - catalog: oci:///tmp/case65150/oci-multi-index
+      packages:
+      - name: cluster-kube-descheduler-operator

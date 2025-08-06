@@ -1,0 +1,134 @@
+kind: List
+apiVersion: v1
+items:
+# an ingress that should be captured as individual routes
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: test
+  spec:
+    tls:
+    - hosts:
+      - 3.ingress-test.com
+      secretName: ingress-endpoint-secret
+    rules:
+    - host: 1.ingress-test.com
+      http:
+        paths:
+        - path: /test
+          pathType: Prefix
+          backend:
+            service:
+              name: ingress-endpoint-1
+              port:
+                number: 80
+        - path: /other
+          pathType: Prefix
+          backend:
+            service:
+              name: ingress-endpoint-2
+              port:
+                number: 80
+    - host: 2.ingress-test.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: ingress-endpoint-1
+              port:
+                number: 80
+    - host: 3.ingress-test.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: ingress-endpoint-1
+              port:
+                number: 80
+# an empty secret
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ingress-endpoint-secret
+  type: kubernetes.io/tls
+  stringData:
+    tls.key: ""
+    tls.crt: ""
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-1
+  spec:
+    selector:
+      app: ingress-endpoint-1
+    ports:
+    - port: 80
+      targetPort: 8080
+# a service to be routed to
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ingress-endpoint-2
+  spec:
+    selector:
+      app: ingress-endpoint-2
+    ports:
+    - port: 80
+      targetPort: 8080
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-1
+    labels:
+      app: ingress-endpoint-1
+  spec:
+    terminationGracePeriodSeconds: 1
+    securityContext:
+     seccompProfile:
+      type: RuntimeDefault
+    containers:
+    - name: test
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      args: ["netexec"]
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+# a pod that serves a response
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: ingress-endpoint-2
+    labels:
+      app: ingress-endpoint-2
+  spec:
+    terminationGracePeriodSeconds: 1
+    securityContext:
+     seccompProfile:
+      type: RuntimeDefault
+    containers:
+    - name: test
+      image: registry.k8s.io/e2e-test-images/agnhost:2.40
+      args: ["netexec"]
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL

@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-loglink-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}" 
+    annotations:
+      io.kubernetes.cri-o.LinkLogs: "logging-volume"
+  spec:
+    containers:
+    - name: httpd
+      image: httpd:2.4-alpine
+      volumeMounts:
+      - name: logging-volume
+        mountPath: /acme-logs
+    restartPolicy: Always
+    volumes:
+    - name: logging-volume
+      emptyDir: {}
+parameters:
+- name: NAME
+- name: NAMESPACE

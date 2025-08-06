@@ -1,0 +1,20 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: rsyslogd-pod
+  labels:
+    name: rsyslogd
+spec:
+  containers:
+  - image: quay.io/openshifttest/rsyslogd-container@sha256:e806eb41f05d7cc6eec96bf09c7bcb692f97562d4a983cb019289bd048d9aee2
+    name: rsyslogd-container
+    securityContext:
+      privileged: true
+    ports:
+    - containerPort: 514
+      protocol: TCP
+    - containerPort: 514
+      protocol: UDP
+    resources:
+      limits:
+        memory: 340Mi

@@ -1,0 +1,18 @@
+apiVersion: performance.openshift.io/v2
+kind: PerformanceProfile
+metadata:
+  name: performance
+spec:
+  cpu:
+    isolated: "2-3"
+    reserved: "0-1"
+  globallyDisableIrqLoadBalancing: false
+  net:
+    userLevelNetworking: true
+    devices: []
+  nodeSelector:
+    node-role.kubernetes.io/worker-nohttps: ""
+  numa:
+    topologyPolicy: "single-numa-node"
+  realTimeKernel:
+    enabled: false

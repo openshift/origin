@@ -1,0 +1,41 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ds-template
+objects:
+- kind: DaemonSet
+  apiVersion: apps/v1
+  metadata:
+    name: ${DSNAME}
+    namespace: ${DSNAMESPACE}
+  spec:
+    selector:
+      matchLabels:
+        app: ${DSLABEL}
+    template:
+      metadata:
+        labels:
+          app: ${DSLABEL}
+      spec:
+        containers:
+        - name: ${DSNAME}
+          imagePullPolicy: IfNotPresent
+          image: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+          ports:
+            - containerPort: 80
+          ${VOLUMETYPE}:
+          - name: local
+            ${TYPEPATH}: ${MPATH}
+        volumes:
+        - name: local
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}    
+
+parameters:
+- name: DSNAME
+- name: DSNAMESPACE
+- name: DSLABEL
+- name: MPATH
+- name: PVCNAME
+- name: VOLUMETYPE
+- name: TYPEPATH

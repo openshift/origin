@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: replicas-mismatch
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: replicas-mismatch
+  template:
+    metadata:
+      labels:
+        app: replicas-mismatch
+    spec:
+      containers:
+      - name: busybox
+        image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+        command: ["sh", "-c", "sleep 3600"]
+        resources:
+          requests:
+            memory: "2Gi"
+          limits:
+            memory: "2Gi"

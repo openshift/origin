@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-testpod
+objects:
+  - kind: Pod
+    apiVersion: v1
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      containers:
+        - name: app
+          image: quay.io/openshifttest/hello-openshift@sha256:b1aabe8c8272f750ce757b6c4263a2712796297511e0c6df79144ee188933623
+          ports:
+          - containerPort: 80
+          volumeMounts:
+            - name: local
+              mountPath: "${PATH}"
+      volumes:
+        - name: local
+          persistentVolumeClaim:
+            claimName: "${PVCNAME}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: PATH
+  - name: PVCNAME
+
+

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: hc-nodepool-invalid
+data:
+ tuning: |
+   apiVersion: tuned.openshift.io/v1
+   kind: Tuned
+   metadata:
+     name: hc-nodepool-invalid
+     namespace: openshift-cluster-node-tuning-operator
+   spec:
+     profile:
+     - data: |
+         [main]
+         summary=Custom OpenShift profile
+         include=openshift-node
+ 
+         [sysctl]
+         kernel.pid_max = 868686
+         kernel.kernel.msgmnb = -65535
+         kernel.pid_maxinvalid = 65535
+         vm.dirty_ratio="56"
+       name: hc-nodepool-invalid
+     recommend:
+     - priority: 20
+       profile: hc-nodepool-invalid

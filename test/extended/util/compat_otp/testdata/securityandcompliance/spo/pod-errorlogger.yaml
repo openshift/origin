@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-modify-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    initContainers:
+    - name: errorlogger
+      image: quay.io/openshifttest/busybox
+      command: ['sh', '-c', 'echo "Time: Thu May 12 22:13:13 CST 2022. Some error info." >> /var/log/test.log || /bin/true']
+      volumeMounts:
+      - name: varlog
+        mountPath: /var/log
+    containers:
+    - name: pauser
+      image: "gcr.io/google_containers/pause:latest"
+    restartPolicy: Never
+    volumes:
+    - name: varlog
+      hostPath:
+        path: /var/log
+        type: Directory
+
+parameters:
+- name: NAME
+- name: NAMESPACE

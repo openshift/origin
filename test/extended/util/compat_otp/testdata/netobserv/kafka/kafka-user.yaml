@@ -1,0 +1,22 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafka-user-template
+objects:
+- apiVersion: kafka.strimzi.io/v1beta2
+  kind: KafkaUser
+  metadata:
+    labels:
+      strimzi.io/cluster: "${NAME}"
+    namespace: "${NAMESPACE}"
+    name: "${USER_NAME}"
+  spec:
+    authentication:
+      type: tls
+parameters:
+- name: USER_NAME
+  value: "flp-kafka"
+- name: NAME
+  value: "kafka-cluster"
+- name: NAMESPACE
+  value: "netobserv"

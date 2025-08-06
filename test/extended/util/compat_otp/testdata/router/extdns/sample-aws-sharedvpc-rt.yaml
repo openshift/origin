@@ -1,0 +1,21 @@
+apiVersion: externaldns.olm.openshift.io/v1beta1
+kind: ExternalDNS
+metadata:
+  name: sample-aws-sharedvpc-rt
+spec:
+  domains:
+  - filterType: Include
+    matchType: Exact
+    name: basedomain
+  provider:
+    type: AWS
+    aws:
+      assumeRole:
+        arn: privatezoneiamrole
+  source:
+    openshiftRouteOptions:
+      routerName: default
+    type: OpenShiftRoute
+    labelFilter:
+      matchLabels:
+        external-dns.mydomain.org/publish: "yes"

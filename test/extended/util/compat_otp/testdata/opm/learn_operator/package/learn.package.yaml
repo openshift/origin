@@ -1,0 +1,5 @@
+packageName: learn-operator
+channels:
+- currentCSV: learn-operator.v0.0.2
+  name: alpha
+defaultChannel: alpha

@@ -1,0 +1,29 @@
+{
+    "apiVersion": "config.openshift.io/v1",
+    "kind": "Image",
+    "metadata": {
+      "annotations": {
+        "include.release.openshift.io/ibm-cloud-managed": "true",
+        "include.release.openshift.io/self-managed-high-availability": "true",
+        "include.release.openshift.io/single-node-developer": "true",
+        "release.openshift.io/create-only": "true"
+      },
+      "name": "cluster"
+    },
+    "spec": {
+      "registrySources": {
+        "containerRuntimeSearchRegistries": [
+          "registry.access.redhat.com",
+          "docker.io",
+          "quay.io",
+          "qe.quay.io"
+        ],
+        "allowedRegistries": [
+          "registry.access.redhat.com",
+          "docker.io",
+          "quay.io",
+          "qe.quay.io"
+        ]
+      }
+    }
+}

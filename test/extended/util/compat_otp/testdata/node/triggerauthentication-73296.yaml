@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: keda.sh/v1alpha1
+  kind: TriggerAuthentication
+  metadata:
+    name: keda-trigger-auth-prometheus
+    namespace: ${NAMESPACE}
+  spec:
+    secretTargetRef:
+    - parameter: bearerToken
+      name: ${SECRET_NAME}
+      key: token
+    - parameter: ca
+      name: ${SECRET_NAME}
+      key: ca.crt 
+parameters:
+- name: SECRET_NAME
+  value: thanos-token
+- name: NAMESPACE
+  value: cma-73296

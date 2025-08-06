@@ -1,0 +1,15 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: user-workload-monitoring-config-temp
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: user-workload-monitoring-config
+    namespace: openshift-user-workload-monitoring
+  data:
+    config.yaml: |
+      alertmanager:
+        enabled: true
+        enableAlertmanagerConfig: true

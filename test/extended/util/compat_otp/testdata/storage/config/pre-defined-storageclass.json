@@ -1,0 +1,72 @@
+{
+  "platforms": [
+    {
+      "name": "aws",
+      "storageclass": {
+        "default_sc": "gp3-csi",
+        "pre_defined_sc": [
+          "gp2-csi",
+          "gp3-csi"
+        ]
+      }
+    },
+    {
+      "name": "azure",
+      "storageclass": {
+        "default_sc": "managed-csi",
+        "pre_defined_sc": [
+          "azurefile-csi",
+          "managed-csi"
+        ]
+      }
+    },
+    {
+      "name": "vsphere",
+      "storageclass": {
+        "default_sc": "thin-csi",
+        "pre_defined_sc": [
+          "thin-csi"
+        ]
+      }
+    },
+    {
+      "name": "ibmcloud",
+      "storageclass": {
+        "default_sc": "ibmc-vpc-block-10iops-tier",
+        "pre_defined_sc": [
+          "ibmc-vpc-block-10iops-tier",
+          "ibmc-vpc-block-5iops-tier",
+          "ibmc-vpc-block-custom"
+        ]
+      }
+    },
+    {
+      "name": "gcp",
+      "storageclass": {
+        "default_sc": "standard-csi",
+        "pre_defined_sc": [
+          "standard-csi",
+          "ssd-csi"
+        ]
+      }
+    },
+    {
+      "name": "alibabacloud",
+      "storageclass": {
+        "default_sc": "alicloud-disk",
+        "pre_defined_sc": [
+          "alicloud-disk"
+        ]
+      }
+    },
+    {
+      "name": "openstack",
+      "storageclass": {
+        "default_sc": "standard-csi",
+        "pre_defined_sc": [
+          "standard-csi"
+        ]
+      }
+    }
+  ]
+}

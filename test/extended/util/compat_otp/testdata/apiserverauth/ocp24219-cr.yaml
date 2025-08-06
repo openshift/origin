@@ -1,0 +1,6 @@
+apiVersion: example.com/v1
+kind: OCP24219TestCR
+metadata:
+  name: ocp24219-test-cr
+spec:
+  a: asdf

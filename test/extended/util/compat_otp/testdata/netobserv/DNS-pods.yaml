@@ -1,0 +1,73 @@
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: "dns-traffic"
+  labels:
+    name: "dns-traffic"
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dnsutils1
+  namespace: "dns-traffic"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  dnsConfig:
+    options:
+      - name: "use-vc"
+  containers:
+    - command:
+        - sh
+        - -c
+        - "
+          \  while : ; do\n
+          \  dig www.google.com +tcp ; sleep 5 \n
+          \  done"
+      image: massenz/dnsutils:2.4.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+          privileged: false
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      name: dnsutils1
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dnsutils2
+  namespace: "dns-traffic"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  dnsConfig:
+    options:
+      - name: "use-vc"
+  containers:
+    - command:
+        - sh
+        - -c
+        - "
+          \  while : ; do\n
+          \  dig www.google.com ; sleep 5 \n
+          \  done"
+      image: massenz/dnsutils:2.4.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+          privileged: false
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      name: dnsutils2

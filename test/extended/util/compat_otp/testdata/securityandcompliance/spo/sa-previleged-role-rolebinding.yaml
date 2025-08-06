@@ -1,0 +1,44 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sa-previleged-role-rolebinding-template
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    creationTimestamp: null
+    name: "${SANAME}"
+    namespace: "${NAMESPACE}"
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    creationTimestamp: null
+    name: "${ROLENAME}"
+    namespace: "${NAMESPACE}"
+  rules:
+  - apiGroups:
+    - security.openshift.io
+    resources:
+    - securitycontextconstraints
+    resourceNames:
+    - privileged
+    verbs:
+    - use
+- kind: RoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: "${ROLEBINDINGNAME}"
+    namespace: "${NAMESPACE}"
+  subjects:
+  - kind: ServiceAccount
+    name: "${SANAME}"
+  roleRef:
+    kind: Role
+    name: "${ROLENAME}"
+    apiGroup: rbac.authorization.k8s.io
+
+parameters:
+- name: NAMESPACE
+- name: SANAME
+- name: ROLENAME
+- name: ROLEBINDINGNAME

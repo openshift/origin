@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-priorityClass-template
+objects:
+  # PriorityClass
+- kind: PriorityClass
+  apiVersion: scheduling.k8s.io/v1
+  metadata:
+    name: ${PRIORITYCLASS_NAME}
+  value: ${{VALUE}}
+  globalDefault: false
+  description: ${DESCRIPTION}
+parameters:
+- name: PRIORITYCLASS_NAME
+- name: VALUE
+- name: GLOABL_DEFAULT
+- name: DESCRIPTION

@@ -1,0 +1,14 @@
+apiVersion: metallb.io/v1beta1
+kind: MetalLB
+metadata:
+  name: metallb
+  namespace: metallb-system
+spec:
+  controllerNodeSelector:
+      node-role.kubernetes.io/worker: ""
+  nodeSelector:
+      node-role.kubernetes.io/worker: ""
+  controllerConfig:
+    priorityClassName: metallb-high-priority
+  speakerConfig:
+    priorityClassName: metallb-high-priority

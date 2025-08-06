@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-with-labels-template
+objects:
+- apiVersion: v1
+  kind: "${WORKLOADKIND}"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      "${LABELKEY}": "${LABELVALUE}"
+      "${LABELKEY2}": "${LABELVALUE2}"
+  spec:
+    containers:
+      - name: "${IMAGENAME}"
+        image: "${IMAGE}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: WORKLOADKIND
+- name: LABELKEY
+- name: LABELVALUE
+- name: LABELKEY2
+- name: LABELVALUE2
+- name: IMAGE
+- name: IMAGENAME
+

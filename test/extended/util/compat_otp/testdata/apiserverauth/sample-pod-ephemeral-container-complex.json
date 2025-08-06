@@ -1,0 +1,30 @@
+{
+    "kind": "Pod",
+    "apiVersion": "v1",
+    "metadata": {
+      "name": "hello-openshift"
+    },
+    "spec": {
+      "serviceAccountName": "default",
+      "ephemeralContainers": [
+        {
+          "name": "ephemeral-pod-debugger",
+          "image": "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83",
+          "command": [
+            "bash",
+            "-ec"
+          ],
+          "args": [
+            "echo 'Printing whoami:'\nwhoami\nsleep 360d\n"
+          ],
+          "targetContainerName": "hello-openshift",
+          "tty": true,
+          "stdin": true,
+          "securityContext": {
+            "privileged": true,
+            "runAsUser": 0
+          }
+        }
+      ]
+    }
+}

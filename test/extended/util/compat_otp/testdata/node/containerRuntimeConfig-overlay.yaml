@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ContainerRuntimeConfig-overlay-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: ContainerRuntimeConfig
+  metadata:
+   name: "${NAME}"
+  spec:
+   machineConfigPoolSelector:
+     matchLabels:
+       pools.operator.machineconfiguration.openshift.io/worker: '' 
+   containerRuntimeConfig: 
+     overlaySize: "${OVERLAY}"
+parameters:      
+- name: NAME
+- name: OVERLAY

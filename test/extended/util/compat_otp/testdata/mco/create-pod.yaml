@@ -1,0 +1,32 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-pod
+objects:
+  - kind: Pod
+    apiVersion: v1
+    metadata:
+      labels:
+        app: "${NAME}"
+      name: "${NAME}"
+    spec:
+      containers:
+        - args:
+            - sleep
+            - 4h
+          image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+          imagePullPolicy: Always
+          name: "${NAME}"
+      nodeSelector:
+        kubernetes.io/hostname: "${HOSTNAME}"
+      restartPolicy: Never
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+        seccompProfile:
+            type: "RuntimeDefault"
+parameters:
+  - name: NAME
+  - name: HOSTNAME

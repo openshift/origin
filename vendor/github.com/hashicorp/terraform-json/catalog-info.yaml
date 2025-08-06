@@ -1,0 +1,17 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+#
+# Intended for internal HashiCorp use only
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: terraform-json
+  description: Helper types for the Terraform external data representation
+  annotations:
+    github.com/project-slug: hashicorp/terraform-json
+    jira/project-key: TF
+    jira/label: terraform-json
+spec:
+  type: library
+  owner: team-tf-core
+  lifecycle: production

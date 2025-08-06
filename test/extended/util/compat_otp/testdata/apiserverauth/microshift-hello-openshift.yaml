@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hello-openshift-NAMESPACEVAR
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-openshift-deployment-NAMESPACEVAR
+spec:
+  selector:
+    matchLabels:
+      app: hello-openshift-deployment
+  template:
+    metadata:
+      labels:
+        app: hello-openshift-deployment
+    spec:
+      containers:
+      - name: hello-openshift-deployment
+        image: DEV_IMAGE

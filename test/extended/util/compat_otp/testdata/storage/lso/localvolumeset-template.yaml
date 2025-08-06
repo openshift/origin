@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: localvolumeset-template
+objects:
+# LocalVolumeSet
+- kind: LocalVolumeSet
+  apiVersion: local.storage.openshift.io/v1alpha1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    storageClassName: ${SCNAME} 
+    volumeMode: ${VOLUMEMODE}
+    fsType: ${FSTYPE}
+    maxDeviceCount: ${{MAXDEVICECOUNT}}
+    deviceInclusionSpec:
+      deviceTypes: 
+        - disk
+        - part
+      deviceMechanicalProperties:
+        - NonRotational
+      minSize: 5Gi
+      maxSize: 15Gi
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: FSTYPE
+- name: MAXDEVICECOUNT
+- name: SCNAME
+- name: VOLUMEMODE

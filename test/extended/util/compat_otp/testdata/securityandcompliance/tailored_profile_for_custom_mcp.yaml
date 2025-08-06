@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    extends: "${EXTENDEDPROFILE}"
+    title: My modified NIST profile to scan example nodes
+    setValues:
+    - name: ocp4-var-role-master
+      value: "${VALUE}"
+      rationale: test for example nodes
+    - name: ocp4-var-role-worker
+      value: "${VALUE}"
+      rationale: test for example nodes
+    description: example-scan
+
+parameters:
+- name: NAME
+- name: NAMESPACE  
+- name: EXTENDEDPROFILE
+- name: VALUE
+

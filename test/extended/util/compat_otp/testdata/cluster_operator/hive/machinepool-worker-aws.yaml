@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machinepool-worker-aws-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: MachinePool
+  metadata:
+    creationTimestamp: null
+    name: "${CLUSTERNAME}-worker"
+    namespace: "${NAMESPACE}"
+  spec:
+    clusterDeploymentRef:
+      name: ${CLUSTERNAME}
+    name: worker
+    platform:
+      aws:
+        rootVolume:
+          iops: ${{IOPS}}
+          size: 22
+          type: gp2
+        type: m4.xlarge
+    replicas: 3
+  status: {}
+parameters:
+- name: CLUSTERNAME
+- name: NAMESPACE
+- name: IOPS
+  value: "100"
+

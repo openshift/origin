@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: apiservice-template
+objects:
+- kind: APIService
+  apiVersion: apiregistration.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJaekNDQVE2Z0F3SUJBZ0lJTjRRUFRuVnJWK2t3Q2dZSUtvWkl6ajBFQXdJd0dERVdNQlFHQTFVRUNoTU4KVW1Wa0lFaGhkQ3dnU1c1akxqQWVGdzB5TURBMk1qSXhOREE1TWpSYUZ3MHlNakEyTWpJeE5EQTVNalJhTUJneApGakFVQmdOVkJBb1REVkpsWkNCSVlYUXNJRWx1WXk0d1dUQVRCZ2NxaGtqT1BRSUJCZ2dxaGtqT1BRTUJCd05DCkFBUmVkUlVESkhGb2gzTThYcEYxTzN1RXRCWU9ZeW1vMEdPTjN6WC91dHNpRlM3YnZ1Tmk2UEE0NC9teGZlT3oKUENrdDBRWitWUWp0MnE3UHhHdzZ4YkZwbzBJd1FEQU9CZ05WSFE4QkFmOEVCQU1DQW9Rd0hRWURWUjBsQkJZdwpGQVlJS3dZQkJRVUhBd0lHQ0NzR0FRVUZCd01CTUE4R0ExVWRFd0VCL3dRRk1BTUJBZjh3Q2dZSUtvWkl6ajBFCkF3SURSd0F3UkFJZ0NxY2tjdE1Tc1hYQi9PQ0hwQjlkSmZSRmZMYmJNOFQ1Q3J3dGlBNTlRYW9DSUdRSlh1TnkKUVlBUnczUmNLUXI1ZnNQM1JhMElRaUNORzNveUZXaVg1Y3RSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    group: foos.bar.com
+    groupPriorityMinimum: 2000
+    service:
+      name: foo
+      namespace: bar
+      port: 5443
+    version: "${VERSION}"
+    versionPriority: 15
+parameters:
+- name: NAME
+- name: VERSION
+

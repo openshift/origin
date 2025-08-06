@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: spo-workload-deployment-template
+objects:
+- apiVersion: apps/v1
+  kind: "${WORKLOADKIND}"
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    selector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    template:
+      metadata:
+        labels:
+          "${LABELKEY}": "${LABELVALUE}"
+      spec:
+        nodeSelector:
+         node-role.kubernetes.io/worker: ""
+        serviceAccountName: "${SANAME}"
+        containers:
+        - name: nginx
+          image: quay.io/openshifttest/nginx-unprivileged:1.27.5
+          ports:
+          - containerPort: 8080
+        - name: redis
+          image: quay.io/openshifttest/redis:6.2.18
+          ports:
+          - containerPort: 6379
+
+parameters:
+- name: WORKLOADKIND
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+- name: SANAME

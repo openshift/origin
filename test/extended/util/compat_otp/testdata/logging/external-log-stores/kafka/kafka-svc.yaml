@@ -1,0 +1,36 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kafkaserver-template
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      logging-infra: support
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    ports:
+    - name: plaintext
+      port: 9092
+      protocol: TCP
+      targetPort: 9092
+    - name: saslplaintext
+      port: 9093
+      protocol: TCP
+      targetPort: 9093
+    - name: slasssl
+      port: 9094
+      protocol: TCP
+      targetPort: 9093
+    selector:
+      component: kafka
+      provider: openshift
+    sessionAffinity: None
+    type: ClusterIP
+parameters:
+- name: NAME
+  value: "kafka"
+- name: NAMESPACE
+  value: "openshift-logging"

@@ -1,0 +1,16 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+   name: masters
+spec:
+   kubeletConfig:
+     apiVersion: kubelet.config.k8s.io/v1beta1
+     cpuManagerPolicy: static
+     cpuManagerReconcilePeriod: 5s
+     kind: KubeletConfiguration
+     reservedSystemCPUs: "0"
+     topologyManagerPolicy: single-numa-node
+   machineConfigPoolSelector:
+     matchLabels:
+       pools.operator.machineconfiguration.openshift.io/master: ""
+

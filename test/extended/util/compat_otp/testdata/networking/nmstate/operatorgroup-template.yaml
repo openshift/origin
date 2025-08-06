@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nmstate-operatorgroup-template
+objects:
+- kind: OperatorGroup
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}-dzrmx"
+    namespace: "${NAMESPACE}"
+    generateName: "${NAME}-"
+    annotations:
+      olm.providedAPIs: NMState.v1.nmstate.io
+  spec:
+    targetNamespaces: 
+    - "${TARGETNAMESPACES}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TARGETNAMESPACES

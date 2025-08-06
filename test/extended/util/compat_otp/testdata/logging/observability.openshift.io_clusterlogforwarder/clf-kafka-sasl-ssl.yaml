@@ -1,0 +1,57 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    inputs:
+    - name: selected-app
+      application:
+        includes:
+          - namespace: ${NAMESPACE_PATTERN}
+      type: application
+    outputs:
+    - name: amq-instance 
+      type: kafka
+      kafka:
+        authentication:
+          sasl:
+            mechanism: "SCRAM-SHA-512"
+            password:
+              key: password
+              secretName: ${SECRET_NAME}
+            username:
+              key: username
+              secretName: ${SECRET_NAME}
+        url: ${URL}
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+      type: kafka
+    pipelines:
+    - name: pipe1
+      inputRefs:
+      - selected-app
+      outputRefs:
+      - amq-instance
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: URL
+  value: "tls://kafka.openshift-logging.svc.cluster.local:9093/clo-topic"
+- name: SECRET_NAME
+  value: "vector-kafka"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: NAMESPACE_PATTERN
+  value: "e2e*"
+- name: NAMESPACE
+  value: "openshift-logging"

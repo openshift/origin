@@ -1,0 +1,16 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: imagestream-template
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    dockerImageRepository: "${REPO}" 
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: REPO

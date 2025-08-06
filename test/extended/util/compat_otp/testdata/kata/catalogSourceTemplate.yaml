@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kata-catalogsource-template
+objects:
+  - apiVersion: operators.coreos.com/v1alpha1
+    kind: CatalogSource
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      image: "${IMAGEINDEX}"
+      sourceType: grpc
+      publisher: "${PUBLISHER}"
+      displayName: "${DISPLAYNAME}"
+
+parameters:
+  - name: NAME
+    value: "kataci-index"
+  - name: NAMESPACE
+    value: "openshift-marketplace"
+  - name: IMAGEINDEX
+    value: "quay.io/openshift_sandboxed_containers/openshift-sandboxed-containers-operator-catalog:1.5.0"
+  - name: PUBLISHER
+    value: "QE"
+  - name: DISPLAYNAME
+    value: "QE"

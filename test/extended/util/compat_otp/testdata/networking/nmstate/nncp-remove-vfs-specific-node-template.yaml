@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nncp-delete-vfs-specific-node-template
+objects:
+- kind: NodeNetworkConfigurationPolicy
+  apiVersion: nmstate.io/v1
+  metadata:
+    name: "${NAME}" 
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: "${NODENAME}"
+    maxUnavailable: 3 
+    desiredState:
+      interfaces:
+        - name: "${INTFNAME}"
+          description: Delete VFs
+          type: ethernet
+          state: absent
+          ethernet:
+            sr-iov:
+              total-vfs: ${{TOTALVFS}}       
+parameters:
+- name: NAME
+- name: INTFNAME
+- name: NODENAME
+- name: TOTALVFS 

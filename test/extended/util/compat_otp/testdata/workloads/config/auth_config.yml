@@ -1,0 +1,23 @@
+server:
+  addr: ":5001"
+  certificate: "/ssl/server.pem"
+  key: "/ssl/server.key"
+
+token:
+  issuer: "Acme auth server"  # Must match issuer in the Registry config.
+  expiration: 86400
+
+users:
+  # Password is specified as a BCrypt hash. Use `htpasswd -nB USERNAME` to generate. the password is encrypted for the private registry app, if leaked the worst effect is attactor could push data to the private registry , but the registry will be deleted soon(less than a min) , so I think it's won't be too bad.
+  "admin":
+    password: "$2y$05$3MJ4.mqpRd1XEsGyaxjiO.OuqzWAEMKA4ammQYGfRnL/ywHo2AX3i"  
+  "test":
+    password: "$2y$05$vH14hncYc7bpjGOibzwUU.qpMJamO3G86DqHjOd4q/JiAwbrA72iC"  
+
+acl:
+  - match: {account: "admin"}
+    actions: ["*"]
+    comment: "Admin has full access to everything."
+  - match: {account: "test"}
+    actions: ["pull"]
+    comment: "User \"test\" can pull stuff."

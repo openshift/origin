@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: operator.openshift.io/v1
+  kind: IngressController
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    domain: ${DOMAIN}
+    replicas: 1
+    endpointPublishingStrategy:
+      loadBalancer:
+        scope: External
+      type: LoadBalancerService
+parameters:
+- name: NAME
+- name: NAMESPACE
+  value: openshift-ingress-operator
+- name: DOMAIN

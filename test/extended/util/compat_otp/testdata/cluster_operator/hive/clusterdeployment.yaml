@@ -1,0 +1,54 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: clusterdeployment-temp
+objects:
+- apiVersion: hive.openshift.io/v1
+  kind: ClusterDeployment
+  metadata:
+    annotations:
+      "hive.openshift.io/fake-cluster": "${FAKE}"
+      "hive.openshift.io/installer-image-name-override": "${INSTALLERTYPE}"
+    creationTimestamp: null
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    baseDomain: "${BASEDOMAIN}"
+    clusterName: "${CLUSTERNAME}"
+    controlPlaneConfig:
+      servingCertificates: {}
+    installed: false
+    manageDNS: "${{MANAGEDNS}}"
+    platform:
+      "${PLATFORMTYPE}":
+        credentialsSecretRef:
+          name: "${CREDREF}"
+        region: "${REGION}"
+        userTags:
+          hive-qe-tag1: hive-qe-value1
+          hive-qe-customizedtag: "${CUSTOMIZEDTAG}"
+    provisioning:
+      imageSetRef:
+        name: "${IMAGESETREF}"
+      installConfigSecretRef:
+        name: "${INSTALLCONFIGSECRET}"
+    pullSecretRef:
+      name: "${PULLSECRETREF}"
+    installAttemptsLimit: ${{INSTALLATTEMPTSLIMIT}}
+parameters:
+- name: FAKE
+- name: INSTALLERTYPE
+- name: NAME
+- name: NAMESPACE
+- name: BASEDOMAIN
+- name: MANAGEDNS
+- name: CLUSTERNAME
+- name: PLATFORMTYPE
+- name: CREDREF
+- name: REGION
+- name: IMAGESETREF
+- name: INSTALLCONFIGSECRET
+- name: PULLSECRETREF
+- name: INSTALLATTEMPTSLIMIT
+  value: "3"
+- name: CUSTOMIZEDTAG

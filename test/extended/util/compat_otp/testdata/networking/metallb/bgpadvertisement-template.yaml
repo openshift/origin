@@ -1,0 +1,38 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bgpadvertisement-cr-template
+objects:
+- kind: BGPAdvertisement
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    aggregationLength: ${{AGGREGATIONLENGTH}}
+    aggregationLengthV6: ${{AGGREGATIONLENGTHV6}}
+    communities:
+    - "${COMMUNITIES}"
+    ipAddressPools:
+    - "${IPADDRESSPOOL1}"
+    nodeSelectors:
+    - matchExpressions:
+        - key: "${NODESLECTORKEY1}"
+          operator: "${NODESELECTOROPERATOR1}"
+          values:
+            - "${WORKER1}"
+            - "${WORKER2}"
+    peers:
+      - "${BGPPEER1}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: AGGREGATIONLENGTH
+- name: AGGREGATIONLENGTHV6
+- name: COMMUNITIES
+- name: IPADDRESSPOOL1
+- name: NODESLECTORKEY1
+- name: NODESELECTOROPERATOR1
+- name: WORKER1
+- name: WORKER2
+- name: BGPPEER1

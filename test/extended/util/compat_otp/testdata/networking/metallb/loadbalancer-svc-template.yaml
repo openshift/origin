@@ -1,0 +1,70 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: service-template
+objects:
+- kind: ReplicationController 
+  apiVersion: v1
+  metadata:
+    labels:
+      name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    name: "${NAME}"
+  spec:
+    replicas: 2
+    selector:
+      name: "${NAME}"
+    template:
+      metadata:
+        labels:
+          name: "${NAME}"
+        namespace: "${NAMESPACE}"
+      spec:
+          containers:
+          - image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+            name: "${NAME}"
+            ports:
+            - containerPort: 8080
+              protocol: "${PROTOCOL}"
+            resources:
+              limits:
+                cpu: 200m
+                memory: 256Mi
+              requests:
+                cpu: 100m
+                memory: 256Mi
+            terminationMessagePath: /dev/termination-log
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      "${LABELKEY1}": "${LABELVALUE1}"
+  spec:
+    ports:
+    - port: 80
+      targetPort: 8080
+      protocol: "${PROTOCOL}"
+    selector:
+      name: "${NAME}"
+    type: LoadBalancer
+    externalTrafficPolicy: "${EXTERNALTRAFFICPOLICY}"
+    allocateLoadBalancerNodePorts: ${{NODEPORTALLOCATION}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PROTOCOL
+  value: "TCP"
+- name: LABELKEY1
+  value: ""
+- name: LABELVALUE1
+  value: ""
+- name: EXTERNALTRAFFICPOLICY
+- name: NODEPORTALLOCATION
+  type: boolean
+  value: "true"

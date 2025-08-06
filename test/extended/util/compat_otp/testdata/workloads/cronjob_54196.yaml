@@ -1,0 +1,33 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cronjob-with-timezone-template
+objects:
+- kind: CronJob
+  apiVersion: batch/v1
+  metadata:
+    name: "${CNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    schedule: "${SCHEDULE}"
+    timeZone: "${TIMEZONE}"
+    jobTemplate:
+      spec:
+       template:
+         spec:
+          containers:
+          - name: hello
+            image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the CronJob
+          restartPolicy: OnFailure
+
+
+parameters:
+- name: CNAME
+- name: NAMESPACE
+- name: SCHEDULE
+- name: TIMEZONE

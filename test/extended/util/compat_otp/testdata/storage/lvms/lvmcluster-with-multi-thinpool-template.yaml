@@ -1,0 +1,41 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: lvmcluster-with-multi-thinpool-template
+objects:
+# LVMCluster
+- kind: LVMCluster
+  apiVersion: lvm.topolvm.io/v1alpha1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    storage:
+      deviceClasses:
+      - name: ${DEVICECLASSNAME1}
+        fstype: ${FSTYPE1}
+        thinPoolConfig:
+          name: thin-pool-1
+          sizePercent: 90
+          overprovisionRatio: 10
+        deviceSelector:
+          paths:
+          - ${PATH1}
+      - name: ${DEVICECLASSNAME2}
+        fstype: ${FSTYPE2}
+        thinPoolConfig:
+          name: thin-pool-2
+          sizePercent: 90
+          overprovisionRatio: 10
+        deviceSelector:
+          paths:
+          - ${PATH2}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: DEVICECLASSNAME1
+- name: DEVICECLASSNAME2
+- name: FSTYPE1
+- name: FSTYPE2
+- name: PATH1
+- name: PATH2

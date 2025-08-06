@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: amq-streams-cluster-operator
+  namespace: kafka-52384
+spec:
+  targetNamespaces:
+  - kafka-52384

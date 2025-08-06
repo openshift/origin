@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ingressandegress
+objects:
+- kind: MultiNetworkPolicy
+  apiVersion: k8s.cni.cncf.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      k8s.v1.cni.cncf.io/policy-for: "${POLICYFOR}"
+  spec:
+    podSelector: {}
+    policyTypes:
+    - Ingress
+    - Egress
+    ingress:
+    - from:
+      - ipBlock:
+          cidr: 192.168.100.5/32
+    egress:
+    - to:
+      - ipBlock:
+          cidr: "${CIDR}"
+parameters:
+- name: NAME  
+- name: CIDR
+- name: NAMESPACE
+- name: POLICYFOR

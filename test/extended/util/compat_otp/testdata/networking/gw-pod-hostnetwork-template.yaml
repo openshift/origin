@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: gw-pod-hostnetwork-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      gw: "true"
+  spec:
+    hostNetwork: true
+    containers:
+    - image: centos
+      command:
+      - sleep
+      - infinity
+      name: frr
+      securityContext:
+        privileged: true
+    nodeSelector:
+      kubernetes.io/hostname: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODENAME

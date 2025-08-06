@@ -1,0 +1,47 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: netobserv-test-client-server
+objects:
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ${CLIENT_NS}
+    labels:
+      name: ${CLIENT_NS}
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    creationTimestamp: null
+    labels:
+      run: ${POD_NAME}
+    name: ${POD_NAME}
+    namespace: ${CLIENT_NS}
+  spec:
+    containers:
+    - command:
+        - sh
+        - -c
+        - "
+          \  while : ; do\n
+          \        curl nginx-service.${SERVER_NS}.svc:80/data/${OBJECT_SIZE}  2>&1 >  /dev/null ; sleep 5 \n
+          \  done"
+      image: quay.io/openshifttest/hello-openshift:1.2.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+          privileged: false
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      name: client
+parameters:
+- name: POD_NAME
+  value: client
+- name: SERVER_NS
+  value: test-server
+- name: CLIENT_NS
+  value: test-client
+- name: OBJECT_SIZE
+  value: 100K

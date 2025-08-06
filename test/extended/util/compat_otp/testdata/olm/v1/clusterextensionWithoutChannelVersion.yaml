@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operator-without-channel-version-template
+objects:
+- apiVersion: olm.operatorframework.io/v1
+  kind: ClusterExtension
+  metadata:
+    name: "${NAME}"
+  spec:
+    namespace: "${INSTALLNAMESPACE}"
+    serviceAccount:
+      name: "${SANAME}"
+    source:
+      sourceType: "${SOURCETYPE}"
+      catalog:
+        packageName: "${PACKAGE}"
+parameters:
+- name: NAME
+- name: INSTALLNAMESPACE
+- name: PACKAGE
+- name: SANAME
+- name: SOURCETYPE
+  value: "Catalog"
+
+
+

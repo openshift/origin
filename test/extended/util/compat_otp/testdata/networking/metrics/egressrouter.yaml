@@ -1,0 +1,38 @@
+apiVersion: network.operator.openshift.io/v1
+kind: EgressRouter
+metadata:
+  name: egress-router-test
+spec:
+  networkInterface: {
+    macvlan: {
+      mode: "Bridge"
+    }
+  }
+  addresses: [
+    {
+      ip: "192.168.123.118/24",
+      gateway: "192.168.123.1"
+    },
+  ]
+  mode: Redirect
+  redirect: {
+    redirectRules: [
+      {
+        destinationIP: "142.250.188.206",
+        port: 80,
+        protocol: TCP
+      },
+      {
+        destinationIP: "142.250.188.206",
+        port: 8080,
+        protocol: TCP,
+        targetPort: 80
+      },
+      {
+        destinationIP: "142.250.188.206",
+        port: 8888,
+        protocol: TCP,
+        targetPort: 80
+      },
+    ]
+  }

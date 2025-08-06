@@ -1,0 +1,92 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: ovn-audit-log-gen-template
+objects:
+  - kind: Namespace
+    apiVersion: v1
+    metadata:
+      annotations:
+        k8s.ovn.org/acl-logging: '{ "deny": "alert", "allow": "alert" }'
+      name: ${NAMESPACE}
+    spec:
+      finalizers:
+      - kubernetes
+
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      labels:
+        app: ovn-app
+      name: ovn-app
+      namespace: ${NAMESPACE}
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          app: ovn-app
+      strategy: {}
+      template:
+        metadata:
+          labels:
+            app: ovn-app
+        spec:
+          containers:
+          - image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+            name: hello-sdn
+            resources:
+              limits:
+                memory: 340Mi
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      labels:
+        name: test-service
+      name: test-service
+      namespace: ${NAMESPACE}
+    spec:
+      ports:
+      - name: http
+        port: 27017
+        protocol: TCP
+        targetPort: 8080
+      selector:
+        app: ovn-app
+
+  - kind: NetworkPolicy
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: default-deny
+      namespace: ${NAMESPACE}
+    spec:
+      podSelector:
+
+  - kind: NetworkPolicy
+    apiVersion: networking.k8s.io/v1
+    metadata:
+      name: allow-same-namespace
+      namespace: ${NAMESPACE}
+    spec:
+      podSelector:
+      ingress:
+      - from:
+        - podSelector: {}
+
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: bad-np
+      namespace: ${NAMESPACE}
+    spec:
+      egress:
+      - {}
+      podSelector:
+        matchLabels:
+          never-gonna: match
+      policyTypes:
+      - Egress
+
+parameters:
+  - name: NAMESPACE
+    value: "openshift-logging"
