@@ -20,7 +20,6 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/framework/metrics/init"
 
 	_ "github.com/openshift/origin/test/extended"
-	_ "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 func InternalTestSuites() []*ginkgo.TestSuite {
