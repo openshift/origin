@@ -97,6 +97,9 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 }
 
 func (w *monitor) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
+	}
 	// TODO: The double goroutine spawn should probably be placed under some abstraction
 	go func(ctx context.Context) {
 		snapshots := make(chan *snapshot)
