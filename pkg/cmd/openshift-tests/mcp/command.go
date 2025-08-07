@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -61,7 +62,10 @@ func (o *MCPOptions) Run() error {
 
 	// Add list tests tool
 	listTestsTool := mcp.NewTool("list_tests",
-		mcp.WithDescription("List all available tests in JSON format"),
+		mcp.WithDescription("List all available tests in JSON format. Supports optional regex filtering of test names (case-insensitive)."),
+		mcp.WithString("filter",
+			mcp.Description("Optional regex pattern to filter test names (case-insensitive)"),
+		),
 	)
 	mcpServer.AddTool(listTestsTool, listTestsHandler)
 	log.Debug("Registered list_tests tool")
@@ -306,7 +310,27 @@ func helloHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallTo
 }
 
 func listTestsHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	log.Info("Executing list_tests tool")
+	// Get the filter parameter (optional)
+	filterPattern := request.GetString("filter", "")
+
+	logFields := log.Fields{}
+	if filterPattern != "" {
+		logFields["filter"] = filterPattern
+	}
+	log.WithFields(logFields).Info("Executing list_tests tool")
+
+	// Validate regex pattern if provided
+	var filterRegex *regexp.Regexp
+	if filterPattern != "" {
+		var err error
+		// Make the regex case-insensitive by default
+		caseInsensitivePattern := "(?i)" + filterPattern
+		filterRegex, err = regexp.Compile(caseInsensitivePattern)
+		if err != nil {
+			log.WithError(err).WithField("pattern", filterPattern).Error("Invalid regex pattern")
+			return mcp.NewToolResultError(fmt.Sprintf("invalid regex pattern '%s': %v", filterPattern, err)), nil
+		}
+	}
 
 	// Use exec to call the existing list tests command
 	cmdArgs := []string{"list", "tests", "--output", "json"}
@@ -339,7 +363,67 @@ func listTestsHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 		"output_size": len(output),
 	}).Info("list tests command completed successfully")
 
-	return mcp.NewToolResultText(string(output)), nil
+	// Extract JSON from output (skip log lines)
+	jsonOutput := extractJSONFromOutput(output)
+
+	// If no filter is specified, return the original JSON output
+	if filterPattern == "" {
+		return mcp.NewToolResultText(string(jsonOutput)), nil
+	}
+
+	// Parse the JSON output and filter the tests
+	var tests []map[string]interface{}
+	if err := json.Unmarshal(jsonOutput, &tests); err != nil {
+		log.WithError(err).Error("Failed to parse test list JSON")
+		return mcp.NewToolResultError(fmt.Sprintf("failed to parse test list JSON: %v", err)), nil
+	}
+
+	// Filter tests based on the regex pattern
+	var filteredTests []map[string]interface{}
+	originalCount := len(tests)
+
+	for _, test := range tests {
+		if name, ok := test["name"].(string); ok {
+			if filterRegex.MatchString(name) {
+				filteredTests = append(filteredTests, test)
+			}
+		}
+	}
+
+	filteredCount := len(filteredTests)
+	log.WithFields(log.Fields{
+		"original_count": originalCount,
+		"filtered_count": filteredCount,
+		"filter":         filterPattern,
+	}).Info("Applied filter to test list")
+
+	// Marshal the filtered results back to JSON
+	filteredOutput, err := json.Marshal(filteredTests)
+	if err != nil {
+		log.WithError(err).Error("Failed to marshal filtered test list")
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal filtered test list: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(filteredOutput)), nil
+}
+
+// extractJSONFromOutput extracts the JSON content from command output,
+// skipping any log lines that appear before the JSON array
+func extractJSONFromOutput(output []byte) []byte {
+	lines := strings.Split(string(output), "\n")
+
+	// Find the first line that starts with '['
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") {
+			// Join all lines from this point onwards
+			jsonLines := lines[i:]
+			return []byte(strings.Join(jsonLines, "\n"))
+		}
+	}
+
+	// If no JSON array found, return original output
+	return output
 }
 
 func runTestHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
