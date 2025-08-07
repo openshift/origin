@@ -210,6 +210,7 @@ func prettyPrintReviewResponse(resp *authorizationv1.ResourceAccessReviewRespons
 // This list includes the admins from above, plus users or groups known to have global view access
 var globalClusterReaderUsers = sets.NewString("system:admin")
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
+var hyperShiftServiceAccount = sets.NewString("system:hosted-cluster-config")
 
 // this list includes any other users who can get DeploymentConfigs
 var globalDeploymentConfigGetterUsers = sets.NewString(
@@ -439,6 +440,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 							Namespace:   hammerProjectName,
 						},
 					}
+					if ok, _ := exutil.IsHypershift(context.Background(), oc.AdminConfigClient()); ok {
+						test.response.UsersSlice = append(test.response.UsersSlice, hyperShiftServiceAccount.List()...)
+					}
 					test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
 					test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
 					test.response.GroupsSlice = append(test.response.GroupsSlice, globalClusterReaderGroups.List()...)
@@ -455,6 +459,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 							GroupsSlice: []string{},
 							Namespace:   malletProjectName,
 						},
+					}
+					if ok, _ := exutil.IsHypershift(context.Background(), oc.AdminConfigClient()); ok {
+						test.response.UsersSlice = append(test.response.UsersSlice, hyperShiftServiceAccount.List()...)
 					}
 					test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
 					test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
@@ -485,6 +492,9 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 							UsersSlice:  []string{},
 							GroupsSlice: []string{},
 						},
+					}
+					if ok, _ := exutil.IsHypershift(context.Background(), oc.AdminConfigClient()); ok {
+						test.response.UsersSlice = append(test.response.UsersSlice, hyperShiftServiceAccount.List()...)
 					}
 					test.response.UsersSlice = append(test.response.UsersSlice, globalClusterReaderUsers.List()...)
 					test.response.UsersSlice = append(test.response.UsersSlice, globalDeploymentConfigGetterUsers.List()...)
