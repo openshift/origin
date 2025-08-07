@@ -31,6 +31,16 @@ var Annotations = map[string]string{
 
 	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[Serial][sig-cli] oc adm upgrade recommend When the update service has conditional recommendations runs successfully when listing all updates": " [Suite:openshift/conformance/serial]",
+
+	"[Serial][sig-cli] oc adm upgrade recommend When the update service has conditional recommendations runs successfully with conditional recommendations to the --version target": " [Suite:openshift/conformance/serial]",
+
+	"[Serial][sig-cli] oc adm upgrade recommend When the update service has no recommendations runs successfully": " [Suite:openshift/conformance/serial]",
+
+	"[Serial][sig-cli] oc adm upgrade recommend runs successfully with an empty channel": " [Suite:openshift/conformance/serial]",
+
+	"[Serial][sig-cli] oc adm upgrade recommend runs successfully, even without upstream OpenShift Update Service customization": " [Suite:openshift/conformance/serial]",
+
 	"[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": "",
 
 	"[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": "",
