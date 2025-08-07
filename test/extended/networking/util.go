@@ -538,7 +538,7 @@ func InBareMetalIPv4ClusterContext(oc *exutil.CLI, body func()) {
 			BeforeEach(func() {
 				pType, err := platformType(oc.AdminConfigClient())
 				expectNoError(err)
-				if pType != configv1.BareMetalPlatformType || getIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
+				if pType != configv1.BareMetalPlatformType || GetIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
 					e2eskipper.Skipf("Not running in bare metal ipv4 cluster")
 				}
 			})
@@ -552,7 +552,7 @@ func InIPv4ClusterContext(oc *exutil.CLI, body func()) {
 	Context("when running openshift ipv4 cluster",
 		func() {
 			BeforeEach(func() {
-				if getIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
+				if GetIPFamilyForCluster(oc.KubeFramework()) != IPv4 {
 					e2eskipper.Skipf("Not running in ipv4 cluster")
 				}
 			})
@@ -608,7 +608,7 @@ func networkAttachmentDefinitionClient(config *rest.Config) (dynamic.Namespaceab
 	return nadClient, nil
 }
 
-func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
+func GetIPFamilyForCluster(f *e2e.Framework) IPFamily {
 	podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
 	expectNoError(err)
 	return getIPFamily(podIPs)
