@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net"
 	"os/exec"
 	"strings"
 	"time"
@@ -14,15 +13,12 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/utils/ptr"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
-	corev1 "k8s.io/api/core/v1"
-	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 type IPFamily string
@@ -32,12 +28,6 @@ const (
 
 	// How often to poll pods and nodes.
 	poll = 5 * time.Second
-
-	// IPFamily constants
-	IPv4      IPFamily = "ipv4"
-	IPv6      IPFamily = "ipv6"
-	DualStack IPFamily = "dual"
-	Unknown   IPFamily = "unknown"
 )
 
 // This test only checks whether components are serving the proper TLS version based
@@ -65,9 +55,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("tls configuration for the apiserver resource is not applicable to microshift or hypershift clusters - skipping")
 		}
 
-		ipFamily := getIPFamilyForCluster(f)
+		ipFamily := networking.GetIPFamilyForCluster(f)
 
-		if ipFamily != IPv4 {
+		if ipFamily != networking.IPv4 {
 			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
 		}
 
@@ -262,69 +252,6 @@ func readPartialFrom(r io.Reader, maxBytes int) string {
 	return string(buf[:n])
 }
 
-// func getIPFamilyForCluster(client exutil.CLI, namespace string) IPFamily {
-func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
-	podIPs, err := createPod(f, "test-ip-family-pod")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return getIPFamily(podIPs)
-}
-
-func getIPFamily(podIPs []corev1.PodIP) IPFamily {
-	switch len(podIPs) {
-	case 1:
-		ip := net.ParseIP(podIPs[0].IP)
-		if ip.To4() != nil {
-			return IPv4
-		} else {
-			return IPv6
-		}
-	case 2:
-		ip1 := net.ParseIP(podIPs[0].IP)
-		ip2 := net.ParseIP(podIPs[1].IP)
-		if ip1 == nil || ip2 == nil {
-			return Unknown
-		}
-		if (ip1.To4() == nil) == (ip2.To4() == nil) {
-			return Unknown
-		}
-		return DualStack
-	default:
-		return Unknown
-	}
-}
-
-func createPod(f *e2e.Framework, generateName string) ([]corev1.PodIP, error) {
-	pod := frameworkpod.NewAgnhostPod(f.Namespace.Name, "", nil, nil, nil)
-	pod.ObjectMeta.GenerateName = generateName
-	pod.Spec.SecurityContext = &corev1.PodSecurityContext{
-		RunAsNonRoot: ptr.To(true),
-		SeccompProfile: &corev1.SeccompProfile{
-			Type: corev1.SeccompProfileTypeRuntimeDefault,
-		},
-	}
-	pod.Spec.Containers[0].SecurityContext = &corev1.SecurityContext{
-		AllowPrivilegeEscalation: ptr.To(false),
-		Capabilities: &corev1.Capabilities{
-			Drop: []corev1.Capability{"ALL"},
-		},
-		ReadOnlyRootFilesystem: ptr.To(true),
-		Privileged:             ptr.To(false),
-	}
-
-	execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), pod, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	var podIPs []corev1.PodIP
-	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
-		retrievedPod, err := f.ClientSet.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		podIPs = retrievedPod.Status.PodIPs
-		return retrievedPod.Status.Phase == corev1.PodRunning, nil
-	})
-	return podIPs, err
-}
-
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
@@ -344,9 +271,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 			g.Skip("apiserver resource for configuring tls profiles does not exist in microshift clusters - skipping")
 		}
 
-		ipFamily := getIPFamilyForCluster(f)
+		ipFamily := networking.GetIPFamilyForCluster(f)
 
-		if ipFamily != IPv4 {
+		if ipFamily != networking.IPv4 {
 			g.Skip("tls configuration is only tested on IPv4 clusters, skipping")
 		}
 
