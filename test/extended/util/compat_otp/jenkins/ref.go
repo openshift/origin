@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -20,6 +21,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	exurl "github.com/openshift/origin/test/extended/util/compat_otp/url"
 )
@@ -89,7 +91,7 @@ func (j *JenkinsRef) Namespace() string {
 // BuildURI builds a URI for the Jenkins server.
 func (j *JenkinsRef) BuildURI(resourcePathFormat string, a ...interface{}) string {
 	resourcePath := fmt.Sprintf(resourcePathFormat, a...)
-	return fmt.Sprintf("http://%s:%v/%s", j.host, j.port, resourcePath)
+	return fmt.Sprintf("http://%s/%s", net.JoinHostPort(j.host, j.port), resourcePath)
 }
 
 // GetResource submits a GET request to this Jenkins server.

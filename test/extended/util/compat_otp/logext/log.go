@@ -1,6 +1,5 @@
 package logext
 
-
 /*
   author: rioliu@redhat.com
 */
