@@ -1,0 +1,9 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterCatalog
+metadata:
+  name: webhook-operator-catalog
+spec:
+  source:
+    type: Image
+    image:
+      ref: quay.io/operator-framework/webhook-operator-index:0.0.3
