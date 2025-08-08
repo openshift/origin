@@ -53816,35 +53816,35 @@ var _testExtendedTestdataOlmv1WebhookSupportWebhookOperatorYaml = []byte(`---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: webhook-operator
+  name: "{NAMESPACE}"
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: webhook-operator-installer
-  namespace: webhook-operator
+  name: "{NAMESPACE}-installer"
+  namespace: "{NAMESPACE}"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: webhook-operator-installer
+  name: "{NAMESPACE}-installer"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
-    name: webhook-operator-installer
-    namespace: webhook-operator
+    name: "{NAMESPACE}-installer"
+    namespace: "{NAMESPACE}"
 ---
 apiVersion: olm.operatorframework.io/v1
 kind: ClusterExtension
 metadata:
-  name: webhook-operator
+  name: "{NAMESPACE}"
 spec:
-  namespace: webhook-operator
+  namespace: "{NAMESPACE}"
   serviceAccount:
-    name: webhook-operator-installer
+    name: "{NAMESPACE}-installer"
   source:
     catalog:
       packageName: webhook-operator

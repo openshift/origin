@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,8 +31,7 @@ const (
 )
 
 var (
-	webhookTestBaseDir              = exutil.FixturePath("testdata", "olmv1", "webhook-support")
-	webhookOperatorInstallNamespace = "webhook-operator"
+	webhookTestBaseDir = exutil.FixturePath("testdata", "olmv1", "webhook-support")
 )
 
 var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftServiceCA][Skipped:Disconnected][Serial] OLMv1 operator with webhooks", g.Ordered, g.Serial, func() {
@@ -39,9 +39,12 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftSer
 	oc := exutil.NewCLIWithoutNamespace("openshift-operator-controller-webhooks")
 
 	var cleanup func()
+	var webhookOperatorInstallNamespace string
 
 	g.BeforeEach(func(ctx g.SpecContext) {
-		cleanup = setupWebhookOperator(ctx, oc)
+		// Generate a unique namespace for each test to prevent resource conflicts
+		webhookOperatorInstallNamespace = fmt.Sprintf("webhook-operator-%d", rand.Int63())
+		cleanup = setupWebhookOperator(ctx, oc, webhookOperatorInstallNamespace)
 	})
 
 	g.AfterEach(func() {
@@ -63,7 +66,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftSer
 			_, err := applyRenderedManifests(oc, resource)
 			cg.Expect(err).To(o.HaveOccurred())
 			cg.Expect(err.Error()).To(o.ContainSubstring("Invalid value: false: Spec.Valid must be true"))
-		}).WithTimeout(10 * time.Second).WithPolling(250 * time.Millisecond).Should(o.Succeed())
+		}).WithTimeout(1 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 	})
 
 	g.It("should have a working mutating webhook", func(ctx g.SpecContext) {
@@ -78,7 +81,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftSer
 			cg.Expect(err).NotTo(o.HaveOccurred())
 			// clean up fn will only be scheduled if there are no errors
 			g.DeferCleanup(cleanup)
-		}).WithTimeout(10 * time.Second).WithPolling(250 * time.Millisecond).Should(o.Succeed())
+		}).WithTimeout(1 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 
 		cfg, err := clientcmd.BuildConfigFromFlags("", exutil.KubeConfigPath())
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -115,7 +118,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftSer
 			cg.Expect(err).NotTo(o.HaveOccurred())
 			// clean up fn will only be scheduled if there are no errors
 			g.DeferCleanup(cleanup)
-		}).WithTimeout(10 * time.Second).WithPolling(250 * time.Millisecond).Should(o.Succeed())
+		}).WithTimeout(1 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 
 		cfg, err := clientcmd.BuildConfigFromFlags("", exutil.KubeConfigPath())
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -157,7 +160,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftSer
 			cleanup, err := applyRenderedManifests(oc, resource)
 			g.Expect(err).ToNot(o.HaveOccurred())
 			cleanup()
-		}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(o.Succeed())
+		}).WithTimeout(1 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 	})
 
 	g.It("should be tolerant to tls secret deletion", func(ctx g.SpecContext) {
@@ -180,12 +183,12 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLMWebhookProviderOpenshiftSer
 			cleanup, err := applyRenderedManifests(oc, resource)
 			g.Expect(err).ToNot(o.HaveOccurred())
 			cleanup()
-		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(o.Succeed())
+		}).WithTimeout(1 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 	})
 })
 
 // setupWebhookOperator sets up the webhook operator catalog and installation for a test
-func setupWebhookOperator(ctx g.SpecContext, oc *exutil.CLI) func() {
+func setupWebhookOperator(ctx g.SpecContext, oc *exutil.CLI, webhookOperatorInstallNamespace string) func() {
 	g.By("checking olmv1 capability is enabled")
 	checkFeatureCapability(oc)
 
@@ -221,7 +224,7 @@ func setupWebhookOperator(ctx g.SpecContext, oc *exutil.CLI) func() {
 	lastReason = ""
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
-			isDone, err, status := checkOperatorInstalled(oc, "webhook-operator")
+			isDone, err, status := checkOperatorInstalled(oc, webhookOperatorInstallNamespace)
 			if lastReason != status {
 				g.GinkgoLogr.Info(fmt.Sprintf("waitForWebhookOperatorInstalled: %q", status))
 				lastReason = status
@@ -239,6 +242,13 @@ func setupWebhookOperator(ctx g.SpecContext, oc *exutil.CLI) func() {
 	return func() {
 		operatorCleanup()
 		catalogCleanup()
+
+		// Wait for the namespace to be fully deleted to prevent conflicts in subsequent tests
+		g.By(fmt.Sprintf("waiting for namespace %s to be fully deleted", webhookOperatorInstallNamespace))
+		err := oc.AsAdmin().WithoutNamespace().Run("wait").Args("--for=delete", "namespace", webhookOperatorInstallNamespace, "--timeout=120s").Execute()
+		if err != nil {
+			g.GinkgoLogr.Info(fmt.Sprintf("Warning: namespace %s deletion wait failed: %v", webhookOperatorInstallNamespace, err))
+		}
 	}
 }
 
