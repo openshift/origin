@@ -87,14 +87,14 @@ func ValidHypershiftAndGetGuestKubeConf(oc *exutil.CLI) (string, string, string)
 	if os.Getenv("GUEST_KUBECONFIG") != "" {
 		e2e.Logf("the kubeconfig you set GUEST_KUBECONFIG must be that of the hosted cluster %s in namespace %s", clusterName, hostedclusterNS)
 		hostedClusterKubeconfigFile = os.Getenv("GUEST_KUBECONFIG")
-		e2e.Logf(fmt.Sprintf("use a known hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile))
+		e2e.Logf("use a known hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile)
 	} else {
 		hostedClusterKubeconfigFile = "/tmp/guestcluster-kubeconfig-" + clusterName + "-" + GetRandomString()
 		output, err := exec.Command("bash", "-c", fmt.Sprintf("hypershift create kubeconfig --name %s --namespace %s > %s",
 			clusterName, hostedclusterNS, hostedClusterKubeconfigFile)).Output()
 		e2e.Logf("the cmd output: %s", string(output))
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf(fmt.Sprintf("create a new hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile))
+		e2e.Logf("create a new hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile)
 	}
 	e2e.Logf("if you want hostedcluster controlplane namespace, you could get it by combining %s and %s with -", hostedclusterNS, clusterName)
 	return clusterName, hostedClusterKubeconfigFile, hostedclusterNS
@@ -140,14 +140,14 @@ func ValidHypershiftAndGetGuestKubeConfWithNoSkip(oc *exutil.CLI) (string, strin
 	if os.Getenv("GUEST_KUBECONFIG") != "" {
 		e2e.Logf("the kubeconfig you set GUEST_KUBECONFIG must be that of the guestcluster %s in namespace %s", clusterName, hostedclusterNS)
 		hostedClusterKubeconfigFile = os.Getenv("GUEST_KUBECONFIG")
-		e2e.Logf(fmt.Sprintf("use a known hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile))
+		e2e.Logf("use a known hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile)
 	} else {
 		hostedClusterKubeconfigFile = "/tmp/guestcluster-kubeconfig-" + clusterName + "-" + GetRandomString()
 		output, err := exec.Command("bash", "-c", fmt.Sprintf("hypershift create kubeconfig --name %s --namespace %s > %s",
 			clusterName, hostedclusterNS, hostedClusterKubeconfigFile)).Output()
 		e2e.Logf("the cmd output: %s", string(output))
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf(fmt.Sprintf("create a new hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile))
+		e2e.Logf("create a new hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile)
 	}
 	e2e.Logf("if you want hostedcluster controlplane namespace, you could get it by combining %s and %s with -", hostedclusterNS, clusterName)
 	return clusterName, hostedClusterKubeconfigFile, hostedclusterNS

@@ -172,7 +172,7 @@ func GetLatestMachineFromMachineSet(oc *exutil.CLI, machineSet string) string {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		parsedMachineCreationTime, err := time.Parse(time.RFC3339, machineCreationTime)
 		if err != nil {
-			e2e.Logf("Error parsing time:", err)
+			e2e.Logf("Error parsing time: %v", err)
 			return ""
 		}
 		if parsedMachineCreationTime.After(newest) {

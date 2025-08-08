@@ -32,7 +32,7 @@ func ROSALogin() {
 	cmd := fmt.Sprintf(`rosa login --env "%s" --token "%s"`, os.Getenv("TEST_ROSA_LOGIN_ENV"), os.Getenv("TEST_ROSA_TOKEN"))
 	_, err := exec.Command("bash", "-c", cmd).Output()
 	if err != nil {
-		e2e.Failf("rosa cli login error" + err.Error())
+		e2e.Failf("rosa cli login error: %v", err)
 	}
 }
 
