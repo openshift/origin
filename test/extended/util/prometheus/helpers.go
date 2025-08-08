@@ -299,6 +299,21 @@ func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...i
 	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
 }
 
+// URLStatusCodeExecViaPod attempts connection to url via exec pod and returns the status code
+// or an error if any errors happens during the process.
+func URLStatusCodeExecViaPod(ns, name, url string) (int, error) {
+	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
+	output, err := e2eoutput.RunHostCmd(ns, name, cmd)
+	if err != nil {
+		return 0, fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	ret, err := strconv.Atoi(output)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse status code out of the command's ouput: %v\n%s", err, output)
+	}
+	return ret, nil
+}
+
 // ExpectPrometheusEndpoint attempts to connect to the metrics endpoint with
 // delayed retries upon failure.
 func ExpectPrometheusEndpoint(url string) {

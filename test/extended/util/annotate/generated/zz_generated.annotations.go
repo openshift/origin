@@ -1443,6 +1443,8 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to an HTTP(S) location if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-instrumentation][Late] Platform Prometheus targets should not be accessible without auth [Serial]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set in a heterogeneous environment, should expose information about the applied collection profile using meta-metrics": " [Suite:openshift/conformance/serial]",
 
 	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set in a heterogeneous environment, should have at least one implementation for each collection profile": " [Suite:openshift/conformance/serial]",
