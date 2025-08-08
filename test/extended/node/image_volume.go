@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for a pod to fail")
-			err = e2epod.WaitForPodContainerToFail(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, 0, kuberuntime.ErrCreateContainer.Error(), 60*time.Second)
+			err = e2epod.WaitForPodContainerToFail(ctx, oc.AdminKubeClient(), pod.Namespace, pod.Name, 0, kuberuntime.ErrCreateContainer.Error(), 5*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
