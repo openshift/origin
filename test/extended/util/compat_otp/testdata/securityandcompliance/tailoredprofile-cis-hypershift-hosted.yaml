@@ -1,0 +1,142 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-cis-hypershift-hosted-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      compliance.openshift.io/product-type: Platform
+  spec:
+    title: CIS Benchmark for Hypershift
+    description: CIS Benchmark for Hypershift Master-plane components
+    extends: ocp4-cis
+    disableRules:
+    - name: ocp4-api-server-admission-control-plugin-namespacelifecycle
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-admission-control-plugin-noderestriction
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-admission-control-plugin-scc
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-admission-control-plugin-service-account
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-audit-log-maxbackup
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-audit-log-maxsize
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-ocp-api-server-audit-log-maxbackup
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-ocp-api-server-audit-log-maxsize
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-audit-log-path  
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-auth-mode-node
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-auth-mode-rbac
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-bind-address
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-client-ca
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-encryption-provider-cipher
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-etcd-ca
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-etcd-cert
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-etcd-key
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-kubelet-certificate-authority
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-kubelet-client-cert
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-kubelet-client-key
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-request-timeout
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-service-account-lookup
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-service-account-public-key
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-tls-cert
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-tls-cipher-suites
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-tls-private-key
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-audit-log-forwarding-enabled
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-controller-insecure-port-disabled
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-controller-secure-port
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-controller-service-account-ca
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-controller-service-account-private-key
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-controller-use-service-account
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-auto-tls
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-cert-file
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-client-cert-auth
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-key-file
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-peer-auto-tls
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-peer-cert-file
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-peer-client-cert-auth
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-peer-key-file
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-kubelet-configure-tls-key
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-kubelet-configure-tls-cert
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-kubelet-disable-readonly-port
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-admission-control-plugin-alwaysadmit
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-admission-control-plugin-alwayspullimages
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-admission-control-plugin-securitycontextdeny
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-anonymous-auth
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-api-priority-flowschema-catch-all
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-auth-mode-no-aa
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-basic-auth
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-https-for-kubelet-conn
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-insecure-bind-address
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-no-adm-ctrl-plugins-disabled
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-oauth-https-serving-cert
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-openshift-https-serving-cert
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-profiling-protected-by-rbac
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-api-server-token-auth
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-openshift-api-server-audit-log-path
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-etcd-check-cipher-suite
+      rationale: This rule is being checked on the Management cluster
+    - name: ocp4-scheduler-no-bind-address
+      rationale: This rule is being checked on the Management cluster
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+

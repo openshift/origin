@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-volumesnapshot-template
+objects:
+  # volumesnapshot
+- kind: VolumeSnapshot
+  apiVersion: snapshot.storage.k8s.io/v1
+  metadata:
+    name: ${VSNAME}
+    namespace: ${VSNAMESPACE}
+  spec:
+    volumeSnapshotClassName: ${VSCNAME}
+    source:
+      persistentVolumeClaimName: ${SOURCEPVCNAME}
+
+parameters:
+- name: VSNAME
+- name: VSNAMESPACE
+- name: VSCNAME
+- name: SOURCEPVCNAME

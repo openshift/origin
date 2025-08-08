@@ -1,0 +1,38 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: kubelet-killer-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      labels:
+        kubelet-killer: ""
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      containers:
+        - command:
+            - pkill
+            - -STOP
+            - kubelet
+          image: quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f
+          imagePullPolicy: Always
+          name: kubelet-killer
+          securityContext:
+            privileged: true
+      enableServiceLinks: true
+      hostPID: true
+      nodeName: "${NODE_NAME}"
+      restartPolicy: Never
+      tolerations:
+        - key: mapi
+          value: mapi_test
+          effect: NoSchedule
+parameters:
+  - name: NAME
+    required: true
+  - name: NAMESPACE
+    required: true
+  - name: NODE_NAME
+    required: true

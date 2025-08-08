@@ -1,0 +1,19 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: worker-extensions
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+        - path: /etc/crio/crio.conf.d/99-crun-wasm.conf
+          mode: 0644
+          contents:
+            source: data:text/plain;charset=utf-8;base64,W2NyaW8ucnVudGltZV0KZGVmYXVsdF9ydW50aW1lID0gImNydW4td2FzbSIKCltjcmlvLnJ1bnRpbWUucnVudGltZXMuY3J1bi13YXNtXQpydW50aW1lX3BhdGggPSAiL3Vzci9iaW4vY3J1biIKCltjcmlvLnJ1bnRpbWUucnVudGltZXMuY3J1bi13YXNtLnBsYXRmb3JtX3J1bnRpbWVfcGF0aHNdCiJ3YXNpL3dhc20zMiIgPSAiL3Vzci9iaW4vY3J1bi13YXNtIgo=
+  extensions:
+    - wasm
+

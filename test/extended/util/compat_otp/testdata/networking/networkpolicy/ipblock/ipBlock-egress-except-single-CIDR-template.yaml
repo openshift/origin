@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ipBlockEgressSingle_cidr_template
+objects:
+- kind: NetworkPolicy
+  apiVersion: networking.k8s.io/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    podSelector: {}
+    egress:
+    - to:
+      - ipBlock:
+          cidr: "${CIDR}"
+          except:
+          - "${EXCEPT}"
+    policyTypes:
+     - Egress
+parameters:
+- name: NAME  
+- name: CIDR
+- name: NAMESPACE
+- name: EXCEPT

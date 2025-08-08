@@ -1,0 +1,6 @@
+apiVersion: metal3.io/v1alpha1
+kind: DataImage
+metadata:
+  name: example.dataimage
+spec:
+  url: example.url

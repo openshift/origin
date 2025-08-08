@@ -1,0 +1,8 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: external-dns-group
+  namespace: external-dns-operator
+spec:
+  targetNamespaces:
+  - external-dns-operator

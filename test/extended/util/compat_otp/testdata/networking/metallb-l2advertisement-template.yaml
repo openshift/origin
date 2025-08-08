@@ -1,0 +1,18 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metallb-l2ad-template
+objects:
+- kind: L2Advertisement
+  apiVersion: metallb.io/v1beta1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    ipAddressPools:
+    - "${IPADDRESSPOOL}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: IPADDRESSPOOL
+

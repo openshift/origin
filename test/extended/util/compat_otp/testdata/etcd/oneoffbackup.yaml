@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-oneoffbackup
+objects:
+  - kind: EtcdBackup
+    apiVersion: operator.openshift.io/v1alpha1
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      pvcName: "${PVCNAME}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: PVCNAME
+

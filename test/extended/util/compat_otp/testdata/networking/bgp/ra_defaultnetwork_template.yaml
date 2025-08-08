@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ra-template
+objects:
+- kind: RouteAdvertisements
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    networkSelectors:
+      - networkSelectionType: DefaultNetwork
+    nodeSelector: {}
+    frrConfigurationSelector: {}
+    advertisements:
+    - "${ADVERTISETYPE}"
+parameters:
+- name: NAME
+- name: ADVERTISETYPE
+

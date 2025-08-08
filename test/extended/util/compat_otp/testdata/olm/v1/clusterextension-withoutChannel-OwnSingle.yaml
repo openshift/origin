@@ -1,0 +1,33 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operator-template
+objects:
+- apiVersion: olm.operatorframework.io/v1
+  kind: ClusterExtension
+  metadata:
+    name: "${NAME}"
+    annotations:
+      olm.operatorframework.io/watch-namespace: "${WATCHNS}"
+  spec:
+    namespace: "${INSTALLNAMESPACE}"
+    serviceAccount:
+      name: "${SANAME}"
+    source:
+      sourceType: "${SOURCETYPE}"
+      catalog:
+        packageName: "${PACKAGE}"
+        version: "${VERSION}"
+        upgradeConstraintPolicy: "${POLICY}"
+parameters:
+- name: NAME
+- name: INSTALLNAMESPACE
+- name: WATCHNS
+- name: PACKAGE
+- name: VERSION
+- name: SANAME
+- name: POLICY
+  value: "CatalogProvided"
+- name: SOURCETYPE
+  value: "Catalog"
+

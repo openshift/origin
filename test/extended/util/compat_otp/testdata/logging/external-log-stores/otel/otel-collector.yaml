@@ -1,0 +1,37 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: openTelemetryCollector-template
+objects:
+- apiVersion: opentelemetry.io/v1beta1
+  kind: OpenTelemetryCollector
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    config:
+      exporters:
+        debug:
+          verbosity: detailed
+      receivers:
+        otlp:
+          protocols:
+            http:
+              endpoint: 0.0.0.0:4318
+      service:
+        pipelines:
+          logs:
+            exporters:
+            - debug
+            processors: []
+            receivers:
+            - otlp
+    managementState: managed
+    mode: deployment
+    replicas: 1
+    upgradeStrategy: automatic
+parameters:
+- name: NAME
+  value: "otel"
+- name: NAMESPACE
+  value: "openshift-opentelemetry-operator"

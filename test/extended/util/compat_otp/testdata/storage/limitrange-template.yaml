@@ -1,0 +1,31 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-limitrange-template
+objects:
+  # LimitRange
+- kind: LimitRange
+  apiVersion: v1
+  metadata:
+    name: ${LIMITRANGE_NAME}
+    namespace: ${LIMITRANGE_NAMESPACE}
+  spec:
+    limits:
+    - type: ${LIMIT_TYPE}
+      default: # this section defines default limits
+        ${LIMIT_KIND}: ${DEFAULT_REQUESTS}
+      defaultRequest: # this section defines default requests
+        ${LIMIT_KIND}: ${DEFAULT_LIMITS}
+      max: # max and min define the limit range
+        ${LIMIT_KIND}: ${MAX_LIMITS}
+      min:
+        ${LIMIT_KIND}: ${MIN_REQUESTS}
+parameters:
+- name: LIMITRANGE_NAME
+- name: LIMITRANGE_NAMESPACE
+- name: LIMIT_TYPE
+- name: LIMIT_KIND
+- name: DEFAULT_REQUESTS
+- name: DEFAULT_LIMITS
+- name: MIN_REQUESTS
+- name: MAX_LIMITS

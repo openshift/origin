@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: anp_single_rule_template_node
+objects:
+- kind: AdminNetworkPolicy
+  apiVersion: policy.networking.k8s.io/v1alpha1
+  metadata:
+    name: "${NAME}"
+  spec:
+    priority: ${{PRIORITY}}
+    subject:
+      namespaces:
+        matchLabels:
+          "${SUBJECTKEY}": "${SUBJECTVAL}"
+    "${POLICYTYPE}":
+    - name: "${RULENAME}"
+      action: "${RULEACTION}"
+      "${DIRECTION}":
+      - nodes:
+          matchExpressions:
+          - key: "${RULEKEY}"
+            operator: In
+            values: 
+            - "${RULEVAL}"
+    - name: "${ACTIONNAME}"
+      action: "${ACTIONTYPE}"
+      "${DIRECTION}":
+      - nodes:
+          matchExpressions:
+          - key: "${NODEKEY}"
+            operator: Exists
+parameters:
+- name: NAME 
+- name: PRIORITY
+- name: SUBJECTKEY
+- name: SUBJECTVAL
+- name: POLICYTYPE
+- name: DIRECTION
+- name: RULENAME
+- name: RULEACTION
+- name: RULEKEY
+- name: NODEKEY
+- name: RULEVAL
+- name: ACTIONNAME
+- name: ACTIONTYPE

@@ -1,0 +1,59 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: frr-master-singlestack-pod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      "${LABELKEY1}": "${LABELVALUE1}"
+    annotations:
+      k8s.v1.cni.cncf.io/networks: '[
+        {
+           "name" : "${NAD_NAME}",
+           "interface": "enp2s0",
+           "ips": ["${ROUTER_IP}"]
+        }
+      ]'
+  spec:
+    hostNetwork: false
+    volumes:
+    - name: "${CONFIG_MAP_NAME}"
+      configMap:
+        name: "${CONFIG_MAP_NAME}"
+    nodeSelector:
+      kubernetes.io/hostname: "${MASTER_NODENAME}"
+    tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+    containers:
+    - name: router-master1
+      image: quay.io/frrouting/frr:7.5.1
+      volumeMounts:
+      - mountPath: "/etc/frr"
+        name: "${CONFIG_MAP_NAME}"
+      securityContext:
+        privileged: true
+        capabilities:
+          add: ["NET_ADMIN","NET_RAW","SYS_ADMIN"]
+    - name: testcontainer
+      image: quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4
+      imagePullPolicy: IfNotPresent
+      securityContext:
+        privileged: true
+      command: ["/bin/sleep", "3650d"]
+parameters:
+- name: NAME
+  value: "router-pod-master"
+- name: NAMESPACE
+- name: NAD_NAME
+- name: CONFIG_MAP_NAME
+- name: ROUTER_IP
+- name: MASTER_NODENAME
+- name: LABELKEY1
+  value: "name"
+- name: LABELVALUE1
+  value: "router-pod"

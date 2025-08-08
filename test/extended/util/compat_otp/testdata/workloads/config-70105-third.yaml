@@ -1,0 +1,9 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+mirror:
+storageConfig:
+  local:
+    path: /tmp/case70105
+mirror:
+  additionalImages:
+    - name: registry.redhat.io/ubi9/ubi-micro:latest

@@ -1,0 +1,25 @@
+
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kubelet-config
+objects:
+  - kind: KubeletConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      name: "${NAME}"
+    spec:
+      machineConfigPoolSelector:
+        matchLabels:
+          pools.operator.machineconfiguration.openshift.io/worker: ""
+      tlsSecurityProfile:
+        type: Custom
+        custom:
+          ciphers:
+          - ECDHE-ECDSA-AES128-GCM-SHA256
+          - ECDHE-ECDSA-CHACHA20-POLY1305
+          - ECDHE-RSA-CHACHA20-POLY1305
+          - ECDHE-RSA-AES128-GCM-SHA256
+          minTLSVersion: VersionTLS11
+parameters:
+  - name: NAME

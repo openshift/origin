@@ -1,0 +1,71 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: fluentd-http-template
+objects:
+- apiVersion: v1
+  data:
+    fluent.conf: |
+      <system>
+        log_level info
+      </system>
+      <source>
+        @type http
+        port 24224
+        bind 0.0.0.0
+        body_size_limit 32m
+        keepalive_timeout 10s
+        add_http_headers true
+        add_remote_addr true
+        <parse>
+          @type json
+        </parse>
+        @label @collector_logs
+      </source>
+      <source>
+        @type http
+        port 24224
+        bind "::"
+        body_size_limit 32m
+        keepalive_timeout 10s
+        add_http_headers true
+        add_remote_addr true
+        <parse>
+          @type json
+        </parse>
+        @label @collector_logs
+      </source>
+      <label @collector_logs>
+        <match logs.app>
+          @type file
+          append true
+          path /fluentd/log/app.*.log
+          symlink_path /fluentd/log/app.log
+        </match>
+        <match logs.infra>
+          @type file
+          append true
+          path /fluentd/log/infra.*.log
+          symlink_path /fluentd/log/infra.log
+        </match>
+        <match logs.audit>
+          @type file
+          append true
+          path /fluentd/log/audit.*.log
+          symlink_path /fluentd/log/audit.log
+        </match>
+      </label>
+      <label @FLUENT_LOG>
+        <match **>
+      	  @type stdout
+        </match>
+      </label>
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+parameters:
+- name: NAME
+  value: fluentdserver
+- name: NAMESPACE
+  value: openshift-logging

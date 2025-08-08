@@ -1,0 +1,55 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: splunk-clf-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    outputs:
+    - name: splunk-aosqe
+      type: splunk
+      splunk:
+        authentication:
+          token:
+            key: hecToken
+            secretName: ${SECRET_NAME}
+        index: ${INDEX}
+        tuning: ${{TUNING}}
+        url: ${URL}
+      tls:
+        insecureSkipVerify: ${{SKIP_VERIFY}}
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - name: forward-log-splunk
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - splunk-aosqe
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: SECRET_NAME
+  value: "to-splunk-secret"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: URL
+  value: "https://splunk-default-service.splunk-aosqe.svc:8088"
+  required: true
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: SKIP_VERIFY
+  value: "false"
+- name: INDEX
+  value: "main"
+- name: TUNING
+  value: "{}"

@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cpumanager-template
+objects:
+  -  apiVersion: v1
+     kind: Pod
+     metadata:
+      name: guaranteed-pod
+      labels:
+        app: busybox
+     spec:
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      containers:
+      - image: busybox
+        command:
+          - /bin/sh
+          - -c
+          - sleep 600
+        name: guaranteed-pod
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          limits:
+            cpu: 1
+            memory: 64Mi
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: ${HOST_NAME}
+parameters:
+- name: HOST_NAME

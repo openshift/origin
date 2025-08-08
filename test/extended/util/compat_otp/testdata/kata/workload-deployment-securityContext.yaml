@@ -1,0 +1,48 @@
+﻿apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deployment-template
+objects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: "${NAME}"
+    spec:
+      replicas: ${{REPLICAS}}
+      selector:
+        matchLabels:
+          app: "${NAME}"
+      template:
+        metadata:
+          labels:
+            app: "${NAME}"
+        spec:
+          replicas: 1
+          runtimeClassName: "${RUNTIMECLASSNAME}"
+          containers:
+            - image: "${IMAGE}"
+              imagePullPolicy: IfNotPresent
+              name: "${NAME}"
+              ports:
+                - containerPort: ${{PORT}}
+              securityContext:
+                privileged: false
+                allowPrivilegeEscalation: false
+                runAsNonRoot: true
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+
+parameters:
+  - name: NAME
+    value: "hello-openshift"
+  - name: REPLICAS
+    value: "3"
+  - name: RUNTIMECLASSNAME
+    value: "kata"
+  - name: IMAGE
+    value: "quay.io/openshift/origin-hello-openshift"
+  - name: PORT
+    value: "8888"

@@ -1,0 +1,6 @@
+apiVersion: cache.example.com/v1
+kind: Memcached44550
+metadata:
+  name: memcached44550-sample
+spec:
+  size: 3

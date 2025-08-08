@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  labels:
+    scaledobject.keda.sh/name: cron-scaledobject
+  name: cron-scaledobject
+  namespace: cma-73296  # Replace with your namespace
+spec:
+  scaleTargetRef:
+    name: busybox
+  triggers:
+  - metadata:
+      desiredReplicas: "2"
+      end: '*/10 * * * *'
+      start: '*/5 * * * *'
+      timezone: Europe/Zurich
+    type: cron

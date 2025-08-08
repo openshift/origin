@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: observability-operator
+  namespace: openshift-observability-operator
+  labels:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/name: observability-operator
+    app.kubernetes.io/part-of: observability-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: observability-operator
+      app.kubernetes.io/component: operator
+  endpoints:
+    - port: metrics

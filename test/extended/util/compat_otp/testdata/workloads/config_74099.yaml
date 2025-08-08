@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rails-postgresql-example
+spec:
+  clusterIP: 172.30.14.155
+  clusterIPs:
+  - 172.30.14.155
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: web
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    name: rails-postgresql-example
+  sessionAffinity: None
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rails-postgresql-example
+spec:
+  host: rails-postgresql-example-testzy.apps.yinzhou-63-arm.qe.devcluster.openshift.com
+  to:
+    kind: Service
+    name: rails-postgresql-example
+    weight: 100
+  wildcardPolicy: None
+---
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: rails-postgresql-example
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    name: rails-postgresql-example
+  strategy:
+    activeDeadlineSeconds: 21600
+    recreateParams:
+      pre:
+        execNewPod:
+          command:
+          - ./migrate-database.sh
+          containerName: rails-postgresql-example
+        failurePolicy: Abort
+      timeoutSeconds: 600
+    resources: {}
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        name: rails-postgresql-example
+      name: rails-postgresql-example
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_SERVICE_NAME
+          value: postgresql
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              key: database-user
+              name: rails-postgresql-example
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: rails-postgresql-example
+        - name: POSTGRESQL_DATABASE
+          value: root
+        - name: SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              key: keybase
+              name: rails-postgresql-example
+        - name: POSTGRESQL_MAX_CONNECTIONS
+          value: "100"
+        - name: POSTGRESQL_SHARED_BUFFERS
+          value: 12MB
+        - name: APPLICATION_DOMAIN
+        - name: APPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              key: application-user
+              name: rails-postgresql-example
+        - name: APPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: application-password
+              name: rails-postgresql-example
+        - name: RAILS_ENV
+          value: production
+        image: image-registry.openshift-image-registry.svc:5000/testzy/rails-postgresql-example@sha256:1a3e6d79c6a0945898a895659b385fc8f59195233d07139a4de885d456bbffae
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /articles
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        name: rails-postgresql-example
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /articles
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 3
+        resources:
+          limits:
+            memory: 512Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+  test: false
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - rails-postgresql-example
+      from:
+        kind: ImageStreamTag
+        name: rails-postgresql-example:latest
+        namespace: testzy
+      lastTriggeredImage: image-registry.openshift-image-registry.svc:5000/testzy/rails-postgresql-example@sha256:1a3e6d79c6a0945898a895659b385fc8f59195233d07139a4de885d456bbffae
+    type: ImageChange
+  - type: ConfigChange

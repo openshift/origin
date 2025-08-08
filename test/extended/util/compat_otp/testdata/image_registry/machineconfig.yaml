@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: machineconfig-template
+objects:
+  - kind: MachineConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      labels:
+        machineconfiguration.openshift.io/role: "${POOL}"
+      name: "${NAME}"
+    spec:
+      config:
+        ignition:
+          version: 3.2.0
+        storage:
+          files:
+          - contents:
+              source: "${SOURCE}"
+            mode: 0644
+            overwrite: true
+            path: "${PATH}"
+parameters:
+  - name: POOL
+  - name: NAME
+  - name: SOURCE
+  - name: PATH

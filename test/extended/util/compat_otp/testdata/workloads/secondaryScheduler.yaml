@@ -1,0 +1,22 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: descheduler-template
+objects:
+- kind: SecondaryScheduler
+  apiVersion: operator.openshift.io/v1
+  metadata:
+    name: cluster
+    namespace: "${NAMESPACE}"
+  spec:
+    schedulerImage: "${SCHEDULERIMAGE}"
+    logLevel: "${LOGLEVEL}"
+    operatorLogLevel: "${OPERATORLOGLEVEL}"
+    managementState: Managed
+    schedulerConfig: "${SCHEDULERCONFIG}"
+parameters:
+- name: NAMESPACE
+- name: SCHEDULERIMAGE
+- name: LOGLEVEL
+- name: OPERATORLOGLEVEL
+- name: SCHEDULERCONFIG

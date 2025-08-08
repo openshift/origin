@@ -1,0 +1,53 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cd-temp
+objects:
+  - apiVersion: hive.openshift.io/v1
+    kind: ClusterDeployment
+    metadata:
+      annotations:
+        "hive.openshift.io/fake-cluster": "${FAKE}"
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      baseDomain: "${BASEDOMAIN}"
+      manageDNS: "${{MANAGEDNS}}"
+      clusterName: "${CLUSTERNAME}"
+      platform:
+        vsphere:
+          certificatesSecretRef:
+            name: "${CERTREF}"
+          cluster: "${CLUSTER}"
+          credentialsSecretRef:
+            name: "${CREDREF}"
+          datacenter: "${DATACENTER}"
+          defaultDatastore: "${DATASTORE}"
+          network: "${NETWORK}"
+          vCenter: "${VCENTER}"
+      provisioning:
+        imageSetRef:
+          name: "${IMAGESETREF}"
+        installConfigSecretRef:
+          name: "${INSTALLCONFIGSECRET}"
+      pullSecretRef:
+        name: "${PULLSECRETREF}"
+      installAttemptsLimit: ${{INSTALLATTEMPTSLIMIT}}
+parameters:
+- name: FAKE
+- name: NAME
+- name: NAMESPACE
+- name: BASEDOMAIN
+- name: MANAGEDNS
+- name: CLUSTERNAME
+- name: CERTREF
+- name: CLUSTER
+- name: CREDREF
+- name: DATACENTER
+- name: DATASTORE
+- name: NETWORK
+- name: VCENTER
+- name: IMAGESETREF
+- name: INSTALLCONFIGSECRET
+- name: PULLSECRETREF
+- name: INSTALLATTEMPTSLIMIT

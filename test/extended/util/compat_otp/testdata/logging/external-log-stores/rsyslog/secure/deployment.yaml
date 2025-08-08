@@ -1,0 +1,69 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: rsyslogserver-template
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      provider: aosqe
+      component: ${NAME}
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        provider: aosqe
+        component: ${NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          provider: aosqe
+          component: ${NAME}
+      spec:
+        serviceAccount: ${NAME}
+        serviceAccountName: ${NAME}
+        containers:
+        - name: "rsyslog"
+          command: ["/usr/sbin/rsyslogd", "-f", "/etc/rsyslog/conf/rsyslog.conf", "-n"]
+          image: quay.io/openshifttest/rsyslogd-container@sha256:e806eb41f05d7cc6eec96bf09c7bcb692f97562d4a983cb019289bd048d9aee2
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            procMount: Default
+          ports:
+          - containerPort: 514
+            name: rsyslog-pod-tcp
+            protocol: TCP
+          - containerPort: 514
+            name: rsyslog-pod-udp
+            protocol: UDP
+          - containerPort: 6514
+            name: rsyslog-pod-tls
+            protocol: TCP
+          volumeMounts:
+          - mountPath: /etc/rsyslog/conf
+            name: main
+            readOnly: true
+          - mountPath: /opt/app-root/tls
+            name: keys
+            readOnly: true
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: ${NAME}
+          name: main
+        - secret:
+            defaultMode: 420
+            secretName: ${NAME}
+          name: keys
+parameters:
+- name: NAME
+  value: "rsyslogserver"
+- name: NAMESPACE
+  value: "openshift-logging"

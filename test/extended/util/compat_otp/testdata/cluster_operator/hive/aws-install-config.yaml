@@ -1,0 +1,71 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: install-config-temp
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    creationTimestamp: null
+    name: "${NAME1}"
+    namespace: "${NAMESPACE}"
+  stringData:
+    install-config.yaml: |
+      apiVersion: v1
+      baseDomain: "${BASEDOMAIN}"
+      compute:
+      - name: worker
+        architecture: "${ARCH}"
+        platform:
+          aws:
+            rootVolume:
+              iops: 0
+              size: 120
+              type: gp3
+            type: "${VMTYPE}"
+        replicas: 3
+      controlPlane:
+        name: master
+        architecture: "${ARCH}"
+        platform:
+          aws:
+            rootVolume:
+              iops: 0
+              size: 120
+              type: gp3
+            type: "${VMTYPE}"
+        replicas: 3
+      metadata:
+        creationTimestamp: null
+        name: "${NAME2}"
+      networking:
+        clusterNetworkMTU: ${CLUSTERNETWORKMTU}
+        clusterNetwork:
+        - cidr: 10.128.0.0/14
+          hostPrefix: 23
+        machineNetwork:
+        - cidr: 10.0.0.0/16
+        networkType: OVNKubernetes
+        serviceNetwork:
+        - 172.30.0.0/16
+        ovnKubernetesConfig:
+          ipv4:
+            internalJoinSubnet: "${INTERNALJOINSUBNET}"
+      platform:
+        aws:
+          region: "${REGION}"
+      publish: "${PUBLISH}"
+      credentialsMode: "${CREDENTIALSMODE}"
+  type: Opaque
+parameters:
+- name: NAME1
+- name: NAMESPACE
+- name: BASEDOMAIN
+- name: NAME2
+- name: REGION
+- name: PUBLISH
+- name: VMTYPE
+- name: ARCH
+- name: CREDENTIALSMODE
+- name: INTERNALJOINSUBNET
+- name: CLUSTERNETWORKMTU

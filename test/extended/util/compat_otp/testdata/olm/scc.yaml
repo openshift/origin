@@ -1,0 +1,61 @@
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: true
+allowHostPID: true
+allowHostPorts: true
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: false
+allowedCapabilities:
+- SYS_ADMIN
+- SYS_RESOURCE
+- SYS_PTRACE
+- NET_ADMIN
+- NET_BROADCAST
+- NET_RAW
+- IPC_LOCK
+- CHOWN
+- AUDIT_CONTROL
+- AUDIT_READ
+- DAC_READ_SEARCH
+apiVersion: security.openshift.io/v1
+defaultAddCapabilities: []
+fsGroup:
+  type: MustRunAs
+groups: []
+kind: SecurityContextConstraints
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"allowHostDirVolumePlugin":true,"allowHostIPC":false,"allowHostNetwork":true,"allowHostPID":true,"allowHostPorts":true,"allowPrivilegeEscalation":true,"allowPrivilegedContainer":false,"allowedCapabilities":["SYS_ADMIN","SYS_RESOURCE","SYS_PTRACE","NET_ADMIN","NET_BROADCAST","NET_RAW","IPC_LOCK","CHOWN","AUDIT_CONTROL","AUDIT_READ","DAC_READ_SEARCH"],"apiVersion":"security.openshift.io/v1","defaultAddCapabilities":[],"fsGroup":{"type":"MustRunAs"},"groups":[],"kind":"SecurityContextConstraints","metadata":{"annotations":{},"creationTimestamp":"2021-10-23T21:34:21Z","generation":4,"labels":{"app.kubernetes.io/instance":"datadog","app.kubernetes.io/managed-by":"Helm","app.kubernetes.io/name":"datadog","app.kubernetes.io/version":"7","helm.sh/chart":"datadog-3.10.1"},"name":"datadog","resourceVersion":"7173625748","uid":"afc7e4af-cd2e-4a67-b78e-0312c8a2d2fb"},"priority":8,"readOnlyRootFilesystem":false,"requiredDropCapabilities":[],"runAsUser":{"type":"RunAsAny"},"seLinuxContext":{"seLinuxOptions":{"level":"s0","role":"system_r","type":"spc_t","user":"system_u"},"type":"MustRunAs"},"seccompProfiles":["runtime/default","localhost/system-probe"],"supplementalGroups":{"type":"RunAsAny"},"users":["system:serviceaccount:datadog:datadog"],"volumes":["configMap","downwardAPI","emptyDir","hostPath","secret"]}
+  labels:
+    app.kubernetes.io/instance: datadog
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: datadog
+    app.kubernetes.io/version: "7"
+    helm.sh/chart: datadog-3.10.1
+  name: datadog
+priority: 8
+readOnlyRootFilesystem: false
+requiredDropCapabilities: []
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  seLinuxOptions:
+    level: s0
+    role: system_r
+    type: spc_t
+    user: system_u
+  type: MustRunAs
+seccompProfiles:
+- runtime/default
+- localhost/system-probe
+supplementalGroups:
+  type: RunAsAny
+users:
+- system:serviceaccount:datadog:datadog
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- hostPath
+- secret

@@ -1,0 +1,58 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: peer-pods-params-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    data:
+      PODVM_DISTRO: "${PODVM_DISTRO}"
+      CAA_SRC: "${CAA_SRC}"
+      CAA_REF: "${CAA_REF}"
+      DOWNLOAD_SOURCES: "${DOWNLOAD_SOURCES}"
+      CONFIDENTIAL_COMPUTE_ENABLED: "${CONFIDENTIAL_COMPUTE_ENABLED}"
+      UPDATE_PEERPODS_CM: "${UPDATE_PEERPODS_CM}"
+      ORG_ID: "${ORG_ID}"
+      BASE_OS_VERSION: "${BASE_OS_VERSION}"
+      IMAGE_NAME: "${IMAGE_NAME}"
+      PODVM_TAG: "${PODVM_TAG}"
+      SE_BOOT: "${SE_BOOT}"
+      PODVM_IMAGE_URI: "${PODVM_IMAGE_URI}"
+
+      
+
+
+# This is for end user/Jenkins to create a configmap and apply it to your cluster
+parameters:
+  - name: NAME
+    value: "libvirt-podvm-image-cm"
+  - name: NAMESPACE
+    value: "openshift-sandboxed-containers-operator"
+  - name: PODVM_DISTRO
+    value: "rhel"
+  - name: CAA_SRC
+    value: "https://github.com/confidential-containers/cloud-api-adaptor"
+  - name: CAA_REF
+    value: "v0.8.2"
+  - name: DOWNLOAD_SOURCES
+    value: "no"
+  - name: CONFIDENTIAL_COMPUTE_ENABLED
+    value: "no"
+  - name: ORG_ID
+    value: ""
+  - name: UPDATE_PEERPODS_CM
+    value: "yes"
+  - name: BASE_OS_VERSION
+    value: "9.4"
+  - name: IMAGE_NAME
+    value: "podvm-rhel"
+  - name: PODVM_TAG
+    value: "v1.0"
+  - name: SE_BOOT
+    value: ""
+  - name: PODVM_IMAGE_URI
+    value: ""
+

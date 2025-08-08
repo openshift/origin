@@ -1,0 +1,16 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: elasticsearch-operator-og-template
+objects:
+- apiVersion: operators.coreos.com/v1
+  kind: OperatorGroup
+  metadata:
+    name: ${OG_NAME}
+    namespace: ${NAMESPACE}
+  spec: {}
+parameters:
+  - name: OG_NAME
+    value: "openshift-operators-redhat"
+  - name: NAMESPACE
+    value: "openshift-operators-redhat"

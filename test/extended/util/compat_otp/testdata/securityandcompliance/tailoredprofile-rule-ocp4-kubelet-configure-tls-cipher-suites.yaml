@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-two-variables-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    annotations:
+      compliance.openshift.io/product-type: Node
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    title: My little profile
+    description: This profile test required rules
+    enableRules:
+    - name: ocp4-kubelet-configure-tls-cipher-suites
+      rationale: Node
+    setValues:
+    - name: ocp4-var-kubelet-tls-cipher-suites-regex
+      rationale: Node
+      value: '^(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256|TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256|TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384|TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384|TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256)$'
+    - name: ocp4-var-kubelet-tls-cipher-suites
+      rationale: Node
+      value: "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256"
+
+parameters:
+- name: NAME
+- name: NAMESPACE

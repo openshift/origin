@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: test-coredns
+  name: test-coredns
+spec:
+  securityContext:
+    runAsNonRoot: false
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - args:
+    - -conf
+    - /etc/coredns/Corefile
+    command:
+    - coredns
+    image: replaced-at-runtime
+    imagePullPolicy: IfNotPresent
+    name: coredns
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities:
+        add:
+        - NET_BIND_SERVICE
+        drop:
+        - ALL
+    volumeMounts:
+    - mountPath: /etc/coredns
+      name: config-volume
+      readOnly: true
+  nodeSelector:
+    kubernetes.io/os: linux
+  volumes:
+  - configMap:
+      defaultMode: 420
+      items:
+      - key: Corefile
+        path: Corefile
+      name: test-coredns-cm
+    name: config-volume
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-coredns-cm
+data:
+  Corefile: |
+    .:53 {
+        bufsize 512
+        errors
+        log . {
+            class error
+        }
+        health {
+            lameduck 20s
+        }
+        ready
+        template ANY MX {
+            rcode NXDOMAIN
+        }
+        hosts {
+            192.168.11.241     www.myocp-test.com
+            2000::abcd     myocp-testv6.com
+        }
+        prometheus 127.0.0.1:9153
+        forward . 8.8.8.8 {
+            policy random
+        }
+        cache 900 {
+            denial 9984 30
+        }
+        reload
+    }

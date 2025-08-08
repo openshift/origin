@@ -1,0 +1,7 @@
+spec:
+  profile:
+  - data: |
+      [main]
+      summary=Configuration changes profile inherited from performance created tuned
+      include=openshift-node-performance-performance
+    name: performance-patch

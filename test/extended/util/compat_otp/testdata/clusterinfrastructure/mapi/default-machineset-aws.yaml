@@ -1,0 +1,60 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: default-machineset-aws.yaml
+objects:
+  - apiVersion: machine.openshift.io/v1beta1
+    kind: MachineSet
+    metadata:
+      labels:
+        machine.openshift.io/cluster-api-cluster: ${CLUSTERNAME} 
+        machine.openshift.io/cluster-api-machine-role: worker
+        machine.openshift.io/cluster-api-machine-type: worker
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          machine.openshift.io/cluster-api-cluster: ${CLUSTERNAME}
+          machine.openshift.io/cluster-api-machineset: ${NAME}
+      template:
+        metadata:
+          labels:
+            machine.openshift.io/cluster-api-cluster: ${CLUSTERNAME}
+            machine.openshift.io/cluster-api-machine-role: worker
+            machine.openshift.io/cluster-api-machine-type: worker
+            machine.openshift.io/cluster-api-machineset: ${NAME}
+        spec:
+          metadata: {}
+          taints:
+          - effect: "NoSchedule"
+            key: "mapi"
+            value: "mapi_test"
+          providerSpec:
+            value:
+              ami:
+                id: ${AMIID}
+              placement:
+                availabilityZone: ${AVAILABILITYZONE}
+              securityGroups:
+              - filters:
+                - name: tag:Name
+                  values:
+                  - ${SGNAME}
+              subnet:
+                filters:
+                - name: tag:Name
+                  values:
+                  - ${SUBNET}
+              iamInstanceProfile:
+                id: ${IAMINSTANCEPROFILEID}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CLUSTERNAME
+- name: AMIID
+- name: AVAILABILITYZONE
+- name: SGNAME
+- name: SUBNET
+- name: IAMINSTANCEPROFILEID

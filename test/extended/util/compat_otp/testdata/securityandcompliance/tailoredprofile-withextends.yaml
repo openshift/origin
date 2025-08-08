@@ -1,0 +1,19 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: tailoredprofile-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    extends: "${EXTENDS}"
+    title: My little profile
+    description: My little profile
+
+parameters:
+- name: NAME
+- name: NAMESPACE  
+- name: EXTENDS

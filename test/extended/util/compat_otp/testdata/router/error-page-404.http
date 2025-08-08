@@ -1,0 +1,10 @@
+HTTP/1.0 404 Not Found
+Connection: close
+Content-Type: text/html
+
+<html>
+<head><title>Custom:Not Found</title></head>
+<body>
+<p>Custom error page:The requested document was not found.</p>
+</body>
+</html>

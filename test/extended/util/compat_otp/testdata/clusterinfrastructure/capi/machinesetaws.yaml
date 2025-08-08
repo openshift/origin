@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: capi-machineset
+objects:
+  - apiVersion: cluster.x-k8s.io/v1beta1
+    kind: MachineSet
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      clusterName: ${CLUSTERNAME}
+      replicas: ${{REPLICAS}}
+      selector:
+        matchLabels: 
+          machine.openshift.io/cluster-api-cluster: ${CLUSTERNAME}
+      template:
+        metadata:
+          labels:
+            machine.openshift.io/cluster-api-cluster: ${CLUSTERNAME}
+        spec:
+          bootstrap:
+            dataSecretName: worker-user-data
+          clusterName: ${CLUSTERNAME}
+          infrastructureRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: ${KIND}
+            name: ${MACHINETEMPLATENAME}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: CLUSTERNAME
+- name: REPLICAS
+- name: KIND
+- name: MACHINETEMPLATENAME

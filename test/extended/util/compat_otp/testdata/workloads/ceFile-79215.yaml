@@ -1,0 +1,17 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: "extension-79215"
+spec:
+  namespace: "ns-79215"
+  serviceAccount:
+    name: "test-79215"
+  source:
+    sourceType: "Catalog"
+    catalog:
+      selector:
+        matchLabels:
+          olm.operatorframework.io/metadata.name: cc-redhat-operator-index-v4-17
+      packageName: "security-profiles-operator"
+      version: "v0.8.6"
+      upgradeConstraintPolicy: "CatalogProvided"

@@ -1,0 +1,16 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: nodetest-digest-mirror
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - example.io/example/ubi-minimal
+    - example.com/example/ubi-minimal
+    source: registry.access.redhat.com/ubi8/ubi-minimal
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example
+    mirrorSourcePolicy: AllowContactingSource
+

@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: generic-kubelet-config
+objects:
+  - kind: KubeletConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      name: "${NAME}"
+    spec:
+      machineConfigPoolSelector:
+        matchLabels:
+          pools.operator.machineconfiguration.openshift.io/${POOL}: ''
+      kubeletConfig: ${{KUBELETCONFIG}}
+parameters:
+  - name: NAME
+  - name: KUBELETCONFIG
+    value: "{}"
+  - name: POOL
+    value: worker

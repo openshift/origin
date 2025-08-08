@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: generic-container-runtime-config
+objects:
+  - kind: ContainerRuntimeConfig
+    apiVersion: machineconfiguration.openshift.io/v1
+    metadata:
+      name: "${NAME}"
+    spec:
+      machineConfigPoolSelector:
+        matchLabels:
+          pools.operator.machineconfiguration.openshift.io/${POOL}: ''
+      containerRuntimeConfig: ${{CRCONFIG}}
+parameters:
+  - name: NAME
+  - name: CRCONFIG
+    value: "{}"
+  - name: POOL
+    value: worker

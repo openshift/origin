@@ -1,0 +1,30 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: imagestream-template
+objects:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: "${REPO}"
+      name: tag-manifest
+      referencePolicy:
+        type: Local  
+    - from:
+        kind: DockerImage
+        name: "${REPO}"
+      importPolicy:
+        importMode: PreserveOriginal
+      name: tag-manifest-preserve-original
+      referencePolicy:
+        type: Source
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: REPO

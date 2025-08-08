@@ -1,0 +1,23 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: netobserv-catalog-source-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${CATALOG_NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    displayName: NetObserv Konflux
+    image: "${IMAGE}"
+    sourceType: grpc
+    grpcPodConfig:
+      securityContextConfig: legacy
+parameters:
+- name: CATALOG_NAME
+  value: "netobserv-konflux-fbc"
+- name: IMAGE
+  value: "quay.io/redhat-user-workloads/ocp-network-observab-tenant/catalog-ystream:latest"
+- name: NAMESPACE
+  value: openshift-marketplace

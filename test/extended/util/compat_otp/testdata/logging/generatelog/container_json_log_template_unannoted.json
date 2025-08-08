@@ -1,0 +1,103 @@
+{
+  "apiVersion": "template.openshift.io/v1",
+  "kind": "Template",
+  "metadata": {
+    "name": "centos-logtest-template"
+  },
+  "objects": [
+    {
+      "apiVersion": "v1",
+      "data": {
+        "ocp_logtest.cfg": "--raw --file /var/lib/svt/json.example  --text-type input --rate 60.0",
+        "json.example": "{\"message\": \"MERGE_JSON_LOG=true\", \"level\": \"debug\",\"Layer1\": \"layer1 0\", \"layer2\": {\"name\":\"Layer2 1\", \"tips\":\"Decide by PRESERVE_JSON_LOG\"}, \"StringNumber\":\"10\", \"Number\": 10,\"foo.bar\":\"Dot Item\",\"{foobar}\":\"Brace Item\",\"[foobar]\":\"Bracket Item\", \"foo:bar\":\"Colon Item\",\"foo bar\":\"Space Item\" }"
+      },
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "${CONFIGMAP}"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ReplicationController",
+      "metadata": {
+        "name": "${{REPLICATIONCONTROLLER}}",
+        "labels": "${{LABELS}}"
+      },
+      "spec": {
+        "replicas": "${{REPLICAS}}",
+        "template": {
+          "metadata": {
+            "generateName": "centos-logtest-",
+            "labels": "${{LABELS}}"
+          },
+          "spec": {
+            "containers": [
+              {
+                "env": [],
+                "image": "quay.io/openshifttest/ocp-logtest@sha256:6e2973d7d454ce412ad90e99ce584bf221866953da42858c4629873e53778606",
+                "imagePullPolicy": "IfNotPresent",
+                "name": "${CONTAINER}",
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "config",
+                    "mountPath": "/var/lib/svt"
+                  }
+                ],
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log"
+              }
+            ],
+            "securityContext": {
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "volumes": [
+              {
+                "name": "config",
+                "configMap": {
+                  "name": "${{CONFIGMAP}}"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "REPLICAS",
+      "displayName": "Replicas",
+      "value": "1"
+    },
+    {
+      "name": "LABELS",
+      "displayName": "labels",
+      "value": "{\"run\": \"centos-logtest\", \"test\": \"centos-logtest\"}"
+    },
+    {
+      "name": "REPLICATIONCONTROLLER",
+      "displayName": "ReplicationController",
+      "value": "logging-centos-logtest"
+    },
+    {
+      "name": "CONFIGMAP",
+      "displayName": "ConfigMap",
+      "value": "logtest-config"
+    },
+    {
+      "name": "CONTAINER",
+      "value": "logging-centos-logtest"
+    }
+  ]
+}

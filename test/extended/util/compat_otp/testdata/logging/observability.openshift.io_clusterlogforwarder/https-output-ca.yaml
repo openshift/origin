@@ -1,0 +1,77 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    outputs:
+    - name: httpout-app
+      type: http
+      http:
+        headers:
+          h1: v1
+          h2: v2
+        method: POST
+        url: ${URL}/logs/app
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    - name: httpout-infra
+      type: http
+      http:
+        headers:
+          h1: v1
+          h2: v2
+        method: POST
+        url: ${URL}/logs/infra
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    - name: httpout-audit
+      type: http
+      http:
+        headers:
+          h1: v1
+          h2: v2
+        method: POST
+        url: ${URL}/logs/audit
+      tls:
+        ca:
+          key: ca-bundle.crt
+          secretName: ${SECRET_NAME}
+    pipelines:
+    - inputRefs:
+      - application
+      name: app-logs
+      outputRefs:
+      - httpout-app
+    - inputRefs:
+      - infrastructure
+      name: infra-logs
+      outputRefs:
+      - httpout-infra
+    - inputRefs:
+      - audit
+      name: audit-logs
+      outputRefs:
+      - httpout-audit
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: instance
+- name: NAMESPACE
+  value: openshift-logging
+- name: URL
+  value: https://fluentdserver.openshift-logging.svc:24224
+- name: SECRET_NAME
+  value: to-fluentdserver
+- name: SERVICE_ACCOUNT_NAME
+  value: ""

@@ -1,0 +1,25 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: objectBucketClaim-template
+objects:
+- apiVersion: objectbucket.io/v1alpha1
+  kind: ObjectBucketClaim
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    additionalConfig:
+      bucketclass: ${BUCKETCLASS}
+    generateBucketName: ${NAME}
+    bucketName: ${NAME}
+    storageClassName: ${STORAGE_CLASS_NAME}
+parameters:
+- name: NAME
+  value: logging-loki
+- name: NAMESPACE
+  value: openshift-storage
+- name: BUCKETCLASS
+  value: noobaa-default-bucket-class
+- name: STORAGE_CLASS_NAME
+  value: openshift-storage.noobaa.io

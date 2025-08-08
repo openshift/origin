@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: prometheus-nodeaffinity-template
+objects:
+  - apiVersion: monitoring.coreos.com/v1
+    kind: Prometheus
+    metadata:
+      name: example
+      namespace: "${NAMESPACE}"
+    spec:
+      evaluationInterval: 30s
+      serviceMonitorSelector: {}
+      alerting:
+        alertmanagers:
+          - namespace: monitoring
+            name: alertmanager-main
+            port: web
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - values:
+                      - "${NODE_NAME}"
+                    key: kubernetes.io/hostname
+                    operator: In
+      probeSelector: {}
+      podMonitorSelector: {}
+      scrapeInterval: 30s
+      ruleSelector: {}
+      replicas: 2
+      serviceAccountName: prometheus-k8s
+parameters:
+  - name: NODE_NAME
+  - name: NAMESPACE

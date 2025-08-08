@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: svc-loadbalancer
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      labels:
+        name: ${NAME}
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      containers:
+      - image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+        name: nginx
+        ports:
+        - containerPort: 8080
+        - containerPort: 8443
+parameters:
+- name: NAME
+- name: NAMESPACE
+

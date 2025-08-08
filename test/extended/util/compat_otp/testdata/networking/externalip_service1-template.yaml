@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: externalIP-service-template 
+objects:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    labels:
+      name: service-unsecure
+  spec:
+    ports:
+      - name: http
+        protocol: TCP
+        port: 27017
+        targetPort: 8080
+    externalIPs:
+      - "${EXTERNALIP}"
+    selector:
+      name: externalip-pod
+parameters:
+- name: NAME
+- name: EXTERNALIP

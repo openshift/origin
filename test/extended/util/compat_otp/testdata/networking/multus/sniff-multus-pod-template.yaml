@@ -1,0 +1,29 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sniff-multus-pod-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: "${LABELNAME}"
+    annotations:
+      k8s.v1.cni.cncf.io/networks: "${NADNAME}"
+  spec:
+    containers:
+    - image: "quay.io/openshifttest/hello-sdn@sha256:c89445416459e7adea9a5a416b3365ed3d74f2491beb904d61dc8d1eb89a72a4"
+      name: "${NAME}"
+      securityContext:
+        capabilities:
+          add: ["NET_ADMIN"]
+        privileged: true
+    nodeName: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABELNAME
+- name: NADNAME
+- name: NODENAME

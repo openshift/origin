@@ -1,0 +1,7 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: default-ca
+spec:
+  ca:
+    secretName: selfsigned-ca-tls

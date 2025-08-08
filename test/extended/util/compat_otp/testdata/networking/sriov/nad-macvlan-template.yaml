@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nad-macvlan-template
+objects:
+- kind: NetworkAttachmentDefinition
+  apiVersion: "k8s.cni.cncf.io/v1"
+  metadata:
+    name: ${NADNAME}
+    namespace: ${NAMESPACE}
+  spec:
+    config: '{
+      "cniVersion": "0.3.1",
+      "type": "macvlan",
+      "mode": "bridge",
+      "ipam": {
+        "type": "host-local",
+        "subnet": "192.168.11.0/24",
+        "rangeStart": "192.168.11.200",
+        "rangeEnd": "192.168.11.216",
+        "routes": [
+          { "dst": "0.0.0.0/0" }
+        ],
+        "gateway": "192.168.11.1"
+      }
+    }'
+
+parameters:
+- name: NADNAME 
+- name: NAMESPACE

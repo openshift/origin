@@ -1,0 +1,47 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+    name: peer-pods-cm-template
+objects:
+    - apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "peer-pods-cm"
+        namespace: "openshift-sandboxed-containers-operator"
+      data:
+        CLOUD_PROVIDER: "gcp"
+        DISABLECVM: "${DISABLECVM}"
+        GCP_MACHINE_TYPE: "${GCP_MACHINE_TYPE}"
+        GCP_NETWORK: "${GCP_NETWORK}"
+        GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+        GCP_ZONE: "${GCP_ZONE}"
+        PODVM_IMAGE_NAME: "${PODVM_IMAGE_NAME}"
+        PODVM_IMAGE_URI: "${PODVM_IMAGE_URI}"
+        PROXY_TIMEOUT: "${PROXY_TIMEOUT}"
+        VXLAN_PORT: "${VXLAN_PORT}"
+
+# oc process --ignore-unknown-parameters=true -f $L/peer-pod-azure-cm-template.yaml -p AZURE_SUBNET_ID=${AZURE_SUBNET_ID} AZURE_NSG_ID=${AZURE_NSG_ID} AZURE_IMAGE_ID=${AZURE_IMAGE_ID} AZURE_REGION=${AZURE_REGION} AZURE_RESOURCE_GROUP=${AZURE_RESOURCE_GROUP}
+# This is for end user/Jenkins to create a configmap and apply it to your cluster
+parameters:
+  - name: DISABLECVM
+    value: "true"
+  - name: GCP_MACHINE_TYPE
+    value: "n1-standard-1"
+  - name: GCP_NETWORK
+    value: "global/networks/default"
+  - name: GCP_PROJECT_ID
+    value: ""
+  - name: GCP_ZONE
+    value: "us-central1-a"
+  - name: PODVM_IMAGE_NAME
+    value: ""
+  - name: PROXY_TIMEOUT
+    value: "5m"
+  - name: VXLAN_PORT
+    value: "9000"
+  - name: CUSTOM_TAGS
+    value: "key1=value1,key2=value2"
+  - name: PEERPODS_LIMIT
+    value: "10"
+  - name: PODVM_IMAGE_URI
+    value: ""

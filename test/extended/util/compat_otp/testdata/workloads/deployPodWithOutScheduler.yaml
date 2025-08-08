@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deploy-podwithScheduler-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    labels:
+      app: "${DNAME}"
+    name: "${DNAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - name: defaultscheduler
+      image: quay.io/openshifttest/pause@sha256:e481caec2eb984ce023673a3ec280bf57dea8c0305009e246b019b3eef044f9e
+
+parameters:
+- name: DNAME
+- name: NAMESPACE

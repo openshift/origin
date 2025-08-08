@@ -1,0 +1,16 @@
+apiVersion: externaldns.olm.openshift.io/v1beta1
+kind: ExternalDNS
+metadata:
+  name: sample-azure-rt
+spec:
+  provider:
+    type: Azure
+  source:
+    labelFilter:
+      matchLabels:
+        external-dns.mydomain.org/publish: "yes"
+    openshiftRouteOptions:
+      routerName: default
+    type: OpenShiftRoute
+  zones:
+  - "mydomain.org"

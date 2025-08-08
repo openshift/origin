@@ -1,0 +1,34 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: prestart-job-template
+objects:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          securityContext:
+            runAsUser: 0
+          containers:
+            - name: prestart
+              image: quay.io/openshifttest/hypershift-pre-start:1.2.3
+              imagePullPolicy: Always
+              command: ["hypershift-pre","${CASEID}","${ACTION}"]
+              envFrom:
+                - secretRef:
+                    name: "${NAME}"
+              resources:
+                requests:
+                  memory: 500Mi
+                  cpu: 500m
+          restartPolicy: Never
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: CASEID
+  - name: ACTION

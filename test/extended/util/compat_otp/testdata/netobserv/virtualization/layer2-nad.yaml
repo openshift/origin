@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-76537
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: l2-network
+  namespace: test-76537
+spec:
+  config: '{
+      "cniVersion": "0.3.1", 
+      "name": "l2-network", 
+      "type": "ovn-k8s-cni-overlay", 
+      "topology": "layer2", 
+      "mtu": 1300, 
+      "netAttachDefName": "test-76537/l2-network"
+    }'

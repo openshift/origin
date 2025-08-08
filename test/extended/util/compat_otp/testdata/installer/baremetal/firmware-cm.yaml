@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: firmware-download
+data:
+  firmware_url: example_url

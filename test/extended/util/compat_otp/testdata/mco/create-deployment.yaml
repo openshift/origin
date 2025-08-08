@@ -1,0 +1,44 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-deployment
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      k8s-app: test
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      matchLabels:
+         app: test
+    template:
+      metadata:
+         labels:
+           app: test
+      spec:
+        containers:
+        - name: test
+          image: ${IMAGE}
+          args:
+            - sleep
+            - 4h
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+        seccompProfile:
+            type: "RuntimeDefault"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+    value: default
+  - name: REPLICAS
+    value: "1"
+  - name: IMAGE
+    value: "quay.io/openshifttest/busybox@sha256:c5439d7db88ab5423999530349d327b04279ad3161d7596d2126dfb5b02bfd1f"
+

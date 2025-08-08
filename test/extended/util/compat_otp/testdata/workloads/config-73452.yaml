@@ -1,0 +1,12 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  additionalImages: 
+    - name: registry.redhat.io/ubi8/ubi:latest
+    - name: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+  operators:
+    - catalog: oci:///tmp/case73452/redhat-operator-index
+      targetCatalog: "ocicatalog73452"
+      targetTag: "v14"
+      packages:
+        - name: cluster-kube-descheduler-operator

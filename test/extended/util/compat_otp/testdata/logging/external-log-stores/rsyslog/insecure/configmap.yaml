@@ -1,0 +1,36 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: rsyslogserver-template
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      provider: aosqe
+      component: ${NAME}
+  data:
+    rsyslog.conf: |+
+      global(processInternalMessages="on")
+      module(load="imptcp")
+      module(load="imudp" TimeRequery="500")
+      input(type="imptcp" port="514")
+      input(type="imudp" port="514")
+      :msg, contains, "\"log_type\":\"application\"" /var/log/clf/app-container.log
+      :msg, contains, "\"log_type\":\"infrastructure\""{
+        if $msg contains "\"log_source\":\"container\"" then /var/log/clf/infra-container.log
+        if $msg contains "\"log_source\":\"node\"" then /var/log/clf/infra.log
+      }
+      :msg, contains, "\"log_type\":\"audit\"" /var/log/clf/audit.log
+      :msg, contains, "\"log_source\":\"auditd\"" /var/log/clf/audit-linux.log
+      :msg, contains, "\"log_source\":\"kubeAPI\"" /var/log/clf/audit-kubeAPI.log
+      :msg, contains, "\"log_source\":\"openshiftAPI\"" /var/log/clf/audit-openshiftAPI.log
+      :msg, contains, "\"log_source\":\"ovn\"" /var/log/clf/audit-ovn.log
+      *.* /var/log/clf/other.log
+parameters:
+- name: NAME
+  value: "rsyslogserver"
+- name: NAMESPACE
+  value: "openshift-logging"

@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nto-template
+objects:
+  - apiVersion: tuned.openshift.io/v1
+    kind: Profile
+    metadata:
+      name: worker-does-not-exist-openshift-node
+    spec:
+      config:
+        debug: true
+        providerName: "${PROVIDER_NAME}"
+        tunedConfig: {}
+        tunedProfile: openshift-node
+parameters:
+- name: PROVIDER_NAME

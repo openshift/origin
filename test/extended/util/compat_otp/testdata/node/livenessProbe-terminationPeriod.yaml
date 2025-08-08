@@ -1,0 +1,39 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: livenessprobe-terminationPeriod-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    terminationGracePeriodSeconds: ${{TERMINATIONGRACE}}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: test
+        image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command: [bash, -c, "sleep 100000000"]
+        ports:
+          - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 1
+          periodSeconds: 60
+          terminationGracePeriodSeconds: ${{PROBETERMINATIONGRACE}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TERMINATIONGRACE
+- name: PROBETERMINATIONGRACE

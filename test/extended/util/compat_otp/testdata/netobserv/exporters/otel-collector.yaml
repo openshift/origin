@@ -1,0 +1,73 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: otel-collector-template
+objects:
+- apiVersion: opentelemetry.io/v1beta1
+  kind: OpenTelemetryCollector
+  metadata:
+    name: ${NAME}
+  spec:
+    config:
+      exporters:
+        debug:
+          verbosity: detailed
+        prometheus:
+          const_labels:
+            otel: otel
+          enable_open_metrics: true
+          endpoint: 0.0.0.0:${OTLP_PROM_PORT}
+      processors:
+        batch: {}
+        memory_limiter:
+          check_interval: 1s
+          limit_percentage: 50
+          spike_limit_percentage: 30
+      receivers:
+        jaeger:
+          protocols:
+            grpc: {}
+            thrift_binary: {}
+            thrift_compact: {}
+            thrift_http: {}
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:${OTLP_GRPC_ENDPOINT}
+            http:
+              endpoint: 0.0.0.0:4318
+        zipkin: {}
+      service:
+        pipelines:
+          logs:
+            exporters:
+              - debug
+            processors:
+              - batch
+            receivers:
+              - otlp
+          metrics:
+            exporters:
+              - debug
+              - prometheus
+            processors:
+              - batch
+            receivers:
+              - otlp
+          traces:
+            exporters:
+              - debug
+            processors:
+              - memory_limiter
+              - batch
+            receivers:
+              - otlp
+              - jaeger
+              - zipkin
+parameters:
+- name: NAME
+  value: "otel"
+- name: OTLP_GRPC_ENDPOINT
+  value: "4317"
+- name: OTLP_PROM_PORT
+  value: "8889"

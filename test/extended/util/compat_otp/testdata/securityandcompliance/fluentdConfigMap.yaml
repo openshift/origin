@@ -1,0 +1,56 @@
+apiVersion: v1
+data:
+  fluent.conf: |
+    <source>
+      @type forward
+      port  24224
+      <transport tls>
+        cert_path /etc/fluentd/secrets/tls.crt
+        private_key_path /etc/fluentd/secrets/tls.key
+        ca_path /etc/fluentd/secrets/ca-bundle.crt
+        client_cert_auth true
+      </transport>
+    </source>
+
+    <match *_default_** **_kube-*_** **_openshift-*_** **_openshift_**>
+      @type file
+      append true
+      path /fluentd/log/infra-container.*.log
+      symlink_path /fluentd/log/infra-container.log
+      time_slice_format %Y%m%d
+      time_slice_wait   1m
+      time_format       %Y%m%dT%H%M%S%z
+    </match>
+    <match journal.** system.var.log**>
+      @type file
+      append true
+      path /fluentd/log/infra.*.log
+      symlink_path /fluentd/log/infra.log
+      time_slice_format %Y%m%d
+      time_slice_wait   1m
+      time_format       %Y%m%dT%H%M%S%z
+    </match>
+    <match kubernetes.**>
+      @type file
+      append true
+      path /fluentd/log/app.*.log
+      symlink_path /fluentd/log/app.log
+      time_slice_format %Y%m%d
+      time_slice_wait   1m
+      time_format       %Y%m%dT%H%M%S%z
+    </match>
+    <match linux-audit.log** k8s-audit.log** openshift-audit.log**>
+      @type file
+      append true
+      path /fluentd/log/audit.*.log
+      symlink_path /fluentd/log/audit.log
+      time_slice_format %Y%m%d
+      time_slice_wait   1m
+      time_format       %Y%m%dT%H%M%S%z
+    </match>
+    <match **>
+      @type stdout
+    </match>
+kind: ConfigMap
+metadata:
+  name: fluentdserver

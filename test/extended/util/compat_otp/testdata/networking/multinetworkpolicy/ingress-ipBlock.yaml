@@ -1,0 +1,16 @@
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name:  ingress-ipblock
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: ipblock-net
+spec:
+  podSelector: 
+    matchLabels:
+      name: blue-openshift
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 192.168.10.0/30

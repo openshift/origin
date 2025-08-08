@@ -1,0 +1,33 @@
+{
+    "schema": "olm.bundle",
+    "name": "example-operator.v0.1.0",
+    "package": "example-operator",
+    "image": "quay.io/joelanford/example-operator-bundle:0.1.0",
+    "properties": [
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "example.com",
+                "kind": "App",
+                "version": "v1"
+            }
+        },
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "example-operator",
+                "version": "0.1.0"
+            }
+        }
+    ],
+    "relatedImages": [
+        {
+            "name": "",
+            "image": "quay.io/joelanford/example-operator-bundle:0.1.0"
+        },
+        {
+            "name": "",
+            "image": "quay.io/joelanford/example-operator@sha256:a5f8fce740945fcdabf7f8ac6fcd6f0f95b3a828fbf17e43de251de9d5544118"
+        }
+    ]
+}

@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: PGAdmin-template
+objects:
+- apiVersion: postgres-operator.crunchydata.com/v1beta1
+  kind: PGAdmin
+  metadata:
+    name: pgadmin-example
+    namespace: ${NAMESPACE}
+  spec:
+    dataVolumeClaimSpec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+    serverGroups:
+    - name: Crunchy Postgres for Kubernetes
+      postgresClusterSelector: {}
+    tolerations:
+    - tolerationSeconds: 1726856593000774400
+
+parameters:
+- name: NAME
+- name: NAMESPACE

@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: secret-template
+objects:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: openshift-psap-multibuild-pull-secret
+    namespace: ${NAMESPACE}
+  data:
+    .dockerconfigjson: ${CONFIGJSON}
+type: kubernetes.io/dockerconfigjson
+parameters:
+- name: CONFIGJSON
+- name: NAMESPACE
+

@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: catalogsource-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: CatalogSource
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    configMap: "${ADDRESS}"
+    displayName: "${DISPLAYNAME}"
+    icon:
+      base64data: ""
+      mediatype: ""
+    publisher: "${PUBLISHER}"
+    sourceType: "${SOURCETYPE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: ADDRESS
+- name: DISPLAYNAME
+- name: PUBLISHER
+- name: SOURCETYPE
