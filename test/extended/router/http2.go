@@ -24,6 +24,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 
@@ -109,8 +110,16 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
-			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+			isDNSManaged, err := isDNSManaged(oc, time.Minute)
+			if err != nil {
+				e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+			}
+			if !isDNSManaged {
+				g.Skip("Skipping on this cluster since DNSManaged is false")
+			}
+
+			baseDomain, err := getClusterBaseDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find base domain name")
 
 			g.By("Locating the canary image reference")
 			image, err := getCanaryImage(oc)
@@ -254,7 +263,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			shardFQDN := oc.Namespace() + "." + defaultDomain
+			shardFQDN := oc.Namespace() + "." + baseDomain
 
 			// The new router shard is using a namespace
 			// selector so label this test namespace to
@@ -520,6 +529,23 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 })
 
+func getClusterBaseDomainName(oc *exutil.CLI, timeout time.Duration) (string, error) {
+	var domain string
+
+	if err := wait.PollImmediate(time.Second, timeout, func() (bool, error) {
+		dns, err := oc.AdminConfigClient().ConfigV1().DNSes().Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Get dnses.config/cluster failed: %v, retrying...", err)
+			return false, nil
+		}
+		domain = dns.Spec.BaseDomain
+		return true, nil
+	}); err != nil {
+		return "", err
+	}
+	return domain, nil
+}
+
 func getDefaultIngressClusterDomainName(oc *exutil.CLI, timeout time.Duration) (string, error) {
 	var domain string
 
@@ -597,4 +623,26 @@ func platformHasHTTP2LoadBalancerService(platformType configv1.PlatformType) boo
 	default:
 		return false
 	}
+}
+
+func isDNSManaged(oc *exutil.CLI, timeout time.Duration) (bool, error) {
+	var status operatorv1.ConditionStatus
+
+	if err := wait.PollImmediate(time.Second, timeout, func() (bool, error) {
+		ic, err := oc.AdminOperatorClient().OperatorV1().IngressControllers("openshift-ingress-operator").Get(context.Background(), "default", metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get default ingresscontroller: %v, retrying...", err)
+			return false, nil
+		}
+		for _, condition := range ic.Status.Conditions {
+			if condition.Type == string(operatorv1.DNSManagedIngressConditionType) {
+				status = condition.Status
+				return true, nil
+			}
+		}
+		return false, nil
+	}); err != nil {
+		return false, err
+	}
+	return status != operatorv1.ConditionFalse, nil
 }
