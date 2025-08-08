@@ -7,6 +7,7 @@ import (
 
 var RouteExternalCertificate featuregate.Feature = "RouteExternalCertificate"
 var MinimumKubeletVersion featuregate.Feature = "MinimumKubeletVersion"
+var StoragePerformantSecurityPolicy featuregate.Feature = "StoragePerformantSecurityPolicy"
 
 // registerOpenshiftFeatures injects openshift-specific feature gates
 func registerOpenshiftFeatures() {
@@ -17,5 +18,9 @@ func registerOpenshiftFeatures() {
 	// Introduced in 4.19
 	defaultVersionedKubernetesFeatureGates[MinimumKubeletVersion] = featuregate.VersionedSpecs{
 		{Version: version.MustParse("1.32"), Default: false, PreRelease: featuregate.Alpha},
+	}
+	// Introduced in 4.20
+	defaultVersionedKubernetesFeatureGates[StoragePerformantSecurityPolicy] = featuregate.VersionedSpecs{
+		{Version: version.MustParse("1.33"), Default: false, PreRelease: featuregate.Alpha},
 	}
 }
