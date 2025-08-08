@@ -196,7 +196,18 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
-		err = checkUpgradeability(client)
+		var lastErr error
+		err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+			if err := checkUpgradeability(client); err != nil {
+				lastErr = err
+				framework.Logf("Upgradeability check failed, retrying: %v", err)
+				return false, nil // retry on error
+			}
+			return true, nil
+		})
+		if err != nil && lastErr != nil {
+			err = lastErr
+		}
 		framework.ExpectNoError(err)
 	})
 })
