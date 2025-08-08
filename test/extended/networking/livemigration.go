@@ -280,7 +280,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
 							restartVM,
 							workloadNetworkConfig{
-								preconfiguredIPs: []string{"203.203.0.50"},
+								preconfiguredIPs: []string{"203.203.0.50", "2014:100:200::50"},
 							},
 						),
 						Entry(
@@ -323,7 +323,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
 							duplicateVM,
 							workloadNetworkConfig{
-								preconfiguredIPs: []string{"203.203.0.100"},
+								preconfiguredIPs: []string{"203.203.0.100", "2014:100:200::100"},
 							},
 						),
 						Entry(
