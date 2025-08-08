@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
@@ -111,6 +112,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 			oc image extract --insecure %[1]s --file=/etc/shadow
 			[ -f /tmp/test3/shadow ]
 		`, extractImage)))
-		cli.WaitForSuccess(context.TODO(), pod.Name, podStartupTimeout)
+		cli.WaitForSuccess(context.TODO(), pod.Name, 5*time.Minute)
 	})
 })
