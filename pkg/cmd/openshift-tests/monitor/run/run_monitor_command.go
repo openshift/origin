@@ -13,6 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	exutil "github.com/openshift/origin/test/extended/util"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -92,6 +93,9 @@ func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
 }
 
 func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
+	// This is to set testsStarted = true to avoid panic
+	exutil.WithCleanup(func() {})
+
 	var displayFilterFn monitorapi.EventIntervalMatchesFunc
 	if f.DisplayFromNow {
 		now := time.Now()
