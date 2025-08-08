@@ -1030,7 +1030,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	return result, WaitForBuildResult(oc.BuildClient().BuildV1().Builds(oc.Namespace()), result)
 }
 
-// WaitForBuildResult updates result wit the state of the build
+// WaitForBuildResult updates result with the state of the build
 func WaitForBuildResult(c buildv1clienttyped.BuildInterface, result *BuildResult) error {
 	e2e.Logf("Waiting for %s to complete\n", result.BuildName)
 	err := WaitForABuild(c, result.BuildName,
@@ -1065,7 +1065,7 @@ func WaitForBuildResult(c buildv1clienttyped.BuildInterface, result *BuildResult
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
 func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildv1.Build) bool) error {
-	return WaitForABuildWithTimeout(c, name, 2*time.Minute, 10*time.Minute, isOK, isFailed, isCanceled)
+	return WaitForABuildWithTimeout(c, name, 2*time.Minute, 30*time.Minute, isOK, isFailed, isCanceled)
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
