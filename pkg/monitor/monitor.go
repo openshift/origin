@@ -243,6 +243,13 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 			// easy prepending it, could search for last ] and insert it after if preferred
 			currJunit.Name = fmt.Sprintf("%s%s", defaultInvariantAnnotation, currJunit.Name)
 			testRenames[currJunit.Name] = previousName
+		} else {
+			// remove the annotation to get the original name and then add a test rename
+			index := strings.Index(currJunit.Name, "]")
+			if index != -1 {
+				originalName := currJunit.Name[:index]
+				testRenames[currJunit.Name] = originalName
+			}
 		}
 
 		junitSuite.NumTests++
