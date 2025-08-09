@@ -465,17 +465,15 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:UserAPI] users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured [Skipped] with invalid specified UID or Extra claim mappings should reject admission when Extra claim expression is not compilable CEL": "",
+	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured with invalid specified UID or Extra claim mappings should reject admission when Extra claim expression is not compilable CEL": "",
 
-	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured [Skipped] with invalid specified UID or Extra claim mappings should reject admission when UID claim expression is not compilable CEL": "",
+	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured with invalid specified UID or Extra claim mappings should reject admission when UID claim expression is not compilable CEL": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured with valid specified UID or Extra claim mappings checking cluster identity mapping should map Extra correctly": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured with valid specified UID or Extra claim mappings checking cluster identity mapping should map UID correctly": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured without specified UID or Extra claim mappings should default UID to the 'sub' claim in the access token from the IdP": "",
-
-	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDC] external IdP is configured [Skipped] should remove the OpenShift OAuth stack": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDC] external IdP is configured should accept authentication via a certificate-based kubeconfig (break-glass)": "",
 
@@ -484,6 +482,8 @@ var Annotations = map[string]string{
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDC] external IdP is configured should map cluster identities correctly": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDC] external IdP is configured should not accept tokens provided by the OAuth server": "",
+
+	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDC] external IdP is configured should remove the OpenShift OAuth stack": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDC] reverting to IntegratedOAuth should accept tokens provided by the OpenShift OAuth server": "",
 
