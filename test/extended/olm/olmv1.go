@@ -109,7 +109,7 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 
 		const (
 			packageName = "cluster-logging"
-			version     = "6.2.2"
+			version     = "6.3.0"
 		)
 
 		cleanup, unique := applyResourceFile(oc, packageName, version, "", ceFile)
