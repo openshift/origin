@@ -191,7 +191,11 @@ spec:
         Two Node with Fencing pods and podman containers Should verify the number
         of podman-etcd containers as configured'
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
-        Two Node with Fencing etcd recovery Should support a graceful node shutdown'
+        Two Node with Fencing etcd recovery Should recover from graceful node shutdown
+        with etcd member re-addition'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
+        Two Node with Fencing etcd recovery Should recover from ungraceful node shutdown
+        with etcd member re-addition'
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
         Two Node with Fencing topology Should validate the number of control-planes,
         arbiters as configured'
