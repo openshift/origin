@@ -105,6 +105,8 @@ var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLM
 	})
 
 	g.It("should block cluster upgrades if an incompatible operator is installed", func(ctx g.SpecContext) {
+		// TODO: Remove this skip once we have ANY bundle with max OpenShift version set todo this test.
+		g.Skip("Skipping test as there is no bundle with olm.maxopenshiftversion set")
 		checkFeatureCapability(oc)
 
 		const (
