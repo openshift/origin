@@ -975,34 +975,6 @@ spec:
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VMI attached to a secondary UDN is migrated between nodes'
-  - featureGate: NewOLM
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
-        should be installed'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
-        Catalog Install should fail to install if it has an invalid reference'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators
-        Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators
-        Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace
-        Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators
-        Catalog should serve FBC via the /v1/api/all endpoint'
-  - featureGate: NewOLMCatalogdAPIV1Metas
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas
-        endpoint'
   - featureGate: NewOLMOwnSingleNamespace
     tests:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
