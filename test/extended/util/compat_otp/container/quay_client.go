@@ -100,10 +100,10 @@ func (c *QuayCLI) TryDeleteTag(imageIndex string) (bool, error) {
 		return false, err
 	}
 	response, err := client.Do(reqest)
-	defer response.Body.Close()
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
 	if response.StatusCode != 204 {
 		e2e.Logf("delete %s failed, response code is %d", imageIndex, response.StatusCode)
 		return false, nil
@@ -140,10 +140,10 @@ func (c *QuayCLI) CheckTagNotExist(imageIndex string) (bool, error) {
 		return false, err
 	}
 	response, err := client.Do(reqest)
-	defer response.Body.Close()
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
 	if response.StatusCode == 404 {
 		e2e.Logf("tag %s not exist", imageIndex)
 		return true, nil
@@ -198,10 +198,10 @@ func (c *QuayCLI) GetTags(imageIndex string) ([]TagInfo, error) {
 		return result, err
 	}
 	response, err := client.Do(reqest)
-	defer response.Body.Close()
 	if err != nil {
 		return result, err
 	}
+	defer response.Body.Close()
 	e2e.Logf("%s", response.Status)
 	if response.StatusCode != 200 {
 		e2e.Logf("get %s failed, response code is %d", imageIndex, response.StatusCode)
@@ -263,10 +263,10 @@ func (c *QuayCLI) TryChangeTag(imageTag, manifestDigest string) (bool, error) {
 		return false, err
 	}
 	response, err := client.Do(request)
-	defer response.Body.Close()
 	if err != nil {
 		return false, err
 	}
+	defer response.Body.Close()
 	if response.StatusCode != 201 {
 		e2e.Logf("change %s failed, response code is %d", imageTag, response.StatusCode)
 		return false, nil

@@ -62,7 +62,7 @@ func SkipNonAmd64SingleArch(oc *exutil.CLI) (Architecture Architecture) {
 func GetAvailableArchitecturesSet(oc *exutil.CLI) []Architecture {
 	output, err := oc.WithoutNamespace().AsAdmin().Run("get").Args("nodes", "-o=jsonpath={.items[*].status.nodeInfo.architecture}").Output()
 	if err != nil {
-		e2e.Failf("unable to get the cluster architecture: ", err)
+		e2e.Failf("unable to get the cluster architecture: %v", err)
 	}
 	if output == "" {
 		e2e.Failf("the retrieved architecture is empty")
@@ -135,7 +135,7 @@ func (a Architecture) String() string {
 func ClusterArchitecture(oc *exutil.CLI) (architecture Architecture) {
 	output, err := oc.WithoutNamespace().AsAdmin().Run("get").Args("nodes", "-o=jsonpath={.items[*].status.nodeInfo.architecture}").Output()
 	if err != nil {
-		e2e.Failf("unable to get the cluster architecture: ", err)
+		e2e.Failf("unable to get the cluster architecture: %v", err)
 	}
 	if output == "" {
 		e2e.Failf("the retrieved architecture is empty")

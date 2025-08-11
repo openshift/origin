@@ -64,7 +64,7 @@ func WaitOprResourceReady(oc *exutil.CLI, kind, name, namespace string, islongdu
 			}
 		case "daemonset":
 			kindNames, err = oc.AsAdmin().WithoutNamespace().Run("get").Args(kind, name, "-n", namespace, "-oname").Output()
-			e2e.Logf("daemonset name is:" + kindNames)
+			e2e.Logf("daemonset name is: %s", kindNames)
 			if len(kindNames) == 0 || err != nil {
 				isCreated = false
 			} else {
@@ -88,7 +88,7 @@ func WaitOprResourceReady(oc *exutil.CLI, kind, name, namespace string, islongdu
 			e2e.Logf("Invalid Resource Type")
 		}
 
-		e2e.Logf("desiredNum is: " + desiredNum + " readyNum is: " + readyNum)
+		e2e.Logf("desiredNum is: %s readyNum is: %s", desiredNum, readyNum)
 		//daemonset/deloyment has been created, but not running, need to compare desiredNum and readynum
 		//if isCreate is true and the two value is equal, the pod is ready
 		if isCreated && len(kindNames) != 0 && desiredNum == readyNum {
@@ -310,7 +310,7 @@ func AssertOprPodLogsbyFilterWithDuration(oc *exutil.CLI, podName string, namesp
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(podList).To(o.ContainSubstring(podName))
 
-	e2e.Logf("Got pods list as below: \n" + podList)
+	e2e.Logf("Got pods list as below: \n%s", podList)
 	//Filter pod name base on deployment name
 	regexpoprname, _ := regexp.Compile(".*" + podName + ".*")
 	podListArry := regexpoprname.FindAllString(podList, -1)
@@ -343,7 +343,7 @@ func AssertOprPodLogsbyFilter(oc *exutil.CLI, podName string, namespace string, 
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(podList).To(o.ContainSubstring(podName))
 
-	e2e.Logf("Got pods list as below: \n" + podList)
+	e2e.Logf("Got pods list as below: \n%s", podList)
 	//Filter pod name base on deployment name
 	regexpoprname, _ := regexp.Compile(".*" + podName + ".*")
 	podListArry := regexpoprname.FindAllString(podList, -1)
@@ -878,7 +878,7 @@ func ValidHypershiftAndGetGuestKubeConf4SecondHostedCluster(oc *exutil.CLI) (str
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	clusterNames := strings.Split(clusterNamesStr, " ")
-	e2e.Logf(fmt.Sprintf("clusterNames is: %v", clusterNames))
+	e2e.Logf("clusterNames is: %v", clusterNames)
 	if len(clusterNames) < 2 {
 		g.Skip("there is no second hosted cluster, skip test run")
 	}
@@ -898,7 +898,7 @@ func ValidHypershiftAndGetGuestKubeConf4SecondHostedCluster(oc *exutil.CLI) (str
 		clusterName, hostedclusterNS, hostedClusterKubeconfigFile)).Output()
 	e2e.Logf("the cmd output: %s", string(output))
 	o.Expect(err).NotTo(o.HaveOccurred())
-	e2e.Logf(fmt.Sprintf("create a new hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile))
+	e2e.Logf("create a new hosted cluster kubeconfig: %v", hostedClusterKubeconfigFile)
 	e2e.Logf("if you want hostedcluster controlplane namespace, you could get it by combining %s and %s with -", hostedclusterNS, clusterName)
 	return clusterName, hostedClusterKubeconfigFile, hostedclusterNS
 }

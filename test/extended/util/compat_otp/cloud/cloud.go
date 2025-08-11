@@ -1,6 +1,5 @@
 package cloud
 
-
 import (
 	"context"
 	"fmt"

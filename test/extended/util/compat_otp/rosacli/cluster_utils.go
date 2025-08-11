@@ -16,7 +16,7 @@ func RetrieveDesiredComputeNodes(clusterDescription *ClusterDescription) (nodesN
 		var isInt bool
 		nodesNb, isInt = clusterDescription.Nodes[0]["Compute (desired)"].(int)
 		if !isInt {
-			err = fmt.Errorf("'%v' is not an integer value")
+			err = fmt.Errorf("'%v' is not an integer value", clusterDescription.Nodes[0]["Compute (desired)"])
 		}
 	} else {
 		// Try autoscale one
