@@ -35,6 +35,7 @@ var ManagedServiceNamespaces = sets.New[string](
 	"openshift-managed-upgrade-operator",
 	"openshift-marketplace",
 	"openshift-must-gather-operator",
+	"openshift-nmstate",
 	"openshift-observability-operator",
 	"openshift-ocm-agent-operator",
 	"openshift-operators-redhat",
