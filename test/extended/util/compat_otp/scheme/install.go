@@ -1,6 +1,5 @@
 package scheme
 
-
 import (
 	"github.com/openshift/api"
 )

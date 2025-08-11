@@ -16,7 +16,6 @@ limitations under the License.
 
 package version
 
-
 import (
 	"fmt"
 	"runtime"

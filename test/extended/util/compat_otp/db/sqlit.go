@@ -1,6 +1,5 @@
 package db
 
-
 import (
 	"database/sql"
 	"fmt"
@@ -244,7 +243,7 @@ func (c *Sqlit) Query(dbFilePath string, table string, column string) ([]string,
 		}
 		return valueList, nil
 	default:
-		err := fmt.Errorf("do not support to query table " + table)
+		err := fmt.Errorf("do not support to query table %s", table)
 		return nil, err
 	}
 }

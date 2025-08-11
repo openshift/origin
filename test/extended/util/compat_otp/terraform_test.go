@@ -89,7 +89,7 @@ func TestRunAndDestroyTerraform(t *testing.T) {
 	// check that init was run and the provider directory and lock files were created
 	for _, file := range []string{"/.terraform", "/.terraform.lock.hcl"} {
 		if _, err := os.Stat(filepath.Join(tfDir, file)); os.IsNotExist(err) {
-			t.Fatalf(fmt.Sprintf("Terraform file %v is not present after terraform init", filepath.Join(tfDir, file)))
+			t.Fatalf("Terraform file %v is not present after terraform init", filepath.Join(tfDir, file))
 		}
 	}
 
@@ -101,7 +101,7 @@ func TestRunAndDestroyTerraform(t *testing.T) {
 	// check that apply was run and the state file and resource /temp files were created
 	for _, file := range []string{"/terraform.tfstate", "/temp"} {
 		if _, err := os.Stat(filepath.Join(tfDir, file)); os.IsNotExist(err) {
-			t.Fatalf(fmt.Sprintf("Terraform file %v is not present after terraform apply", filepath.Join(tfDir, file)))
+			t.Fatalf("Terraform file %v is not present after terraform apply", filepath.Join(tfDir, file))
 		}
 	}
 
@@ -180,7 +180,7 @@ func TestOutputAndShowTerraform(t *testing.T) {
 	// check that apply was run and the state file and resource /temp files were created
 	for _, file := range []string{"/temp"} {
 		if _, err := os.Stat(filepath.Join(tfDir, file)); os.IsNotExist(err) {
-			t.Fatalf(fmt.Sprintf("Terraform file %v is not present after terraform apply", filepath.Join(tfDir, file)))
+			t.Fatalf("Terraform file %v is not present after terraform apply", filepath.Join(tfDir, file))
 		}
 	}
 

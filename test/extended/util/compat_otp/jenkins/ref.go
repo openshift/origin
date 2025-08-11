@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -20,6 +21,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	exurl "github.com/openshift/origin/test/extended/util/compat_otp/url"
 )
@@ -89,7 +91,7 @@ func (j *JenkinsRef) Namespace() string {
 // BuildURI builds a URI for the Jenkins server.
 func (j *JenkinsRef) BuildURI(resourcePathFormat string, a ...interface{}) string {
 	resourcePath := fmt.Sprintf(resourcePathFormat, a...)
-	return fmt.Sprintf("http://%s:%v/%s", j.host, j.port, resourcePath)
+	return fmt.Sprintf("http://%s/%s", net.JoinHostPort(j.host, j.port), resourcePath)
 }
 
 // GetResource submits a GET request to this Jenkins server.
@@ -271,7 +273,7 @@ func (j *JenkinsRef) ProcessJenkinsJobUsingVars(filename, namespace string, vars
 			e2e.Logf("problem diagnosing /tmp: %v", dbgerr)
 		} else {
 			for _, file := range files {
-				e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), file.Mode().String())
+				e2e.Logf("found file %s under temp isdir %t mode %s", file.Name(), file.IsDir(), file.Mode().String())
 			}
 		}
 	}
@@ -333,7 +335,7 @@ func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildRes
 			return "", err
 		}
 		bldURI = strings.Trim(url.Path, "/")
-		return j.WaitForContent(match, 200, 10*time.Minute, bldURI)
+		return j.WaitForContent(match, 200, 10*time.Minute, "%s", bldURI)
 	}
 	return "", fmt.Errorf("build %#v is missing the build uri annontation", br.Build)
 }
@@ -476,7 +478,7 @@ func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 		return "", err
 	}
 	jenkinsRef := NewRef(oc)
-	log, _, err := jenkinsRef.GetResource(jenkinsLogURL.Path)
+	log, _, err := jenkinsRef.GetResource("%s", jenkinsLogURL.Path)
 	if err != nil {
 		return "", fmt.Errorf("cannot get jenkins log: %v", err)
 	}

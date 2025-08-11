@@ -1,7 +1,5 @@
 package compat_otp
 
-import exutil "github.com/openshift/origin/test/extended/util"
-
 import (
 	"bufio"
 	"context"
@@ -19,8 +17,22 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	o "github.com/onsi/gomega"
-
+	appsv1 "github.com/openshift/api/apps/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/apps/appsutil"
+	"github.com/openshift/library-go/pkg/build/naming"
+	"github.com/openshift/library-go/pkg/git"
+	"github.com/openshift/library-go/pkg/image/imageutil"
+	exutil "github.com/openshift/origin/test/extended/util"
+	testdata "github.com/openshift/origin/test/extended/util/compat_otp/testdata"
 	authorizationapi "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,22 +59,6 @@ import (
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	"k8s.io/kubernetes/test/utils/image"
-
-	appsv1 "github.com/openshift/api/apps/v1"
-	buildv1 "github.com/openshift/api/build/v1"
-	configv1 "github.com/openshift/api/config/v1"
-	imagev1 "github.com/openshift/api/image/v1"
-	operatorv1 "github.com/openshift/api/operator/v1"
-	appsv1clienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/library-go/pkg/apps/appsutil"
-	"github.com/openshift/library-go/pkg/build/naming"
-	"github.com/openshift/library-go/pkg/git"
-	"github.com/openshift/library-go/pkg/image/imageutil"
-	testdata "github.com/openshift/origin/test/extended/util/compat_otp/testdata"
-
-	. "github.com/onsi/gomega"
 )
 
 func init() {
@@ -424,7 +420,7 @@ func DumpPodStates(oc *exutil.CLI) {
 		e2e.Logf("Error dumping pod states: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 }
 
 // DumpPodStatesInNamespace dumps the state of all pods in the provided namespace.
@@ -435,7 +431,7 @@ func DumpPodStatesInNamespace(namespace string, oc *exutil.CLI) {
 		e2e.Logf("Error dumping pod states: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 }
 
 // DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
@@ -514,7 +510,7 @@ func DumpPodsCommand(c kubernetes.Interface, ns string, selector labels.Selector
 	}
 	for name, stdout := range values {
 		stdout = strings.TrimSuffix(stdout, "\n")
-		e2e.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
+		e2e.Logf("%s: %s", name, strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 	}
 }
 
@@ -526,7 +522,7 @@ func DumpConfigMapStates(oc *exutil.CLI) {
 		e2e.Logf("Error dumping configMap states: %v", err)
 		return
 	}
-	e2e.Logf(out)
+	e2e.Logf("%s", out)
 }
 
 // GetMasterThreadDump will get a golang thread stack dump
