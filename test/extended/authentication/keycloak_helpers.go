@@ -351,7 +351,7 @@ func createKeycloakRoute(ctx context.Context, service *corev1.Service, client ty
 }
 
 func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace string) error {
-	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(5*time.Minute))
+	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
 	defer cancel()
 	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
 		deploy, err := client.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, keycloakResourceName, metav1.GetOptions{})
@@ -364,6 +364,8 @@ func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace
 				return true, nil
 			}
 		}
+
+		fmt.Println("keycloak deployment is not yet available. status: ", deploy.Status)
 
 		return false, nil
 	})
