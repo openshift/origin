@@ -399,7 +399,6 @@ func (w *AtomicWriter) newTimestampDir() (string, error) {
 // writePayloadToDir writes the given payload to the given directory.  The
 // directory must exist.
 func (w *AtomicWriter) writePayloadToDir(payload map[string]FileProjection, dir string) error {
-	isNotWindows := runtime.GOOS != "windows"
 	for userVisiblePath, fileProjection := range payload {
 		content := fileProjection.Data
 		mode := os.FileMode(fileProjection.Mode)
@@ -427,11 +426,10 @@ func (w *AtomicWriter) writePayloadToDir(payload map[string]FileProjection, dir 
 		if fileProjection.FsUser == nil {
 			continue
 		}
-		if isNotWindows {
-			if err := os.Chown(fullPath, int(*fileProjection.FsUser), -1); err != nil {
-				klog.Errorf("%s: unable to change file %s with owner %v: %v", w.logContext, fullPath, int(*fileProjection.FsUser), err)
-				return err
-			}
+
+		if err := w.chown(fullPath, int(*fileProjection.FsUser), -1); err != nil {
+			klog.Errorf("%s: unable to change file %s with owner %v: %v", w.logContext, fullPath, int(*fileProjection.FsUser), err)
+			return err
 		}
 	}
 

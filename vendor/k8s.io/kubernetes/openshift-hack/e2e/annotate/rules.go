@@ -139,6 +139,10 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
 			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-36773
+			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Pre-provisioned`,
+			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Inline-volume`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {

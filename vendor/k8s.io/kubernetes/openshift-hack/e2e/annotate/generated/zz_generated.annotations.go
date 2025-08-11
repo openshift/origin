@@ -183,7 +183,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] Namespaces [Serial] should patch a Namespace [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
-	"[sig-api-machinery] OpenAPIV3 should contain OpenAPI V3 for Aggregated APIServer": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-api-machinery] OpenAPIV3 should contain OpenAPI V3 for Aggregated APIServer [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-api-machinery] OpenAPIV3 should publish OpenAPI V3 for CustomResourceDefinition": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -534,6 +534,10 @@ var Annotations = map[string]string{
 	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should delete PVCs with a OnScaledown policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should delete PVCs with a WhenDeleted policy": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVC with OnScaledown policy if another controller owns the PVC": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
+	"[sig-apps] StatefulSet Non-retain StatefulSetPersistentVolumeClaimPolicy should not delete PVCs when there is another controller": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Scaling StatefulSetStartOrdinal Decreasing .start.ordinal": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13843,183 +13847,183 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Generic Ephemeral-volume (default fs)] volumeLimits should verify that all csinodes have volume limits": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if non-existent subpath is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if non-existent subpath is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if subpath directory is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if subpath directory is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if subpath file is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if subpath file is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if subpath with backstepping is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should fail if subpath with backstepping is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support creating multiple subpath from same volumes [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support creating multiple subpath from same volumes [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support existing directories when readOnly specified in the volumeSource": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support existing directories when readOnly specified in the volumeSource": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support existing directory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support existing directory": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support existing single file [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support existing single file [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support file as subpath [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support file as subpath [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support non-existent path": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support non-existent path": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support readOnly directory specified in the volumeMount": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support readOnly directory specified in the volumeMount": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support readOnly file specified in the volumeMount [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support readOnly file specified in the volumeMount [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support restarting containers using directory as subpath [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support restarting containers using directory as subpath [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support restarting containers using file as subpath [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should support restarting containers using file as subpath [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should unmount if pod is force deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should unmount if pod is force deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should unmount if pod is gracefully deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should unmount if pod is gracefully deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should verify container cannot write to subpath readonly volumes [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] subPath should verify container cannot write to subpath readonly volumes [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (default fs)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext3)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext3)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext3)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext3)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ext4)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ntfs)] [Feature:Windows] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ntfs)] [Feature:Windows] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ntfs)] [Feature:Windows] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (ntfs)] [Feature:Windows] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (xfs)] [Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (xfs)] [Slow] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (xfs)] [Slow] volumes should store data": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Inline-volume (xfs)] [Slow] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv written before kubelet restart is readable after restart.": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv written before kubelet restart is readable after restart.": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on different node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on different node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on different node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on different node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the single read-only volume from pods on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the single read-only volume from pods on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the single volume from pods on different node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the single volume from pods on different node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the single volume from pods on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the single volume from pods on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly] [Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly] [Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly] [Feature:VolumeSnapshotDataSource] [Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly] [Feature:VolumeSnapshotDataSource] [Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if non-existent subpath is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if non-existent subpath is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if subpath directory is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if subpath directory is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if subpath file is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if subpath file is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if subpath with backstepping is outside the volume [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should fail if subpath with backstepping is outside the volume [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support creating multiple subpath from same volumes [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support creating multiple subpath from same volumes [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support existing directories when readOnly specified in the volumeSource": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support existing directories when readOnly specified in the volumeSource": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support existing directory": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support existing directory": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support existing single file [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support existing single file [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support file as subpath [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support file as subpath [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support non-existent path": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support non-existent path": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support readOnly directory specified in the volumeMount": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support readOnly directory specified in the volumeMount": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support readOnly file specified in the volumeMount [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support readOnly file specified in the volumeMount [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support restarting containers using directory as subpath [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support restarting containers using directory as subpath [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support restarting containers using file as subpath [Slow] [LinuxOnly]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should support restarting containers using file as subpath [Slow] [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should unmount if pod is force deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should unmount if pod is force deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should unmount if pod is gracefully deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should unmount if pod is gracefully deleted while kubelet is down [Disruptive] [Slow] [LinuxOnly]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should verify container cannot write to subpath readonly volumes [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] subPath should verify container cannot write to subpath readonly volumes [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumeIO should write files of various sizes, verify size, validate content [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (default fs)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext3)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext3)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext3)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext3)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ext4)] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is deleted while the kubelet is down is usable by a new pod when kubelet returns [Feature:SELinux]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is deleted while the kubelet is down is usable by a new pod when kubelet returns [Feature:SELinux]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is deleted while the kubelet is down is usable by a new pod with a different SELinux context when kubelet returns [Feature:SELinux]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is deleted while the kubelet is down is usable by a new pod with a different SELinux context when kubelet returns [Feature:SELinux]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is force deleted while the kubelet is down is usable by a new pod when kubelet returns [Feature:SELinux]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is force deleted while the kubelet is down is usable by a new pod when kubelet returns [Feature:SELinux]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is force deleted while the kubelet is down is usable by a new pod with a different SELinux context when kubelet returns [Feature:SELinux]": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv used in a pod that is force deleted while the kubelet is down is usable by a new pod with a different SELinux context when kubelet returns [Feature:SELinux]": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv written before kubelet restart is readable after restart.": " [Serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] disruptive [Disruptive] [LinuxOnly] Should test that pv written before kubelet restart is readable after restart.": " [Disabled:Broken] [Serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on different node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on different node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with different volume mode and retain data across pod recreation on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on different node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on different node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should access to two volumes with the same volume mode and retain data across pod recreation on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the single read-only volume from pods on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the single read-only volume from pods on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the single volume from pods on different node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the single volume from pods on different node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the single volume from pods on the same node": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the single volume from pods on the same node": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly] [Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly] [Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly] [Feature:VolumeSnapshotDataSource] [Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly] [Feature:VolumeSnapshotDataSource] [Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should not mount / map unused volumes in a pod [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ntfs)] [Feature:Windows] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ntfs)] [Feature:Windows] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ntfs)] [Feature:Windows] volumes should store data": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (ntfs)] [Feature:Windows] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (xfs)] [Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (xfs)] [Slow] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (xfs)] [Slow] volumes should store data": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (xfs)] [Slow] volumes should store data": " [Disabled:Broken] [Suite:k8s]",
 
 	"[sig-storage] Mounted volume expand [Feature:StorageProvider] Should verify mounted devices can be resized": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
