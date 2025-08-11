@@ -1,9 +1,0 @@
-apiVersion: olm.operatorframework.io/v1
-kind: ClusterCatalog
-metadata:
-  name: bad-catalog
-spec:
-  source:
-   type: Image
-   image:
-     ref: example.com/does-not-exist:latest
