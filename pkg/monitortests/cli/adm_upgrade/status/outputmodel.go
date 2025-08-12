@@ -11,7 +11,7 @@ type UpgradeStatusOutput struct {
 	updating            bool
 	controlPlaneSection string
 	workersSection      string
-	healthSection       string
+	healthMessages      []string
 }
 
 func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
@@ -52,12 +52,14 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 	workersSection := strings.TrimSpace(output[workerUpgradeStart+len("= Worker Upgrade =") : updateHealthStart])
 	healthSection := strings.TrimSpace(output[updateHealthStart+len("= Update Health ="):])
 
+	healthMessages := parseHealthMessages(healthSection)
+
 	return &UpgradeStatusOutput{
 		rawOutput:           output,
 		updating:            true,
 		controlPlaneSection: controlPlaneSection,
 		workersSection:      workersSection,
-		healthSection:       healthSection,
+		healthMessages:      healthMessages,
 	}, nil
 }
 
@@ -73,6 +75,34 @@ func (u *UpgradeStatusOutput) Workers() string {
 	return u.workersSection
 }
 
-func (u *UpgradeStatusOutput) Health() string {
-	return u.healthSection
+func (u *UpgradeStatusOutput) Health() []string {
+	return u.healthMessages
+}
+
+func parseHealthMessages(healthSection string) []string {
+	if healthSection == "" {
+		return nil
+	}
+
+	lines := strings.Split(healthSection, "\n")
+	var messages []string
+	var currentMessage strings.Builder
+
+	for i, line := range lines {
+		if strings.HasPrefix(line, "Message: ") {
+			if currentMessage.Len() > 0 {
+				messages = append(messages, strings.TrimSpace(currentMessage.String()))
+				currentMessage.Reset()
+			}
+			currentMessage.WriteString(line)
+		} else if currentMessage.Len() > 0 {
+			currentMessage.WriteString("\n" + line)
+		}
+
+		if i == len(lines)-1 && currentMessage.Len() > 0 {
+			messages = append(messages, strings.TrimSpace(currentMessage.String()))
+		}
+	}
+
+	return messages
 }

@@ -2,6 +2,8 @@ package admupgradestatus
 
 import (
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestUpgradeStatusOutput_NotUpdating(t *testing.T) {
@@ -24,8 +26,8 @@ func TestUpgradeStatusOutput_NotUpdating(t *testing.T) {
 		t.Error("Expected empty Workers() for 'not updating' case")
 	}
 
-	if output.Health() != "" {
-		t.Error("Expected empty Health() for 'not updating' case")
+	if len(output.Health()) != 0 {
+		t.Error("Expected empty Health() slice for 'not updating' case")
 	}
 }
 
@@ -142,34 +144,32 @@ ip-10-0-20-162.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3  
 ip-10-0-4-159.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?     
 ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?`
 
-	expectedHealth := `Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
+	expectedHealthMessages := []string{
+		`Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
   Since:       58m18s
   Level:       Error
   Impact:      API Availability
   Reference:   https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/ClusterOperatorDegraded.md
   Resources:
     clusteroperators.config.openshift.io: kube-apiserver
-  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)
-
-Message: Cluster Operator kube-controller-manager is degraded (NodeController_MasterNodesReady)
+  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
+		`Message: Cluster Operator kube-controller-manager is degraded (NodeController_MasterNodesReady)
   Since:       58m18s
   Level:       Error
   Impact:      API Availability
   Reference:   https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/ClusterOperatorDegraded.md
   Resources:
     clusteroperators.config.openshift.io: kube-controller-manager
-  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)
-
-Message: Cluster Operator kube-scheduler is degraded (NodeController_MasterNodesReady)
+  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
+		`Message: Cluster Operator kube-scheduler is degraded (NodeController_MasterNodesReady)
   Since:       58m18s
   Level:       Error
   Impact:      API Availability
   Reference:   https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/ClusterOperatorDegraded.md
   Resources:
     clusteroperators.config.openshift.io: kube-scheduler
-  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)
-
-Message: Cluster Operator etcd is degraded (EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::NodeController_MasterNodesReady)
+  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
+		`Message: Cluster Operator etcd is degraded (EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::NodeController_MasterNodesReady)
   Since:       58m38s
   Level:       Error
   Impact:      API Availability
@@ -178,25 +178,24 @@ Message: Cluster Operator etcd is degraded (EtcdEndpoints_ErrorUpdatingEtcdEndpo
     clusteroperators.config.openshift.io: etcd
   Description: EtcdEndpointsDegraded: EtcdEndpointsController can't evaluate whether quorum is safe: etcd cluster has quorum of 2 and 2 healthy members which is not fault tolerant: [{Member:ID:12895393557789359222 name:"ip-10-0-73-118.ec2.internal" peerURLs:"https://10.0.73.118:2380" clientURLs:"https://10.0.73.118:2379"  Healthy:true Took:1.725492ms Error:<nil>} {Member:ID:13608765340770574953 name:"ip-10-0-0-60.ec2.internal" peerURLs:"https://10.0.0.60:2380" clientURLs:"https://10.0.0.60:2379"  Healthy:true Took:1.542919ms Error:<nil>} {Member:ID:18044478200504924924 name:"ip-10-0-12-74.ec2.internal" peerURLs:"https://10.0.12.74:2380" clientURLs:"https://10.0.12.74:2379"  Healthy:false Took: Error:create client failure: failed to make etcd client for endpoints [https://10.0.12.74:2379]: context deadline exceeded}]
                , EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-12-74.ec2.internal is unhealthy
-               , NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)
-
-Message: Cluster Operator control-plane-machine-set is unavailable (UnavailableReplicas)
+               , NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
+		`Message: Cluster Operator control-plane-machine-set is unavailable (UnavailableReplicas)
   Since:       1h0m17s
   Level:       Error
   Impact:      API Availability
   Reference:   https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/ClusterOperatorDown.md
   Resources:
     clusteroperators.config.openshift.io: control-plane-machine-set
-  Description: Missing 1 available replica(s)
-
-Message: Cluster Version version is failing to proceed with the update (ClusterOperatorsDegraded)
+  Description: Missing 1 available replica(s)`,
+		`Message: Cluster Version version is failing to proceed with the update (ClusterOperatorsDegraded)
   Since:       now
   Level:       Warning
   Impact:      Update Stalled
   Reference:   https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/ClusterOperatorDegraded.md
   Resources:
     clusterversions.config.openshift.io: version
-  Description: Cluster operators etcd, kube-apiserver are degraded`
+  Description: Cluster operators etcd, kube-apiserver are degraded`,
+	}
 
 	output, err := NewUpgradeStatusOutput(input)
 	if err != nil {
@@ -217,8 +216,8 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
 		t.Errorf("Expected Workers() to match exactly.\nGot:\n%q\nExpected:\n%q", workers, expectedWorkers)
 	}
 
-	health := output.Health()
-	if health != expectedHealth {
-		t.Errorf("Expected Health() to match exactly.\nGot:\n%q\nExpected:\n%q", health, expectedHealth)
+	healthMessages := output.Health()
+	if diff := cmp.Diff(expectedHealthMessages, healthMessages); diff != "" {
+		t.Errorf("Health messages mismatch (-expected +actual):\n%s", diff)
 	}
 }
