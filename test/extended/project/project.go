@@ -125,7 +125,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			authorization.AddUserAdminToProject(oc, ns03Name, bobName)
 			waitForAdd(ns03Name, w)
 
-			bobProjectClient.Projects().Delete(ctx, ns03Name, metav1.DeleteOptions{})
+			err = bobProjectClient.Projects().Delete(ctx, ns03Name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// wait for the delete
@@ -178,7 +178,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			// we are only watching ns-01, we should not receive events for other projects
 			waitForNoEvent(w, ns01Name)
 
-			bobProjectClient.Projects().Delete(ctx, ns03Name, metav1.DeleteOptions{})
+			err = bobProjectClient.Projects().Delete(ctx, ns03Name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// we are only watching ns-01, we should not receive events for other projects
