@@ -235,3 +235,65 @@ ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3  
 		t.Errorf("Health messages mismatch (-expected +actual):\n%s", diff)
 	}
 }
+
+func TestUpgradeStatusOutput_NoOperatorsSection(t *testing.T) {
+	input := `= Control Plane =
+Assessment:      Progressing
+Target Version:  4.17.0-ec.0 (from 4.16.0-0.nightly-2024-08-01-082745)
+Completion:      6% (2 operators updated, 1 updating, 30 waiting)
+Duration:        2m54s (Est. Time Remaining: 1h9m)
+Operator Health: 32 Healthy, 1 Available but degraded
+
+Control Plane Nodes
+NAME                        ASSESSMENT   PHASE     VERSION                              EST   MESSAGE
+ip-10-0-8-37.ec2.internal   Outdated     Pending   4.16.0-0.nightly-2024-08-01-082745   ?     
+
+= Worker Upgrade =
+
+WORKER POOL   ASSESSMENT   COMPLETION   STATUS
+worker        Complete     100% (3/3)   3 Available, 0 Progressing, 0 Draining
+
+= Update Health =
+Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
+  Since:       58m18s
+  Level:       Error
+  Impact:      API Availability
+  Reference:   https://github.com/openshift/runbooks/blob/master/alerts/cluster-monitoring-operator/ClusterOperatorDegraded.md
+  Resources:
+    clusteroperators.config.openshift.io: kube-apiserver
+  Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`
+
+	expectedControlPlaneSummary := map[string]string{
+		"Assessment":      "Progressing",
+		"Target Version":  "4.17.0-ec.0 (from 4.16.0-0.nightly-2024-08-01-082745)",
+		"Completion":      "6% (2 operators updated, 1 updating, 30 waiting)",
+		"Duration":        "2m54s (Est. Time Remaining: 1h9m)",
+		"Operator Health": "32 Healthy, 1 Available but degraded",
+	}
+
+	expectedControlPlaneNodes := []string{
+		"ip-10-0-8-37.ec2.internal   Outdated     Pending   4.16.0-0.nightly-2024-08-01-082745   ?",
+	}
+
+	output, err := NewUpgradeStatusOutput(input)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	controlPlane := output.ControlPlane()
+	if controlPlane == nil {
+		t.Fatal("Expected ControlPlane() to return non-nil object")
+	}
+
+	if diff := cmp.Diff(expectedControlPlaneSummary, controlPlane.Summary()); diff != "" {
+		t.Errorf("ControlPlane summary mismatch (-expected +actual):\n%s", diff)
+	}
+
+	if controlPlane.Operators() != nil {
+		t.Errorf("Expected Operators() to return nil when section is missing, got: %v", controlPlane.Operators())
+	}
+
+	if diff := cmp.Diff(expectedControlPlaneNodes, controlPlane.Nodes()); diff != "" {
+		t.Errorf("ControlPlane nodes mismatch (-expected +actual):\n%s", diff)
+	}
+}

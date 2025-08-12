@@ -139,6 +139,7 @@ func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) 
 	var nodes []string
 
 	state := "summary"
+	hasOperatorsSection := false
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -147,6 +148,7 @@ func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) 
 		}
 
 		if line == "Updating Cluster Operators" {
+			hasOperatorsSection = true
 			state = "operators_header"
 			continue
 		} else if line == "Control Plane Nodes" {
@@ -174,14 +176,18 @@ func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) 
 				state = "nodes"
 				continue
 			}
-			operators = append(operators, line)
+			if hasOperatorsSection {
+				operators = append(operators, line)
+			} else {
+				summaryLines = append(summaryLines, line)
+			}
 		case "nodes":
 			nodes = append(nodes, line)
 		}
 	}
 
-	if len(operators) == 0 {
-		return nil, errors.New("no operators found in Control Plane section")
+	if hasOperatorsSection && len(operators) == 0 {
+		return nil, errors.New("Updating Cluster Operators section found but no operator entries present")
 	}
 
 	if len(nodes) == 0 {
@@ -198,9 +204,16 @@ func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) 
 		}
 	}
 
+	var operatorsResult []string
+	if hasOperatorsSection {
+		operatorsResult = operators
+	} else {
+		operatorsResult = nil
+	}
+
 	return &ControlPlaneStatus{
 		summary:   summaryMap,
-		operators: operators,
+		operators: operatorsResult,
 		nodes:     nodes,
 	}, nil
 }
