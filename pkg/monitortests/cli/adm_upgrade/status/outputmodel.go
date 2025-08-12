@@ -6,12 +6,18 @@ import (
 	"strings"
 )
 
+type ControlPlaneStatus struct {
+	summary   string
+	operators []string
+	nodes     []string
+}
+
 type UpgradeStatusOutput struct {
-	rawOutput           string
-	updating            bool
-	controlPlaneSection string
-	workersSection      string
-	healthMessages      []string
+	rawOutput      string
+	updating       bool
+	controlPlane   *ControlPlaneStatus
+	workersSection string
+	healthMessages []string
 }
 
 func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
@@ -19,8 +25,9 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 
 	if output == "The cluster is not updating." {
 		return &UpgradeStatusOutput{
-			rawOutput: output,
-			updating:  false,
+			rawOutput:    output,
+			updating:     false,
+			controlPlane: nil,
 		}, nil
 	}
 
@@ -52,14 +59,19 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 	workersSection := strings.TrimSpace(output[workerUpgradeStart+len("= Worker Upgrade =") : updateHealthStart])
 	healthSection := strings.TrimSpace(output[updateHealthStart+len("= Update Health ="):])
 
+	controlPlane, err := parseControlPlane(controlPlaneSection)
+	if err != nil {
+		return nil, err
+	}
+
 	healthMessages := parseHealthMessages(healthSection)
 
 	return &UpgradeStatusOutput{
-		rawOutput:           output,
-		updating:            true,
-		controlPlaneSection: controlPlaneSection,
-		workersSection:      workersSection,
-		healthMessages:      healthMessages,
+		rawOutput:      output,
+		updating:       true,
+		controlPlane:   controlPlane,
+		workersSection: workersSection,
+		healthMessages: healthMessages,
 	}, nil
 }
 
@@ -67,8 +79,20 @@ func (u *UpgradeStatusOutput) IsUpdating() bool {
 	return u.updating
 }
 
-func (u *UpgradeStatusOutput) ControlPlane() string {
-	return u.controlPlaneSection
+func (u *UpgradeStatusOutput) ControlPlane() *ControlPlaneStatus {
+	return u.controlPlane
+}
+
+func (c *ControlPlaneStatus) Summary() string {
+	return c.summary
+}
+
+func (c *ControlPlaneStatus) Operators() []string {
+	return c.operators
+}
+
+func (c *ControlPlaneStatus) Nodes() []string {
+	return c.nodes
 }
 
 func (u *UpgradeStatusOutput) Workers() string {
@@ -105,4 +129,70 @@ func parseHealthMessages(healthSection string) []string {
 	}
 
 	return messages
+}
+
+func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) {
+	lines := strings.Split(controlPlaneSection, "\n")
+
+	var summaryLines []string
+	var operators []string
+	var nodes []string
+
+	state := "summary"
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if line == "Updating Cluster Operators" {
+			state = "operators_header"
+			continue
+		} else if line == "Control Plane Nodes" {
+			state = "nodes_header"
+			continue
+		}
+
+		switch state {
+		case "summary":
+			summaryLines = append(summaryLines, line)
+		case "operators_header":
+			if strings.Contains(line, "NAME") && strings.Contains(line, "SINCE") {
+				state = "operators"
+				continue
+			}
+			summaryLines = append(summaryLines, line)
+		case "operators":
+			if strings.Contains(line, "NAME") && strings.Contains(line, "ASSESSMENT") {
+				state = "nodes"
+				continue
+			}
+			operators = append(operators, line)
+		case "nodes_header":
+			if strings.Contains(line, "NAME") && strings.Contains(line, "ASSESSMENT") {
+				state = "nodes"
+				continue
+			}
+			operators = append(operators, line)
+		case "nodes":
+			nodes = append(nodes, line)
+		}
+	}
+
+	if len(operators) == 0 {
+		return nil, errors.New("no operators found in Control Plane section")
+	}
+
+	if len(nodes) == 0 {
+		return nil, errors.New("no nodes found in Control Plane section")
+	}
+
+	summary := strings.Join(summaryLines, "\n")
+
+	return &ControlPlaneStatus{
+		summary:   strings.TrimSpace(summary),
+		operators: operators,
+		nodes:     nodes,
+	}, nil
 }

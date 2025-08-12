@@ -18,8 +18,8 @@ func TestUpgradeStatusOutput_NotUpdating(t *testing.T) {
 		t.Error("Expected IsUpdating() to return false for 'not updating' case")
 	}
 
-	if output.ControlPlane() != "" {
-		t.Error("Expected empty ControlPlane() for 'not updating' case")
+	if output.ControlPlane() != nil {
+		t.Error("Expected nil ControlPlane() for 'not updating' case")
 	}
 
 	if output.Workers() != "" {
@@ -118,22 +118,22 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
     clusterversions.config.openshift.io: version
   Description: Cluster operators etcd, kube-apiserver are degraded`
 
-	expectedControlPlane := `Assessment:      Stalled
+	expectedControlPlaneSummary := `Assessment:      Stalled
 Target Version:  4.14.1 (from 4.14.0-rc.3)
 Updating:        machine-config
 Completion:      97% (32 operators updated, 1 updating, 0 waiting)
 Duration:        1h59m (Est. Time Remaining: N/A; estimate duration was 1h24m)
-Operator Health: 28 Healthy, 1 Unavailable, 4 Available but degraded
+Operator Health: 28 Healthy, 1 Unavailable, 4 Available but degraded`
 
-Updating Cluster Operators
-NAME             SINCE     REASON   MESSAGE
-machine-config   1h4m41s   -        Working towards 4.14.1
+	expectedControlPlaneOperators := []string{
+		"machine-config   1h4m41s   -        Working towards 4.14.1",
+	}
 
-Control Plane Nodes
-NAME                                        ASSESSMENT   PHASE     VERSION       EST   MESSAGE
-ip-10-0-30-217.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?     
-ip-10-0-53-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?     
-ip-10-0-92-180.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?`
+	expectedControlPlaneNodes := []string{
+		"ip-10-0-30-217.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?",
+		"ip-10-0-53-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?",
+		"ip-10-0-92-180.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?",
+	}
 
 	expectedWorkers := `WORKER POOL   ASSESSMENT   COMPLETION   STATUS
 worker        Pending      0% (0/3)     3 Available, 0 Progressing, 0 Draining
@@ -207,8 +207,20 @@ ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3  
 	}
 
 	controlPlane := output.ControlPlane()
-	if controlPlane != expectedControlPlane {
-		t.Errorf("Expected ControlPlane() to match exactly.\nGot:\n%q\nExpected:\n%q", controlPlane, expectedControlPlane)
+	if controlPlane == nil {
+		t.Fatal("Expected ControlPlane() to return non-nil object")
+	}
+
+	if controlPlane.Summary() != expectedControlPlaneSummary {
+		t.Errorf("Expected ControlPlane.Summary() to match exactly.\nGot:\n%q\nExpected:\n%q", controlPlane.Summary(), expectedControlPlaneSummary)
+	}
+
+	if diff := cmp.Diff(expectedControlPlaneOperators, controlPlane.Operators()); diff != "" {
+		t.Errorf("ControlPlane operators mismatch (-expected +actual):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expectedControlPlaneNodes, controlPlane.Nodes()); diff != "" {
+		t.Errorf("ControlPlane nodes mismatch (-expected +actual):\n%s", diff)
 	}
 
 	workers := output.Workers()
