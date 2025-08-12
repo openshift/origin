@@ -51,17 +51,10 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 		return nil, err
 	}
 
-	// Find health section manually for now
-	remainingLines := parser.lines[parser.pos:]
-	remainingText := strings.Join(remainingLines, "\n")
-
-	updateHealthStart := strings.Index(remainingText, "= Update Health =")
-	if updateHealthStart == -1 {
-		return nil, errors.New("missing '= Update Health =' section in output")
+	healthMessages, err := parser.parseHealthSection()
+	if err != nil {
+		return nil, err
 	}
-
-	healthSection := strings.TrimSpace(remainingText[updateHealthStart+len("= Update Health ="):])
-	healthMessages := parseHealthMessages(healthSection)
 
 	return &UpgradeStatusOutput{
 		rawOutput:      output,
@@ -83,14 +76,34 @@ var (
 	workerPoolsHeader       = regexp.MustCompile(`^WORKER POOL\s+ASSESSMENT\s+COMPLETION\s+STATUS$`)
 )
 
-func (p *parser) next() (string, bool) {
+type nextOption int
+
+const (
+	preserveLeadingWhitespace nextOption = iota
+)
+
+func (p *parser) next(opts ...nextOption) (string, bool) {
 	if p.pos >= len(p.lines) {
 		return "", true
 	}
 
-	line := strings.TrimSpace(p.lines[p.pos])
+	line := p.lines[p.pos]
 	p.pos++
-	return line, false
+
+	// Check if we should preserve leading whitespace
+	preserveLeading := false
+	for _, opt := range opts {
+		if opt == preserveLeadingWhitespace {
+			preserveLeading = true
+			break
+		}
+	}
+
+	if preserveLeading {
+		return strings.TrimRight(line, " \t\r\n"), false
+	} else {
+		return strings.TrimSpace(line), false
+	}
 }
 
 func (p *parser) eatEmptyLines() {
@@ -354,6 +367,73 @@ func (p *parser) tryParseWorkerNodeTable() (string, []string, error) {
 	return name, nodeEntries, nil
 }
 
+func (p *parser) parseHealthSection() ([]string, error) {
+	p.eatEmptyLines()
+
+	if err := p.eat("= Update Health ="); err != nil {
+		return nil, err
+	}
+
+	var messages []string
+	for {
+		message, err := p.parseHealthMessage()
+		if err != nil {
+			return nil, err
+		}
+
+		if message == "" {
+			// No more messages
+			break
+		}
+
+		messages = append(messages, message)
+	}
+
+	if len(messages) == 0 {
+		return nil, errors.New("no health messages found in Update Health section")
+	}
+
+	return messages, nil
+}
+
+func (p *parser) parseHealthMessage() (string, error) {
+	var messageBuilder strings.Builder
+
+	line, done := p.next()
+	if done {
+		return "", nil // No more input
+	}
+
+	if !strings.HasPrefix(line, "Message: ") {
+		return "", fmt.Errorf("expected health message to start with 'Message: ', got: %s", line)
+	}
+
+	messageBuilder.WriteString(line)
+
+	// Read continuation lines until we hit the next "Message: " or end of input
+	for {
+		line, done := p.next(preserveLeadingWhitespace)
+		if done {
+			break
+		}
+
+		if line == "" {
+			peek, done := p.next()
+			if done {
+				break
+			}
+			p.pos--
+			if strings.HasPrefix(peek, "Message: ") {
+				break
+			}
+		}
+
+		messageBuilder.WriteString("\n" + line)
+	}
+
+	return strings.TrimSpace(messageBuilder.String()), nil
+}
+
 func (u *UpgradeStatusOutput) IsUpdating() bool {
 	return u.updating
 }
@@ -388,32 +468,4 @@ func (w *WorkersStatus) Nodes() map[string][]string {
 
 func (u *UpgradeStatusOutput) Health() []string {
 	return u.healthMessages
-}
-
-func parseHealthMessages(healthSection string) []string {
-	if healthSection == "" {
-		return nil
-	}
-
-	lines := strings.Split(healthSection, "\n")
-	var messages []string
-	var currentMessage strings.Builder
-
-	for i, line := range lines {
-		if strings.HasPrefix(line, "Message: ") {
-			if currentMessage.Len() > 0 {
-				messages = append(messages, strings.TrimSpace(currentMessage.String()))
-				currentMessage.Reset()
-			}
-			currentMessage.WriteString(line)
-		} else if currentMessage.Len() > 0 {
-			currentMessage.WriteString("\n" + line)
-		}
-
-		if i == len(lines)-1 && currentMessage.Len() > 0 {
-			messages = append(messages, strings.TrimSpace(currentMessage.String()))
-		}
-	}
-
-	return messages
 }
