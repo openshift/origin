@@ -8,9 +8,11 @@ import (
 )
 
 type ControlPlaneStatus struct {
-	Summary   map[string]string
-	Operators []string
-	Nodes     []string
+	Updated      bool
+	Summary      map[string]string
+	Operators    []string
+	NodesUpdated bool
+	Nodes        []string
 }
 
 type WorkersStatus struct {
@@ -80,6 +82,10 @@ var (
 	nodesHeader             = regexp.MustCompile(`^NAME\s+ASSESSMENT\s+PHASE\s+VERSION\s+EST\s+MESSAGE$`)
 	workerPoolsHeader       = regexp.MustCompile(`^WORKER POOL\s+ASSESSMENT\s+COMPLETION\s+STATUS$`)
 	healthHeader            = regexp.MustCompile(`^SINCE\s+LEVEL\s+IMPACT\s+MESSAGE$`)
+
+	workerUpgradeHeader      = regexp.MustCompile(`^= Worker Upgrade =$`)
+	controlPlaneUpdated      = regexp.MustCompile(`^Update to .* successfully completed at .*$`)
+	controlPlaneNodesUpdated = regexp.MustCompile(`^All control plane nodes successfully updated to .*`)
 )
 
 type nextOption int
@@ -125,6 +131,13 @@ func (p *parser) eatEmptyLines() {
 	}
 }
 
+func (p *parser) tryRegex(what *regexp.Regexp) bool {
+	line, done := p.next()
+	p.pos--
+
+	return !done && what.MatchString(line)
+}
+
 func (p *parser) eat(what string) error {
 	line, done := p.next()
 	if done {
@@ -156,26 +169,46 @@ func (p *parser) parseControlPlaneSection() (*ControlPlaneStatus, error) {
 		return nil, err
 	}
 
+	var status ControlPlaneStatus
+
+	if p.tryRegex(controlPlaneUpdated) {
+		p.eatRegex(controlPlaneUpdated)
+		status.Updated = true
+		p.eatEmptyLines()
+		if err := p.eatRegex(controlPlaneNodesUpdated); err != nil {
+			return nil, fmt.Errorf("expected 'All control plane nodes successfully updated to' message, got: %w", err)
+		}
+		status.NodesUpdated = true
+
+		return &status, nil
+	}
+
 	summary, err := p.parseControlPlaneSummary()
 	if err != nil {
 		return nil, err
 	}
+	status.Summary = summary
 
 	operators, err := p.parseControlPlaneOperators()
 	if err != nil {
 		return nil, err
 	}
+	status.Operators = operators
 
-	nodes, err := p.parseControlPlaneNodes()
-	if err != nil {
-		return nil, err
+	p.eatEmptyLines()
+
+	if p.tryRegex(controlPlaneNodesUpdated) {
+		p.eatRegex(controlPlaneNodesUpdated)
+		status.NodesUpdated = true
+	} else {
+		nodes, err := p.parseControlPlaneNodes()
+		if err != nil {
+			return nil, err
+		}
+		status.Nodes = nodes
 	}
 
-	return &ControlPlaneStatus{
-		Summary:   summary,
-		Operators: operators,
-		Nodes:     nodes,
-	}, nil
+	return &status, nil
 }
 
 func (p *parser) parseControlPlaneSummary() (map[string]string, error) {
@@ -188,7 +221,6 @@ func (p *parser) parseControlPlaneSummary() (map[string]string, error) {
 			break
 		}
 
-		// Expect lines in the format "Key: Value"
 		parts := strings.SplitN(line, ":", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("expected 'Key: Value' format, got: %s", line)
@@ -267,6 +299,10 @@ func (p *parser) parseControlPlaneNodes() ([]string, error) {
 
 func (p *parser) parseWorkerUpgradeSection() (*WorkersStatus, error) {
 	p.eatEmptyLines()
+
+	if !p.tryRegex(workerUpgradeHeader) {
+		return nil, nil
+	}
 
 	if err := p.eat("= Worker Upgrade ="); err != nil {
 		return nil, err
