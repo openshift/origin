@@ -22,8 +22,8 @@ func TestUpgradeStatusOutput_NotUpdating(t *testing.T) {
 		t.Error("Expected nil ControlPlane() for 'not updating' case")
 	}
 
-	if output.Workers() != "" {
-		t.Error("Expected empty Workers() for 'not updating' case")
+	if output.Workers() != nil {
+		t.Error("Expected nil Workers() for 'not updating' case")
 	}
 
 	if len(output.Health()) != 0 {
@@ -137,14 +137,17 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
 		"ip-10-0-92-180.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?",
 	}
 
-	expectedWorkers := `WORKER POOL   ASSESSMENT   COMPLETION   STATUS
-worker        Pending      0% (0/3)     3 Available, 0 Progressing, 0 Draining
+	expectedWorkerPools := []string{
+		"worker        Pending      0% (0/3)     3 Available, 0 Progressing, 0 Draining",
+	}
 
-Worker Pool Nodes: worker
-NAME                                        ASSESSMENT   PHASE     VERSION       EST   MESSAGE
-ip-10-0-20-162.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?     
-ip-10-0-4-159.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?     
-ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?`
+	expectedWorkerNodes := map[string][]string{
+		"worker": {
+			"ip-10-0-20-162.us-east-2.compute.internal   Outdated     Pending   4.14.0-rc.3   ?",
+			"ip-10-0-4-159.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?",
+			"ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3   ?",
+		},
+	}
 
 	expectedHealthMessages := []string{
 		`Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
@@ -226,8 +229,16 @@ ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3  
 	}
 
 	workers := output.Workers()
-	if workers != expectedWorkers {
-		t.Errorf("Expected Workers() to match exactly.\nGot:\n%q\nExpected:\n%q", workers, expectedWorkers)
+	if workers == nil {
+		t.Fatal("Expected Workers() to return non-nil object")
+	}
+
+	if diff := cmp.Diff(expectedWorkerPools, workers.Pools()); diff != "" {
+		t.Errorf("Worker pools mismatch (-expected +actual):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(expectedWorkerNodes, workers.Nodes()); diff != "" {
+		t.Errorf("Worker nodes mismatch (-expected +actual):\n%s", diff)
 	}
 
 	healthMessages := output.Health()
@@ -252,6 +263,12 @@ ip-10-0-8-37.ec2.internal   Outdated     Pending   4.16.0-0.nightly-2024-08-01-0
 
 WORKER POOL   ASSESSMENT   COMPLETION   STATUS
 worker        Complete     100% (3/3)   3 Available, 0 Progressing, 0 Draining
+
+Worker Pool Nodes: worker
+NAME                                        ASSESSMENT   PHASE     VERSION       EST   MESSAGE
+ip-10-0-20-162.us-east-2.compute.internal   Completed    Updated   4.17.0-ec.0   -
+ip-10-0-4-159.us-east-2.compute.internal    Completed    Updated   4.17.0-ec.0   -
+ip-10-0-99-40.us-east-2.compute.internal    Completed    Updated   4.17.0-ec.0   -
 
 = Update Health =
 Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
@@ -295,5 +312,30 @@ Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodes
 
 	if diff := cmp.Diff(expectedControlPlaneNodes, controlPlane.Nodes()); diff != "" {
 		t.Errorf("ControlPlane nodes mismatch (-expected +actual):\n%s", diff)
+	}
+
+	workers := output.Workers()
+	if workers == nil {
+		t.Fatal("Expected Workers() to return non-nil object")
+	}
+
+	expectedWorkerPools := []string{
+		"worker        Complete     100% (3/3)   3 Available, 0 Progressing, 0 Draining",
+	}
+
+	if diff := cmp.Diff(expectedWorkerPools, workers.Pools()); diff != "" {
+		t.Errorf("Worker pools mismatch (-expected +actual):\n%s", diff)
+	}
+
+	expectedWorkerNodes := map[string][]string{
+		"worker": {
+			"ip-10-0-20-162.us-east-2.compute.internal   Completed    Updated   4.17.0-ec.0   -",
+			"ip-10-0-4-159.us-east-2.compute.internal    Completed    Updated   4.17.0-ec.0   -",
+			"ip-10-0-99-40.us-east-2.compute.internal    Completed    Updated   4.17.0-ec.0   -",
+		},
+	}
+
+	if diff := cmp.Diff(expectedWorkerNodes, workers.Nodes()); diff != "" {
+		t.Errorf("Worker nodes mismatch (-expected +actual):\n%s", diff)
 	}
 }
