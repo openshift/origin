@@ -21,21 +21,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var (
-	expectedPods = map[string]int{
-		"openshift-cluster-node-tuning-operator": 1,
-		"openshift-dns":                          1,
-		"openshift-etcd":                         2,
-		"openshift-image-registry":               1,
-		"openshift-kni-infra":                    3,
-		"openshift-machine-config-operator":      2,
-		"openshift-monitoring":                   1,
-		"openshift-multus":                       3,
-		"openshift-network-diagnostics":          1,
-		"openshift-network-operator":             1,
-		"openshift-ovn-kubernetes":               1,
-	}
-)
+var expectedPods = map[string]int{
+	"openshift-cluster-node-tuning-operator": 1,
+	"openshift-dns":                          1,
+	"openshift-etcd":                         2,
+	"openshift-image-registry":               1,
+	"openshift-kni-infra":                    3,
+	"openshift-machine-config-operator":      2,
+	"openshift-monitoring":                   1,
+	"openshift-multus":                       3,
+	"openshift-network-diagnostics":          1,
+	"openshift-network-operator":             1,
+	"openshift-ovn-kubernetes":               1,
+}
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts", func() {
 	defer g.GinkgoRecover()
@@ -70,15 +68,12 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] required pods on the Arbiter node", func() {
 	defer g.GinkgoRecover()
 
-	var (
-		oc = exutil.NewCLIWithoutNamespace("")
-	)
+	oc := exutil.NewCLIWithoutNamespace("")
 
 	g.BeforeEach(func() {
 		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
-
 		g.By("Retrieving the Arbiter node name")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 			LabelSelector: labelNodeRoleArbiter,
@@ -404,22 +399,4 @@ func createDaemonSetDeployment(oc *exutil.CLI) (*appv1.DaemonSet, error) {
 
 func isPodRunning(pod corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodRunning
-}
-
-func isClusterOperatorAvailable(operator *v1.ClusterOperator) bool {
-	for _, cond := range operator.Status.Conditions {
-		if cond.Type == v1.OperatorAvailable && cond.Status == v1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
-func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
-	for _, cond := range operator.Status.Conditions {
-		if cond.Type == v1.OperatorDegraded && cond.Status == v1.ConditionTrue {
-			return true
-		}
-	}
-	return false
 }

@@ -24,3 +24,21 @@ func skipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 		e2eskipper.Skip(fmt.Sprintf("Cluster is not in %v topology, skipping test", wanted))
 	}
 }
+
+func isClusterOperatorAvailable(operator *v1.ClusterOperator) bool {
+	for _, cond := range operator.Status.Conditions {
+		if cond.Type == v1.OperatorAvailable && cond.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
+	for _, cond := range operator.Status.Conditions {
+		if cond.Type == v1.OperatorDegraded && cond.Status == v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
