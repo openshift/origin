@@ -8,22 +8,27 @@ import (
 )
 
 type ControlPlaneStatus struct {
-	summary   map[string]string
-	operators []string
-	nodes     []string
+	Summary   map[string]string
+	Operators []string
+	Nodes     []string
 }
 
 type WorkersStatus struct {
-	pools []string
-	nodes map[string][]string
+	Pools []string
+	Nodes map[string][]string
+}
+
+type Health struct {
+	Detailed bool
+	Messages []string
 }
 
 type UpgradeStatusOutput struct {
-	rawOutput      string
-	updating       bool
-	controlPlane   *ControlPlaneStatus
-	workers        *WorkersStatus
-	healthMessages []string
+	rawOutput    string
+	updating     bool
+	controlPlane *ControlPlaneStatus
+	workers      *WorkersStatus
+	health       *Health
 }
 
 func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
@@ -51,17 +56,17 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 		return nil, err
 	}
 
-	healthMessages, err := parser.parseHealthSection()
+	health, err := parser.parseHealthSection()
 	if err != nil {
 		return nil, err
 	}
 
 	return &UpgradeStatusOutput{
-		rawOutput:      output,
-		updating:       true,
-		controlPlane:   controlPlane,
-		workers:        workers,
-		healthMessages: healthMessages,
+		rawOutput:    output,
+		updating:     true,
+		controlPlane: controlPlane,
+		workers:      workers,
+		health:       health,
 	}, nil
 }
 
@@ -74,6 +79,7 @@ var (
 	updatingOperatorsHeader = regexp.MustCompile(`^NAME\s+SINCE\s+REASON\s+MESSAGE$`)
 	nodesHeader             = regexp.MustCompile(`^NAME\s+ASSESSMENT\s+PHASE\s+VERSION\s+EST\s+MESSAGE$`)
 	workerPoolsHeader       = regexp.MustCompile(`^WORKER POOL\s+ASSESSMENT\s+COMPLETION\s+STATUS$`)
+	healthHeader            = regexp.MustCompile(`^SINCE\s+LEVEL\s+IMPACT\s+MESSAGE$`)
 )
 
 type nextOption int
@@ -166,9 +172,9 @@ func (p *parser) parseControlPlaneSection() (*ControlPlaneStatus, error) {
 	}
 
 	return &ControlPlaneStatus{
-		summary:   summary,
-		operators: operators,
-		nodes:     nodes,
+		Summary:   summary,
+		Operators: operators,
+		Nodes:     nodes,
 	}, nil
 }
 
@@ -277,8 +283,8 @@ func (p *parser) parseWorkerUpgradeSection() (*WorkersStatus, error) {
 	}
 
 	return &WorkersStatus{
-		pools: pools,
-		nodes: nodes,
+		Pools: pools,
+		Nodes: nodes,
 	}, nil
 }
 
@@ -367,16 +373,33 @@ func (p *parser) tryParseWorkerNodeTable() (string, []string, error) {
 	return name, nodeEntries, nil
 }
 
-func (p *parser) parseHealthSection() ([]string, error) {
+func (p *parser) parseHealthSection() (*Health, error) {
 	p.eatEmptyLines()
 
 	if err := p.eat("= Update Health ="); err != nil {
 		return nil, err
 	}
 
-	var messages []string
+	var health Health
+
+	line, done := p.next()
+	if done {
+		return nil, errors.New("expected 'Update Health' section but reached end of input")
+	}
+
+	var getMessage func() (string, error)
+	if strings.HasPrefix(line, "Message: ") {
+		getMessage = p.parseHealthMessage
+		health.Detailed = true
+		p.pos--
+	} else if healthHeader.MatchString(line) {
+		getMessage = p.parseHealthMessageLine
+	} else {
+		return nil, fmt.Errorf("expected 'Update Health' to start with either a table header or a 'Message: ' line, got %s", line)
+	}
+
 	for {
-		message, err := p.parseHealthMessage()
+		message, err := getMessage()
 		if err != nil {
 			return nil, err
 		}
@@ -386,14 +409,19 @@ func (p *parser) parseHealthSection() ([]string, error) {
 			break
 		}
 
-		messages = append(messages, message)
+		health.Messages = append(health.Messages, message)
 	}
 
-	if len(messages) == 0 {
+	if len(health.Messages) == 0 {
 		return nil, errors.New("no health messages found in Update Health section")
 	}
 
-	return messages, nil
+	return &health, nil
+}
+
+func (p *parser) parseHealthMessageLine() (string, error) {
+	line, _ := p.next()
+	return line, nil
 }
 
 func (p *parser) parseHealthMessage() (string, error) {
@@ -432,40 +460,4 @@ func (p *parser) parseHealthMessage() (string, error) {
 	}
 
 	return strings.TrimSpace(messageBuilder.String()), nil
-}
-
-func (u *UpgradeStatusOutput) IsUpdating() bool {
-	return u.updating
-}
-
-func (u *UpgradeStatusOutput) ControlPlane() *ControlPlaneStatus {
-	return u.controlPlane
-}
-
-func (c *ControlPlaneStatus) Summary() map[string]string {
-	return c.summary
-}
-
-func (c *ControlPlaneStatus) Operators() []string {
-	return c.operators
-}
-
-func (c *ControlPlaneStatus) Nodes() []string {
-	return c.nodes
-}
-
-func (u *UpgradeStatusOutput) Workers() *WorkersStatus {
-	return u.workers
-}
-
-func (w *WorkersStatus) Pools() []string {
-	return w.pools
-}
-
-func (w *WorkersStatus) Nodes() map[string][]string {
-	return w.nodes
-}
-
-func (u *UpgradeStatusOutput) Health() []string {
-	return u.healthMessages
 }

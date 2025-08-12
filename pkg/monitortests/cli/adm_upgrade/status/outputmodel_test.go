@@ -14,20 +14,20 @@ func TestUpgradeStatusOutput_NotUpdating(t *testing.T) {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if output.IsUpdating() {
+	if output.updating {
 		t.Error("Expected IsUpdating() to return false for 'not updating' case")
 	}
 
-	if output.ControlPlane() != nil {
+	if output.controlPlane != nil {
 		t.Error("Expected nil ControlPlane() for 'not updating' case")
 	}
 
-	if output.Workers() != nil {
+	if output.workers != nil {
 		t.Error("Expected nil Workers() for 'not updating' case")
 	}
 
-	if len(output.Health()) != 0 {
-		t.Error("Expected empty Health() slice for 'not updating' case")
+	if output.health != nil {
+		t.Error("Expected nil Health() for 'not updating' case")
 	}
 }
 
@@ -149,8 +149,10 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
 		},
 	}
 
-	expectedHealthMessages := []string{
-		`Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
+	expectedHealth := &Health{
+		Detailed: true,
+		Messages: []string{
+			`Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodesReady)
   Since:       58m18s
   Level:       Error
   Impact:      API Availability
@@ -158,7 +160,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
   Resources:
     clusteroperators.config.openshift.io: kube-apiserver
   Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
-		`Message: Cluster Operator kube-controller-manager is degraded (NodeController_MasterNodesReady)
+			`Message: Cluster Operator kube-controller-manager is degraded (NodeController_MasterNodesReady)
   Since:       58m18s
   Level:       Error
   Impact:      API Availability
@@ -166,7 +168,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
   Resources:
     clusteroperators.config.openshift.io: kube-controller-manager
   Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
-		`Message: Cluster Operator kube-scheduler is degraded (NodeController_MasterNodesReady)
+			`Message: Cluster Operator kube-scheduler is degraded (NodeController_MasterNodesReady)
   Since:       58m18s
   Level:       Error
   Impact:      API Availability
@@ -174,7 +176,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
   Resources:
     clusteroperators.config.openshift.io: kube-scheduler
   Description: NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
-		`Message: Cluster Operator etcd is degraded (EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::NodeController_MasterNodesReady)
+			`Message: Cluster Operator etcd is degraded (EtcdEndpoints_ErrorUpdatingEtcdEndpoints::EtcdMembers_UnhealthyMembers::NodeController_MasterNodesReady)
   Since:       58m38s
   Level:       Error
   Impact:      API Availability
@@ -184,7 +186,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
   Description: EtcdEndpointsDegraded: EtcdEndpointsController can't evaluate whether quorum is safe: etcd cluster has quorum of 2 and 2 healthy members which is not fault tolerant: [{Member:ID:12895393557789359222 name:"ip-10-0-73-118.ec2.internal" peerURLs:"https://10.0.73.118:2380" clientURLs:"https://10.0.73.118:2379"  Healthy:true Took:1.725492ms Error:<nil>} {Member:ID:13608765340770574953 name:"ip-10-0-0-60.ec2.internal" peerURLs:"https://10.0.0.60:2380" clientURLs:"https://10.0.0.60:2379"  Healthy:true Took:1.542919ms Error:<nil>} {Member:ID:18044478200504924924 name:"ip-10-0-12-74.ec2.internal" peerURLs:"https://10.0.12.74:2380" clientURLs:"https://10.0.12.74:2379"  Healthy:false Took: Error:create client failure: failed to make etcd client for endpoints [https://10.0.12.74:2379]: context deadline exceeded}]
                , EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-12-74.ec2.internal is unhealthy
                , NodeControllerDegraded: The master nodes not ready: node "ip-10-0-12-74.ec2.internal" not ready since 2023-11-03 16:28:43 +0000 UTC because KubeletNotReady (container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?)`,
-		`Message: Cluster Operator control-plane-machine-set is unavailable (UnavailableReplicas)
+			`Message: Cluster Operator control-plane-machine-set is unavailable (UnavailableReplicas)
   Since:       1h0m17s
   Level:       Error
   Impact:      API Availability
@@ -192,7 +194,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
   Resources:
     clusteroperators.config.openshift.io: control-plane-machine-set
   Description: Missing 1 available replica(s)`,
-		`Message: Cluster Version version is failing to proceed with the update (ClusterOperatorsDegraded)
+			`Message: Cluster Version version is failing to proceed with the update (ClusterOperatorsDegraded)
   Since:       now
   Level:       Warning
   Impact:      Update Stalled
@@ -200,6 +202,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
   Resources:
     clusterversions.config.openshift.io: version
   Description: Cluster operators etcd, kube-apiserver are degraded`,
+		},
 	}
 
 	output, err := NewUpgradeStatusOutput(input)
@@ -207,42 +210,39 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	if !output.IsUpdating() {
+	if !output.updating {
 		t.Error("Expected IsUpdating() to return true for full input case")
 	}
 
-	controlPlane := output.ControlPlane()
-	if controlPlane == nil {
+	if output.controlPlane == nil {
 		t.Fatal("Expected ControlPlane() to return non-nil object")
 	}
 
-	if diff := cmp.Diff(expectedControlPlaneSummary, controlPlane.Summary()); diff != "" {
+	if diff := cmp.Diff(expectedControlPlaneSummary, output.controlPlane.Summary); diff != "" {
 		t.Errorf("ControlPlane summary mismatch (-expected +actual):\n%s", diff)
 	}
 
-	if diff := cmp.Diff(expectedControlPlaneOperators, controlPlane.Operators()); diff != "" {
+	if diff := cmp.Diff(expectedControlPlaneOperators, output.controlPlane.Operators); diff != "" {
 		t.Errorf("ControlPlane operators mismatch (-expected +actual):\n%s", diff)
 	}
 
-	if diff := cmp.Diff(expectedControlPlaneNodes, controlPlane.Nodes()); diff != "" {
+	if diff := cmp.Diff(expectedControlPlaneNodes, output.controlPlane.Nodes); diff != "" {
 		t.Errorf("ControlPlane nodes mismatch (-expected +actual):\n%s", diff)
 	}
 
-	workers := output.Workers()
-	if workers == nil {
+	if output.workers == nil {
 		t.Fatal("Expected Workers() to return non-nil object")
 	}
 
-	if diff := cmp.Diff(expectedWorkerPools, workers.Pools()); diff != "" {
+	if diff := cmp.Diff(expectedWorkerPools, output.workers.Pools); diff != "" {
 		t.Errorf("Worker pools mismatch (-expected +actual):\n%s", diff)
 	}
 
-	if diff := cmp.Diff(expectedWorkerNodes, workers.Nodes()); diff != "" {
+	if diff := cmp.Diff(expectedWorkerNodes, output.workers.Nodes); diff != "" {
 		t.Errorf("Worker nodes mismatch (-expected +actual):\n%s", diff)
 	}
 
-	healthMessages := output.Health()
-	if diff := cmp.Diff(expectedHealthMessages, healthMessages); diff != "" {
+	if diff := cmp.Diff(expectedHealth, output.health); diff != "" {
 		t.Errorf("Health messages mismatch (-expected +actual):\n%s", diff)
 	}
 }
@@ -297,25 +297,23 @@ Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodes
 		t.Fatalf("Expected no error, got: %v", err)
 	}
 
-	controlPlane := output.ControlPlane()
-	if controlPlane == nil {
+	if output.controlPlane == nil {
 		t.Fatal("Expected ControlPlane() to return non-nil object")
 	}
 
-	if diff := cmp.Diff(expectedControlPlaneSummary, controlPlane.Summary()); diff != "" {
+	if diff := cmp.Diff(expectedControlPlaneSummary, output.controlPlane.Summary); diff != "" {
 		t.Errorf("ControlPlane summary mismatch (-expected +actual):\n%s", diff)
 	}
 
-	if controlPlane.Operators() != nil {
-		t.Errorf("Expected Operators() to return nil when section is missing, got: %v", controlPlane.Operators())
+	if output.controlPlane.Operators != nil {
+		t.Errorf("Expected Operators() to return nil when section is missing, got: %v", output.controlPlane.Operators)
 	}
 
-	if diff := cmp.Diff(expectedControlPlaneNodes, controlPlane.Nodes()); diff != "" {
+	if diff := cmp.Diff(expectedControlPlaneNodes, output.controlPlane.Nodes); diff != "" {
 		t.Errorf("ControlPlane nodes mismatch (-expected +actual):\n%s", diff)
 	}
 
-	workers := output.Workers()
-	if workers == nil {
+	if output.workers == nil {
 		t.Fatal("Expected Workers() to return non-nil object")
 	}
 
@@ -323,7 +321,7 @@ Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodes
 		"worker        Complete     100% (3/3)   3 Available, 0 Progressing, 0 Draining",
 	}
 
-	if diff := cmp.Diff(expectedWorkerPools, workers.Pools()); diff != "" {
+	if diff := cmp.Diff(expectedWorkerPools, output.workers.Pools); diff != "" {
 		t.Errorf("Worker pools mismatch (-expected +actual):\n%s", diff)
 	}
 
@@ -335,7 +333,7 @@ Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodes
 		},
 	}
 
-	if diff := cmp.Diff(expectedWorkerNodes, workers.Nodes()); diff != "" {
+	if diff := cmp.Diff(expectedWorkerNodes, output.workers.Nodes); diff != "" {
 		t.Errorf("Worker nodes mismatch (-expected +actual):\n%s", diff)
 	}
 }
