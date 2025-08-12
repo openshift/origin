@@ -118,12 +118,14 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
     clusterversions.config.openshift.io: version
   Description: Cluster operators etcd, kube-apiserver are degraded`
 
-	expectedControlPlaneSummary := `Assessment:      Stalled
-Target Version:  4.14.1 (from 4.14.0-rc.3)
-Updating:        machine-config
-Completion:      97% (32 operators updated, 1 updating, 0 waiting)
-Duration:        1h59m (Est. Time Remaining: N/A; estimate duration was 1h24m)
-Operator Health: 28 Healthy, 1 Unavailable, 4 Available but degraded`
+	expectedControlPlaneSummary := map[string]string{
+		"Assessment":      "Stalled",
+		"Target Version":  "4.14.1 (from 4.14.0-rc.3)",
+		"Updating":        "machine-config",
+		"Completion":      "97% (32 operators updated, 1 updating, 0 waiting)",
+		"Duration":        "1h59m (Est. Time Remaining: N/A; estimate duration was 1h24m)",
+		"Operator Health": "28 Healthy, 1 Unavailable, 4 Available but degraded",
+	}
 
 	expectedControlPlaneOperators := []string{
 		"machine-config   1h4m41s   -        Working towards 4.14.1",
@@ -211,8 +213,8 @@ ip-10-0-99-40.us-east-2.compute.internal    Outdated     Pending   4.14.0-rc.3  
 		t.Fatal("Expected ControlPlane() to return non-nil object")
 	}
 
-	if controlPlane.Summary() != expectedControlPlaneSummary {
-		t.Errorf("Expected ControlPlane.Summary() to match exactly.\nGot:\n%q\nExpected:\n%q", controlPlane.Summary(), expectedControlPlaneSummary)
+	if diff := cmp.Diff(expectedControlPlaneSummary, controlPlane.Summary()); diff != "" {
+		t.Errorf("ControlPlane summary mismatch (-expected +actual):\n%s", diff)
 	}
 
 	if diff := cmp.Diff(expectedControlPlaneOperators, controlPlane.Operators()); diff != "" {

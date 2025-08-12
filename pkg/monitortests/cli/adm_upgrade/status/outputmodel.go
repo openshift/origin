@@ -7,7 +7,7 @@ import (
 )
 
 type ControlPlaneStatus struct {
-	summary   string
+	summary   map[string]string
 	operators []string
 	nodes     []string
 }
@@ -83,7 +83,7 @@ func (u *UpgradeStatusOutput) ControlPlane() *ControlPlaneStatus {
 	return u.controlPlane
 }
 
-func (c *ControlPlaneStatus) Summary() string {
+func (c *ControlPlaneStatus) Summary() map[string]string {
 	return c.summary
 }
 
@@ -188,10 +188,18 @@ func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) 
 		return nil, errors.New("no nodes found in Control Plane section")
 	}
 
-	summary := strings.Join(summaryLines, "\n")
+	summaryMap := make(map[string]string)
+	for _, line := range summaryLines {
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			summaryMap[key] = value
+		}
+	}
 
 	return &ControlPlaneStatus{
-		summary:   strings.TrimSpace(summary),
+		summary:   summaryMap,
 		operators: operators,
 		nodes:     nodes,
 	}, nil
