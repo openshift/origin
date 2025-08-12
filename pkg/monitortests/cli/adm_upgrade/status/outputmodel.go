@@ -3,6 +3,7 @@ package admupgradestatus
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -37,38 +38,35 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 		}, nil
 	}
 
-	if !strings.Contains(output, "= Control Plane =") {
-		return nil, errors.New("missing '= Control Plane =' section in output")
+	lines := strings.Split(output, "\n")
+	parser := &parser{lines: lines, pos: 0}
+
+	controlPlane, err := parser.parseControlPlaneSection()
+	if err != nil {
+		return nil, err
 	}
 
-	if !strings.Contains(output, "= Worker Upgrade =") {
+	// Find worker and health sections manually for now (only control plane uses recursive descent)
+	remainingLines := parser.lines[parser.pos:]
+	remainingText := strings.Join(remainingLines, "\n")
+
+	workerUpgradeStart := strings.Index(remainingText, "= Worker Upgrade =")
+	updateHealthStart := strings.Index(remainingText, "= Update Health =")
+
+	if workerUpgradeStart == -1 {
 		return nil, errors.New("missing '= Worker Upgrade =' section in output")
 	}
 
-	if !strings.Contains(output, "= Update Health =") {
+	if updateHealthStart == -1 {
 		return nil, errors.New("missing '= Update Health =' section in output")
-	}
-
-	controlPlaneStart := strings.Index(output, "= Control Plane =")
-	workerUpgradeStart := strings.Index(output, "= Worker Upgrade =")
-	updateHealthStart := strings.Index(output, "= Update Health =")
-
-	if controlPlaneStart >= workerUpgradeStart {
-		return nil, fmt.Errorf("'= Control Plane =' section appears after '= Worker Upgrade =' section")
 	}
 
 	if workerUpgradeStart >= updateHealthStart {
 		return nil, fmt.Errorf("'= Worker Upgrade =' section appears after '= Update Health =' section")
 	}
 
-	controlPlaneSection := strings.TrimSpace(output[controlPlaneStart+len("= Control Plane =") : workerUpgradeStart])
-	workersSection := strings.TrimSpace(output[workerUpgradeStart+len("= Worker Upgrade =") : updateHealthStart])
-	healthSection := strings.TrimSpace(output[updateHealthStart+len("= Update Health ="):])
-
-	controlPlane, err := parseControlPlane(controlPlaneSection)
-	if err != nil {
-		return nil, err
-	}
+	workersSection := strings.TrimSpace(remainingText[workerUpgradeStart+len("= Worker Upgrade =") : updateHealthStart])
+	healthSection := strings.TrimSpace(remainingText[updateHealthStart+len("= Update Health ="):])
 
 	workers, err := parseWorkers(workersSection)
 	if err != nil {
@@ -84,6 +82,179 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 		workers:        workers,
 		healthMessages: healthMessages,
 	}, nil
+}
+
+type parser struct {
+	lines []string
+	pos   int
+}
+
+var (
+	updatingOperatorsHeader = regexp.MustCompile(`^NAME\s+SINCE\s+REASON\s+MESSAGE$`)
+	nodesHeader             = regexp.MustCompile(`^NAME\s+ASSESSMENT\s+PHASE\s+VERSION\s+EST\s+MESSAGE$`)
+)
+
+func (p *parser) next() (string, bool) {
+	if p.pos >= len(p.lines) {
+		return "", true
+	}
+
+	line := strings.TrimSpace(p.lines[p.pos])
+	p.pos++
+	return line, false
+}
+
+func (p *parser) eatEmptyLines() error {
+	for {
+		line, done := p.next()
+		if done {
+			return errors.New("reached end of input while expecting empty lines")
+		}
+		if line != "" {
+			p.pos--
+			return nil
+		}
+	}
+}
+
+func (p *parser) eat(what string) error {
+	line, done := p.next()
+	if done {
+		return fmt.Errorf("expected '%s' but reached end of input", what)
+	}
+
+	if line != what {
+		return fmt.Errorf("expected '%s' but got '%s'", what, line)
+	}
+
+	return nil
+}
+
+func (p *parser) eatRegex(what *regexp.Regexp) error {
+	line, done := p.next()
+	if done {
+		return fmt.Errorf("expected '%s' but reached end of input", what)
+	}
+
+	if !what.MatchString(line) {
+		return fmt.Errorf("expected '%s' but got '%s'", what, line)
+	}
+
+	return nil
+}
+
+func (p *parser) parseControlPlaneSection() (*ControlPlaneStatus, error) {
+	if err := p.eat("= Control Plane ="); err != nil {
+		return nil, err
+	}
+
+	summary, err := p.parseControlPlaneSummary()
+	if err != nil {
+		return nil, err
+	}
+
+	operators, err := p.parseControlPlaneOperators()
+	if err != nil {
+		return nil, err
+	}
+
+	nodes, err := p.parseControlPlaneNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ControlPlaneStatus{
+		summary:   summary,
+		operators: operators,
+		nodes:     nodes,
+	}, nil
+}
+
+func (p *parser) parseControlPlaneSummary() (map[string]string, error) {
+	p.eatEmptyLines()
+
+	summary := map[string]string{}
+	for {
+		line, done := p.next()
+		if done || line == "" {
+			break
+		}
+
+		// Expect lines in the format "Key: Value"
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("expected 'Key: Value' format, got: %s", line)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		summary[key] = value
+	}
+
+	if len(summary) == 0 {
+		return nil, errors.New("found no entries in control plane summary section")
+	}
+
+	return summary, nil
+}
+
+func (p *parser) parseControlPlaneOperators() ([]string, error) {
+	p.eatEmptyLines()
+
+	if line, _ := p.next(); line != "Updating Cluster Operators" {
+		// section is optional, put back the line and return nil
+		p.pos--
+		return nil, nil
+	}
+
+	if err := p.eatRegex(updatingOperatorsHeader); err != nil {
+		return nil, fmt.Errorf("expected Updating Cluster Operators table header, got: %w", err)
+	}
+
+	var operators []string
+
+	for {
+		line, done := p.next()
+		if done || line == "" {
+			break
+		}
+
+		operators = append(operators, line)
+	}
+
+	if len(operators) == 0 {
+		return nil, errors.New("found no entries in Updating Cluster Operators section")
+	}
+
+	return operators, nil
+}
+
+func (p *parser) parseControlPlaneNodes() ([]string, error) {
+	p.eatEmptyLines()
+
+	if p.eat("Control Plane Nodes") != nil {
+		return nil, errors.New("expected 'Control Plane Nodes' section")
+	}
+
+	if err := p.eatRegex(nodesHeader); err != nil {
+		return nil, fmt.Errorf("expected Control Plane Nodes table header: %w", err)
+	}
+
+	var nodes []string
+	for {
+		line, done := p.next()
+		if done || line == "" {
+			break
+		}
+
+		nodes = append(nodes, line)
+	}
+
+	if len(nodes) == 0 {
+		return nil, errors.New("no nodes found in Control Plane Nodes section")
+	}
+
+	return nodes, nil
 }
 
 func (u *UpgradeStatusOutput) IsUpdating() bool {
@@ -148,93 +319,6 @@ func parseHealthMessages(healthSection string) []string {
 	}
 
 	return messages
-}
-
-func parseControlPlane(controlPlaneSection string) (*ControlPlaneStatus, error) {
-	lines := strings.Split(controlPlaneSection, "\n")
-
-	var summaryLines []string
-	var operators []string
-	var nodes []string
-
-	state := "summary"
-	hasOperatorsSection := false
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if line == "Updating Cluster Operators" {
-			hasOperatorsSection = true
-			state = "operators_header"
-			continue
-		} else if line == "Control Plane Nodes" {
-			state = "nodes_header"
-			continue
-		}
-
-		switch state {
-		case "summary":
-			summaryLines = append(summaryLines, line)
-		case "operators_header":
-			if strings.Contains(line, "NAME") && strings.Contains(line, "SINCE") {
-				state = "operators"
-				continue
-			}
-			summaryLines = append(summaryLines, line)
-		case "operators":
-			if strings.Contains(line, "NAME") && strings.Contains(line, "ASSESSMENT") {
-				state = "nodes"
-				continue
-			}
-			operators = append(operators, line)
-		case "nodes_header":
-			if strings.Contains(line, "NAME") && strings.Contains(line, "ASSESSMENT") {
-				state = "nodes"
-				continue
-			}
-			if hasOperatorsSection {
-				operators = append(operators, line)
-			} else {
-				summaryLines = append(summaryLines, line)
-			}
-		case "nodes":
-			nodes = append(nodes, line)
-		}
-	}
-
-	if hasOperatorsSection && len(operators) == 0 {
-		return nil, errors.New("Updating Cluster Operators section found but no operator entries present")
-	}
-
-	if len(nodes) == 0 {
-		return nil, errors.New("no nodes found in Control Plane section")
-	}
-
-	summaryMap := make(map[string]string)
-	for _, line := range summaryLines {
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) == 2 {
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-			summaryMap[key] = value
-		}
-	}
-
-	var operatorsResult []string
-	if hasOperatorsSection {
-		operatorsResult = operators
-	} else {
-		operatorsResult = nil
-	}
-
-	return &ControlPlaneStatus{
-		summary:   summaryMap,
-		operators: operatorsResult,
-		nodes:     nodes,
-	}, nil
 }
 
 func parseWorkers(workersSection string) (*WorkersStatus, error) {
