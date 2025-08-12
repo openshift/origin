@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -26,6 +27,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithPodSecurityLevel("oc-debug", admissionapi.LevelBaseline)
+	ocNodeClient := exutil.NewCLIWithPodSecurityLevel("cli", admissionapi.LevelBaseline)
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
 	testDeployment := exutil.FixturePath("testdata", "test-deployment.yaml")
@@ -277,5 +279,84 @@ spec:
 		out, err = oc.Run("debug").Args(fmt.Sprintf("isimage/wildfly@%s", sha), "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7"))
+	})
+
+	g.It("ensure that the label is set for node debug", func() {
+		var err error
+
+		ns := ocNodeClient.Namespace()
+
+		err = ocNodeClient.AsAdmin().Run("label").Args("namespace", ns, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = ocNodeClient.AsAdmin().Run("auth").Args("can-i", "get", "nodes").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "User should be able to get nodes")
+
+		nodesOutput, err := ocNodeClient.AsAdmin().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker=", "--no-headers", "-o", "custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type=='Ready')].status").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodesOutput).NotTo(o.BeEmpty(), "No worker nodes found")
+
+		var readyWorkerNode string
+		for _, line := range strings.Split(strings.TrimSpace(nodesOutput), "\n") {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 && fields[1] == "True" {
+				readyWorkerNode = fields[0]
+				break
+			}
+		}
+		o.Expect(readyWorkerNode).NotTo(o.BeEmpty(), "No ready worker node found")
+
+		done := make(chan error, 1)
+		go func() {
+			err := ocNodeClient.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--keep-labels=true", "--", "sleep", "10").Execute()
+			done <- err
+		}()
+
+		klog.Infof("Debug command invoked on another thread for node %s", readyWorkerNode)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
+			pods, err := ocNodeClient.AdminKubeClient().CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+			if err != nil {
+				return false, err
+			}
+			klog.Infof("Current pods with debug label: %d pods found", len(pods.Items))
+			for _, pod := range pods.Items {
+				klog.Infof("  Pod: %s, Status: %s", pod.Name, pod.Status.Phase)
+				desc, err := ocNodeClient.AsAdmin().Run("describe").Args("pod", pod.Name, "-n", ns).Output()
+				if err == nil {
+					klog.Infof("Pod description:\n%s", desc)
+				} else {
+					klog.Infof("Error describing pod %s: %v", pod.Name, err)
+				}
+			}
+			return len(pods.Items) >= 1, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Expected at least one debug pod with label debug.openshift.io/managed-by=oc-debug")
+
+		debugErr := <-done
+		o.Expect(debugErr).NotTo(o.HaveOccurred())
+
+		done = make(chan error, 1)
+		go func() {
+			err := ocNodeClient.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--", "sleep", "10").Execute()
+			done <- err
+		}()
+
+		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
+			pods, err := ocNodeClient.AdminKubeClient().CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+			if err != nil {
+				return false, err
+			}
+			return len(pods.Items) >= 1, nil
+		})
+		// Uncomment after https://github.com/openshift/oc/pull/2074 is merged
+		// o.Expect(err).NotTo(o.HaveOccurred(), "Expected at least one debug pod with label debug.openshift.io/managed-by=oc-debug")
+
+		debugErr = <-done
+		o.Expect(debugErr).NotTo(o.HaveOccurred())
 	})
 })
