@@ -189,6 +189,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-storage-operator",
 		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-kube-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
