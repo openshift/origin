@@ -49,13 +49,15 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	var group string
 	var originalAuth *configv1.Authentication
 	var oauthUserConfig *rest.Config
+	var oidcClientSecret string
 
 	var keycloakNamespace string
 
 	g.BeforeAll(func() {
 		var err error
 
-		keycloakNamespace = fmt.Sprintf("oidc-keycloak-%s", rand.String(8))
+		testID := rand.String(8)
+		keycloakNamespace = fmt.Sprintf("oidc-keycloak-%s", testID)
 
 		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
@@ -72,9 +74,9 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 		o.Expect(keycloakCli.ConfigureClient("admin-cli")).NotTo(o.HaveOccurred(), "should not encounter an error configuring the admin-cli client")
 
-		username = rand.String(8)
-		password = rand.String(8)
-		group = fmt.Sprintf("ocp-test-%s-group", rand.String(8))
+		username = fmt.Sprintf("user-%s", testID)
+		password = fmt.Sprintf("password-%s", testID)
+		group = fmt.Sprintf("ocp-test-%s-group", testID)
 
 		o.Expect(keycloakCli.CreateGroup(group)).To(o.Succeed(), "should be able to create a new keycloak group")
 		o.Expect(keycloakCli.CreateUser(username, password, group)).To(o.Succeed(), "should be able to create a new keycloak user")
@@ -83,11 +85,28 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not error getting authentications")
 
 		oauthUserConfig = oc.GetClientConfigForUser("oidc-e2e-oauth-user")
+
+		// create a dummy oidc client secret for the console to consume
+		oidcClientSecret = fmt.Sprintf("openshift-console-oidc-client-secret-%s", testID)
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      oidcClientSecret,
+				Namespace: "openshift-config",
+			},
+			Data: map[string][]byte{
+				"clientSecret": []byte(`a-secret-value`),
+			},
+		}
+		_, err = oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Create(ctx, secret, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating oidc client secret")
+		cleanups = append(cleanups, func(ctx context.Context) error {
+			return oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Delete(ctx, secret.Name, metav1.DeleteOptions{})
+		})
 	})
 
 	g.Describe("[OCPFeatureGate:ExternalOIDC]", g.Ordered, func() {
 		g.BeforeAll(func() {
-			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, nil)
+			_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
 			waitForRollout(ctx, oc)
@@ -254,7 +273,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		g.Describe("external IdP is configured", func() {
 			g.Describe("without specified UID or Extra claim mappings", func() {
 				g.BeforeAll(func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, nil)
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, nil)
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
 					waitForRollout(ctx, oc)
@@ -282,7 +301,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 			g.Describe("with valid specified UID or Extra claim mappings", func() {
 				g.BeforeAll(func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, func(o *configv1.OIDCProvider) {
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
 							Expression: "claims.preferred_username.upperAscii()",
 						}
@@ -331,7 +350,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 
 			g.Describe("with invalid specified UID or Extra claim mappings", func() {
 				g.It("should reject admission when UID claim expression is not compilable CEL", func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, func(o *configv1.OIDCProvider) {
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
 							Expression: "!@&*#^",
 						}
@@ -340,7 +359,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 
 				g.It("should reject admission when Extra claim expression is not compilable CEL", func() {
-					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, func(o *configv1.OIDCProvider) {
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, oidcClientSecret, func(o *configv1.OIDCProvider) {
 						o.ClaimMappings.Extra = []configv1.ExtraMapping{
 							{
 								Key:             "payload/test",
@@ -384,7 +403,7 @@ func removeResources(ctx context.Context, removalFuncs ...removalFunc) error {
 	return errors.FilterOut(errors.NewAggregate(errs), apierrors.IsNotFound)
 }
 
-func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
+func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keycloakNS, oidcClientSecret string, modifier func(*configv1.OIDCProvider)) (*configv1.Authentication, *configv1.Authentication, error) {
 	authConfig, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting authentications.config.openshift.io/cluster: %w", err)
@@ -393,7 +412,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	original := authConfig.DeepCopy()
 	modified := authConfig.DeepCopy()
 
-	oidcProvider, err := generateOIDCProvider(ctx, client, keycloakNS)
+	oidcProvider, err := generateOIDCProvider(ctx, client, keycloakNS, oidcClientSecret)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating OIDC provider: %w", err)
 	}
@@ -414,7 +433,7 @@ func configureOIDCAuthentication(ctx context.Context, client *exutil.CLI, keyclo
 	return original, modified, nil
 }
 
-func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace string) (*configv1.OIDCProvider, error) {
+func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oidcClientSecret string) (*configv1.OIDCProvider, error) {
 	idpName := "keycloak"
 	caBundle := "keycloak-ca"
 	audiences := []configv1.TokenAudience{
@@ -444,6 +463,20 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace str
 			Groups: configv1.PrefixedClaimMapping{
 				TokenClaimMapping: configv1.TokenClaimMapping{
 					Claim: groupsClaim,
+				},
+			},
+		},
+		// while this config is not required for the tests in this suite, if omitted
+		// the console-operator will go Degraded; since we're currently running these
+		// tests in clusters where the Console is installed, we provide this config
+		// to avoid breaking cluster operator monitor tests
+		OIDCClients: []configv1.OIDCClientConfig{
+			{
+				ComponentName:      "console",
+				ComponentNamespace: "openshift-console",
+				ClientID:           "openshift-console-oidc-client",
+				ClientSecret: configv1.SecretNameReference{
+					Name: oidcClientSecret,
 				},
 			},
 		},
