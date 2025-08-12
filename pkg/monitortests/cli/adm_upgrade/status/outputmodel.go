@@ -46,33 +46,21 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 		return nil, err
 	}
 
-	// Find worker and health sections manually for now (only control plane uses recursive descent)
-	remainingLines := parser.lines[parser.pos:]
-	remainingText := strings.Join(remainingLines, "\n")
-
-	workerUpgradeStart := strings.Index(remainingText, "= Worker Upgrade =")
-	updateHealthStart := strings.Index(remainingText, "= Update Health =")
-
-	if workerUpgradeStart == -1 {
-		return nil, errors.New("missing '= Worker Upgrade =' section in output")
-	}
-
-	if updateHealthStart == -1 {
-		return nil, errors.New("missing '= Update Health =' section in output")
-	}
-
-	if workerUpgradeStart >= updateHealthStart {
-		return nil, fmt.Errorf("'= Worker Upgrade =' section appears after '= Update Health =' section")
-	}
-
-	workersSection := strings.TrimSpace(remainingText[workerUpgradeStart+len("= Worker Upgrade =") : updateHealthStart])
-	healthSection := strings.TrimSpace(remainingText[updateHealthStart+len("= Update Health ="):])
-
-	workers, err := parseWorkers(workersSection)
+	workers, err := parser.parseWorkerUpgradeSection()
 	if err != nil {
 		return nil, err
 	}
 
+	// Find health section manually for now
+	remainingLines := parser.lines[parser.pos:]
+	remainingText := strings.Join(remainingLines, "\n")
+
+	updateHealthStart := strings.Index(remainingText, "= Update Health =")
+	if updateHealthStart == -1 {
+		return nil, errors.New("missing '= Update Health =' section in output")
+	}
+
+	healthSection := strings.TrimSpace(remainingText[updateHealthStart+len("= Update Health ="):])
 	healthMessages := parseHealthMessages(healthSection)
 
 	return &UpgradeStatusOutput{
@@ -92,6 +80,7 @@ type parser struct {
 var (
 	updatingOperatorsHeader = regexp.MustCompile(`^NAME\s+SINCE\s+REASON\s+MESSAGE$`)
 	nodesHeader             = regexp.MustCompile(`^NAME\s+ASSESSMENT\s+PHASE\s+VERSION\s+EST\s+MESSAGE$`)
+	workerPoolsHeader       = regexp.MustCompile(`^WORKER POOL\s+ASSESSMENT\s+COMPLETION\s+STATUS$`)
 )
 
 func (p *parser) next() (string, bool) {
@@ -104,15 +93,15 @@ func (p *parser) next() (string, bool) {
 	return line, false
 }
 
-func (p *parser) eatEmptyLines() error {
+func (p *parser) eatEmptyLines() {
 	for {
 		line, done := p.next()
 		if done {
-			return errors.New("reached end of input while expecting empty lines")
+			return
 		}
 		if line != "" {
 			p.pos--
-			return nil
+			return
 		}
 	}
 }
@@ -257,6 +246,114 @@ func (p *parser) parseControlPlaneNodes() ([]string, error) {
 	return nodes, nil
 }
 
+func (p *parser) parseWorkerUpgradeSection() (*WorkersStatus, error) {
+	p.eatEmptyLines()
+
+	if err := p.eat("= Worker Upgrade ="); err != nil {
+		return nil, err
+	}
+
+	pools, err := p.parseWorkerPools()
+	if err != nil {
+		return nil, err
+	}
+
+	nodes, err := p.parseWorkerPoolNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WorkersStatus{
+		pools: pools,
+		nodes: nodes,
+	}, nil
+}
+
+func (p *parser) parseWorkerPools() ([]string, error) {
+	p.eatEmptyLines()
+
+	if err := p.eatRegex(workerPoolsHeader); err != nil {
+		return nil, fmt.Errorf("expected Worker Upgrade table header: %w", err)
+	}
+
+	var pools []string
+	for {
+		line, done := p.next()
+		if done || line == "" {
+			break
+		}
+
+		pools = append(pools, line)
+	}
+
+	if len(pools) == 0 {
+		return nil, errors.New("no worker pools found in Worker Upgrade section")
+	}
+
+	return pools, nil
+}
+
+func (p *parser) parseWorkerPoolNodes() (map[string][]string, error) {
+	nodes := make(map[string][]string)
+
+	for {
+		p.eatEmptyLines()
+
+		name, entries, err := p.tryParseWorkerNodeTable()
+		if err != nil {
+			return nil, err
+		}
+
+		if name == "" {
+			break
+		}
+
+		nodes[name] = entries
+	}
+
+	if len(nodes) == 0 {
+		return nil, errors.New("no worker pool nodes found in Worker Upgrade section")
+	}
+
+	return nodes, nil
+}
+
+func (p *parser) tryParseWorkerNodeTable() (string, []string, error) {
+	p.eatEmptyLines()
+
+	line, done := p.next()
+	if done {
+		return "", nil, errors.New("expected 'Worker Pool Nodes:' section but reached end of input")
+	}
+	if !strings.HasPrefix(line, "Worker Pool Nodes:") {
+		p.pos-- // put it back
+		return "", nil, nil
+	}
+
+	name := strings.TrimPrefix(line, "Worker Pool Nodes: ")
+
+	if err := p.eatRegex(nodesHeader); err != nil {
+		return "", nil, fmt.Errorf("expected worker pool nodes table header for pool '%s': %w", name, err)
+	}
+
+	// Read node entries
+	var nodeEntries []string
+	for {
+		line, done := p.next()
+		if done || line == "" {
+			break
+		}
+
+		nodeEntries = append(nodeEntries, line)
+	}
+
+	if len(nodeEntries) == 0 {
+		return "", nil, fmt.Errorf("no nodes found for worker pool '%s'", name)
+	}
+
+	return name, nodeEntries, nil
+}
+
 func (u *UpgradeStatusOutput) IsUpdating() bool {
 	return u.updating
 }
@@ -319,138 +416,4 @@ func parseHealthMessages(healthSection string) []string {
 	}
 
 	return messages
-}
-
-func parseWorkers(workersSection string) (*WorkersStatus, error) {
-	lines := strings.Split(workersSection, "\n")
-
-	// Parse pools table first
-	pools, remainingLines, err := parsePoolsTable(lines)
-	if err != nil {
-		return nil, err
-	}
-
-	// Parse worker pool nodes tables
-	nodes, err := parseWorkerPoolNodesTables(remainingLines)
-	if err != nil {
-		return nil, err
-	}
-
-	return &WorkersStatus{
-		pools: pools,
-		nodes: nodes,
-	}, nil
-}
-
-func parsePoolsTable(lines []string) ([]string, []string, error) {
-	var pools []string
-	foundHeader := false
-
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if strings.Contains(line, "WORKER POOL") && strings.Contains(line, "ASSESSMENT") && strings.Contains(line, "COMPLETION") && strings.Contains(line, "STATUS") {
-			foundHeader = true
-			continue
-		}
-
-		if foundHeader {
-			if strings.HasPrefix(line, "Worker Pool Nodes:") {
-				return pools, lines[i:], nil
-			}
-			pools = append(pools, line)
-		}
-	}
-
-	if !foundHeader {
-		return nil, nil, errors.New("missing 'WORKER POOL   ASSESSMENT   COMPLETION   STATUS' header in Worker Upgrade section")
-	}
-
-	if len(pools) == 0 {
-		return nil, nil, errors.New("no worker pools found in Worker Upgrade section")
-	}
-
-	return pools, nil, nil
-}
-
-func parseWorkerPoolNodesTables(lines []string) (map[string][]string, error) {
-	nodes := make(map[string][]string)
-
-	for len(lines) > 0 {
-		poolName, nodeEntries, remainingLines, err := parseWorkerPoolNodesTable(lines)
-		if err != nil {
-			if strings.Contains(err.Error(), "no more Worker Pool Nodes sections found") {
-				break
-			}
-			return nil, err
-		}
-
-		nodes[poolName] = nodeEntries
-		lines = remainingLines
-	}
-
-	return nodes, nil
-}
-
-func parseWorkerPoolNodesTable(lines []string) (string, []string, []string, error) {
-	// Skip empty lines
-	i := 0
-	for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
-		i++
-	}
-
-	if i >= len(lines) {
-		return "", nil, nil, errors.New("no more Worker Pool Nodes sections found")
-	}
-
-	// Expect "Worker Pool Nodes: XXX" header
-	line := strings.TrimSpace(lines[i])
-	if !strings.HasPrefix(line, "Worker Pool Nodes:") {
-		return "", nil, nil, fmt.Errorf("expected 'Worker Pool Nodes: XXX' header, got: %s", line)
-	}
-
-	poolName := strings.TrimSpace(strings.TrimPrefix(line, "Worker Pool Nodes:"))
-	i++
-
-	// Skip empty lines
-	for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
-		i++
-	}
-
-	if i >= len(lines) {
-		return "", nil, nil, fmt.Errorf("expected table header for worker pool '%s'", poolName)
-	}
-
-	// Expect table header
-	headerLine := strings.TrimSpace(lines[i])
-	if !strings.Contains(headerLine, "NAME") || !strings.Contains(headerLine, "ASSESSMENT") {
-		return "", nil, nil, fmt.Errorf("expected table header for worker pool '%s', got: %s", poolName, headerLine)
-	}
-	i++
-
-	// Read node entries until end or next "Worker Pool Nodes:" section
-	var nodeEntries []string
-	for i < len(lines) {
-		line := strings.TrimSpace(lines[i])
-		if line == "" {
-			i++
-			continue
-		}
-
-		if strings.HasPrefix(line, "Worker Pool Nodes:") {
-			break
-		}
-
-		nodeEntries = append(nodeEntries, line)
-		i++
-	}
-
-	if len(nodeEntries) == 0 {
-		return "", nil, nil, fmt.Errorf("no nodes found for worker pool '%s'", poolName)
-	}
-
-	return poolName, nodeEntries, lines[i:], nil
 }
