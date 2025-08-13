@@ -11,7 +11,6 @@ import (
 
 var (
 	operatorLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S\s+.*$`)
-	nodeLinePattern     = regexp.MustCompile(`^\S+\s+\S+\s+\S+\s+\S+\s+\S+.*$`)
 )
 
 func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
