@@ -11,6 +11,8 @@ var (
 	emptyLine          = ""
 	clusterNotUpdating = `The cluster is not updating.`
 
+	noTokenNoAlerts = `Unable to fetch alerts, ignoring alerts in 'Update Health':  failed to get alerts from Thanos: no token is currently in use for this session`
+
 	controlPlaneHeader = `= Control Plane =`
 
 	genericControlPlane = `Update to 4.16.0-ec.3 successfully completed at 2024-02-27T15:42:58Z (duration: 3h31m)
@@ -216,6 +218,39 @@ func TestUpgradeStatusOutput_Updating(t *testing.T) {
 			segments: []string{clusterNotUpdating},
 			expected: false,
 		},
+		{
+			name: "cluster updating",
+			segments: []string{
+				controlPlaneHeader,
+				genericControlPlane,
+				emptyLine,
+				workerSectionHeader,
+				genericWorkerPool,
+				emptyLine,
+				genericWorkerNodes,
+				emptyLine,
+				healthSectionHeader,
+				healthProceedingWell,
+			},
+			expected: true,
+		},
+		{
+			name: "cluster updating | no token no alerts",
+			segments: []string{
+				noTokenNoAlerts,
+				controlPlaneHeader,
+				genericControlPlane,
+				emptyLine,
+				workerSectionHeader,
+				genericWorkerPool,
+				emptyLine,
+				genericWorkerNodes,
+				emptyLine,
+				healthSectionHeader,
+				healthProceedingWell,
+			},
+			expected: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -256,6 +291,26 @@ func TestUpgradeStatusOutput_ControlPlane(t *testing.T) {
 		{
 			name: "control plane without updating operators line",
 			segments: []string{
+				controlPlaneHeader,
+				controlPlaneSummary,
+				emptyLine,
+				controlPlaneThreeNodes,
+				emptyLine,
+				healthSectionHeader,
+				genericHealthSection,
+			},
+			expected: &ControlPlaneStatus{
+				Updated:      false,
+				Summary:      expectedControlPlaneSummaries[controlPlaneSummary],
+				Operators:    nil, // No operators line present
+				NodesUpdated: false,
+				Nodes:        expectedControlPlaneNodes[controlPlaneThreeNodes],
+			},
+		},
+		{
+			name: "control plane without updating operators line, no token warning",
+			segments: []string{
+				noTokenNoAlerts,
 				controlPlaneHeader,
 				controlPlaneSummary,
 				emptyLine,
