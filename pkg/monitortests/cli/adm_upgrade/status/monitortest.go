@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,7 +29,7 @@ type snapshot struct {
 }
 type monitor struct {
 	collectionDone     chan struct{}
-	ocAdmUpgradeStatus map[time.Time]*snapshot
+	ocAdmUpgradeStatus []snapshot
 	notSupportedReason error
 	isSNO              bool
 }
@@ -36,7 +37,7 @@ type monitor struct {
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
 	return &monitor{
 		collectionDone:     make(chan struct{}),
-		ocAdmUpgradeStatus: map[time.Time]*snapshot{},
+		ocAdmUpgradeStatus: make([]snapshot, 0, 60), // expect at least 60 snaphots in a job, one per minute
 	}
 }
 
@@ -106,7 +107,7 @@ func (w *monitor) StartCollection(ctx context.Context, adminRESTConfig *rest.Con
 		go func() {
 			for snap := range snapshots {
 				// TODO: Maybe also collect some cluster resources (CV? COs?) through recorder?
-				w.ocAdmUpgradeStatus[snap.when] = snap
+				w.ocAdmUpgradeStatus = append(w.ocAdmUpgradeStatus, *snap)
 			}
 			w.collectionDone <- struct{}{}
 		}()
@@ -133,6 +134,10 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	// the collection goroutines spawned in StartedCollection to finish
 	<-w.collectionDone
 
+	sort.Slice(w.ocAdmUpgradeStatus, func(i, j int) bool {
+		return w.ocAdmUpgradeStatus[i].when.Before(w.ocAdmUpgradeStatus[j].when)
+	})
+
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
 	return nil, []*junitapi.JUnitTestCase{w.noFailures()}, nil
@@ -156,10 +161,10 @@ func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuf
 	}
 
 	var errs []error
-	for when, observed := range w.ocAdmUpgradeStatus {
-		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", when, timeSuffix)
+	for _, snap := range w.ocAdmUpgradeStatus {
+		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", snap.when, timeSuffix)
 		outputFile := filepath.Join(folderPath, outputFilename)
-		if err := os.WriteFile(outputFile, []byte(observed.out), 0644); err != nil {
+		if err := os.WriteFile(outputFile, []byte(snap.out), 0644); err != nil {
 			errs = append(errs, fmt.Errorf("failed to write %s: %w", outputFile, err))
 		}
 	}
@@ -177,10 +182,10 @@ func (w *monitor) noFailures() *junitapi.JUnitTestCase {
 
 	var failures []string
 	var total int
-	for when, observed := range w.ocAdmUpgradeStatus {
+	for _, snap := range w.ocAdmUpgradeStatus {
 		total++
-		if observed.err != nil {
-			failures = append(failures, fmt.Sprintf("- %s: %v", when.Format(time.RFC3339), observed.err))
+		if snap.err != nil {
+			failures = append(failures, fmt.Sprintf("- %s: %v", snap.when.Format(time.RFC3339), snap.err))
 		}
 	}
 
