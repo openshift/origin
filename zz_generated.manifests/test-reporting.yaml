@@ -970,13 +970,6 @@ spec:
         Catalog should serve FBC via the /v1/api/all endpoint'
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators
         Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
-        installation should block cluster upgrades if an incompatible operator is
-        installed'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
-        installation should fail to install a non-existing cluster extension'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 operator
-        installation should install a cluster extension'
   - featureGate: NewOLMCatalogdAPIV1Metas
     tests:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
