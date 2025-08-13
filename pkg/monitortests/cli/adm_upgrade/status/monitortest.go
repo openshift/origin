@@ -218,8 +218,15 @@ func (w *monitor) noFailures() *junitapi.JUnitTestCase {
 		}
 	}
 
+	if total == 0 {
+		noFailures.SkipMessage = &junitapi.SkipMessage{
+			Message: "Test skipped because no oc adm upgrade status output was collected",
+		}
+		return noFailures
+	}
+
 	// Zero failures is too strict for at least SNO clusters
-	p := (len(failures) / total) * 100
+	p := (float32(len(failures)) / float32(total)) * 100
 	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
 		noFailures.FailureOutput = &junitapi.FailureOutput{
 			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
