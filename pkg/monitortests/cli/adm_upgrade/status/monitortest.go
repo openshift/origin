@@ -240,12 +240,14 @@ func (w *monitor) expectedLayout() *junitapi.JUnitTestCase {
 		},
 	}
 
-	w.ocAdmUpgradeStatusOutputModels = make([]outputModel, 0, len(w.ocAdmUpgradeStatus))
+	w.ocAdmUpgradeStatusOutputModels = make([]outputModel, len(w.ocAdmUpgradeStatus))
 
 	failureOutputBuilder := strings.Builder{}
 
 	for i, observed := range w.ocAdmUpgradeStatus {
-		w.ocAdmUpgradeStatusOutputModels[i].when = observed.when
+		w.ocAdmUpgradeStatusOutputModels[i] = outputModel{
+			when: observed.when,
+		}
 
 		if observed.err != nil {
 			// Failures are handled in noFailures, so we can skip them here
