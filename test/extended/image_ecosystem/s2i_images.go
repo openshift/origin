@@ -144,13 +144,6 @@ var s2iImages = map[string][]tc{
 			Version:  "532",
 			Cmd:      "perl --version",
 			Expected: "v5.32",
-			Tag:      "5.32-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "532",
-			Cmd:      "perl --version",
-			Expected: "v5.32",
 			Tag:      "5.32-ubi9",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
