@@ -31,8 +31,8 @@ const (
 	namespacePrefix = "egressip"
 	egressIPYaml    = "egressip.yaml"
 	probePodName    = "prober-pod"
-	// Test
-	// for tests against host networked pods
+
+	// for tests against host networked pod
 	egressIPTargetHostPortMin = 32667
 	egressIPTargetHostPortMax = 32767
 
