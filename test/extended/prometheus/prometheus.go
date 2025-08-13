@@ -74,6 +74,15 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 
 	g.BeforeEach(func(ctx g.SpecContext) {
 		var err error
+
+		kubeClient, err := kubernetes.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nsExist, err := exutil.IsNamespaceExist(kubeClient, "openshift-monitoring")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !nsExist {
+			g.Skip("openshift-monitoring namespace does not exist, skipping")
+		}
+
 		prometheusURL, err = helper.PrometheusRouteURL(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
 		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
