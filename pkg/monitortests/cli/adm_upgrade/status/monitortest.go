@@ -168,6 +168,7 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 		w.controlPlane(),
 		w.workers(),
 		w.health(),
+		w.updateLifecycle(ctx),
 	}, nil
 }
 
