@@ -88,7 +88,7 @@ func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCa
 				wroteOnce = true
 				failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
 				failureOutputBuilder.WriteString(observed.output.rawOutput)
-				failureOutputBuilder.WriteString(fmt.Sprintf("=> %s\n", message))
+				failureOutputBuilder.WriteString(fmt.Sprintf("\n\n=> %s\n", message))
 			}
 		}
 
@@ -99,20 +99,30 @@ func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCa
 			continue
 		}
 
+		controlPlane := observed.output.controlPlane
+
 		o := notUpdating
 		switch {
-		case observed.output.controlPlane.Updated:
+		case controlPlane != nil && controlPlane.Updated:
 			o = controlPlaneObservedUpdated
-		case observed.output.controlPlane.NodesUpdated:
+		case controlPlane != nil && controlPlane.NodesUpdated:
 			o = controlPlaneObservedNodesUpdated
 		case observed.output.updating:
 			o = controlPlaneObservedUpdating
 		}
 
-		if next, ok := stateTransitions[current][o]; !ok {
+		fromCurrent := stateTransitions[current]
+		if next, ok := fromCurrent[o]; !ok {
 			fail(fmt.Sprintf("Unexpected observation '%s' in state '%s'", o, current))
 		} else {
 			current = next
+		}
+	}
+
+	if failureOutputBuilder.Len() > 0 {
+		health.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("observed unexpected update lifecycle transition in oc adm upgrade status"),
+			Output:  failureOutputBuilder.String(),
 		}
 	}
 
