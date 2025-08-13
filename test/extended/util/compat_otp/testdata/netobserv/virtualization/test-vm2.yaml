@@ -1,0 +1,61 @@
+ apiVersion: kubevirt.io/v1
+ kind: VirtualMachine
+ metadata:
+  name: test-vm2
+  namespace: test-76537
+ spec:
+  dataVolumeTemplates:
+    - metadata:
+        name: test-vm2-volume
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: rhel9 
+          namespace: openshift-virtualization-os-images 
+        storage: {}
+  instancetype:
+    name: u1.medium 
+  preference:
+    name: rhel.9 
+  running: true
+  template:
+    spec:
+      domain:
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - name: default
+              masquerade: {}
+            - name: secondary
+              bridge: {}
+      volumes:
+        - dataVolume:
+            name: test-vm2-volume
+          name: rootdisk
+        - cloudInitNoCloud:
+            networkData: |
+              version: 2
+              ethernets:
+                eth1:
+                  addresses:
+                  - 10.10.10.14/24
+            userData: |-
+              #cloud-config
+              user: cloud-user
+              password: byje-7cd2-i8et
+              chpasswd: { expire: False }
+              runcmd:
+              - [ping, 10.10.10.15]
+          name: cloudinitdisk
+      networks:
+        - name: default
+          pod: {}
+        - multus:
+            networkName: l2-network
+          name: secondary

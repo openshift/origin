@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: add-ignition-kernel-arguments
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: MachineConfig
+  metadata:
+    labels:
+      machineconfiguration.openshift.io/role: "${POOL}"
+    name: "${NAME}"
+  spec:
+    config:
+      ignition:
+        version: 3.4.0
+      kernelArguments:
+        shouldExist:
+        - enforcing=0
+parameters:
+  - name: NAME
+  - name: POOL

@@ -1,0 +1,45 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: stateful-template
+objects:
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      image.openshift.io/triggers: |-
+        [
+          {
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "st:latest"
+            },
+            "fieldPath": "spec.template.spec.containers[0].image"
+          }
+        ]
+  spec:
+    serviceName: example-statefulset
+    replicas: 3
+    selector:
+      matchLabels:
+        app: example-statefulset
+    template:
+      metadata:
+        labels:
+          app: example-statefulset
+      spec:
+        terminationGracePeriodSeconds: 10
+        containers:
+          - name: "${NAME}"
+            image: "${IMAGE}"
+            imagePullPolicy: Always
+            resources: {}
+            terminationMessagePath: /dev/termination-log
+        serviceAccount: default
+        terminationGracePeriodSeconds: 10
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: IMAGE

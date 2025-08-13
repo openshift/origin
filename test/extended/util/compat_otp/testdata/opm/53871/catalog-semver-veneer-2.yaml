@@ -1,0 +1,16 @@
+Schema: olm.semver
+GenerateMajorChannels: true
+GenerateMinorChannels: true
+Candidate:
+  Bundles:
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v0.0.1
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-alpha
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-beta
+Stable:
+  Bundles:
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1
+Fast:
+  Bundles:
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-alpha
+  - Image: quay.io/olmqe/nginxolm-operator-bundle:v1.0.1-beta

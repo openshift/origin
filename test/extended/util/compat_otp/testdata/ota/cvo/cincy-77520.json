@@ -1,0 +1,100 @@
+{
+    "nodes": [
+      {
+        "version": "current_version",
+        "payload": "registry.ci.openshift.org/ocp/release@sha256:02cc2c69f1fc8fc4007631d5fb29c3fbcd6aaa4a4212f9669b580af7dad94e21",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-a"
+        }
+      },
+      {
+        "version": "major.minor.998",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:e63e11532f9ee550219f076530ce449a5e2ce6f6179e5ccdaf55ce68092e7021",
+        "metadata": {
+            "url": "https://amd64.ocp.releases.ci.openshift.org/releasestream/4-stable/release/4.y.1",
+            "io.openshift.upgrades.graph.release.channels": "channel-a"
+        }
+      },
+      {
+        "version": "major.minor.999",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:2bf757225166a2d1f51370f0bd2ec734bcc8cf759fa1a53ab9531ce8c584c17c",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-a"
+        }
+      },
+      {
+        "version": "major.next.997",
+        "payload": "registry.ci.openshift.org/ocp/release@sha256:fae7fcf1643f5dc4f50d9c6aaab22d65898d8e7359cfb7fbb75f50f5461061aa",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-b"
+        }
+      },
+      {
+        "version": "major.next.998",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:a3233d18821af30610bc16d4a3d0f45a5f6bcfbb50eda139b8b82b824a78559f",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-b"
+        }
+      },
+      {
+        "version": "major.next.999",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:d2d34aafe0adda79953dd928b946ecbda34673180ee9a80d2ee37c123a0f510c",
+        "metadata": {
+            "url": "https://amd64.ocp.releases.ci.openshift.org/releasestream/4-dev-preview/release/4.y+1.0",
+            "io.openshift.upgrades.graph.release.channels": "channel-b"
+        }
+      }
+    ],
+    "edges": [
+      [0,1],
+      [0,2],
+      [0,3],
+      [0,4],
+      [0,5]
+    ],
+    "conditionalEdges":[
+      {
+        "edges": [
+          {"from": "current_version", "to": "major.next.998"}
+        ],
+        "risks": [
+          {
+            "url": "https://bug.example.com/a",
+            "name": "SomeInvokerThing",
+            "message": "On clusters on default invoker user, this imaginary bug can happen.",
+            "matchingRules": [
+              {
+                "type": "PromQL",
+                "promql": {
+                  "promql": "cluster_installer"
+                }
+              }
+            ]
+          },
+          {
+            "url": "https://bug.example.com/b",
+            "name": "SomeChannelThing",
+            "message": "On clusters with the channel set to 'buggy', this imaginary bug can happen.",
+            "matchingRules": [
+              {
+                "type": "PromQL",
+                "promql": {
+                  "promql": "group(cluster_version_available_updates{channel=\"buggy\"})\nor\n0 * group(cluster_version_available_updates{channel!=\"buggy\"})"
+                }
+              }
+            ]
+          },
+          {
+            "url": "https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/releasestream/4.y.0-0.nightly/release/4.y.0-0.nightly-2021-11-24-075634",
+            "name": "ReleaseIsRejected",
+            "message": "Too many CI failures on this release, so do not update to it",
+            "matchingRules": [
+              {
+                "type": "Always"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }

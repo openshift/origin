@@ -1,0 +1,41 @@
+apiVersion: sro.openshift.io/v1beta1
+kind: SpecialResource
+metadata:
+  name: ping-pong
+spec:
+  namespace: ping-pong
+  chart:
+    name: ping-pong
+    version: 0.0.1
+    repository:
+      name: example
+      url: file:///charts/example
+  set:
+    kind: Values
+    apiVersion: sro.openshift.io/v1beta1
+    clientArgs:
+      caFile: "-ca-file=/etc/pingpong/certs/ca.crt"
+      keyFile: "-key-file=/etc/pingpong/certs/tls.key"
+      certFile: "-cert-file=/etc/pingpong/certs/tls.crt"
+    serverArgs:
+      caFile: "-ca-file=/etc/ping-pong/certs/ca.crt"
+      keyFile: "-key-file=/etc/ping-pong/certs/tls.key"
+      certFile: "-cert-file=/etc/ping-pong/certs/tls.crt"
+  driverContainer:
+    source:
+      git:
+        ref: "master"
+        uri: "https://github.com/dagrayvid/pingpong"
+
+  dependencies:
+  - chart:
+      name: cert-manager
+      version: 1.5.0
+      repository:
+        name: jetstack
+        url: https://charts.jetstack.io
+    set:
+      kind: Values
+      apiVersion: sro.openshift.io/v1beta1
+      installCRDs: true
+

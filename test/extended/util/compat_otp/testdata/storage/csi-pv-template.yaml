@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-csi-pv-template
+objects:
+  # PV
+- kind: PersistentVolume
+  apiVersion: v1
+  metadata:
+    name: ${NAME}
+  spec:
+    accessModes:
+      - ${ACCESSMODE}
+    capacity:
+      storage: ${CAPACITY}
+    persistentVolumeReclaimPolicy: ${RECLAIMPOLICY} # Retain, Delete
+    storageClassName: ${SCNAME}
+    volumeMode: ${VOLUMEMODE}   # Filesystem, Block
+
+parameters:
+- name: NAME
+- name: ACCESSMODE
+- name: CAPACITY
+- name: RECLAIMPOLICY
+- name: SCNAME
+- name: VOLUMEMODE

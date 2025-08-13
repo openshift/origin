@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-volumesnapshotcontent-template
+objects:
+  # volumesnapshotcontent
+- kind: VolumeSnapshotContent
+  apiVersion: snapshot.storage.k8s.io/v1
+  metadata:
+    name: ${VSCONTENTNAME}
+  spec:
+    deletionPolicy: ${DELETIONPOLICY}
+    driver: ${DRIVER}
+    source:
+      snapshotHandle: ${SNHANDLE}
+    volumeSnapshotClassName: ${VSCLASSNAME}
+    volumeSnapshotRef:
+      name: ${VSNAME}
+      namespace: ${VSNAMESPACE}
+parameters:
+- name: VSCONTENTNAME
+- name: DELETIONPOLICY
+- name: DRIVER
+- name: SNHANDLE
+- name: VSCLASSNAME
+- name: VSNAME
+- name: VSNAMESPACE

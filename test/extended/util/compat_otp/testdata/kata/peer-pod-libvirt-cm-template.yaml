@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: peer-pods-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    data:
+      CLOUD_PROVIDER: "libvirt"
+      PROXY_TIMEOUT: "${PROXY_TIMEOUT}"
+      PODVM_IMAGE_URI: "${PODVM_IMAGE_URI}"
+
+
+# This is for end user/Jenkins to create a configmap and apply it to your cluster
+parameters:
+  - name: NAME
+    value: "peer-pods-cm"
+  - name: NAMESPACE
+    value: "openshift-sandboxed-containers-operator"
+  - name: PROXY_TIMEOUT
+    value: "15m"
+  - name: PODVM_IMAGE_URI
+    value: ""

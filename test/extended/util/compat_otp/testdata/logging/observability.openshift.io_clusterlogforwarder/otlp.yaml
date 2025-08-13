@@ -1,0 +1,46 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    annotations:
+      observability.openshift.io/tech-preview-otlp-output: "enabled"
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: ${MANAGEMENT_STATE}
+    outputs:
+    - name: otlp
+      type: otlp
+      otlp:
+        tuning:
+          compression: gzip
+          deliveryMode: AtLeastOnce
+          maxRetryDuration: 20
+          maxWrite: 10M
+          minRetryDuration: 5
+        url: ${URL}/v1/logs
+    pipelines:
+    - inputRefs:
+      - application
+      - infrastructure
+      - audit
+      name: otlp-logs
+      outputRefs:
+      - otlp
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: URL
+  value: "http://otel-collector.openshift-opentelemetry-operator.svc:4318"

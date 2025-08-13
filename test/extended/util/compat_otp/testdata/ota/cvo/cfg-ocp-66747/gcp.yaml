@@ -1,0 +1,5 @@
+---
+apiVersion: v1
+platform:
+  gcp:
+    foo: bar

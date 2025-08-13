@@ -1,0 +1,12 @@
+apiVersion: project.openshift.io/v1
+kind: Project
+metadata:
+  annotations:
+    openshift.io/node-selector: node-role.kubernetes.io/worker=
+  labels:
+    kubernetes.io/metadata.name: infinite-pod-creation
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: v1.24
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: v1.24
+  name: infinite-pod-creation-69072

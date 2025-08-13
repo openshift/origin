@@ -1,0 +1,6 @@
+apiVersion: mirror.openshift.io/v1alpha2
+kind: ImageSetConfiguration
+archiveSize: 1
+mirror:
+  additionalimages:
+    - name: quay.io/openshifttest/hello-openshift:1.2.0

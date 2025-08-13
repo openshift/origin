@@ -1,0 +1,58 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ocp-istream-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: hugepages-app
+      labels:
+        app: hugepages-example
+    spec:
+      containers:
+      - securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        image: ${IMAGENAME}
+        command:
+        - sleep
+        - inf
+        name: example
+        volumeMounts:
+        - mountPath: /dev/hugepages
+          name: hugepage
+        - mountPath: /etc/podinfo
+          name: podinfo
+        resources:
+          limits:
+            hugepages-2Mi: 100Mi
+            memory: "1Gi"
+            cpu: "100m"
+          requests:
+            hugepages-2Mi: 100Mi
+        env:
+        - name: REQUESTS_HUGEPAGES_2Mi
+          valueFrom:
+            resourceFieldRef:
+              containerName: example
+              resource: requests.hugepages-2Mi
+      volumes:
+      - name: hugepage
+        emptyDir:
+          medium: HugePages
+      - name: podinfo
+        downwardAPI:
+          items:
+            - path: "hugepages_2M_request" 
+              resourceFieldRef:
+                containerName: example
+                resource: requests.hugepages-2Mi
+                divisor: 1M
+parameters:
+- name: IMAGENAME

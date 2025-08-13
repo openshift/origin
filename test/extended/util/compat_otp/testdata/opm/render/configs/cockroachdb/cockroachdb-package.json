@@ -1,0 +1,8 @@
+{
+    "schema": "olm.package",
+    "name": "cockroachdb",
+    "defaultChannel": "stable",
+    "icon": {
+        "mediatype": "image/svg+xml"
+    }
+}

@@ -1,0 +1,113 @@
+{
+  "support_Matrix": {
+    "platforms": [
+      {
+        "name": "aws",
+        "provisioners": [
+          {
+            "name": "ebs.csi.aws.com",
+            "preset_scname": [
+              "gp3-csi",
+              "gp2-csi"
+            ],
+            "preset_vscname": "csi-aws-vsc"
+          },
+          {
+            "name": "efs.csi.aws.com",
+            "preset_scname": "efs-sc"
+          }
+        ]
+      },
+      {
+        "name": "azure",
+        "provisioners": [
+          {
+            "name": "disk.csi.azure.com",
+            "preset_scname": "managed-csi",
+            "preset_vscname": "csi-azuredisk-vsc"
+          },
+          {
+            "name": "file.csi.azure.com",
+            "preset_scname": "azurefile-csi",
+            "preset_vscname": "csi-azurefile-vsc"
+          }
+        ]
+      },
+      {
+        "name": "gcp",
+        "provisioners": [
+          {
+            "name": "pd.csi.storage.gke.io",
+            "preset_scname": "standard-csi",
+            "preset_vscname": "csi-gce-pd-vsc"
+          },
+          {
+            "name": "filestore.csi.storage.gke.io",
+            "preset_scname": "filestore-csi"
+          }
+        ]
+      },
+      {
+        "name": "vsphere",
+        "provisioners": [
+          {
+            "name": "csi.vsphere.vmware.com",
+            "preset_scname": "thin-csi",
+            "preset_vscname": "csi-vsphere-vsc"
+          }
+        ]
+      },
+      {
+        "name": "openstack",
+        "provisioners": [
+          {
+            "name": "cinder.csi.openstack.org",
+            "preset_scname": "standard-csi"
+          },
+          {
+            "name": "manila.csi.openstack.org",
+            "preset_scname": "csi-manila-ceph"
+          }
+        ]
+      },
+      {
+        "name": "alibabacloud",
+        "provisioners": [
+          {
+            "name": "diskplugin.csi.alibabacloud.com",
+            "preset_scname": "alicloud-disk",
+            "preset_vscname": "alicloud-disk"
+          }
+        ],
+        "volumetypes": [
+          "cloud_essd",
+          "cloud_efficiency"
+        ]
+      },
+      {
+        "name": "ibmcloud",
+        "provisioners": [
+          {
+            "name": "vpc.block.csi.ibm.io",
+            "preset_scname": [
+              "ibmc-vpc-block-10iops-tier",
+              "ibmc-vpc-block-5iops-tier",
+              "ibmc-vpc-block-custom"
+            ],
+            "preset_vscname": "vpc-block-snapshot"
+          }
+        ]
+      },
+      {
+        "name": "topolvm",
+        "provisioners": [
+          {
+            "name": "topolvm.io",
+            "preset_scname": "topolvm-provisioner",
+            "preset_vscname": "topolvm-snapclass"
+          }
+        ]
+      }
+    ]
+  }
+}

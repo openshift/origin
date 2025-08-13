@@ -1,0 +1,68 @@
+kind: Template
+apiversion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: "observability.openshift.io/v1"
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    outputs:
+    - name: cloudwatch-application
+      type: cloudwatch
+      cloudwatch:
+        authentication:
+          iamRole:
+            roleARN:
+              key: role_arn
+              secretName: ${SECRET_NAME_1}
+            token:
+              from: serviceAccount
+          type: iamRole
+        groupName: ${GROUP_NAME_1}
+        region: ${REGION_1}
+    - cloudwatch:
+        authentication:
+          iamRole:
+            roleARN:
+              key: role_arn
+              secretName: ${SECRET_NAME_2}
+            token:
+              from: secret
+              secret:
+                key: token
+                name: ${SECRET_NAME_2}
+          type: iamRole
+        groupName: ${GROUP_NAME_2}
+        region: ${REGION_2}
+      name: cloudwatch-infra-audit
+      type: cloudwatch
+    pipelines:
+    - name: cloudwatch-1
+      inputRefs:
+      - application
+      outputRefs:
+      - cloudwatch-application
+    - name: cloudwatch-2
+      inputRefs:
+      - infrastructure
+      - audit
+      outputRefs:
+      - cloudwatch-infra-audit
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: SECRET_NAME_1
+- name: SECRET_NAME_2
+- name: REGION_1
+- name: REGION_2
+- name: GROUP_NAME_1
+- name: GROUP_NAME_2
+- name: SERVICE_ACCOUNT_NAME

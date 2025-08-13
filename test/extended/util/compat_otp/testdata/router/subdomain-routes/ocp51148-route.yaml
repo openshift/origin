@@ -1,0 +1,59 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+    labels:
+      name: service-unsecure
+    name: ${SUBDOMAIN_NAME}-unsecure1
+  namespace: ${NAMESPACE}
+  spec:
+    subdomain: ${SUBDOMAIN_NAME}
+    to:
+      kind: Service
+      name: service-unsecure
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+    labels:
+      name: service-unsecure
+    name: ${SUBDOMAIN_NAME}-unsecure2
+  namespace: ${NAMESPACE}
+  spec:
+    to:
+      kind: Service
+      name: service-unsecure
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+    labels:
+      name: service-unsecure
+    name: ${SUBDOMAIN_NAME}-unsecure3
+  namespace: ${NAMESPACE}
+  spec:
+    host: man-${NAMESPACE}.${DOMAIN}
+    subdomain: ${SUBDOMAIN_NAME}
+    to:
+      kind: Service
+      name: service-unsecure
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    annotations:
+    labels:
+      name: service-unsecure
+    name: ${SUBDOMAIN_NAME}-unsecure4
+  namespace: ${NAMESPACE}
+  spec:
+    host: bar-${NAMESPACE}.${DOMAIN}
+    to:
+      kind: Service
+      name: service-unsecure
+parameters:
+- name: NAMESPACE
+- name: DOMAIN
+- name: SUBDOMAIN_NAME

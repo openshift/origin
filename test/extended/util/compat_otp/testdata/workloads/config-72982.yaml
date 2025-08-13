@@ -1,0 +1,7 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  operators:
+  - catalog: oci:///test/redhat-operator-index
+    packages:
+    - name: aws-load-balancer-operator

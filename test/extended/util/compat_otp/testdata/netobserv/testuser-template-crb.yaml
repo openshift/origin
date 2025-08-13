@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: testuser-templating-template
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    name: testuser-templating-cr
+  rules:
+  - apiGroups:
+    - 'template.openshift.io'
+    resources:
+    - templates
+    - processedtemplates
+    verbs:
+    - 'get'
+    - 'list'
+    - 'create'
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: testuser-templating-crb
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: testuser-templating-cr
+  subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: "${USERNAME}"
+parameters:
+- name: USERNAME
+  required: true

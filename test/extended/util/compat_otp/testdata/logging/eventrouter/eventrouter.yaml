@@ -1,0 +1,98 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: eventrouter-template
+  annotations:
+    description: "A pod forwarding kubernetes events to OpenShift Logging stack."
+    tags: "events,EFK,logging,cluster-logging"
+objects:
+  - kind: ServiceAccount
+    apiVersion: v1
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+  - kind: ClusterRole
+    apiVersion: v1
+    metadata:
+      name: ${NAME}-reader
+    rules:
+    - apiGroups: [""]
+      resources: ["events"]
+      verbs: ["get", "watch", "list"]
+  - kind: ClusterRoleBinding
+    apiVersion: v1
+    metadata:
+      name: ${NAME}-reader-binding
+    subjects:
+    - kind: ServiceAccount
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    roleRef:
+      kind: ClusterRole
+      name: ${NAME}-reader
+  - kind: ConfigMap
+    apiVersion: v1
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+    data:
+      config.json: |-
+        {
+          "sink": "stdout"
+        }
+  - kind: Deployment
+    apiVersion: apps/v1
+    metadata:
+      name: ${NAME}
+      namespace: ${NAMESPACE}
+      labels:
+        component: "eventrouter"
+        logging-infra: "eventrouter"
+        provider: "openshift"
+    spec:
+      selector:
+        matchLabels:
+          component: "eventrouter"
+          logging-infra: "eventrouter"
+          provider: "openshift"
+      replicas: 1
+      template:
+        metadata:
+          labels:
+            component: "eventrouter"
+            logging-infra: "eventrouter"
+            provider: "openshift"
+          name: ${NAME}
+        spec:
+          serviceAccount: ${NAME}
+          containers:
+            - name: kube-eventrouter
+              image: ${IMAGE}
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: ${CPU}
+                  memory: ${MEMORY}
+              volumeMounts:
+              - name: config-volume
+                mountPath: /etc/eventrouter
+          volumes:
+            - name: config-volume
+              configMap:
+                name: ${NAME}
+parameters:
+  - name: IMAGE
+    displayName: Image
+    value: "brew.registry.redhat.io/rh-osbs/openshift-logging-eventrouter-rhel9:v0.4.0"
+  - name: CPU
+    displayName: CPU
+    value: "100m"
+  - name: MEMORY
+    displayName: Memory
+    value: "128Mi"
+  - name: NAMESPACE
+    displayName: Namespace
+    value: "openshift-logging"
+  - name: NAME
+    value: eventrouter
+    displayName: Event Router name

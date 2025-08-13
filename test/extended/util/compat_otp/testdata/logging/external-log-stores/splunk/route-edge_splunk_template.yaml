@@ -1,0 +1,29 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: route-edge-splunk-template
+objects:
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: ${NAME}
+  spec:
+    host: ${ROUTE_HOST}
+    port:
+      targetPort: ${PORT_NAME} 
+    tls:
+      insecureEdgeTerminationPolicy: Allow
+      termination: edge
+    to:
+      kind: Service
+      name: ${SERVICE_NAME}
+    wildcardPolicy: None
+parameters:
+- name: NAME
+  value: "splunk-default-hec"
+- name: PORT_NAME
+  value: "http-hec"
+- name: SERVICE_NAME
+  value: "splunk-default-service"
+- name: ROUTE_HOST
+  value: ""

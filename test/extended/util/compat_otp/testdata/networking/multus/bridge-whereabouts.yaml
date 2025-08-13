@@ -1,0 +1,26 @@
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: bridge-whereabouts
+spec:
+  config: |
+    {
+      "cniVersion": "0.4.0",
+      "name": "bridge-whereabouts",
+      "type": "bridge",
+      "ipam": {
+        "type": "whereabouts",
+        "ipRanges": [
+          {
+            "range": "192.168.14.0/24",
+            "rangeStart": "192.168.14.1",
+            "rangeEnd": "192.168.14.100"
+          },
+          {
+            "range": "FD00:192:168:14::0/64",
+            "rangeStart": "FD00:192:168:14::1",
+            "rangeEnd": "FD00:192:168:14::100"
+          }
+        ]
+      }
+    }

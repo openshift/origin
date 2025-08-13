@@ -1,0 +1,2 @@
+quay.io/openshifttest/hello-openshift:arm-amd-1.2.0 localhost:5000/hello-openshift:arm-amd-1.2.0
+quay.io/openshifttest/hello-openshift:arm-amd-latest localhost:5000/hello-openshift:arm-amd-latest

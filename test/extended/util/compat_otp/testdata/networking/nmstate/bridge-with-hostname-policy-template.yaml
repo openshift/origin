@@ -1,0 +1,34 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: bridge-with-hostname-policy-template
+objects:
+- apiVersion: nmstate.io/v1
+  kind: NodeNetworkConfigurationPolicy
+  metadata:
+    name: "${NAME}"
+  spec:
+    nodeSelector:
+      "${NODELABEL}": "${LABELVALUE}"
+    desiredState:
+      interfaces:
+        - name: "${IFACENAME}"
+          type: linux-bridge
+          state: "${STATE}"
+          bridge:
+            options:
+              stp:
+                enabled: false
+            port: []
+          ipv4:
+            dhcp-custom-hostname: foo
+            dhcp: true
+            enabled: true
+
+parameters:
+  - name: NAME
+  - name: NODELABEL
+    value: "kubernetes.io/hostname"
+  - name: LABELVALUE
+  - name: STATE
+  - name: IFACENAME

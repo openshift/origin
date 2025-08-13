@@ -1,0 +1,10 @@
+apiVersion: mirror.openshift.io/v2alpha1
+kind: DeleteImageSetConfiguration
+delete:
+  platform:
+    channels:
+    - name: stable-4.17
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.17
+    packages:
+    - name: cluster-kube-descheduler-operator

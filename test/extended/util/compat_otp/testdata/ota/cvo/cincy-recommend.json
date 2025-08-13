@@ -1,0 +1,61 @@
+{
+    "nodes": [
+      {
+        "version": "current_version",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:875094103228a685ab9c2159f5bb97455a823d137e9da09bfd0e00af9296b042",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-a"
+        }
+      },
+      {
+        "version": "4.999.998",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:0dac222584991f89a123d85e8c3055f0056e5876fc209b8d4bea7a59e7504d59",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-a"
+        }
+      },
+      {
+        "version": "4.999.999",
+        "payload": "quay.io/openshift-release-dev/ocp-release@sha256:9d24a8cdd67b8f18c99547d5910e4863e7aab5bd888e26670a00dbda0a9d4687",
+        "metadata": {
+            "io.openshift.upgrades.graph.release.channels": "channel-a"
+        }
+      }
+    ],
+    "edges": [
+      [0,1],
+      [0,2]
+    ],
+    "conditionalEdges":[
+      {
+        "edges": [
+          {"from": "current_version", "to": "4.999.999"}
+        ],
+        "risks": [
+          {
+            "url": "https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/releasestream/4.10.0-0.nightly/release/4.10.0-0.nightly-2021-11-24-075634",
+            "name": "ReleaseIsRejected",
+            "message": "Too many CI failures on this release, so do not update to it",
+            "matchingRules": [
+              {
+                "type": "Always"
+              }
+            ]
+          },
+          {
+            "url": "https://bug.example.com/a",
+            "name": "SomeInvokerThing",
+            "message": "On clusters on default invoker user, this imaginary bug can happen.",
+            "matchingRules": [
+              {
+                "type": "PromQL",
+                "promql": {
+                  "promql": "cluster_installer"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }

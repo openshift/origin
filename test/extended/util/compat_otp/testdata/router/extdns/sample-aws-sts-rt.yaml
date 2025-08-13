@@ -1,0 +1,23 @@
+apiVersion: externaldns.olm.openshift.io/v1beta1
+kind: ExternalDNS
+metadata:
+  name: sample-aws-sts-rt
+spec:
+  domains:
+  - filterType: Include
+    matchType: Exact
+    name: basedomain
+  provider:
+    type: AWS
+    aws:
+      credentials:
+        name: aws-sts-creds
+  zones:
+    - privatezone
+  source:
+    labelFilter:
+      matchLabels:
+        external-dns.mydomain.org/publish: "yes"
+    openshiftRouteOptions:
+      routerName: default
+    type: OpenShiftRoute

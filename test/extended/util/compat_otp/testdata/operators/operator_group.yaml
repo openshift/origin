@@ -1,0 +1,7 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: test-operators
+spec:
+  targetNamespaces:
+  - $OPERATOR_NAMESPACE

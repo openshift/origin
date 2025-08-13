@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: containerruntimeconfig-template
+objects:
+  - apiVersion: machineconfiguration.openshift.io/v1
+    kind: ContainerRuntimeConfig
+    metadata:
+      name: "${NAME}"
+    spec:
+      machineConfigPoolSelector:
+        matchLabels:
+          pools.operator.machineconfiguration.openshift.io/worker: ""
+      containerRuntimeConfig:
+        logLevel: "${LOGLEVEL}"
+
+parameters:
+  - name: NAME
+    value: "crio-debug"
+  - name: LOGLEVEL
+    value: "debug"

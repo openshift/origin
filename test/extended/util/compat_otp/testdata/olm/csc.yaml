@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: opsrc-template
+objects:
+- kind: CatalogSourceConfig
+  apiVersion: operators.coreos.com/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    packages: "${PACKAGES}"
+    targetNamespace: "${TARGETNAMESPACE}"
+    source: "${SOURCE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PACKAGES
+- name: TARGETNAMESPACE
+- name: SOURCE

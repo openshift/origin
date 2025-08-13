@@ -1,0 +1,17 @@
+apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  name:  tcp-port
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: macvlan-nad1
+spec:
+  podSelector: 
+    matchLabels:
+      name: tcp-port-pod
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    ports:
+    - protocol: TCP
+      port: 8080

@@ -1,0 +1,47 @@
+{
+	"apiVersion": "template.openshift.io/v1",
+	"kind": "Template",
+	"metadata": {
+		"name": "mcast-pod-template"
+	},
+	"objects": [    
+	{
+			"apiVersion": "v1",
+			"kind": "ReplicationController",
+			"metadata": {
+			"labels": {
+				"name": "${{RCNAME}}"
+			},
+			"name": "${{RCNAME}}"
+			},
+			"spec": {
+			"replicas": "${{REPLICAS}}",
+			"template": {
+				"metadata": {
+				"labels": {
+					"name": "${{RCNAME}}"
+				}
+				},
+				"spec": {
+				"containers": [
+					{
+					"image": "quay.io/openshifttest/mcast-pod@sha256:aa2a8fdcfeddb09097e6a7201cfdb062db8d92d523cbcf758ef7d3545a1f5776",
+					"name": "mcast-rc"
+					}
+				]
+				}
+			}
+			}
+		}
+    ],
+	"parameters": [
+		{
+		    "name": "RCNAME"
+		},
+		{
+			"name": "REPLICAS",
+			"displayName": "Replicas",
+			"value": "3"
+		  }
+	]
+}

@@ -1,0 +1,15 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: aws-load-balancer-operator
+  namespace: aws-load-balancer-operator
+spec:
+  channel: stable-v1
+  config:
+    env:
+    - name: ROLEARN
+      value: fakeARN-for-albo
+  installPlanApproval: Automatic
+  name: aws-load-balancer-operator
+  source: qe-app-registry
+  sourceNamespace: openshift-marketplace

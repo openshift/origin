@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  <address>: username=<username>
+kind: ConfigMap
+metadata:
+  name: windows-instances
+  namespace: openshift-windows-machine-config-operator

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox
+  namespace: cma-73296 # replace <NAMESPACE>
+  labels:
+    app: busybox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+    spec:
+      containers:
+      - image: gcr.io/google-containers/busybox:latest
+        name: busybox
+        command: ["/bin/sh"]
+        args: ["-c", "while sleep 3600; do echo sleeping another hour; done; echo Exiting"]

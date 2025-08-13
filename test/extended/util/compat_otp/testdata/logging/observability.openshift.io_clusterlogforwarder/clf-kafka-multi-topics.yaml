@@ -1,0 +1,100 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: forward-to-kafka-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    inputs:
+    - application:
+        includes:
+        - namespace: ${NAMESPACE_PATTERN}
+      name: app-input-namespace
+      type: application
+    outputs:
+    - name: kafka-infra
+      type: kafka
+      kafka:
+        brokers:
+        - tcp://${BOOTSTRAP_SVC}
+        topic: ${INFRA_TOPIC}
+        authentication:
+          sasl:
+            mechanism: "SCRAM-SHA-512"
+            password:
+              key: password
+              secretName: ${SECRET_NAME}
+            username:
+              key: username
+              secretName: ${SECRET_NAME}
+    - name: kafka-app
+      type: kafka
+      kafka:
+        brokers:
+        - tcp://${BOOTSTRAP_SVC}
+        topic: ${APP_TOPIC}
+        authentication:
+          sasl:
+            mechanism: "SCRAM-SHA-512"
+            password:
+              key: password
+              secretName: ${SECRET_NAME}
+            username:
+              key: username
+              secretName: ${SECRET_NAME}
+    - name: kafka-audit
+      type: kafka
+      kafka:
+        brokers: 
+        - tcp://${BOOTSTRAP_SVC}
+        topic: ${AUDIT_TOPIC}
+        authentication:
+          sasl:
+            mechanism: "SCRAM-SHA-512"
+            password:
+              key: password
+              secretName: ${SECRET_NAME}
+            username:
+              key: username
+              secretName: ${SECRET_NAME}
+    pipelines:
+    - inputRefs:
+      - infrastructure
+      name: test-infra
+      outputRefs:
+      - kafka-infra
+    - inputRefs:
+      - app-input-namespace
+      name: test-app
+      outputRefs:
+      - kafka-app
+    - inputRefs:
+      - audit
+      name: test-audit
+      outputRefs:
+      - kafka-audit
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: BOOTSTRAP_SVC
+  value: ""
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: NAMESPACE_PATTERN
+  value: "e2e*"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: SECRET_NAME
+  value: ""
+- name: APP_TOPIC
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: INFRA_TOPIC
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: AUDIT_TOPIC
+  value: "{.log_type||\"none-typed-logs\"}"

@@ -1,0 +1,40 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: scc-with-allowedCapabilities-template
+objects:
+- allowHostDirVolumePlugin: true
+  allowHostIPC: false
+  allowHostNetwork: true
+  allowHostPID: true
+  allowHostPorts: true
+  allowPrivilegeEscalation: true
+  allowPrivilegedContainer: true
+  allowedCapabilities:
+  - NET_BIND_SERVICE
+  apiVersion: security.openshift.io/v1
+  defaultAddCapabilities: null
+  fsGroup:
+    type: RunAsAny
+  groups: []
+  kind: SecurityContextConstraints
+  metadata:
+    annotations:
+      kubernetes.io/description: test-scc scc is used for test purpose
+    name: "${NAME}"
+  priority: null
+  readOnlyRootFilesystem: false
+  requiredDropCapabilities: null
+  runAsUser:
+    type: RunAsAny
+  seLinuxContext:
+    type: RunAsAny
+  seccompProfiles:
+  - runtime/default
+  supplementalGroups:
+    type: RunAsAny
+  users: []
+  volumes:
+  - '*'
+parameters:
+- name: NAME

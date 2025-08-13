@@ -1,0 +1,21 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: servicemonitortemplate
+objects:
+  - apiVersion: monitoring.coreos.com/v1
+    kind: ServiceMonitor
+    metadata:
+      name: "${NAME}"
+    spec:
+      endpoints:
+        - path: /metrics
+          port: http
+          scheme: http
+      jobLabel: component
+      selector:
+        matchLabels:
+          deployment: "${DEPLOYMENT}"
+parameters:
+  - name: NAME
+  - name: DEPLOYMENT

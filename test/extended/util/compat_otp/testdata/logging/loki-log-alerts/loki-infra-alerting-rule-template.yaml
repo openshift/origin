@@ -1,0 +1,32 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: loki-infra-alerting-rule-template
+objects:
+- apiVersion: loki.grafana.com/v1
+  kind: AlertingRule
+  metadata:
+    labels:
+      openshift.io/cluster-monitoring: 'true'
+    name: ${ALERTING_RULE_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    groups:
+      - interval: 1m
+        name: LokiOperatorLogsHigh
+        rules:
+          - alert: LokiOperatorLogsAreHigh
+            annotations:
+              description: Your Loki Operator has High amount of logs
+              summary: Loki Operator Log volume is High
+            expr: >
+              count_over_time({kubernetes_namespace_name="${NAMESPACE}"}[1m]) > 10
+            for: 1m
+            labels:
+              severity: info
+    tenantID: infrastructure
+parameters:
+- name: NAMESPACE
+  value: "openshift-operators-redhat"
+- name: ALERTING_RULE_NAME
+  value: "my-infra-workload-alert"

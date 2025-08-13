@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: websocket
+    labels:
+      app: hello-websocket
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: hello-websocket
+    template:
+      metadata:
+        labels:
+          name: hello-websocket
+      spec:
+        containers:
+        - name: hello-websocket
+          image: quay.io/openshifttest/hello-websocket@sha256:d485f1fedd2bc929551e68288812c10957b99db3e833ec150071f00291ea77db
+          ports:
+          - containerPort: 9999
+            name: http
+            protocol: TCP
+          - containerPort: 9443
+            name: https
+            protocol: TCP
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      name: ws-unsecure
+    name: ws-unsecure
+  spec:
+    ports:
+    - name: http
+      port: 27017
+      protocol: TCP
+      targetPort: 9999
+    selector:
+      name: hello-websocket

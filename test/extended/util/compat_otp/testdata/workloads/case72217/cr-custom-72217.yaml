@@ -1,0 +1,6 @@
+apiVersion: "example.com/v1"
+kind: Customtask72217
+metadata:
+  name: my-new-customtask-object
+spec:
+  test: test

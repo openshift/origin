@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    app: client-dscp
+  name: client-dscp
+  namespace: test-client-68125
+spec:
+  containers:
+  - command:
+        - sh
+        - -c
+        - "
+          \  while : ; do\n
+          \        curl nginx-service.test-server-68125.svc:80/data/100K  2>&1 >  /dev/null ; sleep 5 \n
+          \  done"
+    image: quay.io/openshifttest/hello-openshift:1.2.0
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+        privileged: false
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    name: client-dscp
+    resources: {}
+  restartPolicy: Never
+status: {}

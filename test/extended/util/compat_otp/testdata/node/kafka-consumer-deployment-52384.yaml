@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-amqstreams-consumer
+  labels:
+    app: kafka-amqstreams-consumer
+spec:
+  selector:
+    matchLabels:
+      app: kafka-amqstreams-consumer
+  template:
+    metadata:
+      labels:
+        app: kafka-amqstreams-consumer
+    spec:
+      containers:
+      - name: kafka-amqstreams-consumer
+        image: quay.io/zroubalik/kafka-app:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        env:
+          - name: BOOTSTRAP_SERVERS
+            value: my-cluster-kafka-bootstrap.openshift-operators.svc:9092
+        resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
+        command:
+        - /kafkaconsumerapp

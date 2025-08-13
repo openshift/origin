@@ -1,0 +1,86 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: testrun-cm-template
+objects:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    data:
+      exists: "${EXISTS}"
+      redirectNeeded: "${ICSPNEEDED}"
+      catalogsourcename: "${CATSOURCENAME}"
+      channel: "${OSCCHANNEL}"
+      operatorVer: "${OPERATORVER}"
+      mustgatherimage: "${MUSTGATHERIMAGE}"
+      runtimeClassName: "${RUNTIMECLASSNAME}"
+      enablePeerPods: "${ENABLEPEERPODS}"
+      eligibleSingleNode: "${ELIGIBLESINGLENODE}"
+      eligibility: "${ELIGIBILITY}"
+      labelSingleNode: "${LABELSINGLENODE}"
+      enableGPU: "${ENABLENVIDIAGPU}"
+      podvmImageUrl: "${PODVMIMAGEURL}"
+      workloadImage: "${WORKLOADIMAGE}"
+      installKataRPM: "${INSTALLKATARPM}"
+      workloadToTest: "${WORKLOADTOTEST}"
+      trusteeCatalogSourcename: "${TRUSTEECATSOURCENAME}"
+      trusteeUrl: "${TRUSTEEURL}"
+
+# oc process --ignore-unknown-parameters=true -f configmap-input-template.yaml -p [name]=[value] [name]=[value] > osc-config.yaml...
+# oc apply -f osc-config.yaml
+
+parameters:
+  - name: NAME
+    value: "osc-config"
+  - name: NAMESPACE
+    description: "namespace to place this cm in"
+    value: "default"
+  - name: CATSOURCENAME
+    value: "redhat-operators"
+    description: "name of the catalog OSC subscripton comes from"
+  - name: ICSPNEEDED
+    value: "false"
+    description: "Apply image redirection yamls"
+  - name: OSCCHANNEL
+    value: "stable"
+  - name: OPERATORVER
+    value: "1.7.0"
+    description: "Compare the OSC operator CSV version to this string"
+  - name: MUSTGATHERIMAGE
+    value: "registry.redhat.io/openshift-sandboxed-containers/osc-must-gather-rhel9:1.5.0"
+  - name: EXISTS
+    value: "true"
+    description: "Used by g.BeforeEach()"
+  - name: RUNTIMECLASSNAME
+    value: "kata"
+    description: "kata or kata-remote used in workloads"
+  - name: ENABLEPEERPODS
+    value: "false"
+    description: "set enablePeerPods in kataconfig.  Used to skip tests for kata-remote"
+  - name: ELIGIBLESINGLENODE
+    value: "false"
+  - name: ELIGIBILITY
+    value: "false"
+    description: "set checkNodeEligibility in kataconfig. Label nodes && skip tests for eligibility"
+  - name: LABELSINGLENODE
+    value: "false"
+  - name: ENABLENVIDIAGPU
+    value: "false"
+  - name: PODVMIMAGEURL
+    value: "https://raw.githubusercontent.com/openshift/sandboxed-containers-operator/devel/config/peerpods/podvm/"
+  - name: WORKLOADIMAGE
+    value: "quay.io/openshift/origin-hello-openshift"
+  - name: INSTALLKATARPM
+    value: "false"
+    description: "Look for a scratch rpm on worker nodes and install it"
+  - name: WORKLOADTOTEST
+    description: "To test kata, peer-pods or coco"
+    value: "kata"
+  - name: TRUSTEECATSOURCENAME
+    value: "redhat-operators"
+    description: "name of the catalog Trustee subscripton comes from"
+  - name: TRUSTEEURL
+    value: ""
+    description: "If blank, an in-cluster trustee will be used. Otherwise, this should be the full URL for an external trustee"

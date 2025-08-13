@@ -1,0 +1,16 @@
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :6789
+    metrics:
+      bindAddress: 127.0.0.1:8080
+
+    leaderElection:
+      leaderElect: true
+      resourceName: 811c9dc5.k8sevent.com
+kind: ConfigMap
+metadata:
+  name: k8sevent-manager-config

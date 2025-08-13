@@ -1,0 +1,14 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  labels:
+    hive.openshift.io/managed: "true"
+  name: observability-operator-catalog
+  namespace: openshift-observability-operator
+spec:
+  grpcPodConfig: #from ocp4.13
+    securityContextConfig: restricted
+  displayName: Observability Operator - Test
+  image: quay.io/rhobs/observability-operator-catalog:latest
+  publisher: Sunil Thaha
+  sourceType: grpc

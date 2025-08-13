@@ -1,0 +1,49 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: forward-to-kafka-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: Managed
+    inputs:
+    - name: selected-app
+      application:
+        includes:
+          - namespace: ${NAMESPACE_PATTERN}
+      type: application
+    outputs:
+    - kafka:
+        brokers: ${{BROKERS}}
+        topic: ${TOPIC}
+        tuning: ${{TUNING}}
+      name: kafka-brokers
+      type: kafka
+    pipelines:
+    - inputRefs:
+      - selected-app
+      - audit
+      name: pipe1
+      outputRefs:
+      - kafka-brokers
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: BROKERS
+  value: "[\"tls://my-cluster-kafka-bootstrap.amq-aosqe1.svc:9092\", \"tls://my-cluster-kafka-bootstrap.amq-aosqe2.svc:9092\"]"
+- name: TOPIC
+  value: "{.log_type||\"none-typed-logs\"}"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: TUNING
+  value: "{}"
+- name: NAMESPACE_PATTERN
+  value: "e2e*"
+- name: NAMESPACE
+  value: "openshift-logging"

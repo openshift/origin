@@ -1,0 +1,11 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-match-test-2
+spec:
+  secretName: cert-match-test-2
+  issuerRef:
+    kind: ClusterIssuer
+    name: acme-multiple-solvers
+  dnsNames:
+  - xxia-test-2.test-example.com

@@ -1,0 +1,46 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: metallb-cr-pod-antiaffinity-template.yaml
+objects:
+- apiVersion: metallb.io/v1beta1
+  kind: MetalLB
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    controllerNodeSelector:
+        node-role.kubernetes.io/worker: ""
+    nodeSelector:
+        node-role.kubernetes.io/worker: ""
+    controllerConfig:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: name
+                  operator: In
+                  values:
+                  - hello-pod
+              topologyKey: kubernetes.io/hostname
+              namespaces:
+              - "${PARAM1}"
+    speakerConfig:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                - key: name
+                  operator: In
+                  values:
+                  - hello-pod
+              topologyKey: kubernetes.io/hostname
+              namespaces:
+              - "${PARAM2}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: PARAM1
+- name: PARAM2

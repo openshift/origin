@@ -1,0 +1,73 @@
+---
+# tasks file for Previoustest
+- name: start previoustest
+  k8s:
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: '{{ ansible_operator_meta.name }}'
+        namespace: '{{ ansible_operator_meta.namespace }}'
+      spec:
+        replicas: "{{size}}"
+        selector:
+          matchLabels:
+            app: previous
+        template:
+          metadata:
+            labels:
+              app: previous
+          spec:
+            containers:
+            - name: previous
+              command:
+              - memcached
+              - -m=64
+              - -o
+              - modern
+              - -v
+              image: "quay.io/olmqe/memcached:1.4"
+              ports:
+                - containerPort: 11211
+
+- k8s:
+    definition:
+      kind: Secret
+      apiVersion: v1
+      metadata:
+        name: test-secret
+        namespace: "{{ ansible_operator_meta.namespace }}"
+      data:
+        test: aGVsbG8K
+
+- name: Create ConfigMap to test blacklisted watches
+  k8s:
+    definition:
+      kind: ConfigMap
+      apiVersion: v1
+      metadata:
+        name: test-blacklist-watches
+        namespace: "{{ ansible_operator_meta.namespace }}"
+      data:
+        arbitrary: afdasdfsajsafj
+    state: present
+
+- k8s_status:
+    api_version: ansibletest.qetest.com/v1
+    kind: Previoustest
+    name: "{{ ansible_operator_meta.name }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    status:
+      test: "hello world"
+
+- name: Create Kubernetes Event
+  operator_sdk.util.k8s_event:
+    namespace: '{{ ansible_operator_meta.namespace }}'
+    name: test-name
+    message: test-message
+    reason: test-reason
+    involvedObject:
+      apiVersion: apps/v1
+      kind: Event
+      name: test-involved-object
+      namespace: '{{ ansible_operator_meta.namespace }}'

@@ -1,0 +1,76 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clusterlogforwarder-template
+objects:
+- apiVersion: observability.openshift.io/v1
+  kind: ClusterLogForwarder
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    managementState: ${MANAGEMENT_STATE}
+    outputs:
+    - name: lokistack
+      type: lokiStack
+      lokiStack:
+        authentication:
+          token:
+            from: serviceAccount
+        labelKeys:
+          application:
+            ignoreGlobal: ${{IGNORE_GLOBAL_APP}}
+            labelKeys: ${{APP_LABELKEYS}}
+          audit:
+            ignoreGlobal: ${{IGNORE_GLOBAL_AUDIT}}
+            labelKeys: ${{AUDIT_LABELKEYS}}
+          infrastructure:
+            ignoreGlobal: ${{IGNORE_GLOBAL_INFRA}}
+            labelKeys: ${{INFRA_LABELKEYS}}
+          global: ${{GLOBAL_LABELKEYS}}
+        target:
+          name: ${LOKISTACK_NAME}
+          namespace: ${LOKISTACK_NAMESPACE}
+        tuning: ${{TUNING}}
+      tls:
+        ca:
+          configMapName: openshift-service-ca.crt
+          key: service-ca.crt
+    pipelines:
+    - name: forward-to-lokistack
+      inputRefs: ${{INPUT_REFS}}
+      outputRefs:
+      - lokistack
+    serviceAccount:
+      name: ${SERVICE_ACCOUNT_NAME}
+parameters:
+- name: NAME
+  value: "instance"
+- name: NAMESPACE
+  value: "openshift-logging"
+- name: INPUT_REFS
+  value: "[\"infrastructure\", \"audit\", \"application\"]"
+- name: SERVICE_ACCOUNT_NAME
+  value: ""
+- name: LOKISTACK_NAME
+  value: "logging-loki"
+- name: LOKISTACK_NAMESPACE
+  value: "openshift-logging"
+- name: MANAGEMENT_STATE
+  value: "Managed"
+- name: TUNING
+  value: "{}"
+- name: IGNORE_GLOBAL_APP
+  value: "false"
+- name: APP_LABELKEYS
+  value: "[]"
+- name: IGNORE_GLOBAL_AUDIT
+  value: "false"
+- name: AUDIT_LABELKEYS
+  value: "[]"
+- name: IGNORE_GLOBAL_INFRA
+  value: "false"
+- name: INFRA_LABELKEYS
+  value: "[]"
+- name: GLOBAL_LABELKEYS
+  value: "[\"log_type\",\"kubernetes.container_name\",\"kubernetes.namespace_name\",\"kubernetes.pod_name\"]"

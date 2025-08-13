@@ -1,0 +1,27 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: lldp-policy-template
+objects:
+  - apiVersion: nmstate.io/v1
+    kind: NodeNetworkConfigurationPolicy
+    metadata:
+      name: "${NAME}"
+    spec:
+      nodeSelector:
+        "${NODELABEL}": "${LABELVALUE}"
+      desiredState:
+        interfaces:
+        - name: "${IFACENAME}"
+          type: dummy
+          state: "${STATE}"
+          lldp:
+            enabled: true
+
+parameters:
+  - name: NAME
+  - name: NODELABEL
+    value: "kubernetes.io/hostname"
+  - name: LABELVALUE
+  - name: STATE
+  - name: IFACENAME

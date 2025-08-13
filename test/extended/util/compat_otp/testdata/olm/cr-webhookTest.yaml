@@ -1,0 +1,16 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: WebhookTest-template
+objects:
+- apiVersion: webhook.operators.coreos.io/v1
+  kind: WebhookTest
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    valid: ${{VALID}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: VALID

@@ -1,0 +1,53 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: storage-pod-with-multiple-containers-using-pvc-template
+objects:
+  # Pod
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: ${PODNAME}
+    namespace: ${PODNAMESPACE}
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - image: ${PODIMAGE} # default: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+      name: ${PODNAME}-container-0
+      command: ["/bin/sh", "-c"]
+      args: [ "while true; do sleep 30; done;" ]
+      ${VOLUMETYPE}:
+      - name: data
+        ${PATHTYPE}: ${PODMOUNTPATH}    
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+    - image: ${PODIMAGE} # default: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+      name: ${PODNAME}-container-1
+      command: ["/bin/sh", "-c"]
+      args: [ "while true; do sleep 30; done;" ]
+      ${VOLUMETYPE}:
+      - name: data
+        ${PATHTYPE}: ${PODMOUNTPATH}    
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL  
+    volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: ${PVCNAME}
+parameters:
+- name: PVCNAME
+- name: PODNAME
+- name: PODNAMESPACE
+- name: PODIMAGE
+- name: VOLUMETYPE
+- name: PATHTYPE
+- name: PODMOUNTPATH

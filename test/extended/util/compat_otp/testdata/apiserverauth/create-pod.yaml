@@ -1,0 +1,35 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: create-pod
+objects:
+  - kind: Pod
+    apiVersion: v1
+    metadata:
+      labels:
+        app: "${NAME}"
+      name: "${NAME}"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: "${NAME}"
+          image: "${IMAGE}"
+          ports:
+          - containerPort: ${{PORT}}
+            protocol: TCP
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+      nodeSelector:
+        kubernetes.io/hostname: "${HOSTNAME}"
+parameters:
+  - name: NAME
+  - name: IMAGE
+  - name: HOSTNAME
+  - name: PORT

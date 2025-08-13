@@ -1,0 +1,61 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kafka-topic-consumer-template
+objects:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      ttlSecondsAfterFinished: 60
+      template:
+        spec:
+          volumes:
+          - name: cluster-ca
+            secret:
+              secretName: "${CLUSTER_NAME}-cluster-ca-cert"
+          - name: kafkauser
+            secret:
+              secretName: "${KAFKA_USER}"
+          - name: workdir
+            emptyDir: {}
+          containers:
+          - name: kakfa-consumer-tls
+            image: "${KAFKA_IMAGE}"
+            volumeMounts:
+            - mountPath: "/opt/kafka/cluster-ca-certs"
+              name: cluster-ca
+            - mountPath: "/opt/kafka/kafkauser"
+              name: kafkauser
+            - mountPath: "/opt/kafka/workdir"
+              name: workdir
+            command:
+            - "bash"
+            - "-c"
+            - 'keytool -keystore workdir/truststore.p12 -storepass password -noprompt -alias
+              ca -import -file /opt/kafka/cluster-ca-certs/ca.crt -storetype PKCS12; keytool
+              -importkeystore -destkeystore workdir/keystore.p12 -srckeystore /opt/kafka/kafkauser/user.p12
+              -srcstorepass $(cat /opt/kafka/kafkauser/user.password) -srcstoretype PKCS12
+              -deststoretype PKCS12 -destkeypass password -deststorepass password; bin/kafka-console-consumer.sh
+              --bootstrap-server ${CLUSTER_NAME}-kafka-bootstrap:9093 --consumer-property
+              security.protocol=SSL --consumer-property ssl.truststore.location=workdir/truststore.p12
+              --consumer-property ssl.truststore.password=password  --consumer-property ssl.truststore.type=PKCS12
+              --consumer-property ssl.keystore.location=workdir/keystore.p12 --consumer-property
+              ssl.keystore.password=password --consumer-property ssl.keystore.type=PKCS12
+              --from-beginning --topic ${KAFKA_TOPIC} --group test-group'
+          restartPolicy: Never
+parameters:
+- name: KAFKA_IMAGE
+  value: "registry.redhat.io/amq-streams/kafka-34-rhel8:2.5.2"
+- name: KAFKA_TOPIC
+  value: "network-flows-export"
+- name: KAFKA_USER
+  value: "flp-kafka"
+- name: NAMESPACE
+  value: "netobserv"
+- name: NAME
+  value: "network-flows-export-consumer-tls"
+- name: CLUSTER_NAME
+  value: "kafka-cluster"

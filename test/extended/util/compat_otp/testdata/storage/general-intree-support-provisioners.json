@@ -1,0 +1,51 @@
+{
+  "support_Matrix": {
+    "platforms": [
+      {
+        "name": "aws",
+        "provisioners": [
+          {
+            "name": "kubernetes.io/aws-ebs",
+            "preset_scname": "gp2"
+          }
+        ]
+      },
+      {
+        "name": "azure",
+        "provisioners": [
+          {
+            "name": "kubernetes.io/azure-disk",
+            "preset_scname": "managed-premium"
+          }
+        ]
+      },
+      {
+        "name": "gcp",
+        "provisioners": [
+          {
+            "name": "kubernetes.io/gce-pd",
+            "preset_scname": "standard"
+          }
+        ]
+      },
+      {
+        "name": "openstack",
+        "provisioners": [
+          {
+            "name": "kubernetes.io/cinder",
+            "preset_scname": "standard"
+          }
+        ]
+      },
+      {
+        "name": "vsphere",
+        "provisioners": [
+          {
+            "name": "kubernetes.io/vsphere-volume",
+            "preset_scname": "thin"
+          }
+        ]
+      }
+    ]
+  }
+}

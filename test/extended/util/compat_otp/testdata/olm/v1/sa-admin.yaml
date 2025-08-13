@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: olmv1-sa-admin-template
+objects:
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: "${NAME}-installer-admin-clusterrole"
+    rules:
+      - apiGroups:
+        - "*"
+        resources:
+        - "*"
+        verbs:
+        - "*"
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: "${NAME}-installer-admin-clusterrole-binding"
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: "${NAME}-installer-admin-clusterrole"
+    subjects:
+      - kind: ServiceAccount
+        name: "${NAME}"
+        namespace: "${NAMESPACE}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+

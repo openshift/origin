@@ -1,0 +1,24 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: selinux-profile-custom-policy-template
+objects:
+- apiVersion: security-profiles-operator.x-k8s.io/v1alpha2
+  kind: SelinuxProfile
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    inherit:
+      - name: "${INHERITNAME}"
+        kind: "${INHERITKIND}"
+    allow:
+      var_run_t:
+        sock_file:
+          - write
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: INHERITNAME
+- name: INHERITKIND

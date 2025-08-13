@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: generate-requests-
+spec:
+  template:
+    spec:
+      containers:
+      - image: jordi/ab
+        name: test
+        command: ["/bin/sh"]
+        args: ["-c", "for i in $(seq 1 30);do echo $i;ab -c 5 -n 100 -v 2 http://test-app.cma-52385.svc/;sleep 1;done"]   # replace <NAMESPACE>
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+      restartPolicy: Never
+  activeDeadlineSeconds: 120
+  backoffLimit: 2
+

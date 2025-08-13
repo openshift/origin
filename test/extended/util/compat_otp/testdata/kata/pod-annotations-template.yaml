@@ -1,0 +1,51 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: common-pod-template
+objects:
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      annotations:
+        io.katacontainers.config.hypervisor.default_memory: "${MEMORY}"
+        io.katacontainers.config.hypervisor.default_vcpus: "${CPU}"
+        io.katacontainers.config.hypervisor.machine_type: "${INSTANCESIZE}"
+        io.katacontainers.config.hypervisor.image: "${PODVM_IMAGE}"
+
+      labels:
+        app: httpd
+      name: "${NAME}"
+    spec:
+      restartPolicy: OnFailure
+      runtimeClassName: "${RUNTIMECLASSNAME}"
+      containers:
+        - image: "${IMAGE}"
+          imagePullPolicy: IfNotPresent
+          name: "${NAME}"
+          ports:
+            - containerPort: ${{PORT}}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+parameters:
+  - name: MEMORY
+    value: "256"
+  - name: CPU
+    value: "0"
+  - name: INSTANCESIZE
+    value: ""
+  - name: PODVM_IMAGE
+    value: ""
+  - name: NAME
+  - name: RUNTIMECLASSNAME
+    value: "kata-remote"
+  - name: IMAGE
+    value: "quay.io/openshift/origin-hello-openshift"
+  - name: PORT
+    value: "8080"

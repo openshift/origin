@@ -1,0 +1,15 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: localvolumediscovery-template
+objects:
+# LocalVolumeDiscovery
+- kind: LocalVolumeDiscovery
+  apiVersion: local.storage.openshift.io/v1alpha1
+  metadata:
+    name: ${NAME}
+    namespace: ${NAMESPACE}
+  spec: {}
+parameters:
+- name: NAME
+- name: NAMESPACE

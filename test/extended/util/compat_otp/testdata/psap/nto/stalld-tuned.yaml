@@ -1,0 +1,30 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: nto-tuned-template
+objects:
+- apiVersion: tuned.openshift.io/v1
+  kind: Tuned
+  metadata:
+    name: openshift-stalld
+    namespace: openshift-cluster-node-tuning-operator
+  spec:
+    profile:
+    - data: |
+        [main]
+        summary=Custom OpenShift profile
+        include=openshift-node,realtime
+        [sysctl]
+        kernel.sched_rt_runtime_us = -1
+
+        [service]
+        service.stalld=${STALLD_STATUS} 
+        #STALLD_STATUS is stop,disable or start,enable
+      name: openshift-stalld
+    recommend:
+    - match:
+      - label: node-role.kubernetes.io/worker-stalld
+      priority: 18
+      profile: openshift-stalld
+parameters:
+- name: STALLD_STATUS

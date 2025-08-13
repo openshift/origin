@@ -1,0 +1,43 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: compliancesuite-template
+objects:
+- apiVersion: compliance.openshift.io/v1alpha1
+  kind: ComplianceSuite
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    autoApplyRemediations: false
+    schedule: "0 1 * * *"
+    scans:
+      - name: "${SCANNAME}" 
+        profile: "${PROFILE}"
+        scanType: "${SCANTYPE}"  
+        content: "${CONTENT}"
+        contentImage: "${CONTENTIMAGE}"
+        rule: "${RULE}"
+        debug: true
+        noExternalResources: ${{NOEXTERNALRESOURCES}}
+        nodeSelector: 
+          node-role.kubernetes.io/${NODESELECTOR}: ""
+        rawResultStorage:
+          size: "${SIZE}"
+        tailoringConfigMap:
+          name: "${TAILORCONFIGMAPNAME}"
+
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: SCANNAME
+- name: PROFILE
+- name: SCANTYPE  
+- name: CONTENT
+- name: CONTENTIMAGE
+- name: RULE
+- name: NOEXTERNALRESOURCES
+- name: NODESELECTOR
+- name: SIZE
+- name: TAILORCONFIGMAPNAME
+  

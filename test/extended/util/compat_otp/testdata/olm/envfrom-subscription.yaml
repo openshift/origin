@@ -1,0 +1,37 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: sub-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "${SUBNAME}"
+    namespace: "${SUBNAMESPACE}"
+  spec:
+    channel: "${CHANNEL}"
+    installPlanApproval: "${APPROVAL}"
+    name: "${OPERATORNAME}"
+    source: "${SOURCENAME}"
+    sourceNamespace: "${SOURCENAMESPACE}"
+    startingCSV: "${STARTINGCSV}"
+    config:
+      envFrom:
+      - configMapRef:
+          name: "${CONFIGMAPREF}"
+      - secretRef:
+          name: "${SECRETREF}"
+parameters:
+- name: SUBNAME
+- name: SUBNAMESPACE
+- name: CHANNEL
+- name: APPROVAL
+  value: "Automatic"
+- name: OPERATORNAME
+- name: SOURCENAME
+- name: SOURCENAMESPACE
+  value: "openshift-marketplace"
+- name: STARTINGCSV
+  value: ""
+- name: CONFIGMAPREF
+- name: SECRETREF

@@ -1,0 +1,25 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: egressip-config2
+objects:
+- kind: EgressIP
+  apiVersion: k8s.ovn.org/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    egressIPs:
+      - "${EGRESSIP1}"
+    namespaceSelector:
+      matchLabels:
+        "${NSLABELKEY}": "${NSLABELVALUE}"
+    podSelector:
+      matchLabels:
+        "${PODLABELKEY}": "${PODLABELVALUE}"
+parameters:
+- name: NAME
+- name: EGRESSIP1
+- name: NSLABELKEY
+- name: NSLABELVALUE
+- name: PODLABELKEY
+- name: PODLABELVALUE

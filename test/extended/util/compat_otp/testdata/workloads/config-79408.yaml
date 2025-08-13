@@ -1,0 +1,15 @@
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  platform:
+   channels:
+   - name: stable-4.17
+     minVersion: 4.17.1
+     maxVersion: 4.17.1
+   graph: true
+  operators:
+    - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.17
+      packages:
+       - name: external-dns-operator
+  additionalImages:
+  - name: registry.redhat.io/ubi8/ubi:latest

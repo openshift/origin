@@ -1,0 +1,36 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: hypershift-mc-configmap-template
+objects:
+  - kind: ConfigMap 
+    apiVersion: v1
+    metadata:
+      name: "${CMNAME}"
+      namespace: clusters
+    data:
+      config: |
+        apiVersion: machineconfiguration.openshift.io/v1
+        kind: MachineConfig
+        metadata:
+          labels:
+            machineconfiguration.openshift.io/role: "${POOL}"
+          name: "${MCNAME}"
+        spec:
+          config:
+            ignition:
+              version: 3.2.0
+            storage:
+              files:
+              - contents:
+                  source: data:,hello%20world%0A
+                mode: 420
+                overwrite: true
+                path: "${FILEPATH}"
+parameters:
+  - name: CMNAME
+  - name: MCNAME
+    value: "99-hypershift-test"
+  - name: FILEPATH
+    value: "/home/core/test"
+  - name: POOL

@@ -1,0 +1,23 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: SparkApplication-template
+objects:
+  - apiVersion: radanalytics.io/v1
+    kind: SparkApplication
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      driver:
+        coreLimit: 500m
+        cores: 0.2
+      executor:
+        coreLimit: 1000m
+        cores: 1
+        instances: 2
+      mainApplicationFile: local:///opt/spark/examples/jars/spark-examples_2.11-2.4.5.jar
+      mainClass: org.apache.spark.examples.SparkPi
+parameters:
+  - name: NAME
+  - name: NAMESPACE
