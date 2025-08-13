@@ -113,15 +113,12 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				o.Expect(apiServerArgs["authentication-config"].([]interface{})[0].(string)).To(o.Equal("/etc/kubernetes/static-pod-resources/configmaps/auth-config/auth-config.json"))
 			})
 
-			g.It("[Skipped] should remove the OpenShift OAuth stack", func() {
-				g.Skip("functionality not yet implemented")
-				/*
-					o.Eventually(func(gomega o.Gomega) {
-						_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
-						gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
-						gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "integrated oauth stack should not be present when OIDC authentication is configured")
-					}).WithTimeout(20 * time.Minute).WithPolling(30 * time.Second).Should(o.Succeed())
-				*/
+			g.It("should remove the OpenShift OAuth stack", func() {
+				o.Eventually(func(gomega o.Gomega) {
+					_, err := oc.AdminKubeClient().AppsV1().Deployments("openshift-authentication").Get(ctx, "oauth-openshift", metav1.GetOptions{})
+					gomega.Expect(err).NotTo(o.BeNil(), "should not be able to get the integrated oauth stack")
+					gomega.Expect(apierrors.IsNotFound(err)).To(o.BeTrue(), "integrated oauth stack should not be present when OIDC authentication is configured")
+				}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
 			})
 
 			g.It("should not accept tokens provided by the OAuth server", func() {
@@ -332,32 +329,26 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 				})
 			})
 
-			g.Describe("[Skipped] with invalid specified UID or Extra claim mappings", func() {
+			g.Describe("with invalid specified UID or Extra claim mappings", func() {
 				g.It("should reject admission when UID claim expression is not compilable CEL", func() {
-					g.Skip("functionality not yet implemented")
-					/*
-						_, _, err := configureOIDCAuthentication(ctx, oc, func(o *configv1.OIDCProvider) {
-							o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
-								Expression: "!@&*#^",
-							}
-						})
-						o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
-					*/
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, func(o *configv1.OIDCProvider) {
+						o.ClaimMappings.UID = &configv1.TokenClaimOrExpressionMapping{
+							Expression: "!@&*#^",
+						}
+					})
+					o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
 				})
 
 				g.It("should reject admission when Extra claim expression is not compilable CEL", func() {
-					g.Skip("functionality not yet implemented")
-					/*
-						_, _, err := configureOIDCAuthentication(ctx, oc, func(o *configv1.OIDCProvider) {
-							o.ClaimMappings.Extra = []configv1.ExtraMapping{
-								{
-									Key:             "payload/test",
-									ValueExpression: "!@*&#^!@(*&^",
-								},
-							}
-						})
-						o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
-					*/
+					_, _, err := configureOIDCAuthentication(ctx, oc, keycloakNamespace, func(o *configv1.OIDCProvider) {
+						o.ClaimMappings.Extra = []configv1.ExtraMapping{
+							{
+								Key:             "payload/test",
+								ValueExpression: "!@*&#^!@(*&^",
+							},
+						}
+					})
+					o.Expect(err).To(o.HaveOccurred(), "should encounter an error configuring OIDC authentication")
 				})
 			})
 		})
