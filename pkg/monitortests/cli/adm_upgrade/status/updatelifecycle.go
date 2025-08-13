@@ -1,21 +1,21 @@
 package admupgradestatus
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (w *monitor) updateLifecycle(ctx context.Context) *junitapi.JUnitTestCase {
+type wasUpdatedFn func() (bool, error)
+
+func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCase {
 	health := &junitapi.JUnitTestCase{
 		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 	}
 
-	cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	clusterUpdated, err := wasUpdated()
 	if err != nil {
 		health.FailureOutput = &junitapi.FailureOutput{
 			Message: fmt.Sprintf("failed to get cluster version: %v", err),
@@ -71,7 +71,6 @@ func (w *monitor) updateLifecycle(ctx context.Context) *junitapi.JUnitTestCase {
 		},
 	}
 
-	clusterUpdated := len(cv.Status.History) > len(w.initialClusterVersion.Status.History)
 	current := beforeUpdate
 	failureOutputBuilder := strings.Builder{}
 
