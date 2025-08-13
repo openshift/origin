@@ -153,6 +153,7 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 		w.expectedLayout(),
 		w.controlPlane(),
 		w.workers(),
+		w.health(),
 	}, nil
 }
 
