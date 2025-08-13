@@ -44,6 +44,23 @@ ip-10-0-106-212.us-west-1.compute.internal   Outdated     Pending   4.20.0-0.ci-
 SINCE   LEVEL   IMPACT   MESSAGE
 8m57s   Info    None     Update is proceeding well`
 
+var badOutput = `= Control Plane =
+Assessment:      Progressing
+Target Version:  4.20.0-0.ci-2025-08-13-121604-test-ci-op-njttt0ww-latest (from 4.20.0-0.ci-2025-08-13-114210-test-ci-op-njttt0ww-initial)
+Completion:      6% (2 operators updated, 1 updating, 31 waiting)
+Duration:        8m57s (Est. Time Remaining: 1h9m)
+Operator Health: 34 Healthy
+
+Control Plane Nodes
+NAME                                        ASSESSMENT   PHASE     VERSION                                                     EST   MESSAGE
+ip-10-0-111-19.us-west-1.compute.internal   Outdated     Pending   4.20.0-0.ci-2025-08-13-114210-test-ci-op-njttt0ww-initial   ?
+
+SOMETHING UNEXPECTED HERE
+
+= Update Health =
+SINCE   LEVEL   IMPACT   MESSAGE
+8m57s   Info    None     Update is proceeding well`
+
 func TestMonitor_NoFailures(t *testing.T) {
 	t.Parallel()
 
@@ -109,6 +126,102 @@ func TestMonitor_NoFailures(t *testing.T) {
 			ignoreOutput := cmpopts.IgnoreFields(junitapi.FailureOutput{}, "Output")
 
 			result := m.noFailures()
+			if diff := cmp.Diff(tc.expected, result, ignoreOutput); diff != "" {
+				t.Errorf("unexpected result (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMonitor_ExpectedLayout(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		snapshots []snapshot
+		expected  *junitapi.JUnitTestCase
+	}{
+		{
+			name: "no snapshots",
+			expected: &junitapi.JUnitTestCase{
+				Name:        "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+				SkipMessage: &junitapi.SkipMessage{Message: "Test skipped because no oc adm upgrade status output was successfully collected"},
+			},
+		},
+		{
+			name: "two unsuccessful snapshots",
+			snapshots: []snapshot{
+				{when: time.Now(), err: fmt.Errorf("some error")},
+				{when: time.Now(), err: fmt.Errorf("another error")},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+				SkipMessage: &junitapi.SkipMessage{
+					Message: "Test skipped because no oc adm upgrade status output was successfully collected",
+				},
+			},
+		},
+		{
+			name: "two successful snapshots",
+			snapshots: []snapshot{
+				{when: time.Now(), err: nil, out: exampleOutput},
+				{when: time.Now(), err: nil, out: exampleOutput},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+			},
+		},
+		{
+			name: "errored snapshots do not count",
+			snapshots: []snapshot{
+				{when: time.Now(), err: nil, out: exampleOutput},
+				{when: time.Now(), err: fmt.Errorf("some error")},
+				{when: time.Now(), err: nil, out: exampleOutput},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+			},
+		},
+		{
+			name: "no error but empty output fails the check",
+			snapshots: []snapshot{
+				{when: time.Now(), err: nil, out: exampleOutput},
+				{when: time.Now(), err: nil, out: ""},
+				{when: time.Now(), err: nil, out: exampleOutput},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+				FailureOutput: &junitapi.FailureOutput{
+					Message: "observed unexpected outputs in oc adm upgrade status",
+				},
+			},
+		},
+		{
+			name: "nonconforming output fails the check",
+			snapshots: []snapshot{
+				{when: time.Now(), err: nil, out: exampleOutput},
+				{when: time.Now(), err: nil, out: badOutput},
+				{when: time.Now(), err: nil, out: exampleOutput},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+				FailureOutput: &junitapi.FailureOutput{
+					Message: "observed unexpected outputs in oc adm upgrade status",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := NewOcAdmUpgradeStatusChecker().(*monitor)
+			m.ocAdmUpgradeStatus = append(m.ocAdmUpgradeStatus, tc.snapshots...)
+
+			ignoreOutput := cmpopts.IgnoreFields(junitapi.FailureOutput{}, "Output")
+
+			result := m.expectedLayout()
 			if diff := cmp.Diff(tc.expected, result, ignoreOutput); diff != "" {
 				t.Errorf("unexpected result (-want +got):\n%s", diff)
 			}
