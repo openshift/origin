@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	operatorLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S\s+.*$`)
+	operatorLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S+\s+.*$`)
 )
 
 func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
@@ -37,7 +37,7 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 				wroteOnce = true
 				failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
 				failureOutputBuilder.WriteString(observed.output.rawOutput)
-				failureOutputBuilder.WriteString(fmt.Sprintf("=> %s\n", message))
+				failureOutputBuilder.WriteString(fmt.Sprintf("\n\n=> %s\n", message))
 			}
 		}
 
@@ -69,7 +69,7 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 			continue
 		}
 
-		if cp.Summary != nil {
+		if cp.Summary == nil {
 			fail("Control plane is not updated but summary section is not present")
 		}
 
@@ -77,8 +77,7 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 			value, ok := cp.Summary[key]
 			if !ok {
 				fail(fmt.Sprintf("Control plane summary does not contain %s", key))
-			}
-			if value != "" {
+			} else if value == "" {
 				fail(fmt.Sprintf("%s is empty", key))
 			}
 		}
@@ -102,7 +101,7 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 
 			items := len(strings.Split(updatingOperators, ","))
 
-			if len(cp.Operators) == items {
+			if len(cp.Operators) != items {
 				fail(fmt.Sprintf("Control plane summary contains Updating key with %d operators but operators section has %d items", items, len(cp.Operators)))
 				continue
 			}
