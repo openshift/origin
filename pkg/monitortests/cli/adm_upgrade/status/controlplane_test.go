@@ -94,6 +94,48 @@ ip-10-0-111-19.us-west-1.compute.internal   Outdated     Pending   4.20.0-0.ci-2
 SINCE   LEVEL   IMPACT   MESSAGE
 8m57s   Info    None     Update is proceeding well`
 
+// TODO: This is a bug in `oc adm upgrade status` that we will fix but for now we need to tolerate
+// Eventually we will fail on output like this and we will also need to add a testcase for the fixed output
+var operatorsWithLinebreaksInMessages = `Unable to fetch alerts, ignoring alerts in 'Update Health':  failed to get alerts from Thanos: no token is currently in use for this session
+= Control Plane =
+Assessment:      Progressing
+Target Version:  4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest (from 4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial)
+Updating:        image-registry, monitoring, openshift-controller-manager
+Completion:      50% (17 operators updated, 3 updating, 14 waiting)
+Duration:        24m (Est. Time Remaining: 45m)
+Operator Health: 34 Healthy
+
+Updating Cluster Operators
+NAME             SINCE   REASON                                            MESSAGE
+image-registry   6s      DeploymentNotCompleted::NodeCADaemonUnavailable   NodeCADaemonProgressing: The daemon set node-ca is deploying node pods
+Progressing: The deployment has not completed
+monitoring                     4s    RollOutInProgress                                                                Rolling out the stack.
+openshift-controller-manager   11s   RouteControllerManager_DesiredStateNotYetAchieved::_DesiredStateNotYetAchieved   Progressing: deployment/controller-manager: observed generation is 10, desired generation is 11
+Progressing: deployment/controller-manager: updated replicas is 1, desired replicas is 3
+RouteControllerManagerProgressing: deployment/route-controller-manager: observed generation is 7, desired generation is 8
+RouteControllerManagerProgressing: deployment/route-controller-manager: updated replicas is 1, desired replicas is 3
+
+Control Plane Nodes
+NAME                          ASSESSMENT   PHASE     VERSION                                                     EST   MESSAGE
+ip-10-0-10-232.ec2.internal   Outdated     Pending   4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial   ?     
+ip-10-0-8-129.ec2.internal    Outdated     Pending   4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial   ?     
+ip-10-0-88-44.ec2.internal    Outdated     Pending   4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial   ?     
+
+= Worker Upgrade =
+
+WORKER POOL   ASSESSMENT   COMPLETION   STATUS
+worker        Pending      0% (0/3)     3 Available, 0 Progressing, 0 Draining
+
+Worker Pool Nodes: worker
+NAME                          ASSESSMENT   PHASE     VERSION                                                     EST   MESSAGE
+ip-10-0-47-75.ec2.internal    Outdated     Pending   4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial   ?     
+ip-10-0-57-235.ec2.internal   Outdated     Pending   4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial   ?     
+ip-10-0-64-121.ec2.internal   Outdated     Pending   4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial   ?     
+
+= Update Health =
+SINCE    LEVEL   IMPACT   MESSAGE
+24m12s   Info    None     Update is proceeding well`
+
 func TestMonitor_ControlPlane(t *testing.T) {
 	t.Parallel()
 
@@ -164,6 +206,15 @@ func TestMonitor_ControlPlane(t *testing.T) {
 				FailureOutput: &junitapi.FailureOutput{
 					Message: "observed unexpected outputs in oc adm upgrade status control plane section",
 				},
+			},
+		},
+		{
+			name: "operators section with line breaks in messages",
+			snapshots: []snapshot{
+				{when: time.Now(), out: operatorsWithLinebreaksInMessages},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
 			},
 		},
 	}

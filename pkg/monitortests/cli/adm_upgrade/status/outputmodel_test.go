@@ -30,6 +30,13 @@ Completion:      97% (32 operators updated, 1 updating, 0 waiting)
 Duration:        1h59m (Est. Time Remaining: N/A; estimate duration was 1h24m)
 Operator Health: 28 Healthy, 1 Unavailable, 4 Available but degraded`
 
+	controlPlaneSummaryInconsistentOperators = `Assessment:      Progressing
+Target Version:  4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest (from 4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial)
+Updating:        image-registry, monitoring, openshift-controller-manager
+Completion:      50% (17 operators updated, 3 updating, 14 waiting)
+Duration:        24m (Est. Time Remaining: 45m)
+Operator Health: 34 Healthy`
+
 	controlPlaneUpdated = `Update to 4.16.0-ec.3 successfully completed at 2024-02-27T15:42:58Z (duration: 3h31m)`
 
 	expectedControlPlaneSummaries = map[string]map[string]string{
@@ -48,6 +55,14 @@ Operator Health: 28 Healthy, 1 Unavailable, 4 Available but degraded`
 			"Duration":        "1h59m (Est. Time Remaining: N/A; estimate duration was 1h24m)",
 			"Operator Health": "28 Healthy, 1 Unavailable, 4 Available but degraded",
 		},
+		controlPlaneSummaryInconsistentOperators: {
+			"Assessment":      "Progressing",
+			"Target Version":  "4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest (from 4.20.0-0.ci-2025-08-13-174821-test-ci-op-5wilvz46-initial)",
+			"Updating":        "image-registry, monitoring, openshift-controller-manager",
+			"Completion":      "50% (17 operators updated, 3 updating, 14 waiting)",
+			"Duration":        "24m (Est. Time Remaining: 45m)",
+			"Operator Health": "34 Healthy",
+		},
 		controlPlaneUpdated: nil, // No summary for updated control plane
 	}
 
@@ -55,8 +70,28 @@ Operator Health: 28 Healthy, 1 Unavailable, 4 Available but degraded`
 NAME             SINCE     REASON   MESSAGE
 machine-config   1h4m41s   -        Working towards 4.14.1`
 
+	// TODO: This is actually a bug we should fix in the output, we will fix this
+	controlPlaneInconsistentOperators = `Updating Cluster Operators
+NAME             SINCE   REASON                                            MESSAGE
+image-registry   6s      DeploymentNotCompleted::NodeCADaemonUnavailable   NodeCADaemonProgressing: The daemon set node-ca is deploying node pods
+Progressing: The deployment has not completed
+monitoring                     4s    RollOutInProgress                                                                Rolling out the stack.
+openshift-controller-manager   11s   RouteControllerManager_DesiredStateNotYetAchieved::_DesiredStateNotYetAchieved   Progressing: deployment/controller-manager: observed generation is 10, desired generation is 11
+Progressing: deployment/controller-manager: updated replicas is 1, desired replicas is 3
+RouteControllerManagerProgressing: deployment/route-controller-manager: observed generation is 7, desired generation is 8
+RouteControllerManagerProgressing: deployment/route-controller-manager: updated replicas is 1, desired replicas is 3`
+
 	expectedControlPlaneOperators = map[string][]string{
 		controlPlaneOperators: {"machine-config   1h4m41s   -        Working towards 4.14.1"},
+		controlPlaneInconsistentOperators: {
+			"image-registry   6s      DeploymentNotCompleted::NodeCADaemonUnavailable   NodeCADaemonProgressing: The daemon set node-ca is deploying node pods",
+			"Progressing: The deployment has not completed",
+			"monitoring                     4s    RollOutInProgress                                                                Rolling out the stack.",
+			"openshift-controller-manager   11s   RouteControllerManager_DesiredStateNotYetAchieved::_DesiredStateNotYetAchieved   Progressing: deployment/controller-manager: observed generation is 10, desired generation is 11",
+			"Progressing: deployment/controller-manager: updated replicas is 1, desired replicas is 3",
+			"RouteControllerManagerProgressing: deployment/route-controller-manager: observed generation is 7, desired generation is 8",
+			"RouteControllerManagerProgressing: deployment/route-controller-manager: updated replicas is 1, desired replicas is 3",
+		},
 	}
 
 	controlPlaneThreeNodes = `Control Plane Nodes
@@ -329,6 +364,27 @@ func TestUpgradeStatusOutput_ControlPlane(t *testing.T) {
 				Operators:    nil,
 				NodesUpdated: true,
 				Nodes:        nil,
+			},
+		},
+		{
+			name: "control plane with inconsistent operators (bug that will be fixed)",
+			segments: []string{
+				controlPlaneHeader,
+				controlPlaneSummaryInconsistentOperators,
+				emptyLine,
+				controlPlaneInconsistentOperators,
+				emptyLine,
+				controlPlaneThreeNodes,
+				emptyLine,
+				healthSectionHeader,
+				genericHealthSection,
+			},
+			expected: &ControlPlaneStatus{
+				Updated:      false,
+				Summary:      expectedControlPlaneSummaries[controlPlaneSummaryInconsistentOperators],
+				Operators:    expectedControlPlaneOperators[controlPlaneInconsistentOperators],
+				NodesUpdated: false,
+				Nodes:        expectedControlPlaneNodes[controlPlaneThreeNodes],
 			},
 		},
 	}
