@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -40,6 +42,9 @@ type monitor struct {
 
 	notSupportedReason error
 	isSNO              bool
+
+	configv1client        *clientconfigv1.Clientset
+	initialClusterVersion *configv1.ClusterVersion
 }
 
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
@@ -62,23 +67,32 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform MicroShift not supported"}
 		return w.notSupportedReason
 	}
-	clientconfigv1client, err := clientconfigv1.NewForConfig(adminRESTConfig)
+	configClient, err := clientconfigv1.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
+	w.configv1client = configClient
 
-	if ok, err := exutil.IsHypershift(ctx, clientconfigv1client); err != nil {
+	if ok, err := exutil.IsHypershift(ctx, w.configv1client); err != nil {
 		return fmt.Errorf("unable to determine if cluster is Hypershift: %v", err)
 	} else if ok {
 		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform Hypershift not supported"}
 		return w.notSupportedReason
 	}
 
-	if ok, err := exutil.IsSingleNode(ctx, clientconfigv1client); err != nil {
+	if ok, err := exutil.IsSingleNode(ctx, w.configv1client); err != nil {
 		return fmt.Errorf("unable to determine if cluster is single node: %v", err)
 	} else {
 		w.isSNO = ok
 	}
+
+	cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get cluster version: %w", err)
+	}
+
+	w.initialClusterVersion = cv
+
 	return nil
 }
 
