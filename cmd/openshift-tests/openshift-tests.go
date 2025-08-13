@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/mcp"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
@@ -106,6 +107,7 @@ func main() {
 		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
 		render.NewRenderCommand(ioStreams),
 		versioncmd.NewVersionCommand(ioStreams),
+		mcp.NewMCPCommand(),
 	)
 
 	f := flag.CommandLine.Lookup("v")
