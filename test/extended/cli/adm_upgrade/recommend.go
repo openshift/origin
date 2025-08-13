@@ -54,7 +54,7 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 	})
 
 	g.It("runs successfully, even without upstream OpenShift Update Service customization", func() {
-		_, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
+		_, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -65,7 +65,7 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 		}
 		restoreChannel = true
 
-		out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
+		out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = matchRegexp(out, `.*The update channel has not been configured.*`)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -99,7 +99,7 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 		})
 
 		g.It("runs successfully", func() {
-			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
+			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = matchRegexp(out, `.*Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
@@ -179,7 +179,7 @@ No updates available. You may still upgrade to a specific release image.*`)
 		})
 
 		g.It("runs successfully when listing all updates", func() {
-			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
+			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = matchRegexp(out, `Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
@@ -199,7 +199,7 @@ Updates to 4[.][0-9]*:
 		})
 
 		g.It("runs successfully with conditional recommendations to the --version target", func() {
-			out, err := oc.Run("adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1)).EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").Output()
+			out, err := oc.Run("adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1)).EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = matchRegexp(out, `Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
