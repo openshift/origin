@@ -12,14 +12,14 @@ import (
 var (
 	healthLinePattern   = regexp.MustCompile(`^\S+\s+\S+\S+\s+\S+.*$`)
 	healthMessageFields = map[string]*regexp.Regexp{
-		"Message":            regexp.MustCompile(`^Message:\s+\S+.*$`),
-		"Since":              regexp.MustCompile(`^ {2}Since:\s+\S+.*$`),
-		"Level":              regexp.MustCompile(`^ {2}Level:\s+\S+.*$`),
-		"Impact":             regexp.MustCompile(`^ {2}Impact:\s+\S+.*$`),
-		"Reference":          regexp.MustCompile(`^ {2}Reference:\s+\S+.*$`),
-		"Resources":          regexp.MustCompile(`^ {2}Resources:$`),
-		"resource reference": regexp.MustCompile(`^ {4}[a-z0-9_.-]+: \S+$`),
-		"Description":        regexp.MustCompile(`^ {2}Description:\s+\S+.*$`),
+		"Message":            regexp.MustCompile(`(?m)^Message: +\S+.*$`),
+		"Since":              regexp.MustCompile(`(?m)^ {2}Since: +\S+.*$`),
+		"Level":              regexp.MustCompile(`(?m)^ {2}Level: +\S+.*$`),
+		"Impact":             regexp.MustCompile(`(?m)^ {2}Impact: +\S+.*$`),
+		"Reference":          regexp.MustCompile(`(?m)^ {2}Reference: +\S+.*$`),
+		"Resources":          regexp.MustCompile(`(?m)^ {2}Resources:$`),
+		"resource reference": regexp.MustCompile(`(?m)^ {4}[a-z0-9_.-]+: +\S+$`),
+		"Description":        regexp.MustCompile(`(?m)^ {2}Description: +\S+.*$`),
 	}
 )
 
@@ -47,12 +47,11 @@ func (w *monitor) health() *junitapi.JUnitTestCase {
 				wroteOnce = true
 				failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
 				failureOutputBuilder.WriteString(observed.output.rawOutput)
-				failureOutputBuilder.WriteString(fmt.Sprintf("=> %s\n", message))
+				failureOutputBuilder.WriteString(fmt.Sprintf("\n\n=> %s\n", message))
 			}
 		}
 
 		if !observed.output.updating {
-			// If the cluster is not updating, workers should not be updating
 			if observed.output.health != nil {
 				fail("Cluster is not updating but health section is present")
 			}
@@ -68,13 +67,13 @@ func (w *monitor) health() *junitapi.JUnitTestCase {
 		for _, item := range h.Messages {
 			if h.Detailed {
 				for field, pattern := range healthMessageFields {
-					if !pattern.MatchString(item) {
-						fail(fmt.Sprintf("Health message does not contain field %s: %s", field, item))
+					if pattern.FindString(item) == "" {
+						fail(fmt.Sprintf("Health message does not contain field %s", field))
 					}
 				}
 			} else {
 				if !healthLinePattern.MatchString(item) {
-					fail(fmt.Sprintf("Health message does not match expected pattern: %s", item))
+					fail(fmt.Sprintf("Health message does not match expected pattern:\n%s", item))
 				}
 			}
 		}
