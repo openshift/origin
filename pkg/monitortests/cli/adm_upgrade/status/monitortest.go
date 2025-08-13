@@ -151,6 +151,7 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	return nil, []*junitapi.JUnitTestCase{
 		w.noFailures(),
 		w.expectedLayout(),
+		w.controlPlane(),
 	}, nil
 }
 
