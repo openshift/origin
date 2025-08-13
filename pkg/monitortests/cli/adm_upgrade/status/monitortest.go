@@ -27,9 +27,17 @@ type snapshot struct {
 	out  string
 	err  error
 }
+
+type outputModel struct {
+	when   time.Time
+	output *upgradeStatusOutput
+}
 type monitor struct {
-	collectionDone     chan struct{}
-	ocAdmUpgradeStatus []snapshot
+	collectionDone chan struct{}
+
+	ocAdmUpgradeStatus             []snapshot
+	ocAdmUpgradeStatusOutputModels []outputModel
+
 	notSupportedReason error
 	isSNO              bool
 }
@@ -140,7 +148,10 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
-	return nil, []*junitapi.JUnitTestCase{w.noFailures()}, nil
+	return nil, []*junitapi.JUnitTestCase{
+		w.noFailures(),
+		w.expectedLayout(),
+	}, nil
 }
 
 func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -198,4 +209,56 @@ func (w *monitor) noFailures() *junitapi.JUnitTestCase {
 		}
 	}
 	return noFailures
+}
+
+func (w *monitor) expectedLayout() *junitapi.JUnitTestCase {
+	expectedLayout := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+		SkipMessage: &junitapi.SkipMessage{
+			Message: "Test skipped because no oc adm upgrade status output was successfully collected",
+		},
+	}
+
+	w.ocAdmUpgradeStatusOutputModels = make([]outputModel, len(w.ocAdmUpgradeStatus))
+
+	failureOutputBuilder := strings.Builder{}
+
+	for i, observed := range w.ocAdmUpgradeStatus {
+		w.ocAdmUpgradeStatusOutputModels[i] = outputModel{
+			when: observed.when,
+		}
+
+		if observed.err != nil {
+			// Failures are handled in noFailures, so we can skip them here
+			continue
+		}
+
+		// We saw at least one successful execution of oc adm upgrade status, so we have data to process
+		// and we do not need to skip
+		expectedLayout.SkipMessage = nil
+
+		if observed.out == "" {
+			failureOutputBuilder.WriteString(fmt.Sprintf("- %s: unexpected empty output", observed.when.Format(time.RFC3339)))
+			continue
+		}
+
+		model, err := newUpgradeStatusOutput(observed.out)
+		if err != nil {
+			failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
+			failureOutputBuilder.WriteString(observed.out)
+			failureOutputBuilder.WriteString(fmt.Sprintf("=> Failed to parse output above: %v\n", err))
+			continue
+		}
+
+		w.ocAdmUpgradeStatusOutputModels[i].output = model
+	}
+
+	if failureOutputBuilder.Len() > 0 {
+		expectedLayout.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("observed unexpected outputs in oc adm upgrade status"),
+			Output:  failureOutputBuilder.String(),
+		}
+	}
+
+	return expectedLayout
 }
