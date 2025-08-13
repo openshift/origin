@@ -271,7 +271,7 @@ func (w *monitor) expectedLayout() *junitapi.JUnitTestCase {
 		if err != nil {
 			failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
 			failureOutputBuilder.WriteString(observed.out)
-			failureOutputBuilder.WriteString(fmt.Sprintf("=> Failed to parse output above: %v\n", err))
+			failureOutputBuilder.WriteString(fmt.Sprintf("\n\n=> Failed to parse output above: %v\n", err))
 			continue
 		}
 
