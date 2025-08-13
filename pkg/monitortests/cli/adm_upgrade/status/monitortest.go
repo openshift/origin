@@ -84,7 +84,7 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 	var err error
 	// retry on brief apiserver unavailability
 	if errWait := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-		cmd := oc.Run("adm", "upgrade", "status").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
+		cmd := oc.Run("adm", "upgrade", "status", "--details=all").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
 		out, err = cmd.Output()
 		if err != nil {
 			return false, nil
@@ -112,7 +112,7 @@ func (w *monitor) StartCollection(ctx context.Context, adminRESTConfig *rest.Con
 			w.collectionDone <- struct{}{}
 		}()
 		// TODO: Configurable interval?
-		// TODO: Collect multiple invocations (--details)? Would need more another producer/consumer pair and likely
+		// TODO: Collect multiple invocations (without --details)? Would need more another producer/consumer pair and likely
 		//       collectionDone would need to be a WaitGroup
 
 		wait.UntilWithContext(ctx, func(ctx context.Context) { snapshotOcAdmUpgradeStatus(snapshots) }, time.Minute)
