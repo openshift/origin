@@ -61,7 +61,7 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 				"Control plane is reported updated but summary section is present":   cp.Summary != nil,
 				"Control plane is reported updated but operators section is present": cp.Operators != nil,
 				"Control plane is reported updated but nodes section is present":     cp.Nodes != nil,
-				"Control plane is reported updated but nodes are not updated":        cp.NodesUpdated,
+				"Control plane is reported updated but nodes are not updated":        !cp.NodesUpdated,
 			} {
 				if condition {
 					fail(message)
