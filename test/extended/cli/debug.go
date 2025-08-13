@@ -27,7 +27,6 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithPodSecurityLevel("oc-debug", admissionapi.LevelBaseline)
-	ocNodeClient := exutil.NewCLIWithPodSecurityLevel("cli", admissionapi.LevelBaseline)
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
 	testDeployment := exutil.FixturePath("testdata", "test-deployment.yaml")
@@ -284,15 +283,15 @@ spec:
 	g.It("ensure that the label is set for node debug", func() {
 		var err error
 
-		ns := ocNodeClient.Namespace()
+		ns := oc.Namespace()
 
-		err = ocNodeClient.AsAdmin().Run("label").Args("namespace", ns, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
+		err = oc.AsAdmin().Run("label").Args("namespace", ns, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = ocNodeClient.AsAdmin().Run("auth").Args("can-i", "get", "nodes").Execute()
+		err = oc.AsAdmin().WithoutNamespace().Run("auth").Args("can-i", "get", "nodes").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "User should be able to get nodes")
 
-		nodesOutput, err := ocNodeClient.AsAdmin().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker=", "--no-headers", "-o", "custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type=='Ready')].status").Output()
+		nodesOutput, err := oc.AsAdmin().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker=", "--no-headers", "-o", "custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type=='Ready')].status").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(nodesOutput).NotTo(o.BeEmpty(), "No worker nodes found")
 
@@ -306,57 +305,26 @@ spec:
 		}
 		o.Expect(readyWorkerNode).NotTo(o.BeEmpty(), "No ready worker node found")
 
-		done := make(chan error, 1)
-		go func() {
-			err := ocNodeClient.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--keep-labels=true", "--", "sleep", "10").Execute()
-			done <- err
-		}()
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--keep-labels=true", "--preserve-pod=true", "--", "sleep", "10").Execute()
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pods.Items).To(o.HaveLen(1))
+		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
+		oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
 
-		klog.Infof("Debug command invoked on another thread for node %s", readyWorkerNode)
+		// Make sure the pod is deleted
+		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pods.Items).To(o.HaveLen(0))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
-			pods, err := ocNodeClient.AdminKubeClient().CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
-			if err != nil {
-				return false, err
-			}
-			klog.Infof("Current pods with debug label: %d pods found", len(pods.Items))
-			for _, pod := range pods.Items {
-				klog.Infof("  Pod: %s, Status: %s", pod.Name, pod.Status.Phase)
-				desc, err := ocNodeClient.AsAdmin().Run("describe").Args("pod", pod.Name, "-n", ns).Output()
-				if err == nil {
-					klog.Infof("Pod description:\n%s", desc)
-				} else {
-					klog.Infof("Error describing pod %s: %v", pod.Name, err)
-				}
-			}
-			return len(pods.Items) >= 1, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred(), "Expected at least one debug pod with label debug.openshift.io/managed-by=oc-debug")
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--preserve-pod=true", "--", "sleep", "10").Execute()
 
-		debugErr := <-done
-		o.Expect(debugErr).NotTo(o.HaveOccurred())
-
-		done = make(chan error, 1)
-		go func() {
-			err := ocNodeClient.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--", "sleep", "10").Execute()
-			done <- err
-		}()
-
-		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
-			pods, err := ocNodeClient.AdminKubeClient().CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
-			if err != nil {
-				return false, err
-			}
-			return len(pods.Items) >= 1, nil
-		})
 		// Uncomment after https://github.com/openshift/oc/pull/2074 is merged
-		// o.Expect(err).NotTo(o.HaveOccurred(), "Expected at least one debug pod with label debug.openshift.io/managed-by=oc-debug")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+		//o.Expect(pods.Items).To(o.HaveLen(1))
+		//o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
+		//oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
 
-		debugErr = <-done
-		o.Expect(debugErr).NotTo(o.HaveOccurred())
 	})
 })
