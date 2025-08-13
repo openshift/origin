@@ -25,7 +25,7 @@ type Health struct {
 	Messages []string
 }
 
-type UpgradeStatusOutput struct {
+type upgradeStatusOutput struct {
 	rawOutput    string
 	updating     bool
 	controlPlane *ControlPlaneStatus
@@ -33,11 +33,11 @@ type UpgradeStatusOutput struct {
 	health       *Health
 }
 
-func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
+func newUpgradeStatusOutput(output string) (*upgradeStatusOutput, error) {
 	output = strings.TrimSpace(output)
 
 	if output == "The cluster is not updating." {
-		return &UpgradeStatusOutput{
+		return &upgradeStatusOutput{
 			rawOutput:    output,
 			updating:     false,
 			controlPlane: nil,
@@ -63,7 +63,7 @@ func NewUpgradeStatusOutput(output string) (*UpgradeStatusOutput, error) {
 		return nil, err
 	}
 
-	return &UpgradeStatusOutput{
+	return &upgradeStatusOutput{
 		rawOutput:    output,
 		updating:     true,
 		controlPlane: controlPlane,
@@ -172,7 +172,7 @@ func (p *parser) parseControlPlaneSection() (*ControlPlaneStatus, error) {
 	var status ControlPlaneStatus
 
 	if p.tryRegex(controlPlaneUpdated) {
-		p.eatRegex(controlPlaneUpdated)
+		_ = p.eatRegex(controlPlaneUpdated)
 		status.Updated = true
 		p.eatEmptyLines()
 		if err := p.eatRegex(controlPlaneNodesUpdated); err != nil {
@@ -198,7 +198,7 @@ func (p *parser) parseControlPlaneSection() (*ControlPlaneStatus, error) {
 	p.eatEmptyLines()
 
 	if p.tryRegex(controlPlaneNodesUpdated) {
-		p.eatRegex(controlPlaneNodesUpdated)
+		_ = p.eatRegex(controlPlaneNodesUpdated)
 		status.NodesUpdated = true
 	} else {
 		nodes, err := p.parseControlPlaneNodes()

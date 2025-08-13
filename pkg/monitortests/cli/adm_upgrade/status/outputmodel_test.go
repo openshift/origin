@@ -9,7 +9,7 @@ import (
 func TestUpgradeStatusOutput_NotUpdating(t *testing.T) {
 	input := "The cluster is not updating."
 
-	output, err := NewUpgradeStatusOutput(input)
+	output, err := newUpgradeStatusOutput(input)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -205,7 +205,7 @@ Message: Cluster Version version is failing to proceed with the update (ClusterO
 		},
 	}
 
-	output, err := NewUpgradeStatusOutput(input)
+	output, err := newUpgradeStatusOutput(input)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
@@ -292,7 +292,7 @@ Message: Cluster Operator kube-apiserver is degraded (NodeController_MasterNodes
 		"ip-10-0-8-37.ec2.internal   Outdated     Pending   4.16.0-0.nightly-2024-08-01-082745   ?",
 	}
 
-	output, err := NewUpgradeStatusOutput(input)
+	output, err := newUpgradeStatusOutput(input)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
