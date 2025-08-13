@@ -136,6 +136,27 @@ ip-10-0-64-121.ec2.internal   Outdated     Pending   4.20.0-0.ci-2025-08-13-1748
 SINCE    LEVEL   IMPACT   MESSAGE
 24m12s   Info    None     Update is proceeding well`
 
+var controlPlaneCompleted = `Unable to fetch alerts, ignoring alerts in 'Update Health':  failed to get alerts from Thanos: no token is currently in use for this session
+= Control Plane =
+Update to 4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest successfully completed at 2025-08-13T20:33:32Z (duration: 59m)
+
+All control plane nodes successfully updated to 4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest
+
+= Worker Upgrade =
+
+WORKER POOL   ASSESSMENT   COMPLETION   STATUS
+worker        Completed    100% (3/3)   3 Available, 0 Progressing, 0 Draining
+
+Worker Pool Nodes: worker
+NAME                          ASSESSMENT   PHASE     VERSION                                                    EST   MESSAGE
+ip-10-0-47-75.ec2.internal    Completed    Updated   4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest   -     
+ip-10-0-57-235.ec2.internal   Completed    Updated   4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest   -     
+ip-10-0-64-121.ec2.internal   Completed    Updated   4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest   -     
+
+= Update Health =
+SINCE    LEVEL   IMPACT   MESSAGE
+59m22s   Info    None     Update is proceeding well`
+
 func TestMonitor_ControlPlane(t *testing.T) {
 	t.Parallel()
 
@@ -212,6 +233,15 @@ func TestMonitor_ControlPlane(t *testing.T) {
 			name: "operators section with line breaks in messages",
 			snapshots: []snapshot{
 				{when: time.Now(), out: operatorsWithLinebreaksInMessages},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
+			},
+		},
+		{
+			name: "control plane completed",
+			snapshots: []snapshot{
+				{when: time.Now(), out: controlPlaneCompleted},
 			},
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
