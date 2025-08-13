@@ -68,6 +68,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			// Managed service exceptions https://issues.redhat.com/browse/OSD-26323
 			"openshift-security/splunkforwarder-ds",
 			"openshift-validation-webhook/validation-webhook",
+
+			// This is a temporary daemon set used to deploy a config to nodes, and then
+			// it is deleted later.
+			"openshift-multus/cni-sysctl-allowlist-ds",
 		)
 
 		var debug []string
