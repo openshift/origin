@@ -40,7 +40,7 @@ func (w *monitor) workers() *junitapi.JUnitTestCase {
 				wroteOnce = true
 				failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
 				failureOutputBuilder.WriteString(observed.output.rawOutput)
-				failureOutputBuilder.WriteString(fmt.Sprintf("=> %s\n", message))
+				failureOutputBuilder.WriteString(fmt.Sprintf("\n\n=> %s\n", message))
 			}
 		}
 
@@ -64,7 +64,7 @@ func (w *monitor) workers() *junitapi.JUnitTestCase {
 				name := strings.Split(pool, " ")[0]
 				_, ok := ws.Nodes[name]
 				if ok {
-					fail(fmt.Sprintf("Empty nodes table should not be shown for an empty pool %s", name))
+					fail(fmt.Sprintf("Nodes table should not be shown for an empty pool %s", name))
 				}
 				continue
 			}
