@@ -14,6 +14,7 @@ import (
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -42,6 +43,9 @@ type monitor struct {
 
 	notSupportedReason error
 	isSNO              bool
+
+	configv1client      *clientconfigv1.Clientset
+	initialHistoryItems int
 }
 
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
@@ -68,6 +72,7 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 	if err != nil {
 		return err
 	}
+	w.configv1client = clientconfigv1client
 
 	if ok, err := exutil.IsHypershift(ctx, clientconfigv1client); err != nil {
 		return fmt.Errorf("unable to determine if cluster is Hypershift: %v", err)
@@ -81,6 +86,13 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 	} else {
 		w.isSNO = ok
 	}
+
+	cv, err := clientconfigv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get cluster version: %w", err)
+	}
+
+	w.initialHistoryItems = len(cv.Status.History)
 
 	return nil
 }
@@ -151,13 +163,16 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
-	return nil, []*junitapi.JUnitTestCase{
+	testCases := []*junitapi.JUnitTestCase{
 		w.noFailures(),
 		w.expectedLayout(),
 		w.controlPlane(),
 		w.workers(),
 		w.health(),
-	}, nil
+		w.updateLifecycle(),
+	}
+
+	return nil, testCases, nil
 }
 
 func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -551,6 +566,117 @@ func (w *monitor) health() *junitapi.JUnitTestCase {
 		health.FailureOutput = &junitapi.FailureOutput{
 			Message: fmt.Sprintf("observed unexpected outputs in oc adm upgrade status health section"),
 			Output:  failureOutputBuilder.String(),
+		}
+	}
+
+	return health
+}
+
+func (w *monitor) updateLifecycle(ctx context.Context) *junitapi.JUnitTestCase {
+	health := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status health section is consistent",
+	}
+
+	cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		health.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("failed to get cluster version: %v", err),
+		}
+		return health
+	}
+
+	clusterUpdated := len(cv.Status.History) > w.initialHistoryItems
+	health.SkipMessage = &junitapi.SkipMessage{
+		Message: "Test skipped because no oc adm upgrade status output was successfully collected",
+	}
+
+	type state string
+	const (
+		beforeUpdate             state = "before update"
+		controlPlaneUpdating     state = "control plane updating"
+		controlPlaneNodesUpdated state = "control plane nodes updated"
+		controlPlaneUpdated      state = "control plane updated"
+		afterUpdate              state = "after update"
+	)
+
+	type observation string
+	const (
+		notUpdating                      observation = "not updating"
+		controlPlaneObservedUpdating     observation = "control plane updating"
+		controlPlaneObservedNodesUpdated observation = "control plane nodes updated"
+		controlPlaneObservedUpdated      observation = "control plane updated"
+	)
+
+	stateTransitions := map[state]map[observation]state{
+		beforeUpdate: {
+			notUpdating:                      beforeUpdate,
+			controlPlaneObservedUpdating:     controlPlaneUpdating,
+			controlPlaneObservedNodesUpdated: controlPlaneNodesUpdated,
+			controlPlaneObservedUpdated:      controlPlaneUpdated,
+		},
+		controlPlaneUpdating: {
+			notUpdating:                      afterUpdate,
+			controlPlaneObservedUpdating:     controlPlaneUpdating,
+			controlPlaneObservedNodesUpdated: controlPlaneNodesUpdated,
+			controlPlaneObservedUpdated:      controlPlaneUpdated,
+		},
+		controlPlaneNodesUpdated: {
+			notUpdating:                      afterUpdate,
+			controlPlaneObservedNodesUpdated: controlPlaneNodesUpdated,
+			controlPlaneObservedUpdated:      controlPlaneUpdated,
+		},
+		controlPlaneUpdated: {
+			notUpdating:                 afterUpdate,
+			controlPlaneObservedUpdated: controlPlaneUpdated,
+		},
+		afterUpdate: {
+			notUpdating: afterUpdate,
+		},
+	}
+
+	current := beforeUpdate
+
+	failureOutputBuilder := strings.Builder{}
+
+	for _, observed := range w.ocAdmUpgradeStatusOutputModels {
+		if observed.output == nil {
+			// Failing to parse the output is handled in expectedLayout, so we can skip here
+			continue
+		}
+		// We saw at least one successful execution of oc adm upgrade status, so we have data to process
+		health.SkipMessage = nil
+
+		wroteOnce := false
+		fail := func(message string) {
+			if !wroteOnce {
+				wroteOnce = true
+				failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
+				failureOutputBuilder.WriteString(observed.output.rawOutput)
+				failureOutputBuilder.WriteString(fmt.Sprintf("=> %s\n", message))
+			}
+		}
+
+		if !clusterUpdated {
+			if observed.output.updating || observed.output.controlPlane != nil || observed.output.workers != nil || observed.output.health != nil {
+				fail("Cluster did not update but oc adm upgrade status reported that it is updating")
+			}
+			continue
+		}
+
+		o := notUpdating
+		switch {
+		case observed.output.controlPlane.Updated:
+			o = controlPlaneObservedUpdated
+		case observed.output.controlPlane.NodesUpdated:
+			o = controlPlaneObservedNodesUpdated
+		case observed.output.updating:
+			o = controlPlaneObservedUpdating
+		}
+
+		if next, ok := stateTransitions[current][o]; !ok {
+			fail(fmt.Sprintf("Unexpected observation '%s' in state '%s'", o, current))
+		} else {
+			current = next
 		}
 	}
 
