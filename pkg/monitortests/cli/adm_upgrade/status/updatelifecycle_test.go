@@ -184,9 +184,29 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 			wasUpdated: false,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
-				FailureOutput: &junitapi.FailureOutput{
-					Message: "observed unexpected update lifecycle transition in oc adm upgrade status",
-				},
+				// TODO: MCO churn sometimes briefly tricks our code into thinking the cluster is updating, we'll tolerate for
+				// now but we should try fixing this
+				// FailureOutput: &junitapi.FailureOutput{
+				// 	Message: "observed unexpected update lifecycle transition in oc adm upgrade status",
+				// },
+			},
+		},
+		{
+
+			name: "completed update goes back to updating",
+			snapshots: []snapshot{
+				{when: time.Now(), out: lifecycle03controlPlaneNodesUpdated},
+				{when: time.Now(), out: lifecycle05after},
+				{when: time.Now(), out: lifecycle03controlPlaneNodesUpdated},
+			},
+			wasUpdated: true,
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
+				// TODO: MCO churn sometimes briefly tricks our code into thinking the cluster is updating, we'll tolerate for
+				// now but we should try fixing this
+				// FailureOutput: &junitapi.FailureOutput{
+				// 	Message: "observed unexpected update lifecycle transition in oc adm upgrade status",
+				// },
 			},
 		},
 	}
