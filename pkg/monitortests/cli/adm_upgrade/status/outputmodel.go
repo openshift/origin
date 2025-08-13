@@ -33,6 +33,8 @@ type upgradeStatusOutput struct {
 	health       *Health
 }
 
+var unableToFetchAlerts = regexp.MustCompile(`^Unable to fetch alerts.*`)
+
 func newUpgradeStatusOutput(output string) (*upgradeStatusOutput, error) {
 	output = strings.TrimSpace(output)
 
@@ -47,6 +49,10 @@ func newUpgradeStatusOutput(output string) (*upgradeStatusOutput, error) {
 
 	lines := strings.Split(output, "\n")
 	parser := &parser{lines: lines, pos: 0}
+
+	if parser.tryRegex(unableToFetchAlerts) {
+		parser.eatRegex(unableToFetchAlerts)
+	}
 
 	controlPlane, err := parser.parseControlPlaneSection()
 	if err != nil {

@@ -169,32 +169,32 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 		w.controlPlane(),
 		w.workers(),
 		w.health(),
-		w.updateLifecycle(),
+		w.updateLifecycle(ctx),
 	}
 
 	return nil, testCases, nil
 }
 
-func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+func (w *monitor) ConstructComputedIntervals(context.Context, monitorapi.Intervals, monitorapi.ResourcesMap, time.Time, time.Time) (monitorapi.Intervals, error) {
 	return nil, w.notSupportedReason
 }
 
-func (w *monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+func (w *monitor) EvaluateTestsFromConstructedIntervals(_ context.Context, _ monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	if w.notSupportedReason != nil {
 		return nil, w.notSupportedReason
 	}
 	return nil, nil
 }
 
-func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+func (w *monitor) WriteContentToStorage(_ context.Context, storageDir, timeSuffix string, _ monitorapi.Intervals, _ monitorapi.ResourcesMap) error {
 	folderPath := path.Join(storageDir, "adm-upgrade-status")
 	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
 		return fmt.Errorf("unable to create directory %s: %w", folderPath, err)
 	}
 
 	var errs []error
-	for when, observed := range w.ocAdmUpgradeStatus {
-		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", when, timeSuffix)
+	for _, observed := range w.ocAdmUpgradeStatus {
+		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", observed.when, timeSuffix)
 		outputFile := filepath.Join(folderPath, outputFilename)
 		if err := os.WriteFile(outputFile, []byte(observed.out), 0644); err != nil {
 			errs = append(errs, fmt.Errorf("failed to write %s: %w", outputFile, err))
@@ -292,13 +292,13 @@ var (
 	healthLinePattern   = regexp.MustCompile(`^\S+\s+\S+\S+\s+\S+.*$`)
 	healthMessageFields = map[string]*regexp.Regexp{
 		"Message":            regexp.MustCompile(`^Message:\s+\S+.*$`),
-		"Since":              regexp.MustCompile(`^  Since:\s+\S+.*$`),
-		"Level":              regexp.MustCompile(`^  Level:\s+\S+.*$`),
-		"Impact":             regexp.MustCompile(`^  Impact:\s+\S+.*$`),
-		"Reference":          regexp.MustCompile(`^  Reference:\s+\S+.*$`),
-		"Resources":          regexp.MustCompile(`^  Resources:$`),
-		"resource reference": regexp.MustCompile(`^    [a-z0-9_.-]+: \S+$`),
-		"Description":        regexp.MustCompile(`^  Description:\s+\S+.*$`),
+		"Since":              regexp.MustCompile(`^ {2}Since:\s+\S+.*$`),
+		"Level":              regexp.MustCompile(`^ {2}Level:\s+\S+.*$`),
+		"Impact":             regexp.MustCompile(`^ {2}Impact:\s+\S+.*$`),
+		"Reference":          regexp.MustCompile(`^ {2}Reference:\s+\S+.*$`),
+		"Resources":          regexp.MustCompile(`^ {2}Resources:$`),
+		"resource reference": regexp.MustCompile(`^ {4}[a-z0-9_.-]+: \S+$`),
+		"Description":        regexp.MustCompile(`^ {2}Description:\s+\S+.*$`),
 	}
 )
 
