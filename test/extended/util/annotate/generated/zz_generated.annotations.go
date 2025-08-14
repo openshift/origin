@@ -801,7 +801,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm must-gather runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm must-gather runs successfully for metrics gathering": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm must-gather runs successfully for metrics gathering [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm must-gather runs successfully with options [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
