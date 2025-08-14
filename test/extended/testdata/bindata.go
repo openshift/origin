@@ -3755,7 +3755,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.32-ubi8"
+              "name": "5.32-ubi9"
             },
             "generation": null,
             "importPolicy": {},
