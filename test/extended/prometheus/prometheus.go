@@ -137,7 +137,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				return false, fmt.Errorf("expecting status code %v but returned %d", expected.UnsortedList(), statusCode)
 			})
 			if err != nil && !namespacesToSkip.Has(ns) {
-				errs = append(errs, fmt.Errorf("the scaple url %s for pod %s/%s is accessible without authorization: %w", target.ScrapeUrl, ns, pod, err))
+				errs = append(errs, fmt.Errorf("the scrape url %s for pod %s/%s is accessible without authorization: %w", target.ScrapeUrl, ns, pod, err))
 			}
 		}
 
