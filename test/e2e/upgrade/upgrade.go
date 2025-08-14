@@ -190,7 +190,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 				}
 				// Sleep to give some time to the workloads on the last upgraded
 				// node to restart.
-				time.Sleep(30 * time.Second)
+				time.Sleep(5 * time.Second)
 			},
 		)
 	})
@@ -199,18 +199,7 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
-		var lastErr error
-		err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
-			if err := checkUpgradeability(client); err != nil {
-				lastErr = err
-				framework.Logf("Upgradeability check failed, retrying: %v", err)
-				return false, nil // retry on error
-			}
-			return true, nil
-		})
-		if err != nil && lastErr != nil {
-			err = lastErr
-		}
+		err = checkUpgradeability(client)
 		framework.ExpectNoError(err)
 	})
 })
