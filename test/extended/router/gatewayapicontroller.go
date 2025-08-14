@@ -14,6 +14,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
+	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -57,6 +58,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	const (
 		// The expected OSSM subscription name.
 		expectedSubscriptionName = "servicemeshoperator3"
+		// The expected OSSM operator name.
+		serviceMeshOperatorName = expectedSubscriptionName + ".openshift-operators"
 		// Expected Subscription Source
 		expectedSubscriptionSource = "redhat-operators"
 		// The expected OSSM operator namespace.
@@ -94,10 +97,31 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.AfterAll(func() {
-		g.By("Cleaning up the GatewayAPI Objects")
+		g.By("Deleting the gateways")
+
 		for _, name := range gateways {
 			err = oc.AdminGatewayApiClient().GatewayV1().Gateways("openshift-ingress").Delete(context.Background(), name, metav1.DeleteOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
+		}
+
+		g.By("Deleting the GatewayClass")
+
+		if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
+		}
+
+		g.By("Deleting the OSSM Operator resources")
+
+		operator, err := operatorsv1.NewForConfigOrDie(oc.AsAdmin().UserConfig()).Operators().Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
+
+		restmapper := oc.AsAdmin().RESTMapper()
+		for _, ref := range operator.Status.Components.Refs {
+			mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
+			o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
 		}
 	})
 
