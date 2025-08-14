@@ -314,6 +314,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		// delete the istiod deployment and then checked if it is restored
 		g.By(fmt.Sprintf("Try to delete the istiod deployment in %s namespace", ingressNamespace))
+		pollWaitDeploymentReady(oc, ingressNamespace, istiodDeployment)
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Get(context.Background(), istiodDeployment, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.AdminKubeClient().AppsV1().Deployments(ingressNamespace).Delete(context.Background(), istiodDeployment, metav1.DeleteOptions{})
@@ -808,7 +809,7 @@ func isOKD(oc *exutil.CLI) (bool, error) {
 	return false, nil
 }
 
-// used to wait a subscription is created successfully by checking its CatalogSourcesUnhealthy
+// used to wait for a subscription is created successfully by checking its CatalogSourcesUnhealthy
 func pollWaitSubscriptionCreated(oc *exutil.CLI, openshiftOperatorsNamespace, expectedSubscriptionName, originalCreatedTimestamp string) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		unhealthy, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", openshiftOperatorsNamespace, "subscription", expectedSubscriptionName, `-o=jsonpath={.status.conditions[?(@.type=="CatalogSourcesUnhealthy")].status}`).Output()
@@ -838,7 +839,26 @@ func pollWaitSubscriptionCreated(oc *exutil.CLI, openshiftOperatorsNamespace, ex
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-// used to wait a deploymentfor is automatically recreated
+// used to wait for a deployment is ready
+func pollWaitDeploymentReady(oc *exutil.CLI, ns, deploymentName string) {
+	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
+		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
+		if err != nil {
+			e2e.Logf("Failed to get %q deployment: %v, retrying...", deploymentName, err)
+			return false, nil
+		}
+
+		if readyReplicas := deployment.Status.ReadyReplicas; readyReplicas < 1 {
+			e2e.Logf(`The deployment %s in %s namespace is not ready(ReadyReplicas: %v), retrying...`, deploymentName, ns, readyReplicas)
+			return false, nil
+		}
+
+		return true, nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// used to wait for a deployment is automatically recreated
 func pollWaitDeploymentCreated(oc *exutil.CLI, ns, deploymentName string, originalCreatedTime metav1.Time) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		deployment, err := oc.AdminKubeClient().AppsV1().Deployments(ns).Get(context.Background(), deploymentName, metav1.GetOptions{})
@@ -862,7 +882,7 @@ func pollWaitDeploymentCreated(oc *exutil.CLI, ns, deploymentName string, origin
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-// used to wait the istio is created successfully by checking its readyReplicas
+// used to wait for the istio is created successfully by checking its readyReplicas
 func pollWaitIstioCreated(oc *exutil.CLI, ingressNamespace, istioName, originalCreatedTimestamp string) {
 	err := wait.Poll(3*time.Second, 300*time.Second, func() (bool, error) {
 		readyReplicasStr, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ingressNamespace, "istio/"+istioName, `-o=jsonpath={.status.revisions.ready}`).Output()
