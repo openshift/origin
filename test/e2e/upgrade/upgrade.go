@@ -188,6 +188,9 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 						clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]),
 						fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
+				// Sleep to give some time to the workloads on the last upgraded
+				// node to restart.
+				time.Sleep(5 * time.Second)
 			},
 		)
 	})
