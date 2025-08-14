@@ -18,7 +18,7 @@ func prepareCollectionWithPanicProtection(ctx context.Context, monitortest Monit
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
@@ -31,7 +31,7 @@ func startCollectionWithPanicProtection(ctx context.Context, monitortest Monitor
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
@@ -44,7 +44,7 @@ func collectDataWithPanicProtection(ctx context.Context, monitortest MonitorTest
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
@@ -57,7 +57,7 @@ func constructComputedIntervalsWithPanicProtection(ctx context.Context, monitort
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
@@ -70,7 +70,7 @@ func evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx context.Contex
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
@@ -83,7 +83,7 @@ func writeContentToStorageWithPanicProtection(ctx context.Context, monitortest M
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
@@ -96,7 +96,7 @@ func cleanupWithPanicProtection(ctx context.Context, monitortest MonitorTest) (e
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
 			logrus.WithError(err).Error("recovering from panic")
-			fmt.Print(debug.Stack())
+			fmt.Print(string(debug.Stack()))
 		}
 	}()
 
