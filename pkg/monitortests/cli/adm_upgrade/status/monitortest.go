@@ -6,12 +6,15 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -26,17 +29,28 @@ type snapshot struct {
 	out  string
 	err  error
 }
+
+type outputModel struct {
+	when   time.Time
+	output *upgradeStatusOutput
+}
 type monitor struct {
-	collectionDone     chan struct{}
-	ocAdmUpgradeStatus map[time.Time]*snapshot
+	collectionDone chan struct{}
+
+	ocAdmUpgradeStatus             []snapshot
+	ocAdmUpgradeStatusOutputModels []outputModel
+
 	notSupportedReason error
 	isSNO              bool
+
+	configv1client        *clientconfigv1.Clientset
+	initialClusterVersion *configv1.ClusterVersion
 }
 
 func NewOcAdmUpgradeStatusChecker() monitortestframework.MonitorTest {
 	return &monitor{
 		collectionDone:     make(chan struct{}),
-		ocAdmUpgradeStatus: map[time.Time]*snapshot{},
+		ocAdmUpgradeStatus: make([]snapshot, 0, 60), // expect at least 60 snaphots in a job, one per minute
 	}
 }
 
@@ -53,23 +67,32 @@ func (w *monitor) PrepareCollection(ctx context.Context, adminRESTConfig *rest.C
 		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform MicroShift not supported"}
 		return w.notSupportedReason
 	}
-	clientconfigv1client, err := clientconfigv1.NewForConfig(adminRESTConfig)
+	configClient, err := clientconfigv1.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
+	w.configv1client = configClient
 
-	if ok, err := exutil.IsHypershift(ctx, clientconfigv1client); err != nil {
+	if ok, err := exutil.IsHypershift(ctx, w.configv1client); err != nil {
 		return fmt.Errorf("unable to determine if cluster is Hypershift: %v", err)
 	} else if ok {
 		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform Hypershift not supported"}
 		return w.notSupportedReason
 	}
 
-	if ok, err := exutil.IsSingleNode(ctx, clientconfigv1client); err != nil {
+	if ok, err := exutil.IsSingleNode(ctx, w.configv1client); err != nil {
 		return fmt.Errorf("unable to determine if cluster is single node: %v", err)
 	} else {
 		w.isSNO = ok
 	}
+
+	cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get cluster version: %w", err)
+	}
+
+	w.initialClusterVersion = cv
+
 	return nil
 }
 
@@ -83,7 +106,7 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 	var err error
 	// retry on brief apiserver unavailability
 	if errWait := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-		cmd := oc.Run("adm", "upgrade", "status").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
+		cmd := oc.Run("adm", "upgrade", "status", "--details=all").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
 		out, err = cmd.Output()
 		if err != nil {
 			return false, nil
@@ -106,12 +129,12 @@ func (w *monitor) StartCollection(ctx context.Context, adminRESTConfig *rest.Con
 		go func() {
 			for snap := range snapshots {
 				// TODO: Maybe also collect some cluster resources (CV? COs?) through recorder?
-				w.ocAdmUpgradeStatus[snap.when] = snap
+				w.ocAdmUpgradeStatus = append(w.ocAdmUpgradeStatus, *snap)
 			}
 			w.collectionDone <- struct{}{}
 		}()
 		// TODO: Configurable interval?
-		// TODO: Collect multiple invocations (--details)? Would need more another producer/consumer pair and likely
+		// TODO: Collect multiple invocations (without --details)? Would need more another producer/consumer pair and likely
 		//       collectionDone would need to be a WaitGroup
 
 		wait.UntilWithContext(ctx, func(ctx context.Context) { snapshotOcAdmUpgradeStatus(snapshots) }, time.Minute)
@@ -133,31 +156,28 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 	// the collection goroutines spawned in StartedCollection to finish
 	<-w.collectionDone
 
-	noFailures := &junitapi.JUnitTestCase{
-		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
-	}
-
-	var failures []string
-	var total int
-	for when, observed := range w.ocAdmUpgradeStatus {
-		total++
-		if observed.err != nil {
-			failures = append(failures, fmt.Sprintf("- %s: %v", when.Format(time.RFC3339), observed.err))
-		}
-	}
-
-	// Zero failures is too strict for at least SNO clusters
-	p := (len(failures) / total) * 100
-	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
-		noFailures.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
-			Output:  strings.Join(failures, "\n"),
-		}
-	}
+	sort.Slice(w.ocAdmUpgradeStatus, func(i, j int) bool {
+		return w.ocAdmUpgradeStatus[i].when.Before(w.ocAdmUpgradeStatus[j].when)
+	})
 
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
-	return nil, []*junitapi.JUnitTestCase{noFailures}, nil
+	wasUpdated := func() (bool, error) {
+		cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("failed to get cluster version: %w", err)
+		}
+		return len(cv.Status.History) > len(w.initialClusterVersion.Status.History), nil
+	}
+
+	return nil, []*junitapi.JUnitTestCase{
+		w.noFailures(),
+		w.expectedLayout(),
+		w.controlPlane(),
+		w.workers(),
+		w.health(),
+		w.updateLifecycle(wasUpdated),
+	}, nil
 }
 
 func (w *monitor) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -178,10 +198,10 @@ func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuf
 	}
 
 	var errs []error
-	for when, observed := range w.ocAdmUpgradeStatus {
-		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", when, timeSuffix)
+	for _, snap := range w.ocAdmUpgradeStatus {
+		outputFilename := fmt.Sprintf("adm-upgrade-status-%s_%s.txt", snap.when, timeSuffix)
 		outputFile := filepath.Join(folderPath, outputFilename)
-		if err := os.WriteFile(outputFile, []byte(observed.out), 0644); err != nil {
+		if err := os.WriteFile(outputFile, []byte(snap.out), 0644); err != nil {
 			errs = append(errs, fmt.Errorf("failed to write %s: %w", outputFile, err))
 		}
 	}
@@ -190,4 +210,88 @@ func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuf
 
 func (*monitor) Cleanup(ctx context.Context) error {
 	return nil
+}
+
+func (w *monitor) noFailures() *junitapi.JUnitTestCase {
+	noFailures := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc amd upgrade status never fails",
+	}
+
+	var failures []string
+	var total int
+	for _, snap := range w.ocAdmUpgradeStatus {
+		total++
+		if snap.err != nil {
+			failures = append(failures, fmt.Sprintf("- %s: %v", snap.when.Format(time.RFC3339), snap.err))
+		}
+	}
+
+	if total == 0 {
+		noFailures.SkipMessage = &junitapi.SkipMessage{
+			Message: "Test skipped because no oc adm upgrade status output was collected",
+		}
+		return noFailures
+	}
+
+	// Zero failures is too strict for at least SNO clusters
+	p := (float32(len(failures)) / float32(total)) * 100
+	if (!w.isSNO && p > 0) || (w.isSNO && p > 10) {
+		noFailures.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("oc adm upgrade status failed %d times (of %d)", len(failures), len(w.ocAdmUpgradeStatus)),
+			Output:  strings.Join(failures, "\n"),
+		}
+	}
+	return noFailures
+}
+
+func (w *monitor) expectedLayout() *junitapi.JUnitTestCase {
+	expectedLayout := &junitapi.JUnitTestCase{
+		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status output has expected layout",
+		SkipMessage: &junitapi.SkipMessage{
+			Message: "Test skipped because no oc adm upgrade status output was successfully collected",
+		},
+	}
+
+	w.ocAdmUpgradeStatusOutputModels = make([]outputModel, len(w.ocAdmUpgradeStatus))
+
+	failureOutputBuilder := strings.Builder{}
+
+	for i, observed := range w.ocAdmUpgradeStatus {
+		w.ocAdmUpgradeStatusOutputModels[i] = outputModel{
+			when: observed.when,
+		}
+
+		if observed.err != nil {
+			// Failures are handled in noFailures, so we can skip them here
+			continue
+		}
+
+		// We saw at least one successful execution of oc adm upgrade status, so we have data to process
+		// and we do not need to skip
+		expectedLayout.SkipMessage = nil
+
+		if observed.out == "" {
+			failureOutputBuilder.WriteString(fmt.Sprintf("- %s: unexpected empty output", observed.when.Format(time.RFC3339)))
+			continue
+		}
+
+		model, err := newUpgradeStatusOutput(observed.out)
+		if err != nil {
+			failureOutputBuilder.WriteString(fmt.Sprintf("\n===== %s\n", observed.when.Format(time.RFC3339)))
+			failureOutputBuilder.WriteString(observed.out)
+			failureOutputBuilder.WriteString(fmt.Sprintf("\n\n=> Failed to parse output above: %v\n", err))
+			continue
+		}
+
+		w.ocAdmUpgradeStatusOutputModels[i].output = model
+	}
+
+	if failureOutputBuilder.Len() > 0 {
+		expectedLayout.FailureOutput = &junitapi.FailureOutput{
+			Message: fmt.Sprintf("observed unexpected outputs in oc adm upgrade status"),
+			Output:  failureOutputBuilder.String(),
+		}
+	}
+
+	return expectedLayout
 }
