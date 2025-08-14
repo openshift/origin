@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -291,21 +291,23 @@ spec:
 		err = oc.AsAdmin().WithoutNamespace().Run("auth").Args("can-i", "get", "nodes").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "User should be able to get nodes")
 
-		nodesOutput, err := oc.AsAdmin().Run("get").Args("nodes", "-l", "node-role.kubernetes.io/worker=", "--no-headers", "-o", "custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type=='Ready')].status").Output()
+		nodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(nodesOutput).NotTo(o.BeEmpty(), "No worker nodes found")
+		o.Expect(nodes.Items).NotTo(o.BeEmpty(), "No worker nodes found")
 
 		var readyWorkerNode string
-		for _, line := range strings.Split(strings.TrimSpace(nodesOutput), "\n") {
-			fields := strings.Fields(line)
-			if len(fields) >= 2 && fields[1] == "True" {
-				readyWorkerNode = fields[0]
-				break
+
+		for _, node := range nodes.Items {
+			for _, nodeStatus := range node.Status.Conditions {
+				if nodeStatus.Type == corev1.NodeReady && nodeStatus.Status == corev1.ConditionTrue {
+					readyWorkerNode = node.Name
+					break
+				}
 			}
 		}
 		o.Expect(readyWorkerNode).NotTo(o.BeEmpty(), "No ready worker node found")
 
-		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--keep-labels=true", "--preserve-pod=true", "--", "sleep", "10").Execute()
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--keep-labels=true", "--preserve-pod=true", "--", "sleep", "1").Execute()
 		pods, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(1))
@@ -317,14 +319,14 @@ spec:
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(0))
 
-		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--preserve-pod=true", "--", "sleep", "10").Execute()
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--preserve-pod=true", "--", "sleep", "1").Execute()
 
-		// Uncomment after https://github.com/openshift/oc/pull/2074 is merged
+		// Tests the code fix in https://github.com/openshift/oc/pull/2074
 		o.Expect(err).NotTo(o.HaveOccurred())
 		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
-		//o.Expect(pods.Items).To(o.HaveLen(1))
-		//o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
-		//oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
+		o.Expect(pods.Items).To(o.HaveLen(1))
+		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
+		oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
 
 	})
 })
