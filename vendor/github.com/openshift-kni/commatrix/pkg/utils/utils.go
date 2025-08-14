@@ -175,7 +175,7 @@ func getPodDefinition(node string, namespace string, image string, command []str
 				{
 					Name:    "container",
 					Command: command,
-					Image:   image,
+					Image:   "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
 					SecurityContext: &corev1.SecurityContext{
 						Privileged: ptr.To(true),
 						RunAsUser:  ptr.To(int64(0)),
