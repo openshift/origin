@@ -45676,7 +45676,7 @@ var _testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson = []byte(`{
             "from": {
               "kind": "ImageStreamTag",
               "namespace": "openshift",
-              "name": "perl:5.32-ubi8"
+              "name": "perl:5.32-ubi9"
             }
           }
         },
