@@ -30,6 +30,8 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
+const kvIPRequestsAnnot = "network.kubevirt.io/addresses"
+
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
 	// disable automatic namespace creation, we need to add the required UDN label
 	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
@@ -561,7 +563,20 @@ func duplicateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	var vmiSpec map[string]interface{}
 	Expect(json.Unmarshal([]byte(vmiSpecJSON), &vmiSpec)).To(Succeed())
 
-	Expect(cli.CreateVMIFromSpec(vmNamespace, duplicateVMName, vmiSpec)).To(Succeed())
+	originalVMIRawAnnotations, err := cli.GetJSONPath("vmi", vmName, "{.metadata.annotations}")
+	Expect(err).NotTo(HaveOccurred())
+
+	originalVMIAnnotations := map[string]string{}
+	Expect(json.Unmarshal([]byte(originalVMIRawAnnotations), &originalVMIAnnotations)).To(Succeed())
+
+	var vmiCreationOptions []kubevirt.Option
+	if requestedIPs, hasIPRequests := originalVMIAnnotations[kvIPRequestsAnnot]; hasIPRequests {
+		vmiCreationOptions = append(
+			vmiCreationOptions,
+			kubevirt.WithAnnotations(ipRequests(requestedIPs)),
+		)
+	}
+	Expect(cli.CreateVMIFromSpec(vmNamespace, duplicateVMName, vmiSpec, vmiCreationOptions...)).To(Succeed())
 	waitForVMPodEventWithMessage(cli, vmNamespace, duplicateVMName, "IP is already allocated", 2*time.Minute)
 }
 
@@ -791,4 +806,8 @@ func formatAddressesAnnotation(preconfiguredIPs []string) (string, error) {
 	}
 
 	return string(staticIPs), nil
+}
+
+func ipRequests(ips string) map[string]string {
+	return map[string]string{kvIPRequestsAnnot: ips}
 }
