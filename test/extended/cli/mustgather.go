@@ -338,7 +338,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		})
 	})
 
-	g.It("runs successfully for metrics gathering", func() {
+	g.It("runs successfully for metrics gathering [apigroup:config.openshift.io]", func() {
 		tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
