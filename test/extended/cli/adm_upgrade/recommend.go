@@ -198,10 +198,23 @@ Updates to 4[.][0-9]*:
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("runs successfully with conditional recommendations to the --version target", func() {
-			out, err := oc.Run("adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1)).EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
+		g.It("runs successfully with an accepted conditional recommendation to the --version target", func() {
+			// alert retrieval requires a token-based kubeconfig to avoid:
+			//   Failed to check for at least some preconditions: failed to get alerts from Thanos: no token is currently in use for this session
+			o.Expect(oc.Run("create").Args("serviceaccount", "test").Execute()).To(o.Succeed())
+			o.Expect(oc.Run("create").Args("clusterrolebinding", "test", "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%s:test", oc.Namespace())).Execute()).To(o.Succeed())
+			token, err := oc.Run("create").Args("token", "test").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = matchRegexp(out, `Upstream update service: http://.*
+
+			oc.WithKubeConfigCopy(func(oc *exutil.CLI) {
+				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
+				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
+
+				out, err := oc.Run("adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
+				o.Expect(err).To(o.HaveOccurred())
+				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
+
+Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
 
 Update to 4[.][0-9]*[.]0 Recommended=False:
@@ -209,7 +222,8 @@ Image: example.com/test@sha256:ccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
 Reason: (TestRiskA|MultipleReasons)
 Message: (?s:.*)This is a test risk. https://example.com/testRiskA`)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
 		})
 	})
 })
