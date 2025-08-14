@@ -328,11 +328,6 @@ spec:
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Expected debug pod to be deleted")
 
-		// Make sure the pod is deleted
-		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(pods.Items).To(o.HaveLen(0))
-
 		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--preserve-pod=true", "--", "sleep", "1").Execute()
 
 		// Tests the code fix in https://github.com/openshift/oc/pull/2074
