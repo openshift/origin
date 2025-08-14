@@ -312,7 +312,21 @@ spec:
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(1))
 		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
+		o.Expect(pods.Items[0].Labels).To(o.HaveLen(1))
+
 		oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
+
+		// Wait for the pod to be deleted with 2 minute timeout and 10 second interval
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+			pods, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+			if err != nil {
+				return false, err
+			}
+			return len(pods.Items) == 0, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Expected debug pod to be deleted")
 
 		// Make sure the pod is deleted
 		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
@@ -326,7 +340,6 @@ spec:
 		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
 		o.Expect(pods.Items).To(o.HaveLen(1))
 		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
-		oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
-
+		o.Expect(pods.Items[0].Labels).To(o.HaveLen(1))
 	})
 })
