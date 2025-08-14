@@ -123,7 +123,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			e2e.Logf("Checking via pod exec status code from the scrape url %s for pod %s/%s without authorization (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
 			err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, time.Minute, true, func(context.Context) (bool, error) {
 				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
-				e2e.Logf("The scaple url %s for pod %s/%s without authorization returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
+				e2e.Logf("The scrape url %s for pod %s/%s without authorization returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
 				if expected.Has(statusCode) {
 					return true, nil
 				}
