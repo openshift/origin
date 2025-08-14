@@ -118,7 +118,9 @@ func (c *Client) GetEventsForPod(podName string) ([]string, error) {
 	return strings.Fields(output), nil
 }
 
-func (c *Client) CreateVMIFromSpec(vmNamespace, vmName string, vmiSpec map[string]interface{}) error {
+type Option func(map[string]interface{})
+
+func (c *Client) CreateVMIFromSpec(vmNamespace, vmName string, vmiSpec map[string]interface{}, opts ...Option) error {
 	newVMI := map[string]interface{}{
 		"apiVersion": "kubevirt.io/v1",
 		"kind":       "VirtualMachineInstance",
@@ -129,12 +131,27 @@ func (c *Client) CreateVMIFromSpec(vmNamespace, vmName string, vmiSpec map[strin
 		"spec": vmiSpec,
 	}
 
+	for _, opt := range opts {
+		opt(newVMI)
+	}
+
 	newVMIYAML, err := yaml.Marshal(newVMI)
 	if err != nil {
 		return err
 	}
 
 	return c.Apply(string(newVMIYAML))
+}
+
+func WithAnnotations(annotations map[string]string) Option {
+	return func(cr map[string]interface{}) {
+		metadata, hasMetadata := cr["metadata"].(map[string]interface{})
+		if !hasMetadata {
+			metadata = make(map[string]interface{})
+			cr["metadata"] = metadata
+		}
+		metadata["annotations"] = annotations
+	}
 }
 
 func ensureVirtctl(oc *exutil.CLI, dir string) (string, error) {
