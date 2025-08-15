@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -30,7 +31,9 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 	f := framework.NewDefaultFramework("oc-adm-upgrade-recommend")
 	oc := exutil.NewCLIWithFramework(f).AsAdmin()
 	var cv *configv1.ClusterVersion
-	var restoreChannel, restoreUpstream bool
+	var proxy *configv1.Proxy
+	var newProxyCAs string
+	var restoreChannel, restoreUpstream, restoreProxy bool
 
 	g.BeforeAll(func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
@@ -41,6 +44,9 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 
 		cv, err = oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		proxy, err = oc.AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.AfterAll(func() {
@@ -50,6 +56,18 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 
 		if restoreUpstream {
 			oc.Run("patch", "clusterversions.config.openshift.io", "version", "--type", "json", "-p", fmt.Sprintf(`[{"op": "add", "path": "/spec/upstream", "value": "%s"}]`, cv.Spec.Upstream)).Execute()
+		}
+
+		if restoreProxy {
+			if proxy == nil {
+				oc.AdminConfigClient().ConfigV1().Proxies().Delete(ctx, "cluster", metav1.DeleteOptions{})
+			} else {
+				oc.Run("patch", "proxies.config.openshift.io", "version", "--type", "json", "-p", fmt.Sprintf(`[{"op": "add", "path": "/spec/trustedCA/name", "value": "%s"}]`, proxy.Spec.TrustedCA.Name)).Execute()
+			}
+		}
+
+		if newProxyCAs != "" {
+			oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Delete(ctx, newProxyCAs, metav1.DeleteOptions{})
 		}
 	})
 
@@ -80,7 +98,11 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 			}
 
 			graph := fmt.Sprintf(`{"nodes": [{"version": "%s","payload": "%s", "metadata": {"io.openshift.upgrades.graph.release.channels": "test-channel,other-channel"}}]}`, cv.Status.Desired.Version, cv.Status.Desired.Image)
-			newUpstream, err := runUpdateService(ctx, oc, graph)
+			newUpstream, newProxyCASecret, err := runUpdateService(ctx, oc, graph, false)
+			if newProxyCASecret != "" {
+				restoreProxy = true
+				newProxyCAs = newProxyCASecret
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = oc.Run("adm", "upgrade", "channel", "test-channel").Execute()
@@ -160,7 +182,11 @@ No updates available. You may still upgrade to a specific release image.*`)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			graph := buf.String()
 
-			newUpstream, err := runUpdateService(ctx, oc, graph)
+			newUpstream, newProxyCASecret, err := runUpdateService(ctx, oc, graph, true)
+			if newProxyCASecret != "" {
+				restoreProxy = true
+				newProxyCAs = newProxyCASecret
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = oc.Run("adm", "upgrade", "channel", "test-channel").Execute()
@@ -183,7 +209,7 @@ No updates available. You may still upgrade to a specific release image.*`)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = matchRegexp(out, `Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
-
+FIXME
 Updates to 4.[0-9]*:
 
   Version: 4[.][0-9]*[.]0
@@ -216,7 +242,7 @@ Updates to 4[.][0-9]*:
 
 Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
-
+FIXME
 Update to 4[.][0-9]*[.]0 Recommended=False:
 Image: example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
@@ -228,7 +254,8 @@ Message: (?s:.*)This is a test risk. https://example.com/testRiskA`)
 	})
 })
 
-func runUpdateService(ctx context.Context, oc *exutil.CLI, graph string) (*url.URL, error) {
+func runUpdateService(ctx context.Context, oc *exutil.CLI, graph string, proxyTrustIngress bool) (*url.URL, string, error) {
+	newProxyCAs := ""
 	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx,
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
@@ -275,7 +302,7 @@ python3 -m http.server --bind ::
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
-		return nil, err
+		return nil, newProxyCAs, err
 	}
 
 	service, err := oc.AdminKubeClient().CoreV1().Services(oc.Namespace()).Create(ctx,
@@ -292,16 +319,83 @@ python3 -m http.server --bind ::
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
-		return nil, err
+		return nil, newProxyCAs, err
+	}
+
+	if proxyTrustIngress {
+		defaultIngressSecretName, err := oc.Run("get").Args("--namespace=openshift-ingress-operator", "-o", "jsonpath={.spec.defaultCertificate.name}", "ingresscontroller.operator.openshift.io", "default").Output()
+		if err != nil {
+			return nil, newProxyCAs, err
+		}
+
+		if defaultIngressSecretName == "" {
+			defaultIngressSecretName = "router-certs-default"
+		}
+
+		defaultIngressCert, err := oc.Run("extract").Args("--namespace=openshift-ingress", fmt.Sprintf("secret/%s", defaultIngressSecretName), "--keys=tls.crt", "--to=-").Output()
+		if err != nil {
+			return nil, newProxyCAs, err
+		}
+		framework.Logf("default ingress certificate: %q", defaultIngressCert)
+		updatedProxyCAs := defaultIngressCert
+
+		proxy, err := oc.AdminConfigClient().ConfigV1().Proxies().Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil && errors.IsNotFound(err) {
+			return nil, newProxyCAs, err
+		} else if proxy.Spec.TrustedCA.Name != "" {
+			originalProxyCAs, err := oc.Run("extract").Args("--namespace=openshift-config", fmt.Sprintf("secret/%s", proxy.Spec.TrustedCA.Name), "--keys=ca-bundle.crt", "--to=-").Output()
+			if err != nil {
+				return nil, newProxyCAs, err
+			}
+			framework.Logf("original proxy CAs: %q", originalProxyCAs)
+
+			updatedProxyCAs = fmt.Sprintf("%s%s\n", updatedProxyCAs, originalProxyCAs)
+		}
+
+		configMap, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-config").Create(ctx,
+			&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test-proxy-and-ingress-cas-",
+				},
+				Data: map[string]string{
+					"ca-bundle.crt": updatedProxyCAs,
+				},
+			}, metav1.CreateOptions{})
+		if err != nil {
+			return nil, newProxyCAs, err
+		}
+		newProxyCAs = configMap.ObjectMeta.Name
+
+		if proxy == nil {
+			proxy, err = oc.AdminConfigClient().ConfigV1().Proxies().Create(ctx,
+				&configv1.Proxy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: configv1.ProxySpec{
+						TrustedCA: configv1.ConfigMapNameReference{
+							Name: newProxyCAs,
+						},
+					},
+				}, metav1.CreateOptions{})
+			if err != nil {
+				return nil, newProxyCAs, err
+			}
+		} else {
+			err = oc.Run("patch", "proxies.config.openshift.io", "version", "--type", "json", "-p", fmt.Sprintf(`[{"op": "add", "path": "/spec/trustedCA/name", "value": "%s"}]`, newProxyCAs)).Execute()
+			if err != nil {
+				return nil, newProxyCAs, err
+			}
+		}
 	}
 
 	if err = exutil.WaitForDeploymentReady(oc, deployment.ObjectMeta.Name, oc.Namespace(), -1); err != nil {
-		return nil, err
+		return nil, newProxyCAs, err
 	}
 
 	return &url.URL{
 		Scheme: "http",
 		Host:   net.JoinHostPort(service.Spec.ClusterIP, strconv.Itoa(int(service.Spec.Ports[0].Port))),
 		Path:   "graph",
-	}, nil
+	}, newProxyCAs, nil
 }
