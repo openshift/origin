@@ -193,6 +193,26 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-kube-apiserver-operator",
 		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-openshift-apiserver-operator",
+		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "openshift-apiserver",
+		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
+	},
+	{
+		imageTag:   "oauth-apiserver",
+		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
+	},
+	{
+		imageTag:   "service-ca-operator",
+		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-kube-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
