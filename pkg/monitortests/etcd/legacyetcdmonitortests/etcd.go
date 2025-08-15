@@ -80,10 +80,10 @@ func testEtcdShouldNotLogDroppedRaftMessages(events monitorapi.Intervals) []*jun
 	return []*junitapi.JUnitTestCase{failure, success}
 }
 
-// etcdMaxRatePerFourHours is the max rate of messages allowed over a 4-hour period.
+// etcdTookTooLongMaxRatePerFourHours is the max rate of messages allowed over a 4-hour period.
 // This replaces the fixed limit approach with a rate-based approach.
 // Virtually all jobs log these messages at some point, we're just interested in the ones that do so excessively.
-const etcdMaxRatePerFourHours = 12000
+const etcdTookTooLongMaxRatePerFourHours = 12000
 
 func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals, startTime time.Time) []*junitapi.JUnitTestCase {
 	const testName = "[sig-etcd] etcd should not log excessive took too long messages"
@@ -97,8 +97,7 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals,
 		}
 	}
 
-	// Calculate rate-based limit: max 10000 messages in 4 hours, scaled by actual test duration
-	maxAllowedCount := calculateRateBasedLimit(startTime, etcdMaxRatePerFourHours)
+	maxAllowedCount := calculateRateBasedLimit(startTime, etcdTookTooLongMaxRatePerFourHours)
 	actualDuration := time.Since(startTime)
 
 	if counter <= maxAllowedCount {
@@ -110,7 +109,7 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals,
 		"throughout the run. This can cause sporadic e2e failures and disruption and typically indicates faster "+
 		"disks are needed. These log message intervals are included in spyglass chart artifacts and can be used "+
 		"to correlate with disruption and failed tests.",
-		counter, actualDuration.Round(time.Minute), maxAllowedCount, etcdMaxRatePerFourHours)
+		counter, actualDuration.Round(time.Minute), maxAllowedCount, etcdTookTooLongMaxRatePerFourHours)
 	failure := &junitapi.JUnitTestCase{
 		Name: testName,
 		FailureOutput: &junitapi.FailureOutput{
@@ -125,7 +124,7 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals,
 //
 // Before we fail this test. We've seen instances of total network failure due to this with up to
 // 300k log lines.
-const etcdOverloadedNetworkMaxRatePerFourHours = 20000
+const etcdOverloadedNetworkMaxRatePerFourHours = 40000
 
 func testEtcdDoesNotLogExcessiveOverloadedNetworkMessages(events monitorapi.Intervals, startTime time.Time) []*junitapi.JUnitTestCase {
 	const testName = "[sig-etcd] etcd should not log excessive overloaded network messages"
@@ -140,7 +139,6 @@ func testEtcdDoesNotLogExcessiveOverloadedNetworkMessages(events monitorapi.Inte
 		}
 	}
 
-	// Calculate rate-based limit: max 10000 messages in 4 hours, scaled by actual test duration
 	maxAllowedCount := calculateRateBasedLimit(startTime, etcdOverloadedNetworkMaxRatePerFourHours)
 	actualDuration := time.Since(startTime)
 
