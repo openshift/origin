@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"text/template"
@@ -31,6 +32,7 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 	oc := exutil.NewCLIWithFramework(f).AsAdmin()
 	var cv *configv1.ClusterVersion
 	var restoreChannel, restoreUpstream bool
+	var caBundleFilePath string
 
 	g.BeforeAll(func() {
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
@@ -50,6 +52,10 @@ var _ = g.Describe("[Serial][sig-cli] oc adm upgrade recommend", g.Ordered, func
 
 		if restoreUpstream {
 			oc.Run("patch", "clusterversions.config.openshift.io", "version", "--type", "json", "-p", fmt.Sprintf(`[{"op": "add", "path": "/spec/upstream", "value": "%s"}]`, cv.Spec.Upstream)).Execute()
+		}
+
+		if caBundleFilePath != "" {
+			os.Remove(caBundleFilePath)
 		}
 	})
 
@@ -110,6 +116,7 @@ No updates available. You may still upgrade to a specific release image.*`)
 
 	g.Context("When the update service has conditional recommendations", func() {
 		var currentVersion *semver.Version
+		var token string
 
 		g.BeforeAll(func() {
 			isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
@@ -175,16 +182,45 @@ No updates available. You may still upgrade to a specific release image.*`)
 			}
 			restoreUpstream = true
 
+			defaultIngressCert, err := getDefaultIngressCertificate(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			kubeCerts, err := getKubernetesAPIServerCertificates(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			caBundleFile, err := os.CreateTemp("", "ca-bundle")
+			caBundleFilePath = caBundleFile.Name()
+			_, err = caBundleFile.WriteString(fmt.Sprintf("%s\n%s", defaultIngressCert, kubeCerts))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// alert retrieval requires a token-based kubeconfig to avoid:
+			//   Failed to check for at least some preconditions: failed to get alerts from Thanos: no token is currently in use for this session
+			o.Expect(oc.Run("create").Args("serviceaccount", "test").Execute()).To(o.Succeed())
+			o.Expect(oc.Run("create").Args("clusterrolebinding", fmt.Sprintf("%s-test", oc.Namespace()), "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%s:test", oc.Namespace())).Execute()).To(o.Succeed())
+			token, err = oc.Run("create").Args("token", "test").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			time.Sleep(16 * time.Second) // Give the CVO time to retrieve recommendations and push to status
 		})
 
+		g.AfterAll(func() {
+			// apparently ClusterRoleBindings are not automatically garbage-collected after the referenced service-account is removed (as part of namespace removal).
+			oc.Run("delete").Args("clusterrolebinding", fmt.Sprintf("%s-test", oc.Namespace())).Execute()
+		})
+
 		g.It("runs successfully when listing all updates", func() {
-			out, err := oc.Run("adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = matchRegexp(out, `Upstream update service: http://.*
+			oc.WithKubeConfigCopy(func(oc *exutil.CLI) {
+				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
+				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
+
+				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
+
+Upstream update service: http://.*
 Channel: test-channel [(]available channels: other-channel, test-channel[)]
 
-Updates to 4.[0-9]*:
+Updates to 4[.][0-9]*:
 
   Version: 4[.][0-9]*[.]0
   Image: example[.]com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -195,23 +231,18 @@ Updates to 4[.][0-9]*:
   VERSION  *ISSUES
   4[.][0-9]*[.]999  *no known issues relevant to this cluster
   4[.][0-9]*[.]998  *no known issues relevant to this cluster`)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
 		})
 
 		g.It("runs successfully with an accepted conditional recommendation to the --version target", func() {
-			// alert retrieval requires a token-based kubeconfig to avoid:
-			//   Failed to check for at least some preconditions: failed to get alerts from Thanos: no token is currently in use for this session
-			o.Expect(oc.Run("create").Args("serviceaccount", "test").Execute()).To(o.Succeed())
-			o.Expect(oc.Run("create").Args("clusterrolebinding", "test", "--clusterrole=cluster-admin", fmt.Sprintf("--serviceaccount=%s:test", oc.Namespace())).Execute()).To(o.Succeed())
-			token, err := oc.Run("create").Args("token", "test").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
 			oc.WithKubeConfigCopy(func(oc *exutil.CLI) {
 				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
 
-				out, err := oc.Run("adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
-				o.Expect(err).To(o.HaveOccurred())
+				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
+
+				o.Expect(err).NotTo(o.HaveOccurred())
 				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
 
 Upstream update service: http://.*
@@ -220,8 +251,9 @@ Channel: test-channel [(]available channels: other-channel, test-channel[)]
 Update to 4[.][0-9]*[.]0 Recommended=False:
 Image: example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
-Reason: (TestRiskA|MultipleReasons)
-Message: (?s:.*)This is a test risk. https://example.com/testRiskA`)
+Reason: (accepted TestRiskA via ConditionalUpdateRisk|MultipleReasons)
+Message: (?s:.*)This is a test risk[.] https://example.com/testRiskA
+Update to 4[.][0-9]*[.]0 has no known issues relevant to this cluster other than the accepted ConditionalUpdateRisk.`)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
@@ -304,4 +336,44 @@ python3 -m http.server --bind ::
 		Host:   net.JoinHostPort(service.Spec.ClusterIP, strconv.Itoa(int(service.Spec.Ports[0].Port))),
 		Path:   "graph",
 	}, nil
+}
+
+func getDefaultIngressCertificate(ctx context.Context, oc *exutil.CLI) (string, error) {
+	defaultIngressSecretName, err := oc.Run("get").Args("--namespace=openshift-ingress-operator", "-o", "jsonpath={.spec.defaultCertificate.name}", "ingresscontroller.operator.openshift.io", "default").Output()
+	if err != nil {
+		return "", err
+	}
+
+	if defaultIngressSecretName == "" {
+		defaultIngressSecretName = "router-certs-default"
+	}
+
+	ingressNamespace := "openshift-ingress"
+	defaultIngressCert, err := oc.Run("extract").Args("--namespace", ingressNamespace, fmt.Sprintf("secret/%s", defaultIngressSecretName), "--keys=tls.crt", "--to=-").Output()
+	if err != nil {
+		return "", err
+	}
+	defaultIngressCert = fmt.Sprintf("%s\n", defaultIngressCert) // ensure a trailing newline, even if the earlier Output() stripped trailing newlines
+	framework.Logf("default ingress certificate from the %s secret in the %s namespace: %q", defaultIngressSecretName, ingressNamespace, fmt.Sprintf("%s...", defaultIngressCert[:30]))
+	return defaultIngressCert, nil
+}
+
+func getKubernetesAPIServerCertificates(ctx context.Context, oc *exutil.CLI) (string, error) {
+	kubeNamespace := "openshift-kube-apiserver"
+	secrets, err := oc.AdminKubeClient().CoreV1().Secrets(kubeNamespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	certs := make([]string, 0, len(secrets.Items))
+	for _, secret := range secrets.Items {
+		if secret.Type != corev1.SecretTypeTLS {
+			continue
+		}
+		certs = append(certs, string(secret.Data["tls.crt"]))
+	}
+
+	kubeCerts := strings.Join(certs, "")
+	framework.Logf("default Kubernetes certificates from TLS secrets in the %s namespace: %q", kubeNamespace, fmt.Sprintf("%s...", kubeCerts[:30]))
+	return kubeCerts, nil
 }
