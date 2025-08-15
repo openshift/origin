@@ -29,13 +29,6 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 		image   = "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
 	)
 
-	g.BeforeEach(func() {
-		// Skip if ImageVolume feature is not enabled
-		if !exutil.IsTechPreviewNoUpgrade(context.TODO(), oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
-	})
-
 	g.It("should succeed with pod and pull policy of Always", func(ctx context.Context) {
 		pod := buildPodWithImageVolume(f.Namespace.Name, "", podName, image)
 		createPodAndWaitForRunning(ctx, oc, pod)
