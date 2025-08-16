@@ -6,15 +6,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/util/sets"
 	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/cri-api/pkg/errors"
 
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	operatorconfigv1 "github.com/openshift/client-go/operator/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -43,6 +46,85 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 		}
 	}
 	return false
+}
+
+func checkAuthenticationAvailableOIDCExceptions(condition *configv1.ClusterOperatorStatusCondition, clientConfig *rest.Config) (bool, error) {
+	ctx := context.Background()
+	configClient, err := clientconfigv1.NewForConfig(clientConfig)
+	if err != nil {
+		return false, fmt.Errorf("could not create configv1 client: %v", err)
+	}
+
+	auth, err := configClient.ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("could not get authentication 'cluster': %v", err)
+	}
+
+	if auth.Spec.Type == configv1.AuthenticationTypeNone {
+		return false, nil
+	}
+
+	if auth.Spec.Type != configv1.AuthenticationTypeOIDC {
+		// if we're not on OIDC, check if any of the current KAS revisions have a respective auth-config-##
+		// this would mean that we're rolling out of OIDC, hence transitioning to OAuth
+		operatorClient, err := operatorconfigv1.NewForConfig(clientConfig)
+		if err != nil {
+			return false, fmt.Errorf("could not create operatorv1 client: %v", err)
+		}
+
+		kas, err := operatorClient.OperatorV1().KubeAPIServers().Get(ctx, "cluster", metav1.GetOptions{})
+		if err != nil {
+			return false, fmt.Errorf("could not get kubeapiserver 'cluster': %v", err)
+		}
+
+		observedRevisions := sets.New[int32]()
+		for _, nodeStatus := range kas.Status.NodeStatuses {
+			observedRevisions.Insert(nodeStatus.CurrentRevision)
+		}
+
+		if observedRevisions.Len() == 0 {
+			return false, nil
+		}
+
+		kubeClient, err := kubernetes.NewForConfig(clientConfig)
+		if err != nil {
+			return false, fmt.Errorf("could not create kubeclient: %v", err)
+		}
+
+		foundOIDCConfig := false
+		for _, revision := range observedRevisions.UnsortedList() {
+			cmName := fmt.Sprintf("auth-config-%d", revision)
+			_, err := kubeClient.CoreV1().ConfigMaps("openshift-kube-apiserver").Get(ctx, cmName, metav1.GetOptions{})
+			if errors.IsNotFound(err) {
+				continue
+			} else if err != nil {
+				return false, fmt.Errorf("could not get configmap '%s': %v", cmName, err)
+			}
+
+			foundOIDCConfig = true
+			break
+		}
+
+		if !foundOIDCConfig {
+			return false, nil
+		}
+	}
+
+	// we're either on OIDC, or transitioning to OAuth from OIDC; there's specific reasons that can make
+	// the operator unavailable during transitions
+	if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+		switch condition.Reason {
+		case "APIServerDeployment_NoPod", "APIServices_ErrorCheckingPrecondition", "APIServices_PreconditionNotReady",
+			"OAuthServerDeployment_NoPod", "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable",
+			"OAuthServerServiceEndpointAccessibleController_EndpointUnavailable",
+			"OAuthServerServiceEndpointAccessibleController_ResourceNotFound",
+			"OAuthServerServiceEndpointsEndpointAccessibleController_ResourceNotFound",
+			"WellKnown_NotReady":
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
@@ -92,6 +174,10 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "authentication" {
 				if checkAuthenticationAvailableExceptions(condition) {
 					return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
+				} else if oidcException, err := checkAuthenticationAvailableOIDCExceptions(condition, clientConfig); err != nil {
+					return "", fmt.Errorf("error checking Authentication OIDC exceptions: %v", err)
+				} else if oidcException {
+					return "authentication operator is allowed to have Available=False when external OIDC is configured during OAuth cleanup", nil
 				}
 			}
 			if operator == "image-registry" {
@@ -316,6 +402,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-38675", nil
 			} else if checkAuthenticationAvailableExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
+			} else if oidcException, err := checkAuthenticationAvailableOIDCExceptions(condition, clientConfig); err != nil {
+				return "", fmt.Errorf("error checking Authentication OIDC exceptions: %v", err)
+			} else if oidcException {
+				return "authentication operator is allowed to have Available=False when external OIDC is configured during OAuth cleanup", nil
 			}
 		case "cluster-autoscaler":
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue && condition.Reason == "MissingDependency" {
