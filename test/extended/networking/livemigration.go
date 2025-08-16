@@ -30,6 +30,8 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
+const kvIPRequestsAnnot = "network.kubevirt.io/addresses"
+
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
 	// disable automatic namespace creation, we need to add the required UDN label
 	oc := exutil.NewCLIWithoutNamespace("network-segmentation-e2e")
@@ -70,8 +72,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			DescribeTableSubtree("created using",
 				func(createNetworkFn func(netConfig networkAttachmentConfigParams) networkAttachmentConfig) {
 
-					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string)) {
+					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string), wlConfig ...workloadNetworkConfig) {
 						var err error
+						var workloadConfig workloadNetworkConfig
+						if len(wlConfig) > 0 {
+							workloadConfig = wlConfig[0]
+						}
 						l := map[string]string{
 							"e2e-framework": f.BaseName,
 						}
@@ -128,6 +134,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							vmCreationParams.NetworkName = nadName
 						}
 
+						if len(workloadConfig.preconfiguredIPs) > 0 {
+							var err error
+							vmCreationParams.PreconfiguredIP, err = formatAddressesAnnotation(workloadConfig.preconfiguredIPs)
+							Expect(err).NotTo(HaveOccurred())
+						}
+						if workloadConfig.preconfiguredMAC != "" {
+							vmCreationParams.PreconfiguredMAC = workloadConfig.preconfiguredMAC
+						}
 						Expect(virtClient.CreateVM(vmResource, vmCreationParams)).To(Succeed())
 						waitForVMReadiness(virtClient, vmCreationParams.VMNamespace, vmCreationParams.VMName)
 
@@ -151,6 +165,17 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						}
 						Expect(initialAddresses).To(HaveLen(expectedNumberOfAddresses))
 
+						if len(workloadConfig.preconfiguredIPs) > 0 {
+							By("Verifying VM received the preconfigured IP address(es)")
+							for _, expectedIP := range workloadConfig.preconfiguredIPs {
+								expectedIP = strings.TrimSpace(expectedIP)
+								Expect(initialAddresses).To(ContainElement(expectedIP), fmt.Sprintf("Expected IP %s not found in VM addresses %v", expectedIP, initialAddresses))
+							}
+						}
+						if workloadConfig.preconfiguredMAC != "" {
+							By("Verifying VM received the preconfigured MAC address")
+							verifyVMMAC(virtClient, vmName, workloadConfig.preconfiguredMAC)
+						}
 						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
 
 						By(fmt.Sprintf("Check east/west traffic before test operation using IPs: %v", httpServerPodsIPs))
@@ -173,6 +198,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							ShouldNot(BeEmpty())
 						Expect(obtainedAddresses).To(ConsistOf(initialAddresses))
 
+						if workloadConfig.preconfiguredMAC != "" {
+							By("Verifying VM MAC address persisted after test operation")
+							verifyVMMAC(virtClient, vmName, workloadConfig.preconfiguredMAC)
+						}
 						By("Check east/west after test operation")
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 					},
@@ -241,7 +270,79 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							},
 							kubevirt.FedoraVMWithSecondaryNetworkAttachment,
 							restartVM,
-						))
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IPs attached to a primary UDN is restarted",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							restartVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.50", "2014:100:200::50"},
+							},
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC attached to a primary UDN is restarted",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							restartVM,
+							workloadNetworkConfig{
+								preconfiguredMAC: "02:0A:0B:0C:0D:50",
+							},
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP and MAC attached to a primary UDN is migrated between nodes",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							migrateVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.51", "2014:100:200::51"},
+								preconfiguredMAC: "02:0A:0B:0C:0D:51",
+							},
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP address is created when the address is already taken",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							duplicateVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.100", "2014:100:200::100"},
+							},
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC address is created when the address is already taken",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							duplicateVM,
+							workloadNetworkConfig{
+								preconfiguredMAC: "02:0A:0B:0C:0D:10",
+							},
+						),
+					)
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
 					netConfig := newNetworkAttachmentConfig(c)
@@ -428,6 +529,14 @@ func obtainAddresses(virtClient *kubevirt.Client, vmName string) ([]string, erro
 	return addressFromStatus(virtClient, vmName)
 }
 
+func obtainMAC(virtClient *kubevirt.Client, vmName string) (string, error) {
+	macStr, err := virtClient.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].mac}")
+	if err != nil {
+		return "", fmt.Errorf("failed to extract the MAC address from VM %q: %w", vmName, err)
+	}
+	return strings.ToUpper(macStr), nil
+}
+
 func restartVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	GinkgoHelper()
 	By(fmt.Sprintf("Restarting vmi %s/%s", vmNamespace, vmName))
@@ -440,6 +549,69 @@ func migrateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	By(fmt.Sprintf("Migrating vmi %s/%s", vmNamespace, vmName))
 	Expect(cli.CreateVMIM(vmName)).To(Succeed())
 	waitForVMIMSuccess(cli, vmNamespace, vmName)
+}
+
+func verifyVMMAC(virtClient *kubevirt.Client, vmName, expectedMAC string) {
+	GinkgoHelper()
+	var actualMAC string
+	Eventually(func(g Gomega) string {
+		GinkgoHelper()
+
+		var err error
+		actualMAC, err = obtainMAC(virtClient, vmName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain MAC address for VM")
+		return actualMAC
+	}).
+		WithPolling(time.Second).
+		WithTimeout(5 * time.Minute).
+		Should(Equal(expectedMAC))
+}
+
+func duplicateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
+	GinkgoHelper()
+	duplicateVMName := vmName + "-duplicate"
+	By(fmt.Sprintf("Duplicating VM %s/%s to %s/%s", vmNamespace, vmName, vmNamespace, duplicateVMName))
+
+	vmiSpecJSON, err := cli.GetJSONPath("vmi", vmName, "{.spec}")
+	Expect(err).NotTo(HaveOccurred())
+	var vmiSpec map[string]interface{}
+	Expect(json.Unmarshal([]byte(vmiSpecJSON), &vmiSpec)).To(Succeed())
+
+	originalVMIRawAnnotations, err := cli.GetJSONPath("vmi", vmName, "{.metadata.annotations}")
+	Expect(err).NotTo(HaveOccurred())
+
+	originalVMIAnnotations := map[string]string{}
+	Expect(json.Unmarshal([]byte(originalVMIRawAnnotations), &originalVMIAnnotations)).To(Succeed())
+
+	var vmiCreationOptions []kubevirt.Option
+	if requestedIPs, hasIPRequests := originalVMIAnnotations[kvIPRequestsAnnot]; hasIPRequests {
+		vmiCreationOptions = append(
+			vmiCreationOptions,
+			kubevirt.WithAnnotations(ipRequests(requestedIPs)),
+		)
+	}
+	Expect(cli.CreateVMIFromSpec(vmNamespace, duplicateVMName, vmiSpec, vmiCreationOptions...)).To(Succeed())
+	waitForVMPodEventWithMessage(cli, vmNamespace, duplicateVMName, "IP is already allocated", 2*time.Minute)
+}
+
+func waitForVMPodEventWithMessage(vmClient *kubevirt.Client, vmNamespace, vmName, expectedEventMessage string, timeout time.Duration) {
+	GinkgoHelper()
+	By(fmt.Sprintf("Waiting for event containing %q on VM %s/%s virt-launcher pod", expectedEventMessage, vmNamespace, vmName))
+
+	Eventually(func(g Gomega) []string {
+		const vmLabelKey = "vm.kubevirt.io/name"
+		podNames, err := vmClient.GetPodsByLabel(vmLabelKey, vmName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to get pods by label %s=%s", vmLabelKey, vmName)
+		g.Expect(podNames).To(HaveLen(1), "Expected exactly one virt-launcher pod for VM %s/%s, but found %d pods: %v", vmNamespace, vmName, len(podNames), podNames)
+
+		virtLauncherPodName := podNames[0]
+		eventMessages, err := vmClient.GetEventsForPod(virtLauncherPodName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to get events for pod %s", virtLauncherPodName)
+
+		return eventMessages
+	}).WithPolling(time.Second).WithTimeout(timeout).Should(
+		ContainElements(strings.Split(expectedEventMessage, " ")),
+		fmt.Sprintf("Expected to find an event containing %q", expectedEventMessage))
 }
 
 func waitForPodsCondition(fr *framework.Framework, pods []*corev1.Pod, conditionFn func(g Gomega, pod *corev1.Pod)) {
@@ -626,4 +798,30 @@ func networkName(netSpecConfig string) string {
 	var nc netConfig
 	Expect(json.Unmarshal([]byte(netSpecConfig), &nc)).To(Succeed())
 	return nc.Name
+}
+
+// formatAddressesAnnotation converts slice of IPs to the required JSON format for kubevirt addresses annotation
+func formatAddressesAnnotation(preconfiguredIPs []string) (string, error) {
+	const primaryUDNNetworkName = "overlay"
+	if len(preconfiguredIPs) == 0 {
+		return "", nil
+	}
+
+	ips := make([]string, len(preconfiguredIPs))
+	for i, ip := range preconfiguredIPs {
+		ips[i] = strings.TrimSpace(ip)
+	}
+
+	staticIPs, err := json.Marshal(map[string][]string{
+		primaryUDNNetworkName: ips,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal static IPs: %w", err)
+	}
+
+	return string(staticIPs), nil
+}
+
+func ipRequests(ips string) map[string]string {
+	return map[string]string{kvIPRequestsAnnot: ips}
 }
