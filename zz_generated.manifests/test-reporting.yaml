@@ -698,6 +698,21 @@ spec:
         Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
     - testName: '[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]
         Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+  - featureGate: ManagedBootImagesvSphere
+    tests:
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial]
+        Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial]
+        Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial]
+        Should stamp coreos-bootimages configmap with current MCO hash and release
+        version [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial]
+        Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial]
+        Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial]
+        Should upload the latest bootimage to the appropriate vCentre [apigroup:machineconfiguration.openshift.io]'
   - featureGate: MetricsCollectionProfiles
     tests:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial]
