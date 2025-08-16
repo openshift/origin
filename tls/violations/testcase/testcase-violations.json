@@ -1959,6 +1959,19 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
+                    "Name": "etcd-peer-2r9n12ip-92bf1-s62z8bootstrap"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
                     "Name": "etcd-peer-\u003cbootstrap\u003e"
                 },
                 "certKeyInfo": {
@@ -2011,6 +2024,19 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-2r9n12ip-92bf1-s62z8bootstrap"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-\u003cbootstrap\u003e"
                 },
                 "certKeyInfo": {
@@ -2051,6 +2077,19 @@
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-\u003cmaster-2\u003e"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-metrics-2r9n12ip-92bf1-s62z8bootstrap"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",

@@ -277,19 +277,6 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-config-managed",
-                    "Name": "csr-controller-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-config-managed",
                     "Name": "default-ingress-cert"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -343,6 +330,19 @@
                 "configMapLocation": {
                     "Namespace": "openshift-config-managed",
                     "Name": "kubelet-bootstrap-kubeconfig"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-config-managed",
+                    "Name": "merged-trusted-image-registry-ca"
                 },
                 "certificateAuthorityBundleInfo": {
                     "owningJiraComponent": "",
@@ -577,19 +577,6 @@
                 "configMapLocation": {
                     "Namespace": "openshift-kube-controller-manager",
                     "Name": "trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-kube-controller-manager-operator",
-                    "Name": "csr-controller-ca"
                 },
                 "certificateAuthorityBundleInfo": {
                     "owningJiraComponent": "",

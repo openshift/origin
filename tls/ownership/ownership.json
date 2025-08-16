@@ -43,7 +43,13 @@
                     "Name": "image-import-ca"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "openshift-apiserver"
+                        }
+                    ],
+                    "owningJiraComponent": "openshift-apiserver",
                     "description": ""
                 }
             },
@@ -490,10 +496,14 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-controller-manager"
+                        },
+                        {
+                            "key": "openshift.io/description",
+                            "value": "CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager."
                         }
                     ],
                     "owningJiraComponent": "kube-controller-manager",
-                    "description": ""
+                    "description": "CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager."
                 }
             },
             "OnDiskLocation": null
@@ -518,7 +528,13 @@
                     "Name": "image-registry-ca"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "Image Registry"
+                        }
+                    ],
+                    "owningJiraComponent": "Image Registry",
                     "description": ""
                 }
             },
@@ -640,12 +656,12 @@
                 "certificateAuthorityBundleInfo": {
                     "selectedCertMetadataAnnotations": [
                         {
-                            "key": "openshift.io/description",
-                            "value": "Created and managed by the machine-config-operator"
+                            "key": "openshift.io/owning-component",
+                            "value": "Machine Config Operator"
                         }
                     ],
-                    "owningJiraComponent": "",
-                    "description": "Created and managed by the machine-config-operator"
+                    "owningJiraComponent": "Machine Config Operator",
+                    "description": ""
                 }
             },
             "OnDiskLocation": null
@@ -937,7 +953,13 @@
                     "Name": "image-registry-certificates"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "Image Registry"
+                        }
+                    ],
+                    "owningJiraComponent": "Image Registry",
                     "description": ""
                 }
             },
@@ -1441,10 +1463,14 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-controller-manager"
+                        },
+                        {
+                            "key": "openshift.io/description",
+                            "value": "CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager."
                         }
                     ],
                     "owningJiraComponent": "kube-controller-manager",
-                    "description": ""
+                    "description": "CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager."
                 }
             },
             "OnDiskLocation": null
@@ -1650,7 +1676,13 @@
                     "Name": "metrics-client-ca"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "Monitoring"
+                        }
+                    ],
+                    "owningJiraComponent": "Monitoring",
                     "description": ""
                 }
             },
@@ -1970,12 +2002,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -2775,12 +2811,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -2821,6 +2861,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver."
                         }
@@ -2846,6 +2890,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -3055,12 +3103,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3078,12 +3130,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3101,12 +3157,43 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Generated by cluster-etcd-operator for etcd and is used to sign peer, server and client certificates for Prometheus ServiceMonitors. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
                     "description": "Generated by cluster-etcd-operator for etcd and is used to sign peer, server and client certificates for Prometheus ServiceMonitors. This certificate is valid for 1825 days and starts refreshing after 1533 days."
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-peer-2r9n12ip-92bf1-s62z8bootstrap"
+                },
+                "certKeyInfo": {
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "etcd"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
+                            "key": "openshift.io/description",
+                            "value": "Peer (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
+                        }
+                    ],
+                    "owningJiraComponent": "etcd",
+                    "description": "Peer (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3124,12 +3211,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Peer (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Peer (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Peer (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Peer (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3147,12 +3238,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Peer (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Peer (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Peer (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Peer (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3170,12 +3265,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Peer (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Peer (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Peer (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Peer (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3193,12 +3292,43 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Peer (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Peer (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Peer (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Peer (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-2r9n12ip-92bf1-s62z8bootstrap"
+                },
+                "certKeyInfo": {
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "etcd"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
+                            "key": "openshift.io/description",
+                            "value": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
+                        }
+                    ],
+                    "owningJiraComponent": "etcd",
+                    "description": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3216,12 +3346,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3239,12 +3373,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3262,12 +3400,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3285,12 +3427,43 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
+                    "Namespace": "openshift-etcd",
+                    "Name": "etcd-serving-metrics-2r9n12ip-92bf1-s62z8bootstrap"
+                },
+                "certKeyInfo": {
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "etcd"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
+                            "key": "openshift.io/description",
+                            "value": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
+                        }
+                    ],
+                    "owningJiraComponent": "etcd",
+                    "description": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3308,12 +3481,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cbootstrap\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3331,12 +3508,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cmaster-0\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3354,12 +3535,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cmaster-1\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3377,12 +3562,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3398,6 +3587,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "etcd"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -3446,12 +3639,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3469,12 +3666,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3706,6 +3907,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Client certificate used by the kube-apiserver to communicate to aggregated apiservers."
                         }
@@ -3733,6 +3938,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"check-endpoints.kubeconfig\" should be present in all kube-apiserver containers [Suite:openshift/conformance/parallel/minimal]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Client certificate used by the network connectivity checker of the kube-apiserver."
                         }
@@ -3758,6 +3967,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"control-plane-node.kubeconfig\" should be present in all kube-apiserver containers [Suite:openshift/conformance/parallel/minimal]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -3779,12 +3992,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3804,6 +4021,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -3833,6 +4054,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Serving certificate used by the kube-apiserver to terminate requests via the internal load balancer."
                         }
@@ -3858,6 +4083,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -3887,6 +4116,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "70080h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Serving certificate used by the kube-apiserver to terminate requests via the localhost recovery SNI ServerName."
                         }
@@ -3912,6 +4145,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -3958,6 +4195,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4137,6 +4378,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "70080h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network."
                         }
@@ -4191,6 +4436,10 @@
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "12h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
                             "value": "Client certificate (system:masters) placed on each master to allow communication to kube-apiserver for debugging."
                         }
@@ -4216,6 +4465,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "21024h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4289,6 +4542,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4400,6 +4657,10 @@
                         {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                             "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "6h0m0s"
                         },
                         {
                             "key": "openshift.io/description",
@@ -5367,12 +5628,16 @@
                             "value": "etcd"
                         },
                         {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "36792h0m0s"
+                        },
+                        {
                             "key": "openshift.io/description",
-                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                            "value": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                         }
                     ],
                     "owningJiraComponent": "etcd",
-                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days."
+                    "description": "Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
