@@ -17,6 +17,7 @@ import (
 type legacyMonitorTests struct {
 	adminRESTConfig    *rest.Config
 	notSupportedReason error
+	startTime          time.Time
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -29,6 +30,7 @@ func (w *legacyMonitorTests) PrepareCollection(ctx context.Context, adminRESTCon
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+	w.startTime = time.Now()
 
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
 	if err != nil {
@@ -69,7 +71,8 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testEtcdShouldNotLogSlowFdataSyncs(finalIntervals)...)
 	junits = append(junits, testEtcdShouldNotLogDroppedRaftMessages(finalIntervals)...)
 	junits = append(junits, testOperatorStatusChanged(finalIntervals)...)
-	junits = append(junits, testEtcdDoesNotLogExcessiveTookTooLongMessages(finalIntervals)...)
+	junits = append(junits, testEtcdDoesNotLogExcessiveTookTooLongMessages(finalIntervals, w.startTime)...)
+	junits = append(junits, testEtcdDoesNotLogExcessiveOverloadedNetworkMessages(finalIntervals, w.startTime)...)
 
 	return junits, nil
 }
