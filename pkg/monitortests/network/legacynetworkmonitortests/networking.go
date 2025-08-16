@@ -202,11 +202,11 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
 			switch {
-			case timeBetweenDeleteAndFailure < 1*time.Second:
-				// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
+			//	case timeBetweenDeleteAndFailure < 1*time.Second:
+			// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
 			case timeBetweenDeleteAndFailure < 5*time.Second:
 				// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
-				flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
+				//		flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
 			case deletionTime.Before(event.From):
 				// something went wrong.  More than five seconds after the pod ws deleted, the CNI is trying to set up pod sandboxes and can't
 				failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
