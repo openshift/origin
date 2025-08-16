@@ -33,7 +33,7 @@ var Annotations = map[string]string{
 
 	"[Serial][sig-cli] oc adm upgrade recommend When the update service has conditional recommendations runs successfully when listing all updates": " [Suite:openshift/conformance/serial]",
 
-	"[Serial][sig-cli] oc adm upgrade recommend When the update service has conditional recommendations runs successfully with conditional recommendations to the --version target": " [Suite:openshift/conformance/serial]",
+	"[Serial][sig-cli] oc adm upgrade recommend When the update service has conditional recommendations runs successfully with an accepted conditional recommendation to the --version target": " [Suite:openshift/conformance/serial]",
 
 	"[Serial][sig-cli] oc adm upgrade recommend When the update service has no recommendations runs successfully": " [Suite:openshift/conformance/serial]",
 
