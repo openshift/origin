@@ -53,8 +53,16 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
-			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+			isDNSManaged, err := isDNSManaged(oc, time.Minute)
+			if err != nil {
+				e2e.Failf("Failed to get default ingresscontroller DNSManaged status: %v", err)
+			}
+			if !isDNSManaged {
+				g.Skip("Skipping on this cluster since DNSManaged is false")
+			}
+
+			baseDomain, err := getClusterBaseDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find base domain name")
 
 			g.By("Locating the canary image reference")
 			image, err := getCanaryImage(oc)
@@ -196,7 +204,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			shardFQDN := oc.Namespace() + "." + defaultDomain
+			shardFQDN := oc.Namespace() + "." + baseDomain
 
 			g.By("Creating routes to test for gRPC interoperability")
 			routeType := oc.Namespace()
