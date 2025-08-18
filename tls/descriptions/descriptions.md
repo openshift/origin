@@ -45,20 +45,24 @@
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [openshift-apiserver (1)](#openshift-apiserver-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [Items That DO Meet the Requirement (175)](#Items-That-DO-Meet-the-Requirement-175)
+  - [Items That DO Meet the Requirement (184)](#Items-That-DO-Meet-the-Requirement-184)
     - [Machine Config Operator (3)](#Machine-Config-Operator-3)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [Networking / cluster-network-operator (1)](#Networking-/-cluster-network-operator-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+    - [apiserver-auth (3)](#apiserver-auth-3)
+      - [Certificates (3)](#Certificates-3)
     - [etcd (34)](#etcd-34)
       - [Certificates (25)](#Certificates-25)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [kube-apiserver (32)](#kube-apiserver-32)
-      - [Certificates (21)](#Certificates-21)
+    - [kube-apiserver (35)](#kube-apiserver-35)
+      - [Certificates (24)](#Certificates-24)
       - [Certificate Authority Bundles (11)](#Certificate-Authority-Bundles-11)
     - [kube-controller-manager (4)](#kube-controller-manager-4)
       - [Certificate Authority Bundles (4)](#Certificate-Authority-Bundles-4)
+    - [openshift-apiserver (3)](#openshift-apiserver-3)
+      - [Certificates (3)](#Certificates-3)
     - [service-ca (101)](#service-ca-101)
       - [Certificates (98)](#Certificates-98)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
@@ -788,7 +792,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-## Items That DO Meet the Requirement (175)
+## Items That DO Meet the Requirement (184)
 ### Machine Config Operator (3)
 #### Certificates (2)
 1. ns/openshift-machine-config-operator secret/machine-config-server-ca
@@ -816,6 +820,25 @@ To create a description, set the `openshift.io/description` annotation to the ma
 1. ns/openshift-kube-apiserver configmap/trusted-ca-bundle
 
       **Description:** CA used to recognize proxy servers.  By default this will contain standard root CAs on the cluster-network-operator pod.
+      
+
+
+
+### apiserver-auth (3)
+#### Certificates (3)
+1. ns/openshift-authentication pod/oauth-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+2. ns/openshift-authentication pod/oauth-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+3. ns/openshift-authentication pod/oauth-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -1087,8 +1110,8 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### kube-apiserver (32)
-#### Certificates (21)
+### kube-apiserver (35)
+#### Certificates (24)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
       **Description:** Client certificate used by the kube-controller-manager to authenticate to the kube-apiserver.
@@ -1257,6 +1280,21 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
       
 
+22. ns/openshift-kube-apiserver pod/kube-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+23. ns/openshift-kube-apiserver pod/kube-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+24. ns/openshift-kube-apiserver pod/kube-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
 
 
 #### Certificate Authority Bundles (11)
@@ -1355,6 +1393,25 @@ To create a description, set the `openshift.io/description` annotation to the ma
 4. ns/openshift-kube-controller-manager-operator configmap/csr-controller-ca
 
       **Description:** CA to recognize the CSRs (both serving and client) signed by the kube-controller-manager.
+      
+
+
+
+### openshift-apiserver (3)
+#### Certificates (3)
+1. ns/openshift-apiserver pod/openshift-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+2. ns/openshift-apiserver pod/openshift-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+3. ns/openshift-apiserver pod/openshift-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
