@@ -124,7 +124,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		pattern := `^([a-zA-Z0-9]+-)+master-\d+$`
+		pattern := `^([a-zA-Z0-9]+-)+master(?:-[a-zA-Z0-9]+)?-\d+$`
 
 		g.By("checking for the openshift machine api operator")
 		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
