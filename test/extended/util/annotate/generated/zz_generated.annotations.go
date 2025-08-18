@@ -87,6 +87,18 @@ var Annotations = map[string]string{
 
 	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:MachineConfigNodes] [Suite:openshift/conformance/serial][Serial]Should properly update the MCN from the associated MCD [apigroup:machineconfiguration.openshift.io]": "",
 
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": "",
+
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": "",
+
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial] Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]": "",
+
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial] Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]": "",
+
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": "",
+
+	"[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:ManagedBootImagesvSphere][Serial] Should upload the latest bootimage to the appropriate vCentre [apigroup:machineconfiguration.openshift.io]": "",
+
 	"[Suite:openshift/usernamespace] [sig-node] [FeatureGate:ProcMountType] [FeatureGate:UserNamespacesSupport] nested container should pass podman localsystem test in baseline mode": "",
 
 	"[sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": " [Suite:openshift/conformance/serial]",
