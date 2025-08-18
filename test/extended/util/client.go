@@ -226,6 +226,7 @@ func NewCLIForMonitorTest(project string) *CLI {
 // allowed inside an `It` block. `AfterEach` and `BeforeEach` are not allowed there though.
 func NewHypershiftManagementCLI(project string) *CLI {
 	kubeconfig, _, err := GetHypershiftManagementClusterConfigAndNamespace()
+	// TODO: this is assuming to be executing within ginkgo, which is not always the case (monitortests)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return &CLI{
 		kubeFramework: &framework.Framework{
