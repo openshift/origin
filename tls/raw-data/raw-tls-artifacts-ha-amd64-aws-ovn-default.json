@@ -4917,6 +4917,190 @@
       }
     ]
   },
+  "InMemoryResourceData": {
+    "certKeyPairs": [
+      {
+        "podLocation": {
+          "Namespace": "openshift-kube-apiserver",
+          "Name": "kube-apiserver-0"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "kube-apiserver",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "kube-apiserver"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-kube-apiserver",
+          "Name": "kube-apiserver-1"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "kube-apiserver",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "kube-apiserver"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-kube-apiserver",
+          "Name": "kube-apiserver-2"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "kube-apiserver",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "kube-apiserver"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-apiserver",
+          "Name": "openshift-apiserver-0"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "openshift-apiserver",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "openshift-apiserver"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-apiserver",
+          "Name": "openshift-apiserver-1"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "openshift-apiserver",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "openshift-apiserver"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-apiserver",
+          "Name": "openshift-apiserver-2"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "openshift-apiserver",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "openshift-apiserver"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-authentication",
+          "Name": "oauth-apiserver-0"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "apiserver-auth",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "apiserver-auth"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-authentication",
+          "Name": "oauth-apiserver-1"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "apiserver-auth",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "apiserver-auth"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      },
+      {
+        "podLocation": {
+          "Namespace": "openshift-authentication",
+          "Name": "oauth-apiserver-2"
+        },
+        "certKeyInfo": {
+          "owningJiraComponent": "apiserver-auth",
+          "description": "apiserver loopback connection certificate",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "apiserver-auth"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "apiserver loopback connection certificate"
+            }
+          ]
+        }
+      }
+    ]
+  },
   "CertificateAuthorityBundles": {
     "Items": [
       {
