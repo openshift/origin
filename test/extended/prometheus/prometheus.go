@@ -62,12 +62,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 
 		// TODO: remove the namespace when the bug is fixed.
 		namespacesToSkip = sets.New[string]("openshift-marketplace", // https://issues.redhat.com/browse/OCPBUGS-59763
-			"openshift-image-registry",               // https://issues.redhat.com/browse/OCPBUGS-59767
-			"openshift-operator-lifecycle-manager",   // https://issues.redhat.com/browse/OCPBUGS-59768
-			"openshift-cluster-samples-operator",     // https://issues.redhat.com/browse/OCPBUGS-59769
-			"openshift-cluster-csi-drivers",          // https://issues.redhat.com/browse/OCPBUGS-60159
-			"openshift-cluster-node-tuning-operator", // https://issues.redhat.com/browse/OCPBUGS-60258
-			"openshift-etcd",                         // https://issues.redhat.com/browse/OCPBUGS-60263
+			"openshift-image-registry",             // https://issues.redhat.com/browse/OCPBUGS-59767
+			"openshift-operator-lifecycle-manager", // https://issues.redhat.com/browse/OCPBUGS-59768
+			"openshift-cluster-samples-operator",   // https://issues.redhat.com/browse/OCPBUGS-59769
+			"openshift-cluster-csi-drivers",        // https://issues.redhat.com/browse/OCPBUGS-60159
 		)
 	)
 
@@ -119,10 +117,18 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				continue
 			}
 			pod := target.Labels["pod"]
-			e2e.Logf("Checking via pod exec status code from the scrape url %s for pod %s/%s without authorization (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
+			e2e.Logf("Checking via pod exec status code from the scrape url %s for pod %s/%s without auth (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
 			err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, time.Minute, true, func(context.Context) (bool, error) {
 				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
-				e2e.Logf("The scrape url %s for pod %s/%s without authorization returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
+				e2e.Logf("The scrape url %s for pod %s/%s without auth returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
+				// It allows for TLS layer failure with "certificate required" in the error output
+				if helper.HostCommandFailed(execError) {
+					_, err := helper.URLExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
+					e2e.Logf("The scrape url %s for pod %s/%s without auth returned err: %v (skip=%t)", target.ScrapeUrl, ns, pod, err, namespacesToSkip.Has(ns))
+					if err != nil && strings.Contains(err.Error(), "certificate required") {
+						return true, nil
+					}
+				}
 				if expected.Has(statusCode) {
 					return true, nil
 				}
