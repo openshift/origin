@@ -438,7 +438,8 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			`name.contains("[Suite:openshift/auth/external-oidc") && !name.contains("[Skipped]")`,
 		},
-		TestTimeout: 120 * time.Minute,
+		TestTimeout:                120 * time.Minute,
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 }
 
