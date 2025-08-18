@@ -312,6 +312,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 		if err != nil {
 			logrus.WithError(err).Error("failed to get hypershift management cluster config and namespace")
+			return err
 		}
 
 		// For Hypershift, only skip if it's specifically ARO HCP
@@ -351,6 +352,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	i.adminRESTConfig = adminRESTConfig
 	i.kubeClient, err = kubernetes.NewForConfig(i.adminRESTConfig)
 	if err != nil {
+		log.WithError(err).Error("error constructing kube client in disruptionclusterapiserver monitortest")
 		return fmt.Errorf("error constructing kube client: %v", err)
 	}
 
@@ -494,6 +496,10 @@ func (i *InvariantInClusterDisruption) WriteContentToStorage(ctx context.Context
 func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "Cleanup")
 	if len(i.notSupportedReason) > 0 {
+		return nil
+	}
+
+	if i.kubeClient == nil {
 		return nil
 	}
 
