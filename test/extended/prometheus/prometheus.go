@@ -121,11 +121,13 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, time.Minute, true, func(context.Context) (bool, error) {
 				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
 				e2e.Logf("The scrape url %s for pod %s/%s without auth returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
-				// It allows for TLS layer failure with "certificate required" in the error output
+				// It allows for TLS layer failure
 				if helper.HostCommandFailed(execError) {
 					_, err := helper.URLExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
 					e2e.Logf("The scrape url %s for pod %s/%s without auth returned err: %v (skip=%t)", target.ScrapeUrl, ns, pod, err, namespacesToSkip.Has(ns))
-					if err != nil && strings.Contains(err.Error(), "certificate required") {
+					if err != nil &&
+						(strings.Contains(err.Error(), "certificate required") ||
+							strings.Contains(err.Error(), "OpenSSL SSL_write: Broken pipe")) {
 						return true, nil
 					}
 				}
