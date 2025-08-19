@@ -438,7 +438,7 @@ replace (
 	k8s.io/kube-scheduler => github.com/openshift/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20250716113245-b94367cabf3e
 	k8s.io/kubectl => github.com/openshift/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20250716113245-b94367cabf3e
 	k8s.io/kubelet => github.com/openshift/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20250716113245-b94367cabf3e
-	k8s.io/kubernetes => github.com/openshift/kubernetes v1.30.1-0.20250807102212-00d46557c0f1
+	k8s.io/kubernetes => github.com/openshift/kubernetes v1.30.1-0.20250815165952-eba09d2066a6
 	k8s.io/metrics => github.com/openshift/kubernetes/staging/src/k8s.io/metrics v0.0.0-20250716113245-b94367cabf3e
 	k8s.io/mount-utils => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20250716113245-b94367cabf3e
 	k8s.io/pod-security-admission => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20250716113245-b94367cabf3e
