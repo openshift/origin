@@ -65,7 +65,6 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			"openshift-image-registry",               // https://issues.redhat.com/browse/OCPBUGS-59767
 			"openshift-operator-lifecycle-manager",   // https://issues.redhat.com/browse/OCPBUGS-59768
 			"openshift-cluster-samples-operator",     // https://issues.redhat.com/browse/OCPBUGS-59769
-			"openshift-cluster-version",              // https://issues.redhat.com/browse/OCPBUGS-57585
 			"openshift-cluster-csi-drivers",          // https://issues.redhat.com/browse/OCPBUGS-60159
 			"openshift-cluster-node-tuning-operator", // https://issues.redhat.com/browse/OCPBUGS-60258
 			"openshift-etcd",                         // https://issues.redhat.com/browse/OCPBUGS-60263
