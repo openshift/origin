@@ -78,10 +78,10 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			_, err = noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 			expectNoError(err)
 		}
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://redhat.com").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://redhat.com").Output()
 		expectNoError(err)
 
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.google.com:80").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "http://www.google.com:80").Output()
 		expectNoError(err)
 		deleteTestEgressFw(noegFwf)
 	})
@@ -151,31 +151,31 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 	// Test curl to redhat.com should pass
 	// because we have allow dns rule for redhat.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://redhat.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://redhat.com").Output()
 	expectNoError(err)
 
 	// Test curl to amazon.com should pass
 	// because we have allow dns rule for amazon.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://amazon.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://amazon.com").Output()
 	expectNoError(err)
 
 	if checkWildcard {
 		// Test curl to `www.google.com` and `translate.google.com` should pass
 		// because we have allow dns rule for `*.google.com`.
 		g.By("sending traffic to `www.google.com` that matches allow dns rule for `*.google.com`")
-		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://www.google.com").Output()
+		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://www.google.com").Output()
 		expectNoError(err)
 
 		g.By("sending traffic to `translate.google.com` that matches allow dns rule for `*.google.com`")
-		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://translate.google.com").Output()
+		_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "https://translate.google.com").Output()
 		expectNoError(err)
 	}
 
 	// Test curl to www.redhat.com should fail
 	// because we don't have allow dns rule for www.redhat.com
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.redhat.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "http://www.redhat.com").Output()
 	expectError(err)
 
 	if nodeSelectorSupport {
@@ -195,7 +195,7 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 			o.Expect(len(nodeIP)).NotTo(o.BeZero())
 			hostPort := net.JoinHostPort(nodeIP, "6443")
 			url := fmt.Sprintf("https://%s", hostPort)
-			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "-k", url).Output()
+			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "-k", url).Output()
 			expectNoError(err)
 		}
 	}
@@ -204,7 +204,7 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 
 func checkConnectivityToExternalHost(f *e2e.Framework, oc *exutil.CLI, pod string) bool {
 	g.By("executing a successful access to external internet")
-	_, err := oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.google.com:80").Output()
+	_, err := oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m5", "http://www.google.com:80").Output()
 	if err != nil {
 		e2e.Logf("Unable to connect/talk to the internet: %v", err)
 		return false
