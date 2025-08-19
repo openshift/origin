@@ -13,5 +13,6 @@ reviewers:
 approvers:
   - sjenning
   - mrunalp
+  - rphillips
 
 component: node
