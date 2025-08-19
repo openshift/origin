@@ -26,7 +26,7 @@ var expectedPods = map[string]int{
 	"openshift-dns":                          1,
 	"openshift-etcd":                         2,
 	"openshift-image-registry":               1,
-	"openshift-kni-infra":                    3,
+	"openshift-kni-infra":                    1,
 	"openshift-machine-config-operator":      2,
 	"openshift-monitoring":                   1,
 	"openshift-multus":                       3,
