@@ -156,6 +156,21 @@ func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTag
 
 	tlog := logrus.WithField("test", test.name)
 
+	// Test retries were disabled for some suites when they moved to OTE. This exposed small numbers of tests that
+	// were actually flaky and nobody knew. We attempted to fix these, a few did not make it in time. Restore
+	// retries for specific test names so the overall suite can continue to not retry.
+	retryTestNames := []string{
+		"[sig-instrumentation] Metrics should grab all metrics from kubelet /metrics/resource endpoint [Suite:openshift/conformance/parallel] [Suite:k8s]", // https://issues.redhat.com/browse/OCPBUGS-57477
+		"[sig-network] Services should be rejected for evicted pods (no endpoints exist) [Suite:openshift/conformance/parallel] [Suite:k8s]",               // https://issues.redhat.com/browse/OCPBUGS-57665
+		"[sig-node] Pods Extended Pod Container lifecycle evicted pods should be terminal [Suite:openshift/conformance/parallel] [Suite:k8s]",              // https://issues.redhat.com/browse/OCPBUGS-57658
+	}
+	for _, rtn := range retryTestNames {
+		if test.name == rtn {
+			tlog.Debug("test has an exception allowing retry")
+			return true
+		}
+	}
+
 	// Get extension info to check if it's from a permitted image
 	info, err := test.binary.Info(ctx)
 	if err != nil {
