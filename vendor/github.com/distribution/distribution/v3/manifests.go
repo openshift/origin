@@ -6,6 +6,7 @@ import (
 	"mime"
 
 	"github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Manifest represents a registry object specifying a set of
@@ -13,41 +14,20 @@ import (
 type Manifest interface {
 	// References returns a list of objects which make up this manifest.
 	// A reference is anything which can be represented by a
-	// distribution.Descriptor. These can consist of layers, resources or other
+	// Descriptor. These can consist of layers, resources or other
 	// manifests.
 	//
 	// While no particular order is required, implementations should return
 	// them from highest to lowest priority. For example, one might want to
 	// return the base layer before the top layer.
-	References() []Descriptor
+	References() []v1.Descriptor
 
 	// Payload provides the serialized format of the manifest, in addition to
 	// the media type.
 	Payload() (mediaType string, payload []byte, err error)
 }
 
-// ManifestBuilder creates a manifest allowing one to include dependencies.
-// Instances can be obtained from a version-specific manifest package.  Manifest
-// specific data is passed into the function which creates the builder.
-type ManifestBuilder interface {
-	// Build creates the manifest from his builder.
-	Build(ctx context.Context) (Manifest, error)
-
-	// References returns a list of objects which have been added to this
-	// builder. The dependencies are returned in the order they were added,
-	// which should be from base to head.
-	References() []Descriptor
-
-	// AppendReference includes the given object in the manifest after any
-	// existing dependencies. If the add fails, such as when adding an
-	// unsupported dependency, an error may be returned.
-	//
-	// The destination of the reference is dependent on the manifest type and
-	// the dependency type.
-	AppendReference(dependency Describable) error
-}
-
-// ManifestService describes operations on image manifests.
+// ManifestService describes operations on manifests.
 type ManifestService interface {
 	// Exists returns true if the manifest exists.
 	Exists(ctx context.Context, dgst digest.Digest) (bool, error)
@@ -69,9 +49,13 @@ type ManifestEnumerator interface {
 	Enumerate(ctx context.Context, ingester func(digest.Digest) error) error
 }
 
-// Describable is an interface for descriptors
+// Describable is an interface for descriptors.
+//
+// Implementations of Describable are generally objects which can be
+// described, not simply descriptors.
 type Describable interface {
-	Descriptor() Descriptor
+	// Descriptor returns the descriptor.
+	Descriptor() v1.Descriptor
 }
 
 // ManifestMediaTypes returns the supported media types for manifests.
@@ -85,13 +69,13 @@ func ManifestMediaTypes() (mediaTypes []string) {
 }
 
 // UnmarshalFunc implements manifest unmarshalling a given MediaType
-type UnmarshalFunc func([]byte) (Manifest, Descriptor, error)
+type UnmarshalFunc func([]byte) (Manifest, v1.Descriptor, error)
 
 var mappings = make(map[string]UnmarshalFunc)
 
 // UnmarshalManifest looks up manifest unmarshal functions based on
 // MediaType
-func UnmarshalManifest(ctHeader string, p []byte) (Manifest, Descriptor, error) {
+func UnmarshalManifest(ctHeader string, p []byte) (Manifest, v1.Descriptor, error) {
 	// Need to look up by the actual media type, not the raw contents of
 	// the header. Strip semicolons and anything following them.
 	var mediaType string
@@ -99,7 +83,7 @@ func UnmarshalManifest(ctHeader string, p []byte) (Manifest, Descriptor, error) 
 		var err error
 		mediaType, _, err = mime.ParseMediaType(ctHeader)
 		if err != nil {
-			return nil, Descriptor{}, err
+			return nil, v1.Descriptor{}, err
 		}
 	}
 
@@ -107,7 +91,7 @@ func UnmarshalManifest(ctHeader string, p []byte) (Manifest, Descriptor, error) 
 	if !ok {
 		unmarshalFunc, ok = mappings[""]
 		if !ok {
-			return nil, Descriptor{}, fmt.Errorf("unsupported manifest media type and no default available: %s", mediaType)
+			return nil, v1.Descriptor{}, fmt.Errorf("unsupported manifest media type and no default available: %s", mediaType)
 		}
 	}
 

@@ -97,6 +97,13 @@ const (
 	// operation.
 	ErrCodeCloudHsmClusterNotRelatedException = "CloudHsmClusterNotRelatedException"
 
+	// ErrCodeConflictException for service response error code
+	// "ConflictException".
+	//
+	// The request was rejected because an automatic rotation of this key is currently
+	// in progress or scheduled to begin within the next 20 minutes.
+	ErrCodeConflictException = "ConflictException"
+
 	// ErrCodeCustomKeyStoreHasCMKsException for service response error code
 	// "CustomKeyStoreHasCMKsException".
 	//
@@ -272,7 +279,8 @@ const (
 	// For encrypting, decrypting, re-encrypting, and generating data keys, the
 	// KeyUsage must be ENCRYPT_DECRYPT. For signing and verifying messages, the
 	// KeyUsage must be SIGN_VERIFY. For generating and verifying message authentication
-	// codes (MACs), the KeyUsage must be GENERATE_VERIFY_MAC. To find the KeyUsage
+	// codes (MACs), the KeyUsage must be GENERATE_VERIFY_MAC. For deriving key
+	// agreement secrets, the KeyUsage must be KEY_AGREEMENT. To find the KeyUsage
 	// of a KMS key, use the DescribeKey operation.
 	//
 	// To find the encryption or signing algorithms supported for a particular KMS
@@ -417,6 +425,7 @@ const (
 	// ErrCodeXksProxyInvalidResponseException for service response error code
 	// "XksProxyInvalidResponseException".
 	//
+	//
 	// KMS cannot interpret the response it received from the external key store
 	// proxy. The problem might be a poorly constructed response, but it could also
 	// be a transient network issue. If you see this error repeatedly, report it
@@ -488,6 +497,7 @@ var exceptionFromCode = map[string]func(protocol.ResponseMetadata) error{
 	"CloudHsmClusterNotActiveException":                       newErrorCloudHsmClusterNotActiveException,
 	"CloudHsmClusterNotFoundException":                        newErrorCloudHsmClusterNotFoundException,
 	"CloudHsmClusterNotRelatedException":                      newErrorCloudHsmClusterNotRelatedException,
+	"ConflictException":                                       newErrorConflictException,
 	"CustomKeyStoreHasCMKsException":                          newErrorCustomKeyStoreHasCMKsException,
 	"CustomKeyStoreInvalidStateException":                     newErrorCustomKeyStoreInvalidStateException,
 	"CustomKeyStoreNameInUseException":                        newErrorCustomKeyStoreNameInUseException,
