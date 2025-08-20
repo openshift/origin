@@ -2,11 +2,14 @@ FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.24-openshift-4.20 AS 
 WORKDIR /go/src/github.com/openshift/origin
 COPY . .
 RUN make; \
+    make node-tests-ext-build; \
     mkdir -p /tmp/build; \
-    cp /go/src/github.com/openshift/origin/openshift-tests /tmp/build/openshift-tests
+    cp /go/src/github.com/openshift/origin/openshift-tests /tmp/build/openshift-tests; \
+    gzip -c /go/src/github.com/openshift/origin/node-tests-ext > /tmp/build/node-tests-ext.gz
 
 FROM registry.ci.openshift.org/ocp/4.20:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
+COPY --from=builder /tmp/build/node-tests-ext.gz /usr/bin/
 RUN mkdir -p /manifests
 COPY --from=builder /go/src/github.com/openshift/origin/zz_generated.manifests/* /manifests
 
