@@ -8,17 +8,25 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
-type wasUpdatedFn func() (bool, error)
+// wasUpdatedFn returns how many times was the cluster updated while the test was running
+type wasUpdatedFn func() (int, error)
 
 func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCase {
 	health := &junitapi.JUnitTestCase{
 		Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 	}
 
-	clusterUpdated, err := wasUpdated()
+	clusterUpdateCount, err := wasUpdated()
 	if err != nil {
 		health.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("failed to get cluster version: %v", err),
+			Message: fmt.Sprintf("failed to determined whether the cluster was updated: %v", err),
+		}
+		return health
+	}
+
+	if clusterUpdateCount > 1 {
+		health.SkipMessage = &junitapi.SkipMessage{
+			Message: fmt.Sprintf("Cluster updated more than once (%d times)", clusterUpdateCount),
 		}
 		return health
 	}
@@ -95,7 +103,7 @@ func (w *monitor) updateLifecycle(wasUpdated wasUpdatedFn) *junitapi.JUnitTestCa
 			}
 		}
 
-		if !clusterUpdated {
+		if clusterUpdateCount == 0 {
 			// TODO: MCO churn sometimes briefly tricks our code into thinking the cluster is updating, we'll tolerate for
 			// now but we should try fixing this
 			// if observed.output.updating || observed.output.controlPlane != nil || observed.output.workers != nil || observed.output.health != nil {

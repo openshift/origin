@@ -105,10 +105,10 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name       string
-		snapshots  []snapshot
-		wasUpdated bool
-		expected   *junitapi.JUnitTestCase
+		name        string
+		snapshots   []snapshot
+		updateCount int
+		expected    *junitapi.JUnitTestCase
 	}{
 		{
 			name: "no snapshots -> test skipped",
@@ -128,7 +128,7 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 				{when: time.Now(), out: lifecycle04controlPlaneUpdated},
 				{when: time.Now(), out: lifecycle05after},
 			},
-			wasUpdated: true,
+			updateCount: 1,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 			},
@@ -140,7 +140,7 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 				{when: time.Now(), out: lifecycle02updating},
 				{when: time.Now(), out: lifecycle05after},
 			},
-			wasUpdated: true,
+			updateCount: 1,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 			},
@@ -154,7 +154,7 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 				{when: time.Now(), out: lifecycle02updating},
 				{when: time.Now(), out: lifecycle05after},
 			},
-			wasUpdated: true,
+			updateCount: 1,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 				FailureOutput: &junitapi.FailureOutput{
@@ -169,9 +169,28 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 				{when: time.Now(), out: lifecycle01before},
 				{when: time.Now(), out: lifecycle01before},
 			},
-			wasUpdated: false,
+			updateCount: 0,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
+			},
+		},
+		{
+			name: "test is skipped when multiple hops were observed",
+			snapshots: []snapshot{
+				{when: time.Now(), out: lifecycle01before},
+				{when: time.Now(), out: lifecycle02updating},
+				{when: time.Now(), out: lifecycle05after},
+				{when: time.Now(), out: lifecycle02updating},
+				{when: time.Now(), out: lifecycle05after},
+				{when: time.Now(), out: lifecycle02updating},
+				{when: time.Now(), out: lifecycle05after},
+			},
+			updateCount: 3,
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
+				SkipMessage: &junitapi.SkipMessage{
+					Message: "Cluster updated more than once (3 times)",
+				},
 			},
 		},
 		{
@@ -181,7 +200,7 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 				{when: time.Now(), out: lifecycle02updating},
 				{when: time.Now(), out: lifecycle01before},
 			},
-			wasUpdated: false,
+			updateCount: 0,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 				// TODO: MCO churn sometimes briefly tricks our code into thinking the cluster is updating, we'll tolerate for
@@ -192,14 +211,13 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 			},
 		},
 		{
-
 			name: "completed update goes back to updating",
 			snapshots: []snapshot{
 				{when: time.Now(), out: lifecycle03controlPlaneNodesUpdated},
 				{when: time.Now(), out: lifecycle05after},
 				{when: time.Now(), out: lifecycle03controlPlaneNodesUpdated},
 			},
-			wasUpdated: true,
+			updateCount: 1,
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status snapshots reflect the cluster upgrade lifecycle",
 				// TODO: MCO churn sometimes briefly tricks our code into thinking the cluster is updating, we'll tolerate for
@@ -223,8 +241,8 @@ func TestMonitor_UpdateLifecycle(t *testing.T) {
 			// Process snapshots into models for the health check to work with
 			_ = m.expectedLayout()
 
-			wasUpdated := func() (bool, error) {
-				return tc.wasUpdated, nil
+			wasUpdated := func() (int, error) {
+				return tc.updateCount, nil
 			}
 
 			result := m.updateLifecycle(wasUpdated)
