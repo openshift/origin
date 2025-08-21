@@ -27,7 +27,7 @@ type highCPUMetricCollector struct {
 
 func NewHighCPUMetricCollector() monitortestframework.MonitorTest {
 	return &highCPUMetricCollector{
-		cpuThreshold: 5.0, // Default to 95% threshold
+		cpuThreshold: 95.0, // Default to 95% threshold
 	}
 }
 
