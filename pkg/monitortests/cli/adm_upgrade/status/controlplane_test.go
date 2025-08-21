@@ -106,14 +106,14 @@ Duration:        24m (Est. Time Remaining: 45m)
 Operator Health: 34 Healthy
 
 Updating Cluster Operators
-NAME             SINCE   REASON                                            MESSAGE
-image-registry   6s      DeploymentNotCompleted::NodeCADaemonUnavailable   NodeCADaemonProgressing: The daemon set node-ca is deploying node pods
-Progressing: The deployment has not completed
-monitoring                     4s    RollOutInProgress                                                                Rolling out the stack.
-openshift-controller-manager   11s   RouteControllerManager_DesiredStateNotYetAchieved::_DesiredStateNotYetAchieved   Progressing: deployment/controller-manager: observed generation is 10, desired generation is 11
-Progressing: deployment/controller-manager: updated replicas is 1, desired replicas is 3
-RouteControllerManagerProgressing: deployment/route-controller-manager: observed generation is 7, desired generation is 8
-RouteControllerManagerProgressing: deployment/route-controller-manager: updated replicas is 1, desired replicas is 3
+NAME                           SINCE   REASON               MESSAGE
+image-registry                 6s      DeploymentNotCo...   NodeCADaemonProgressing: The daemon set node-ca is deploying node pods
+                                                            Progressing: The deployment has not completed
+monitoring                     4s      RollOutInProgre...   Rolling out the stack.
+openshift-controller-manager   11s     RouteController...   Progressing: deployment/controller-manager: observed generation is 10, desired generation is 11
+                                                            Progressing: deployment/controller-manager: updated replicas is 1, desired replicas is 3
+                                                            RouteControllerManagerProgressing: deployment/route-controller-manager: observed generation is 7, desired generation is 8
+                                                            RouteControllerManagerProgressing: deployment/route-controller-manager: updated replicas is 1, desired replicas is 3
 
 Control Plane Nodes
 NAME                          ASSESSMENT   PHASE     VERSION                                                     EST   MESSAGE
