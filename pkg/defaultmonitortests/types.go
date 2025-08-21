@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremhaproxy"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremkeepalived"
+	"github.com/openshift/origin/pkg/monitortests/node/highcpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
 	"github.com/openshift/origin/pkg/monitortests/node/legacynodemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/nodestateanalyzer"
@@ -184,6 +185,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-metric-collector", "Node / Kubelet", highcpumetriccollector.NewHighCPUMetricCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())
