@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/rest"
 
@@ -26,6 +27,7 @@ type availability struct {
 	disruptionChecker  *disruptionlibrary.Availability
 	notSupportedReason error
 	suppressJunit      bool
+	tcpdumpHook        *backenddisruption.TcpdumpSamplerHook
 }
 
 func NewAvailabilityInvariant() monitortestframework.MonitorTest {
@@ -43,17 +45,26 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 }
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	tcpdumpHook, err := backenddisruption.NewTcpdumpSamplerHookWithConfig(adminRESTConfig)
+	if err != nil {
+		// Fall back to basic hook if Kubernetes client creation fails
+		tcpdumpHook = backenddisruption.NewTcpdumpSamplerHook()
+	}
+
+	// Store reference to tcpdump hook for cleanup in CollectData
+	w.tcpdumpHook = tcpdumpHook
+
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"ci-cluster-network-liveness-new-connections",
 		"",
-		monitorapi.NewConnectionType)
+		monitorapi.NewConnectionType).WithSamplerHooks([]backenddisruption.SamplerHook{tcpdumpHook})
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"ci-cluster-network-liveness-reused-connections",
 		"",
-		monitorapi.ReusedConnectionType)
+		monitorapi.ReusedConnectionType).WithSamplerHooks([]backenddisruption.SamplerHook{tcpdumpHook})
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newConnectionTestName, reusedConnectionTestName,
@@ -70,6 +81,12 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	if w.notSupportedReason != nil {
 		return nil, nil, w.notSupportedReason
 	}
+
+	// Stop tcpdump collection as the monitoring test is terminating
+	if w.tcpdumpHook != nil {
+		w.tcpdumpHook.StopCollection()
+	}
+
 	return w.disruptionChecker.CollectData(ctx)
 }
 
@@ -86,7 +103,19 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 }
 
 func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return w.notSupportedReason
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
+	}
+
+	// Move tcpdump pcap file to storage directory
+	if w.tcpdumpHook != nil {
+		if err := w.tcpdumpHook.MoveToStorage(storageDir); err != nil {
+			// Log error but don't fail the entire WriteContentToStorage operation
+			logrus.WithError(err).Warn("Failed to move tcpdump pcap file to storage")
+		}
+	}
+
+	return nil
 }
 
 func (w *availability) Cleanup(ctx context.Context) error {

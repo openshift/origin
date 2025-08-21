@@ -36,6 +36,7 @@ type cloudAvailability struct {
 	disruptionChecker  *disruptionlibrary.Availability
 	notSupportedReason error
 	suppressJunit      bool
+	tcpdumpHook        *backenddisruption.TcpdumpSamplerHook
 }
 
 func NewCloudAvailabilityInvariant() monitortestframework.MonitorTest {
@@ -86,17 +87,26 @@ func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig
 		return w.notSupportedReason
 	}
 
+	tcpdumpHook, err := backenddisruption.NewTcpdumpSamplerHookWithConfig(adminRESTConfig)
+	if err != nil {
+		// Fall back to basic hook if Kubernetes client creation fails
+		tcpdumpHook = backenddisruption.NewTcpdumpSamplerHook()
+	}
+
+	// Store reference to tcpdump hook for cleanup in CollectData
+	w.tcpdumpHook = tcpdumpHook
+
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"gcp-network-liveness-new-connections",
 		"",
-		monitorapi.NewConnectionType)
+		monitorapi.NewConnectionType).WithSamplerHooks([]backenddisruption.SamplerHook{tcpdumpHook})
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"gcp-network-liveness-reused-connections",
 		"",
-		monitorapi.ReusedConnectionType)
+		monitorapi.ReusedConnectionType).WithSamplerHooks([]backenddisruption.SamplerHook{tcpdumpHook})
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newCloudConnectionTestName, reusedCloudConnectionTestName,
@@ -113,6 +123,12 @@ func (w *cloudAvailability) CollectData(ctx context.Context, storageDir string, 
 	if w.notSupportedReason != nil {
 		return nil, nil, w.notSupportedReason
 	}
+
+	// Stop tcpdump collection as the monitoring test is terminating
+	if w.tcpdumpHook != nil {
+		w.tcpdumpHook.StopCollection()
+	}
+
 	return w.disruptionChecker.CollectData(ctx)
 }
 
@@ -129,7 +145,19 @@ func (w *cloudAvailability) EvaluateTestsFromConstructedIntervals(ctx context.Co
 }
 
 func (w *cloudAvailability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return w.notSupportedReason
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
+	}
+
+	// Move tcpdump pcap file to storage directory
+	if w.tcpdumpHook != nil {
+		if err := w.tcpdumpHook.MoveToStorage(storageDir); err != nil {
+			// Log error but don't fail the entire WriteContentToStorage operation
+			logrus.WithError(err).Warn("Failed to move tcpdump pcap file to storage")
+		}
+	}
+
+	return nil
 }
 
 func (w *cloudAvailability) Cleanup(ctx context.Context) error {
