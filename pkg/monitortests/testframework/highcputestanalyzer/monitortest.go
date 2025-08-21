@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// highCPUTestAnalyzer looks for e2e tests that overlap with high CPU alerts and generates a data file with the results.
+// highCPUTestAnalyzer looks for e2e tests that overlap with high CPU metric intervals and generates a data file with the results.
 // The data file uses the autodl framework and thus is ingested automatically into bigquery, where we can then search
 // for tests failures that are correlated with high CPU. (either failing because of it, or perhaps causing it)
 type highCPUTestAnalyzer struct {
@@ -77,19 +77,13 @@ func (*highCPUTestAnalyzer) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-// findE2EIntervalsOverlappingHighCPU finds E2E test intervals that overlap with high CPU alert intervals
-// Each test is only reported once, even if it overlaps with multiple alerts, unless the test executed twice. (retry)
+// findE2EIntervalsOverlappingHighCPU finds E2E test intervals that overlap with high CPU metric intervals
+// Each test is only reported once, even if it overlaps with multiple high CPU periods, unless the test executed twice. (retry)
 func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[string]string {
-	// Filter for alert intervals of interest
-	alertIntervals := intervals.Filter(func(interval monitorapi.Interval) bool {
-		if interval.Source != monitorapi.SourceAlert {
-			return false
-		}
-
-		alertName, exists := interval.Locator.Keys["alert"]
-		// HighOverallControlPlaneCPU (60% utilization) would be another contender here,
-		// but it picked up a lot, and if no individual host is over 90% it seems not worth worrying about.
-		return exists && alertName == "ExtremelyHighIndividualControlPlaneCPU"
+	// Filter for high CPU metric intervals collected by our monitor
+	highCPUIntervals := intervals.Filter(func(interval monitorapi.Interval) bool {
+		return interval.Source == monitorapi.SourceNodeMonitor &&
+			interval.Message.Reason == monitorapi.IntervalReason("HighCPUUsage")
 	})
 
 	// Filter for E2E test intervals
@@ -111,16 +105,16 @@ func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[st
 			continue
 		}
 
-		// Check if this test overlaps with any alert interval
-		overlapsWithAlert := false
-		for _, alertInterval := range alertIntervals {
-			if utility.IntervalsOverlap(alertInterval, testInterval) {
-				overlapsWithAlert = true
+		// Check if this test overlaps with any high CPU interval
+		overlapsWithHighCPU := false
+		for _, highCPUInterval := range highCPUIntervals {
+			if utility.IntervalsOverlap(highCPUInterval, testInterval) {
+				overlapsWithHighCPU = true
 				break
 			}
 		}
 
-		if overlapsWithAlert {
+		if overlapsWithHighCPU {
 			// Mark this test as processed
 			processedTests[testName] = true
 
