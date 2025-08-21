@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade statu
 			g.Skip("oc adm upgrade status is not supported on HyperShift")
 		}
 
-		cmd := oc.Run("adm", "upgrade", "status").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
+		cmd := oc.Run("adm", "upgrade", "status")
 		out, err := cmd.Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.Equal("The cluster is not updating."))

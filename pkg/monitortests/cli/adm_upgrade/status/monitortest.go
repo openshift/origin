@@ -106,7 +106,7 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 	var err error
 	// retry on brief apiserver unavailability
 	if errWait := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-		cmd := oc.Run("adm", "upgrade", "status", "--details=all").EnvVar("OC_ENABLE_CMD_UPGRADE_STATUS", "true")
+		cmd := oc.Run("adm", "upgrade", "status", "--details=all")
 		out, err = cmd.Output()
 		if err != nil {
 			return false, nil
