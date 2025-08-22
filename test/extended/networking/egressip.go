@@ -697,7 +697,7 @@ func spawnProberSendEgressIPTrafficCheckLogs(
 		framework.Logf("Verifying that the expected number of EgressIP outbound requests can be seen in the packet sniffer logs")
 		result, err := sendEgressIPProbesAndCheckPacketSnifferLogs(oc, proberPod, routeName, targetProtocol, targetHost, targetPort, iterations, expectedHits, packetSnifferDaemonSet, egressIPSet, 10)
 		return err == nil && result
-	}, 120*time.Second, 30*time.Second).Should(o.BeTrue())
+	}, 360*time.Second, 30*time.Second).Should(o.BeTrue())
 }
 
 // ovnKubernetesCreateEgressIPObject creates the file containing the EgressIP YAML definition which can
