@@ -109,7 +109,7 @@ func (w *highCPUMetricCollector) createIntervalsFromCPUMetrics(logger logrus.Fie
 				HumanMessage(fmt.Sprintf("CPU usage above %.1f%% threshold on instance %s", w.cpuThreshold, instance)).
 				WithAnnotation("cpu_threshold", fmt.Sprintf("%.1f", w.cpuThreshold))
 
-			intervalTmpl := monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+			intervalTmpl := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
 				Locator(lb).
 				Message(msg).
 				Display()
@@ -176,7 +176,7 @@ func (w *highCPUMetricCollector) createCPUInterval(intervalTmpl monitorapi.Inter
 	}
 
 	// Rebuild the interval with the updated message
-	updatedInterval := monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+	updatedInterval := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
 		Locator(intervalTmpl.BuildCondition().Locator).
 		Message(msgBuilder).
 		Display()
@@ -193,7 +193,7 @@ func (w *highCPUMetricCollector) EvaluateTestsFromConstructedIntervals(ctx conte
 
 	// Filter for high CPU intervals
 	highCPUIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceNodeMonitor &&
+		return eventInterval.Source == monitorapi.SourceCPUMonitor &&
 			eventInterval.Message.Reason == monitorapi.IntervalReason("HighCPUUsage")
 	})
 

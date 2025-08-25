@@ -48,7 +48,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "no e2e test intervals",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -69,7 +69,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "e2e test overlaps with high CPU",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -112,7 +112,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "e2e test contained within high CPU period",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -155,7 +155,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "high CPU period contained within e2e test",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -198,7 +198,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "e2e test touches high CPU period start",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -236,7 +236,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "e2e test touches high CPU period end",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -272,7 +272,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "e2e test with zero end time",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -315,7 +315,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "high CPU period with zero end time",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -358,7 +358,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "multiple overlapping tests",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -422,7 +422,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "test overlaps with multiple high CPU periods - should only be reported once",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -437,7 +437,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 					To:   now.Add(15 * time.Minute),
 				},
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -480,7 +480,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "same test runs twice and overlaps high CPU period each time",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
@@ -495,7 +495,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 					To:   now.Add(15 * time.Minute),
 				},
 				{
-					Source: monitorapi.SourceNodeMonitor,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{

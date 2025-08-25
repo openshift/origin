@@ -116,7 +116,7 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 			if tc.expectedCount > 0 {
 				// Check that all intervals have the correct source and reason
 				for _, interval := range intervals {
-					assert.Equal(t, monitorapi.SourceNodeMonitor, interval.Source)
+					assert.Equal(t, monitorapi.SourceCPUMonitor, interval.Source)
 					assert.Equal(t, monitorapi.IntervalReason("HighCPUUsage"), interval.Message.Reason)
 					assert.Equal(t, tc.instance, interval.Locator.Keys[monitorapi.LocatorNodeKey])
 					assert.Contains(t, interval.Message.HumanMessage, "CPU usage above")
@@ -182,7 +182,7 @@ func TestCreateCPUInterval(t *testing.T) {
 		Reason(monitorapi.IntervalReason("HighCPUUsage")).
 		HumanMessage("test message")
 
-	intervalTmpl := monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+	intervalTmpl := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
 		Message(msg).
 		Display()
 

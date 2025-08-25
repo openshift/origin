@@ -381,6 +381,7 @@ const (
 	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
 
 	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
+	SourceCPUMonitor              IntervalSource = "CPUMonitor"
 )
 
 type Interval struct {
