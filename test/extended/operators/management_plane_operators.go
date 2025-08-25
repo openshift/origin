@@ -241,7 +241,6 @@ var (
 			"NodeInstallerDegraded",
 			"NodeInstallerProgressing",
 			"NodeKubeconfigControllerDegraded",
-			"PodSecurityCustomerEvaluationConditionsDetected",
 			"PodSecurityDisabledSyncerEvaluationConditionsDetected",
 			"PodSecurityOpenshiftEvaluationConditionsDetected",
 			"PodSecurityRunLevelZeroEvaluationConditionsDetected",
