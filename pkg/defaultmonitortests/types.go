@@ -34,7 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremhaproxy"
 	"github.com/openshift/origin/pkg/monitortests/network/onpremkeepalived"
-	"github.com/openshift/origin/pkg/monitortests/node/highcpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
 	"github.com/openshift/origin/pkg/monitortests/node/legacynodemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/nodestateanalyzer"
@@ -50,6 +49,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/highcpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"

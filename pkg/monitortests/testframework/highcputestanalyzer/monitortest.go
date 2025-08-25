@@ -82,7 +82,7 @@ func (*highCPUTestAnalyzer) Cleanup(ctx context.Context) error {
 func findE2EIntervalsOverlappingHighCPU(intervals monitorapi.Intervals) []map[string]string {
 	// Filter for high CPU metric intervals collected by our monitor
 	highCPUIntervals := intervals.Filter(func(interval monitorapi.Interval) bool {
-		return interval.Source == monitorapi.SourceNodeMonitor &&
+		return interval.Source == monitorapi.SourceCPUMonitor &&
 			interval.Message.Reason == monitorapi.IntervalReason("HighCPUUsage")
 	})
 
