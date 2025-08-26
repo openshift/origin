@@ -11,7 +11,7 @@ spec:
     - command: ['/bin/bash', '-ec']
       args:
         - |
-          chroot /host-root journalctl --list-boots
+          chroot /host-root journalctl --list-boots --no-pager
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: list-boots
       terminationMessagePolicy: FallbackToLogsOnError
@@ -24,7 +24,7 @@ spec:
     - command: ['/bin/bash', '-ec']
       args:
         - |
-          chroot /host-root journalctl -o short-iso -t 'systemd-logind' -g "rebooting" -q || true
+          chroot /host-root journalctl -o short-iso -t 'systemd-logind' -g "rebooting" -q --no-pager || true
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: reboots
       terminationMessagePolicy: FallbackToLogsOnError
