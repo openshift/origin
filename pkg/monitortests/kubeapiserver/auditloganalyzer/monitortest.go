@@ -35,9 +35,11 @@ type auditLogAnalyzer struct {
 	latencyChecker                *auditLatencyRecords
 
 	countsForInstall *CountsForRun
+
+	clusterStability monitortestframework.ClusterStabilityDuringTest
 }
 
-func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
+func NewAuditLogAnalyzer(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &auditLogAnalyzer{
 		summarizer:                    NewAuditLogSummarizer(),
 		excessiveApplyChecker:         CheckForExcessiveApplies(),
@@ -46,6 +48,7 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 		violationChecker:              CheckForViolations(),
 		watchCountTracking:            NewWatchCountTracking(),
 		latencyChecker:                CheckForLatency(),
+		clusterStability:              info.ClusterStabilityDuringTest,
 	}
 }
 
@@ -93,11 +96,14 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
 		w.violationChecker,
-		w.watchCountTracking,
 		w.latencyChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
+	}
+
+	if w.clusterStability == monitortestframework.Stable {
+		auditLogHandlers = append(auditLogHandlers, w.watchCountTracking)
 	}
 
 	err = GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end, auditLogHandlers)
@@ -411,10 +417,14 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	}
 
 	ret = append(ret, w.violationChecker.CreateJunits()...)
-	junits, err := w.watchCountTracking.CreateJunits()
-	if err == nil {
-		ret = append(ret, junits...)
+
+	if w.clusterStability == monitortestframework.Stable {
+		junits, err := w.watchCountTracking.CreateJunits()
+		if err == nil {
+			ret = append(ret, junits...)
+		}
 	}
+
 	return ret, err
 }
 
@@ -423,7 +433,7 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 		return currErr
 	}
 
-	if w.watchCountTracking != nil {
+	if w.watchCountTracking != nil && w.clusterStability == monitortestframework.Stable {
 		err := w.watchCountTracking.WriteAuditLogSummary(ctx, storageDir, "watch-requests", timeSuffix)
 		if err != nil {
 			// print any error and continue processing
