@@ -2,15 +2,8 @@ package auditloganalyzer
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/dataloader"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-	"k8s.io/kubernetes/test/e2e/framework"
 	"math"
 	"path/filepath"
 	"sort"
@@ -18,6 +11,16 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // with https://github.com/openshift/kubernetes/pull/2113 we no longer have the counts used in
@@ -28,10 +31,11 @@ type watchCountTracking struct {
 	lock                  sync.Mutex
 	startTime             time.Time
 	watchRequestCountsMap map[OperatorKey]*RequestCount
+	clusterStability      monitortestframework.ClusterStabilityDuringTest
 }
 
-func NewWatchCountTracking() *watchCountTracking {
-	return &watchCountTracking{startTime: time.Now(), watchRequestCountsMap: map[OperatorKey]*RequestCount{}}
+func NewWatchCountTracking(info monitortestframework.MonitorTestInitializationInfo) *watchCountTracking {
+	return &watchCountTracking{startTime: time.Now(), watchRequestCountsMap: map[OperatorKey]*RequestCount{}, clusterStability: info.ClusterStabilityDuringTest}
 }
 
 type OperatorKey struct {
@@ -70,7 +74,6 @@ func (s *watchCountTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, begi
 		s.watchRequestCountsMap[key] = counter
 	}
 	counter.Count++
-
 }
 
 func (s *watchCountTracking) SummarizeWatchCountRequests() []*RequestCount {
@@ -406,7 +409,6 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 				Name:        testMinRequestsName,
 				SkipMessage: &junitapi.SkipMessage{Message: fmt.Sprintf("unsupported single node platform type: %v", infra.Spec.PlatformSpec.Type)},
 			}}, nil
-
 		}
 		upperBound = upperBoundsSingleNode[infra.Spec.PlatformSpec.Type]
 
@@ -449,26 +451,29 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 		)
 	}
 
+	boundsCheck := boundsChecker{
+		Bounds:           upperBound,
+		Platform:         infra.Spec.PlatformSpec.Type,
+		ClusterStability: s.clusterStability,
+		UpperBoundMultiple: upperBoundMultiple{
+			// The upper bound are measured from CI runs where the tests might be running less than 2h in total.
+			// In the worst case half of the requests will be put into each bucket. Thus, multiply the bound by 2
+			Base: 2.0,
+			// If the cluster stability is marked as disruptive, include an additional 20% grace factor for
+			// cases where there is more watch channel churn due to kube-apiserver revision rollouts.
+			// The worst case seen so far is roughly an additional 11% (a 1.11 ratio) when the
+			// kube-apiserver is at revision 29.
+			// Example of this case: https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-cluster-authentication-operator-release-4.20-periodics-e2e-gcp-external-oidc-configure-techpreview/1959933892798451712
+			DisruptiveGraceFactor: 0.2,
+		},
+	}
+
 	operatorBoundExceeded := []string{}
 	for _, item := range watchRequestCounts {
-		operator := strings.Split(item.Operator, ":")[3]
-		allowedCount, exists := upperBound[operator]
-
-		if !exists {
-			framework.Logf("Operator %v not found in upper bounds for %v", operator, infra.Spec.PlatformSpec.Type)
-			framework.Logf("operator=%v, watchrequestcount=%v", item.Operator, item.Count)
-			continue
-		}
-
-		// The upper bound are measured from CI runs where the tests might be running less than 2h in total.
-		// In the worst case half of the requests will be put into each bucket. Thus, multiply the bound by 2
-		allowedCount = allowedCount * 2
-		ratio := float64(item.Count) / float64(allowedCount)
-		ratio = math.Round(ratio*100) / 100
-		framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio)
-		if item.Count > allowedCount {
+		operator := operatorFromRequestCount(item)
+		if err := boundsCheck.ensureBoundNotExceeded(item); err != nil {
 			framework.Logf("Operator %q produces more watch requests than expected", operator)
-			operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: watchrequestcount=%v, upperbound=%v, ratio=%v", operator, item.Count, allowedCount, ratio))
+			operatorBoundExceeded = append(operatorBoundExceeded, fmt.Sprintf("Operator %q produces more watch requests than expected: %s", operator, err.Error()))
 		}
 	}
 
@@ -490,4 +495,91 @@ func (s *watchCountTracking) CreateJunits() ([]*junitapi.JUnitTestCase, error) {
 	}
 
 	return ret, nil
+}
+
+// boundsChecker is a utility type to help with checking if an
+// operator has exceeded the upper bounds limit of requests for
+// a particular request type.
+type boundsChecker struct {
+	// Bounds is a mapping of operator to upper bounds for requests.
+	Bounds map[string]int64
+
+	// ClusterStability is the stability of the cluster during the test
+	// run. This is used to provide some grace in the upper bounds
+	// during known disruptive tests that may cut controller connections
+	// to the Kubernetes API server (KAS) due to a revisioned rollout,
+	// causing additional requests when the KAS is back up.
+	ClusterStability monitortestframework.ClusterStabilityDuringTest
+
+	// Platform is the platform that these requests were made against.
+	Platform configv1.PlatformType
+
+	// UpperBoundMultiple is the set of multipliers used
+	// to provide some grace between the configured Bounds
+	// based on various conditions.
+	UpperBoundMultiple upperBoundMultiple
+}
+
+// upperBoundMultiple is a utility type to hold
+// information as to multiples to apply to upper bound
+// limits of requests for an operator.
+type upperBoundMultiple struct {
+	// Base is the base multiplier that should be applied
+	// to the upper bounds.
+	Base float64
+
+	// DisruptiveGraceFactor is an additional amount added to
+	// Base to provide some additional grace in the upper bounds
+	// when the cluster stability during the test run is intentionally
+	// set as "Disruptive".
+	DisruptiveGraceFactor float64
+}
+
+// ensureBoundNotExceeded checks the provided RequestCount to see if the operator in question has exceeded
+// the upper bounds for the number of requests for the request type it should make.
+// It returns an error if the operator has exceeded the upper bounds for the number of requests the operator is
+// allowed to make for the given request type.
+func (bc boundsChecker) ensureBoundNotExceeded(requestCount *RequestCount) error {
+	// nothing to check, return early
+	if requestCount == nil {
+		return nil
+	}
+
+	operator := operatorFromRequestCount(requestCount)
+
+	allowedCount, exists := bc.Bounds[operator]
+
+	if !exists {
+		framework.Logf("Operator %v not found in upper bounds for %v", operator, bc.Platform)
+		framework.Logf("operator=%v, watchrequestcount=%v", requestCount.Operator, requestCount.Count)
+		return nil
+	}
+
+	upperBoundMultiple := bc.UpperBoundMultiple.Base
+
+	if bc.ClusterStability == monitortestframework.Disruptive {
+		upperBoundMultiple += bc.UpperBoundMultiple.DisruptiveGraceFactor
+	}
+
+	allowedCount = int64(float64(allowedCount) * upperBoundMultiple)
+	ratio := float64(requestCount.Count) / float64(allowedCount)
+	ratio = math.Round(ratio*100) / 100
+
+	framework.Logf("operator=%v, watchrequestcount=%v, upperbound=%v, ratio=%v", operator, requestCount.Count, allowedCount, ratio)
+
+	if requestCount.Count > allowedCount {
+		return errors.New(fmt.Sprintf("watchrequestcount=%v, upperbound=%v, ratio=%v", requestCount.Count, allowedCount, ratio))
+	}
+
+	return nil
+}
+
+// operatorFromRequestCount is a utility function to extract an operator name
+// from a RequestCount.
+func operatorFromRequestCount(requestCount *RequestCount) string {
+	if requestCount == nil {
+		return ""
+	}
+
+	return strings.Split(requestCount.Operator, ":")[3]
 }

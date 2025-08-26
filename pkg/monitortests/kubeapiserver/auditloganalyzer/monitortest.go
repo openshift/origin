@@ -37,14 +37,14 @@ type auditLogAnalyzer struct {
 	countsForInstall *CountsForRun
 }
 
-func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
+func NewAuditLogAnalyzer(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &auditLogAnalyzer{
 		summarizer:                    NewAuditLogSummarizer(),
 		excessiveApplyChecker:         CheckForExcessiveApplies(),
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
-		watchCountTracking:            NewWatchCountTracking(),
+		watchCountTracking:            NewWatchCountTracking(info),
 		latencyChecker:                CheckForLatency(),
 	}
 }
