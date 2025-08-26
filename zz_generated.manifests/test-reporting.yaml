@@ -1015,26 +1015,6 @@ spec:
     - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
         OLMv1 operator installation support for singleNamespace watch mode with quay-operator
         should install a cluster extension successfully'
-  - featureGate: NewOLMPreflightPermissionChecks
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {ClusterRoleBindings}
-        are not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {ConfigMap:resourceNames}
-        are not all specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {clusterextension/finalizer}
-        is not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {create} verb is
-        not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {escalate, bind}
-        is not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {services} are not
-        specified'
   - featureGate: OrderedNamespaceDeletion
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
