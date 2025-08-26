@@ -1403,11 +1403,11 @@ var Annotations = map[string]string{
 
 	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value": " [Suite:openshift/conformance/serial]",
 
-	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial] ImageStream API import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Suite:openshift/conformance/serial][Disruptive] ImageStream API import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]": " [Serial]",
 
-	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial] ImageStream API import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Suite:openshift/conformance/serial][Disruptive] ImageStream API import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]": " [Serial]",
 
-	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial] ImageStream API import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Suite:openshift/conformance/serial][Disruptive] ImageStream API import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]": " [Serial]",
 
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
