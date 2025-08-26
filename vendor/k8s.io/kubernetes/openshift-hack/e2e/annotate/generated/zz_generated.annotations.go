@@ -1481,8 +1481,6 @@ var Annotations = map[string]string{
 
 	"[sig-node] Container Runtime blackbox test on terminated container should report termination message if TerminationMessagePath is set as non-root user and at a non-default path [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret [NodeConformance]": " [Disabled:Broken] [Suite:k8s]",
-
 	"[sig-node] Container Runtime blackbox test when running a container with a new image should be able to pull image [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-node] Container Runtime blackbox test when running a container with a new image should not be able to pull from private registry without secret [NodeConformance]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
