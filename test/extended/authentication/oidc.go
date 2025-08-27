@@ -59,7 +59,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 		testID := rand.String(8)
 		keycloakNamespace = fmt.Sprintf("oidc-keycloak-%s", testID)
 
-		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace)
+		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace, g.GinkgoLogr)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
 		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
@@ -533,7 +533,7 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 		_, err = cli.Update(ctx, current, metav1.UpdateOptions{})
 		if err != nil {
 			// Only log the error so we continue to retry until the context has timed out
-			fmt.Println("updating authentication resource:", err)
+			g.GinkgoLogr.Error(err,"updating authentication resource")
 			return false, nil
 		}
 
