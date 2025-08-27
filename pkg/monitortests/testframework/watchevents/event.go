@@ -9,6 +9,7 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
@@ -26,7 +27,7 @@ import (
 
 var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
-func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, adminRESTConfig *rest.Config, client kubernetes.Interface) {
+func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, adminRESTConfig *rest.Config, client kubernetes.Interface, info monitortestframework.MonitorTestInitializationInfo) {
 
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
@@ -64,7 +65,15 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(
+					ctx,
+					m,
+					topology,
+					client,
+					significantlyBeforeNow,
+					event,
+					&info.ClusterStabilityDuringTest,
+				)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -75,7 +84,15 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(
+					ctx,
+					m,
+					topology,
+					client,
+					significantlyBeforeNow,
+					event,
+					&info.ClusterStabilityDuringTest,
+				)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -91,7 +108,9 @@ func recordAddOrUpdateEvent(
 	topology v1.TopologyMode,
 	client kubernetes.Interface,
 	significantlyBeforeNow time.Time,
-	obj *corev1.Event) {
+	obj *corev1.Event,
+	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest,
+) {
 
 	recorder.RecordResource("events", obj)
 
@@ -188,7 +207,7 @@ func recordAddOrUpdateEvent(
 	// times it occurred. We include upgrade allowances here. (the upgrade set contains both)
 	// We do not pass a Kubeconfig or list of final intervals (as final intervals obviously do not exist), so a small subset of more matchers will not be active,
 	// and will not get flagged as "interesting" as a result.
-	registry := pathologicaleventlibrary.NewUpgradePathologicalEventMatchers(nil, nil)
+	registry := pathologicaleventlibrary.NewUpgradePathologicalEventMatchers(nil, nil, clusterStabilityDuringTest)
 
 	intervalBuilder := monitorapi.NewInterval(monitorapi.SourceKubeEvent, level)
 

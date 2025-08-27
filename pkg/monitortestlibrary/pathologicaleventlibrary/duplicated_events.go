@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/sirupsen/logrus"
 
@@ -21,8 +22,12 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	registry := NewUpgradePathologicalEventMatchers(kubeClientConfig, events)
+func TestDuplicatedEventForUpgrade(
+	events monitorapi.Intervals,
+	kubeClientConfig *rest.Config,
+	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest,
+) []*junitapi.JUnitTestCase {
+	registry := NewUpgradePathologicalEventMatchers(kubeClientConfig, events, clusterStabilityDuringTest)
 
 	evaluator := duplicateEventsEvaluator{
 		registry: registry,
@@ -43,8 +48,12 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	return tests
 }
 
-func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	registry := NewUniversalPathologicalEventMatchers(clientConfig, events)
+func TestDuplicatedEventForStableSystem(
+	events monitorapi.Intervals,
+	clientConfig *rest.Config,
+	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest,
+) []*junitapi.JUnitTestCase {
+	registry := NewUniversalPathologicalEventMatchers(clientConfig, events, clusterStabilityDuringTest)
 
 	evaluator := duplicateEventsEvaluator{
 		registry: registry,

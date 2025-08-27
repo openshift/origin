@@ -57,11 +57,11 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
-		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForUpgrade(finalIntervals, w.adminRESTConfig)...)
+		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForUpgrade(finalIntervals, w.adminRESTConfig, w.clusterStabilityDuringTest)...)
 		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringUpgrade, jobType, w.clusterStabilityDuringTest,
 			w.adminRESTConfig, w.duration, w.recordedResources)...)
 	} else {
-		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForStableSystem(finalIntervals, w.adminRESTConfig)...)
+		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForStableSystem(finalIntervals, w.adminRESTConfig, w.clusterStabilityDuringTest)...)
 		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringConformance, jobType, w.clusterStabilityDuringTest,
 			w.adminRESTConfig, w.duration, w.recordedResources)...)
 	}

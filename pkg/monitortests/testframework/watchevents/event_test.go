@@ -145,7 +145,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			significantlyBeforeNow := now.UTC().Add(-15 * time.Minute)
-			recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, "", nil, significantlyBeforeNow, tt.args.kubeEvent)
+			recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, "", nil, significantlyBeforeNow, tt.args.kubeEvent, nil)
 			intervals := tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute))
 			assert.Equal(t, 1, len(intervals))
 			interval := intervals[0]
