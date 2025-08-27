@@ -145,7 +145,7 @@ func ArchiveMustGatherFile(oc *exutil.CLI, addExtraContent func(*exutil.CLI, str
 	tmpMustGatherTarFile := path.Join(tmpMustGatherDir, mustGatherFileName)
 	tmpMustGatherGenDir := path.Join(tmpMustGatherDir, tmpSubdir)
 
-	mgStd, mgErr := oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir", tmpMustGatherGenDir).Output()
+	mgStd, mgErr := oc.AsAdmin().WithoutNamespace().Run("adm").Args("must-gather", "--dest-dir", tmpMustGatherGenDir, "--volume-percentage=100").Output()
 	if mgErr != nil {
 		logger.Errorf("Error creating must-gather file: %s\n\n%s", mgErr, mgStd)
 		// We don't return the error here, we want to always compress the directory in case it exists
