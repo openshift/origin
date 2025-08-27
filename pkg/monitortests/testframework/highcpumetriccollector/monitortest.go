@@ -41,8 +41,15 @@ func (w *highCPUMetricCollector) StartCollection(ctx context.Context, adminRESTC
 }
 
 func (w *highCPUMetricCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	logger := logrus.WithField("MonitorTest", "HighCPUMetricCollector")
+
 	intervals, err := w.buildIntervalsForHighCPU(ctx, w.adminRESTConfig, beginning)
-	return intervals, nil, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logger.Infof("collected %d high CPU intervals", len(intervals))
+	return intervals, nil, nil
 }
 
 func (w *highCPUMetricCollector) buildIntervalsForHighCPU(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.Interval, error) {
@@ -59,6 +66,8 @@ func (w *highCPUMetricCollector) buildIntervalsForHighCPU(ctx context.Context, r
 	_, err = kubeClient.CoreV1().Namespaces().Get(ctx, "openshift-monitoring", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		return []monitorapi.Interval{}, nil
+	} else if err != nil {
+		return nil, err
 	}
 
 	prometheusClient, err := metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
@@ -66,8 +75,7 @@ func (w *highCPUMetricCollector) buildIntervalsForHighCPU(ctx context.Context, r
 		return nil, err
 	}
 
-	intervals, err := prometheus.EnsureThanosQueriersConnectedToPromSidecars(ctx, prometheusClient)
-	if err != nil {
+	if intervals, err := prometheus.EnsureThanosQueriersConnectedToPromSidecars(ctx, prometheusClient); err != nil {
 		return intervals, err
 	}
 
@@ -102,17 +110,7 @@ func (w *highCPUMetricCollector) createIntervalsFromCPUMetrics(logger logrus.Fie
 			instance := string(promSampleStream.Metric["instance"])
 
 			// Create locator for the node
-			lb := monitorapi.NewLocator().NodeFromName(instance)
-
-			msg := monitorapi.NewMessage().
-				Reason(monitorapi.IntervalReason("HighCPUUsage")).
-				HumanMessage(fmt.Sprintf("CPU usage above %.1f%% threshold on instance %s", w.cpuThreshold, instance)).
-				WithAnnotation("cpu_threshold", fmt.Sprintf("%.1f", w.cpuThreshold))
-
-			intervalTmpl := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
-				Locator(lb).
-				Message(msg).
-				Display()
+			locator := monitorapi.NewLocator().NodeFromName(instance)
 
 			// Track consecutive high CPU periods
 			var highCPUStart *time.Time
@@ -141,7 +139,7 @@ func (w *highCPUMetricCollector) createIntervalsFromCPUMetrics(logger logrus.Fie
 					// CPU usage dropped below threshold
 					if highCPUStart != nil && highCPUEnd != nil {
 						// Create interval for the high CPU period that just ended
-						ret = append(ret, w.createCPUInterval(*intervalTmpl, *highCPUStart, *highCPUEnd, peakCPUUsage))
+						ret = append(ret, w.createCPUInterval(locator, instance, *highCPUStart, *highCPUEnd, peakCPUUsage))
 						// Reset tracking variables
 						highCPUStart = nil
 						highCPUEnd = nil
@@ -152,7 +150,7 @@ func (w *highCPUMetricCollector) createIntervalsFromCPUMetrics(logger logrus.Fie
 
 			// Handle case where high CPU period extends to the end of the monitoring window
 			if highCPUStart != nil && highCPUEnd != nil {
-				ret = append(ret, w.createCPUInterval(*intervalTmpl, *highCPUStart, *highCPUEnd, peakCPUUsage))
+				ret = append(ret, w.createCPUInterval(locator, instance, *highCPUStart, *highCPUEnd, peakCPUUsage))
 			}
 		}
 
@@ -163,25 +161,24 @@ func (w *highCPUMetricCollector) createIntervalsFromCPUMetrics(logger logrus.Fie
 	return ret, nil
 }
 
-func (w *highCPUMetricCollector) createCPUInterval(intervalTmpl monitorapi.IntervalBuilder, start, end time.Time, cpuUsage float64) monitorapi.Interval {
-	// Create a new message with the peak usage annotation
-	msg := intervalTmpl.BuildCondition().Message
+func (w *highCPUMetricCollector) createCPUInterval(locator monitorapi.Locator, instance string, start, end time.Time, cpuUsage float64) monitorapi.Interval {
+	// Create message with all necessary information
 	msgBuilder := monitorapi.NewMessage().
-		Reason(msg.Reason).
-		HumanMessage(msg.HumanMessage).
+		Reason(monitorapi.IntervalReason("HighCPUUsage")).
+		HumanMessage(fmt.Sprintf("CPU usage above %.1f%% threshold on instance %s", w.cpuThreshold, instance)).
 		WithAnnotation("cpu_threshold", fmt.Sprintf("%.1f", w.cpuThreshold))
 
 	if cpuUsage > 0 {
 		msgBuilder = msgBuilder.WithAnnotation("peak_cpu_usage", fmt.Sprintf("%.2f", cpuUsage))
 	}
 
-	// Rebuild the interval with the updated message
-	updatedInterval := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
-		Locator(intervalTmpl.BuildCondition().Locator).
+	// Create and build the interval directly
+	interval := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
+		Locator(locator).
 		Message(msgBuilder).
 		Display()
 
-	return updatedInterval.Build(start, end)
+	return interval.Build(start, end)
 }
 
 func (*highCPUMetricCollector) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -189,16 +186,6 @@ func (*highCPUMetricCollector) ConstructComputedIntervals(ctx context.Context, s
 }
 
 func (w *highCPUMetricCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	logger := logrus.WithField("MonitorTest", "HighCPUMetricCollector")
-
-	// Filter for high CPU intervals
-	highCPUIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceCPUMonitor &&
-			eventInterval.Message.Reason == monitorapi.IntervalReason("HighCPUUsage")
-	})
-
-	logger.Infof("collected %d high CPU intervals for analysis", len(highCPUIntervals))
-
 	// This monitor test is purely for data collection, not for generating test cases
 	return nil, nil
 }
