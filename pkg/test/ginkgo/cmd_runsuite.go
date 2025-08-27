@@ -19,6 +19,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -289,6 +290,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	if len(specs) == 0 {
+		return fmt.Errorf("no tests to run")
+	}
+
 	tests, err := extensionTestSpecsToOriginTestCases(specs)
 	if err != nil {
 		return errors.WithMessage(err, "could not convert test specs to origin test cases")
@@ -552,7 +557,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			}
 		}
 
-		logrus.Warningf("%d tests failed, %d tests permitted to be retried; %d failures are terminal non-retryable failures", len(failing), len(retries), failedUnretriableTestCount)
+		logrus.Warningf("%d tests failed, %d tests permitted to be retried; %d failures are non-retryable", len(failing), len(retries), failedUnretriableTestCount)
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
@@ -697,10 +702,26 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		wasMasterNodeUpdated = clusterinfo.WasMasterNodeUpdated(events)
 	}
 
-	// report the outcome of the test
-	if len(failing) > 0 {
-		names := sets.NewString(testNames(failing)...).List()
-		fmt.Fprintf(o.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
+	var blockingFailures, informingFailures []*testCase
+	for _, test := range failing {
+		if isBlockingFailure(test) {
+			blockingFailures = append(blockingFailures, test)
+		} else {
+			test.testOutputBytes = []byte(fmt.Sprintf("*** NON-BLOCKING FAILURE: This test failure is not considered terminal because its lifecycle is '%s' and will not prevent the overall suite from passing.\n\n%s",
+				test.extensionTestResult.Lifecycle,
+				string(test.testOutputBytes)))
+			informingFailures = append(informingFailures, test)
+		}
+	}
+
+	if len(informingFailures) > 0 {
+		names := sets.NewString(testNames(informingFailures)...).List()
+		fmt.Fprintf(o.Out, "Informing test failures that don't prevent the overall suite from passing:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
+	}
+
+	if len(blockingFailures) > 0 {
+		names := sets.NewString(testNames(blockingFailures)...).List()
+		fmt.Fprintf(o.Out, "Blocking test failures:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
 	}
 
 	if len(o.JUnitDir) > 0 {
@@ -718,22 +739,33 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 	}
 
-	if fail > 0 {
-		if len(failing) > 0 || suite.MaximumAllowedFlakes == 0 {
-			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
-		}
-		fmt.Fprintf(o.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
-	}
-
-	if syntheticFailure {
+	switch {
+	case len(blockingFailures) > 0:
+		return fmt.Errorf("%d blocking fail, %d informing fail, %d pass, %d skip (%s)", len(blockingFailures), len(informingFailures), pass, skip, duration)
+	case syntheticFailure:
 		return fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
-	}
-	if monitorTestResultState != monitor.Succeeded {
+	case monitorTestResultState != monitor.Succeeded:
 		return fmt.Errorf("failed due to a MonitorTest failure")
+	case len(informingFailures) > 0:
+		fmt.Fprintf(o.Out, "%d informing fail, %d pass, %d skip (%s): suite passes despite failures", len(informingFailures), pass, skip, duration)
+	default:
+		fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	}
 
-	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+func isBlockingFailure(test *testCase) bool {
+	if test.extensionTestResult == nil {
+		return true
+	}
+
+	switch test.extensionTestResult.Lifecycle {
+	case extensiontests.LifecycleInforming:
+		return false
+	default:
+		return true
+	}
 }
 
 func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
