@@ -1189,7 +1189,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				cfg.namespace = f.Namespace.Name
 				udnPod = runUDNPod(cs, f.Namespace.Name, *cfg, nil)
 			})
-
+			// reproduce-disruption
 			It("should react to k8s.ovn.org/open-default-ports annotations changes", func() {
 				By("Creating second namespace for default network pod")
 				defaultNetNamespace := f.Namespace.Name + "-default"
