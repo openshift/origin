@@ -176,21 +176,20 @@ func TestCreateCPUInterval(t *testing.T) {
 	start := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
 	end := time.Date(2024, 1, 1, 10, 5, 0, 0, time.UTC)
 	peakUsage := 98.5
+	instance := "test-node-1"
 
-	// Create an interval template
-	msg := monitorapi.NewMessage().
-		Reason(monitorapi.IntervalReason("HighCPUUsage")).
-		HumanMessage("test message")
+	// Create locator for the node
+	locator := monitorapi.NewLocator().NodeFromName(instance)
 
-	intervalTmpl := monitorapi.NewInterval(monitorapi.SourceCPUMonitor, monitorapi.Warning).
-		Message(msg).
-		Display()
-
-	interval := collector.createCPUInterval(*intervalTmpl, start, end, peakUsage)
+	interval := collector.createCPUInterval(locator, instance, start, end, peakUsage)
 
 	// Verify the interval properties
 	assert.Equal(t, start, interval.From)
 	assert.Equal(t, end, interval.To)
+	assert.Equal(t, monitorapi.SourceCPUMonitor, interval.Source)
+	assert.Equal(t, monitorapi.IntervalReason("HighCPUUsage"), interval.Message.Reason)
+	assert.Equal(t, instance, interval.Locator.Keys[monitorapi.LocatorNodeKey])
+	assert.Contains(t, interval.Message.HumanMessage, "CPU usage above 95.0% threshold on instance test-node-1")
 	assert.Equal(t, "98.50", interval.Message.Annotations["peak_cpu_usage"])
 	assert.Equal(t, "95.0", interval.Message.Annotations["cpu_threshold"])
 }
