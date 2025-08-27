@@ -779,6 +779,10 @@ var Annotations = map[string]string{
 
 	"[sig-ci] [Early] prow job name should match security mode": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-ci] [OTE] OpenShift Tests Extension [Suite:openshift/ote] should support tests that succeed": "",
+
+	"[sig-ci] [OTE] OpenShift Tests Extension [Suite:openshift/ote] should support tests with an informing lifecycle": "",
+
 	"[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc --request-timeout works as expected for deployment": " [Suite:openshift/conformance/parallel]",

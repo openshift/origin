@@ -441,6 +441,16 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
+	{
+		Name: "openshift/ote",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate OpenShift Test Extension features are working.
+		`),
+		Qualifiers: []string{
+			`name.contains("[OTE]")`,
+		},
+		TestTimeout: 1 * time.Minute,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
