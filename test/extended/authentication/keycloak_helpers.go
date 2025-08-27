@@ -6,6 +6,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	typedroutev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -37,7 +38,7 @@ const (
 	keycloakKeyFile        = "tls.key"
 )
 
-func deployKeycloak(ctx context.Context, client *exutil.CLI, namespace string) ([]removalFunc, error) {
+func deployKeycloak(ctx context.Context, client *exutil.CLI, namespace string, logger logr.Logger) ([]removalFunc, error) {
 	cleanups := []removalFunc{}
 
 	corev1Client := client.AdminKubeClient().CoreV1()
@@ -78,7 +79,7 @@ func deployKeycloak(ctx context.Context, client *exutil.CLI, namespace string) (
 	}
 	cleanups = append(cleanups, cleanup)
 
-	return cleanups, waitForKeycloakAvailable(ctx, client, namespace)
+	return cleanups, waitForKeycloakAvailable(ctx, client, namespace, logger)
 }
 
 func createKeycloakNamespace(ctx context.Context, client typedcorev1.NamespaceInterface, namespace string) (removalFunc, error) {
@@ -350,12 +351,13 @@ func createKeycloakRoute(ctx context.Context, service *corev1.Service, client ty
 	}, nil
 }
 
-func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace string) error {
+func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace string, logger logr.Logger) error {
 	timeoutCtx, cancel := context.WithDeadline(ctx, time.Now().Add(10*time.Minute))
 	defer cancel()
 	err := wait.PollUntilContextCancel(timeoutCtx, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {
 		deploy, err := client.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, keycloakResourceName, metav1.GetOptions{})
 		if err != nil {
+			logger.Error(err, "getting keycloak deployment")
 			return false, nil
 		}
 
@@ -365,7 +367,7 @@ func waitForKeycloakAvailable(ctx context.Context, client *exutil.CLI, namespace
 			}
 		}
 
-		fmt.Println("keycloak deployment is not yet available. status: ", deploy.Status)
+		logger.Info("keycloak deployment is not yet available", "status", deploy.Status)
 
 		return false, nil
 	})
