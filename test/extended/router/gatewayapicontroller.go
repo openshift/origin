@@ -47,10 +47,11 @@ const (
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc       = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
-		csvName  string
-		err      error
-		gateways []string
+		oc         = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
+		csvName    string
+		err        error
+		gateways   []string
+		infPoolCRD = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
 	)
 
 	const (
@@ -245,6 +246,28 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Validating the http connectivity to the backend application")
 		assertHttpRouteConnection(defaultRoutename)
+	})
+
+	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
+		errCheck := checkGatewayClass(oc, gatewayClassName)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Install the GIE CRD")
+		err := oc.AsAdmin().Run("create").Args("-f", infPoolCRD).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Confirm istio is healthy and contains the env variable")
+		waitForIstioHealthy(oc)
+		istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(istioEnv).To(o.ContainSubstring(`ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`))
+
+		g.By("Uninstall the GIE CRD and confirm the env variable is removed")
+		err = oc.AsAdmin().Run("delete").Args("-f", infPoolCRD).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		istioEnv, err = oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(istioEnv).NotTo(o.ContainSubstring(`ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`))
 	})
 })
 

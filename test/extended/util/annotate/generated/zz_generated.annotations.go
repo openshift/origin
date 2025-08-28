@@ -1525,6 +1525,8 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure GIE is enabled after creating an inferencePool CRD": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure HTTPRoute object is created": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io] Ensure LB, service, and dnsRecord are created for a Gateway object": " [Suite:openshift/conformance/parallel]",
