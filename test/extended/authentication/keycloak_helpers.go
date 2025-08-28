@@ -242,6 +242,20 @@ func keycloakLivenessProbe() *corev1.Probe {
 	}
 }
 
+func keycloakStartupProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path:   "/health/started",
+				Port:   intstr.FromInt(9000),
+				Scheme: corev1.URISchemeHTTPS,
+			},
+		},
+		FailureThreshold: 20,
+		PeriodSeconds:    10,
+	}
+}
+
 func keycloakEnvVars() []corev1.EnvVar {
 	return []corev1.EnvVar{
 		{
@@ -312,6 +326,7 @@ func keycloakContainers() []corev1.Container {
 			},
 			LivenessProbe:  keycloakLivenessProbe(),
 			ReadinessProbe: keycloakReadinessProbe(),
+			StartupProbe:   keycloakStartupProbe(),
 			Command: []string{
 				"/opt/keycloak/bin/kc.sh",
 				"start-dev",
