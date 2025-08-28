@@ -410,6 +410,8 @@ spec:
   - featureGate: GatewayAPIController
     tests:
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
+        Ensure GIE is enabled after creating an inferencePool CRD'
+    - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure HTTPRoute object is created'
     - testName: '[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]
         Ensure LB, service, and dnsRecord are created for a Gateway object'
