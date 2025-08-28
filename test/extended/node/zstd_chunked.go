@@ -15,7 +15,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image", func() {
+var _ = g.Describe("[sig-builds][sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                 = exutil.NewCLI("zstd-chunked-image")
