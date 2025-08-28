@@ -278,6 +278,7 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 						WithAnnotations(map[monitorapi.AnnotationKey]string{
 							monitorapi.AnnotationRoles: nodeRoles(node),
 						}).
+						Reason(monitorapi.NodeDeleted).
 						HumanMessage("deleted")).
 					Build(now, now)
 				m.AddIntervals(i)
