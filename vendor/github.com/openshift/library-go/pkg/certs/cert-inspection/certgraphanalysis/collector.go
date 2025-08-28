@@ -2,12 +2,14 @@ package certgraphanalysis
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/openshift/api/annotations"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
@@ -251,11 +253,16 @@ func MergePKILists(ctx context.Context, first, second *certgraphapi.PKIList) *ce
 	}
 	onDiskResourceData = deduplicateOnDiskMetadata(onDiskResourceData)
 
+	inMemoryResourceData := certgraphapi.PerInMemoryResourceData{
+		CertKeyPairs: append(first.InMemoryResourceData.CertKeyPairs, second.InMemoryResourceData.CertKeyPairs...),
+	}
+
 	return &certgraphapi.PKIList{
 		CertificateAuthorityBundles: *caBundlesList,
 		CertKeyPairs:                *certList,
 		InClusterResourceData:       inClusterData,
 		OnDiskResourceData:          onDiskResourceData,
+		InMemoryResourceData:        inMemoryResourceData,
 	}
 }
 
@@ -298,4 +305,82 @@ func GetBootstrapIPAndHostname(ctx context.Context, kubeClient kubernetes.Interf
 	}
 
 	return bootstrapIP, bootstrapHostname, nil
+}
+
+type InMemoryCertDetail struct {
+	Namespace     string
+	LabelSelector labels.Selector
+	NamePrefix    string
+	Validity      string
+	CertInfo      certgraphapi.PKIRegistryCertKeyPairInfo
+}
+
+// CreateInMemoryPKIList creates a PKIList listing in-memory certificate for each apiserver
+
+func CreateInMemoryPKIList(ctx context.Context, kubeClient kubernetes.Interface, details []InMemoryCertDetail) (*certgraphapi.PKIList, error) {
+	errs := []error{}
+	result := &certgraphapi.PKIList{}
+
+	for _, detail := range details {
+		err := addInMemoryCertificateStub(ctx, result, kubeClient, detail)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to add in-memory certificate stub for %#v: %w", detail, err))
+		}
+	}
+	return result, utilerrors.NewAggregate(errs)
+
+}
+
+func addInMemoryCertificateStub(ctx context.Context, list *certgraphapi.PKIList, kubeClient kubernetes.Interface, detail InMemoryCertDetail) error {
+	if list == nil {
+		list = &certgraphapi.PKIList{}
+	}
+
+	if list.InMemoryResourceData.CertKeyPairs == nil {
+		list.CertKeyPairs.Items = []certgraphapi.CertKeyPair{}
+	}
+
+	// For each matched pod in namespace, create a cert key pair
+	podList, err := kubeClient.CoreV1().Pods(detail.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: detail.LabelSelector.String(),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	for i, pod := range podList.Items {
+		certKeyPair := certgraphapi.CertKeyPair{
+			Name:        fmt.Sprintf("%s-%d::1", detail.NamePrefix, i),
+			Description: "apiserver loopback certificate",
+			Spec: certgraphapi.CertKeyPairSpec{
+				InMemoryLocations: []certgraphapi.InClusterPodLocation{
+					{
+						Namespace: pod.Namespace,
+						// Using fake pod name to avoid removing IPs or hashes
+						Name: fmt.Sprintf("%s-%d", detail.NamePrefix, i),
+					},
+				},
+				CertMetadata: certgraphapi.CertKeyMetadata{
+					ValidityDuration: detail.Validity,
+					CertIdentifier: certgraphapi.CertIdentifier{
+						// PubkeyModulus needs to be unique so that the secret would not be removed during deduplication
+						PubkeyModulus: fmt.Sprintf("in-memory-%s-%d", detail.NamePrefix, i),
+					},
+				},
+			},
+		}
+
+		list.CertKeyPairs.Items = append(list.CertKeyPairs.Items, certKeyPair)
+
+		list.InMemoryResourceData.CertKeyPairs = append(list.InMemoryResourceData.CertKeyPairs, certgraphapi.PKIRegistryInMemoryCertKeyPair{
+			PodLocation: certgraphapi.InClusterPodLocation{
+				Namespace: pod.Namespace,
+				Name:      fmt.Sprintf("%s-%d", detail.NamePrefix, i),
+			},
+			CertKeyInfo: detail.CertInfo,
+		})
+	}
+	return nil
+
 }

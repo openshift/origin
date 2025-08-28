@@ -55,6 +55,7 @@ func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo,
 	errs := []error{}
 	inClusterCertKeyPairs := certs.SecretInfoByNamespaceName{}
 	inClusterCABundles := certs.ConfigMapInfoByNamespaceName{}
+	inMemoryCerts := certs.PodInfoByNamespaceName{}
 
 	for i := range rawData {
 		currPKI := rawData[i]
@@ -67,6 +68,17 @@ func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo,
 			}
 
 			inClusterCertKeyPairs[currCert.SecretLocation] = currCert.CertKeyInfo
+		}
+
+		for i := range currPKI.InMemoryResourceData.CertKeyPairs {
+			currCert := currPKI.InMemoryResourceData.CertKeyPairs[i]
+			existing, ok := inMemoryCerts[currCert.PodLocation]
+			if ok && !reflect.DeepEqual(existing, currCert.CertKeyInfo) {
+				errs = append(errs, fmt.Errorf("mismatch of certificate info for --namespace=%v pod/%v:\n%v\n", currCert.PodLocation.Namespace, currCert.PodLocation.Name, cmp.Diff(existing, currCert.CertKeyInfo)))
+				continue
+			}
+
+			inMemoryCerts[currCert.PodLocation] = currCert.CertKeyInfo
 		}
 
 		for i := range currPKI.InClusterResourceData.CertificateAuthorityBundles {
@@ -84,7 +96,7 @@ func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo,
 		return nil, utilerrors.NewAggregate(errs)
 	}
 
-	return certs.CertsToRegistryInfo(inClusterCertKeyPairs, onDiskCertKeyPairs, inClusterCABundles, onDiskCABundles), nil
+	return certs.CertsToRegistryInfo(inClusterCertKeyPairs, onDiskCertKeyPairs, inClusterCABundles, onDiskCABundles, inMemoryCerts), nil
 }
 
 // FindAllCertificateLocations returns a list of cert key pairs including ondisk files found

@@ -1,14 +1,23 @@
 package certgraphapi
 
 type PKIRegistryCertKeyPair struct {
-	InClusterLocation *PKIRegistryInClusterCertKeyPair
-	OnDiskLocation    *PKIRegistryOnDiskCertKeyPair
+	InClusterLocation   *PKIRegistryInClusterCertKeyPair
+	OnDiskLocation      *PKIRegistryOnDiskCertKeyPair
+	InMemoryPodLocation *PKIRegistryInMemoryCertKeyPair
 }
 
 // PKIRegistryOnDiskCertKeyPair identifies certificate key pair on disk and stores its metadata
 type PKIRegistryOnDiskCertKeyPair struct {
 	// OnDiskLocation points to the certkeypair location on disk
 	OnDiskLocation OnDiskLocation `json:"onDiskLocation"`
+	// CertKeyInfo stores metadata for certificate key pair
+	CertKeyInfo PKIRegistryCertKeyPairInfo `json:"certKeyInfo"`
+}
+
+// PKIRegistryInMemoryCertKeyPair identifies certificate key pair and stores its metadata
+type PKIRegistryInMemoryCertKeyPair struct {
+	// PodLocation points to the pod location
+	PodLocation InClusterPodLocation `json:"podLocation"`
 	// CertKeyInfo stores metadata for certificate key pair
 	CertKeyInfo PKIRegistryCertKeyPairInfo `json:"certKeyInfo"`
 }

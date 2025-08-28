@@ -94,6 +94,89 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 	oc := exutil.NewCLIWithoutNamespace("certificate-checker")
 	ctx := context.Background()
 
+	inMemoryCertDetails := []certgraphanalysis.InMemoryCertDetail{
+		{
+			Namespace:     "openshift-kube-apiserver",
+			LabelSelector: labels.SelectorFromSet(map[string]string{"apiserver": "true"}),
+			NamePrefix:    "kube-apiserver",
+			Validity:      "3y",
+			CertInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+				OwningJiraComponent: "kube-apiserver",
+				Description:         "apiserver loopback connection certificate",
+				SelectedCertMetadataAnnotations: []certgraphapi.AnnotationValue{
+					{
+						Key:   annotations.OpenShiftComponent,
+						Value: "kube-apiserver",
+					},
+					{
+						Key:   annotations.OpenShiftDescription,
+						Value: "apiserver loopback connection certificate",
+					},
+				},
+			},
+		},
+		{
+			Namespace:     "openshift-apiserver",
+			LabelSelector: labels.SelectorFromSet(map[string]string{"apiserver": "true"}),
+			NamePrefix:    "openshift-apiserver",
+			Validity:      "3y",
+			CertInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+				OwningJiraComponent: "openshift-apiserver",
+				Description:         "apiserver loopback connection certificate",
+				SelectedCertMetadataAnnotations: []certgraphapi.AnnotationValue{
+					{
+						Key:   annotations.OpenShiftComponent,
+						Value: "openshift-apiserver",
+					},
+					{
+						Key:   annotations.OpenShiftDescription,
+						Value: "apiserver loopback connection certificate",
+					},
+				},
+			},
+		},
+		{
+			Namespace:     "openshift-authentication",
+			LabelSelector: labels.SelectorFromSet(map[string]string{"app": "oauth-openshift"}),
+			NamePrefix:    "oauth-apiserver",
+			Validity:      "3y",
+			CertInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+				OwningJiraComponent: "apiserver-auth",
+				Description:         "apiserver loopback connection certificate",
+				SelectedCertMetadataAnnotations: []certgraphapi.AnnotationValue{
+					{
+						Key:   annotations.OpenShiftComponent,
+						Value: "apiserver-auth",
+					},
+					{
+						Key:   annotations.OpenShiftDescription,
+						Value: "apiserver loopback connection certificate",
+					},
+				},
+			},
+		},
+		{
+			Namespace:     "openshift-monitoring",
+			LabelSelector: labels.SelectorFromSet(map[string]string{"app.kubernetes.io/component": "metrics-server"}),
+			NamePrefix:    "metrics-apiserver",
+			Validity:      "3y",
+			CertInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+				OwningJiraComponent: "Monitoring",
+				Description:         "metrics-server loopback connection certificate",
+				SelectedCertMetadataAnnotations: []certgraphapi.AnnotationValue{
+					{
+						Key:   annotations.OpenShiftComponent,
+						Value: "Monitoring",
+					},
+					{
+						Key:   annotations.OpenShiftDescription,
+						Value: "metrics-server loopback connection certificate",
+					},
+				},
+			},
+		},
+	}
+
 	g.BeforeAll(func() {
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
@@ -133,6 +216,11 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		}
 
 		actualPKIContent = certgraphanalysis.MergePKILists(ctx, inClusterPKIContent, onDiskPKIContent)
+
+		// Create fake entries for in-memory certificates that every apiserver creates
+		inMemoryPKIContent, err := certgraphanalysis.CreateInMemoryPKIList(ctx, kubeClient, inMemoryCertDetails)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		actualPKIContent = certgraphanalysis.MergePKILists(ctx, actualPKIContent, inMemoryPKIContent)
 
 		expectedPKIContent, err = certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
 		o.Expect(err).NotTo(o.HaveOccurred())

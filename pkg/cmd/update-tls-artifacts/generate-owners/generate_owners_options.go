@@ -76,7 +76,7 @@ func (o *GenerateOwnersOptions) getRawDataFromDir() ([]*certgraphapi.PKIList, er
 	rawDataDir := filepath.Join(o.TLSInfoDir, "raw-data")
 	err := filepath.WalkDir(rawDataDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("failure walking directory %v: %w", rawDataDir, err)
 		}
 		if d.IsDir() {
 			return nil
@@ -85,12 +85,12 @@ func (o *GenerateOwnersOptions) getRawDataFromDir() ([]*certgraphapi.PKIList, er
 		filename := filepath.Join(rawDataDir, d.Name())
 		currBytes, err := os.ReadFile(filename)
 		if err != nil {
-			return err
+			return fmt.Errorf("failure reading file %v: %w", filename, err)
 		}
 		currPKI := &certgraphapi.PKIList{}
 		err = json.Unmarshal(currBytes, currPKI)
 		if err != nil {
-			return err
+			return fmt.Errorf("failure unmarshalling JSON from file %v: %w", filename, err)
 		}
 		ret = append(ret, currPKI)
 

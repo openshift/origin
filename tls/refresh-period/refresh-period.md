@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (234)](#Items-Do-NOT-Meet-the-Requirement-234)
+  - [Items Do NOT Meet the Requirement (243)](#Items-Do-NOT-Meet-the-Requirement-243)
     - [Unknown Owner (5)](#Unknown-Owner-5)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
@@ -31,22 +31,23 @@
       - [Certificates (2)](#Certificates-2)
     - [RHCOS (2)](#RHCOS-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-    - [apiserver-auth (5)](#apiserver-auth-5)
-      - [Certificates (3)](#Certificates-3)
+    - [apiserver-auth (8)](#apiserver-auth-8)
+      - [Certificates (6)](#Certificates-6)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [cluster-network-operator (1)](#cluster-network-operator-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [etcd (9)](#etcd-9)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [kube-apiserver (30)](#kube-apiserver-30)
-      - [Certificates (9)](#Certificates-9)
+    - [kube-apiserver (33)](#kube-apiserver-33)
+      - [Certificates (12)](#Certificates-12)
       - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
     - [kube-controller-manager (12)](#kube-controller-manager-12)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
     - [kube-scheduler (1)](#kube-scheduler-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-    - [openshift-apiserver (1)](#openshift-apiserver-1)
+    - [openshift-apiserver (4)](#openshift-apiserver-4)
+      - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [service-ca (101)](#service-ca-101)
       - [Certificates (98)](#Certificates-98)
@@ -76,7 +77,7 @@ This assertion means that you have
 3. This TLS artifact has associated test name annotation ("certificates.openshift.io/test-name").
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (234)
+## Items Do NOT Meet the Requirement (243)
 ### Unknown Owner (5)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -555,8 +556,8 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### apiserver-auth (5)
-#### Certificates (3)
+### apiserver-auth (8)
+#### Certificates (6)
 1. ns/openshift-config secret/webhook-authentication-integrated-oauth
 
       **Description:** 
@@ -570,6 +571,21 @@ If you have not done this, you should not merge the annotation.
 3. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
 
       **Description:** 
+      
+
+4. ns/openshift-authentication pod/oauth-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+5. ns/openshift-authentication pod/oauth-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+6. ns/openshift-authentication pod/oauth-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -690,8 +706,8 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### kube-apiserver (30)
-#### Certificates (9)
+### kube-apiserver (33)
+#### Certificates (12)
 1. ns/openshift-kube-apiserver secret/node-kubeconfigs
 
       **Description:** 
@@ -743,6 +759,21 @@ If you have not done this, you should not merge the annotation.
 9. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
       **Description:** 
+      
+
+10. ns/openshift-kube-apiserver pod/kube-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+11. ns/openshift-kube-apiserver pod/kube-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+12. ns/openshift-kube-apiserver pod/kube-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
       
 
 
@@ -1010,7 +1041,25 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### openshift-apiserver (1)
+### openshift-apiserver (4)
+#### Certificates (3)
+1. ns/openshift-apiserver pod/openshift-apiserver-0 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+2. ns/openshift-apiserver pod/openshift-apiserver-1 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+3. ns/openshift-apiserver pod/openshift-apiserver-2 (in-memory)
+
+      **Description:** apiserver loopback connection certificate
+      
+
+
+
 #### Certificate Authority Bundles (1)
 1. ns/openshift-apiserver configmap/image-import-ca
 
