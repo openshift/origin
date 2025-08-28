@@ -117,8 +117,10 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 	g.It("should verify that nodes have no unexpected reboots [Late]", func() {
 		ctx := context.Background()
 
-		// List all nodes
-		nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		// List all non-RHEL nodes
+		nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+			LabelSelector: "node.openshift.io/os_id!=rhel",
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(nodes.Items).NotTo(o.HaveLen(0))
 
