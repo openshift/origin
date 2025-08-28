@@ -57245,6 +57245,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return eventInterval.source === "Alert"
     }
 
+    function isHighCPU(eventInterval) {
+      return eventInterval.source === "CPUMonitor" && eventInterval.message.reason === "HighCPUUsage"
+    }
+
     function pathologicalEvents(item) {
         if (item.message.annotations["pathological"] === "true") {
             if (item.message.annotations["interesting"] === "true") {
@@ -57555,6 +57559,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
+
+        timelineGroups.push({group: "high-cpu", data: []})
+        createTimelineData("HighCPU", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isHighCPU, regex)
 
         timelineGroups.push({group: "disruption", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
