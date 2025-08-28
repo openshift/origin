@@ -39,11 +39,7 @@ target "update-vendor" {
 target "mod-outdated" {
   dockerfile = "./dockerfiles/vendor.Dockerfile"
   target = "outdated"
-  args = {
-    // used to invalidate cache for outdated run stage
-    // can be dropped when https://github.com/moby/buildkit/issues/1213 fixed
-    _RANDOM = uuidv4()
-  }
+  no-cache-filter = ["outdated"]
   output = ["type=cacheonly"]
 }
 
@@ -65,7 +61,8 @@ target "artifact-all" {
     "linux/arm/v7",
     "linux/arm64",
     "linux/ppc64le",
-    "linux/s390x"
+    "linux/s390x",
+    "linux/riscv64"
   ]
 }
 
@@ -91,6 +88,42 @@ target "image-all" {
     "linux/arm/v7",
     "linux/arm64",
     "linux/ppc64le",
-    "linux/s390x"
+    "linux/s390x",
+    "linux/riscv64"
   ]
+}
+
+target "_common_docs" {
+  dockerfile = "./dockerfiles/docs.Dockerfile"
+}
+
+target "docs-export" {
+  inherits = ["_common_docs"]
+  target = "out"
+  output = ["type=local,dest=build/docs"]
+}
+
+target "docs-image" {
+  inherits = ["_common_docs"]
+  target = "server"
+  output = ["type=docker"]
+  tags = ["registry-docs:local"]
+}
+
+target "docs-test" {
+  inherits = ["_common_docs"]
+  target = "test"
+  output = ["type=cacheonly"]
+}
+
+target "authors" {
+  dockerfile = "./dockerfiles/authors.Dockerfile"
+  target = "update"
+  output = ["."]
+}
+
+target "validate-authors" {
+  dockerfile = "./dockerfiles/authors.Dockerfile"
+  target = "validate"
+  output = ["type=cacheonly"]
 }

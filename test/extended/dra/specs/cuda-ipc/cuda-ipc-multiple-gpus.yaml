@@ -1,0 +1,281 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cuda-ipc-test
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: resource.k8s.io/v1beta1
+kind: ResourceClaimTemplate
+metadata:
+  namespace: cuda-ipc-test
+  name: producer-gpu
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        deviceClassName: gpu.nvidia.com
+        selectors:
+        - cel:
+            expression: |
+              device.attributes['gpu.nvidia.com'].index == 0            
+---
+apiVersion: resource.k8s.io/v1beta1
+kind: ResourceClaimTemplate
+metadata:
+  namespace: cuda-ipc-test
+  name: consumer-gpu
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        deviceClassName: gpu.nvidia.com
+        selectors:
+        - cel:
+            expression: |
+              device.attributes['gpu.nvidia.com'].index == 1            
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cuda-ipc-producer-simple
+  namespace: cuda-ipc-test
+  labels:
+    app: cuda-ipc-producer-simple
+spec:
+  hostIPC: true
+  hostPID: true
+  containers:
+  - name: producer
+    image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      cat > /tmp/producer.cu << 'EOF'
+      #include <cuda_runtime.h>
+      #include <stdio.h>
+      #include <unistd.h>
+      #include <stdlib.h>
+
+      int main() {
+          void* devPtr;
+          cudaIpcMemHandle_t handle;
+
+          printf("Producer: Initializing CUDA...\n");
+          fflush(stdout);
+
+          cudaError_t err = cudaSetDevice(0);
+          if (err != cudaSuccess) {
+              printf("ERROR setting CUDA device: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Allocating GPU memory...\n");
+          fflush(stdout);
+          err = cudaMalloc(&devPtr, 1024 * 1024); // 1MB
+          if (err != cudaSuccess) {
+              printf("ERROR allocating GPU memory: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Writing test data to GPU memory...\n");
+          fflush(stdout);
+          int* hostData = (int*)malloc(1024 * 1024);
+          for (int i = 0; i < 256 * 1024; i++) {
+              hostData[i] = i + 42; // Simple pattern: index + 42
+          }
+          err = cudaMemcpy(devPtr, hostData, 1024 * 1024, cudaMemcpyHostToDevice);
+          if (err != cudaSuccess) {
+              printf("ERROR copying data to GPU: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Creating IPC handle...\n");
+          fflush(stdout);
+          err = cudaIpcGetMemHandle(&handle, devPtr);
+          if (err != cudaSuccess) {
+              printf("ERROR creating IPC handle: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Writing handle to shared volume...\n");
+          fflush(stdout);
+          FILE* f = fopen("/shared/cuda_ipc_handle.dat", "wb");
+          if (!f) {
+              printf("ERROR: Could not open handle file for writing\n");
+              return 1;
+          }
+          fwrite(&handle, sizeof(handle), 1, f);
+          fclose(f);
+
+          printf("Producer: Success! Memory contains values 42, 43, 44, 45, 46...\n");
+          printf("Producer: Hanging infinitely to keep GPU memory alive...\n");
+          fflush(stdout);
+
+          // Hang forever to keep the GPU memory allocated
+          while (1) {
+              sleep(3600);
+          }
+
+          return 0;
+      }
+      EOF
+
+      echo "Compiling producer..."
+      nvcc /tmp/producer.cu -o /tmp/producer
+      echo "Starting producer..."
+      /tmp/producer
+    resources:
+      claims:
+      - name: producer-gpu
+    securityContext:
+      privileged: true
+      capabilities:
+        add: ["IPC_LOCK"]
+    volumeMounts:
+    - name: shared-volume
+      mountPath: /shared
+  resourceClaims:
+  - name: producer-gpu
+    resourceClaimTemplateName: producer-gpu
+  volumes:
+  - name: shared-volume
+    hostPath:
+      path: /tmp/cuda-ipc-shared
+      type: DirectoryOrCreate
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cuda-ipc-consumer-simple
+  namespace: cuda-ipc-test
+  labels:
+    app: cuda-ipc-consumer-simple
+spec:
+  hostIPC: true
+  hostPID: true
+  containers:
+  - name: consumer
+    image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      echo "Consumer: Waiting for producer to create handle..."
+
+      # Wait for the handle file to be created
+      while [ ! -f /shared/cuda_ipc_handle.dat ]; do
+          echo "Consumer: Waiting for handle file..."
+          sleep 2
+      done
+
+      echo "Consumer: Handle file found!"
+      sleep 2
+
+      cat > /tmp/consumer.cu << 'EOF'
+      #include <cuda_runtime.h>
+      #include <stdio.h>
+      #include <unistd.h>
+      #include <stdlib.h>
+
+      int main() {
+          void* devPtr;
+          cudaIpcMemHandle_t handle;
+
+          printf("Consumer: Initializing CUDA...\n");
+          fflush(stdout);
+
+          cudaError_t err = cudaSetDevice(0);
+          if (err != cudaSuccess) {
+              printf("ERROR setting CUDA device: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Consumer: Reading IPC handle from shared volume...\n");
+          fflush(stdout);
+          FILE* f = fopen("/shared/cuda_ipc_handle.dat", "rb");
+          if (!f) {
+              printf("ERROR: Handle file not found\n");
+              return 1;
+          }
+          fread(&handle, sizeof(handle), 1, f);
+          fclose(f);
+
+          printf("Consumer: Opening IPC memory handle...\n");
+          fflush(stdout);
+          err = cudaIpcOpenMemHandle(&devPtr, handle, cudaIpcMemLazyEnablePeerAccess);
+          if (err != cudaSuccess) {
+              printf("ERROR opening IPC handle: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Consumer: Successfully opened shared GPU memory!\n");
+          fflush(stdout);
+
+          // Read the data once
+          int* hostData = (int*)malloc(1024 * sizeof(int));
+          err = cudaMemcpy(hostData, devPtr, 1024 * sizeof(int), cudaMemcpyDeviceToHost);
+          if (err != cudaSuccess) {
+              printf("ERROR reading GPU memory: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Consumer: First 10 values from shared memory: ");
+          for (int i = 0; i < 10; i++) {
+              printf("%d ", hostData[i]);
+          }
+          printf("\n");
+          fflush(stdout);
+
+          // Verify expected pattern (index + 42)
+          bool correct = true;
+          for (int i = 0; i < 1024; i++) {
+              if (hostData[i] != i + 42) {
+                  correct = false;
+                  break;
+              }
+          }
+
+          if (correct) {
+              printf("Consumer: ✓ Data verification PASSED!\n");
+          } else {
+              printf("Consumer: ✗ Data verification FAILED!\n");
+          }
+
+          printf("Consumer: Success! Hanging infinitely...\n");
+          fflush(stdout);
+
+          // Hang forever
+          while (1) {
+              sleep(3600);
+          }
+
+          return 0;
+      }
+      EOF
+
+      echo "Compiling consumer..."
+      nvcc /tmp/consumer.cu -o /tmp/consumer
+      echo "Starting consumer..."
+      /tmp/consumer
+    resources:
+      claims:
+      - name: consumer-gpu
+    securityContext:
+      privileged: true
+      capabilities:
+        add: ["IPC_LOCK"]
+    volumeMounts:
+    - name: shared-volume
+      mountPath: /shared
+  resourceClaims:
+  - name: consumer-gpu
+    resourceClaimTemplateName: consumer-gpu
+  volumes:
+  - name: shared-volume
+    hostPath:
+      path: /tmp/cuda-ipc-shared
+      type: DirectoryOrCreate
+  restartPolicy: Never

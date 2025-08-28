@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/distribution/distribution/v3/reference"
+	"github.com/distribution/reference"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -46,7 +46,7 @@ func (err ErrBlobInvalidDigest) Error() string {
 // instead of initiating an upload session.
 type ErrBlobMounted struct {
 	From       reference.Canonical
-	Descriptor Descriptor
+	Descriptor v1.Descriptor
 }
 
 func (err ErrBlobMounted) Error() string {
@@ -58,41 +58,9 @@ func (err ErrBlobMounted) Error() string {
 // store, a descriptor can be used to fetch, store and target any kind of
 // blob. The struct also describes the wire protocol format. Fields should
 // only be added but never changed.
-type Descriptor struct {
-	// MediaType describe the type of the content. All text based formats are
-	// encoded as utf-8.
-	MediaType string `json:"mediaType,omitempty"`
-
-	// Digest uniquely identifies the content. A byte stream can be verified
-	// against this digest.
-	Digest digest.Digest `json:"digest,omitempty"`
-
-	// Size in bytes of content.
-	Size int64 `json:"size,omitempty"`
-
-	// URLs contains the source URLs of this content.
-	URLs []string `json:"urls,omitempty"`
-
-	// Annotations contains arbitrary metadata relating to the targeted content.
-	Annotations map[string]string `json:"annotations,omitempty"`
-
-	// Platform describes the platform which the image in the manifest runs on.
-	// This should only be used when referring to a manifest.
-	Platform *v1.Platform `json:"platform,omitempty"`
-
-	// NOTE: Before adding a field here, please ensure that all
-	// other options have been exhausted. Much of the type relationships
-	// depend on the simplicity of this type.
-}
-
-// Descriptor returns the descriptor, to make it satisfy the Describable
-// interface. Note that implementations of Describable are generally objects
-// which can be described, not simply descriptors; this exception is in place
-// to make it more convenient to pass actual descriptors to functions that
-// expect Describable objects.
-func (d Descriptor) Descriptor() Descriptor {
-	return d
-}
+//
+// Descriptor is an alias for [v1.Descriptor].
+type Descriptor = v1.Descriptor
 
 // BlobStatter makes blob descriptors available by digest. The service may
 // provide a descriptor of a different digest if the provided digest is not
@@ -100,7 +68,7 @@ func (d Descriptor) Descriptor() Descriptor {
 type BlobStatter interface {
 	// Stat provides metadata about a blob identified by the digest. If the
 	// blob is unknown to the describer, ErrBlobUnknown will be returned.
-	Stat(ctx context.Context, dgst digest.Digest) (Descriptor, error)
+	Stat(ctx context.Context, dgst digest.Digest) (v1.Descriptor, error)
 }
 
 // BlobDeleter enables deleting blobs from storage.
@@ -129,7 +97,7 @@ type BlobDescriptorService interface {
 	// Such a facility can be used to map blobs between digest domains, with
 	// the restriction that the algorithm of the descriptor must match the
 	// canonical algorithm (ie sha256) of the annotator.
-	SetDescriptor(ctx context.Context, dgst digest.Digest, desc Descriptor) error
+	SetDescriptor(ctx context.Context, dgst digest.Digest, desc v1.Descriptor) error
 
 	// Clear enables descriptors to be unlinked
 	Clear(ctx context.Context, dgst digest.Digest) error
@@ -139,12 +107,6 @@ type BlobDescriptorService interface {
 type BlobDescriptorServiceFactory interface {
 	BlobAccessController(svc BlobDescriptorService) BlobDescriptorService
 }
-
-// ReadSeekCloser is the primary reader type for blob data, combining
-// io.ReadSeeker with io.Closer.
-//
-// Deprecated: use [io.ReadSeekCloser].
-type ReadSeekCloser = io.ReadSeekCloser
 
 // BlobProvider describes operations for getting blob data.
 type BlobProvider interface {
@@ -177,7 +139,7 @@ type BlobServer interface {
 type BlobIngester interface {
 	// Put inserts the content p into the blob service, returning a descriptor
 	// or an error.
-	Put(ctx context.Context, mediaType string, p []byte) (Descriptor, error)
+	Put(ctx context.Context, mediaType string, p []byte) (v1.Descriptor, error)
 
 	// Create allocates a new blob writer to add a blob to this service. The
 	// returned handle can be written to and later resumed using an opaque
@@ -206,7 +168,7 @@ type CreateOptions struct {
 		From        reference.Canonical
 		// Stat allows to pass precalculated descriptor to link and return.
 		// Blob access check will be skipped if set.
-		Stat *Descriptor
+		Stat *v1.Descriptor
 	}
 }
 
@@ -236,7 +198,7 @@ type BlobWriter interface {
 	// stream" to the blob. The returned descriptor may have a different
 	// digest depending on the blob store, referred to as the canonical
 	// descriptor.
-	Commit(ctx context.Context, provisional Descriptor) (canonical Descriptor, err error)
+	Commit(ctx context.Context, provisional v1.Descriptor) (canonical v1.Descriptor, err error)
 
 	// Cancel ends the blob write without storing any data and frees any
 	// associated resources. Any data written thus far will be lost. Cancel
