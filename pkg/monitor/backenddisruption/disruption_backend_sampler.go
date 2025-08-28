@@ -628,6 +628,9 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
 			}
 
+			for _, hook := range b.backendSampler.samplerHooks {
+				hook.DisruptionStarted()
+			}
 			// start a new interval with the new error
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
 			framework.Logf("%s", message.BuildString())
