@@ -235,7 +235,7 @@ Updates to 4[.][0-9]*:
 			})
 		})
 
-		g.It("runs successfully with an accepted conditional recommendation to the --version target", func() {
+		g.It("runs successfully with conditional recommendations to the --version target", func() {
 			oc.WithKubeConfigCopy(func(oc *exutil.CLI) {
 				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
