@@ -31,6 +31,7 @@ func keycloakClientFor(keycloakURL string) (*keycloakClient, error) {
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
+		Proxy: http.ProxyFromEnvironment,
 	}
 
 	return &keycloakClient{
