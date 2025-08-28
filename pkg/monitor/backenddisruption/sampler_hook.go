@@ -1,19 +1,18 @@
 package backenddisruption
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // SamplerHook defines some hook functions for the sampler to call. This will give caller an opportunity
@@ -38,23 +37,11 @@ func NewTcpdumpSamplerHook() *TcpdumpSamplerHook {
 	return tcpdumpSamplerHook
 }
 
-func NewTcpdumpSamplerHookWithConfig(restConfig *rest.Config) (*TcpdumpSamplerHook, error) {
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
-
-	return &TcpdumpSamplerHook{
-		kubeClient: kubeClient,
-	}, nil
-}
-
 type TcpdumpSamplerHook struct {
 	tcpdumpInstalled bool
 	installMutex     sync.Mutex
 	tcpdumpRunning   bool
 	runningMutex     sync.Mutex
-	kubeClient       kubernetes.Interface
 	tcpdumpCancel    context.CancelFunc
 	cancelMutex      sync.Mutex
 	pcapFilePaths    []string
@@ -239,100 +226,74 @@ func (h *TcpdumpSamplerHook) ensureTcpdumpInstalled() error {
 }
 
 // hasRequiredCapabilities checks if the container has NET_ADMIN and NET_RAW capabilities
-// by querying the pod spec through the Kubernetes API
+// by reading /proc/self/status
 func (h *TcpdumpSamplerHook) hasRequiredCapabilities() bool {
 	logger := logrus.WithField("function", "hasRequiredCapabilities")
 
-	// If no Kubernetes client is available, assume capabilities are NOT present
-	// This happens when using the legacy constructor - be conservative
-	if h.kubeClient == nil {
-		logger.Warn("No Kubernetes client available, assuming capabilities are NOT present")
-		return false
-	}
-
-	// Get current pod information from environment variables
-	podName := os.Getenv("POD_NAME")
-	podNamespace := os.Getenv("POD_NAMESPACE")
-
-	if podName == "" || podNamespace == "" {
-		logger.WithFields(logrus.Fields{
-			"pod_name":      podName,
-			"pod_namespace": podNamespace,
-		}).Warn("POD_NAME or POD_NAMESPACE environment variables not set, assuming capabilities are NOT present")
-		return false
-	}
-
-	// Get the pod spec from Kubernetes API
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	pod, err := h.kubeClient.CoreV1().Pods(podNamespace).Get(ctx, podName, metav1.GetOptions{})
+	// Read /proc/self/status to check effective capabilities
+	file, err := os.Open("/proc/self/status")
 	if err != nil {
-		logger.WithError(err).WithFields(logrus.Fields{
-			"pod_name":      podName,
-			"pod_namespace": podNamespace,
-		}).Warn("Failed to get pod information, assuming capabilities are NOT present")
+		logger.WithError(err).Warn("Failed to open /proc/self/status, assuming capabilities are NOT present")
 		return false
 	}
+	defer file.Close()
 
-	return h.checkPodCapabilities(pod, logger)
-}
-
-// checkPodCapabilities checks if the pod has the required capabilities in its security context
-func (h *TcpdumpSamplerHook) checkPodCapabilities(pod *corev1.Pod, logger *logrus.Entry) bool {
-	logger = logger.WithFields(logrus.Fields{
-		"pod_name":      pod.Name,
-		"pod_namespace": pod.Namespace,
-	})
-
-	// Check if pod is privileged (which grants all capabilities)
-	for _, container := range pod.Spec.Containers {
-		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-			logger.Info("Container is privileged, has all capabilities including NET_ADMIN and NET_RAW")
-			return true
-		}
-	}
-
-	// Check for specific capabilities in container security contexts
-	requiredCaps := map[string]bool{
-		"NET_ADMIN": false,
-		"NET_RAW":   false,
-	}
-
-	for _, container := range pod.Spec.Containers {
-		if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {
-			for _, cap := range container.SecurityContext.Capabilities.Add {
-				capStr := string(cap)
-				if _, required := requiredCaps[capStr]; required {
-					requiredCaps[capStr] = true
-					logger.WithField("capability", capStr).Debug("Found required capability")
-				}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "CapEff:") {
+			// Extract the hex capability value
+			parts := strings.Fields(line)
+			if len(parts) != 2 {
+				logger.Warn("Unexpected format in CapEff line")
+				return false
 			}
+
+			// Parse the hex value
+			capHex := parts[1]
+			capValue, err := strconv.ParseUint(capHex, 16, 64)
+			if err != nil {
+				logger.WithError(err).WithField("cap_hex", capHex).Warn("Failed to parse capabilities hex value")
+				return false
+			}
+
+			// Check for NET_ADMIN (12) and NET_RAW (13) capabilities
+			// Capabilities are bit flags, so we check if the corresponding bits are set
+			netAdminBit := uint64(1) << 12 // NET_ADMIN
+			netRawBit := uint64(1) << 13   // NET_RAW
+
+			hasNetAdmin := (capValue & netAdminBit) != 0
+			hasNetRaw := (capValue & netRawBit) != 0
+
+			logger.WithFields(logrus.Fields{
+				"cap_value":     fmt.Sprintf("0x%x", capValue),
+				"has_net_admin": hasNetAdmin,
+				"has_net_raw":   hasNetRaw,
+			}).Debug("Capability check results from /proc/self/status")
+
+			if hasNetAdmin && hasNetRaw {
+				logger.Info("Container has required NET_ADMIN and NET_RAW capabilities")
+				return true
+			}
+
+			missingCaps := []string{}
+			if !hasNetAdmin {
+				missingCaps = append(missingCaps, "NET_ADMIN")
+			}
+			if !hasNetRaw {
+				missingCaps = append(missingCaps, "NET_RAW")
+			}
+
+			logger.WithField("missing_capabilities", missingCaps).Warn("Container missing required capabilities for tcpdump")
+			return false
 		}
 	}
 
-	hasNetAdmin := requiredCaps["NET_ADMIN"]
-	hasNetRaw := requiredCaps["NET_RAW"]
-
-	logger.WithFields(logrus.Fields{
-		"has_net_admin": hasNetAdmin,
-		"has_net_raw":   hasNetRaw,
-	}).Debug("Capability check results from pod spec")
-
-	if hasNetAdmin && hasNetRaw {
-		logger.Info("Container has required NET_ADMIN and NET_RAW capabilities")
-		return true
+	if err := scanner.Err(); err != nil {
+		logger.WithError(err).Warn("Error reading /proc/self/status")
 	}
 
-	missingCaps := []string{}
-	if !hasNetAdmin {
-		missingCaps = append(missingCaps, "NET_ADMIN")
-	}
-	if !hasNetRaw {
-		missingCaps = append(missingCaps, "NET_RAW")
-	}
-
-	logger.WithField("missing_capabilities", missingCaps).Warn("Container missing required capabilities for tcpdump")
+	logger.Warn("CapEff line not found in /proc/self/status")
 	return false
 }
 

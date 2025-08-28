@@ -82,11 +82,7 @@ func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig
 		return w.notSupportedReason
 	}
 
-	tcpdumpHook, err := backenddisruption.NewTcpdumpSamplerHookWithConfig(adminRESTConfig)
-	if err != nil {
-		// Fall back to basic hook if Kubernetes client creation fails
-		tcpdumpHook = backenddisruption.NewTcpdumpSamplerHook()
-	}
+	tcpdumpHook := backenddisruption.NewTcpdumpSamplerHook()
 
 	// Store reference to tcpdump hook for cleanup in CollectData
 	w.tcpdumpHook = tcpdumpHook

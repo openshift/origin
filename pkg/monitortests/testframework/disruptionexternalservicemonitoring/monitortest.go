@@ -45,11 +45,7 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 }
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	tcpdumpHook, err := backenddisruption.NewTcpdumpSamplerHookWithConfig(adminRESTConfig)
-	if err != nil {
-		// Fall back to basic hook if Kubernetes client creation fails
-		tcpdumpHook = backenddisruption.NewTcpdumpSamplerHook()
-	}
+	tcpdumpHook := backenddisruption.NewTcpdumpSamplerHook()
 
 	// Store reference to tcpdump hook for cleanup in CollectData
 	w.tcpdumpHook = tcpdumpHook
