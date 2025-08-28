@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -46,11 +46,11 @@ func checkAuthenticationAvailableExceptions(condition *configv1.ClusterOperatorS
 }
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	isSingleNode, err := isSingleNodeCheck(clientConfig)
+	topology, err := getControlPlaneTopology(clientConfig)
 	if err != nil {
-		logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
-		isSingleNode = false
+		logrus.Warnf("Error checking for ControlPlaneTopology configuration (unable to make topology exceptions): %v", err)
 	}
+	isSingleNode := topology == configv1.SingleReplicaTopologyMode
 
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
@@ -147,13 +147,22 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig)
 }
 
-func isSingleNodeCheck(clientConfig *rest.Config) (bool, error) {
+func getControlPlaneTopology(clientConfig *rest.Config) (configv1.TopologyMode, error) {
 	configClient, err := clientconfigv1.NewForConfig(clientConfig)
 	if err != nil {
 		logrus.WithError(err).Error("Error creating config client to check for Single Node configuration")
-		return false, err
+		return "", err
 	}
-	return exutil.IsSingleNode(context.Background(), configClient)
+
+	topo, err := exutil.GetControlPlaneTopologyFromConfigClient(configClient)
+	if err != nil {
+		return "", err
+	}
+	// Should not happen since the error should be returned if the topology is nil in the previous call, but just in case
+	if topo == nil {
+		return "", fmt.Errorf("when fetching control plane topology, the topology was nil, this is extremely unusual")
+	}
+	return *topo, nil
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
@@ -239,11 +248,13 @@ func isInUpgradeWindow(upgradeWindows []*upgradeWindowHolder, eventInterval moni
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	upgradeWindows := getUpgradeWindows(events)
-	isSingleNode, err := isSingleNodeCheck(clientConfig)
+	topology, err := getControlPlaneTopology(clientConfig)
 	if err != nil {
-		logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
-		isSingleNode = false
+		logrus.Warnf("Error checking for ControlPlaneTopology configuration on upgrade (unable to make topology exceptions): %v", err)
 	}
+
+	isSingleNode := topology == configv1.SingleReplicaTopologyMode
+	isTwoNode := topology == configv1.HighlyAvailableArbiterMode || topology == configv1.DualReplicaTopologyMode
 
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
@@ -253,6 +264,16 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		} else if condition.Status == configv1.ConditionFalse {
 			if condition.Type == configv1.OperatorDegraded {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		}
+
+		if isTwoNode {
+			switch operator {
+			case "csi-snapshot-controller":
+				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+					strings.Contains(condition.Message, `Waiting for Deployment`) {
+					return "csi snapshot controller is allowed to have Available=False due to CSI webhook test on two node", nil
+				}
 			}
 		}
 
