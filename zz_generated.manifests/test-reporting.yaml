@@ -964,6 +964,24 @@ spec:
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IP and MAC attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        MAC attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VM attached to a secondary UDN is migrated between nodes'
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
@@ -1000,6 +1018,22 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
         networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IP and MAC attached to a primary UDN is migrated
+        between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured MAC attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
         [Suite:openshift/network/virtualization] should keep ip when the VM attached
         to a secondary UDN is migrated between nodes'
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
@@ -1030,6 +1064,24 @@ spec:
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN
         is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IP and MAC attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        MAC attached to a primary UDN is restarted'
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
@@ -1077,6 +1129,42 @@ spec:
         [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
         Pod Generation pod rejected by kubelet should have updated generation and
         observedGeneration'
+  - featureGate: PreconfiguredUDNAddresses
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IP and MAC attached to a primary UDN is migrated
+        between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured MAC attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IP and MAC attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        MAC attached to a primary UDN is restarted'
   - featureGate: PreferSameTrafficDistribution
     tests:
     - testName: '[sig-network] Traffic Distribution should route traffic correctly
