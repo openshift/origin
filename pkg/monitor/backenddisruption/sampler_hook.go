@@ -242,6 +242,7 @@ func (h *TcpdumpSamplerHook) hasRequiredCapabilities() bool {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "CapEff:") {
+			logrus.Infof("CapEff: %s", line)
 			// Extract the hex capability value
 			parts := strings.Fields(line)
 			if len(parts) != 2 {
@@ -256,6 +257,7 @@ func (h *TcpdumpSamplerHook) hasRequiredCapabilities() bool {
 				logger.WithError(err).WithField("cap_hex", capHex).Warn("Failed to parse capabilities hex value")
 				return false
 			}
+			logger.Infof("capValue: %d", capValue)
 
 			// Check for NET_ADMIN (12) and NET_RAW (13) capabilities
 			// Capabilities are bit flags, so we check if the corresponding bits are set
