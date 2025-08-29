@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/origin/pkg/dataloader"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -302,7 +303,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	randSeed := suiteConfig.RandomSeed
+	r := rand.New(rand.NewSource(randSeed))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	count := o.Count
@@ -748,6 +750,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
+
+		writeRunSuiteOptions(randSeed, monitorTestInfo, o.JUnitDir, timeSuffix)
 	}
 
 	switch {
@@ -776,6 +780,23 @@ func isBlockingFailure(test *testCase) bool {
 		return false
 	default:
 		return true
+	}
+}
+
+func writeRunSuiteOptions(seed int64, info monitortestframework.MonitorTestInitializationInfo, artifactDir, timeSuffix string) {
+	var rows []map[string]string
+
+	rows = make([]map[string]string, 0)
+	rows = append(rows, map[string]string{"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest)})
+	dataFile := dataloader.DataFile{
+		TableName: "run_suite_options",
+		Schema:    map[string]dataloader.DataType{"ClusterStability": dataloader.DataTypeString, "Seed": dataloader.DataTypeInteger},
+		Rows:      rows,
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("run-suite-options%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
 	}
 }
 
