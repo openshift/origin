@@ -37,34 +37,29 @@ will switch to vendoring origin-specific branches (e.g
 carries that need to be considered in the context of
 `openshift/kubernetes` rebases.
 
-### Test annotation rules
+### Test exclusion rules
 
-Test annotation rules are used to label e2e tests so that they can be
-filtered or skipped. For example, rules can be defined that match kube
-e2e tests that are known to be incompatible with openshift and label
-those tests to be skipped.
+Test exclusion is now handled through environmental selector based filtering
+rather than test annotations. Environmental selectors allow tests to be
+filtered or skipped based on the cluster environment and configuration.
+For example, selectors can be defined that match kube e2e tests that are
+known to be incompatible with specific OpenShift configurations and exclude
+those tests from running.
 
-Maintenance of test annotation rules is split between the
+Maintenance of test exclusion rules is split between the
 `openshift/kubernetes` and `origin` repos to ensure that PRs proposed
 to `openshift/kubernetes` can be validated against the set of kube e2e
-tests known to be compatible with openshift.
+tests known to be compatible with OpenShift.
 
-Test annotation rules for kubernetes e2e tests are maintained in:
+Test exclusion rules for kubernetes e2e tests are maintained in: https://github.com/openshift/kubernetes/blob/master/openshift-hack/cmd/k8s-tests-ext:
+* [environment_selectors.go](https://github.com/openshift/kubernetes/blob/master/openshift-hack/cmd/k8s-tests-ext/environment_selectors.go)
+* [disabled_tests.go](https://github.com/openshift/kubernetes/blob/master/openshift-hack/cmd/k8s-tests-ext/disabled_tests.go)
 
-https://github.com/openshift/kubernetes/blob/master/openshift-hack/e2e/annotate/rules.go
+Test exclusion rules for openshift e2e tests are maintained in: https://github.com/openshift/origin/blob/main/pkg/test/extensions:
+* [environment_selectors.go](https://github.com/openshift/origin/blob/main/pkg/test/extensions/environment_selectors.go)
+* [disabled_tests.go](https://github.com/openshift/origin/blob/main/pkg/test/extensions/disabled_tests.go)
 
-Test annotation rules for openshift e2e tests are maintained in:
-
-https://github.com/openshift/origin/blob/main/test/extended/util/annotate/rules.go
-
-Origin vendors the kube rules and applies both the kube and openshift
-rules to the set of tests included in the `openshift-tests` binary.
-
-In order to update test annotation rules for kube e2e tests, it will
-be necessary to:
-
- - Update `rules.go` in `openshift/kubernetes`
- - Bump the version of `openshift/kubernetes` vendored in origin
+To update test exclusion rules for kube e2e tests, update the environmental selectors in `openshift/kubernetes`. For OpenShift e2e tests, update the selectors in `origin`.
 
 ### Vendoring from `openshift/kubernetes`
 
