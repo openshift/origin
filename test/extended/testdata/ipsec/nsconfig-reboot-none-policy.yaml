@@ -1,0 +1,26 @@
+apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  namespace: openshift-machine-config-operator
+spec:
+  nodeDisruptionPolicy:
+    files:
+    - actions:
+      - type: None
+      path: /usr/local/bin/ipsec-addcert.sh
+    - actions:
+      - type: None
+      path: /etc/pki/certs/ca.pem
+    - actions:
+      - type: None
+      path: /etc/pki/certs/left_server.p12
+    - actions:
+      - type: None
+      path: /etc/pki/certs/right_server.p12
+    units:
+      - name: ipsec-import.service
+        actions:
+          - restart:
+              serviceName: ipsec-import.service
+            type: Restart
