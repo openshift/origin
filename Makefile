@@ -112,3 +112,13 @@ test: test-tools
 # It will generate targets {update,verify}-bindata-$(1) logically grouping them in unsuffixed versions of these targets
 # and also hooked into {update,verify}-generated for broader integration.
 $(call add-bindata,bindata,-ignore ".*\.(go|md)$$$$" examples/db-templates examples/image-streams examples/sample-app examples/quickstarts/... examples/hello-openshift examples/jenkins/... examples/quickstarts/cakephp-mysql.json test/extended/testdata/... e2echart,testextended,testdata,test/extended/testdata/bindata.go)
+
+# Build the node openshift-tests-extension binary
+node-tests-ext-build:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+	go build -o node-tests-ext \
+	-ldflags "-X 'main.CommitFromGit=$(shell git rev-parse --short HEAD)' \
+	-X 'main.BuildDate=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)' \
+	-X 'main.GitTreeState=$(shell if git diff-index --quiet HEAD --; then echo clean; else echo dirty; fi)'" \
+	./cmd/node-tests-ext
+.PHONY: node-tests-ext-build

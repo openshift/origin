@@ -29,6 +29,8 @@ var Annotations = map[string]string{
 
 	"[Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/serial/minimal]",
 
+	"[Jira:node][sig-node] node test should always pass [Suite:openshift/node/conformance/parallel]": "",
+
 	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[Serial][sig-cli] oc adm upgrade recommend When the update service has conditional recommendations runs successfully when listing all updates": " [Suite:openshift/conformance/serial]",
