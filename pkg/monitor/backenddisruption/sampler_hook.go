@@ -46,6 +46,7 @@ type TcpdumpSamplerHook struct {
 	tcpdumpCancel    context.CancelFunc
 	cancelMutex      sync.Mutex
 	pcapFilePaths    []string
+	logFilePaths     []string
 	pcapMutex        sync.RWMutex
 }
 
@@ -85,8 +86,12 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 
 			h.pcapMutex.Lock()
 			if len(h.pcapFilePaths) > 0 {
-				// Remove the last added path since tcpdump failed to start
+				// Remove the last added paths since tcpdump failed to start
 				h.pcapFilePaths = h.pcapFilePaths[:len(h.pcapFilePaths)-1]
+			}
+			if len(h.logFilePaths) > 0 {
+				// Remove the last added log file path since tcpdump failed to start
+				h.logFilePaths = h.logFilePaths[:len(h.logFilePaths)-1]
 			}
 			h.pcapMutex.Unlock()
 		}
@@ -108,10 +113,12 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 	// Generate timestamp for pcap filename with microseconds for uniqueness
 	timestamp := time.Now().Format("2006-01-02T150405.000000")
 	pcapFile := fmt.Sprintf("%s/tcpdump-%s.pcap", logDir, timestamp)
+	logFile := fmt.Sprintf("%s/tcpdump-%s.log", logDir, timestamp)
 
-	// Add pcap file path to the list for later use
+	// Add file paths to the lists for later use
 	h.pcapMutex.Lock()
 	h.pcapFilePaths = append(h.pcapFilePaths, pcapFile)
+	h.logFilePaths = append(h.logFilePaths, logFile)
 	h.pcapMutex.Unlock()
 
 	// Create context with 30-minute timeout
@@ -135,10 +142,23 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 		"tcp", "and", "port", "80", // Filter for HTTP traffic
 	}
 
-	logger.WithField("command", tcpdumpCmd).WithField("pcap_file", pcapFile).WithField("duration", "30m").Info("Starting tcpdump with timeout")
+	logger.WithField("command", tcpdumpCmd).WithField("pcap_file", pcapFile).WithField("log_file", logFile).WithField("duration", "30m").Info("Starting tcpdump with timeout")
+
+	// Create log file for tcpdump stdout/stderr
+	logFileHandle, err := os.Create(logFile)
+	if err != nil {
+		logger.WithError(err).Error("Failed to create tcpdump log file")
+		return
+	}
+	defer logFileHandle.Close()
 
 	// Start tcpdump with context timeout
 	cmd := exec.CommandContext(ctx, tcpdumpCmd[0], tcpdumpCmd[1:]...)
+
+	// Redirect stdout and stderr to the log file
+	cmd.Stdout = logFileHandle
+	cmd.Stderr = logFileHandle
+
 	if err := cmd.Start(); err != nil {
 		logger.WithError(err).Error("Failed to start tcpdump")
 		return
@@ -341,7 +361,7 @@ func (h *TcpdumpSamplerHook) StopCollection() {
 	}
 }
 
-// MoveToStorage moves all captured pcap files to the specified storage directory under
+// MoveToStorage moves all captured pcap files and log files to the specified storage directory under
 // a "tcpdump" subfolder. This function is idempotent and thread-safe - it can be called
 // multiple times safely. This should be called by monitor tests in their WriteContentToStorage
 // function to archive the network capture data.
@@ -352,8 +372,8 @@ func (h *TcpdumpSamplerHook) MoveToStorage(storageDir string) error {
 	h.pcapMutex.Lock()
 	defer h.pcapMutex.Unlock()
 
-	if len(h.pcapFilePaths) == 0 {
-		logger.Debug("No pcap files to move - tcpdump may not have been started or files already moved")
+	if len(h.pcapFilePaths) == 0 && len(h.logFilePaths) == 0 {
+		logger.Debug("No files to move - tcpdump may not have been started or files already moved")
 		return nil
 	}
 
@@ -366,61 +386,77 @@ func (h *TcpdumpSamplerHook) MoveToStorage(storageDir string) error {
 	var errors []string
 	movedCount := 0
 
-	// Move all pcap files
-	for _, pcapFile := range h.pcapFilePaths {
-		// Extract filename from full path
-		_, filename := filepath.Split(pcapFile)
-		destFile := fmt.Sprintf("%s/%s", tcpdumpDir, filename)
+	// Helper function to move files
+	moveFiles := func(filePaths []string, fileType string) {
+		for _, sourceFile := range filePaths {
+			// Extract filename from full path
+			_, filename := filepath.Split(sourceFile)
+			destFile := fmt.Sprintf("%s/%s", tcpdumpDir, filename)
 
-		// Try to move the file using rename first (most efficient)
-		if err := os.Rename(pcapFile, destFile); err != nil {
-			logger.WithError(err).WithFields(logrus.Fields{
-				"source_file": pcapFile,
-				"dest_file":   destFile,
-			}).Debug("Rename failed, attempting copy+delete fallback")
-
-			// Fallback to copy+delete if rename fails (e.g., cross-filesystem move)
-			if copyErr := copyFile(pcapFile, destFile); copyErr != nil {
-				errorMsg := fmt.Sprintf("failed to copy pcap file from %s to %s: %v", pcapFile, destFile, copyErr)
-				errors = append(errors, errorMsg)
-				logger.WithError(copyErr).WithFields(logrus.Fields{
-					"source_file": pcapFile,
+			// Try to move the file using rename first (most efficient)
+			if err := os.Rename(sourceFile, destFile); err != nil {
+				logger.WithError(err).WithFields(logrus.Fields{
+					"source_file": sourceFile,
 					"dest_file":   destFile,
-				}).Warn("Failed to copy pcap file")
-				continue
+					"file_type":   fileType,
+				}).Debug("Rename failed, attempting copy+delete fallback")
+
+				// Fallback to copy+delete if rename fails (e.g., cross-filesystem move)
+				if copyErr := copyFile(sourceFile, destFile); copyErr != nil {
+					errorMsg := fmt.Sprintf("failed to copy %s file from %s to %s: %v", fileType, sourceFile, destFile, copyErr)
+					errors = append(errors, errorMsg)
+					logger.WithError(copyErr).WithFields(logrus.Fields{
+						"source_file": sourceFile,
+						"dest_file":   destFile,
+						"file_type":   fileType,
+					}).Warn("Failed to copy file")
+					continue
+				}
+
+				// Copy succeeded, now delete the original
+				if deleteErr := os.Remove(sourceFile); deleteErr != nil {
+					logger.WithError(deleteErr).WithFields(logrus.Fields{
+						"source_file": sourceFile,
+						"file_type":   fileType,
+					}).Warn("Failed to delete original file after copy")
+					// Don't fail the entire operation for delete failures - the file was successfully copied
+				}
+
+				logger.WithFields(logrus.Fields{
+					"source_file": sourceFile,
+					"dest_file":   destFile,
+					"file_type":   fileType,
+				}).Debug("Successfully moved file using copy+delete fallback")
+			} else {
+				logger.WithFields(logrus.Fields{
+					"source_file": sourceFile,
+					"dest_file":   destFile,
+					"file_type":   fileType,
+				}).Debug("Successfully moved file using rename")
 			}
 
-			// Copy succeeded, now delete the original
-			if deleteErr := os.Remove(pcapFile); deleteErr != nil {
-				logger.WithError(deleteErr).WithField("source_file", pcapFile).Warn("Failed to delete original pcap file after copy")
-				// Don't fail the entire operation for delete failures - the file was successfully copied
-			}
-
-			logger.WithFields(logrus.Fields{
-				"source_file": pcapFile,
-				"dest_file":   destFile,
-			}).Debug("Successfully moved pcap file using copy+delete fallback")
-		} else {
-			logger.WithFields(logrus.Fields{
-				"source_file": pcapFile,
-				"dest_file":   destFile,
-			}).Debug("Successfully moved pcap file using rename")
+			movedCount++
 		}
-
-		movedCount++
 	}
+
+	// Move all pcap files
+	moveFiles(h.pcapFilePaths, "pcap")
+
+	// Move all log files
+	moveFiles(h.logFilePaths, "log")
 
 	// Clear all file paths - this makes subsequent calls idempotent
 	h.pcapFilePaths = nil
+	h.logFilePaths = nil
 
 	logger.WithFields(logrus.Fields{
 		"moved_files":  movedCount,
 		"failed_files": len(errors),
-	}).Info("Completed moving pcap files to storage")
+	}).Info("Completed moving tcpdump files (pcap and logs) to storage")
 
 	// Return error if any files failed to move
 	if len(errors) > 0 {
-		return fmt.Errorf("failed to move %d pcap files: %v", len(errors), errors)
+		return fmt.Errorf("failed to move %d tcpdump files: %v", len(errors), errors)
 	}
 
 	return nil
