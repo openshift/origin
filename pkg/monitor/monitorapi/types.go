@@ -348,6 +348,7 @@ const (
 	SourceAlert                     IntervalSource = "Alert"
 	SourceAPIServerShutdown         IntervalSource = "APIServerShutdown"
 	SourceDisruption                IntervalSource = "Disruption"
+	SourceDisruptionLocalhost       IntervalSource = "DisruptionLocalhost"
 	SourceE2ETest                   IntervalSource = "E2ETest"
 	SourceKubeEvent                 IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
