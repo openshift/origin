@@ -199,7 +199,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher(info))
 	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("initial-and-final-operator-log-scraper", "Test Framework", operatorloganalyzer.InitialAndFinalOperatorLogScraper())
 	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())

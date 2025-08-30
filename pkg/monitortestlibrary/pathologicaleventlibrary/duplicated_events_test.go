@@ -176,7 +176,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		registry := NewUpgradePathologicalEventMatchers(nil, nil)
+		registry := NewUpgradePathologicalEventMatchers(nil, nil, nil)
 		t.Run(test.name, func(t *testing.T) {
 			i := monitorapi.Interval{
 				Condition: monitorapi.Condition{
@@ -387,7 +387,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			events := monitorapi.Intervals(test.intervals)
 
 			// Using upgrade for now, this has everything:
-			registry := NewUpgradePathologicalEventMatchers(nil, test.intervals)
+			registry := NewUpgradePathologicalEventMatchers(nil, test.intervals, nil)
 
 			evaluator := duplicateEventsEvaluator{
 				registry: registry,
@@ -645,7 +645,7 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 
 			events := monitorapi.Intervals(test.intervals)
 			evaluator := duplicateEventsEvaluator{
-				registry: NewUniversalPathologicalEventMatchers(nil, events),
+				registry: NewUniversalPathologicalEventMatchers(nil, events, nil),
 			}
 
 			testName := "events should not repeat"
