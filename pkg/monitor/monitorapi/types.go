@@ -223,6 +223,7 @@ const (
 	NodeFailedLeaseBackoff IntervalReason = "FailedToUpdateLeaseInBackoff"
 	NodeDiskPressure       IntervalReason = "NodeDiskPressure"
 	NodeNoDiskPressure     IntervalReason = "NodeNoDiskPressure"
+	NodeDeleted            IntervalReason = "Deleted"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
