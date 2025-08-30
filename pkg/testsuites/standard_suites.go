@@ -134,7 +134,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Qualifiers: []string{
 			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/parallel')"),
 		},
-		Parallelism:          30,
+		Parallelism:          15,
 		MaximumAllowedFlakes: 15,
 	},
 	{
