@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -167,7 +168,42 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 	// Mark that tcpdump was started successfully
 	tcpdumpStarted = true
 
-	logger.WithField("pid", cmd.Process.Pid).WithField("pcap_file", pcapFile).Info("Tcpdump started successfully")
+	pid := cmd.Process.Pid
+	logger.WithFields(logrus.Fields{
+		"pid":       pid,
+		"pcap_file": pcapFile,
+		"log_file":  logFile,
+	}).Info("Tcpdump started successfully")
+
+	// Log initial system resource state for baseline
+	go func() {
+		// Give the process a moment to start up
+		time.Sleep(1 * time.Second)
+
+		baselineLogger := logger.WithField("phase", "startup_baseline")
+
+		// Log initial memory state
+		if meminfo, err := os.ReadFile("/proc/meminfo"); err == nil {
+			lines := strings.Split(string(meminfo), "\n")
+			for _, line := range lines {
+				if strings.Contains(line, "MemAvailable:") || strings.Contains(line, "MemFree:") {
+					baselineLogger.WithField("memory_baseline", strings.TrimSpace(line)).Debug("System memory at tcpdump startup")
+					break
+				}
+			}
+		}
+
+		// Log initial process memory if available
+		if status, err := os.ReadFile(fmt.Sprintf("/proc/%d/status", pid)); err == nil {
+			statusLines := strings.Split(string(status), "\n")
+			for _, line := range statusLines {
+				if strings.HasPrefix(line, "VmRSS:") {
+					baselineLogger.WithField("process_memory_baseline", strings.TrimSpace(line)).Debug("Process memory at startup")
+					break
+				}
+			}
+		}
+	}()
 
 	// Run tcpdump in a goroutine to handle the 30-minute timeout
 	go func() {
@@ -191,10 +227,30 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 			if ctx.Err() == context.DeadlineExceeded {
 				logger.WithField("pcap_file", pcapFile).Info("Tcpdump completed after 30-minute timeout")
 			} else {
-				logger.WithError(err).WithField("pcap_file", pcapFile).Error("Tcpdump exited with error")
+				// Collect detailed process exit information
+				exitCode, signal, details := getProcessExitInfo(err)
+
+				errorLogger := logger.WithError(err).WithFields(logrus.Fields{
+					"pcap_file":    pcapFile,
+					"log_file":     logFile,
+					"exit_code":    exitCode,
+					"signal":       signal,
+					"exit_details": details,
+				})
+
+				errorLogger.Error("Tcpdump exited with error")
+
+				// If process was killed by signal (especially SIGKILL), collect system diagnostics
+				if signal != "" {
+					errorLogger.Warn("Process was terminated by signal - collecting system diagnostics")
+					collectSystemDiagnostics(errorLogger, cmd.Process.Pid)
+				}
 			}
 		} else {
-			logger.WithField("pcap_file", pcapFile).Info("Tcpdump completed successfully")
+			logger.WithFields(logrus.Fields{
+				"pcap_file": pcapFile,
+				"log_file":  logFile,
+			}).Info("Tcpdump completed successfully")
 		}
 	}()
 }
@@ -318,6 +374,110 @@ func (h *TcpdumpSamplerHook) hasRequiredCapabilities() bool {
 
 	logger.Warn("CapEff line not found in /proc/self/status")
 	return false
+}
+
+// collectSystemDiagnostics gathers system information that might explain why tcpdump was killed
+func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
+	// Collect memory information
+	if meminfo, err := os.ReadFile("/proc/meminfo"); err == nil {
+		lines := strings.Split(string(meminfo), "\n")
+		memFields := make(map[string]string)
+		for _, line := range lines {
+			if strings.Contains(line, "MemTotal:") || strings.Contains(line, "MemAvailable:") ||
+				strings.Contains(line, "MemFree:") || strings.Contains(line, "Buffers:") ||
+				strings.Contains(line, "Cached:") {
+				parts := strings.Fields(line)
+				if len(parts) >= 2 {
+					memFields[parts[0]] = parts[1]
+				}
+			}
+		}
+		logger.WithField("memory_info", memFields).Info("System memory information at tcpdump termination")
+	}
+
+	// Check for OOM killer activity in dmesg (recent entries)
+	if dmesgCmd := exec.Command("dmesg", "-T", "--since", "5 minutes ago"); dmesgCmd != nil {
+		if dmesgOutput, err := dmesgCmd.Output(); err == nil {
+			dmesgStr := string(dmesgOutput)
+			if strings.Contains(dmesgStr, "Out of memory") || strings.Contains(dmesgStr, "oom-killer") ||
+				strings.Contains(dmesgStr, "Killed process") {
+				logger.WithField("oom_activity", dmesgStr).Warn("OOM killer activity detected around tcpdump termination")
+			}
+		}
+	}
+
+	// Check process resource limits
+	if pid > 0 {
+		limitsPath := fmt.Sprintf("/proc/%d/limits", pid)
+		if limits, err := os.ReadFile(limitsPath); err == nil {
+			logger.WithField("process_limits", string(limits)).Debug("Process resource limits")
+		}
+
+		// Check process status if still available
+		statusPath := fmt.Sprintf("/proc/%d/status", pid)
+		if status, err := os.ReadFile(statusPath); err == nil {
+			// Parse relevant fields from status
+			statusLines := strings.Split(string(status), "\n")
+			for _, line := range statusLines {
+				if strings.HasPrefix(line, "VmPeak:") || strings.HasPrefix(line, "VmSize:") ||
+					strings.HasPrefix(line, "VmRSS:") || strings.HasPrefix(line, "VmData:") {
+					logger.WithField("process_memory", line).Debug("Process memory usage")
+				}
+			}
+		}
+	}
+
+	// Check disk space
+	if _, err := os.Stat("/var/log/tcpdump"); err == nil {
+		var statfs syscall.Statfs_t
+		if syscall.Statfs("/var/log/tcpdump", &statfs) == nil {
+			available := statfs.Bavail * uint64(statfs.Bsize)
+			total := statfs.Blocks * uint64(statfs.Bsize)
+			logger.WithFields(logrus.Fields{
+				"disk_available_bytes": available,
+				"disk_total_bytes":     total,
+				"disk_available_mb":    available / (1024 * 1024),
+			}).Info("Disk space information for tcpdump directory")
+		}
+	}
+}
+
+// getProcessExitInfo extracts detailed information about process termination
+func getProcessExitInfo(err error) (exitCode int, signal string, details string) {
+	if exitError, ok := err.(*exec.ExitError); ok {
+		if status, ok := exitError.Sys().(syscall.WaitStatus); ok {
+			if status.Exited() {
+				exitCode = status.ExitStatus()
+				details = fmt.Sprintf("process exited with code %d", exitCode)
+			} else if status.Signaled() {
+				sig := status.Signal()
+				signal = sig.String()
+				details = fmt.Sprintf("process killed by signal %s (%d)", signal, sig)
+
+				// Add common signal explanations
+				switch sig {
+				case syscall.SIGKILL:
+					details += " - likely killed by OOM killer or system resource manager"
+				case syscall.SIGTERM:
+					details += " - terminated gracefully by system or container runtime"
+				case syscall.SIGINT:
+					details += " - interrupted (Ctrl+C or similar)"
+				case syscall.SIGHUP:
+					details += " - hangup, possibly terminal/connection closed"
+				}
+			} else if status.Stopped() {
+				sig := status.StopSignal()
+				signal = sig.String()
+				details = fmt.Sprintf("process stopped by signal %s (%d)", signal, sig)
+			}
+		}
+	}
+
+	if details == "" {
+		details = fmt.Sprintf("unknown error: %v", err)
+	}
+
+	return exitCode, signal, details
 }
 
 // copyFile copies a file from src to dst
