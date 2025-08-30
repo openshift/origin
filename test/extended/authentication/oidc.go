@@ -13,6 +13,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/operator"
 	authnv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -56,10 +57,14 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 	g.BeforeAll(func() {
 		var err error
 
+		// waitTime is in minutes - set to 30 minute wait for cluster operators to settle before starting tests.
+		err = operator.WaitForOperatorsToSettle(ctx, oc.AdminConfigClient(), 30)
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle before starting test")
+
 		testID := rand.String(8)
 		keycloakNamespace = fmt.Sprintf("oidc-keycloak-%s", testID)
 
-		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace)
+		cleanups, err = deployKeycloak(ctx, oc, keycloakNamespace, g.GinkgoLogr)
 		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error deploying keycloak")
 
 		kcURL, err := admittedURLForRoute(ctx, oc, keycloakResourceName, keycloakNamespace)
@@ -533,7 +538,7 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 		_, err = cli.Update(ctx, current, metav1.UpdateOptions{})
 		if err != nil {
 			// Only log the error so we continue to retry until the context has timed out
-			fmt.Println("updating authentication resource:", err)
+			g.GinkgoLogr.Error(err, "updating authentication resource")
 			return false, nil
 		}
 
@@ -546,7 +551,9 @@ func resetAuthentication(ctx context.Context, client *exutil.CLI, original *conf
 func waitForRollout(ctx context.Context, client *exutil.CLI) {
 	kasCli := client.AdminOperatorClient().OperatorV1().KubeAPIServers()
 
-	// First wait for KAS to flip to progressing
+	// First wait for KAS NodeInstallerProgressing condition to flip to "True".
+	// This means that the KAS-O has successfully started being configured
+	// with our auth resource changes.
 	o.Eventually(func(gomega o.Gomega) {
 		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
 		gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error fetching the KAS")
@@ -565,22 +572,7 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionTrue), "NodeInstallerProgressing condition should be True", nipCond)
 	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
 
-	// Then wait for it to flip back
-	o.Eventually(func(gomega o.Gomega) {
-		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
-		gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error fetching the KAS")
-
-		found := false
-		nipCond := operatorv1.OperatorCondition{}
-		for _, cond := range kas.Status.Conditions {
-			if cond.Type == condition.NodeInstallerProgressingConditionType {
-				found = true
-				nipCond = cond
-				break
-			}
-		}
-
-		gomega.Expect(found).To(o.BeTrue(), "should have found the NodeInstallerProgressing condition")
-		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionFalse), "NodeInstallerProgressing condition should be False", nipCond)
-	}).WithTimeout(30*time.Minute).WithPolling(30*time.Second).Should(o.Succeed(), "should eventually rollout out a new revision successfully")
+	// waitTime is in minutes - set to 30 minute wait for cluster operators to settle
+	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 30)
+	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle")
 }
