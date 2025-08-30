@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -299,6 +300,29 @@ func (h *TcpdumpSamplerHook) hasRequiredCapabilities() bool {
 	return false
 }
 
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	// Sync to ensure data is written to disk
+	return destFile.Sync()
+}
+
 // StopCollection stops any running tcpdump process. This should be called by monitor tests
 // in their CollectData function to ensure proper cleanup when the test is terminating.
 func (h *TcpdumpSamplerHook) StopCollection() {
@@ -348,21 +372,41 @@ func (h *TcpdumpSamplerHook) MoveToStorage(storageDir string) error {
 		_, filename := filepath.Split(pcapFile)
 		destFile := fmt.Sprintf("%s/%s", tcpdumpDir, filename)
 
-		// Move the file using rename only
+		// Try to move the file using rename first (most efficient)
 		if err := os.Rename(pcapFile, destFile); err != nil {
-			errorMsg := fmt.Sprintf("failed to move pcap file from %s to %s: %v", pcapFile, destFile, err)
-			errors = append(errors, errorMsg)
 			logger.WithError(err).WithFields(logrus.Fields{
 				"source_file": pcapFile,
 				"dest_file":   destFile,
-			}).Warn("Failed to move pcap file")
-			continue
+			}).Debug("Rename failed, attempting copy+delete fallback")
+
+			// Fallback to copy+delete if rename fails (e.g., cross-filesystem move)
+			if copyErr := copyFile(pcapFile, destFile); copyErr != nil {
+				errorMsg := fmt.Sprintf("failed to copy pcap file from %s to %s: %v", pcapFile, destFile, copyErr)
+				errors = append(errors, errorMsg)
+				logger.WithError(copyErr).WithFields(logrus.Fields{
+					"source_file": pcapFile,
+					"dest_file":   destFile,
+				}).Warn("Failed to copy pcap file")
+				continue
+			}
+
+			// Copy succeeded, now delete the original
+			if deleteErr := os.Remove(pcapFile); deleteErr != nil {
+				logger.WithError(deleteErr).WithField("source_file", pcapFile).Warn("Failed to delete original pcap file after copy")
+				// Don't fail the entire operation for delete failures - the file was successfully copied
+			}
+
+			logger.WithFields(logrus.Fields{
+				"source_file": pcapFile,
+				"dest_file":   destFile,
+			}).Debug("Successfully moved pcap file using copy+delete fallback")
+		} else {
+			logger.WithFields(logrus.Fields{
+				"source_file": pcapFile,
+				"dest_file":   destFile,
+			}).Debug("Successfully moved pcap file using rename")
 		}
 
-		logger.WithFields(logrus.Fields{
-			"source_file": pcapFile,
-			"dest_file":   destFile,
-		}).Debug("Successfully moved pcap file to storage")
 		movedCount++
 	}
 
