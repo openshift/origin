@@ -402,6 +402,8 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 			if strings.Contains(dmesgStr, "Out of memory") || strings.Contains(dmesgStr, "oom-killer") ||
 				strings.Contains(dmesgStr, "Killed process") {
 				logger.WithField("oom_activity", dmesgStr).Warn("OOM killer activity detected around tcpdump termination")
+			} else {
+				logger.Info("dmesgStr: %s", dmesgStr)
 			}
 		}
 	}
@@ -410,7 +412,7 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 	if pid > 0 {
 		limitsPath := fmt.Sprintf("/proc/%d/limits", pid)
 		if limits, err := os.ReadFile(limitsPath); err == nil {
-			logger.WithField("process_limits", string(limits)).Debug("Process resource limits")
+			logger.WithField("process_limits", string(limits)).Info("Process resource limits")
 		}
 
 		// Check process status if still available
@@ -421,7 +423,7 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 			for _, line := range statusLines {
 				if strings.HasPrefix(line, "VmPeak:") || strings.HasPrefix(line, "VmSize:") ||
 					strings.HasPrefix(line, "VmRSS:") || strings.HasPrefix(line, "VmData:") {
-					logger.WithField("process_memory", line).Debug("Process memory usage")
+					logger.WithField("process_memory", line).Info("Process memory usage")
 				}
 			}
 		}
