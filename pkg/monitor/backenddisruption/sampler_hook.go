@@ -188,7 +188,7 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 			lines := strings.Split(string(meminfo), "\n")
 			for _, line := range lines {
 				if strings.Contains(line, "MemAvailable:") || strings.Contains(line, "MemFree:") {
-					baselineLogger.WithField("memory_baseline", strings.TrimSpace(line)).Debug("System memory at tcpdump startup")
+					baselineLogger.WithField("memory_baseline", strings.TrimSpace(line)).Info("System memory at tcpdump startup")
 					break
 				}
 			}
@@ -199,7 +199,7 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 			statusLines := strings.Split(string(status), "\n")
 			for _, line := range statusLines {
 				if strings.HasPrefix(line, "VmRSS:") {
-					baselineLogger.WithField("process_memory_baseline", strings.TrimSpace(line)).Debug("Process memory at startup")
+					baselineLogger.WithField("process_memory_baseline", strings.TrimSpace(line)).Info("Process memory at startup")
 					break
 				}
 			}
@@ -448,47 +448,78 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 		}
 	}
 
-	// Collect recent system log entries from /var/log/messages
+	// Collect recent system log entries from system logs (/var/log/messages, /var/log/kern.log, etc.)
 	collectSystemLogEntries(logger, pid)
 }
 
-// collectSystemLogEntries collects recent entries from /var/log/messages that might explain process termination
+// collectSystemLogEntries collects recent entries from system logs that might explain process termination
 func collectSystemLogEntries(logger *logrus.Entry, pid int) {
-	// Try multiple common system log paths
+	// Try multiple common system log paths - process all available logs for comprehensive coverage
 	logPaths := []string{
 		"/var/log/messages",
 		"/var/log/syslog",
+		"/var/log/kern.log",   // kernel messages - very important for process kills
 		"/var/log/system.log", // macOS
 	}
 
-	var logContent []byte
-	var logPath string
-	var err error
+	// Parse log entries and filter for recent ones (last 10 minutes)
+	cutoffTime := time.Now().Add(-10 * time.Minute)
+	allRelevantEntries := []string{}
+	allSuspiciousEntries := []string{}
+	processedLogs := []string{}
 
-	// Find the first available system log file
+	// Process all available log files
 	for _, path := range logPaths {
 		if _, statErr := os.Stat(path); statErr == nil {
-			logContent, err = os.ReadFile(path)
-			if err == nil {
-				logPath = path
-				break
+			if logContent, err := os.ReadFile(path); err == nil {
+				processedLogs = append(processedLogs, path)
+				logger.WithField("log_path", path).Info("Analyzing system log entries")
+
+				// Process this log file
+				relevantEntries, suspiciousEntries := parseLogEntries(logContent, cutoffTime, pid)
+				allRelevantEntries = append(allRelevantEntries, relevantEntries...)
+
+				// Add log source info to suspicious entries
+				for _, entry := range suspiciousEntries {
+					sourcedEntry := fmt.Sprintf("[%s] %s", filepath.Base(path), entry)
+					allSuspiciousEntries = append(allSuspiciousEntries, sourcedEntry)
+				}
+			} else {
+				logger.WithError(err).WithField("log_path", path).Info("Failed to read system log file")
 			}
 		}
 	}
 
-	if logContent == nil {
-		logger.Debug("No accessible system log files found for analysis")
-		return
+	// Log findings from all processed log files
+	if len(allSuspiciousEntries) > 0 {
+		logger.WithFields(logrus.Fields{
+			"processed_logs":     processedLogs,
+			"suspicious_entries": allSuspiciousEntries,
+			"total_recent":       len(allRelevantEntries),
+		}).Warn("Found suspicious system log entries around tcpdump termination")
+	} else if len(allRelevantEntries) > 0 {
+		// Log a few recent entries for context, but limit to avoid log spam
+		entriesToLog := allRelevantEntries
+		if len(entriesToLog) > 20 {
+			entriesToLog = allRelevantEntries[len(allRelevantEntries)-20:] // Last 20 entries
+		}
+		logger.WithFields(logrus.Fields{
+			"processed_logs": processedLogs,
+			"recent_entries": entriesToLog,
+			"total_recent":   len(allRelevantEntries),
+		}).Info("Recent system log entries (no obvious issues detected)")
+	} else {
+		logger.WithFields(logrus.Fields{
+			"processed_logs": processedLogs,
+		}).Info("No recent entries found in system logs")
 	}
+}
 
-	logger.WithField("log_path", logPath).Debug("Analyzing system log entries")
-
-	// Parse log entries and filter for recent ones (last 10 minutes)
-	cutoffTime := time.Now().Add(-10 * time.Minute)
-	relevantEntries := []string{}
-	suspiciousEntries := []string{}
-
+// parseLogEntries processes log content and returns relevant and suspicious entries
+func parseLogEntries(logContent []byte, cutoffTime time.Time, pid int) (relevantEntries, suspiciousEntries []string) {
 	lines := strings.Split(string(logContent), "\n")
+	pidStr := fmt.Sprintf("%d", pid)
+
 	for _, line := range lines {
 		if strings.TrimSpace(line) == "" {
 			continue
@@ -501,7 +532,6 @@ func collectSystemLogEntries(logger *logrus.Entry, pid int) {
 
 			// Look for suspicious patterns that might indicate why tcpdump was killed
 			lowerLine := strings.ToLower(line)
-			pidStr := fmt.Sprintf("%d", pid)
 
 			if strings.Contains(lowerLine, "oom") ||
 				strings.Contains(lowerLine, "out of memory") ||
@@ -516,33 +546,38 @@ func collectSystemLogEntries(logger *logrus.Entry, pid int) {
 				strings.Contains(lowerLine, "selinux") ||
 				strings.Contains(lowerLine, "apparmor") ||
 				strings.Contains(lowerLine, "tcpdump") ||
-				strings.Contains(line, pidStr) {
+				strings.Contains(line, pidStr) ||
+				// Kernel-specific patterns (especially from kern.log)
+				strings.Contains(lowerLine, "kernel:") ||
+				strings.Contains(lowerLine, "segfault") ||
+				strings.Contains(lowerLine, "general protection") ||
+				strings.Contains(lowerLine, "invalid opcode") ||
+				strings.Contains(lowerLine, "cgroup") ||
+				strings.Contains(lowerLine, "namespace") ||
+				strings.Contains(lowerLine, "capability") ||
+				strings.Contains(lowerLine, "audit") ||
+				strings.Contains(lowerLine, "avc:") || // SELinux denials
+				strings.Contains(lowerLine, "denied") ||
+				strings.Contains(lowerLine, "permission") ||
+				strings.Contains(lowerLine, "resource") ||
+				strings.Contains(lowerLine, "rlimit") ||
+				strings.Contains(lowerLine, "netfilter") ||
+				strings.Contains(lowerLine, "iptables") ||
+				strings.Contains(lowerLine, "network") ||
+				strings.Contains(lowerLine, "interface") ||
+				strings.Contains(lowerLine, "socket") ||
+				strings.Contains(lowerLine, "packet") ||
+				strings.Contains(lowerLine, "buffer") ||
+				strings.Contains(lowerLine, "allocation failed") ||
+				strings.Contains(lowerLine, "cannot allocate") ||
+				strings.Contains(lowerLine, "no space left") ||
+				strings.Contains(lowerLine, "disk full") {
 				suspiciousEntries = append(suspiciousEntries, line)
 			}
 		}
 	}
 
-	// Log findings
-	if len(suspiciousEntries) > 0 {
-		logger.WithFields(logrus.Fields{
-			"log_path":           logPath,
-			"suspicious_entries": suspiciousEntries,
-			"total_recent":       len(relevantEntries),
-		}).Warn("Found suspicious system log entries around tcpdump termination")
-	} else if len(relevantEntries) > 0 {
-		// Log a few recent entries for context, but limit to avoid log spam
-		entriesToLog := relevantEntries
-		if len(entriesToLog) > 20 {
-			entriesToLog = relevantEntries[len(relevantEntries)-20:] // Last 20 entries
-		}
-		logger.WithFields(logrus.Fields{
-			"log_path":       logPath,
-			"recent_entries": entriesToLog,
-			"total_recent":   len(relevantEntries),
-		}).Info("Recent system log entries (no obvious issues detected)")
-	} else {
-		logger.WithField("log_path", logPath).Debug("No recent entries found in system log")
-	}
+	return relevantEntries, suspiciousEntries
 }
 
 // isRecentLogEntry checks if a log entry is from within the specified cutoff time
