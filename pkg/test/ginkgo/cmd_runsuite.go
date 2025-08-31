@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/pkg/dataloader"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -22,12 +21,16 @@ import (
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/mod/semver"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
@@ -349,13 +352,36 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 	}
 
-	parallelism := o.Parallelism
-	if parallelism == 0 {
-		parallelism = suite.Parallelism
+	// start with suite value
+	parallelism := suite.Parallelism
+	logrus.Infof("Suite defined parallelism %d", parallelism)
+
+	// adjust based on the number of workers
+	totalNodes, workerNodes, err := getClusterNodeCounts(ctx, restConfig)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster node counts: %v", err)
+	} else {
+		// default to 10 concurrent tests per worker but use the min of that
+		// and the current parallelism value
+		if workerNodes > 0 {
+			workerParallelism := 10 * workerNodes
+			logrus.Infof("Parallelism based on worker node count: %d", workerParallelism)
+			parallelism = min(parallelism, workerParallelism)
+		}
 	}
+
+	// if 0 set our min value
 	if parallelism == 0 {
 		parallelism = 10
 	}
+
+	// if explicitly set then use the specified value
+	if o.Parallelism > 0 {
+		parallelism = o.Parallelism
+		logrus.Infof("Using specified parallelism value: %d", parallelism)
+	}
+
+	logrus.Infof("Total nodes: %d, Worker nodes: %d, Parallelism: %d", totalNodes, workerNodes, parallelism)
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
@@ -751,7 +777,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 
-		writeRunSuiteOptions(randSeed, monitorTestInfo, o.JUnitDir, timeSuffix)
+		writeRunSuiteOptions(randSeed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
 	}
 
 	switch {
@@ -783,15 +809,17 @@ func isBlockingFailure(test *testCase) bool {
 	}
 }
 
-func writeRunSuiteOptions(seed int64, info monitortestframework.MonitorTestInitializationInfo, artifactDir, timeSuffix string) {
+func writeRunSuiteOptions(seed int64, totalNodes, workerNodes, parallelism int, info monitortestframework.MonitorTestInitializationInfo, artifactDir, timeSuffix string) {
 	var rows []map[string]string
 
 	rows = make([]map[string]string, 0)
-	rows = append(rows, map[string]string{"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest)})
+	rows = append(rows, map[string]string{"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest),
+		"WorkerNodes": fmt.Sprintf("%d", workerNodes), "TotalNodes": fmt.Sprintf("%d", totalNodes), "Parallelism": fmt.Sprintf("%d", parallelism)})
 	dataFile := dataloader.DataFile{
 		TableName: "run_suite_options",
-		Schema:    map[string]dataloader.DataType{"ClusterStability": dataloader.DataTypeString, "Seed": dataloader.DataTypeInteger},
-		Rows:      rows,
+		Schema: map[string]dataloader.DataType{"ClusterStability": dataloader.DataTypeString, "RandomSeed": dataloader.DataTypeInteger, "WorkerNodes": dataloader.DataTypeInteger,
+			"TotalNodes": dataloader.DataTypeInteger, "Parallelism": dataloader.DataTypeInteger},
+		Rows: rows,
 	}
 	fileName := filepath.Join(artifactDir, fmt.Sprintf("run-suite-options%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
 	err := dataloader.WriteDataFile(fileName, dataFile)
@@ -940,4 +968,32 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
+}
+
+func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, error) {
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	totalNodes := 0
+	workerNodes := 0
+
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	workerNodes = len(nodes.Items)
+	logrus.Infof("Found %d worker nodes", workerNodes)
+
+	nodes, err = kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	totalNodes = len(nodes.Items)
+	logrus.Infof("Found %d nodes", totalNodes)
+
+	return totalNodes, workerNodes, nil
 }
