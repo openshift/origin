@@ -405,7 +405,11 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 			} else {
 				logger.Info("dmesgStr: %s", dmesgStr)
 			}
+		} else {
+			logger.Infof("error reading dmesg output: %s", err)
 		}
+	} else {
+		logger.Warn("Failed to collect system diagnostics")
 	}
 
 	// Check process resource limits
