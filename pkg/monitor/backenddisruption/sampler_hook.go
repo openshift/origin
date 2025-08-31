@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -446,6 +447,142 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 			}).Info("Disk space information for tcpdump directory")
 		}
 	}
+
+	// Collect recent system log entries from /var/log/messages
+	collectSystemLogEntries(logger, pid)
+}
+
+// collectSystemLogEntries collects recent entries from /var/log/messages that might explain process termination
+func collectSystemLogEntries(logger *logrus.Entry, pid int) {
+	// Try multiple common system log paths
+	logPaths := []string{
+		"/var/log/messages",
+		"/var/log/syslog",
+		"/var/log/system.log", // macOS
+	}
+
+	var logContent []byte
+	var logPath string
+	var err error
+
+	// Find the first available system log file
+	for _, path := range logPaths {
+		if _, statErr := os.Stat(path); statErr == nil {
+			logContent, err = os.ReadFile(path)
+			if err == nil {
+				logPath = path
+				break
+			}
+		}
+	}
+
+	if logContent == nil {
+		logger.Debug("No accessible system log files found for analysis")
+		return
+	}
+
+	logger.WithField("log_path", logPath).Debug("Analyzing system log entries")
+
+	// Parse log entries and filter for recent ones (last 10 minutes)
+	cutoffTime := time.Now().Add(-10 * time.Minute)
+	relevantEntries := []string{}
+	suspiciousEntries := []string{}
+
+	lines := strings.Split(string(logContent), "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
+		// Check if this line is recent enough (this is a basic heuristic)
+		// Most system logs include timestamps, but formats vary
+		if isRecentLogEntry(line, cutoffTime) {
+			relevantEntries = append(relevantEntries, line)
+
+			// Look for suspicious patterns that might indicate why tcpdump was killed
+			lowerLine := strings.ToLower(line)
+			pidStr := fmt.Sprintf("%d", pid)
+
+			if strings.Contains(lowerLine, "oom") ||
+				strings.Contains(lowerLine, "out of memory") ||
+				strings.Contains(lowerLine, "memory") ||
+				strings.Contains(lowerLine, "killed") ||
+				strings.Contains(lowerLine, "kill") ||
+				strings.Contains(lowerLine, "signal") ||
+				strings.Contains(lowerLine, "terminated") ||
+				strings.Contains(lowerLine, "limit") ||
+				strings.Contains(lowerLine, "quota") ||
+				strings.Contains(lowerLine, "security") ||
+				strings.Contains(lowerLine, "selinux") ||
+				strings.Contains(lowerLine, "apparmor") ||
+				strings.Contains(lowerLine, "tcpdump") ||
+				strings.Contains(line, pidStr) {
+				suspiciousEntries = append(suspiciousEntries, line)
+			}
+		}
+	}
+
+	// Log findings
+	if len(suspiciousEntries) > 0 {
+		logger.WithFields(logrus.Fields{
+			"log_path":           logPath,
+			"suspicious_entries": suspiciousEntries,
+			"total_recent":       len(relevantEntries),
+		}).Warn("Found suspicious system log entries around tcpdump termination")
+	} else if len(relevantEntries) > 0 {
+		// Log a few recent entries for context, but limit to avoid log spam
+		entriesToLog := relevantEntries
+		if len(entriesToLog) > 20 {
+			entriesToLog = relevantEntries[len(relevantEntries)-20:] // Last 20 entries
+		}
+		logger.WithFields(logrus.Fields{
+			"log_path":       logPath,
+			"recent_entries": entriesToLog,
+			"total_recent":   len(relevantEntries),
+		}).Info("Recent system log entries (no obvious issues detected)")
+	} else {
+		logger.WithField("log_path", logPath).Debug("No recent entries found in system log")
+	}
+}
+
+// isRecentLogEntry checks if a log entry is from within the specified cutoff time
+func isRecentLogEntry(line string, cutoffTime time.Time) bool {
+	// This is a heuristic approach since log formats vary significantly
+	// We'll look for common timestamp patterns and try to parse them
+
+	now := time.Now()
+
+	// Common syslog format: "Dec 15 14:30:22" (assuming current year)
+	if matches := regexp.MustCompile(`^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})`).FindStringSubmatch(line); len(matches) > 1 {
+		timeStr := matches[1]
+		if t, err := time.Parse("Jan 2 15:04:05", timeStr); err == nil {
+			// Assume current year
+			t = t.AddDate(now.Year(), 0, 0)
+			// Handle year boundary (if parsed time is in future, assume it's from last year)
+			if t.After(now.Add(24 * time.Hour)) {
+				t = t.AddDate(-1, 0, 0)
+			}
+			return t.After(cutoffTime)
+		}
+	}
+
+	// ISO 8601 format: "2024-01-15T14:30:22"
+	if matches := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})`).FindStringSubmatch(line); len(matches) > 1 {
+		if t, err := time.Parse("2006-01-02T15:04:05", matches[1]); err == nil {
+			return t.After(cutoffTime)
+		}
+	}
+
+	// RFC3339 format: "2024-01-15 14:30:22"
+	if matches := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})`).FindStringSubmatch(line); len(matches) > 1 {
+		if t, err := time.Parse("2006-01-02 15:04:05", matches[1]); err == nil {
+			return t.After(cutoffTime)
+		}
+	}
+
+	// If we can't parse the timestamp, assume it's recent to be safe
+	// This might include some older entries, but it's better than missing important ones
+	return true
 }
 
 // getProcessExitInfo extracts detailed information about process termination
