@@ -1,0 +1,12 @@
+{
+  "component": "node",
+  "generated": "2025-08-20T07:54:08Z",
+  "tests": [
+    {
+      "name": "[Jira:node][sig-node] node test should always pass [Suite:openshift/node/conformance/parallel]",
+      "originalName": "",
+      "source": "openshift:payload:node"
+    }
+  ],
+  "removedTests": []
+}
