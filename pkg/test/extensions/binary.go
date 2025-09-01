@@ -213,6 +213,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-kube-controller-manager-operator",
 		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-kube-storage-version-migrator-operator",
+		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
