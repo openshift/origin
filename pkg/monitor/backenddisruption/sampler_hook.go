@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -407,7 +406,7 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 				logger.Info("dmesgStr: %s", dmesgStr)
 			}
 		} else {
-			logger.Infof("error reading dmesg output: %s", err)
+			logrus.WithError(err).Infof("error reading dmesg output: %+v", dmesgCmd)
 		}
 	} else {
 		logrus.Warn("Failed to collect system diagnostics")
@@ -453,179 +452,176 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 		}
 	}
 
-	// Collect recent system log entries from system logs (/var/log/messages, /var/log/kern.log, etc.)
-	collectSystemLogEntries(logger, pid)
+	// Collect recent system log entries using journalctl (more reliable in container environments)
+	collectJournalEntries(logger, pid)
 }
 
-// collectSystemLogEntries collects recent entries from system logs that might explain process termination
-func collectSystemLogEntries(logger *logrus.Entry, pid int) {
-	logrus.WithField("pid", pid).Info("Collecting system log entries")
-	// Try multiple common system log paths - process all available logs for comprehensive coverage
-	logPaths := []string{
-		"/var/log/messages",
-		"/var/log/syslog",
-		"/var/log/kern.log",   // kernel messages - very important for process kills
-		"/var/log/system.log", // macOS
+// collectJournalEntries collects recent entries from systemd journal that might explain process termination
+func collectJournalEntries(logger *logrus.Entry, pid int) {
+	logrus.WithField("pid", pid).Info("Collecting journal entries using journalctl")
+
+	// Define different journalctl commands to gather comprehensive diagnostic information
+	journalCommands := []struct {
+		name    string
+		args    []string
+		purpose string
+	}{
+		{
+			name:    "recent_all",
+			args:    []string{"journalctl", "--since=10 minutes ago", "--no-pager", "-q"},
+			purpose: "Recent system journal entries",
+		},
+		{
+			name:    "kernel_messages",
+			args:    []string{"journalctl", "-k", "--since=10 minutes ago", "--no-pager", "-q"},
+			purpose: "Recent kernel messages",
+		},
+		{
+			name:    "oom_events",
+			args:    []string{"journalctl", "--since=10 minutes ago", "--grep=oom|killed|kill", "--no-pager", "-q"},
+			purpose: "OOM and process kill events",
+		},
+		{
+			name:    "tcpdump_specific",
+			args:    []string{"journalctl", "--since=10 minutes ago", "--grep=tcpdump", "--no-pager", "-q"},
+			purpose: "tcpdump-specific journal entries",
+		},
+		{
+			name:    "security_events",
+			args:    []string{"journalctl", "--since=10 minutes ago", "--grep=denied|avc|audit|capability|selinux|apparmor", "--no-pager", "-q"},
+			purpose: "Security-related events",
+		},
+		{
+			name:    "container_events",
+			args:    []string{"journalctl", "--since=10 minutes ago", "--grep=docker|containerd|cgroup|namespace", "--no-pager", "-q"},
+			purpose: "Container runtime events",
+		},
 	}
 
-	// Parse log entries and filter for recent ones (last 10 minutes)
-	cutoffTime := time.Now().Add(-10 * time.Minute)
-	allRelevantEntries := []string{}
 	allSuspiciousEntries := []string{}
-	processedLogs := []string{}
-
-	// Process all available log files
-	for _, path := range logPaths {
-		if _, statErr := os.Stat(path); statErr == nil {
-			if logContent, err := os.ReadFile(path); err == nil {
-				processedLogs = append(processedLogs, path)
-				logger.WithField("log_path", path).Info("Analyzing system log entries")
-
-				// Process this log file
-				relevantEntries, suspiciousEntries := parseLogEntries(logContent, cutoffTime, pid)
-				allRelevantEntries = append(allRelevantEntries, relevantEntries...)
-
-				// Add log source info to suspicious entries
-				for _, entry := range suspiciousEntries {
-					sourcedEntry := fmt.Sprintf("[%s] %s", filepath.Base(path), entry)
-					allSuspiciousEntries = append(allSuspiciousEntries, sourcedEntry)
-				}
-			} else {
-				logrus.WithError(err).WithField("log_path", path).Info("Failed to read system log file")
-			}
-		} else {
-			logrus.WithError(statErr).WithField("file", path).Info("Failed to stat system log file")
-		}
-	}
-
-	// Log findings from all processed log files
-	if len(allSuspiciousEntries) > 0 {
-		logger.WithFields(logrus.Fields{
-			"processed_logs":     processedLogs,
-			"suspicious_entries": allSuspiciousEntries,
-			"total_recent":       len(allRelevantEntries),
-		}).Warn("Found suspicious system log entries around tcpdump termination")
-	} else if len(allRelevantEntries) > 0 {
-		// Log a few recent entries for context, but limit to avoid log spam
-		entriesToLog := allRelevantEntries
-		if len(entriesToLog) > 20 {
-			entriesToLog = allRelevantEntries[len(allRelevantEntries)-20:] // Last 20 entries
-		}
-		logger.WithFields(logrus.Fields{
-			"processed_logs": processedLogs,
-			"recent_entries": entriesToLog,
-			"total_recent":   len(allRelevantEntries),
-		}).Info("Recent system log entries (no obvious issues detected)")
-	} else {
-		logrus.WithFields(logrus.Fields{
-			"processed_logs": processedLogs,
-		}).Info("No recent entries found in system logs")
-	}
-}
-
-// parseLogEntries processes log content and returns relevant and suspicious entries
-func parseLogEntries(logContent []byte, cutoffTime time.Time, pid int) (relevantEntries, suspiciousEntries []string) {
-	lines := strings.Split(string(logContent), "\n")
+	processedCommands := []string{}
 	pidStr := fmt.Sprintf("%d", pid)
 
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
+	// Execute each journalctl command
+	for _, cmd := range journalCommands {
+		logrus.WithFields(logrus.Fields{
+			"command": strings.Join(cmd.args, " "),
+			"purpose": cmd.purpose,
+		}).Info("Executing journalctl command")
+
+		output, err := exec.Command(cmd.args[0], cmd.args[1:]...).Output()
+		if err != nil {
+			logrus.WithError(err).WithField("command", cmd.name).Warn("Failed to execute journalctl command")
 			continue
 		}
 
-		// Check if this line is recent enough (this is a basic heuristic)
-		// Most system logs include timestamps, but formats vary
-		if isRecentLogEntry(line, cutoffTime) {
-			relevantEntries = append(relevantEntries, line)
+		processedCommands = append(processedCommands, cmd.name)
 
-			// Look for suspicious patterns that might indicate why tcpdump was killed
-			lowerLine := strings.ToLower(line)
+		if len(output) == 0 {
+			logrus.WithField("command", cmd.name).Info("No journal entries found for command")
+			continue
+		}
 
-			if strings.Contains(lowerLine, "oom") ||
-				strings.Contains(lowerLine, "out of memory") ||
-				strings.Contains(lowerLine, "memory") ||
-				strings.Contains(lowerLine, "killed") ||
-				strings.Contains(lowerLine, "kill") ||
-				strings.Contains(lowerLine, "signal") ||
-				strings.Contains(lowerLine, "terminated") ||
-				strings.Contains(lowerLine, "limit") ||
-				strings.Contains(lowerLine, "quota") ||
-				strings.Contains(lowerLine, "security") ||
-				strings.Contains(lowerLine, "selinux") ||
-				strings.Contains(lowerLine, "apparmor") ||
-				strings.Contains(lowerLine, "tcpdump") ||
-				strings.Contains(line, pidStr) ||
-				// Kernel-specific patterns (especially from kern.log)
-				strings.Contains(lowerLine, "kernel:") ||
-				strings.Contains(lowerLine, "segfault") ||
-				strings.Contains(lowerLine, "general protection") ||
-				strings.Contains(lowerLine, "invalid opcode") ||
-				strings.Contains(lowerLine, "cgroup") ||
-				strings.Contains(lowerLine, "namespace") ||
-				strings.Contains(lowerLine, "capability") ||
-				strings.Contains(lowerLine, "audit") ||
-				strings.Contains(lowerLine, "avc:") || // SELinux denials
-				strings.Contains(lowerLine, "denied") ||
-				strings.Contains(lowerLine, "permission") ||
-				strings.Contains(lowerLine, "resource") ||
-				strings.Contains(lowerLine, "rlimit") ||
-				strings.Contains(lowerLine, "netfilter") ||
-				strings.Contains(lowerLine, "iptables") ||
-				strings.Contains(lowerLine, "network") ||
-				strings.Contains(lowerLine, "interface") ||
-				strings.Contains(lowerLine, "socket") ||
-				strings.Contains(lowerLine, "packet") ||
-				strings.Contains(lowerLine, "buffer") ||
-				strings.Contains(lowerLine, "allocation failed") ||
-				strings.Contains(lowerLine, "cannot allocate") ||
-				strings.Contains(lowerLine, "no space left") ||
-				strings.Contains(lowerLine, "disk full") {
-				suspiciousEntries = append(suspiciousEntries, line)
+		// Parse the output for suspicious entries
+		lines := strings.Split(string(output), "\n")
+		suspiciousLines := []string{}
+		logrus.WithField("cmd", cmd).Infof("Lines from journalctl output: %s", lines)
+
+		for _, line := range lines {
+			if strings.TrimSpace(line) == "" {
+				continue
 			}
+
+			// Look for suspicious patterns or process-specific entries
+			lowerLine := strings.ToLower(line)
+			if isSuspiciousJournalEntry(lowerLine, pidStr) {
+				suspiciousLines = append(suspiciousLines, line)
+			}
+		}
+
+		if len(suspiciousLines) > 0 {
+			// Add command source info to suspicious entries
+			for _, entry := range suspiciousLines {
+				sourcedEntry := fmt.Sprintf("[%s] %s", cmd.name, entry)
+				allSuspiciousEntries = append(allSuspiciousEntries, sourcedEntry)
+			}
+
+			logrus.WithFields(logrus.Fields{
+				"command":          cmd.name,
+				"suspicious_count": len(suspiciousLines),
+				"total_lines":      len(lines),
+			}).Info("Found suspicious entries in journal command output")
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"command":     cmd.name,
+				"total_lines": len(lines),
+			}).Info("No suspicious entries found in journal command output")
 		}
 	}
 
-	return relevantEntries, suspiciousEntries
+	// Log consolidated findings
+	if len(allSuspiciousEntries) > 0 {
+		logrus.WithFields(logrus.Fields{
+			"processed_commands": processedCommands,
+			"suspicious_entries": allSuspiciousEntries,
+			"total_suspicious":   len(allSuspiciousEntries),
+		}).Warn("Found suspicious journal entries around tcpdump termination")
+	} else if len(processedCommands) > 0 {
+		logrus.WithFields(logrus.Fields{
+			"processed_commands": processedCommands,
+		}).Info("Journal entries collected but no obvious issues detected")
+	} else {
+		logrus.Warn("No journalctl commands executed successfully")
+	}
 }
 
-// isRecentLogEntry checks if a log entry is from within the specified cutoff time
-func isRecentLogEntry(line string, cutoffTime time.Time) bool {
-	// This is a heuristic approach since log formats vary significantly
-	// We'll look for common timestamp patterns and try to parse them
-
-	now := time.Now()
-
-	// Common syslog format: "Dec 15 14:30:22" (assuming current year)
-	if matches := regexp.MustCompile(`^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})`).FindStringSubmatch(line); len(matches) > 1 {
-		timeStr := matches[1]
-		if t, err := time.Parse("Jan 2 15:04:05", timeStr); err == nil {
-			// Assume current year
-			t = t.AddDate(now.Year(), 0, 0)
-			// Handle year boundary (if parsed time is in future, assume it's from last year)
-			if t.After(now.Add(24 * time.Hour)) {
-				t = t.AddDate(-1, 0, 0)
-			}
-			return t.After(cutoffTime)
-		}
-	}
-
-	// ISO 8601 format: "2024-01-15T14:30:22"
-	if matches := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})`).FindStringSubmatch(line); len(matches) > 1 {
-		if t, err := time.Parse("2006-01-02T15:04:05", matches[1]); err == nil {
-			return t.After(cutoffTime)
-		}
-	}
-
-	// RFC3339 format: "2024-01-15 14:30:22"
-	if matches := regexp.MustCompile(`(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})`).FindStringSubmatch(line); len(matches) > 1 {
-		if t, err := time.Parse("2006-01-02 15:04:05", matches[1]); err == nil {
-			return t.After(cutoffTime)
-		}
-	}
-
-	// If we can't parse the timestamp, assume it's recent to be safe
-	// This might include some older entries, but it's better than missing important ones
-	return true
+// isSuspiciousJournalEntry checks if a journal entry line contains suspicious patterns
+func isSuspiciousJournalEntry(lowerLine, pidStr string) bool {
+	return strings.Contains(lowerLine, "oom") ||
+		strings.Contains(lowerLine, "out of memory") ||
+		strings.Contains(lowerLine, "memory") ||
+		strings.Contains(lowerLine, "killed") ||
+		strings.Contains(lowerLine, "kill") ||
+		strings.Contains(lowerLine, "signal") ||
+		strings.Contains(lowerLine, "terminated") ||
+		strings.Contains(lowerLine, "limit") ||
+		strings.Contains(lowerLine, "quota") ||
+		strings.Contains(lowerLine, "security") ||
+		strings.Contains(lowerLine, "selinux") ||
+		strings.Contains(lowerLine, "apparmor") ||
+		strings.Contains(lowerLine, "tcpdump") ||
+		strings.Contains(lowerLine, pidStr) ||
+		// Kernel-specific patterns
+		strings.Contains(lowerLine, "kernel:") ||
+		strings.Contains(lowerLine, "segfault") ||
+		strings.Contains(lowerLine, "general protection") ||
+		strings.Contains(lowerLine, "invalid opcode") ||
+		strings.Contains(lowerLine, "cgroup") ||
+		strings.Contains(lowerLine, "namespace") ||
+		strings.Contains(lowerLine, "capability") ||
+		strings.Contains(lowerLine, "audit") ||
+		strings.Contains(lowerLine, "avc:") || // SELinux denials
+		strings.Contains(lowerLine, "denied") ||
+		strings.Contains(lowerLine, "permission") ||
+		strings.Contains(lowerLine, "resource") ||
+		strings.Contains(lowerLine, "rlimit") ||
+		strings.Contains(lowerLine, "netfilter") ||
+		strings.Contains(lowerLine, "iptables") ||
+		strings.Contains(lowerLine, "network") ||
+		strings.Contains(lowerLine, "interface") ||
+		strings.Contains(lowerLine, "socket") ||
+		strings.Contains(lowerLine, "packet") ||
+		strings.Contains(lowerLine, "buffer") ||
+		strings.Contains(lowerLine, "allocation failed") ||
+		strings.Contains(lowerLine, "cannot allocate") ||
+		strings.Contains(lowerLine, "no space left") ||
+		strings.Contains(lowerLine, "disk full") ||
+		// Container-specific patterns
+		strings.Contains(lowerLine, "docker") ||
+		strings.Contains(lowerLine, "containerd") ||
+		strings.Contains(lowerLine, "runc") ||
+		strings.Contains(lowerLine, "systemd") ||
+		strings.Contains(lowerLine, "service")
 }
 
 // getProcessExitInfo extracts detailed information about process termination
