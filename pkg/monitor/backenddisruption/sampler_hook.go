@@ -393,7 +393,7 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 				}
 			}
 		}
-		logger.WithField("memory_info", memFields).Info("System memory information at tcpdump termination")
+		logrus.WithField("memory_info", memFields).WithField("pid", pid).Info("System memory information at tcpdump termination")
 	}
 
 	// Check for OOM killer activity in dmesg (recent entries)
@@ -410,7 +410,7 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 			logger.Infof("error reading dmesg output: %s", err)
 		}
 	} else {
-		logger.Warn("Failed to collect system diagnostics")
+		logrus.Warn("Failed to collect system diagnostics")
 	}
 
 	// Check process resource limits
@@ -418,11 +418,14 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 		limitsPath := fmt.Sprintf("/proc/%d/limits", pid)
 		if limits, err := os.ReadFile(limitsPath); err == nil {
 			logger.WithField("process_limits", string(limits)).Info("Process resource limits")
+		} else {
+			logger.WithError(err).Warn("Failed to read /proc/limits")
 		}
 
 		// Check process status if still available
 		statusPath := fmt.Sprintf("/proc/%d/status", pid)
 		if status, err := os.ReadFile(statusPath); err == nil {
+			logger.WithField("process_status", string(status)).Info("Process status file")
 			// Parse relevant fields from status
 			statusLines := strings.Split(string(status), "\n")
 			for _, line := range statusLines {
@@ -431,6 +434,8 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 					logger.WithField("process_memory", line).Info("Process memory usage")
 				}
 			}
+		} else {
+			logrus.WithError(err).Warn("Failed to read /proc/status")
 		}
 	}
 
@@ -454,6 +459,7 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 
 // collectSystemLogEntries collects recent entries from system logs that might explain process termination
 func collectSystemLogEntries(logger *logrus.Entry, pid int) {
+	logrus.WithField("pid", pid).Info("Collecting system log entries")
 	// Try multiple common system log paths - process all available logs for comprehensive coverage
 	logPaths := []string{
 		"/var/log/messages",
@@ -485,8 +491,10 @@ func collectSystemLogEntries(logger *logrus.Entry, pid int) {
 					allSuspiciousEntries = append(allSuspiciousEntries, sourcedEntry)
 				}
 			} else {
-				logger.WithError(err).WithField("log_path", path).Info("Failed to read system log file")
+				logrus.WithError(err).WithField("log_path", path).Info("Failed to read system log file")
 			}
+		} else {
+			logrus.WithError(statErr).WithField("file", path).Info("Failed to stat system log file")
 		}
 	}
 
@@ -509,7 +517,7 @@ func collectSystemLogEntries(logger *logrus.Entry, pid int) {
 			"total_recent":   len(allRelevantEntries),
 		}).Info("Recent system log entries (no obvious issues detected)")
 	} else {
-		logger.WithFields(logrus.Fields{
+		logrus.WithFields(logrus.Fields{
 			"processed_logs": processedLogs,
 		}).Info("No recent entries found in system logs")
 	}
