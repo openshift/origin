@@ -403,10 +403,10 @@ func collectSystemDiagnostics(logger *logrus.Entry, pid int) {
 				strings.Contains(dmesgStr, "Killed process") {
 				logger.WithField("oom_activity", dmesgStr).Warn("OOM killer activity detected around tcpdump termination")
 			} else {
-				logger.Info("dmesgStr: %s", dmesgStr)
+				logger.WithField("dmesg_output", dmesgStr).Info("dmesg output (no obvious issues)")
 			}
 		} else {
-			logrus.WithError(err).Infof("error reading dmesg output: %+v", dmesgCmd)
+			logrus.WithError(err).WithField("dmesg_command", dmesgCmd.Args).Warn("error reading dmesg output")
 		}
 	} else {
 		logrus.Warn("Failed to collect system diagnostics")
@@ -525,7 +525,11 @@ func collectJournalEntries(logger *logrus.Entry, pid int) {
 		// Parse the output for suspicious entries
 		lines := strings.Split(string(output), "\n")
 		suspiciousLines := []string{}
-		logrus.WithField("cmd", cmd).Infof("Lines from journalctl output: %s", lines)
+		logrus.WithFields(logrus.Fields{
+			"command":      cmd.name,
+			"line_count":   len(lines),
+			"output_lines": lines,
+		}).Info("Processing journalctl command output")
 
 		for _, line := range lines {
 			if strings.TrimSpace(line) == "" {
