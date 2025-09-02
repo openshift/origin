@@ -267,6 +267,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cli",
 		binaryPath: "/usr/bin/oc-tests-ext.gz",
 	},
+	{
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovn-kubernetes-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
