@@ -302,7 +302,7 @@ func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...i
 // URLStatusCodeExecViaPod attempts connection to url via exec pod and returns the status code
 // or an error if any errors happens during the process.
 func URLStatusCodeExecViaPod(ns, name, url string) (int, error) {
-	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
+	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' --connect-timeout 10 %q", url)
 	output, err := e2eoutput.RunHostCmd(ns, name, cmd)
 	if err != nil {
 		return 0, fmt.Errorf("host command failed: %v\n%s", err, output)
