@@ -427,6 +427,10 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:PodSecurity] restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:PodSecurity][Feature:LabelSyncer] updating PSa labels": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-auth][Feature:PodSecurity][Feature:LabelSyncer][Feature:ForceHistoricalOwnership] forcing PSa label historical ownership": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:PodSecurity][Feature:SCC] SCC admission fails for incorrect/non-existent required-scc annotation": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:PodSecurity][Feature:SCC] creating pod controllers": " [Suite:openshift/conformance/parallel]",
