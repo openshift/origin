@@ -96,10 +96,17 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	addEnvironmentSelectors(specs)
 	addLabelsToSpecs(specs)
 
+	// Append suite info to the test names where relevant
 	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
 		// Don't add suite info to the name if it is already present
 		if strings.Contains(spec.Name, "[Suite:") {
 			return
+		}
+		// If the name contains any of the Excluded patterns, don't add any suite info
+		for _, exclusion := range ExcludedTests {
+			if strings.Contains(spec.Name, exclusion) {
+				return
+			}
 		}
 		isSerial := strings.Contains(spec.Name, "[Serial]") || spec.Labels.Has("[Serial]")
 		isConformance := strings.Contains(spec.Name, "[Conformance]") || spec.Labels.Has("[Conformance]")

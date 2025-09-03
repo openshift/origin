@@ -453,17 +453,8 @@ var staticSuites = []ginkgo.TestSuite{
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
-	excluded := []string{
-		"[Disabled:",
-		"[Disruptive]",
-		"[Skipped]",
-		"[Slow]",
-		"[Flaky]",
-		"[Local]",
-	}
-
 	filter := ""
-	for i, s := range excluded {
+	for i, s := range extensions.ExcludedTests {
 		if i > 0 {
 			filter += " && "
 		}
