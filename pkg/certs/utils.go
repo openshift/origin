@@ -21,6 +21,7 @@ func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*PKIRegistryInfo, er
 	onDiskCerts := CertKeyPairInfoByOnDiskLocation{}
 	inClusterCABundles := ConfigMapInfoByNamespaceName{}
 	onDiskCABundles := CABundleInfoByOnDiskLocation{}
+	inMemoryCerts := PodInfoByNamespaceName{}
 
 	currPKI := &PKIRegistryInfo{}
 	err := json.Unmarshal(ownershipFile, currPKI)
@@ -35,6 +36,9 @@ func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*PKIRegistryInfo, er
 		if currCert.OnDiskLocation != nil {
 			onDiskCerts[currCert.OnDiskLocation.OnDiskLocation] = currCert.OnDiskLocation.CertKeyInfo
 		}
+		if currCert.InMemoryPodLocation != nil {
+			inMemoryCerts[currCert.InMemoryPodLocation.PodLocation] = currCert.InMemoryPodLocation.CertKeyInfo
+		}
 	}
 	for _, currCABundle := range currPKI.CertificateAuthorityBundles {
 		if currCABundle.InClusterLocation != nil {
@@ -44,7 +48,7 @@ func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*PKIRegistryInfo, er
 			onDiskCABundles[currCABundle.OnDiskLocation.OnDiskLocation] = currCABundle.OnDiskLocation.CABundleInfo
 		}
 	}
-	return CertsToRegistryInfo(inClusterCerts, onDiskCerts, inClusterCABundles, onDiskCABundles), nil
+	return CertsToRegistryInfo(inClusterCerts, onDiskCerts, inClusterCABundles, onDiskCABundles, inMemoryCerts), nil
 }
 
 func CertsToRegistryInfo(
@@ -52,6 +56,7 @@ func CertsToRegistryInfo(
 	onDiskCerts CertKeyPairInfoByOnDiskLocation,
 	caBundles ConfigMapInfoByNamespaceName,
 	onDiskCABundles CABundleInfoByOnDiskLocation,
+	inMemoryCerts PodInfoByNamespaceName,
 ) *PKIRegistryInfo {
 	result := &PKIRegistryInfo{}
 
@@ -72,6 +77,16 @@ func CertsToRegistryInfo(
 			OnDiskLocation: &certgraphapi.PKIRegistryOnDiskCertKeyPair{
 				OnDiskLocation: key,
 				CertKeyInfo:    onDiskCerts[key],
+			},
+		})
+	}
+	inMemoryCertKeys := sets.KeySet[certgraphapi.InClusterPodLocation, certgraphapi.PKIRegistryCertKeyPairInfo](inMemoryCerts).UnsortedList()
+	sort.Sort(PodRefByNamespaceName(inMemoryCertKeys))
+	for _, key := range inMemoryCertKeys {
+		result.CertKeyPairs = append(result.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{
+			InMemoryPodLocation: &certgraphapi.PKIRegistryInMemoryCertKeyPair{
+				PodLocation: key,
+				CertKeyInfo: inMemoryCerts[key],
 			},
 		})
 	}

@@ -25,6 +25,7 @@ func deduplicateCertKeyPairs(in []*certgraphapi.CertKeyPair) []*certgraphapi.Cer
 				found = true
 				ret[j] = CombineSecretLocations(ret[j], currIn.Spec.SecretLocations)
 				ret[j] = CombineCertOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
+				ret[j] = CombineCertInMemoryLocations(ret[j], currIn.Spec.InMemoryLocations)
 				break
 			}
 		}
@@ -195,6 +196,23 @@ func deduplicateOnDiskMetadata(in certgraphapi.PerOnDiskResourceData) certgrapha
 		}
 		if !found {
 			out.TLSArtifact = append(out.TLSArtifact, curr)
+		}
+	}
+	return out
+}
+
+// CombineCertInMemoryLocations returns a CertKeyPair with all in-memory locations from in and rhs de-duplicated into a single list
+func CombineCertInMemoryLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InClusterPodLocation) *certgraphapi.CertKeyPair {
+	out := in.DeepCopy()
+	for _, curr := range rhs {
+		found := false
+		for _, existing := range in.Spec.InMemoryLocations {
+			if curr == existing {
+				found = true
+			}
+		}
+		if !found {
+			out.Spec.InMemoryLocations = append(out.Spec.InMemoryLocations, curr)
 		}
 	}
 	return out

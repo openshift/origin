@@ -11,6 +11,8 @@ type ConfigMapRefByNamespaceName []certgraphapi.InClusterConfigMapLocation
 type SecretRefByNamespaceName []certgraphapi.InClusterSecretLocation
 type SecretInfoByNamespaceName map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryCertKeyPairInfo
 type ConfigMapInfoByNamespaceName map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryCertificateAuthorityInfo
+type PodRefByNamespaceName []certgraphapi.InClusterPodLocation
+type PodInfoByNamespaceName map[certgraphapi.InClusterPodLocation]certgraphapi.PKIRegistryCertKeyPairInfo
 type OnDiskLocationByPath []certgraphapi.OnDiskLocation
 type CertKeyPairInfoByOnDiskLocation map[certgraphapi.OnDiskLocation]certgraphapi.PKIRegistryCertKeyPairInfo
 type CABundleInfoByOnDiskLocation map[certgraphapi.OnDiskLocation]certgraphapi.PKIRegistryCertificateAuthorityInfo
@@ -25,6 +27,24 @@ func (n SecretRefByNamespaceName) Swap(i, j int) {
 	n[i], n[j] = n[j], n[i]
 }
 func (n SecretRefByNamespaceName) Less(i, j int) bool {
+	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
+	switch {
+	case diff < 0:
+		return true
+	case diff > 0:
+		return false
+	}
+
+	return strings.Compare(n[i].Name, n[j].Name) < 0
+}
+
+func (n PodRefByNamespaceName) Len() int {
+	return len(n)
+}
+func (n PodRefByNamespaceName) Swap(i, j int) {
+	n[i], n[j] = n[j], n[i]
+}
+func (n PodRefByNamespaceName) Less(i, j int) bool {
 	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
 	switch {
 	case diff < 0:
@@ -67,6 +87,9 @@ func (n OnDiskLocationByPath) Less(i, j int) bool {
 func BuildCertKeyPath(curr certgraphapi.PKIRegistryCertKeyPair) string {
 	if curr.InClusterLocation != nil {
 		return fmt.Sprintf("ns/%v secret/%v", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+	}
+	if curr.InMemoryPodLocation != nil {
+		return fmt.Sprintf("ns/%v pod/%v (in-memory)", curr.InMemoryPodLocation.PodLocation.Namespace, curr.InMemoryPodLocation.PodLocation.Name)
 	}
 	if curr.OnDiskLocation != nil {
 		return fmt.Sprintf("file %v", curr.OnDiskLocation.OnDiskLocation.Path)
