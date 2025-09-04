@@ -161,9 +161,10 @@ func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTag
 	// were actually flaky and nobody knew. We attempted to fix these, a few did not make it in time. Restore
 	// retries for specific test names so the overall suite can continue to not retry.
 	retryTestNames := []string{
-		"[sig-instrumentation] Metrics should grab all metrics from kubelet /metrics/resource endpoint [Suite:openshift/conformance/parallel] [Suite:k8s]", // https://issues.redhat.com/browse/OCPBUGS-57477
-		"[sig-network] Services should be rejected for evicted pods (no endpoints exist) [Suite:openshift/conformance/parallel] [Suite:k8s]",               // https://issues.redhat.com/browse/OCPBUGS-57665
-		"[sig-node] Pods Extended Pod Container lifecycle evicted pods should be terminal [Suite:openshift/conformance/parallel] [Suite:k8s]",              // https://issues.redhat.com/browse/OCPBUGS-57658
+		"[sig-instrumentation] Metrics should grab all metrics from kubelet /metrics/resource endpoint [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                                  // https://issues.redhat.com/browse/OCPBUGS-57477
+		"[sig-network] Services should be rejected for evicted pods (no endpoints exist) [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                                                // https://issues.redhat.com/browse/OCPBUGS-57665
+		"[sig-node] Pods Extended Pod Container lifecycle evicted pods should be terminal [Suite:openshift/conformance/parallel] [Suite:k8s]",                                                                               // https://issues.redhat.com/browse/OCPBUGS-57658
+		"[sig-cli] Kubectl logs all pod logs the Deployment has 2 replicas and each pod has 2 containers should get logs from each pod and each container in Deployment [Suite:openshift/conformance/parallel] [Suite:k8s]", // https://issues.redhat.com/browse/OCPBUGS-61287
 	}
 	for _, rtn := range retryTestNames {
 		if test.name == rtn {
