@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -53,41 +52,40 @@ const (
 // GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
 type GinkgoRunSuiteOptions struct {
-	Parallelism int
-	Count       int
-	FailFast    bool
-	Timeout     time.Duration
-	JUnitDir    string
+	Parallelism int           `json:"parallelism"`
+	Count       int           `json:"count"`
+	FailFast    bool          `json:"failFast"`
+	Timeout     time.Duration `json:"timeout"`
+	JUnitDir    string        `json:"junitDir"`
 
 	// ShardCount is the total number of partitions the test suite is divided into.
 	// Each executor runs one of these partitions.
-	ShardCount int
+	ShardCount int `json:"shardCount"`
 
 	// ShardStrategy is which strategy we'll use for dividing tests.
-	ShardStrategy string
+	ShardStrategy string `json:"shardStrategy"`
 
 	// ShardID is the 1-based index of the shard this instance is responsible for running.
-	ShardID int
+	ShardID int `json:"shardID"`
 
 	// SyntheticEventTests allows the caller to translate events or outside
 	// context into a failure.
-	SyntheticEventTests JUnitsForEvents
+	SyntheticEventTests JUnitsForEvents `json:"-"`
 
-	ClusterStabilityDuringTest string
+	ClusterStabilityDuringTest string `json:"clusterStability"`
 
-	IncludeSuccessOutput bool
+	IncludeSuccessOutput bool `json:"-"`
 
-	CommandEnv []string
+	CommandEnv []string `json:"-"`
 
-	DryRun        bool
-	PrintCommands bool
-	genericclioptions.IOStreams
+	DryRun        bool `json:"dryRun"`
+	PrintCommands bool `json:"printCommands"`
 
-	StartTime time.Time
-
-	ExactMonitorTests   []string
-	DisableMonitorTests []string
-	Extension           *extension.Extension
+	genericclioptions.IOStreams `json:"-"`
+	StartTime                   time.Time            `json:"-"`
+	ExactMonitorTests           []string             `json:"-"`
+	DisableMonitorTests         []string             `json:"-"`
+	Extension                   *extension.Extension `json:"-"`
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -735,13 +733,28 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		fmt.Fprintf(o.Out, "Blocking test failures:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
 	}
 
+	results := &extensionResults{
+		Pass:                 pass,
+		Skip:                 skip,
+		BlockingFailures:     len(blockingFailures),
+		InformingFailures:    len(informingFailures),
+		StartTime:            o.StartTime,
+		EndTime:              end,
+		Duration:             duration,
+		EnvironmentFlags:     envFlags,
+		CIEnvironment:        fetchCIEnvironment(),
+		ClusterConfiguration: clusterConfig,
+		Suite:                suite,
+		Options:              o,
+	}
+
 	if len(o.JUnitDir) > 0 {
 		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
 		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, o.ErrOut); err != nil {
+		if err := results.write(tests, "extension_test_results", timeSuffix); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
 		}
 
@@ -779,11 +792,54 @@ func isBlockingFailure(test *testCase) bool {
 	}
 }
 
-func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
+type ciEnvironment struct {
+	BuildID   string `json:"buildID"`
+	JobName   string `json:"jobName"`
+	JobType   string `json:"jobType"`
+	ProwJobID string `json:"prowJobID"`
+
+	ReleaseImageLatest         string `json:"releaseImageLatest"`
+	OriginalReleaseImageLatest string `json:"originalReleaseImageLatest"`
+
+	ReleaseImageInitial         string `json:"releaseImageInitial"`
+	OriginalReleaseImageInitial string `json:"originalReleaseImageInitial"`
+}
+
+type extensionResults struct {
+	Total             int `json:"total"`
+	BlockingFailures  int `json:"blockingFailures"`
+	InformingFailures int `json:"informingFailures"`
+	Pass              int `json:"pass"`
+	Skip              int `json:"skip"`
+
+	EnvironmentFlags     extensions.EnvironmentFlags            `json:"environmentFlags"`
+	CIEnvironment        ciEnvironment                          `json:"ciEnvironment"`
+	ClusterConfiguration *clusterdiscovery.ClusterConfiguration `json:"clusterConfiguration"`
+	Suite                *TestSuite                             `json:"suite"`
+	Options              *GinkgoRunSuiteOptions                 `json:"options"`
+	StartTime            time.Time                              `json:"startTime"`
+	EndTime              time.Time                              `json:"endTime"`
+	Duration             time.Duration                          `json:"duration"`
+	Results              extensions.ExtensionTestResults        `json:"results"`
+}
+
+func fetchCIEnvironment() ciEnvironment {
+	return ciEnvironment{
+		BuildID:                     os.Getenv("BUILD_ID"),
+		JobName:                     os.Getenv("JOB_NAME"),
+		JobType:                     os.Getenv("JOB_TYPE"),
+		ProwJobID:                   os.Getenv("PROW_JOB_ID"),
+		ReleaseImageLatest:          os.Getenv("RELEASE_IMAGE_LATEST"),
+		OriginalReleaseImageLatest:  os.Getenv("ORIGINAL_RELEASE_IMAGE_LATEST"),
+		ReleaseImageInitial:         os.Getenv("RELEASE_IMAGE_INITIAL"),
+		OriginalReleaseImageInitial: os.Getenv("ORIGINAL_RELEASE_IMAGE_INITIAL"),
+	}
+}
+func (r *extensionResults) write(tests []*testCase, filePrefix, fileSuffix string) error {
 	// Ensure the directory exists
-	err := os.MkdirAll(dir, 0755)
+	err := os.MkdirAll(r.Options.JUnitDir, 0755)
 	if err != nil {
-		fmt.Fprintf(out, "Failed to create directory %s: %v\n", dir, err)
+		fmt.Fprintf(r.Options.ErrOut, "Failed to create directory %s: %v\n", r.Options.JUnitDir, err)
 		return err
 	}
 
@@ -794,27 +850,28 @@ func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix st
 			results = append(results, test.extensionTestResult)
 		}
 	}
+	r.Results = results
 
 	// Marshal results to JSON
-	data, err := json.MarshalIndent(results, "", "  ")
+	data, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
-		fmt.Fprintf(out, "Failed to marshal test results to JSON: %v\n", err)
+		fmt.Fprintf(r.Options.ErrOut, "Failed to marshal test results to JSON: %v\n", err)
 		return err
 	}
 
 	// Write JSON data to file
-	filePath := filepath.Join(dir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
+	filePath := filepath.Join(r.Options.JUnitDir, fmt.Sprintf("%s_%s.json", filePrefix, fileSuffix))
 	file, err := os.Create(filePath)
 	if err != nil {
-		fmt.Fprintf(out, "Failed to create file %s: %v\n", filePath, err)
+		fmt.Fprintf(r.Options.ErrOut, "Failed to create file %s: %v\n", filePath, err)
 		return err
 	}
 	defer file.Close()
 
-	fmt.Fprintf(out, "Writing extension test results JSON to %s\n", filePath)
+	fmt.Fprintf(r.Options.ErrOut, "Writing extension test results JSON to %s\n", filePath)
 	_, err = file.Write(data)
 	if err != nil {
-		fmt.Fprintf(out, "Failed to write to file %s: %v\n", filePath, err)
+		fmt.Fprintf(r.Options.ErrOut, "Failed to write to file %s: %v\n", filePath, err)
 		return err
 	}
 
