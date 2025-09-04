@@ -140,6 +140,7 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 		"-i", "any", // Capture on all interfaces
 		"-s", "256", // Capture first 256 bytes of each packet
 		"-w", pcapFile, // Write to file
+		"-u", "root", // Running as root
 		"tcp", "and", "port", "80", // Filter for HTTP traffic
 	}
 
