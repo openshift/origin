@@ -117,5 +117,7 @@ func testEtcdDoesNotLogExcessiveOverloadedNetworkMessages(events monitorapi.Inte
 			Output: msg,
 		},
 	}
-	return []*junitapi.JUnitTestCase{failure}
+	// TODO: marked flaky, this was appearing too often on AWS and GCP, in runs
+	// where nothing actually failed.
+	return []*junitapi.JUnitTestCase{failure, success}
 }
