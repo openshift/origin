@@ -251,7 +251,7 @@ Channel: test-channel [(]available channels: other-channel, test-channel[)]
 Update to 4[.][0-9]*[.]0 Recommended=False:
 Image: example.com/test@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
-Reason: (accepted TestRiskA via ConditionalUpdateRisk|MultipleReasons)
+Reason: accepted (TestRiskA|MultipleReasons) via ConditionalUpdateRisk
 Message: (?s:.*)This is a test risk[.] https://example.com/testRiskA
 Update to 4[.][0-9]*[.]0 has no known issues relevant to this cluster other than the accepted ConditionalUpdateRisk.`)
 				o.Expect(err).NotTo(o.HaveOccurred())
