@@ -260,12 +260,17 @@ func (p *parser) parseControlPlaneOperators() ([]string, error) {
 	var operators []string
 
 	for {
-		line, done := p.next()
+		line, done := p.next(preserveLeadingWhitespace)
 		if done || line == "" {
 			break
 		}
-
-		operators = append(operators, line)
+		trimLeft := strings.TrimLeft(line, " \t")
+		if len(operators) == 0 || line == trimLeft {
+			operators = append(operators, line)
+		} else {
+			last := len(operators) - 1
+			operators[last] = fmt.Sprintf("%s\n%s", operators[last], trimLeft)
+		}
 	}
 
 	if len(operators) == 0 {
