@@ -16,11 +16,10 @@ import (
 	"syscall"
 	"time"
 
-	originVersion "github.com/openshift/origin/pkg/version"
-
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	originVersion "github.com/openshift/origin/pkg/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
@@ -34,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	exutil "github.com/openshift/origin/test/extended/util"
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
@@ -78,23 +76,53 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
 	}
 
-	// Apply annotations to test names
+	// Apply annotations to test names only for upstream tests
 	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-		// we need to ensure the default path always annotates both
-		// origin and k8s tests accordingly, since each of these
-		// currently have their own annotations which are not
-		// merged anywhere else but applied here
-		if append, ok := origingenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
 		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
 			spec.Name += append
 		}
 	})
 
+	klog.Infof("Found %d test specs", len(specs))
 	// Filter out kube tests, vendor filtering isn't working within origin
 	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
 		return !strings.Contains(spec.Name, "[Suite:k8s")
+	})
+	klog.Infof("%d test specs remain, after filtering out k8s", len(specs))
+
+	// Filter out tests that are always disabled based on name matching
+	specs = filterOutDisabledSpecs(specs)
+	// Add environment selectors that include or exclude tests in specific environments
+	addEnvironmentSelectors(specs)
+	addLabelsToSpecs(specs)
+
+	// Append suite info to the test names where relevant
+	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
+		// Don't add suite info to the name if it is already present
+		if strings.Contains(spec.Name, "[Suite:") {
+			return
+		}
+		// If the name contains any of the Excluded patterns, don't add any suite info
+		for _, exclusion := range ExcludedTests {
+			if strings.Contains(spec.Name, exclusion) {
+				return
+			}
+		}
+		isSerial := strings.Contains(spec.Name, "[Serial]") || spec.Labels.Has("[Serial]")
+		isConformance := strings.Contains(spec.Name, "[Conformance]") || spec.Labels.Has("[Conformance]")
+		var suite string
+		switch {
+		case isSerial && isConformance:
+			suite = " [Suite:openshift/conformance/serial/minimal]"
+		case isSerial:
+			suite = " [Suite:openshift/conformance/serial]"
+		case isConformance:
+			suite = " [Suite:openshift/conformance/parallel/minimal]"
+		default:
+			suite = " [Suite:openshift/conformance/parallel]"
+		}
+		klog.Infof("%q : %q", spec.Name, spec.Name+suite) //TODO: only for verification/rename purposes. do not merge
+		spec.Name += suite
 	})
 
 	specs.AddBeforeAll(func() {
