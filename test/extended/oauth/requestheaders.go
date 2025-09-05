@@ -66,8 +66,33 @@ var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [I
 		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
 		// of this test might flaky. This check ensures that we capture such situation early and
 		// investigate why it wasn't ready before this test.
-		e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
-		waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
+		// If cluster is Hypershift, skip the test if it's specifically ARO HCP given CAO is not running
+		// in Hypershift management cluster
+		ctx := context.Background()
+		isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+		if isHypershift {
+			_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
+			// List deployments with the correct label that actually exists on the deployment
+			deployments, err := managementOC.AdminKubeClient().AppsV1().Deployments(hcpNamespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "hypershift.openshift.io/managed-by=control-plane-operator",
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			var isCPODeployment bool
+			for _, deployment := range deployments.Items {
+				// Look for the control-plane-operator container directly in the deployment spec
+				for _, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == "control-plane-operator" {
+						isCPODeployment = true
+					}
+				}
+			}
+			o.Expect(isCPODeployment).To(o.Equal(true), "control-plane-operator deployment exists")
+		} else {
+			e2e.Logf("Ensuring CAO is available==True, progressing==False, degraded==False")
+			waitForAuthenticationProgressing(oc, configv1.ConditionFalse)
+		}
 
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
