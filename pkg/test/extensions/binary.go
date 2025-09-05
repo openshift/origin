@@ -42,6 +42,12 @@ import (
 func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extension.Extension, error) {
 	// Create the origin extension
 	ov := originVersion.Get()
+	source := extension.Source{
+		Commit:       ov.GitCommit,
+		GitTreeState: ov.GitTreeState,
+		BuildDate:    ov.BuildDate,
+		SourceURL:    "https://github.com/openshift/origin",
+	}
 	originExtension := &Extension{
 		Extension: &extension.Extension{
 			Component: extension.Component{
@@ -49,15 +55,11 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 				Kind:    "payload",
 				Name:    "origin",
 			},
+			Source:     source,
 			APIVersion: extension.CurrentExtensionAPIVersion,
 		},
 		Source: Source{
-			Source: &extension.Source{
-				Commit:       ov.GitCommit,
-				GitTreeState: ov.GitTreeState,
-				BuildDate:    ov.BuildDate,
-				SourceURL:    "https://github.com/openshift/origin",
-			},
+			Source:       &source,
 			SourceBinary: os.Args[0],
 			SourceImage:  "tests",
 		},
