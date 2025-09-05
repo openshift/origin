@@ -38,9 +38,6 @@ var (
 		// used by open ldap tests
 		"quay.io/openshifttest/ldap:1.2": -1,
 
-		// used by multicast test
-		"quay.io/openshifttest/multicast:1.1": -1,
-
 		// used by oc mirror test, should be moved to publish to quay
 		"docker.io/library/registry:2.8.0-beta.1": -1,
 
