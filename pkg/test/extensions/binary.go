@@ -121,6 +121,7 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 		default:
 			suite = " [Suite:openshift/conformance/parallel]"
 		}
+		klog.Infof("%q : %q", spec.Name, spec.Name+suite) //TODO: only for verification/rename purposes. do not merge
 		spec.Name += suite
 	})
 
