@@ -22,6 +22,7 @@ import (
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
+	cluster_health_check "github.com/openshift/origin/pkg/cmd/openshift-tests/health-check"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
@@ -100,6 +101,7 @@ func main() {
 		monitor.NewMonitorCommand(ioStreams),
 		disruption.NewDisruptionCommand(ioStreams),
 		risk_analysis.NewTestFailureRiskAnalysisCommand(),
+		cluster_health_check.NewTestFailureClusterHealthCheckCommand(),
 		run_resource_watch.NewRunResourceWatchCommand(),
 		timeline.NewTimelineCommand(ioStreams),
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
