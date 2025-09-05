@@ -61,7 +61,7 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 			if event.Source == monitorapi.SourceNodeMonitor {
 				nodeStateTracker.OpenInterval(nodeLocator, notReadyState, event.From)
 			}
-		case "Ready":
+		case "Ready", monitorapi.NodeDeleted:
 			if event.Source == monitorapi.SourceNodeMonitor {
 				mb := monitorapi.NewMessage().Reason(monitorapi.NodeNotReadyReason).
 					HumanMessage("node is not ready").
