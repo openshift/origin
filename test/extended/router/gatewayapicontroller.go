@@ -258,16 +258,32 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 		g.By("Confirm istio is healthy and contains the env variable")
 		waitForIstioHealthy(oc)
-		istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(istioEnv).To(o.ContainSubstring(`ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`))
+		waitIstioErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if strings.Contains(istioEnv, `ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`) {
+				e2e.Logf("GIE has been enabled, and the env variable is present in Istio resource")
+				return true, nil
+			}
+			e2e.Logf("GIE env variable is not present, retrying...")
+			return false, nil
+		})
+		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to have GIE env variable")
 
 		g.By("Uninstall the GIE CRD and confirm the env variable is removed")
 		err = oc.AsAdmin().Run("delete").Args("-f", infPoolCRD).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		istioEnv, err = oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(istioEnv).NotTo(o.ContainSubstring(`ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`))
+		waitIstioErr = wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if strings.Contains(istioEnv, `ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`) {
+				e2e.Logf("GIE env variable is still present, trying again...")
+				return false, nil
+			}
+			e2e.Logf("GIE env variable has been removed from the Istio resource")
+			return true, nil
+		})
+		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to remove GIE env variable")
 	})
 })
 
