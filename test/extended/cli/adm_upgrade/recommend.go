@@ -240,7 +240,7 @@ Updates to 4[.][0-9]*:
 				o.Expect(oc.Run("config", "set-credentials").Args("test", "--token", token).Execute()).To(o.Succeed())
 				o.Expect(oc.Run("config", "set-context").Args("--current", "--user", "test").Execute()).To(o.Succeed())
 
-				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
+				out, err := oc.Run("--certificate-authority", caBundleFilePath, "adm", "upgrade", "recommend", "--version", fmt.Sprintf("4.%d.0", currentVersion.Minor+1), "--accept", "ConditionalUpdateRisk,Failing").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_PRECHECK", "true").EnvVar("OC_ENABLE_CMD_UPGRADE_RECOMMEND_ACCEPT", "true").Output()
 
 				o.Expect(err).NotTo(o.HaveOccurred())
 				err = matchRegexp(out, `The following conditions found no cause for concern in updating this cluster to later releases.*
@@ -253,7 +253,7 @@ Image: example.com/test@sha256:ccccccccccccccccccccccccccccccccccccccccccccccccc
 Release URL: https://example.com/release/4[.][0-9]*[.]0
 Reason: accepted (TestRiskA|MultipleReasons) via ConditionalUpdateRisk
 Message: (?s:.*)This is a test risk[.] https://example.com/testRiskA
-Update to 4[.][0-9]*[.]0 has no known issues relevant to this cluster other than the accepted ConditionalUpdateRisk.`)
+Update to 4[.][0-9]*[.]0 has no known issues relevant to this cluster other than the accepted ConditionalUpdateRisk(|,Failing).`)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 		})
