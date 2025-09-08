@@ -291,6 +291,60 @@ func TestMonitorApiIntervals(t *testing.T) {
 				To:   utility.SystemdJournalLogTime("Apr 12 11:49:50.188086", time.Now().Year()),
 			},
 		},
+		{
+			name:          "systemd coredump haproxy",
+			logLine:       `Apr 15 14:23:12.456789 ci-op-test-worker-node-123 systemd-coredump[1234]: Process 7798 (haproxy) of user 1000680000 dumped core.`,
+			generatorFunc: intervalsFromSystemdCoreDumpLogs,
+			want: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Warning,
+					Locator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypeNode,
+						Keys: map[monitorapi.LocatorKey]string{
+							"node": "testName",
+						},
+					},
+					Message: monitorapi.Message{
+						Reason:       monitorapi.ReasonProcessDumpedCore,
+						Cause:        "",
+						HumanMessage: "Process 7798 (haproxy) of user 1000680000 dumped core.",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							"reason":  string(monitorapi.ReasonProcessDumpedCore),
+							"process": "haproxy",
+						},
+					},
+				},
+				From: utility.SystemdJournalLogTime("Apr 15 14:23:12.456789", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("Apr 15 14:23:13.456789", time.Now().Year()),
+			},
+		},
+		{
+			name:          "systemd coredump mysqld",
+			logLine:       `May 10 09:15:33.789012 ci-op-test-master-node-456 systemd-coredump[5678]: Process 12345 (mysqld) of user 999 dumped core.`,
+			generatorFunc: intervalsFromSystemdCoreDumpLogs,
+			want: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Warning,
+					Locator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypeNode,
+						Keys: map[monitorapi.LocatorKey]string{
+							"node": "testName",
+						},
+					},
+					Message: monitorapi.Message{
+						Reason:       monitorapi.ReasonProcessDumpedCore,
+						Cause:        "",
+						HumanMessage: "Process 12345 (mysqld) of user 999 dumped core.",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							"process": "mysqld",
+							"reason":  string(monitorapi.ReasonProcessDumpedCore),
+						},
+					},
+				},
+				From: utility.SystemdJournalLogTime("May 10 09:15:33.789012", time.Now().Year()),
+				To:   utility.SystemdJournalLogTime("May 10 09:15:34.789012", time.Now().Year()),
+			},
+		},
 	}
 
 	for _, tc := range testcase {
@@ -980,4 +1034,212 @@ func TestNodeLeaseClusters(t *testing.T) {
 		})
 	}
 
+}
+
+func Test_processCoreDump(t *testing.T) {
+	nodeLocator := monitorapi.NewLocator().NodeFromName("testNode")
+
+	type args struct {
+		logLine     string
+		nodeLocator monitorapi.Locator
+	}
+	tests := []struct {
+		name string
+		args args
+		want monitorapi.Intervals
+	}{
+		{
+			name: "haproxy core dump",
+			args: args{
+				logLine:     `Apr 15 14:23:12.456789 ci-op-test-worker-node-123 systemd-coredump[1234]: Process 7798 (haproxy) of user 1000680000 dumped core.`,
+				nodeLocator: nodeLocator,
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testNode",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.ReasonProcessDumpedCore,
+							Cause:        "",
+							HumanMessage: "Process 7798 (haproxy) of user 1000680000 dumped core.",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								"process": "haproxy",
+								"reason":  string(monitorapi.ReasonProcessDumpedCore),
+							},
+						},
+					},
+					Source:  monitorapi.SourceSystemdCoreDumpLog,
+					Display: true,
+					From:    utility.SystemdJournalLogTime("Apr 15 14:23:12.456789", time.Now().Year()),
+					To:      utility.SystemdJournalLogTime("Apr 15 14:23:13.456789", time.Now().Year()),
+				},
+			},
+		},
+		{
+			name: "mysqld core dump",
+			args: args{
+				logLine:     `May 10 09:15:33.789012 ci-op-test-master-node-456 systemd-coredump[5678]: Process 12345 (mysqld) of user 999 dumped core.`,
+				nodeLocator: nodeLocator,
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testNode",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.ReasonProcessDumpedCore,
+							Cause:        "",
+							HumanMessage: "Process 12345 (mysqld) of user 999 dumped core.",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								"process": "mysqld",
+								"reason":  string(monitorapi.ReasonProcessDumpedCore),
+							},
+						},
+					},
+					Source:  monitorapi.SourceSystemdCoreDumpLog,
+					Display: true,
+					From:    utility.SystemdJournalLogTime("May 10 09:15:33.789012", time.Now().Year()),
+					To:      utility.SystemdJournalLogTime("May 10 09:15:34.789012", time.Now().Year()),
+				},
+			},
+		},
+		{
+			name: "process with hyphen in name",
+			args: args{
+				logLine:     `Jun 20 16:45:21.123456 test-node systemd-coredump[9999]: Process 54321 (nginx-worker) of user 1001 dumped core.`,
+				nodeLocator: nodeLocator,
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testNode",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.ReasonProcessDumpedCore,
+							Cause:        "",
+							HumanMessage: "Process 54321 (nginx-worker) of user 1001 dumped core.",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								"process": "nginx-worker",
+								"reason":  string(monitorapi.ReasonProcessDumpedCore),
+							},
+						},
+					},
+					Source:  monitorapi.SourceSystemdCoreDumpLog,
+					Display: true,
+					From:    utility.SystemdJournalLogTime("Jun 20 16:45:21.123456", time.Now().Year()),
+					To:      utility.SystemdJournalLogTime("Jun 20 16:45:22.123456", time.Now().Year()),
+				},
+			},
+		},
+		{
+			name: "core dumped with no process mentioned",
+			args: args{
+				logLine:     `Jun 20 16:45:21.123456 test-node systemd-coredump[9999]: Process 54321 dumped core.`,
+				nodeLocator: nodeLocator,
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testNode",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.ReasonProcessDumpedCore,
+							Cause:        "",
+							HumanMessage: "Process 54321 dumped core.",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								"reason": string(monitorapi.ReasonProcessDumpedCore),
+							},
+						},
+					},
+					Source:  monitorapi.SourceSystemdCoreDumpLog,
+					Display: true,
+					From:    utility.SystemdJournalLogTime("Jun 20 16:45:21.123456", time.Now().Year()),
+					To:      utility.SystemdJournalLogTime("Jun 20 16:45:22.123456", time.Now().Year()),
+				},
+			},
+		},
+		{
+			name: "non-core dump log line",
+			args: args{
+				logLine:     `Apr 15 14:23:12.456789 ci-op-test-worker-node-123 systemd-coredump[1234]: Some other log message that does not mention core dumps.`,
+				nodeLocator: nodeLocator,
+			},
+			want: nil,
+		},
+		{
+			name: "core dump with stack trace on separate lines",
+			args: args{
+				logLine:     `Jul 01 12:30:45.987654 test-node systemd-coredump[1111]: Process 9876 (redis-server) of user 999 dumped core.`,
+				nodeLocator: nodeLocator,
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Warning,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testNode",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.ReasonProcessDumpedCore,
+							Cause:        "",
+							HumanMessage: "Process 9876 (redis-server) of user 999 dumped core.",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								"process": "redis-server",
+								"reason":  string(monitorapi.ReasonProcessDumpedCore),
+							},
+						},
+					},
+					Source:  monitorapi.SourceSystemdCoreDumpLog,
+					Display: true,
+					From:    utility.SystemdJournalLogTime("Jul 01 12:30:45.987654", time.Now().Year()),
+					To:      utility.SystemdJournalLogTime("Jul 01 12:30:46.987654", time.Now().Year()),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := processCoreDump(tt.args.logLine, tt.args.nodeLocator)
+			if tt.want == nil {
+				assert.Nil(t, got)
+				return
+			}
+
+			assert.NotNil(t, got, "Expected non-nil result")
+			assert.Equal(t, 1, len(got), "Expected exactly one interval")
+
+			// Compare the fields individually to avoid issues with field ordering
+			assert.Equal(t, tt.want[0].Locator, got[0].Locator)
+			assert.Equal(t, tt.want[0].Message, got[0].Message)
+			assert.Equal(t, tt.want[0].Level, got[0].Level)
+			assert.Equal(t, tt.want[0].Source, got[0].Source)
+			assert.Equal(t, tt.want[0].Display, got[0].Display)
+			assert.Equal(t, tt.want[0].From, got[0].From)
+			assert.Equal(t, tt.want[0].To, got[0].To)
+		})
+	}
 }

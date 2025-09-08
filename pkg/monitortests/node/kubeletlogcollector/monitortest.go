@@ -60,6 +60,7 @@ func (w *kubeletLogCollector) EvaluateTestsFromConstructedIntervals(ctx context.
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, nodeFailedLeaseErrorsInRapidSuccession(w.startedAt, finalIntervals)...)
 	junits = append(junits, nodeFailedLeaseErrorsBackOff(w.startedAt, finalIntervals)...)
+	junits = append(junits, testNoSystemdCoreDumps(finalIntervals)...)
 	return junits, nil
 }
 
@@ -124,4 +125,52 @@ func nodeFailedLeaseErrorsBackOff(startedAt time.Time, finalIntervals monitorapi
 	// Mark as a flake and monitor in 4.18.
 	tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	return tests
+}
+
+func testNoSystemdCoreDumps(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[Jira:\"Test Framework\"] should not find any systemd-coredump logs in system journal"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	processCount := make(map[string]int)
+
+	for _, event := range events {
+		if event.Source != monitorapi.SourceSystemdCoreDumpLog {
+			continue
+		}
+		if strings.Contains(event.Message.HumanMessage, "dumped core") {
+			processName := "unknown"
+			if event.Message.Annotations != nil {
+				if proc, exists := event.Message.Annotations["process"]; exists {
+					processName = proc
+				}
+			}
+
+			processCount[processName]++
+			msg := fmt.Sprintf("%v - Process: %s - %v", event.Locator.OldLocator(), processName, event.Message.OldMessage())
+			failures = append(failures, msg)
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	// Create summary of process failures
+	processSummary := make([]string, 0, len(processCount))
+	for process, count := range processCount {
+		processSummary = append(processSummary, fmt.Sprintf("%s: %d occurrences", process, count))
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Found %d core dumps from %d different processes. Process breakdown:\n%s\n\nDetailed events:\n%v",
+				len(failures), len(processCount), strings.Join(processSummary, "\n"), strings.Join(failures, "\n")),
+		},
+	}
+
+	// Core dumps are serious issues, but treating as flake initially to gather data
+	return []*junitapi.JUnitTestCase{failure, success}
 }
