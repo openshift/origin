@@ -1442,7 +1442,7 @@ github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo
 github.com/openshift-eng/openshift-tests-extension/pkg/junit
 github.com/openshift-eng/openshift-tests-extension/pkg/util/sets
 github.com/openshift-eng/openshift-tests-extension/pkg/version
-# github.com/openshift-kni/commatrix v0.0.4-0.20250604173218-064b4004e9fb
+# github.com/openshift-kni/commatrix v0.0.4-0.20250908084528-be292625c4bc
 ## explicit; go 1.22.0
 github.com/openshift-kni/commatrix/pkg/client
 github.com/openshift-kni/commatrix/pkg/commatrix-creator
