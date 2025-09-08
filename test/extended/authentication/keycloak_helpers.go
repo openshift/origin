@@ -10,6 +10,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	typedroutev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -316,7 +317,7 @@ func keycloakContainers() []corev1.Container {
 	return []corev1.Container{
 		{
 			Name:         "keycloak",
-			Image:        keycloakImage,
+			Image:        image.LocationFor(keycloakImage),
 			Env:          keycloakEnvVars(),
 			VolumeMounts: keycloakVolumeMounts(),
 			Ports: []corev1.ContainerPort{
