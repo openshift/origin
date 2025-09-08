@@ -111,18 +111,18 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(targets.Data.ActiveTargets)).Should(o.BeNumerically(">=", 5))
 
-		expected := sets.New[int](http.StatusUnauthorized, http.StatusForbidden)
+		expected := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 		for _, target := range targets.Data.ActiveTargets {
 			ns := target.Labels["namespace"]
 			o.Expect(ns).NotTo(o.BeEmpty())
 			if monitoringAuthTestNamespace != "" && ns != monitoringAuthTestNamespace {
 				continue
 			}
+			job := target.Labels["job"]
 			pod := target.Labels["pod"]
-			e2e.Logf("Checking via pod exec status code from the scrape url %s for pod %s/%s without authorization (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
-			err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, time.Minute, true, func(context.Context) (bool, error) {
+			err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, time.Minute, true, func(context.Context) (bool, error) {
 				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
-				e2e.Logf("The scrape url %s for pod %s/%s without authorization returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
+				e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", target.ScrapeUrl, ns, job, pod, statusCode, execError, namespacesToSkip.Has(ns))
 				if expected.Has(statusCode) {
 					return true, nil
 				}
@@ -135,8 +135,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				}
 				return false, fmt.Errorf("expecting status code %v but returned %d", expected.UnsortedList(), statusCode)
 			})
-			if err != nil && !namespacesToSkip.Has(ns) {
-				errs = append(errs, fmt.Errorf("the scrape url %s for pod %s/%s is accessible without authorization: %w", target.ScrapeUrl, ns, pod, err))
+			// Decided to ignore targets that Prometheus itself failed to scrape; may be leftovers from earlier tests.
+			// See: https://issues.redhat.com/browse/OCPBUGS-61193
+			if err != nil && target.Health == "up" && !namespacesToSkip.Has(ns) {
+				errs = append(errs, fmt.Errorf("Scraping target %s of pod %s/%s/%s is possible without auth: %w", target.ScrapeUrl, ns, job, pod, err))
 			}
 		}
 
