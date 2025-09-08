@@ -274,6 +274,12 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 					strings.Contains(condition.Message, `Waiting for Deployment`) {
 					return "csi snapshot controller is allowed to have Available=False due to CSI webhook test on two node", nil
 				}
+			case "etcd":
+				if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
+					(strings.Contains(condition.Message, `Available: Job is running`) ||
+						strings.Contains(condition.Message, `1 of 2 members are available`)) {
+					return "etcd is allowed to have Available=False during two node fencing upgrade", nil
+				}
 			}
 		}
 
