@@ -5,6 +5,10 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,6 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -80,6 +85,19 @@ type podNetworkAvalibility struct {
 	namespaceName        string
 	targetService        *corev1.Service
 	kubeClient           kubernetes.Interface
+	adminRESTConfig      *rest.Config
+}
+
+// OVNPodDebugInfo holds debugging information for an OVN pod
+type OVNPodDebugInfo struct {
+	PodName        string
+	NodeName       string
+	RestartCount   int32
+	CPUUsage       string
+	MemoryUsage    string
+	Reason         string // Why this pod was selected for debugging
+	OVSDPCTLOutput string
+	ContainerName  string
 }
 
 func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
@@ -90,6 +108,9 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 
 func (pna *podNetworkAvalibility) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	deploymentID := uuid.New().String()
+
+	// Store the admin config for later use in debugging
+	pna.adminRESTConfig = adminRESTConfig
 
 	oc := util.NewCLIWithoutNamespace("openshift-tests")
 	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec, oc)
@@ -281,7 +302,38 @@ func (pna *podNetworkAvalibility) EvaluateTestsFromConstructedIntervals(ctx cont
 }
 
 func (pna *podNetworkAvalibility) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return pna.notSupportedReason
+	if pna.notSupportedReason != nil {
+		return pna.notSupportedReason
+	}
+
+	// Collect OVN debugging information after the pod-to-pod test execution
+	debugInfo, err := pna.collectOVNDebugInfo(ctx)
+	if err != nil {
+		klog.Warningf("Failed to collect OVN debug info: %v", err)
+		// Don't fail the test if debug collection fails, just log the warning
+	}
+
+	if len(debugInfo) > 0 {
+		// Create gather-extra directory if it doesn't exist
+		gatherExtraDir := filepath.Join(storageDir, "gather-extra")
+		if err := os.MkdirAll(gatherExtraDir, 0755); err != nil {
+			klog.Warningf("Failed to create gather-extra directory: %v", err)
+			return nil
+		}
+
+		// Write OVN debug information to file
+		debugFileName := fmt.Sprintf("ovn-debug-info%s.txt", timeSuffix)
+		debugFilePath := filepath.Join(gatherExtraDir, debugFileName)
+
+		debugContent := pna.formatOVNDebugInfo(debugInfo)
+		if err := ioutil.WriteFile(debugFilePath, []byte(debugContent), 0644); err != nil {
+			klog.Warningf("Failed to write OVN debug info to file: %v", err)
+		} else {
+			klog.Infof("Successfully wrote OVN debug info to %s", debugFilePath)
+		}
+	}
+
+	return nil
 }
 
 func (pna *podNetworkAvalibility) namespaceDeleted(ctx context.Context) (bool, error) {
@@ -314,4 +366,275 @@ func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
 
 	}
 	return nil
+}
+
+// collectOVNDebugInfo collects debugging information from OVN pods
+func (pna *podNetworkAvalibility) collectOVNDebugInfo(ctx context.Context) ([]OVNPodDebugInfo, error) {
+	var debugInfos []OVNPodDebugInfo
+
+	// Get all OVN pods from openshift-ovn-kubernetes namespace
+	ovnPods, err := pna.kubeClient.CoreV1().Pods("openshift-ovn-kubernetes").List(ctx, metav1.ListOptions{
+		LabelSelector: "app=ovnkube-node",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list OVN pods: %v", err)
+	}
+
+	if len(ovnPods.Items) == 0 {
+		klog.Warningf("No OVN pods found in openshift-ovn-kubernetes namespace")
+		return debugInfos, nil
+	}
+
+	// Find pods with highest restart count
+	highestRestartPod := pna.findPodWithHighestRestartCount(ovnPods.Items)
+	if highestRestartPod != nil {
+		debugInfo, err := pna.collectDebugInfoForPod(ctx, *highestRestartPod, "highest restart count")
+		if err != nil {
+			klog.Warningf("Failed to collect debug info for highest restart pod %s: %v", highestRestartPod.Name, err)
+		} else {
+			debugInfos = append(debugInfos, *debugInfo)
+		}
+	}
+
+	// Find pods with abnormally high CPU or memory usage
+	highResourcePods := pna.findPodsWithHighResourceUsage(ctx, ovnPods.Items)
+	for _, pod := range highResourcePods {
+		debugInfo, err := pna.collectDebugInfoForPod(ctx, pod, "high resource usage")
+		if err != nil {
+			klog.Warningf("Failed to collect debug info for high resource pod %s: %v", pod.Name, err)
+		} else {
+			debugInfos = append(debugInfos, *debugInfo)
+		}
+	}
+
+	// TODO: Add logic to identify pods involved in failures based on test results
+	// For now, we'll collect from any failed pods
+	failedPods := pna.findFailedPods(ovnPods.Items)
+	for _, pod := range failedPods {
+		debugInfo, err := pna.collectDebugInfoForPod(ctx, pod, "pod failure")
+		if err != nil {
+			klog.Warningf("Failed to collect debug info for failed pod %s: %v", pod.Name, err)
+		} else {
+			debugInfos = append(debugInfos, *debugInfo)
+		}
+	}
+
+	return debugInfos, nil
+}
+
+// findPodWithHighestRestartCount finds the pod with the highest restart count
+func (pna *podNetworkAvalibility) findPodWithHighestRestartCount(pods []corev1.Pod) *corev1.Pod {
+	if len(pods) == 0 {
+		return nil
+	}
+
+	var maxRestartPod *corev1.Pod
+	maxRestarts := int32(0)
+
+	for i := range pods {
+		pod := &pods[i]
+		totalRestarts := int32(0)
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			totalRestarts += containerStatus.RestartCount
+		}
+		for _, containerStatus := range pod.Status.InitContainerStatuses {
+			totalRestarts += containerStatus.RestartCount
+		}
+
+		if totalRestarts > maxRestarts {
+			maxRestarts = totalRestarts
+			maxRestartPod = pod
+		}
+	}
+
+	// Only return if there are actual restarts
+	if maxRestarts > 0 {
+		return maxRestartPod
+	}
+	return nil
+}
+
+// findPodsWithHighResourceUsage finds pods with abnormally high CPU or memory usage
+func (pna *podNetworkAvalibility) findPodsWithHighResourceUsage(ctx context.Context, pods []corev1.Pod) []corev1.Pod {
+	var highResourcePods []corev1.Pod
+
+	// Define thresholds for high resource usage
+	cpuThreshold := resource.MustParse("500m")   // 0.5 CPU cores
+	memoryThreshold := resource.MustParse("1Gi") // 1GB memory
+
+	for _, pod := range pods {
+		// Check if pod has high resource requests/limits or is showing signs of resource pressure
+		for _, container := range pod.Spec.Containers {
+			if container.Resources.Requests != nil {
+				if cpu, ok := container.Resources.Requests[corev1.ResourceCPU]; ok {
+					if cpu.Cmp(cpuThreshold) > 0 {
+						highResourcePods = append(highResourcePods, pod)
+						break
+					}
+				}
+				if memory, ok := container.Resources.Requests[corev1.ResourceMemory]; ok {
+					if memory.Cmp(memoryThreshold) > 0 {
+						highResourcePods = append(highResourcePods, pod)
+						break
+					}
+				}
+			}
+		}
+
+		// Also check for pods that are in resource-related failure states
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionFalse {
+				if strings.Contains(condition.Reason, "OutOfMemory") ||
+					strings.Contains(condition.Reason, "OutOfCpu") ||
+					strings.Contains(condition.Message, "memory") ||
+					strings.Contains(condition.Message, "cpu") {
+					highResourcePods = append(highResourcePods, pod)
+					break
+				}
+			}
+		}
+	}
+
+	return highResourcePods
+}
+
+// findFailedPods finds pods that are in failed states
+func (pna *podNetworkAvalibility) findFailedPods(pods []corev1.Pod) []corev1.Pod {
+	var failedPods []corev1.Pod
+
+	for _, pod := range pods {
+		// Check if pod is in failed phase
+		if pod.Status.Phase == corev1.PodFailed {
+			failedPods = append(failedPods, pod)
+			continue
+		}
+
+		// Check for failed containers
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.State.Waiting != nil &&
+				(containerStatus.State.Waiting.Reason == "CrashLoopBackOff" ||
+					containerStatus.State.Waiting.Reason == "ImagePullBackOff" ||
+					containerStatus.State.Waiting.Reason == "ErrImagePull") {
+				failedPods = append(failedPods, pod)
+				break
+			}
+			if containerStatus.State.Terminated != nil && containerStatus.State.Terminated.ExitCode != 0 {
+				failedPods = append(failedPods, pod)
+				break
+			}
+		}
+
+		// Check pod conditions for failures
+		for _, condition := range pod.Status.Conditions {
+			if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionFalse {
+				if strings.Contains(condition.Reason, "Failed") ||
+					strings.Contains(condition.Reason, "Error") {
+					failedPods = append(failedPods, pod)
+					break
+				}
+			}
+		}
+	}
+
+	return failedPods
+}
+
+// collectDebugInfoForPod collects debugging information for a specific pod
+func (pna *podNetworkAvalibility) collectDebugInfoForPod(ctx context.Context, pod corev1.Pod, reason string) (*OVNPodDebugInfo, error) {
+	// Calculate total restart count
+	totalRestarts := int32(0)
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		totalRestarts += containerStatus.RestartCount
+	}
+	for _, containerStatus := range pod.Status.InitContainerStatuses {
+		totalRestarts += containerStatus.RestartCount
+	}
+
+	// Find the appropriate container (ovnkube-node or ovnkube-controller)
+	containerName := ""
+	for _, container := range pod.Spec.Containers {
+		if container.Name == "ovnkube-node" || container.Name == "ovnkube-controller" {
+			containerName = container.Name
+			break
+		}
+	}
+	if containerName == "" {
+		return nil, fmt.Errorf("no suitable OVN container found in pod %s", pod.Name)
+	}
+
+	// Collect ovs-dpctl dump-flows output
+	ovsDpctlOutput, err := pna.execInPod(ctx, pod.Namespace, pod.Name, containerName, []string{"ovs-dpctl", "dump-flows"})
+	if err != nil {
+		klog.Warningf("Failed to collect ovs-dpctl dump-flows from pod %s: %v", pod.Name, err)
+		ovsDpctlOutput = fmt.Sprintf("Failed to collect ovs-dpctl output: %v", err)
+	}
+
+	// Get resource usage information (basic info from pod status)
+	cpuUsage := "N/A"
+	memoryUsage := "N/A"
+
+	// Try to get resource usage from pod status
+	for _, container := range pod.Spec.Containers {
+		if container.Name == containerName {
+			if container.Resources.Requests != nil {
+				if cpu, ok := container.Resources.Requests[corev1.ResourceCPU]; ok {
+					cpuUsage = fmt.Sprintf("Requested: %s", cpu.String())
+				}
+				if memory, ok := container.Resources.Requests[corev1.ResourceMemory]; ok {
+					memoryUsage = fmt.Sprintf("Requested: %s", memory.String())
+				}
+			}
+			break
+		}
+	}
+
+	debugInfo := &OVNPodDebugInfo{
+		PodName:        pod.Name,
+		NodeName:       pod.Spec.NodeName,
+		RestartCount:   totalRestarts,
+		CPUUsage:       cpuUsage,
+		MemoryUsage:    memoryUsage,
+		Reason:         reason,
+		OVSDPCTLOutput: ovsDpctlOutput,
+		ContainerName:  containerName,
+	}
+
+	return debugInfo, nil
+}
+
+// execInPod executes a command in a pod and returns the output
+func (pna *podNetworkAvalibility) execInPod(ctx context.Context, namespace, podName, containerName string, command []string) (string, error) {
+	output, err := util.ExecInPodWithResult(
+		pna.kubeClient.CoreV1(),
+		pna.adminRESTConfig,
+		namespace,
+		podName,
+		containerName,
+		command,
+	)
+	return output, err
+}
+
+// formatOVNDebugInfo formats the debug information into a readable string
+func (pna *podNetworkAvalibility) formatOVNDebugInfo(debugInfos []OVNPodDebugInfo) string {
+	var result strings.Builder
+
+	result.WriteString("=== OVN Pod Debug Information ===\n")
+	result.WriteString(fmt.Sprintf("Collected at: %s\n", time.Now().Format(time.RFC3339)))
+	result.WriteString(fmt.Sprintf("Total pods analyzed: %d\n\n", len(debugInfos)))
+
+	for i, info := range debugInfos {
+		result.WriteString(fmt.Sprintf("--- Pod %d: %s ---\n", i+1, info.PodName))
+		result.WriteString(fmt.Sprintf("Node: %s\n", info.NodeName))
+		result.WriteString(fmt.Sprintf("Container: %s\n", info.ContainerName))
+		result.WriteString(fmt.Sprintf("Reason for selection: %s\n", info.Reason))
+		result.WriteString(fmt.Sprintf("Restart count: %d\n", info.RestartCount))
+		result.WriteString(fmt.Sprintf("CPU usage: %s\n", info.CPUUsage))
+		result.WriteString(fmt.Sprintf("Memory usage: %s\n", info.MemoryUsage))
+		result.WriteString("\n--- ovs-dpctl dump-flows output ---\n")
+		result.WriteString(info.OVSDPCTLOutput)
+		result.WriteString("\n\n")
+	}
+
+	return result.String()
 }
