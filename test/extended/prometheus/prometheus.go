@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"golang.org/x/sync/errgroup"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -52,7 +54,7 @@ type TelemeterClientConfig struct {
 }
 
 // Set $MONITORING_AUTH_TEST_NAMESPACE to focus on the targets from a single namespace
-var monitoringAuthTestNamespace = os.Getenv("MONITORING_AUTH_TEST_NAMESPACE")
+var namespaceUnderTest = os.Getenv("MONITORING_AUTH_TEST_NAMESPACE")
 
 var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", func() {
 	defer g.GinkgoRecover()
@@ -87,14 +89,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 
-		if namespacesToSkip.Has(monitoringAuthTestNamespace) {
-			e2e.Logf("The namespace %s is not skipped because $MONITORING_AUTH_TEST_NAMESPACE is set to it", monitoringAuthTestNamespace)
-			namespacesToSkip.Delete(monitoringAuthTestNamespace)
+		if namespacesToSkip.Has(namespaceUnderTest) {
+			e2e.Logf("The namespace %s is not skipped because $MONITORING_AUTH_TEST_NAMESPACE is set to it", namespaceUnderTest)
+			namespacesToSkip.Delete(namespaceUnderTest)
 		}
 	})
 
 	g.It("should not be accessible without auth [Serial]", func() {
-		var errs []error
+		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 
 		g.By("checking that targets reject the requests with 401 or 403")
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod-targets-authorization")
@@ -111,37 +113,50 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(targets.Data.ActiveTargets)).Should(o.BeNumerically(">=", 5))
 
-		expected := sets.New(http.StatusUnauthorized, http.StatusForbidden)
+		eg := errgroup.Group{}
+		eg.SetLimit(runtime.GOMAXPROCS(0))
+		errChan := make(chan error, len(targets.Data.ActiveTargets))
 		for _, target := range targets.Data.ActiveTargets {
-			ns := target.Labels["namespace"]
-			o.Expect(ns).NotTo(o.BeEmpty())
-			if monitoringAuthTestNamespace != "" && ns != monitoringAuthTestNamespace {
-				continue
-			}
-			job := target.Labels["job"]
-			pod := target.Labels["pod"]
-			err := wait.PollUntilContextTimeout(context.Background(), 5*time.Second, time.Minute, true, func(context.Context) (bool, error) {
-				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
-				e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", target.ScrapeUrl, ns, job, pod, statusCode, execError, namespacesToSkip.Has(ns))
-				if expected.Has(statusCode) {
-					return true, nil
+			eg.Go(func() error {
+				ns := target.Labels["namespace"]
+				o.Expect(ns).NotTo(o.BeEmpty())
+				if namespaceUnderTest != "" && ns != namespaceUnderTest {
+					return nil
 				}
-				// retry on those cases
-				if execError != nil ||
-					statusCode/100 == 5 ||
-					statusCode == http.StatusRequestTimeout ||
-					statusCode == http.StatusTooManyRequests {
-					return false, nil
-				}
-				return false, fmt.Errorf("expecting status code %v but returned %d", expected.UnsortedList(), statusCode)
-			})
-			// Decided to ignore targets that Prometheus itself failed to scrape; may be leftovers from earlier tests.
-			// See: https://issues.redhat.com/browse/OCPBUGS-61193
-			if err != nil && target.Health == "up" && !namespacesToSkip.Has(ns) {
-				errs = append(errs, fmt.Errorf("Scraping target %s of pod %s/%s/%s is possible without auth: %w", target.ScrapeUrl, ns, job, pod, err))
-			}
-		}
+				job, pod := target.Labels["job"], target.Labels["pod"]
+				err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+					statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
+					e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", target.ScrapeUrl, ns, job, pod, statusCode, execError, namespacesToSkip.Has(ns))
+					if expectedStatusCodes.Has(statusCode) {
+						return true, nil
+					}
+					// retry on those cases
+					if execError != nil ||
+						statusCode/100 == 5 ||
+						statusCode == http.StatusRequestTimeout ||
+						statusCode == http.StatusTooManyRequests {
+						return false, nil
+					}
+					return false, fmt.Errorf("expecting status code %v but returned %d", expectedStatusCodes.UnsortedList(), statusCode)
+				})
 
+				// Decided to ignore targets that Prometheus itself failed to scrape; may be leftovers from earlier tests.
+				// See: https://issues.redhat.com/browse/OCPBUGS-61193
+				if err != nil && target.Health == "up" && !namespacesToSkip.Has(ns) {
+					errChan <- fmt.Errorf("Scraping target %s of pod %s/%s/%s is probably possible without auth: %w", target.ScrapeUrl, ns, job, pod, err)
+				}
+
+				return nil
+			})
+		}
+		err = eg.Wait()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		close(errChan)
+
+		var errs []error
+		for err := range errChan {
+			errs = append(errs, err)
+		}
 		o.Expect(errs).To(o.BeEmpty())
 	})
 
