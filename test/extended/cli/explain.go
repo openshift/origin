@@ -21,7 +21,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -450,6 +449,13 @@ var (
 				pattern: `DESCRIPTION\:.*`,
 			},
 		},
+		"network.operator.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "network.operator.openshift.io", Version: "v1"},
+				field:   "operatorpkis.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+		},
 	}
 
 	// This list holds apigroups whose resources are not similar for OpenShift and MicroShift.
@@ -466,34 +472,6 @@ var (
 				field:   "securitycontextconstraints",
 				pattern: `FIELDS\:.*`,
 			},
-		},
-	}
-
-	specialNetworkingTypes = []explainExceptions{
-		{
-			gv:      schema.GroupVersion{Group: "network.operator.openshift.io", Version: "v1"},
-			field:   "operatorpkis.spec",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "clusternetworks.clusterNetworks",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "hostsubnets.subnet",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "netnamespaces.netname",
-			pattern: `DESCRIPTION\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
-			field:   "egressnetworkpolicies.spec",
-			pattern: `DESCRIPTION\:.*`,
 		},
 	}
 )
@@ -570,10 +548,6 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 				resource := strings.Split(st.field, ".")
 				delete(resourceMap, st.gv.WithResource(resource[0]))
 			}
-		}
-		for _, snt := range specialNetworkingTypes {
-			resource := strings.Split(snt.field, ".")
-			delete(resourceMap, snt.gv.WithResource(resource[0]))
 		}
 
 		e2e.Logf("These GroupVersionResources are missing proper explain test:")
@@ -667,25 +641,6 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 			})
 		}
 	}
-})
-
-var _ = g.Describe("[sig-cli] oc explain networking types", func() {
-	defer g.GinkgoRecover()
-
-	oc := exutil.NewCLI("oc-explain")
-
-	networking.InOpenShiftSDNContext(func() {
-		g.It("should contain proper fields description for special networking types", func() {
-			crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
-			for _, st := range specialNetworkingTypes {
-				e2e.Logf("Checking %s, Field=%s...", st.gv, st.field)
-				resource := strings.Split(st.field, ".")
-				gvr := st.gv.WithResource(resource[0])
-				o.Expect(verifyExplain(oc, crdClient, gvr,
-					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
-			}
-		})
-	})
 })
 
 func verifySpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource, fieldTypeNameOverrides map[string]string) error {

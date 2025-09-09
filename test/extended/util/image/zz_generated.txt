@@ -2,7 +2,6 @@
 docker.io/library/registry:2.8.0-beta.1 quay.io/openshift/community-e2e-images:e2e-docker-io-library-registry-2-8-0-beta-1-8x_YFKSuz9Xw6lZD
 quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc quay.io/openshift/community-e2e-images:e2e-quay-io-kubevirt-fedora-with-test-tooling-container-disk-20241024_891122a6fc-IycYTh-87XrXse4E
 quay.io/openshifttest/ldap:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-openshifttest-ldap-1-2-O3f5zPgtmWzEtasv
-quay.io/openshifttest/multicast:1.1 quay.io/openshift/community-e2e-images:e2e-quay-io-openshifttest-multicast-1-1-XSI8Fm3bAh556UCx
 quay.io/redhat-developer/nfs-server:1.1 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-nfs-server-1-1-dlXGfzrk5aNo8EjC
 quay.io/redhat-developer/test-build-roots2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-roots2i-1-2-gLJ7WcnS2TSllJ32
 quay.io/redhat-developer/test-build-simples2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-simples2i-1-2-thirLMR-JKplfkmE
