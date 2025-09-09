@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	defaultRetryStrategy = "once"
+	defaultRetryStrategy = "aggressive"
 
 	// Aggressive strategy constants:
 	// won't attempt to retry tests that take longer than this -
