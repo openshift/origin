@@ -13,14 +13,15 @@ const (
 	defaultRetryStrategy = "once"
 
 	// Aggressive strategy constants:
-	// won't attempt to retry tests that take longer than this
-	aggressiveMaximumTestDuration = 2 * time.Minute
+	// won't attempt to retry tests that take longer than this -
+	// openshift-tests 95th percentile is just a little over 3 minutes
+	aggressiveMaximumTestDuration = 4 * time.Minute
 	// won't attempt any retries in "catastrophic" runs > 5 failures
 	aggressiveMaxTotalTestFailures = 5
 	// will retry the test up to this many times - but could be fewer
 	aggressiveMaxRetries = 10
 	// will consider a test flaky if it fails less than this many times
-	aggressiveMinFailureThreshold = 4
+	aggressiveMinFailureThreshold = 3
 )
 
 // RetryOutcome represents the decision for a multi-retry test
@@ -182,14 +183,16 @@ func (s *AggressiveRetryStrategy) GetMaxRetries(testCase *testCase) int {
 	return s.maxRetries
 }
 
-func (s *AggressiveRetryStrategy) ShouldContinue(testCase *testCase, allAttempts []*testCase, attemptNumber int) bool {
+func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allAttempts []*testCase, attemptNumber int) bool {
 	// Stop if we've hit max attempts
 	if attemptNumber > s.maxRetries {
+		logrus.Debugf("Stopping retry: max retries %d reached for %q", attemptNumber-1, originalFailure.name)
 		return false
 	}
 
 	// Skip retries for tests that exceed duration limit
-	if testCase.duration >= aggressiveMaximumTestDuration {
+	if originalFailure.duration >= aggressiveMaximumTestDuration {
+		logrus.Debugf("Skipping retry: test duration %s exceeds limit %s", originalFailure.duration, aggressiveMaximumTestDuration)
 		return false
 	}
 
@@ -203,6 +206,20 @@ func (s *AggressiveRetryStrategy) ShouldContinue(testCase *testCase, allAttempts
 
 	// Stop retrying if we've already reached the failure threshold - we know the test will fail
 	if failureCount >= s.failureThreshold {
+		logrus.Debugf("Stopping retry: failure threshold %d reached for %q", failureCount, originalFailure.name)
+		return false
+	}
+
+	// Early termination optimization: stop if it's mathematically impossible to reach failure threshold
+	// Calculate remaining attempts and check if we can still accumulate enough failures
+	// attemptNumber is the current attempt we're considering (1-based)
+	// maxRetries includes the original attempt, so total attempts possible = maxRetries
+	remainingAttempts := s.maxRetries - attemptNumber + 1
+	maxPossibleFailures := failureCount + remainingAttempts
+
+	// If even with all remaining attempts failing, we can't reach the threshold, stop early
+	if maxPossibleFailures < s.failureThreshold {
+		logrus.Debugf("Stopping retry: mathematically impossible to reach failure threshold %d for %q", s.failureThreshold, originalFailure.name)
 		return false
 	}
 

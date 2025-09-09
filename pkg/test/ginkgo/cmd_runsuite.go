@@ -21,7 +21,6 @@ import (
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -32,6 +31,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/dataloader"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
@@ -704,10 +705,11 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 				continue
 			}
 
+			originalFailure := attempts[0]
 			lastAttempt := attempts[len(attempts)-1]
 			attemptNumber := len(attempts) + 1 // Next attempt number
 
-			if o.RetryStrategy.ShouldContinue(lastAttempt, attempts, attemptNumber) {
+			if o.RetryStrategy.ShouldContinue(originalFailure, attempts, attemptNumber) {
 				retry := lastAttempt.Retry()
 				retries = append(retries, retry)
 			} else {
