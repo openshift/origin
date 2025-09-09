@@ -794,6 +794,13 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 	}
 	failing = append(failing, stillFailing...)
 
+	// Write retry statistics to autodl file for any retry strategy (except none)
+	if o.RetryStrategy.Name() != "none" && len(o.JUnitDir) > 0 {
+		if err := writeRetryStatistics(testAttempts, o.RetryStrategy, o.JUnitDir); err != nil {
+			logrus.WithError(err).Error("Failed to write retry statistics autodl file")
+		}
+	}
+
 	// Handle skipped tests
 	if len(finalSkipped) > 0 {
 		var withoutPreconditionFailures []*testCase

@@ -3,9 +3,13 @@ package ginkgo
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/dataloader"
 	"github.com/sirupsen/logrus"
 )
 
@@ -279,4 +283,119 @@ func createRetryStrategy(name string) (RetryStrategy, error) {
 	default:
 		return nil, fmt.Errorf("unknown retry strategy: %s (available: %v)", name, getAvailableRetryStrategies())
 	}
+}
+
+// writeRetryStatistics writes retry statistics to an autodl file for BigQuery upload
+func writeRetryStatistics(testAttempts map[string][]*testCase, retryStrategy RetryStrategy, junitDir string) error {
+	if len(testAttempts) == 0 {
+		// No retries occurred, nothing to write
+		return nil
+	}
+
+	// Create the data file structure
+	dataFile := dataloader.DataFile{
+		TableName: "retry_statistics",
+		Schema: map[string]dataloader.DataType{
+			"TestName":                           dataloader.DataTypeString,
+			"RetryStrategy":                      dataloader.DataTypeString,
+			"TotalAttempts":                      dataloader.DataTypeInteger,
+			"SuccessfulAttempts":                 dataloader.DataTypeInteger,
+			"FailedAttempts":                     dataloader.DataTypeInteger,
+			"FinalOutcome":                       dataloader.DataTypeString,
+			"TotalDurationMilliseconds":          dataloader.DataTypeInteger,
+			"MaxRetriesAllowed":                  dataloader.DataTypeInteger,
+			"FirstAttemptDurationMilliseconds":   dataloader.DataTypeInteger,
+			"AverageAttemptDurationMilliseconds": dataloader.DataTypeInteger,
+
+			// Data from CI environment variables, so we don't have to join on Jobs table in BigQuery.
+			"JobName":             dataloader.DataTypeString,
+			"JobType":             dataloader.DataTypeString,
+			"PullNumber":          dataloader.DataTypeString,
+			"RepoName":            dataloader.DataTypeString,
+			"RepoOwner":           dataloader.DataTypeString,
+			"PullSha":             dataloader.DataTypeString,
+			"ReleaseImageLatest":  dataloader.DataTypeString,
+			"ReleaseImageInitial": dataloader.DataTypeString,
+		},
+		Rows: []map[string]string{},
+	}
+
+	// Process each test's retry attempts
+	for testName, attempts := range testAttempts {
+		if len(attempts) == 0 {
+			continue
+		}
+
+		// Calculate statistics
+		totalAttempts := len(attempts)
+		successfulAttempts := 0
+		failedAttempts := 0
+		var totalDuration time.Duration
+
+		for _, attempt := range attempts {
+			totalDuration += attempt.duration
+			if attempt.success {
+				successfulAttempts++
+			} else if attempt.failed {
+				failedAttempts++
+			}
+		}
+
+		// Determine final outcome using the retry strategy
+		outcome := retryStrategy.DecideOutcome(attempts)
+		var finalOutcomeStr string
+		switch outcome {
+		case RetryOutcomeFlaky:
+			finalOutcomeStr = "flaky"
+		case RetryOutcomeFail:
+			finalOutcomeStr = "failed"
+		case RetryOutcomeSkipped:
+			finalOutcomeStr = "skipped"
+		default:
+			finalOutcomeStr = "unknown"
+		}
+
+		// Get max retries allowed for this test
+		maxRetries := retryStrategy.GetMaxRetries(attempts[0])
+
+		// Calculate average attempt duration in milliseconds
+		averageDurationMs := totalDuration.Milliseconds() / int64(totalAttempts)
+
+		// Create row data
+		row := map[string]string{
+			"TestName":                           testName,
+			"RetryStrategy":                      retryStrategy.Name(),
+			"TotalAttempts":                      strconv.Itoa(totalAttempts),
+			"SuccessfulAttempts":                 strconv.Itoa(successfulAttempts),
+			"FailedAttempts":                     strconv.Itoa(failedAttempts),
+			"FinalOutcome":                       finalOutcomeStr,
+			"TotalDurationMilliseconds":          strconv.FormatInt(totalDuration.Milliseconds(), 10),
+			"MaxRetriesAllowed":                  strconv.Itoa(maxRetries),
+			"FirstAttemptDurationMilliseconds":   strconv.FormatInt(attempts[0].duration.Milliseconds(), 10),
+			"AverageAttemptDurationMilliseconds": strconv.FormatInt(averageDurationMs, 10),
+			"JobName":                            os.Getenv("JOB_NAME"),
+			"JobType":                            os.Getenv("JOB_TYPE"),
+			"PullNumber":                         os.Getenv("PULL_NUMBER"),
+			"RepoName":                           os.Getenv("REPO_NAME"),
+			"RepoOwner":                          os.Getenv("REPO_OWNER"),
+			"PullSha":                            os.Getenv("PULL_PULL_SHA"),
+			"ReleaseImageLatest":                 os.Getenv("RELEASE_IMAGE_LATEST"),
+			"ReleaseImageInitial":                os.Getenv("RELEASE_IMAGE_INITIAL"),
+		}
+
+		dataFile.Rows = append(dataFile.Rows, row)
+	}
+
+	// Generate filename with timestamp
+	timeSuffix := time.Now().UTC().Format("20060102-150405")
+	filename := filepath.Join(junitDir, fmt.Sprintf("retry-statistics-%s-"+dataloader.AutoDataLoaderSuffix, timeSuffix))
+
+	// Write the autodl file
+	err := dataloader.WriteDataFile(filename, dataFile)
+	if err != nil {
+		return fmt.Errorf("failed to write retry statistics autodl file %s: %w", filename, err)
+	}
+
+	logrus.Infof("Wrote retry statistics for %d tests to %s", len(dataFile.Rows), filename)
+	return nil
 }
