@@ -7,9 +7,11 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/image/imageutil"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,6 +53,42 @@ func New(c *client.ClientSet) UtilsInterface {
 
 func (u *utils) WriteFile(path string, data []byte) error {
 	return os.WriteFile(path, data, 0644)
+}
+
+func (u *utils) resolveImageStreamTagString(s string) (string, error) {
+	namespace, name, tag := parseImageStreamTagString(s)
+	if len(namespace) == 0 {
+		return "", fmt.Errorf("expected namespace/name:tag")
+	}
+	return u.resolveImageStreamTag(namespace, name, tag)
+}
+
+func parseImageStreamTagString(s string) (string, string, string) {
+	var namespace, nameAndTag string
+	parts := strings.SplitN(s, "/", 2)
+	switch len(parts) {
+	case 2:
+		namespace = parts[0]
+		nameAndTag = parts[1]
+	case 1:
+		nameAndTag = parts[0]
+	}
+	name, tag, _ := imageutil.SplitImageStreamTag(nameAndTag)
+	return namespace, name, tag
+}
+
+func (u *utils) resolveImageStreamTag(namespace, name, tag string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	imageStream, err := u.ImageClient.ImageStreams(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	var image string
+	if image, _, _, _, err = imageutil.ResolveRecentPullSpecForTag(imageStream, tag, false); err != nil {
+		return "", fmt.Errorf("unable to resolve the imagestream tag %s/%s:%s: %v", namespace, name, tag, err)
+	}
+	return image, nil
 }
 
 func (u *utils) CreateNamespace(namespace string) error {
@@ -110,6 +148,10 @@ func (u *utils) WaitForPodStatus(namespace string, pod *corev1.Pod, PodPhase cor
 }
 
 func (u *utils) CreatePodOnNode(nodeName, namespace, image string, command []string) (*corev1.Pod, error) {
+	image, err := u.resolveImageStreamTagString(image)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve image: %w", err)
+	}
 	pod := getPodDefinition(nodeName, namespace, image, command)
 	if err := u.Create(context.TODO(), pod); err != nil {
 		return nil, err
