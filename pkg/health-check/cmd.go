@@ -1,4 +1,4 @@
-package healthcheckpkg
+package health_check
 
 import (
 	"context"
@@ -54,44 +54,116 @@ var operatorDependencies = map[string][]string{
 	"monitoring":                   {"storage"},
 }
 
-func (opt *Options) Run() error {
-	cfg, err := e2e.LoadConfig()
-	if err != nil {
-		logrus.WithError(err).Error("kubeconfig file NOT found:")
-		return nil
+type TestManager struct {
+	suite     *junitapi.JUnitTestSuite
+	startTime time.Time
+}
+
+func NewTestManager() *TestManager {
+	return &TestManager{
+		suite: &junitapi.JUnitTestSuite{
+			Name:      "openshift-tests",
+			TestCases: []*junitapi.JUnitTestCase{},
+		},
+		startTime: time.Now(),
+	}
+}
+
+type TestCase struct {
+	objId     *junitapi.JUnitTestCase
+	startTime time.Time
+}
+
+func NewTestCase(name string) *TestCase {
+	return &TestCase{
+		objId:     &junitapi.JUnitTestCase{Name: name},
+		startTime: time.Now(),
+	}
+}
+
+func (tm *TestManager) AddTestCase(tc *TestCase, failureMsg, skipMsg string) {
+	tc.objId.Duration = time.Since(tc.startTime).Seconds()
+
+	if failureMsg != "" {
+		tc.objId.FailureOutput = &junitapi.FailureOutput{Message: failureMsg}
+		tm.suite.NumFailed++
+	} else if skipMsg != "" {
+		tc.objId.SkipMessage = &junitapi.SkipMessage{Message: skipMsg}
+		tm.suite.NumSkipped++
 	}
 
+	tm.suite.TestCases = append(tm.suite.TestCases, tc.objId)
+	tm.suite.NumTests++
+}
+
+func (tm *TestManager) GenerateReport(opt *Options) error {
+	tm.suite.Duration = time.Since(tm.startTime).Seconds()
+
+	out, err := xml.MarshalIndent(tm.suite, "", "    ")
+	if err != nil {
+		logrus.WithError(err).Error("Fail to deal with xml format:")
+		return err
+	}
+	fmt.Println(string(out))
+	if opt.JUnitDir != "" {
+		filePrefix := "cluster-health-check"
+		start := time.Now()
+		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+		path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s_%s.xml", filePrefix, timeSuffix))
+		fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
+		os.WriteFile(path, test.StripANSI(out), 0640)
+	}
+
+	return nil
+}
+
+func (opt *Options) Run() error {
+	tm := NewTestManager()
+	defer tm.GenerateReport(opt)
+
+	tcName := "Verify the cluster can be connected"
+	tc := NewTestCase(tcName)
+	cfg, err := e2e.LoadConfig()
+	if err != nil {
+		logrus.WithError(err).Error("Fail to load cluster configurations")
+		failureMsg := fmt.Sprintf("Fail to load cluster configurations: %v", err)
+		tm.AddTestCase(tc, failureMsg, "")
+		return nil
+	}
 	dc, err := dynamic.NewForConfig(cfg)
 	if err != nil {
 		logrus.WithError(err).Error("Fail to get generate dynamic client")
+		failureMsg := fmt.Sprintf("Fail to get generate dynamic client: %v", err)
+		tm.AddTestCase(tc, failureMsg, "")
 		return nil
 	}
 	cs, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		logrus.WithError(err).Error("Fail to get generate client set")
+		failureMsg := fmt.Sprintf("Fail to get generate client set: %v", err)
+		tm.AddTestCase(tc, failureMsg, "")
 		return nil
 	}
-
 	logrus.Infof("Check ClusterVersion Stability...")
-	if err := checkClusterVersionStable(dc); err != nil {
-		logrus.Warnf("Continue though cluster version stability check failed (%v)", err)
+	ret, err := checkClusterVersionStable(dc)
+	if ret == -1 {
+		failureMsg := fmt.Sprintf("Fail to connect cluster API: %v", err)
+		tm.AddTestCase(tc, failureMsg, "")
+		return nil
 	}
-
-	suite := &junitapi.JUnitTestSuite{
-		Name:      "Cluster Health Check",
-		TestCases: []*junitapi.JUnitTestCase{},
+	if err != nil {
+		logrus.Warnf("Continue though cluster version stability check failed (%v)", err)
 	}
 
 	// ======================================================
 	// ===== Consistency check between machine and node =====
 	// ======================================================
-	checkMachineNodeConsistency(cs, dc, suite)
+	checkMachineNodeConsistency(cs, dc, tm)
 
 	// ======================================================
 	// =========== Check cluster operators health ===========
 	// ======================================================
 	logrus.Infof("Checking Cluster Operators...")
-
 	coc := dc.Resource(schema.GroupVersionResource{
 		Group:    "config.openshift.io",
 		Resource: "clusteroperators",
@@ -102,7 +174,6 @@ func (opt *Options) Run() error {
 		logrus.WithError(err).Error("Failed to list clusteroperators")
 		return nil
 	}
-
 	// save all the operators items to futher querying
 	operatorsMap := make(map[string]objx.Map)
 	items := objects(objx.Map(clusterOperatorsObj.UnstructuredContent()).Get("items"))
@@ -110,33 +181,27 @@ func (opt *Options) Run() error {
 		name := item.Get("metadata.name").String()
 		operatorsMap[name] = item
 	}
-
 	// ===== stage 1: create a ordered operator list =====
 	finalOperatorDependencies := expandDependencies(operatorDependencies)
-
 	// get all core operators, all the keys in the operatorDependencies map
 	var coreOperators []string
 	for op := range finalOperatorDependencies {
 		coreOperators = append(coreOperators, op)
 	}
 	sort.Strings(coreOperators)
-
 	// sort core operators by topological order
 	sortedCoreOperators, err := TopologicalSort(coreOperators, finalOperatorDependencies)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to sort core operators")
 		return nil
 	}
-
 	logrus.Infof("Core operators will be checked in order:\n%s", strings.Join(sortedCoreOperators, "\n"))
-
 	// Per sorted core operators, consume each operator from operatorsMap
 	// meantime, mark it if it is core operator
 	var finalOperators []struct {
 		Name string
 		Op   objx.Map
 	}
-
 	for _, opName := range sortedCoreOperators {
 		if op, exists := operatorsMap[opName]; exists {
 			finalOperators = append(finalOperators, struct {
@@ -153,7 +218,6 @@ func (opt *Options) Run() error {
 			}{Name: opName, Op: nil})
 		}
 	}
-
 	// append all the left operators to finalOperators
 	for opName, op := range operatorsMap {
 		finalOperators = append(finalOperators, struct {
@@ -161,22 +225,18 @@ func (opt *Options) Run() error {
 			Op   objx.Map
 		}{Name: opName, Op: op})
 	}
-
 	logrus.Infof("Final operator list has %d items (%d core + %d additional)", len(finalOperators), len(sortedCoreOperators), len(operatorsMap))
-
 	// ===== stage 2: check each operator per the ordered list =====
 	var failedOperators = make(map[string]bool)
-	tcNamePrefix := "operator conditions"
-
+	tcNamePrefix := "verify operator conditions"
 	for _, item := range finalOperators {
 		opName := item.Name
 		op := item.Op
 		tcName := fmt.Sprintf("%s %s", tcNamePrefix, opName)
+		tc = NewTestCase(tcName)
 		var skipMsg string
 		var failureMsg string
-
 		logrus.Infof("Checking %s.........", opName)
-
 		// when the core operator does not exist in the cluster, skip it
 		if op == nil {
 			skipMsg = fmt.Sprintf("Operator %q not found in the cluster, skipping", opName)
@@ -196,10 +256,9 @@ func (opt *Options) Run() error {
 		// authentication depends on ingress, while ingress failed
 		// C depends on A, B, while both A and B failed.
 		if skipMsg != "" {
-			tcAppend(suite, tcName, "", skipMsg)
+			tm.AddTestCase(tc, "", skipMsg)
 			continue
 		}
-
 		// check operator status
 		availableCond := condition(op, "Available")
 		available := availableCond.Get("status").String()
@@ -207,33 +266,15 @@ func (opt *Options) Run() error {
 		degraded := degradedCond.Get("status").String()
 		progressingCond := condition(op, "Progressing")
 		progressing := progressingCond.Get("status").String()
-
 		if available == "True" && degraded == "False" && progressing == "False" {
 			logrus.Infof("%s PASSed", opName)
-			tcAppend(suite, tcName, "", "")
+			tm.AddTestCase(tc, "", "")
 		} else {
 			failureMsg = fmt.Sprintf("Operator %q - Available=%s, Degraded=%s, Progressing=%s", opName, available, degraded, progressing)
 			logrus.Infof("%s", failureMsg)
-			tcAppend(suite, tcName, failureMsg, "")
+			tm.AddTestCase(tc, failureMsg, "")
 			failedOperators[opName] = true
 		}
-	}
-
-	suite.NumTests = uint(len(suite.TestCases))
-
-	out, err := xml.MarshalIndent(suite, "", "    ")
-	if err != nil {
-		logrus.WithError(err).Error("Fail to deal with xml format:")
-		return nil
-	}
-	fmt.Println(string(out))
-	if opt.JUnitDir != "" {
-		filePrefix := "cluster-health-check"
-		start := time.Now()
-		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
-		path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s_%s.xml", filePrefix, timeSuffix))
-		fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
-		os.WriteFile(path, test.StripANSI(out), 0640)
 	}
 
 	return nil
@@ -269,13 +310,11 @@ func (opt *Options) Run() error {
 //		"A":        {"B", "C"},
 //	}
 func expandDependencies(manualDeps map[string][]string) map[string][]string {
+	// coreSet will contain all operators mentioned in the manual dependencies,
+	// both as keys (operators) and as values (dependencies).
 	coreSet := make(map[string]bool)
-
-	for op := range manualDeps {
+	for op, deps := range manualDeps {
 		coreSet[op] = true
-	}
-
-	for _, deps := range manualDeps {
 		for _, dep := range deps {
 			coreSet[dep] = true
 		}
@@ -283,10 +322,14 @@ func expandDependencies(manualDeps map[string][]string) map[string][]string {
 
 	finalDeps := make(map[string][]string)
 
+	// For each operator in our set, we will calculate all its upstream dependencies.
 	for op := range coreSet {
 		var allDeps []string
 		if _, exists := manualDeps[op]; exists {
 			allDeps = getAllUpstreamDependencies(op, manualDeps)
+		}
+		if allDeps == nil {
+			allDeps = []string{}
 		}
 		finalDeps[op] = allDeps
 	}
@@ -388,7 +431,7 @@ func stringInSlice(str string, slice []string) bool {
 	return false
 }
 
-func checkClusterVersionStable(dc dynamic.Interface) error {
+func checkClusterVersionStable(dc dynamic.Interface) (int, error) {
 	cvc := dc.Resource(schema.GroupVersionResource{
 		Group:    "config.openshift.io",
 		Resource: "clusterversions",
@@ -398,7 +441,7 @@ func checkClusterVersionStable(dc dynamic.Interface) error {
 	obj, err := cvc.Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		logrus.WithError(err).Error("Fail to get cluster version:")
-		return err
+		return -1, err
 	}
 
 	cv := objx.Map(obj.UnstructuredContent())
@@ -406,27 +449,28 @@ func checkClusterVersionStable(dc dynamic.Interface) error {
 	if cond := condition(cv, "Available"); cond.Get("status").String() != "True" {
 		err := fmt.Errorf("clusterversion not available")
 		logrus.WithError(err).Errorf("ClusterVersion Available=%s", getInfoFromCondition(cond))
-		return err
+		return 1, err
 	}
 	if cond := condition(cv, "Failing"); cond.Get("status").String() != "False" {
 		err := fmt.Errorf("clusterversion is failing")
 		logrus.WithError(err).Errorf("ClusterVersion Failing=%s", getInfoFromCondition(cond))
-		return err
+		return 1, err
 	}
 	if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
 		err := fmt.Errorf("clusterversion is progressing")
 		logrus.WithError(err).Errorf("ClusterVersion Progressing=%s", getInfoFromCondition(cond))
-		return err
+		return 1, err
 	}
 
-	return nil
+	return 0, nil
 }
 
-func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Interface, suite *junitapi.JUnitTestSuite) {
+func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Interface, tm *TestManager) {
 	logrus.Info("Starting Machine and Node consistency check")
 
 	// ===== Case 1 =====
-	tcName := "all machines should be in Running state"
+	tcName := "verify all machines should be in Running state"
+	tc := NewTestCase(tcName)
 	machineClient := dc.Resource(schema.GroupVersionResource{
 		Group:    "machine.openshift.io",
 		Version:  "v1beta1",
@@ -436,7 +480,7 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 	machineList, err := machineClient.Namespace("openshift-machine-api").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		message := fmt.Sprintf("Could not list machines: %v. The Machine API might not be available.", err)
-		tcAppend(suite, tcName, message, "")
+		tm.AddTestCase(tc, message, "")
 		// not retrun on purpose, so that continue to run other cases
 	}
 
@@ -455,15 +499,15 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 		}
 
 		if len(notRunningMachines) == 0 {
-			tcAppend(suite, tcName, "", "")
+			tm.AddTestCase(tc, "", "")
 		} else {
 			message := fmt.Sprintf("Found %d out of %d Machines not in Running state: ", len(notRunningMachines), len(machineList.Items))
 			message += strings.Join(notRunningMachines, " ")
-			tcAppend(suite, tcName, message, "")
+			tm.AddTestCase(tc, message, "")
 		}
 	} else {
 		message := "No Machines found or could not retrieve list. Skipping Machine check."
-		tcAppend(suite, tcName, "", message)
+		tm.AddTestCase(tc, "", message)
 	}
 
 	if len(notRunningMachines) > 0 {
@@ -471,34 +515,35 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 	}
 
 	// ===== Case 2 =====
-	tcName = "all nodes should be ready"
+	tcName = "verify all nodes should be ready"
+	tc = NewTestCase(tcName)
 	nodeList, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		message := fmt.Sprintf("Failed to list nodes: %v.", err)
-		tcAppend(suite, tcName, message, "")
+		tm.AddTestCase(tc, message, "")
 		return
 	}
 
 	notReadyNodes := getUnreadyOrUnschedulableNodeNames(nodeList)
 
 	if len(notReadyNodes) == 0 {
-		tcAppend(suite, tcName, "", "")
+		tm.AddTestCase(tc, "", "")
 	} else {
 		message := fmt.Sprintf("Found %d out of %d Nodes not Ready or unscheduable: ", len(notReadyNodes), len(nodeList.Items))
 		message += strings.Join(notReadyNodes, " ")
-		tcAppend(suite, tcName, message, "")
+		tm.AddTestCase(tc, message, "")
 	}
 
 	// ===== Case 3 =====
-	tcName = "node count should match or exceed machine count"
-
+	tcName = "verify node count should match or exceed machine count"
+	tc = NewTestCase(tcName)
 	totalNodeCount := len(nodeList.Items)
 	readyNodeCount := totalNodeCount - len(notReadyNodes)
 	logrus.Infof("Found %d Ready and Scheduable Nodes out of %d total Nodes", readyNodeCount, totalNodeCount)
 
 	if readyNodeCount >= runningMachineCount {
 		logrus.Infof("Ready and Scheduable Nodes count (%d) >= Running Machine count (%d). Check passed.", readyNodeCount, runningMachineCount)
-		tcAppend(suite, tcName, "", "")
+		tm.AddTestCase(tc, "", "")
 	} else {
 		message := fmt.Sprintf("Ready and Scheduable Nodes count (%d) is less than Running Machine count (%d): ", readyNodeCount, runningMachineCount)
 		message += "Ready and Scheduable Nodes:"
@@ -515,23 +560,8 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 				message += fmt.Sprintf(" %s ", machine.GetName())
 			}
 		}
-		tcAppend(suite, tcName, message, "")
+		tm.AddTestCase(tc, message, "")
 	}
-}
-
-func tcAppend(suite *junitapi.JUnitTestSuite, tcName string, tcFailureMsg string, tcSkipMsg string) {
-	//suite.NumTests++
-	tc := &junitapi.JUnitTestCase{
-		Name: tcName,
-	}
-	if tcFailureMsg != "" {
-		tc.FailureOutput = &junitapi.FailureOutput{Message: tcFailureMsg}
-		suite.NumFailed++
-	} else if tcSkipMsg != "" {
-		tc.SkipMessage = &junitapi.SkipMessage{Message: tcSkipMsg}
-		suite.NumSkipped++
-	}
-	suite.TestCases = append(suite.TestCases, tc)
 }
 
 // GetUnreadyOrUnschedulableNodeNames returns a list of node names that are

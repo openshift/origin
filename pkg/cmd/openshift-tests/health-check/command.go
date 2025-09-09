@@ -1,4 +1,4 @@
-package healthcheckpkg
+package health_check
 
 import (
 	healthcheck "github.com/openshift/origin/pkg/health-check"
