@@ -17,7 +17,7 @@ const (
 	// openshift-tests 95th percentile is just a little over 3 minutes
 	aggressiveMaximumTestDuration = 4 * time.Minute
 	// won't attempt any retries in "catastrophic" runs > 5 failures
-	aggressiveMaxTotalTestFailures = 5
+	aggressiveMaxDistinctTestFailures = 5
 	// will retry the test up to this many times - but could be fewer
 	aggressiveMaxRetries = 10
 	// will consider a test flaky if it fails less than this many times
@@ -49,10 +49,10 @@ type RetryStrategy interface {
 	GetMaxRetries(testCase *testCase) int
 
 	// ShouldContinue determines if we continue retrying. Allows for early termination of retries.
-	ShouldContinue(testCase *testCase, allAttempts []*testCase, attemptNumber int) bool
+	ShouldContinue(testCase *testCase, allAttempts []*testCase, nextAttemptNumber int) bool
 
 	// DecideOutcome reports the final result of all attempts.
-	DecideOutcome(testName string, attempts []*testCase) RetryOutcome
+	DecideOutcome(attempts []*testCase) RetryOutcome
 }
 
 type RetryOnceStrategy struct {
@@ -80,8 +80,8 @@ func (s *RetryOnceStrategy) GetMaxRetries(testCase *testCase) int {
 	return 0
 }
 
-func (s *RetryOnceStrategy) ShouldContinue(testCase *testCase, allAttempts []*testCase, attemptNumber int) bool {
-	if attemptNumber > 2 {
+func (s *RetryOnceStrategy) ShouldContinue(testCase *testCase, allAttempts []*testCase, nextAttemptNumber int) bool {
+	if nextAttemptNumber > 2 {
 		return false
 	}
 
@@ -95,7 +95,7 @@ func (s *RetryOnceStrategy) ShouldContinue(testCase *testCase, allAttempts []*te
 	return lastAttempt.failed
 }
 
-func (s *RetryOnceStrategy) DecideOutcome(testName string, attempts []*testCase) RetryOutcome {
+func (s *RetryOnceStrategy) DecideOutcome(attempts []*testCase) RetryOutcome {
 	for _, attempt := range attempts {
 		if attempt.skipped {
 			return RetryOutcomeSkipped
@@ -171,7 +171,7 @@ func (s *AggressiveRetryStrategy) Name() string {
 }
 
 func (s *AggressiveRetryStrategy) ShouldAttemptRetries(failing []*testCase, suite *TestSuite) bool {
-	return len(failing) > 0 && len(failing) <= aggressiveMaxTotalTestFailures
+	return len(failing) > 0 && len(failing) <= aggressiveMaxDistinctTestFailures
 }
 
 func (s *AggressiveRetryStrategy) GetMaxRetries(testCase *testCase) int {
@@ -182,10 +182,10 @@ func (s *AggressiveRetryStrategy) GetMaxRetries(testCase *testCase) int {
 	return s.maxRetries
 }
 
-func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allAttempts []*testCase, attemptNumber int) bool {
+func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allAttempts []*testCase, nextAttemptNumber int) bool {
 	// Stop if we've hit max attempts
-	if attemptNumber > s.maxRetries {
-		logrus.Debugf("Stopping retry: max retries %d reached for %q", attemptNumber-1, originalFailure.name)
+	if nextAttemptNumber > s.maxRetries {
+		logrus.Debugf("Stopping retry: max retries %d reached for %q", nextAttemptNumber-1, originalFailure.name)
 		return false
 	}
 
@@ -211,9 +211,9 @@ func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allA
 
 	// Early termination optimization: stop if it's mathematically impossible to reach failure threshold
 	// Calculate remaining attempts and check if we can still accumulate enough failures
-	// attemptNumber is the current attempt we're considering (1-based)
+	// nextAttemptNumber is the current attempt we're considering (1-based)
 	// maxRetries includes the original attempt, so total attempts possible = maxRetries
-	remainingAttempts := s.maxRetries - attemptNumber + 1
+	remainingAttempts := s.maxRetries - nextAttemptNumber + 1
 	maxPossibleFailures := failureCount + remainingAttempts
 
 	// If even with all remaining attempts failing, we can't reach the threshold, stop early
@@ -226,7 +226,7 @@ func (s *AggressiveRetryStrategy) ShouldContinue(originalFailure *testCase, allA
 	return true
 }
 
-func (s *AggressiveRetryStrategy) DecideOutcome(testName string, attempts []*testCase) RetryOutcome {
+func (s *AggressiveRetryStrategy) DecideOutcome(attempts []*testCase) RetryOutcome {
 	failureCount := 0
 	skippedCount := 0
 
@@ -253,14 +253,14 @@ func (s *AggressiveRetryStrategy) DecideOutcome(testName string, attempts []*tes
 type NoRetryStrategy struct{}
 
 func (s *NoRetryStrategy) Name() string { return "none" }
-func (s *NoRetryStrategy) ShouldAttemptRetries(failing []*testCase, suite *TestSuite) bool {
+func (s *NoRetryStrategy) ShouldAttemptRetries(_ []*testCase, _ *TestSuite) bool {
 	return false
 }
-func (s *NoRetryStrategy) GetMaxRetries(testCase *testCase) int { return 0 }
-func (s *NoRetryStrategy) ShouldContinue(testCase *testCase, allAttempts []*testCase, attemptNumber int) bool {
+func (s *NoRetryStrategy) GetMaxRetries(_ *testCase) int { return 0 }
+func (s *NoRetryStrategy) ShouldContinue(_ *testCase, _ []*testCase, _ int) bool {
 	return false
 }
-func (s *NoRetryStrategy) DecideOutcome(testName string, attempts []*testCase) RetryOutcome {
+func (s *NoRetryStrategy) DecideOutcome(_ []*testCase) RetryOutcome {
 	panic("Unexpected call to NoRetryStrategy.DecideOutcome - this should never happen")
 }
 

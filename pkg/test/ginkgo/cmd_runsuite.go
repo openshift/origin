@@ -538,7 +538,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	var flaky int
 	if o.RetryStrategy.ShouldAttemptRetries(failing, suite) {
 		logrus.Infof("Using retry strategy: %s for %d failing tests", o.RetryStrategy.Name(), fail)
-		tests, failing, flaky = o.performRetries(ctx, tests, failing, suite, testRunnerContext, testCtx, parallelism, testOutputConfig, abortFn)
+		tests, failing, flaky = o.performRetries(testCtx, tests, failing, testRunnerContext, parallelism, testOutputConfig, abortFn)
 	} else if fail > 0 {
 		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), fail)
 	}
@@ -670,9 +670,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 // performRetries implements retry behavior using the configured RetryStrategy
 // to determine retry eligibility, attempt limits, and when to stop retrying.
-func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*testCase, failing []*testCase, suite *TestSuite,
-	testRunnerContext *commandContext, testCtx context.Context, parallelism int, testOutputConfig testOutputConfig, abortFn testAbortFunc) ([]*testCase, []*testCase, int) {
-
+func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*testCase, failing []*testCase, testRunnerContext *commandContext, parallelism int, testOutputConfig testOutputConfig, abortFn testAbortFunc) ([]*testCase, []*testCase, int) {
 	// Track attempts per test name
 	testAttempts := make(map[string][]*testCase)
 
@@ -692,7 +690,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 	q := newParallelTestQueue(testRunnerContext)
 
 	// Track which tests should no longer be retried
-	completedTests := make(map[string]bool)
+	completedTests := sets.New[string]()
 
 	// Perform retry attempts using strategy to control retry behavior
 	for len(testAttempts) > len(completedTests) {
@@ -701,20 +699,20 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 		// Check each test to see if it should continue retrying
 		for testName, attempts := range testAttempts {
 			// Skip tests that are already completed
-			if completedTests[testName] {
+			if completedTests.Has(testName) {
 				continue
 			}
 
 			originalFailure := attempts[0]
 			lastAttempt := attempts[len(attempts)-1]
-			attemptNumber := len(attempts) + 1 // Next attempt number
+			nextAttemptNumber := len(attempts) + 1
 
-			if o.RetryStrategy.ShouldContinue(originalFailure, attempts, attemptNumber) {
+			if o.RetryStrategy.ShouldContinue(originalFailure, attempts, nextAttemptNumber) {
 				retry := lastAttempt.Retry()
 				retries = append(retries, retry)
 			} else {
 				// Strategy says stop retrying this test, but keep it in testAttempts for final processing
-				completedTests[testName] = true
+				completedTests.Insert(testName)
 				logrus.Infof("Strategy decided to stop retrying test %s after %d attempts", testName, len(attempts))
 			}
 		}
@@ -726,7 +724,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 		logrus.Infof("Retrying %d tests", len(retries))
 
 		// Execute retries
-		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
+		q.Execute(ctx, retries, parallelism, testOutputConfig, abortFn)
 
 		// Process results and update attempts
 		for _, retry := range retries {
@@ -748,7 +746,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 
 	for testName, attempts := range testAttempts {
 		// Use the retry strategy to determine the outcome
-		outcome := o.RetryStrategy.DecideOutcome(testName, attempts)
+		outcome := o.RetryStrategy.DecideOutcome(attempts)
 
 		switch outcome {
 		case RetryOutcomeSkipped:
@@ -765,19 +763,11 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 			}
 
 		case RetryOutcomeFail:
-			// Create rollup failure - this replaces the original test
-			successCount := 0
-			for _, attempt := range attempts {
-				if attempt.success {
-					successCount++
-				}
-			}
-			hasAnySuccess := successCount > 0
-			rollupTest := o.createSingleFailureRollupTest(testName, attempts, hasAnySuccess)
+			rollupTest := o.createSingleFailureRollupTest(testName, attempts)
 
 			// Replace original failed test with rollup test
 			for i, t := range tests {
-				if t.name == testName && t.failed {
+				if t.name == testName {
 					tests[i] = rollupTest
 					break
 				}
@@ -799,13 +789,10 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 			withoutFlakes = append(withoutFlakes, t)
 		}
 		failing = withoutFlakes
-		failing = append(failing, stillFailing...)
-
 		sort.Strings(finalFlaky)
 		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
-	} else {
-		failing = append(failing, stillFailing...)
 	}
+	failing = append(failing, stillFailing...)
 
 	// Handle skipped tests
 	if len(finalSkipped) > 0 {
@@ -842,17 +829,21 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 
 // createSingleFailureRollupTest creates a rollup test case combining all retry attempts. This is needed to produce a single failure
 // artifact, otherwise our systems would consider it a flake.
-func (o *GinkgoRunSuiteOptions) createSingleFailureRollupTest(testName string, attempts []*testCase, hasAnySuccess bool) *testCase {
+func (o *GinkgoRunSuiteOptions) createSingleFailureRollupTest(testName string, attempts []*testCase) *testCase {
 	var combinedOutput strings.Builder
 
+	successCount := 0
 	failureCount := 0
 	for _, attempt := range attempts {
 		if attempt.failed {
 			failureCount++
 		}
+		if attempt.success {
+			successCount++
+		}
 	}
 
-	if hasAnySuccess {
+	if successCount > 0 {
 		combinedOutput.WriteString(fmt.Sprintf("Test '%s' failed %d out of %d attempts but had some successes (retry strategy marked as failure).\n\n",
 			testName, failureCount, len(attempts)))
 	} else {
