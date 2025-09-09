@@ -81,8 +81,7 @@ func (s *RetryOnceStrategy) GetMaxRetries(testCase *testCase) int {
 }
 
 func (s *RetryOnceStrategy) ShouldContinue(testCase *testCase, allAttempts []*testCase, attemptNumber int) bool {
-	// Stop after first retry
-	if attemptNumber >= 2 {
+	if attemptNumber > 2 {
 		return false
 	}
 
