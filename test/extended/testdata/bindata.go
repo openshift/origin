@@ -489,6 +489,7 @@
 // test/extended/testdata/sample-image-stream.json
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
+// test/extended/testdata/servicecidr.yaml
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/stable-busybox.yaml
 // test/extended/testdata/templates/crunchydata-pod.json
@@ -52437,6 +52438,30 @@ func testExtendedTestdataServiceServingCertNginxServingCertConf() (*asset, error
 	return a, nil
 }
 
+var _testExtendedTestdataServicecidrYaml = []byte(`apiVersion: networking.k8s.io/v1beta1
+kind: ServiceCIDR
+metadata:
+  name: newcidr1
+spec:
+  cidrs:
+  - 10.96.0.0/24
+`)
+
+func testExtendedTestdataServicecidrYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataServicecidrYaml, nil
+}
+
+func testExtendedTestdataServicecidrYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataServicecidrYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/servicecidr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataSignerBuildconfigYaml = []byte(`kind: List
 apiVersion: v1
 items:
@@ -56644,6 +56669,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/sample-image-stream.json":                                                        testExtendedTestdataSampleImageStreamJson,
 	"test/extended/testdata/samplepipeline-withenvs.yaml":                                                    testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                    testExtendedTestdataServiceServingCertNginxServingCertConf,
+	"test/extended/testdata/servicecidr.yaml":                                                                testExtendedTestdataServicecidrYaml,
 	"test/extended/testdata/signer-buildconfig.yaml":                                                         testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/stable-busybox.yaml":                                                             testExtendedTestdataStableBusyboxYaml,
 	"test/extended/testdata/templates/crunchydata-pod.json":                                                  testExtendedTestdataTemplatesCrunchydataPodJson,
@@ -57465,6 +57491,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"service-serving-cert": {nil, map[string]*bintree{
 					"nginx-serving-cert.conf": {testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},
+				"servicecidr.yaml":        {testExtendedTestdataServicecidrYaml, map[string]*bintree{}},
 				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"stable-busybox.yaml":     {testExtendedTestdataStableBusyboxYaml, map[string]*bintree{}},
 				"templates": {nil, map[string]*bintree{
