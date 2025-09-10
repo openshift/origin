@@ -785,6 +785,8 @@ var Annotations = map[string]string{
 
 	"[sig-ci] [OTE] OpenShift Tests Extension [Suite:openshift/ote] should support tests with an informing lifecycle": "",
 
+	"[sig-ci] [Suite:none] Test should fail at a configurable rate": "",
+
 	"[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc --request-timeout works as expected for deployment": " [Suite:openshift/conformance/parallel]",
