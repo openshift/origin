@@ -433,5 +433,25 @@ var _ = g.Describe("[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:Dyn
 				mpsShared.Test(ctx, g.GinkgoTB())
 			})
 		})
+
+		g.Context("[TimeSlicing,MPS=true]", func() {
+			g.It("gpu sharing with both MPS and TimeSlicing", func(ctx context.Context) {
+				advertised, err := driver.ListPublishedDevicesFromResourceSlice(ctx, node)
+				o.Expect(err).Should(o.BeNil())
+				t.Logf("collected advertised devices from the resourceslices: %v", advertised)
+
+				gpus := advertised.FilterBy(func(gpu nvidia.NvidiaGPU) bool { return gpu.Type == "gpu" })
+				t.Logf("the following whole gpus are available to be used: %v", gpus)
+				o.Expect(len(gpus)).To(o.BeNumerically(">=", 2), "need at least two whole gpus for this test")
+
+				spec := gpuTimeSlicingAndMPSWithCUDASpec{
+					f:      f,
+					class:  driver.Class(),
+					node:   node,
+					driver: operator,
+				}
+				spec.Test(ctx, g.GinkgoTB())
+			})
+		})
 	})
 })
