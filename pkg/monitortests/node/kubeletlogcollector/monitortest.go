@@ -61,6 +61,7 @@ func (w *kubeletLogCollector) EvaluateTestsFromConstructedIntervals(ctx context.
 	junits = append(junits, nodeFailedLeaseErrorsInRapidSuccession(w.startedAt, finalIntervals)...)
 	junits = append(junits, nodeFailedLeaseErrorsBackOff(w.startedAt, finalIntervals)...)
 	junits = append(junits, testNoSystemdCoreDumps(finalIntervals)...)
+	junits = append(junits, nodeKubeletAndCrioPanicsInvariant(w.startedAt, finalIntervals)...)
 	return junits, nil
 }
 
@@ -172,4 +173,30 @@ func testNoSystemdCoreDumps(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 	}
 
 	return []*junitapi.JUnitTestCase{failure}
+}
+
+func nodeKubeletAndCrioPanicsInvariant(startedAt time.Time, finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet-log-collector detects kubelet or CRI-O panics"
+	var failures []string
+
+	intervalsToFailOn := findKubeletAndCrioPanics(finalIntervals)
+	for _, event := range intervalsToFailOn {
+		if event.From.After(startedAt) {
+			failures = append(failures, fmt.Sprintf("%s %v - %v", event.From.Format(time.RFC3339), event.Locator.OldLocator(), event.Message.OldMessage()))
+		}
+	}
+
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("kubelet-log-collector reports %d kubelet or CRI-O panics.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	} else {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+	}
+	return tests
 }
