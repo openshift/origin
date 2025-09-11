@@ -390,6 +390,9 @@ const (
 	SourceCPUMonitor               IntervalSource = "CPUMonitor"
 	SourceEtcdDiskCommitDuration   IntervalSource = "EtcdDiskCommitDuration"
 	SourceEtcdDiskWalFsyncDuration IntervalSource = "EtcdDiskWalFsyncDuration"
+	KubeletPanic                  IntervalReason = "KubeletPanic"
+	CrioPanic                     IntervalReason = "CrioPanic"
+	SourceCrioLog                 IntervalSource = "CrioLog"
 )
 
 type Interval struct {
