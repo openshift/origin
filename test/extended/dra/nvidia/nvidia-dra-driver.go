@@ -187,3 +187,11 @@ func (s NvidiaGPUs) Names() []string {
 	}
 	return names
 }
+
+func (s NvidiaGPUs) UUIDs() []string {
+	uuids := []string{}
+	for _, gpu := range s {
+		uuids = append(uuids, gpu.UUID)
+	}
+	return uuids
+}
