@@ -46,7 +46,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
-		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
+		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir, "--volume-percentage=100").Execute()).To(o.Succeed())
 
 		pluginOutputDir := GetPluginOutputDir(tempDir)
 
@@ -113,6 +113,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		defer os.RemoveAll(tempDir)
 		args := []string{
 			"--dest-dir", tempDir,
+			"--volume-percentage=100",
 			"--source-dir", "/artifacts",
 			"--",
 			"/bin/bash", "-c",
@@ -169,6 +170,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 		args := []string{
 			"--dest-dir", tempDir,
+			"--volume-percentage=100",
 			"--",
 			"/usr/bin/gather_audit_logs",
 		}
@@ -299,6 +301,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 				args := []string{
 					"--dest-dir", tempDir,
+					"--volume-percentage=100",
 					"--",
 					"/usr/bin/gather_audit_logs",
 				}

@@ -30,9 +30,11 @@ var _ = g.Describe("[sig-node] [FeatureGate:ImageVolume] ImageVolume", func() {
 	)
 
 	g.BeforeEach(func() {
-		// Skip if ImageVolume feature is not enabled
-		if !exutil.IsTechPreviewNoUpgrade(context.TODO(), oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
+		// Microshift doesn't inherit OCP feature gates, and ImageVolume won't work either
+		isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroshift {
+			g.Skip("Not supported on Microshift")
 		}
 	})
 

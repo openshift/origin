@@ -964,6 +964,24 @@ spec:
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IP and MAC attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        MAC attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VM attached to a secondary UDN is migrated between nodes'
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
@@ -975,66 +993,6 @@ spec:
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         when the VMI attached to a secondary UDN is migrated between nodes'
-  - featureGate: NewOLM
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs
-        should be installed'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New
-        Catalog Install should fail to install if it has an invalid reference'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators
-        Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators
-        Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace
-        Catalog should serve FBC via the /v1/api/all endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators
-        Catalog should serve FBC via the /v1/api/all endpoint'
-  - featureGate: NewOLMCatalogdAPIV1Metas
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected]
-        OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas
-        endpoint'
-  - featureGate: NewOLMOwnSingleNamespace
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
-        OLMv1 operator installation support for ownNamespace watch mode with an operator
-        that does not support ownNamespace installation mode should fail to install
-        a cluster extension successfully'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
-        OLMv1 operator installation support for ownNamespace watch mode with quay-operator
-        should install a cluster extension successfully'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected]
-        OLMv1 operator installation support for singleNamespace watch mode with quay-operator
-        should install a cluster extension successfully'
-  - featureGate: NewOLMPreflightPermissionChecks
-    tests:
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {ClusterRoleBindings}
-        are not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {ConfigMap:resourceNames}
-        are not all specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {clusterextension/finalizer}
-        is not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {create} verb is
-        not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {escalate, bind}
-        is not specified'
-    - testName: '[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected]
-        OLMv1 operator preflight checks should report error when {services} are not
-        specified'
   - featureGate: OrderedNamespaceDeletion
     tests:
     - testName: '[sig-api-machinery] OrderedNamespaceDeletion namespace deletion should
@@ -1057,6 +1015,22 @@ spec:
         networks and persistent ips configured created using NetworkAttachmentDefinitions
         [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation]
         when the VMI attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IP and MAC attached to a primary UDN is migrated
+        between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured MAC attached to a primary UDN is restarted'
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
         networks and persistent ips configured created using NetworkAttachmentDefinitions
@@ -1090,6 +1064,24 @@ spec:
         UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
         [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN
         is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IP and MAC attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        MAC attached to a primary UDN is restarted'
     - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
         Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
         networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
@@ -1137,6 +1129,42 @@ spec:
         [FeatureGate:PodObservedGenerationTracking] [Alpha] [Feature:OffByDefault]
         Pod Generation pod rejected by kubelet should have updated generation and
         observedGeneration'
+  - featureGate: PreconfiguredUDNAddresses
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IP and MAC attached to a primary UDN is migrated
+        between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using NetworkAttachmentDefinitions
+        [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses]
+        when the VM with preconfigured MAC attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IP and MAC attached to a primary UDN is migrated between nodes'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        IPs attached to a primary UDN is restarted'
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined
+        networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation]
+        UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip
+        [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured
+        MAC attached to a primary UDN is restarted'
   - featureGate: PreferSameTrafficDistribution
     tests:
     - testName: '[sig-network] Traffic Distribution should route traffic correctly
@@ -1325,6 +1353,16 @@ spec:
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on a privileged and unprivileged Pod with given SELinux with MountOption policy
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on an unprivileged and privileged Pod with given SELinux with MountOption
+        policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
         on two Pods with MountOption policy and a different context on RWOP volume
         [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
@@ -1361,22 +1399,37 @@ spec:
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on a privileged and unprivileged Pod with given SELinux context and recursive
+        policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
         on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with a different policy RWX volume (MountOption + MountOption)
-        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
-        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
-        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with a different policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        on two Pods with the same policy RWX volume (MountOption + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with the same policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two privileged Pods with mount policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two privileged Pods with recursive policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
@@ -1430,6 +1483,16 @@ spec:
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on a privileged and unprivileged Pod with given SELinux with MountOption policy
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on an unprivileged and privileged Pod with given SELinux with MountOption
+        policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
         on two Pods with MountOption policy and a different context on RWOP volume
         [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
@@ -1461,22 +1524,37 @@ spec:
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on a privileged and unprivileged Pod with given SELinux context and recursive
+        policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
         on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with a different policy RWX volume (MountOption + MountOption)
-        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
-        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
-        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with a different policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        on two Pods with the same policy RWX volume (MountOption + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with the same policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two privileged Pods with mount policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two privileged Pods with recursive policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
   - featureGate: SELinuxMountReadWriteOncePod
@@ -1540,6 +1618,16 @@ spec:
         different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on a privileged and unprivileged Pod with given SELinux with MountOption policy
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
+        on an unprivileged and privileged Pod with given SELinux with MountOption
+        policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped
         on two Pods with MountOption policy and a different context on RWOP volume
         [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
@@ -1576,22 +1664,37 @@ spec:
         [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on a privileged and unprivileged Pod with given SELinux context and recursive
+        policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
+        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
         on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with a different policy RWX volume (MountOption + MountOption)
-        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy]
-        [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault]'
-    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
-        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with a different policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
         SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
-        on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        on two Pods with the same policy RWX volume (MountOption + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two Pods with the same policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two privileged Pods with mount policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
+        [Beta] [Feature:OffByDefault]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController
+        SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped
+        on two privileged Pods with recursive policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount]
         [Beta] [Feature:OffByDefault]'
     - testName: '[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController

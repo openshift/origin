@@ -68,10 +68,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 			)
 
 			DescribeTableSubtree("created using",
-				func(createNetworkFn func(netConfig networkAttachmentConfigParams) networkAttachmentConfig) {
+				func(createNetworkFn func(netConfig networkAttachmentConfigParams)) {
 
-					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string)) {
+					DescribeTable("[Suite:openshift/network/virtualization] should keep ip", func(netConfig networkAttachmentConfigParams, vmResource string, opCmd func(cli *kubevirt.Client, vmNamespace, vmName string), wlConfig ...workloadNetworkConfig) {
 						var err error
+						var workloadConfig workloadNetworkConfig
+						if len(wlConfig) > 0 {
+							workloadConfig = wlConfig[0]
+						}
 						l := map[string]string{
 							"e2e-framework": f.BaseName,
 						}
@@ -104,16 +108,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							isDualStack = true
 						}
 
-						provisionedNetConfig := createNetworkFn(netConfig)
-
-						for _, node := range workerNodes {
-							Eventually(func() bool {
-								isNetProvisioned, err := isNetworkProvisioned(oc, node.Name, provisionedNetConfig.networkName)
-								return err == nil && isNetProvisioned
-							}).WithPolling(time.Second).WithTimeout(udnNetworkReadyTimeout).Should(
-								BeTrueBecause("the network must be ready before creating workloads"),
-							)
-						}
+						createNetworkFn(netConfig)
 
 						httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
 						vmCreationParams := kubevirt.CreationTemplateParams{
@@ -128,6 +123,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							vmCreationParams.NetworkName = nadName
 						}
 
+						if len(workloadConfig.preconfiguredIPs) > 0 {
+							var err error
+							vmCreationParams.PreconfiguredIP, err = formatAddressesAnnotation(workloadConfig.preconfiguredIPs)
+							Expect(err).NotTo(HaveOccurred())
+						}
+						if workloadConfig.preconfiguredMAC != "" {
+							vmCreationParams.PreconfiguredMAC = workloadConfig.preconfiguredMAC
+						}
 						Expect(virtClient.CreateVM(vmResource, vmCreationParams)).To(Succeed())
 						waitForVMReadiness(virtClient, vmCreationParams.VMNamespace, vmCreationParams.VMName)
 
@@ -151,6 +154,17 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						}
 						Expect(initialAddresses).To(HaveLen(expectedNumberOfAddresses))
 
+						if len(workloadConfig.preconfiguredIPs) > 0 {
+							By("Verifying VM received the preconfigured IP address(es)")
+							for _, expectedIP := range workloadConfig.preconfiguredIPs {
+								expectedIP = strings.TrimSpace(expectedIP)
+								Expect(initialAddresses).To(ContainElement(expectedIP), fmt.Sprintf("Expected IP %s not found in VM addresses %v", expectedIP, initialAddresses))
+							}
+						}
+						if workloadConfig.preconfiguredMAC != "" {
+							By("Verifying VM received the preconfigured MAC address")
+							verifyVMMAC(virtClient, vmName, workloadConfig.preconfiguredMAC)
+						}
 						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
 
 						By(fmt.Sprintf("Check east/west traffic before test operation using IPs: %v", httpServerPodsIPs))
@@ -173,6 +187,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							ShouldNot(BeEmpty())
 						Expect(obtainedAddresses).To(ConsistOf(initialAddresses))
 
+						if workloadConfig.preconfiguredMAC != "" {
+							By("Verifying VM MAC address persisted after test operation")
+							verifyVMMAC(virtClient, vmName, workloadConfig.preconfiguredMAC)
+						}
 						By("Check east/west after test operation")
 						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 					},
@@ -241,27 +259,69 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							},
 							kubevirt.FedoraVMWithSecondaryNetworkAttachment,
 							restartVM,
-						))
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IPs attached to a primary UDN is restarted",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							restartVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.50", "2014:100:200::50"},
+							},
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC attached to a primary UDN is restarted",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							restartVM,
+							workloadNetworkConfig{
+								preconfiguredMAC: "02:0A:0B:0C:0D:50",
+							},
+						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP and MAC attached to a primary UDN is migrated between nodes",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							migrateVM,
+							workloadNetworkConfig{
+								preconfiguredIPs: []string{"203.203.0.51", "2014:100:200::51"},
+								preconfiguredMAC: "02:0A:0B:0C:0D:51",
+							},
+						),
+					)
 				},
-				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
 					netConfig := newNetworkAttachmentConfig(c)
 					nad := generateNAD(netConfig)
 					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 					Expect(err).NotTo(HaveOccurred())
-					return netConfig
 				}),
-				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) networkAttachmentConfig {
+				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
 
-					nad, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
+					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Get(
 						context.Background(), c.name, metav1.GetOptions{},
 					)
 					Expect(err).NotTo(HaveOccurred())
-					return networkAttachmentConfig{networkAttachmentConfigParams{networkName: networkName(nad.Spec.Config)}}
 				}))
 		})
 	})
@@ -428,6 +488,14 @@ func obtainAddresses(virtClient *kubevirt.Client, vmName string) ([]string, erro
 	return addressFromStatus(virtClient, vmName)
 }
 
+func obtainMAC(virtClient *kubevirt.Client, vmName string) (string, error) {
+	macStr, err := virtClient.GetJSONPath("vmi", vmName, "{@.status.interfaces[0].mac}")
+	if err != nil {
+		return "", fmt.Errorf("failed to extract the MAC address from VM %q: %w", vmName, err)
+	}
+	return strings.ToUpper(macStr), nil
+}
+
 func restartVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	GinkgoHelper()
 	By(fmt.Sprintf("Restarting vmi %s/%s", vmNamespace, vmName))
@@ -440,6 +508,22 @@ func migrateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	By(fmt.Sprintf("Migrating vmi %s/%s", vmNamespace, vmName))
 	Expect(cli.CreateVMIM(vmName)).To(Succeed())
 	waitForVMIMSuccess(cli, vmNamespace, vmName)
+}
+
+func verifyVMMAC(virtClient *kubevirt.Client, vmName, expectedMAC string) {
+	GinkgoHelper()
+	var actualMAC string
+	Eventually(func(g Gomega) string {
+		GinkgoHelper()
+
+		var err error
+		actualMAC, err = obtainMAC(virtClient, vmName)
+		g.Expect(err).NotTo(HaveOccurred(), "Failed to obtain MAC address for VM")
+		return actualMAC
+	}).
+		WithPolling(time.Second).
+		WithTimeout(5 * time.Minute).
+		Should(Equal(expectedMAC))
 }
 
 func waitForPodsCondition(fr *framework.Framework, pods []*corev1.Pod, conditionFn func(g Gomega, pod *corev1.Pod)) {
@@ -591,39 +675,24 @@ func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByN
 	}
 }
 
-func isNetworkProvisioned(oc *exutil.CLI, nodeName string, networkName string) (bool, error) {
-	ovnkubePodInfo, err := ovnkubePod(oc, nodeName)
+// formatAddressesAnnotation converts slice of IPs to the required JSON format for kubevirt addresses annotation
+func formatAddressesAnnotation(preconfiguredIPs []string) (string, error) {
+	const primaryUDNNetworkName = "overlay"
+	if len(preconfiguredIPs) == 0 {
+		return "", nil
+	}
+
+	ips := make([]string, len(preconfiguredIPs))
+	for i, ip := range preconfiguredIPs {
+		ips[i] = strings.TrimSpace(ip)
+	}
+
+	staticIPs, err := json.Marshal(map[string][]string{
+		primaryUDNNetworkName: ips,
+	})
 	if err != nil {
-		return false, err
+		return "", fmt.Errorf("failed to marshal static IPs: %w", err)
 	}
 
-	lsName := logicalSwitchName(networkName)
-	out, err := adminExecInPod(
-		oc,
-		"openshift-ovn-kubernetes",
-		ovnkubePodInfo.podName,
-		ovnkubePodInfo.containerName,
-		fmt.Sprintf("ovn-nbctl list logical-switch %s", lsName),
-	)
-	if err != nil {
-		return false, fmt.Errorf("failed to find a logical switch for network %q: %w", networkName, err)
-	}
-
-	return strings.Contains(out, lsName), nil
-}
-
-func logicalSwitchName(networkName string) string {
-	netName := strings.ReplaceAll(networkName, "-", ".")
-	netName = strings.ReplaceAll(netName, "/", ".")
-	return fmt.Sprintf("%s_ovn_layer2_switch", netName)
-}
-
-func networkName(netSpecConfig string) string {
-	GinkgoHelper()
-	type netConfig struct {
-		Name string `json:"name,omitempty"`
-	}
-	var nc netConfig
-	Expect(json.Unmarshal([]byte(netSpecConfig), &nc)).To(Succeed())
-	return nc.Name
+	return string(staticIPs), nil
 }

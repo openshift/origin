@@ -22,7 +22,7 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			expected:  []map[string]string{},
 		},
 		{
-			name: "no alert intervals",
+			name: "no high CPU intervals",
 			intervals: monitorapi.Intervals{
 				{
 					Source: monitorapi.SourceE2ETest,
@@ -48,12 +48,15 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "no e2e test intervals",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -63,15 +66,18 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			expected: []map[string]string{},
 		},
 		{
-			name: "e2e test overlaps with alert",
+			name: "e2e test overlaps with high CPU",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -103,15 +109,18 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
-			name: "e2e test contained within alert",
+			name: "e2e test contained within high CPU period",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -143,15 +152,18 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
-			name: "alert contained within e2e test",
+			name: "high CPU period contained within e2e test",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now.Add(5 * time.Minute),
@@ -183,15 +195,18 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
-			name: "e2e test touches alert start",
+			name: "e2e test touches high CPU period start",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now.Add(10 * time.Minute),
@@ -218,15 +233,18 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			expected: []map[string]string{},
 		},
 		{
-			name: "e2e test touches alert end",
+			name: "e2e test touches high CPU period end",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "HighOverallControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -254,12 +272,15 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "e2e test with zero end time",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -291,15 +312,18 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
-			name: "alert with zero end time",
+			name: "high CPU period with zero end time",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -334,12 +358,15 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			name: "multiple overlapping tests",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
@@ -392,27 +419,33 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
-			name: "test overlaps with multiple alerts - should only be reported once",
+			name: "test overlaps with multiple high CPU periods - should only be reported once",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
 					To:   now.Add(15 * time.Minute),
 				},
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now.Add(10 * time.Minute),
@@ -444,27 +477,33 @@ func TestFindE2EIntervalsOverlappingHighCPU(t *testing.T) {
 			},
 		},
 		{
-			name: "same test runs twice and overlaps high cpu alert each time",
+			name: "same test runs twice and overlaps high CPU period each time",
 			intervals: monitorapi.Intervals{
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now,
 					To:   now.Add(15 * time.Minute),
 				},
 				{
-					Source: monitorapi.SourceAlert,
+					Source: monitorapi.SourceCPUMonitor,
 					Condition: monitorapi.Condition{
 						Locator: monitorapi.Locator{
 							Keys: map[monitorapi.LocatorKey]string{
-								"alert": "ExtremelyHighIndividualControlPlaneCPU",
+								monitorapi.LocatorNodeKey: "test-node",
 							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.IntervalReason("HighCPUUsage"),
 						},
 					},
 					From: now.Add(30 * time.Minute),

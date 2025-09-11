@@ -223,6 +223,7 @@ const (
 	NodeFailedLeaseBackoff IntervalReason = "FailedToUpdateLeaseInBackoff"
 	NodeDiskPressure       IntervalReason = "NodeDiskPressure"
 	NodeNoDiskPressure     IntervalReason = "NodeNoDiskPressure"
+	NodeDeleted            IntervalReason = "Deleted"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
@@ -381,6 +382,7 @@ const (
 	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
 
 	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
+	SourceCPUMonitor              IntervalSource = "CPUMonitor"
 )
 
 type Interval struct {

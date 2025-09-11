@@ -19,14 +19,20 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/mod/semver"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/dataloader"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
@@ -87,12 +93,21 @@ type GinkgoRunSuiteOptions struct {
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
 	Extension           *extension.Extension
+
+	// RetryStrategy controls retry behavior and final outcome decisions
+	RetryStrategy RetryStrategy
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
+	defaultStrategy, err := createRetryStrategy(defaultRetryStrategy)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create default retry strategy: %v", err))
+	}
+
 	return &GinkgoRunSuiteOptions{
 		IOStreams:     streams,
 		ShardStrategy: "hash",
+		RetryStrategy: defaultStrategy,
 	}
 }
 
@@ -116,6 +131,8 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.IntVar(&o.ShardID, "shard-id", o.ShardID, "When tests are sharded across instances, which instance we are")
 	flags.IntVar(&o.ShardCount, "shard-count", o.ShardCount, "Number of shards used to run tests across multiple instances")
 	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
+	availableStrategies := getAvailableRetryStrategies()
+	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -143,39 +160,6 @@ func max(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// shouldRetryTest determines if a failed test should be retried based on retry policies.
-// It returns true if the test is eligible for retry, false otherwise.
-func shouldRetryTest(ctx context.Context, test *testCase, permittedRetryImageTags []string) bool {
-	// Internal tests (no binary) are eligible for retry, we shouldn't really have any of these
-	// now that origin is also an extension.
-	if test.binary == nil {
-		return true
-	}
-
-	tlog := logrus.WithField("test", test.name)
-
-	// Get extension info to check if it's from a permitted image
-	info, err := test.binary.Info(ctx)
-	if err != nil {
-		tlog.WithError(err).
-			Debug("Failed to get binary info, skipping retry")
-		return false
-	}
-
-	// Check if the test's source image is in the permitted retry list
-	for _, permittedTag := range permittedRetryImageTags {
-		if strings.Contains(info.Source.SourceImage, permittedTag) {
-			tlog.WithField("image", info.Source.SourceImage).
-				Debug("Permitting retry")
-			return true
-		}
-	}
-
-	tlog.WithField("image", info.Source.SourceImage).
-		Debug("Test not eligible for retry based on image tag")
-	return false
 }
 
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
@@ -274,6 +258,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	if len(specs) == 0 {
+		return fmt.Errorf("no tests to run")
+	}
+
 	tests, err := extensionTestSpecsToOriginTestCases(specs)
 	if err != nil {
 		return errors.WithMessage(err, "could not convert test specs to origin test cases")
@@ -282,7 +270,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	randSeed := suiteConfig.RandomSeed
+	r := rand.New(rand.NewSource(randSeed))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	count := o.Count
@@ -331,9 +320,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	if parallelism == 0 {
 		parallelism = suite.Parallelism
 	}
+
 	if parallelism == 0 {
 		parallelism = 10
 	}
+
+	// adjust based on the number of workers
+	totalNodes, workerNodes, err := getClusterNodeCounts(ctx, restConfig)
+	if err != nil {
+		logrus.Errorf("Failed to get cluster node counts: %v", err)
+	}
+
+	logrus.Infof("Total nodes: %d, Worker nodes: %d, Parallelism: %d", totalNodes, workerNodes, parallelism)
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
@@ -353,10 +351,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	logrus.Infof("Waiting for all cluster operators to become stable")
-	stableClusterTestResults, err := clusterinfo.WaitForStableCluster(ctx, restConfig)
-	if err != nil {
-		logrus.Errorf("Error waiting for stable cluster: %v", err)
+	// Skip stable cluster check if OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER is set.
+	// This is useful in development for rapid iteration where cluster stability
+	// verification may be unnecessary and time-consuming.
+	var stableClusterTestResults []*junitapi.JUnitTestCase
+	if os.Getenv("OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER") == "" {
+		logrus.Infof("Waiting for all cluster operators to become stable")
+		var err error
+		stableClusterTestResults, err = clusterinfo.WaitForStableCluster(ctx, restConfig)
+		if err != nil {
+			logrus.Errorf("Error waiting for stable cluster: %v", err)
+		}
+	} else {
+		logrus.Infof("Skipping stable cluster check due to OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER environment variable")
 	}
 
 	monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
@@ -417,6 +424,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
+	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-builds]")
+	})
+
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
@@ -424,6 +435,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kube tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
+	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
@@ -432,16 +444,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
+		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
+			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -470,6 +484,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		storageTestsCopy := copyTests(storageTests)
 		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
+
+		buildsTestsCopy := copyTests(buildsTests)
+		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
+		tests = append(tests, buildsTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
 		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
@@ -516,100 +534,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	pass, fail, skip, failing := summarizeTests(tests)
 
-	// Determine if we should retry any tests for flake detection
-	// Don't add more here without discussion with OCP architects, we should be moving towards not having any flakes
-	permittedRetryImageTags := []string{"tests"} // tests = openshift-tests image
-	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
-		var retries []*testCase
-
-		failedUnretriableTestCount := 0
-		for _, test := range failing {
-			if shouldRetryTest(ctx, test, permittedRetryImageTags) {
-				retry := test.Retry()
-				retries = append(retries, retry)
-				if len(retries) > suite.MaximumAllowedFlakes {
-					break
-				}
-			} else if test.binary != nil {
-				// Do not retry extension tests -- we also want to remove retries from origin-sourced
-				// tests, but extensions is where we can start.
-				failedUnretriableTestCount++
-			}
-		}
-
-		logrus.Warningf("%d tests failed, %d tests permitted to be retried; %d failures are terminal non-retryable failures", len(failing), len(retries), failedUnretriableTestCount)
-
-		// Run the tests in the retries list.
-		q := newParallelTestQueue(testRunnerContext)
-		q.Execute(testCtx, retries, parallelism, testOutputConfig, abortFn)
-
-		var flaky, skipped []string
-		var repeatFailures []*testCase
-		for _, test := range retries {
-			if test.success {
-				flaky = append(flaky, test.name)
-			} else if test.skipped {
-				skipped = append(skipped, test.name)
-			} else {
-				repeatFailures = append(repeatFailures, test)
-			}
-		}
-
-		// Add the list of retries into the list of all tests.
-		for _, retry := range retries {
-			if retry.flake {
-				// Retry tests that flaked are omitted so that the original test is counted as a failure.
-				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
-				continue
-			}
-			tests = append(tests, retry)
-		}
-		if len(flaky) > 0 {
-			// Explicitly remove flakes from the failing list
-			var withoutFlakes []*testCase
-		flakeLoop:
-			for _, t := range failing {
-				for _, f := range flaky {
-					if t.name == f {
-						continue flakeLoop
-					}
-				}
-				withoutFlakes = append(withoutFlakes, t)
-			}
-			failing = withoutFlakes
-
-			sort.Strings(flaky)
-			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
-		}
-		if len(skipped) > 0 {
-			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
-			// we need to remove the failure case.
-			var withoutPreconditionFailures []*testCase
-		testLoop:
-			for _, t := range tests {
-				for _, st := range skipped {
-					if t.name == st && t.failed {
-						continue testLoop
-					}
-				}
-				withoutPreconditionFailures = append(withoutPreconditionFailures, t)
-			}
-			tests = withoutPreconditionFailures
-
-			var failingWithoutPreconditionFailures []*testCase
-		failingLoop:
-			for _, f := range failing {
-				for _, st := range skipped {
-					if f.name == st {
-						continue failingLoop
-					}
-				}
-				failingWithoutPreconditionFailures = append(failingWithoutPreconditionFailures, f)
-			}
-			failing = failingWithoutPreconditionFailures
-			sort.Strings(skipped)
-			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
-		}
+	// Process test retries using the configured retry strategy
+	var flaky int
+	if o.RetryStrategy.ShouldAttemptRetries(failing, suite) {
+		logrus.Infof("Using retry strategy: %s for %d failing tests", o.RetryStrategy.Name(), fail)
+		tests, failing, flaky = o.performRetries(testCtx, tests, failing, testRunnerContext, parallelism, testOutputConfig, abortFn)
+	} else if fail > 0 {
+		logrus.Infof("Retry strategy %s decided not to retry %d failing tests", o.RetryStrategy.Name(), fail)
 	}
 
 	// monitor the cluster while the tests are running and report any detected anomalies
@@ -682,10 +613,26 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		wasMasterNodeUpdated = clusterinfo.WasMasterNodeUpdated(events)
 	}
 
-	// report the outcome of the test
-	if len(failing) > 0 {
-		names := sets.NewString(testNames(failing)...).List()
-		fmt.Fprintf(o.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
+	var blockingFailures, informingFailures []*testCase
+	for _, test := range failing {
+		if isBlockingFailure(test) {
+			blockingFailures = append(blockingFailures, test)
+		} else {
+			test.testOutputBytes = []byte(fmt.Sprintf("*** NON-BLOCKING FAILURE: This test failure is not considered terminal because its lifecycle is '%s' and will not prevent the overall suite from passing.\n\n%s",
+				test.extensionTestResult.Lifecycle,
+				string(test.testOutputBytes)))
+			informingFailures = append(informingFailures, test)
+		}
+	}
+
+	if len(informingFailures) > 0 {
+		names := sets.NewString(testNames(informingFailures)...).List()
+		fmt.Fprintf(o.Out, "Informing test failures that don't prevent the overall suite from passing:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
+	}
+
+	if len(blockingFailures) > 0 {
+		names := sets.NewString(testNames(blockingFailures)...).List()
+		fmt.Fprintf(o.Out, "Blocking test failures:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
 	}
 
 	if len(o.JUnitDir) > 0 {
@@ -701,24 +648,269 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
+
+		writeRunSuiteOptions(randSeed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
 	}
 
-	if fail > 0 {
-		if len(failing) > 0 || suite.MaximumAllowedFlakes == 0 {
-			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
-		}
-		fmt.Fprintf(o.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
-	}
-
-	if syntheticFailure {
-		return fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
-	}
-	if monitorTestResultState != monitor.Succeeded {
+	switch {
+	case len(blockingFailures) > 0:
+		return fmt.Errorf("%d blocking fail, %d informing fail, %d pass, %d flaky, %d skip (%s)", len(blockingFailures), len(informingFailures), pass, flaky, skip, duration)
+	case syntheticFailure:
+		return fmt.Errorf("failed because an invariant was violated, %d pass, %d flaky, %d skip (%s)", pass, flaky, skip, duration)
+	case monitorTestResultState != monitor.Succeeded:
 		return fmt.Errorf("failed due to a MonitorTest failure")
+	case len(informingFailures) > 0:
+		fmt.Fprintf(o.Out, "%d informing fail, %d pass, %d flaky, %d skip (%s): suite passes despite failures", len(informingFailures), pass, flaky, skip, duration)
+	default:
+		fmt.Fprintf(o.Out, "%d pass, %d flaky, %d skip (%s)\n", pass, flaky, skip, duration)
 	}
 
-	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+// performRetries implements retry behavior using the configured RetryStrategy
+// to determine retry eligibility, attempt limits, and when to stop retrying.
+func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*testCase, failing []*testCase, testRunnerContext *commandContext, parallelism int, testOutputConfig testOutputConfig, abortFn testAbortFunc) ([]*testCase, []*testCase, int) {
+	// Track attempts per test name
+	testAttempts := make(map[string][]*testCase)
+
+	// Initialize with original failed tests, checking strategy eligibility
+	for _, test := range failing {
+		maxRetries := o.RetryStrategy.GetMaxRetries(test)
+		if maxRetries > 0 {
+			testAttempts[test.name] = []*testCase{test}
+			logrus.Infof("Test %s eligible for up to %d retries", test.name, maxRetries)
+		} else {
+			logrus.Warningf("Test %s not eligible for retries (strategy returned 0)", test.name)
+		}
+	}
+
+	logrus.Infof("Starting retries for %d eligible tests", len(testAttempts))
+
+	q := newParallelTestQueue(testRunnerContext)
+
+	// Track which tests should no longer be retried
+	completedTests := sets.New[string]()
+
+	// Perform retry attempts using strategy to control retry behavior
+	for len(testAttempts) > len(completedTests) {
+		var retries []*testCase
+
+		// Check each test to see if it should continue retrying
+		for testName, attempts := range testAttempts {
+			// Skip tests that are already completed
+			if completedTests.Has(testName) {
+				continue
+			}
+
+			originalFailure := attempts[0]
+			lastAttempt := attempts[len(attempts)-1]
+			nextAttemptNumber := len(attempts) + 1
+
+			if o.RetryStrategy.ShouldContinue(originalFailure, attempts, nextAttemptNumber) {
+				retry := lastAttempt.Retry()
+				retries = append(retries, retry)
+			} else {
+				// Strategy says stop retrying this test, but keep it in testAttempts for final processing
+				completedTests.Insert(testName)
+				logrus.Infof("Strategy decided to stop retrying test %s after %d attempts", testName, len(attempts))
+			}
+		}
+
+		if len(retries) == 0 {
+			break
+		}
+
+		logrus.Infof("Retrying %d tests", len(retries))
+
+		// Execute retries
+		q.Execute(ctx, retries, parallelism, testOutputConfig, abortFn)
+
+		// Process results and update attempts
+		for _, retry := range retries {
+			if retry.flake {
+				// Skip flaky retries, keep original failure
+				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+				continue
+			}
+
+			testAttempts[retry.name] = append(testAttempts[retry.name], retry)
+			// Don't add individual retry attempts to tests list yet - we'll decide later based on strategy outcome
+		}
+	}
+
+	// Process final results
+	var finalFlaky []string
+	var finalSkipped []string
+	var stillFailing []*testCase
+
+	for testName, attempts := range testAttempts {
+		// Use the retry strategy to determine the outcome
+		outcome := o.RetryStrategy.DecideOutcome(attempts)
+
+		switch outcome {
+		case RetryOutcomeSkipped:
+			finalSkipped = append(finalSkipped, testName)
+
+		case RetryOutcomeFlaky:
+			// Consider it flaky - add ALL attempts to tests slice
+			finalFlaky = append(finalFlaky, testName)
+			// Add all retry attempts to tests slice (excluding original which is already there)
+			for _, attempt := range attempts[1:] {
+				if !attempt.flake {
+					tests = append(tests, attempt)
+				}
+			}
+
+		case RetryOutcomeFail:
+			rollupTest := o.createSingleFailureRollupTest(testName, attempts)
+
+			// Replace original failed test with rollup test
+			for i, t := range tests {
+				if t.name == testName {
+					tests[i] = rollupTest
+					break
+				}
+			}
+			stillFailing = append(stillFailing, rollupTest)
+		}
+	}
+
+	// Remove flaky tests from failing list
+	if len(finalFlaky) > 0 {
+		var withoutFlakes []*testCase
+	flakeLoop:
+		for _, t := range failing {
+			for _, f := range finalFlaky {
+				if t.name == f {
+					continue flakeLoop
+				}
+			}
+			withoutFlakes = append(withoutFlakes, t)
+		}
+		failing = withoutFlakes
+		sort.Strings(finalFlaky)
+		fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(finalFlaky, "\n"))
+	}
+	failing = append(failing, stillFailing...)
+
+	// Write retry statistics to autodl file for any retry strategy (except none)
+	if o.RetryStrategy.Name() != "none" && len(o.JUnitDir) > 0 {
+		if err := writeRetryStatistics(testAttempts, o.RetryStrategy, o.JUnitDir); err != nil {
+			logrus.WithError(err).Error("Failed to write retry statistics autodl file")
+		}
+	}
+
+	// Handle skipped tests
+	if len(finalSkipped) > 0 {
+		var withoutPreconditionFailures []*testCase
+	testLoop:
+		for _, t := range tests {
+			for _, st := range finalSkipped {
+				if t.name == st && t.failed {
+					continue testLoop
+				}
+			}
+			withoutPreconditionFailures = append(withoutPreconditionFailures, t)
+		}
+		tests = withoutPreconditionFailures
+
+		var failingWithoutPreconditionFailures []*testCase
+	failingLoop:
+		for _, f := range failing {
+			for _, st := range finalSkipped {
+				if f.name == st {
+					continue failingLoop
+				}
+			}
+			failingWithoutPreconditionFailures = append(failingWithoutPreconditionFailures, f)
+		}
+		failing = failingWithoutPreconditionFailures
+
+		sort.Strings(finalSkipped)
+		fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(finalSkipped, "\n"))
+	}
+
+	return tests, failing, len(finalFlaky)
+}
+
+// createSingleFailureRollupTest creates a rollup test case combining all retry attempts. This is needed to produce a single failure
+// artifact, otherwise our systems would consider it a flake.
+func (o *GinkgoRunSuiteOptions) createSingleFailureRollupTest(testName string, attempts []*testCase) *testCase {
+	var combinedOutput strings.Builder
+
+	successCount := 0
+	failureCount := 0
+	for _, attempt := range attempts {
+		if attempt.failed {
+			failureCount++
+		}
+		if attempt.success {
+			successCount++
+		}
+	}
+
+	if successCount > 0 {
+		combinedOutput.WriteString(fmt.Sprintf("Test '%s' failed %d out of %d attempts but had some successes (retry strategy marked as failure).\n\n",
+			testName, failureCount, len(attempts)))
+	} else {
+		combinedOutput.WriteString(fmt.Sprintf("Test '%s' failed all %d attempts.\n\n",
+			testName, len(attempts)))
+	}
+
+	for i, attempt := range attempts {
+		status := "FAILED"
+		if attempt.success {
+			status = "PASSED"
+		} else if attempt.skipped {
+			status = "SKIPPED"
+		}
+
+		combinedOutput.WriteString(fmt.Sprintf("=== Attempt %d: %s ===\n", i+1, status))
+		combinedOutput.Write(attempt.testOutputBytes)
+		combinedOutput.WriteString("\n\n")
+	}
+
+	// Create rollup test case based on the first attempt
+	rollupTest := *attempts[0]
+	rollupTest.testOutputBytes = []byte(combinedOutput.String())
+	rollupTest.failed = true
+	rollupTest.success = false
+	rollupTest.skipped = false
+
+	return &rollupTest
+}
+
+func isBlockingFailure(test *testCase) bool {
+	if test.extensionTestResult == nil {
+		return true
+	}
+
+	switch test.extensionTestResult.Lifecycle {
+	case extensiontests.LifecycleInforming:
+		return false
+	default:
+		return true
+	}
+}
+
+func writeRunSuiteOptions(seed int64, totalNodes, workerNodes, parallelism int, info monitortestframework.MonitorTestInitializationInfo, artifactDir, timeSuffix string) {
+	var rows []map[string]string
+
+	rows = make([]map[string]string, 0)
+	rows = append(rows, map[string]string{"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest),
+		"WorkerNodes": fmt.Sprintf("%d", workerNodes), "TotalNodes": fmt.Sprintf("%d", totalNodes), "Parallelism": fmt.Sprintf("%d", parallelism)})
+	dataFile := dataloader.DataFile{
+		TableName: "run_suite_options",
+		Schema: map[string]dataloader.DataType{"ClusterStability": dataloader.DataTypeString, "RandomSeed": dataloader.DataTypeInteger, "WorkerNodes": dataloader.DataTypeInteger,
+			"TotalNodes": dataloader.DataTypeInteger, "Parallelism": dataloader.DataTypeInteger},
+		Rows: rows,
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("run-suite-options%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
 }
 
 func writeExtensionTestResults(tests []*testCase, dir, filePrefix, fileSuffix string, out io.Writer) error {
@@ -861,4 +1053,32 @@ func determineExternalConnectivity(clusterConfig *clusterdiscovery.ClusterConfig
 		return "Proxied"
 	}
 	return "Direct"
+}
+
+func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, error) {
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	totalNodes := 0
+	workerNodes := 0
+
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	workerNodes = len(nodes.Items)
+	logrus.Infof("Found %d worker nodes", workerNodes)
+
+	nodes, err = kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	totalNodes = len(nodes.Items)
+	logrus.Infof("Found %d nodes", totalNodes)
+
+	return totalNodes, workerNodes, nil
 }

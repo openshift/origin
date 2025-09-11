@@ -769,6 +769,8 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins][Feature:Builds][sig-devex][Slow] openshift pipeline build jenkins pipeline build config strategy using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]": "",
 
+	"[sig-builds][sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image should successfully run date command": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
 	"[sig-ci] [Early] prow job name should match cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-ci] [Early] prow job name should match feature set": " [Suite:openshift/conformance/parallel]",
@@ -778,6 +780,12 @@ var Annotations = map[string]string{
 	"[sig-ci] [Early] prow job name should match platform type": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-ci] [Early] prow job name should match security mode": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-ci] [OTE] OpenShift Tests Extension [Suite:openshift/ote] should support tests that succeed": "",
+
+	"[sig-ci] [OTE] OpenShift Tests Extension [Suite:openshift/ote] should support tests with an informing lifecycle": "",
+
+	"[sig-ci] [Suite:none] Test should fail at a configurable rate": "",
 
 	"[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1835,6 +1843,12 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes": "",
 
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP and MAC attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IPs attached to a primary UDN is restarted": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC attached to a primary UDN is restarted": "",
+
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is migrated between nodes": "",
 
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using NetworkAttachmentDefinitions [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is restarted": "",
@@ -1846,6 +1860,12 @@ var Annotations = map[string]string{
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VM attached to a primary UDN is restarted": "",
 
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:NetworkSegmentation] when the VMI attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IP and MAC attached to a primary UDN is migrated between nodes": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured IPs attached to a primary UDN is restarted": "",
+
+	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip [OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC attached to a primary UDN is restarted": "",
 
 	"[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines when using openshift ovn-kubernetes with user defined networks and persistent ips configured created using [OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork [Suite:openshift/network/virtualization] should keep ip when the VM attached to a secondary UDN is migrated between nodes": "",
 
@@ -1947,8 +1967,6 @@ var Annotations = map[string]string{
 
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
-	"[sig-node][Feature:Builds][apigroup:build.openshift.io] zstd:chunked Image should successfully run date command": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with cyclictest": " [Serial]",
@@ -1982,44 +2000,6 @@ var Annotations = map[string]string{
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts Should validate that there are Master and Arbiter nodes as specified in the cluster": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] required pods on the Arbiter node Should verify that the correct number of pods are running on the Arbiter node": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/metas endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/metas endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/metas endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMCatalogdAPIV1Metas][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/metas endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected] OLMv1 operator installation support for ownNamespace watch mode with an operator that does not support ownNamespace installation mode should fail to install a cluster extension successfully": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected] OLMv1 operator installation support for ownNamespace watch mode with quay-operator should install a cluster extension successfully": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace][Skipped:Disconnected] OLMv1 operator installation support for singleNamespace watch mode with quay-operator should install a cluster extension successfully": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {ClusterRoleBindings} are not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {ConfigMap:resourceNames} are not all specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {clusterextension/finalizer} is not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {create} verb is not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {escalate, bind} is not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLMPreflightPermissionChecks][Skipped:Disconnected] OLMv1 operator preflight checks should report error when {services} are not specified": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 Catalogs should be installed": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 New Catalog Install should fail to install if it has an invalid reference": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-certified-operators Catalog should serve FBC via the /v1/api/all endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-community-operators Catalog should serve FBC via the /v1/api/all endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-marketplace Catalog should serve FBC via the /v1/api/all endpoint": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-olmv1][OCPFeatureGate:NewOLM][Skipped:Disconnected] OLMv1 openshift-redhat-operators Catalog should serve FBC via the /v1/api/all endpoint": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
