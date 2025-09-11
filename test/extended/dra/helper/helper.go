@@ -132,3 +132,28 @@ func PodRunningReady(ctx context.Context, t testing.TB, clientset kubernetes.Int
 	}
 	return nil
 }
+
+func GetAllocatedDeviceForRequest(request string, claim *resourceapi.ResourceClaim) (string, string, error) {
+	// the request must exist in the spec
+	found := false
+	for _, dr := range claim.Spec.Devices.Requests {
+		if dr.Name == request {
+			found = true
+		}
+	}
+	if !found {
+		return "", "", fmt.Errorf("the request does not exist in the claim")
+	}
+
+	allocation := claim.Status.Allocation
+	if allocation == nil {
+		return "", "", fmt.Errorf("the given claim has not been allocated yet")
+	}
+
+	for _, r := range allocation.Devices.Results {
+		if r.Request == request {
+			return r.Device, r.Pool, nil
+		}
+	}
+	return "", "", nil
+}

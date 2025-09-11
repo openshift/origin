@@ -407,5 +407,18 @@ var _ = g.Describe("[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:Dyn
 			}
 			spec.Test(ctx, g.GinkgoTB())
 		})
+
+		g.Context("[TimeSlicing=true]", func() {
+			g.It("one pod, 2 containers, with time slice", func(ctx context.Context) {
+				timeSlicing := gpuTimeSlicingWithCUDASpec{
+					f:      f,
+					class:  driver.Class(),
+					node:   node,
+					dra:    driver,
+					driver: operator,
+				}
+				timeSlicing.Test(ctx, g.GinkgoTB())
+			})
+		})
 	})
 })
