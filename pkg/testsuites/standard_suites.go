@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -121,7 +122,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Tests that ensure an OpenShift cluster and components are working properly.
 		`),
 		Qualifiers: []string{
-			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/')"),
+			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/')", disabledTests),
 		},
 		Parallelism: 30,
 	},
@@ -131,7 +132,7 @@ var staticSuites = []ginkgo.TestSuite{
 		Only the portion of the openshift/conformance test suite that run in parallel.
 		`),
 		Qualifiers: []string{
-			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/parallel')"),
+			withExcludedTestsFilter("name.contains('[Suite:openshift/conformance/parallel')", disabledTests),
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
@@ -143,10 +144,26 @@ var staticSuites = []ginkgo.TestSuite{
 		`),
 		Qualifiers: []string{
 			// Standard early and late tests are included in the serial suite
-			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')")),
+			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')"), disabledTests),
 		},
 		TestTimeout: 40 * time.Minute,
-		Parallelism: 1,
+	},
+	{
+		Name: "openshift/conformance/serial/fast",
+		Description: templates.LongDesc(`
+		Fast tests from the openshift/conformance test suite that run serially.
+		`),
+		Qualifiers: []string{
+			// Standard early and late tests are included in the serial suite
+			withExcludedTestsAndLabelsFilter(
+				withStandardEarlyOrLateTests(
+					"name.contains('[Suite:openshift/conformance/serial')",
+				),
+				disabledTests,
+				extendedTestLabels,
+			),
+		},
+		TestTimeout: 10 * time.Minute,
 	},
 	{
 		Name: "openshift/disruptive",
@@ -426,7 +443,7 @@ var staticSuites = []ginkgo.TestSuite{
 		This test suite runs tests to validate two-node.
 		`),
 		Qualifiers: []string{
-			`name.contains("[Suite:openshift/two-node") || name.contains("[OCPFeatureGate:DualReplica]") || name.contains("[OCPFeatureGate:HighlyAvailableArbiter]")`,
+			`name.contains("[Suite:openshift/two-node") || name.contains("[FeatureGate:DualReplica]") || name.contains("[FeatureGate:HighlyAvailableArbiter]")`,
 		},
 		TestTimeout: 60 * time.Minute,
 	},
@@ -453,17 +470,74 @@ var staticSuites = []ginkgo.TestSuite{
 	},
 }
 
-func withExcludedTestsFilter(baseExpr string) string {
-	filter := ""
-	for i, s := range extensions.ExcludedTests {
-		if i > 0 {
-			filter += " && "
-		}
-		filter += fmt.Sprintf("!name.contains('%s')", s)
+var (
+	disabledTests = []string{
+		"[Disabled:",
+		"[Disruptive]",
+		"[Skipped]",
+		"[Flaky]",
+		"[Local]",
+		"[Slow]",
 	}
 
-	if baseExpr != "" {
-		return fmt.Sprintf("(%s) && (%s)", baseExpr, filter)
+	// extendedTestLabels are fuller, longer running tests that don't run in "fast" suites. We already
+	// use "Slow" as a designator to not run a test at all, so we needed a new term.
+	// These are labels, not test name markers.
+	extendedTestLabels = []string{
+		"ExtendedDuration",
 	}
-	return filter
+)
+
+// withExcludedTestsFilter removes tests with excluded test name markers like `[Disabled:]`, `[Skipped]`, etc.
+func withExcludedTestsFilter(baseExpr string, excludedTestNameMarkers ...[]string) string {
+	var excluded []string
+	for _, group := range excludedTestNameMarkers {
+		excluded = append(excluded, group...)
+	}
+
+	var parts []string
+	for _, s := range excluded {
+		parts = append(parts, fmt.Sprintf("!name.contains('%s')", s))
+	}
+
+	filter := strings.Join(parts, " && ")
+
+	switch {
+	case baseExpr != "" && filter != "":
+		return fmt.Sprintf("(%s) && (%s)", baseExpr, filter)
+	case baseExpr != "":
+		return baseExpr
+	default:
+		return filter
+	}
+}
+
+// withExcludedLabelsFilter removes tests with excluded Ginkgo labels.
+func withExcludedLabelsFilter(baseExpr string, excludedLabels ...[]string) string {
+	var excluded []string
+	for _, group := range excludedLabels {
+		excluded = append(excluded, group...)
+	}
+
+	var parts []string
+	for _, s := range excluded {
+		parts = append(parts, fmt.Sprintf("!labels.exists(k, k.startsWith('%s'))", s))
+	}
+
+	filter := strings.Join(parts, " && ")
+
+	switch {
+	case baseExpr != "" && filter != "":
+		return fmt.Sprintf("(%s) && (%s)", baseExpr, filter)
+	case baseExpr != "":
+		return baseExpr
+	default:
+		return filter
+	}
+}
+
+// withExcludedTestsAndLabelsFilter removes tests with both excluded test name markers and labels.
+func withExcludedTestsAndLabelsFilter(baseExpr string, excludedTestNameMarkers []string, excludedLabels []string) string {
+	expr := withExcludedTestsFilter(baseExpr, excludedTestNameMarkers)
+	return withExcludedLabelsFilter(expr, excludedLabels)
 }

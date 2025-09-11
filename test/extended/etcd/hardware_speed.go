@@ -12,6 +12,8 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/test/library"
+
+	"github.com/openshift/origin/pkg/test"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func() {
+var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", test.ExtendedDuration(), func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-hardware-speed").AsAdmin()
 
