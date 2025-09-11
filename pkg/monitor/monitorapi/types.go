@@ -385,6 +385,9 @@ const (
 
 	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
 	SourceCPUMonitor              IntervalSource = "CPUMonitor"
+	KubeletPanic                  IntervalReason = "KubeletPanic"
+	CrioPanic                     IntervalReason = "CrioPanic"
+	SourceCrioLog                 IntervalSource = "CrioLog"
 )
 
 type Interval struct {
