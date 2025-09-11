@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -12,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
+	testutils "k8s.io/kubernetes/test/utils"
 
 	"k8s.io/utils/ptr"
 )
@@ -110,4 +112,23 @@ func GetResourceClaimFor(ctx context.Context, clientset kubernetes.Interface, po
 		}
 	}
 	return nil, nil
+}
+
+func PodRunningReady(ctx context.Context, t testing.TB, clientset kubernetes.Interface, component, namespace string, options metav1.ListOptions) error {
+	client := clientset.CoreV1().Pods(namespace)
+	result, err := client.List(ctx, options)
+	if err != nil || len(result.Items) == 0 {
+		return fmt.Errorf("[%s] still waiting for pod to show up - %w", component, err)
+	}
+
+	for _, pod := range result.Items {
+		ready, err := testutils.PodRunningReady(&pod)
+		if err != nil || !ready {
+			err := fmt.Errorf("[%s] still waiting for pod: %s to be ready: %v", component, pod.Name, err)
+			t.Log(err.Error())
+			return err
+		}
+		t.Logf("[%s] pod: %s ready", component, pod.Name)
+	}
+	return nil
 }
