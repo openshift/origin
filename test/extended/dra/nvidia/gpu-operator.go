@@ -260,3 +260,39 @@ func (d GpuOperator) DiscoverGPUProudct(ctx context.Context, node *corev1.Node) 
 
 	return "", fmt.Errorf("nvidia.com/gpu.product not found in output")
 }
+
+func QueryGPUUsedByContainer(ctx context.Context, t testing.TB, f *framework.Framework, name, namespace, container string) (NvidiaGPUs, error) {
+	cmd := []string{"nvidia-smi", "--query-gpu=index,uuid", "--format=csv"}
+	t.Logf("exec into pod: %s, container: %s, command: %v", name, container, cmd)
+	stdout, stderr, err := e2epod.ExecWithOptionsContext(ctx, f, e2epod.ExecOptions{
+		Command:       cmd,
+		Namespace:     namespace,
+		PodName:       name,
+		ContainerName: container,
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to run command %v on pod %s, stdout: %v, stderr: %v, err: %w", cmd, name, stdout, stderr, err)
+	}
+	t.Logf("output of pod exec: %s/%s (container=%s):\n\n%s\n%s", namespace, name, container, stdout, stderr)
+	gpus := NvidiaGPUs{}
+	sc := bufio.NewScanner(strings.NewReader(stdout))
+	var ignored bool
+	for sc.Scan() {
+		s := strings.Split(sc.Text(), ",")
+		// ignore the first line, it's the header
+		if !ignored {
+			ignored = true
+			continue
+		}
+		if len(s) != 2 {
+			continue
+		}
+		gpus = append(gpus, NvidiaGPU{
+			Index: strings.TrimSpace(s[0]),
+			UUID:  strings.TrimSpace(s[1]),
+		})
+	}
+	return gpus, nil
+}
