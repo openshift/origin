@@ -194,3 +194,20 @@ func ExecIntoContainer(ctx context.Context, t testing.TB, f *framework.Framework
 	}
 	return lines, nil
 }
+
+func EnsureNamespaceLabel(ctx context.Context, clientset kubernetes.Interface, ns string, key, want string) error {
+	current, err := clientset.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if value, ok := current.Labels[key]; ok && value == want {
+		return nil
+	}
+
+	if len(current.Labels) == 0 {
+		current.Labels = map[string]string{}
+	}
+	current.Labels[key] = want
+	_, err = clientset.CoreV1().Namespaces().Update(ctx, current, metav1.UpdateOptions{})
+	return err
+}
