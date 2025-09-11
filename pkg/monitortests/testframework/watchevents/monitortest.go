@@ -13,10 +13,11 @@ import (
 )
 
 type eventWatcher struct {
+	info monitortestframework.MonitorTestInitializationInfo
 }
 
-func NewEventWatcher() monitortestframework.MonitorTest {
-	return &eventWatcher{}
+func NewEventWatcher(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+	return &eventWatcher{info: info}
 }
 
 func (w *eventWatcher) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -29,7 +30,7 @@ func (w *eventWatcher) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 
-	startEventMonitoring(ctx, recorder, adminRESTConfig, kubeClient)
+	startEventMonitoring(ctx, recorder, adminRESTConfig, kubeClient, w.info)
 
 	return nil
 }
