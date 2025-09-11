@@ -414,6 +414,25 @@ var _ = g.Describe("[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:Dyn
 			spec.Test(ctx, g.GinkgoTB())
 		})
 
+		g.It("two pods, share data using CUDA IPC", func(ctx context.Context) {
+			advertised, err := driver.ListPublishedDevicesFromResourceSlice(ctx, node)
+			o.Expect(err).Should(o.BeNil())
+			t.Logf("collected advertised devices from the resourceslices: %v", advertised)
+
+			gpus := advertised.FilterBy(func(gpu nvidia.NvidiaGPU) bool { return gpu.Type == "gpu" })
+			t.Logf("the following whole gpus are available to be used: %v", gpus)
+			o.Expect(len(gpus)).To(o.BeNumerically(">=", 2), "need at least two whole gpus for this test")
+
+			cudaIPC := shareDataWithCUDAIPC{
+				f:        f,
+				class:    driver.Class(),
+				node:     node,
+				producer: gpus[1].UUID,
+				consumer: gpus[0].UUID,
+			}
+			cudaIPC.Test(ctx, g.GinkgoTB())
+		})
+
 		g.Context("[TimeSlicing=true]", func() {
 			g.It("one pod, 2 containers, with time slice", func(ctx context.Context) {
 				timeSlicing := gpuTimeSlicingWithCUDASpec{
