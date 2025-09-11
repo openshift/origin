@@ -330,3 +330,63 @@ func QueryGPUUsedByContainer(ctx context.Context, t testing.TB, f *framework.Fra
 	}
 	return gpus, nil
 }
+
+func (d GpuOperator) QueryCompute(ctx context.Context, node *corev1.Node, gpuIndex string) (NvidiaComputes, error) {
+	options := []string{"--query-compute-apps=gpu_uuid,pid,process_name", "--format=csv"}
+	lines, err := d.RunNvidiSMI(ctx, node, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	processes := []NvidiaCompute{}
+	var firsLineIngonred bool
+	for _, line := range lines {
+		// ignore the first line, it's the header
+		if !firsLineIngonred {
+			firsLineIngonred = true
+			continue
+		}
+		s := strings.Split(line, ",")
+		if len(s) != 3 {
+			continue
+		}
+		processes = append(processes, NvidiaCompute{
+			GPU:  strings.TrimSpace(s[0]),
+			PID:  strings.TrimSpace(s[1]),
+			Name: strings.TrimSpace(s[2]),
+		})
+	}
+	return processes, nil
+}
+
+type NvidiaCompute struct {
+	// process name, and pid
+	Name string
+	PID  string
+	// UUID of the GPU on which this process is running
+	GPU string
+}
+
+func (c NvidiaCompute) String() string {
+	return fmt.Sprintf("gpu: %s, name: %s, pid: %s", c.GPU, c.Name, c.PID)
+}
+
+type NvidiaComputes []NvidiaCompute
+
+func (s NvidiaComputes) FilterBy(f func(p NvidiaCompute) bool) NvidiaComputes {
+	processes := NvidiaComputes{}
+	for _, p := range s {
+		if f(p) {
+			processes = append(processes, p)
+		}
+	}
+	return processes
+}
+
+func (s NvidiaComputes) Names() []string {
+	names := []string{}
+	for _, p := range s {
+		names = append(names, p.Name)
+	}
+	return names
+}

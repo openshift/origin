@@ -420,5 +420,18 @@ var _ = g.Describe("[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:Dyn
 				timeSlicing.Test(ctx, g.GinkgoTB())
 			})
 		})
+
+		g.Context("[MPS=true]", func() {
+			g.It("one pod, 2 containers share GPU using MPS", func(ctx context.Context) {
+				mpsShared := mpsWithCUDASpec{
+					f:      f,
+					class:  driver.Class(),
+					node:   node,
+					dra:    driver,
+					driver: operator,
+				}
+				mpsShared.Test(ctx, g.GinkgoTB())
+			})
+		})
 	})
 })
