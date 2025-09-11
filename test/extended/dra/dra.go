@@ -388,5 +388,24 @@ var _ = g.Describe("[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:Dyn
 			}
 			common.Test(ctx, g.GinkgoTB())
 		})
+
+		g.It("two pods, one container each, asking for 1 distinct GPU", func(ctx context.Context) {
+			advertised, err := driver.ListPublishedDevicesFromResourceSlice(ctx, node)
+			o.Expect(err).Should(o.BeNil())
+			t.Logf("collected advertised devices from the resourceslices: %v", advertised)
+
+			gpus := advertised.FilterBy(func(gpu nvidia.NvidiaGPU) bool { return gpu.Type == "gpu" })
+			t.Logf("the following whole gpus are available to be used: %v", gpus)
+			o.Expect(len(gpus)).To(o.BeNumerically(">=", 2), "need at least two whole gpus for this test")
+
+			spec := distinctGPUsSpec{
+				f:     f,
+				class: driver.Class(),
+				node:  node,
+				gpu0:  gpus[0].UUID,
+				gpu1:  gpus[1].UUID,
+			}
+			spec.Test(ctx, g.GinkgoTB())
+		})
 	})
 })
