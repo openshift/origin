@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -16,12 +17,17 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	clientgodynamic "k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 const (
@@ -451,6 +457,134 @@ var _ = g.Describe("[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:Dyn
 					driver: operator,
 				}
 				spec.Test(ctx, g.GinkgoTB())
+			})
+		})
+
+		g.Context("[MIGEnabled=true]", func() {
+			g.BeforeAll(func(ctx context.Context) {
+				// we will use a custom MIG configuration
+				config := corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "dra-e2e-mig-parted-config",
+						Namespace: operator.Namespace(),
+					},
+					Data: map[string]string{
+						"config.yaml": `
+    version: v1
+    mig-configs:
+      all-disabled:
+        - devices: all
+          mig-enabled: false
+      gpu-e2e:
+        - devices: [0]
+          mig-enabled: true
+          mig-devices:
+            "3g.20gb": 1
+            "2g.10gb": 1
+            "1g.5gb": 1
+        - devices: [1, 2, 3, 4, 5, 6, 7]
+          mig-enabled: false
+`},
+				}
+				o.Expect(helper.EnsureConfigMap(ctx, clientset, &config)).Should(o.BeNil())
+
+				g.By("configuring nvidia-mig-manager")
+				patchBytes := `
+{
+  "spec": {
+    "mig": {
+      "strategy": "mixed"
+    },
+    "migManager": {
+      "config": {
+        "default": "all-disabled",
+        "name": "dra-e2e-mig-parted-config"
+      },
+      "env": [
+        {
+          "name": "WITH_REBOOT",
+          "value": "true"
+        }
+      ]
+    },
+    "validator": {
+      "cuda": {
+        "env": [
+          {
+            "name": "WITH_WORKLOAD",
+            "value": "false"
+          }
+        ]
+      }
+    }
+  }
+}
+`
+				resource := dynamic.Resource(schema.GroupVersionResource{Group: "nvidia.com", Version: "v1", Resource: "clusterpolicies"})
+				policy, err := resource.Patch(ctx, "cluster-policy", types.MergePatchType, []byte(patchBytes), metav1.PatchOptions{})
+				o.Expect(err).Should(o.BeNil())
+				t.Logf("gpu operator cluster policy: \n%s\n", framework.PrettyPrintJSON(policy))
+
+				g.By(fmt.Sprintf("waiting for nvidia-mig-manager to be ready"))
+				o.Expect(operator.MIGManagerReady(ctx, node)).Should(o.BeNil())
+			})
+
+			g.It("one pod, three containers, asking for 3g.20gb, 2g.10gb, and 1g.5gb respectively", func(ctx context.Context) {
+				ascending := func(x, y string) bool {
+					return strings.Compare(x, y) < 0 // Ascending order
+				}
+
+				// MIG devices we want to setup
+				want := []string{"3g.20gb", "2g.10gb", "1g.5gb"}
+
+				// apply the desired MIG configuration
+				g.By(fmt.Sprintf("labeling node: %s for nvidia.com/mig.config: %s", node.Name, "gpu-e2e"))
+				err := helper.EnsureNodeLabel(ctx, clientset, node.Name, "nvidia.com/mig.config", "gpu-e2e")
+				o.Expect(err).Should(o.BeNil())
+
+				g.By("waiting for the gpu driver to advertise the expected MIG devices")
+				advertised := nvidia.NvidiaGPUs{}
+				o.Eventually(ctx, func(ctx context.Context) error {
+					got, err := operator.ListMIGDevicesUsingNvidiaSMI(ctx, node)
+					if err != nil {
+						return err
+					}
+					if !cmp.Equal(want, got.Names(), cmpopts.SortSlices(ascending)) {
+						return fmt.Errorf("still waiting for MIG devices to show up, want: %v, got: %v", want, got)
+					}
+					advertised = got
+					return nil
+				}).WithPolling(10*time.Second).Should(o.BeNil(), "timeout waiting for expected mig devices")
+				t.Logf("the gpu driver is advertising these mig devices %v", advertised)
+
+				// TODO: the DRA driver does not pick up the MIG slices, restarting the plugin seems to do the trick
+				o.Expect(driver.RemovePluginFromNode(ctx, node)).Should(o.BeNil())
+				g.By("waiting for nvidia-dra-driver-gpu to be ready")
+				o.Expect(driver.Ready(ctx, node)).To(o.Succeed(), "nvidia-dra-driver-gpu should be ready")
+
+				g.By("waiting for the dra driver to advertise the mig devices in its resourceslices")
+				o.Eventually(ctx, func(ctx context.Context) error {
+					all, err := driver.ListPublishedDevicesFromResourceSlice(ctx, node)
+					if err != nil {
+						return err
+					}
+					migs := all.FilterBy(func(gpu nvidia.NvidiaGPU) bool { return gpu.Type == "mig" })
+
+					if want, got := advertised.UUIDs(), migs.UUIDs(); !cmp.Equal(want, got, cmpopts.SortSlices(ascending)) {
+						return fmt.Errorf("still waiting for the dra driver to publish the MIG devices, want: %v, got: %v", want, got)
+					}
+					t.Logf("the dra driver has published the mig devices in its resourceslices: %s", framework.PrettyPrintJSON(migs))
+					return nil
+				}).WithPolling(time.Second).Should(o.BeNil(), "timeout while waiting for the dra driver to advertise its resources")
+
+				mig := gpuMIGSpec{
+					f:       f,
+					class:   driver.Class(),
+					node:    node,
+					uuids:   advertised.UUIDs(),
+					devices: advertised.Names(),
+				}
+				mig.Test(ctx, g.GinkgoTB())
 			})
 		})
 	})
