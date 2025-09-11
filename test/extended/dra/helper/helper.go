@@ -1,9 +1,11 @@
 package helper
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +14,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/test/e2e/framework"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -156,4 +159,26 @@ func GetAllocatedDeviceForRequest(request string, claim *resourceapi.ResourceCla
 		}
 	}
 	return "", "", nil
+}
+
+func ExecIntoContainer(ctx context.Context, t testing.TB, f *framework.Framework, name, namespace, container string, cmd []string) ([]string, error) {
+	t.Logf(fmt.Sprintf("exec into pod: %s, container: %s, command: %v", name, container, cmd))
+	stdout, stderr, err := e2epodutil.ExecWithOptionsContext(ctx, f, e2epodutil.ExecOptions{
+		Command:       cmd,
+		Namespace:     namespace,
+		PodName:       name,
+		ContainerName: container,
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to run command %v on pod %s, stdout: %v, stderr: %v, err: %w", cmd, name, stdout, stderr, err)
+	}
+	t.Logf("output of pod exec: %s/%s (container=%s):\n\n%s\n%s", namespace, name, container, stdout, stderr)
+	lines := []string{}
+	sc := bufio.NewScanner(strings.NewReader(stdout))
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+	return lines, nil
 }
