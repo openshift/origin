@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,6 +102,29 @@ func (d *NvidiaDRADriverGPU) GetGPUFromResourceSlice(ctx context.Context, node *
 		return matching[0], nil
 	}
 	return NvidiaGPU{}, nil
+}
+
+func (d *NvidiaDRADriverGPU) GetMPSControlDaemonForClaim(ctx context.Context, node *corev1.Node, claim *resourceapi.ResourceClaim) (*corev1.Pod, error) {
+	// MpsControlDaemonNameFmt      = "mps-control-daemon-%v" // Fill with ClaimUID
+	// https://github.com/NVIDIA/k8s-dra-driver-gpu/blob/9951be59ac1bf827d02a1f0f3dfc0cea65c7aca3/cmd/gpu-kubelet-plugin/sharing.go#L55
+	prefix := fmt.Sprintf("mps-control-daemon-%v", claim.UID)
+	d.t.Logf("MPS control daemon prefix: %s", prefix)
+
+	// MPS control daemon is located in the same namespace as the driver
+	result, err := d.clientset.CoreV1().Pods(d.namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "spec.nodeName" + "=" + node.Name,
+	})
+	if err != nil || len(result.Items) == 0 {
+		return nil, fmt.Errorf("did not find MPS control daemon pod for %s on node: %s - %w", claim.Name, node.Name, err)
+	}
+
+	for i := range result.Items {
+		pod := &result.Items[i]
+		if strings.HasPrefix(pod.Name, prefix) {
+			return pod, nil
+		}
+	}
+	return nil, nil
 }
 
 func (d *NvidiaDRADriverGPU) ListPublishedDevicesFromResourceSlice(ctx context.Context, node *corev1.Node) (NvidiaGPUs, error) {
