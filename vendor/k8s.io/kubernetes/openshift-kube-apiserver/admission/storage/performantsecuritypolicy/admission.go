@@ -30,6 +30,9 @@ var (
 	_ = initializer.WantsExternalKubeInformerFactory(&performantSecurityPolicy{})
 	_ = admission.MutationInterface(&performantSecurityPolicy{})
 	_ = initializer.WantsFeatures(&performantSecurityPolicy{})
+
+	fsGroupPolicyPodAuditLabel = fmt.Sprintf("%s-pod", fsGroupChangePolicyLabel)
+	selinuxPolicyPodAuditLabel = fmt.Sprintf("%s-pod", selinuxChangePolicyLabel)
 )
 
 func Register(plugins *admission.Plugins) {
@@ -98,7 +101,7 @@ func (c *performantSecurityPolicy) Admit(ctx context.Context, attributes admissi
 		currentFSGroupChangePolicy = getDefaultFSGroupChangePolicy(ctx, ns)
 		if currentFSGroupChangePolicy != nil {
 			klog.V(4).Infof("Setting default FSGroupChangePolicy %s for pod %s", *currentFSGroupChangePolicy, podNameKey)
-			audit.AddAuditAnnotations(ctx, "fsGroupChangePolicy", string(*currentFSGroupChangePolicy), "pod", podNameKey)
+			audit.AddAuditAnnotations(ctx, fsGroupChangePolicyLabel, string(*currentFSGroupChangePolicy), fsGroupPolicyPodAuditLabel, podNameKey)
 			if pod.Spec.SecurityContext != nil {
 				pod.Spec.SecurityContext.FSGroupChangePolicy = currentFSGroupChangePolicy
 			} else {
@@ -114,7 +117,7 @@ func (c *performantSecurityPolicy) Admit(ctx context.Context, attributes admissi
 		currentSELinuxChangePolicy = getDefaultSELinuxChangePolicy(ctx, ns)
 		if currentSELinuxChangePolicy != nil {
 			klog.V(4).Infof("Setting default SELinuxChangePolicy %s for pod %s", *currentSELinuxChangePolicy, podNameKey)
-			audit.AddAuditAnnotations(ctx, "selinuxChangePolicy", string(*currentSELinuxChangePolicy), "pod", podNameKey)
+			audit.AddAuditAnnotations(ctx, selinuxChangePolicyLabel, string(*currentSELinuxChangePolicy), selinuxPolicyPodAuditLabel, podNameKey)
 			if pod.Spec.SecurityContext != nil {
 				pod.Spec.SecurityContext.SELinuxChangePolicy = currentSELinuxChangePolicy
 			} else {
