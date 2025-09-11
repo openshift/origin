@@ -86,6 +86,18 @@ func EnsureNodeLabel(ctx context.Context, clientset kubernetes.Interface, node s
 	return err
 }
 
+func EnsureConfigMap(ctx context.Context, clientset kubernetes.Interface, want *corev1.ConfigMap) error {
+	client := clientset.CoreV1().ConfigMaps(want.Namespace)
+	_, err := client.Create(context.Background(), want, metav1.CreateOptions{})
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
 func GetLogs(ctx context.Context, clientset kubernetes.Interface, namespace, name, ctr string) (string, error) {
 	client := clientset.CoreV1().Pods(namespace)
 	options := corev1.PodLogOptions{Container: ctr}

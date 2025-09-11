@@ -12,6 +12,7 @@ import (
 	resourceapi "k8s.io/api/resource/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/utils/ptr"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -91,6 +92,30 @@ func (d *NvidiaDRADriverGPU) EventuallyPublishResources(ctx context.Context, nod
 	}).WithPolling(2*time.Second).Should(o.BeNil(), "timeout while waiting for the driver to advertise its resources")
 
 	return dc, slices
+}
+
+func (d *NvidiaDRADriverGPU) RemovePluginFromNode(ctx context.Context, node *corev1.Node) error {
+	pods, err := d.clientset.CoreV1().Pods(d.helm.Namespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/name" + "=" + d.name,
+		FieldSelector: "spec.nodeName" + "=" + node.Name,
+	})
+	if err != nil || len(pods.Items) == 0 {
+		return fmt.Errorf("[%s] expected a pod running on node: %s - %w", d.name, node.Name, err)
+	}
+
+	pod := pods.Items[0]
+	if err := e2epod.DeletePodWithWait(context.Background(), d.clientset, &pod); err != nil {
+		return err
+	}
+
+	slices, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
+		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + d.class + "," +
+			resourceapi.ResourceSliceSelectorNodeName + "=" + node.Name,
+	})
+	if err != nil || len(slices.Items) == 0 {
+		return err
+	}
+	return d.clientset.ResourceV1beta1().ResourceSlices().Delete(ctx, slices.Items[0].Name, metav1.DeleteOptions{})
 }
 
 func (d *NvidiaDRADriverGPU) GetGPUFromResourceSlice(ctx context.Context, node *corev1.Node, device string) (NvidiaGPU, error) {
@@ -186,4 +211,12 @@ func (s NvidiaGPUs) Names() []string {
 		names = append(names, gpu.Name)
 	}
 	return names
+}
+
+func (s NvidiaGPUs) UUIDs() []string {
+	uuids := []string{}
+	for _, gpu := range s {
+		uuids = append(uuids, gpu.UUID)
+	}
+	return uuids
 }
