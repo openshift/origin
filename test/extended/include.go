@@ -25,6 +25,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
 	_ "github.com/openshift/origin/test/extended/dr"
+	_ "github.com/openshift/origin/test/extended/dra"
 	_ "github.com/openshift/origin/test/extended/etcd"
 	_ "github.com/openshift/origin/test/extended/extension"
 	_ "github.com/openshift/origin/test/extended/idling"
