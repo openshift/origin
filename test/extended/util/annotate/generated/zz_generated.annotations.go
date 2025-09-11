@@ -1091,7 +1091,7 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should grow and decrease when scaling different machineSets simultaneously [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode] ClusterVersion API desired architecture should be valid when architecture is set in release payload metadata [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cluster-lifecycle][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Disruptive][Serial] ClusterVersion API desired architecture should be valid when architecture is set in release payload metadata [apigroup:config.openshift.io]": "",
 
 	"[sig-coreos] [Conformance] CoreOS bootimages TestBootimagesPresent [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
@@ -1416,6 +1416,12 @@ var Annotations = map[string]string{
 	"[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial] ImageStream API import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
+
+	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]": "",
+
+	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]": "",
+
+	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]": "",
 
 	"[sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
 
