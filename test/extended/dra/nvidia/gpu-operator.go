@@ -261,6 +261,40 @@ func (d GpuOperator) DiscoverGPUProudct(ctx context.Context, node *corev1.Node) 
 	return "", fmt.Errorf("nvidia.com/gpu.product not found in output")
 }
 
+func (d GpuOperator) RunNvidiSMI(ctx context.Context, node *corev1.Node, options ...string) ([]string, error) {
+	client := d.clientset.CoreV1().Pods(d.installer.Namespace)
+	result, err := client.List(ctx, metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/component" + "=" + "nvidia-driver",
+		FieldSelector: "spec.nodeName" + "=" + node.Name,
+	})
+	if err != nil || len(result.Items) == 0 {
+		return nil, fmt.Errorf("did not find any pod for %s on node: %s - %w", "nvidia-driver-daemonset", node.Name, err)
+	}
+	pod := result.Items[0].Name
+
+	cmd := []string{"nvidia-smi"}
+	cmd = append(cmd, options...)
+	g.By(fmt.Sprintf("exec into pod: %s, command: %v", pod, cmd))
+	stdout, stderr, err := e2epod.ExecWithOptionsContext(ctx, d.f, e2epod.ExecOptions{
+		Command:       cmd,
+		Namespace:     d.installer.Namespace,
+		PodName:       pod,
+		ContainerName: "nvidia-driver-ctr",
+		CaptureStdout: true,
+		CaptureStderr: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to run command %v on pod %s, stdout: %v, stderr: %v, err: %w", cmd, pod, stdout, stderr, err)
+	}
+	d.t.Logf("output of pod exec: %s:\n%s\n", pod, stdout)
+	sc := bufio.NewScanner(strings.NewReader(stdout))
+	lines := []string{}
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+	return lines, nil
+}
+
 func QueryGPUUsedByContainer(ctx context.Context, t testing.TB, f *framework.Framework, name, namespace, container string) (NvidiaGPUs, error) {
 	cmd := []string{"nvidia-smi", "--query-gpu=index,uuid", "--format=csv"}
 	t.Logf("exec into pod: %s, container: %s, command: %v", name, container, cmd)

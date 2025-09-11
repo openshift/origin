@@ -92,6 +92,17 @@ func (d *NvidiaDRADriverGPU) EventuallyPublishResources(ctx context.Context, nod
 	return dc, slices
 }
 
+func (d *NvidiaDRADriverGPU) GetGPUFromResourceSlice(ctx context.Context, node *corev1.Node, device string) (NvidiaGPU, error) {
+	devices, err := d.ListPublishedDevicesFromResourceSlice(ctx, node)
+	if err != nil {
+		return NvidiaGPU{}, err
+	}
+	if matching := devices.FilterBy(func(gpu NvidiaGPU) bool { return gpu.Name == device }); len(matching) > 0 {
+		return matching[0], nil
+	}
+	return NvidiaGPU{}, nil
+}
+
 func (d *NvidiaDRADriverGPU) ListPublishedDevicesFromResourceSlice(ctx context.Context, node *corev1.Node) (NvidiaGPUs, error) {
 	result, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
 		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + d.class + "," +
