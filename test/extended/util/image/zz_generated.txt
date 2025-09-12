@@ -6,7 +6,7 @@ quay.io/openshifttest/multicast:1.1 quay.io/openshift/community-e2e-images:e2e-q
 quay.io/redhat-developer/nfs-server:1.1 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-nfs-server-1-1-dlXGfzrk5aNo8EjC
 quay.io/redhat-developer/test-build-roots2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-roots2i-1-2-gLJ7WcnS2TSllJ32
 quay.io/redhat-developer/test-build-simples2i:1.2 quay.io/openshift/community-e2e-images:e2e-quay-io-redhat-developer-test-build-simples2i-1-2-thirLMR-JKplfkmE
-registry.k8s.io/build-image/distroless-iptables:v0.6.11 quay.io/openshift/community-e2e-images:e2e-10-registry-k8s-io-build-image-distroless-iptables-v0-6-11-nZpgDN-WFpMMcFkO
+registry.k8s.io/build-image/distroless-iptables:v0.6.12 quay.io/openshift/community-e2e-images:e2e-10-registry-k8s-io-build-image-distroless-iptables-v0-6-12-y1U6BasHO2iyXXl9
 registry.k8s.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.2.2 quay.io/openshift/community-e2e-images:e2e-50-registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-2-2-fk3Ddr8np00iPF9c
 registry.k8s.io/cloud-provider-gcp/gcp-compute-persistent-disk-csi-driver:v1.4.0 quay.io/openshift/community-e2e-images:e2e-48-registry-k8s-io-cloud-provider-gcp-gcp-compute-persistent-disk-csi-driver-v1-4-0-mUHHjVVuv0UQiTyf
 registry.k8s.io/e2e-test-images/agnhost:2.52 quay.io/openshift/community-e2e-images:e2e-1-registry-k8s-io-e2e-test-images-agnhost-2-52-vo_U710PrYLetnfE
