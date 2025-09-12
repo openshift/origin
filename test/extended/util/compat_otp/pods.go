@@ -280,3 +280,27 @@ func GetPodNameInHostedCluster(oc *exutil.CLI, namespace string, podLabel string
 	daemonPod, err := oc.AsAdmin().AsGuestKubeconf().Run("get").Args(args...).Output()
 	return strings.ReplaceAll(daemonPod, "'", ""), err
 }
+
+// AssertAllNonJobPodsToBeReadyWithPollerParams assert all non-Job pods in NS are in ready state until timeout in a given namespace
+// Exclude transient Job pods ('job-name') from readiness: build Job pods are short‑lived and not expected to be Ready=True, so including them causes false failure
+// we validate the Job via logs/conditions separately, and this gate only asserts persistent controller pods (e.g., machine‑os‑builder) are Ready.
+func AssertAllNonJobPodsToBeReadyWithPollerParams(oc *exutil.CLI, namespace string, interval, timeout time.Duration) {
+	err := wait.Poll(interval, timeout, func() (bool, error) {
+
+		// get the status flag for all pods
+		// except the ones which are in Complete Status.
+		// exclude pods that belong to Jobs (pods with 'job-name' label)
+		// it use 'ne' operator which is only compatible with 4.10+ oc versions
+		template := "'{{- range .items -}}{{- range .status.conditions -}}{{- if ne .reason \"PodCompleted\" -}}{{- if eq .type \"Ready\" -}}{{- .status}} {{\" \"}}{{- end -}}{{- end -}}{{- end -}}{{- end -}}'"
+		stdout, err := oc.AsAdmin().Run("get").Args("pods", "-n", namespace, "-l", "!job-name").Template(template).Output()
+		if err != nil {
+			e2e.Logf("the err:%v, and try next round", err)
+			return false, nil
+		}
+		if strings.Contains(stdout, "False") {
+			return false, nil
+		}
+		return true, nil
+	})
+	AssertWaitPollNoErr(err, fmt.Sprintf("Some Pods are not ready in NS %s (excluding Job pods)!", namespace))
+}
