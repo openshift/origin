@@ -1285,9 +1285,9 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to \"\" [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing pods and podman containers Should validate the number of etcd pods and containers as configured": "",
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing should have etcd pods and containers configured correctly": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing pods and podman containers Should verify the number of podman-etcd containers as configured": "",
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing should have podman etcd containers running on each node": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery Should recover from graceful node shutdown with etcd member re-addition": " [Serial]",
 
@@ -1997,7 +1997,7 @@ var Annotations = map[string]string{
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node] Two Node with Fencing topology Should validate the number of control-planes, arbiters as configured": "",
+	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology should only have two control plane nodes and no arbiter nodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts Should validate that there are Master and Arbiter nodes as specified in the cluster": " [Suite:openshift/conformance/parallel]",
 
