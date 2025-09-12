@@ -83,29 +83,38 @@ func (ep *EndpointSlicesExporter) LoadExposedEndpointSlicesInfo() error {
 			continue
 		}
 
-		label = labels.SelectorFromSet(service.Spec.Selector)
 		pods := &corev1.PodList{}
-		err = ep.List(context.TODO(), pods, &rtclient.ListOptions{Namespace: service.Namespace, LabelSelector: label})
-		if err != nil {
-			return fmt.Errorf("failed to list pods, %v", err)
-		}
+		exposedService := isExposedService(service)
+		if len(service.Spec.Selector) == 0 {
+			// If an internal service has no selector, ports can't be exposed, skip.
+			if !exposedService {
+				log.Debug("no pods found for internal service, selector wasn't defined", service.Name)
+				continue
+			}
+		} else {
+			label = labels.SelectorFromSet(service.Spec.Selector)
+			err = ep.List(context.TODO(), pods, &rtclient.ListOptions{Namespace: service.Namespace, LabelSelector: label})
+			if err != nil {
+				return fmt.Errorf("failed to list pods, %v", err)
+			}
 
-		if len(pods.Items) == 0 {
-			log.Debug("no pods found for service name", service.Name)
-			continue
-		}
+			// If there are no pods found for the service, skip.
+			if len(pods.Items) == 0 {
+				log.Debug("no pods found for service name", service.Name)
+				continue
+			}
 
-		ports := epl.Items[0].Ports
-		// 	Check if all pod ports are exposed, otherwise, keep only ports linked to an EndpointSlice and hostPort.
-		if !isExposedService(service) && !isHostNetworked(pods.Items[0]) {
-			epsPortsInfo := getEndpointSlicePortsFromPod(pods.Items[0], epl.Items[0].Ports)
-			ports = filterEndpointPortsByPodHostPort(epsPortsInfo)
+			ports := epl.Items[0].Ports
+			// 	Check if all pod ports are exposed, otherwise, keep only ports linked to an EndpointSlice and hostPort.
+			if !exposedService && !isHostNetworked(pods.Items[0]) {
+				epsPortsInfo := getEndpointSlicePortsFromPod(pods.Items[0], epl.Items[0].Ports)
+				ports = filterEndpointPortsByPodHostPort(epsPortsInfo)
+			}
+			if len(ports) == 0 {
+				continue
+			}
+			epl.Items[0].Ports = ports
 		}
-		if len(ports) == 0 {
-			continue
-		}
-		epl.Items[0].Ports = ports
-
 		epsliceInfo := createEPSliceInfo(service, epl.Items[0], pods.Items)
 		log.Debug("epsliceInfo created", epsliceInfo)
 		epsliceInfos = append(epsliceInfos, epsliceInfo)
