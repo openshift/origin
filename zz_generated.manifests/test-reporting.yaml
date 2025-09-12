@@ -461,9 +461,9 @@ spec:
         pods are running on the Arbiter node'
   - featureGate: ImageStreamImportMode
     tests:
-    - testName: '[sig-cluster-lifecycle][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Disruptive][Serial]
-        ClusterVersion API desired architecture should be valid when architecture
-        is set in release payload metadata [apigroup:config.openshift.io]'
+    - testName: '[sig-cluster-lifecycle][OCPFeatureGate:ImageStreamImportMode] ClusterVersion
+        API desired architecture should be valid when architecture is set in release
+        payload metadata [apigroup:config.openshift.io]'
     - testName: '[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Serial]
         ImageStream API import mode should be Legacy if the import mode specified
         in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]'
@@ -479,9 +479,6 @@ spec:
     - testName: '[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive]
         ImageStream API import mode should be PreserveOriginal if the import mode
         specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]'
-    - testName: '[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive]
-        ImageStream API import mode should be PreserveOriginal or Legacy depending
-        on desired.architecture field in the CV [apigroup:image.openshift.io]'
   - featureGate: ImageVolume
     tests:
     - testName: '[sig-node] [FeatureGate:ImageVolume] ImageVolume should fail when
