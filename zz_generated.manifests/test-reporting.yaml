@@ -195,6 +195,12 @@ spec:
         Two Node with Fencing etcd recovery Should recover from ungraceful node shutdown
         with etcd member re-addition'
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing topology should have BareMetalHost operational status
+        set to detached if they exist'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing topology should have infrastructure platform type set
+        correctly'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
         Two Node with Fencing topology should only have two control plane nodes and
         no arbiter nodes'
   - featureGate: DynamicResourceAllocation

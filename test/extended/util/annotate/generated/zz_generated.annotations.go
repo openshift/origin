@@ -1993,6 +1993,10 @@ var Annotations = map[string]string{
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology should have BareMetalHost operational status set to detached if they exist": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology should have infrastructure platform type set correctly": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology should only have two control plane nodes and no arbiter nodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts Should validate that there are Master and Arbiter nodes as specified in the cluster": " [Suite:openshift/conformance/parallel]",
