@@ -2310,18 +2310,28 @@ func IsHypershift(ctx context.Context, configClient clientconfigv1.Interface) (b
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,
 // "false" otherwise. It needs kube-admin client as input.
 func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {
-	// MicroShift cluster contains "microshift-version" configmap in "kube-public" namespace
-	cm, err := kubeClient.CoreV1().ConfigMaps("kube-public").Get(context.Background(), "microshift-version", metav1.GetOptions{})
-	if err != nil {
+	ctx := context.Background()
+	var cm *corev1.ConfigMap
+	duration := 5 * time.Minute
+	if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, duration, true, func(ctx context.Context) (bool, error) {
+		// MicroShift cluster contains "microshift-version" configmap in "kube-public" namespace
+		var err error
+		cm, err = kubeClient.CoreV1().ConfigMaps("kube-public").Get(ctx, "microshift-version", metav1.GetOptions{})
+		if err == nil {
+			return true, nil
+		}
 		if kapierrs.IsNotFound(err) {
-			e2e.Logf("microshift-version configmap not found")
-			return false, nil
+			cm = nil
+			return true, nil
 		}
 		e2e.Logf("error accessing microshift-version configmap: %v", err)
+		return false, nil
+	}); err != nil {
+		e2e.Logf("failed to find microshift-version configmap while polling for %s: %v", duration, err)
 		return false, err
 	}
 	if cm == nil {
-		e2e.Logf("microshift-version configmap is nil")
+		e2e.Logf("microshift-version configmap not found")
 		return false, nil
 	}
 	e2e.Logf("MicroShift cluster with version: %s", cm.Data["version"])
