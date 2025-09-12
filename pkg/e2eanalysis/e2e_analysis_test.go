@@ -1,4 +1,4 @@
-package health_check
+package e2e_analysis
 
 import (
 	"testing"
