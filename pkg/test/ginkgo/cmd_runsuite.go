@@ -443,12 +443,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-network]")
 	})
 
-	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-builds]")
-	})
-
 	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-network]")
+	})
+
+	buildsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-builds]")
 	})
 
 	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
@@ -515,11 +515,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests = append(tests, storageTestsCopy...)
 
 		networkK8sTestsCopy := copyTests(networkK8sTests)
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism), testOutputConfig, abortFn) // run network tests separately.
+		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkK8sTestsCopy...)
 
 		networkTestsCopy := copyTests(networkTests)
-		q.Execute(testCtx, networkTestsCopy, max(1, parallelism), testOutputConfig, abortFn) // run network tests separately.
+		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkTestsCopy...)
 
 		buildsTestsCopy := copyTests(buildsTests)
@@ -885,7 +885,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		envFlagBuilder.AddTopology(&singleReplicaTopology)
 	}
 
-	//Additional flags can only be determined if we are able to obtain the clusterState
+	// Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
 		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
 			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
@@ -898,7 +898,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 
 		arch := "Unknown"
 		if len(clusterState.Masters.Items) > 0 {
-			//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+			// TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
 			arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
 		}
 		envFlagBuilder.AddArchitecture(arch)
