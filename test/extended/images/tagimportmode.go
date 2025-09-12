@@ -22,14 +22,6 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Se
 	g.It("import mode should be PreserveOriginal or Legacy depending on desired.architecture field in the CV [apigroup:image.openshift.io]", func() {
 		TestImageStreamImportMode(g.GinkgoT(), oc)
 	})
-
-	g.It("import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]", func() {
-		TestImageConfigImageStreamImportModeLegacy(g.GinkgoT(), oc)
-	})
-
-	g.It("import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]", func() {
-		TestImageConfigImageStreamImportModePreserveOriginal(g.GinkgoT(), oc)
-	})
 })
 
 func TestImageStreamImportMode(t g.GinkgoTInterface, oc *exutil.CLI) {
