@@ -1,4 +1,4 @@
-package health_check
+package e2e_analysis
 
 import (
 	"context"
@@ -29,7 +29,7 @@ type Options struct {
 	JUnitDir string
 }
 
-// Konwn dependency mapping
+// Known dependency mapping
 // key: operator name
 // value: the depenent operators required by the operator
 var operatorDependencies = map[string][]string{
@@ -106,7 +106,7 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 	}
 	fmt.Println(string(out))
 	if opt.JUnitDir != "" {
-		filePrefix := "cluster-health-check"
+		filePrefix := "junit_e2e_analysis"
 		start := time.Now()
 		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 		path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s_%s.xml", filePrefix, timeSuffix))
@@ -121,7 +121,7 @@ func (opt *Options) Run() error {
 	tm := NewTestManager()
 	defer tm.GenerateReport(opt)
 
-	tcName := "Verify the cluster can be connected"
+	tcName := "verify the cluster can be connected"
 	tc := NewTestCase(tcName)
 	cfg, err := e2e.LoadConfig()
 	if err != nil {
@@ -152,7 +152,11 @@ func (opt *Options) Run() error {
 		return nil
 	}
 	if err != nil {
+		failureMsg := fmt.Sprintf("cluster version stability check failed: %v", err)
+		tm.AddTestCase(tc, failureMsg, "")
 		logrus.Warnf("Continue though cluster version stability check failed (%v)", err)
+	} else {
+		tm.AddTestCase(tc, "", "")
 	}
 
 	// ======================================================
@@ -273,6 +277,9 @@ func (opt *Options) Run() error {
 			failureMsg = fmt.Sprintf("Operator %q - Available=%s, Degraded=%s, Progressing=%s", opName, available, degraded, progressing)
 			logrus.Infof("%s", failureMsg)
 			tm.AddTestCase(tc, failureMsg, "")
+			// add a flake case in here to begin with, so that we can analyze new tests without causing job failures.
+			// once we verify stability we can remove the flake
+			tm.AddTestCase(tc, "", "")
 			failedOperators[opName] = true
 		}
 	}
