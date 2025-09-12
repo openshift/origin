@@ -221,6 +221,10 @@ func recordTestResultInLogWithoutOverlap(testRunResult *testRunResultHandle, tes
 }
 
 func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, includeSuccessfulOutput bool) {
+	if testRunResult == nil {
+		return
+	}
+
 	// output the status of the test
 	switch testRunResult.testState {
 	case TestFlaked:
@@ -257,6 +261,10 @@ func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, in
 }
 
 func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecorder monitorapi.Recorder) {
+	if testRunResult == nil {
+		return
+	}
+
 	eventLevel := monitorapi.Warning
 
 	msg := monitorapi.NewMessage().HumanMessage("e2e test finished")

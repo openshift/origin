@@ -38,6 +38,10 @@ func (s *testSuiteProgress) TestEnded(testName string, testRunResult *testRunRes
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	if testRunResult == nil {
+		return
+	}
+
 	if isTestFailed(testRunResult.testState) {
 		s.failures++
 	}
