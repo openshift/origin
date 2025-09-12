@@ -503,17 +503,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
-		/*
-			kubeTestsCopy := copyTests(kubeTests)
-			q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
-			tests = append(tests, kubeTestsCopy...)
+		kubeTestsCopy := copyTests(kubeTests)
+		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, kubeTestsCopy...)
 
-			// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
-			storageTestsCopy := copyTests(storageTests)
-			q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
-			tests = append(tests, storageTestsCopy...)
-
-		*/
+		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
+		storageTestsCopy := copyTests(storageTests)
+		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		tests = append(tests, storageTestsCopy...)
 
 		networkK8sTestsCopy := copyTests(networkK8sTests)
 		q.Execute(testCtx, networkK8sTestsCopy, 1, testOutputConfig, abortFn) // run network tests separately.
@@ -523,21 +520,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		q.Execute(testCtx, networkTestsCopy, 1, testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkTestsCopy...)
 
-		/*
-			buildsTestsCopy := copyTests(buildsTests)
-			q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
-			tests = append(tests, buildsTestsCopy...)
+		buildsTestsCopy := copyTests(buildsTests)
+		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
+		tests = append(tests, buildsTestsCopy...)
 
-			openshiftTestsCopy := copyTests(openshiftTests)
-			q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
-			tests = append(tests, openshiftTestsCopy...)
+		openshiftTestsCopy := copyTests(openshiftTests)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, openshiftTestsCopy...)
 
-			// run the must-gather tests after parallel tests to reduce resource contention
-			mustGatherTestsCopy := copyTests(mustGatherTests)
-			q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
-			tests = append(tests, mustGatherTestsCopy...)
+		// run the must-gather tests after parallel tests to reduce resource contention
+		mustGatherTestsCopy := copyTests(mustGatherTests)
+		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, mustGatherTestsCopy...)
 
-		*/
 	}
 
 	// TODO: will move to the monitor
