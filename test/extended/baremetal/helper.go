@@ -139,10 +139,13 @@ func (b *BaremetalTestHelper) DeleteAllExtraWorkers() {
 		return
 	}
 
+	policy := metav1.DeletePropagationForeground
 	for _, worker := range b.extraWorkers {
-		err := b.bmcClient.Delete(context.Background(), worker.GetName(), metav1.DeleteOptions{})
+		err := b.bmcClient.Delete(context.Background(), worker.GetName(), metav1.DeleteOptions{PropagationPolicy: &policy})
 		o.Expect(err).ToNot(o.HaveOccurred())
+	}
 
+	for _, worker := range b.extraWorkers {
 		b.waitForDeletion(worker)
 	}
 }
