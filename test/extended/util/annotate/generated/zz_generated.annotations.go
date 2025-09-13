@@ -897,6 +897,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc debug ensure it works with image streams [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc debug ensure that the label is set for node debug": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc env can set environment variables [apigroup:apps.openshift.io][apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc env can set environment variables for deployment [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
