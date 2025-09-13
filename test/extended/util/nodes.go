@@ -14,6 +14,16 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// networkMode represents the networking mode for disruption pods
+type networkMode int
+
+const (
+	// hostNetworkMode enables host networking for the disruption pod
+	hostNetworkMode networkMode = iota
+	// podNetworkMode disables host networking for the disruption pod
+	podNetworkMode
+)
+
 // GetClusterNodesByRole returns the cluster nodes by role
 func GetClusterNodesByRole(oc *CLI, role string) ([]string, error) {
 	nodes, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", "-l", "node-role.kubernetes.io/"+role, "-o", "jsonpath='{.items[*].metadata.name}'").Output()
@@ -95,19 +105,43 @@ func DebugAllNodesRetryWithOptionsAndChroot(oc *CLI, debugNodeNamespace string, 
 // TriggerNodeRebootGraceful initiates a graceful node reboot which allows the system to terminate processes cleanly before rebooting.
 func TriggerNodeRebootGraceful(kubeClient kubernetes.Interface, nodeName string) error {
 	command := "echo 'reboot in 1 minute'; exec chroot /host shutdown -r 1"
-	return triggerNodeReboot(kubeClient, nodeName, 0, command)
+	return createNodeDisruptionPod(kubeClient, nodeName, 0, podNetworkMode, command)
 }
 
 // TriggerNodeRebootUngraceful initiates an ungraceful node reboot which does not allow the system to terminate processes cleanly before rebooting.
 func TriggerNodeRebootUngraceful(kubeClient kubernetes.Interface, nodeName string) error {
 	command := "echo 'reboot in 1 minute'; exec chroot /host sudo systemd-run sh -c 'sleep 60 && reboot --force --force'"
-	return triggerNodeReboot(kubeClient, nodeName, 0, command)
+	return createNodeDisruptionPod(kubeClient, nodeName, 0, podNetworkMode, command)
 }
 
-func triggerNodeReboot(kubeClient kubernetes.Interface, nodeName string, attempt int, command string) error {
+// TriggerNetworkDisruption blocks network traffic between the target and peer nodes for a given duration.
+func TriggerNetworkDisruption(kubeClient kubernetes.Interface, target, peer *corev1.Node, disruptionDuration time.Duration) (string, error) {
+	preambleCmd := fmt.Sprintf("echo 'temporarily disabling network connection between %s and %s for %v'; exec chroot /host sh -c ", target.Name, peer.Name, disruptionDuration)
+
+	peerIP := getNodeInternalAddress(peer)
+
+	blockTrafficCmd := fmt.Sprintf("sudo iptables -I INPUT -j DROP -s %s && sudo iptables -I OUTPUT -j DROP -d %s", peerIP, peerIP)
+	cleanupCmd := fmt.Sprintf("sudo iptables -D INPUT -j DROP -s %s; sudo iptables -D OUTPUT -j DROP -d %s", peerIP, peerIP)
+	sleepCmd := fmt.Sprintf("sleep %d", int(disruptionDuration.Seconds()))
+	disruptionCmd := fmt.Sprintf("%s 'trap \"%s\" EXIT; %s ; %s'", preambleCmd, cleanupCmd, blockTrafficCmd, sleepCmd)
+
+	return disruptionCmd, createNodeDisruptionPod(kubeClient, target.Name, 0, hostNetworkMode, disruptionCmd)
+}
+
+func getNodeInternalAddress(node *corev1.Node) string {
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+	// fallback
+	return node.Status.Addresses[0].Address
+}
+
+func createNodeDisruptionPod(kubeClient kubernetes.Interface, nodeName string, attempt int, networkMode networkMode, command string) error {
 	isTrue := true
 	zero := int64(0)
-	name := fmt.Sprintf("reboot-%s-%d", nodeName, attempt)
+	name := fmt.Sprintf("disrupt-%s-%d", nodeName, attempt)
 	_, err := kubeClient.CoreV1().Pods("kube-system").Create(context.Background(), &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -116,6 +150,7 @@ func triggerNodeReboot(kubeClient kubernetes.Interface, nodeName string, attempt
 			},
 		},
 		Spec: corev1.PodSpec{
+			HostNetwork:   networkMode == hostNetworkMode,
 			HostPID:       true,
 			RestartPolicy: corev1.RestartPolicyNever,
 			NodeName:      nodeName,
@@ -131,7 +166,7 @@ func triggerNodeReboot(kubeClient kubernetes.Interface, nodeName string, attempt
 			},
 			Containers: []corev1.Container{
 				{
-					Name: "reboot",
+					Name: "disruption",
 					SecurityContext: &corev1.SecurityContext{
 						RunAsUser:  &zero,
 						Privileged: &isTrue,
@@ -154,7 +189,7 @@ func triggerNodeReboot(kubeClient kubernetes.Interface, nodeName string, attempt
 		},
 	}, metav1.CreateOptions{})
 	if errors.IsAlreadyExists(err) {
-		return triggerNodeReboot(kubeClient, nodeName, attempt+1, command)
+		return createNodeDisruptionPod(kubeClient, nodeName, attempt+1, hostNetworkMode, command)
 	}
 	return err
 }
