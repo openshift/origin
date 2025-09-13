@@ -184,21 +184,25 @@ spec:
         [Beta] [Feature:OffByDefault]'
   - featureGate: DualReplica
     tests:
-    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
-        Two Node with Fencing pods and podman containers Should validate the number
-        of etcd pods and containers as configured'
-    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
-        Two Node with Fencing pods and podman containers Should verify the number
-        of podman-etcd containers as configured'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing should have etcd pods and containers configured correctly'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing should have podman etcd containers running on each node'
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
         Two Node with Fencing etcd recovery Should recover from graceful node shutdown
         with etcd member re-addition'
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
         Two Node with Fencing etcd recovery Should recover from ungraceful node shutdown
         with etcd member re-addition'
-    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node]
-        Two Node with Fencing topology Should validate the number of control-planes,
-        arbiters as configured'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing topology should have BareMetalHost operational status
+        set to detached if they exist'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing topology should have infrastructure platform type set
+        correctly'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
+        Two Node with Fencing topology should only have two control plane nodes and
+        no arbiter nodes'
   - featureGate: DynamicResourceAllocation
     tests:
     - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
