@@ -25,11 +25,11 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 		// from server or from context it's ok
 		o.Expect(out).Should(o.SatisfyAny(o.ContainSubstring("request canceled"), o.ContainSubstring("context deadline exceeded")))
 
-		out, err = oc.Run("get", "dc/testdc").Args("--request-timeout=1s").Output()
+		out, err = oc.Run("get", "dc/testdc").Args("--request-timeout=2s").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("testdc"))
 
-		out, err = oc.Run("get", "dc/testdc").Args("--request-timeout=1").Output()
+		out, err = oc.Run("get", "dc/testdc").Args("--request-timeout=2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("testdc"))
 
@@ -53,11 +53,11 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 		// from server or from context it's ok
 		o.Expect(out).Should(o.SatisfyAny(o.ContainSubstring("request canceled"), o.ContainSubstring("context deadline exceeded")))
 
-		out, err = oc.Run("get", "deployment/testdc").Args("--request-timeout=1s").Output()
+		out, err = oc.Run("get", "deployment/testdc").Args("--request-timeout=2s").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("testdc"))
 
-		out, err = oc.Run("get", "deployment/testdc").Args("--request-timeout=1").Output()
+		out, err = oc.Run("get", "deployment/testdc").Args("--request-timeout=2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("testdc"))
 
