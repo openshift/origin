@@ -105,7 +105,7 @@ var _ = g.Describe("[sig-cli] oc observe", func() {
 	})
 
 	g.It("works as expected with cluster operators [apigroup:config.openshift.io]", func() {
-		out, err := oc.Run("observe").Args("clusteroperators", "--once").Output()
+		out, err := oc.Run("observe").Args("clusteroperators", "--once", "--listen-addr=:11252").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("kube-apiserver"))
 	})
