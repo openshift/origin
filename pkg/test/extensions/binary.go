@@ -98,7 +98,7 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	})
 
 	specs.AddBeforeAll(func() {
-		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
+		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, nil)
 		if err != nil {
 			panic(err)
 		}
