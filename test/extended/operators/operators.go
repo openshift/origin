@@ -312,12 +312,13 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 	return badConditions, missingTypes
 }
 
-// When a TechPreviewNoUpgrade or CustomNoUpgrades feature set are in force in the cluster, the following condition
+// When a TechPreviewNoUpgrade, DevPreviewNoUpgrade or CustomNoUpgrades feature set are in force in the cluster, the following condition
 // is set on the kube-apiserver and/or the cluster-config clusteroperator
 // Ref: https://github.com/openshift/cluster-kube-apiserver-operator/blob/39a98d67c3b825b9215454a7817ffadb0577609b/pkg/operator/featureupgradablecontroller/feature_upgradeable_controller_test.go#L41-L46
 func isUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return (cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" ||
-		cond.Reason == "FeatureGates_RestrictedFeatureGates_CustomNoUpgrade") &&
+		cond.Reason == "FeatureGates_RestrictedFeatureGates_CustomNoUpgrade" ||
+		cond.Reason == "FeatureGates_RestrictedFeatureGates_DevPreviewNoUpgrade") &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
 }
