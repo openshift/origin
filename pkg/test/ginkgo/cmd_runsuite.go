@@ -352,7 +352,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 	}
 
-	// start with suite value
+	// start with suite value which should be based on a 3 worker node cluster
 	parallelism := suite.Parallelism
 	logrus.Infof("Suite defined parallelism %d", parallelism)
 
@@ -361,17 +361,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	if err != nil {
 		logrus.Errorf("Failed to get cluster node counts: %v", err)
 	} else {
-		// default to 10 concurrent tests per worker but use the min of that
-		// and the current parallelism value
-		if workerNodes > 0 {
-			workerParallelism := 10 * workerNodes
+		// default to 1/3 the defined parallelism value per worker but use the min of that
+		// and the current parallelism value so we don't increase parallelism
+		if workerNodes > 0 && parallelism > 0 {
+			workerParallelism := max(1, parallelism/3) * workerNodes
 			logrus.Infof("Parallelism based on worker node count: %d", workerParallelism)
 			parallelism = min(parallelism, workerParallelism)
 		}
 	}
 
 	// if 0 set our min value
-	if parallelism == 0 {
+	if parallelism <= 0 {
 		parallelism = 10
 	}
 
@@ -910,7 +910,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		envFlagBuilder.AddTopology(&singleReplicaTopology)
 	}
 
-	//Additional flags can only be determined if we are able to obtain the clusterState
+	// Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
 		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
 			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
@@ -923,7 +923,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 
 		arch := "Unknown"
 		if len(clusterState.Masters.Items) > 0 {
-			//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+			// TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
 			arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
 		}
 		envFlagBuilder.AddArchitecture(arch)
