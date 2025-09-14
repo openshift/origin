@@ -166,25 +166,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	defer g.GinkgoRecover()
 
 	criticalAlertsMissingRunbookURLExceptions := sets.NewString(
-		// Repository: https://github.com/openshift/cluster-network-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14062
-		"OVNKubernetesNorthboundDatabaseClusterIDError",
-		"OVNKubernetesSouthboundDatabaseClusterIDError",
-		"OVNKubernetesNorthboundDatabaseLeaderError",
-		"OVNKubernetesSouthboundDatabaseLeaderError",
-		"OVNKubernetesNorthboundDatabaseMultipleLeadersError",
-		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
-		"OVNKubernetesNorthdInactive",
-
-		// Repository: https://github.com/openshift/machine-api-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14055
-		"MachineAPIOperatorMetricsCollectionFailing",
-
-		// Repository: https://github.com/openshift/machine-config-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14056
-		"MCDRebootError",
-		"ExtremelyHighIndividualControlPlaneMemory",
-
 		// Repository: https://github.com/openshift/cluster-ingress-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14057
 		"HAProxyDown",
