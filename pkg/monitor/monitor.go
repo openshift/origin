@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +24,9 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/rest"
 )
+
+const monitorAnnotation = "[Monitor:"
+const defaultMonitorAnnotation = "[Monitor:Unknown]"
 
 type Monitor struct {
 	adminKubeConfig     *rest.Config
@@ -229,6 +233,11 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 	}
 	for i := range m.junits {
 		currJunit := m.junits[i]
+
+		if !strings.Contains(currJunit.Name, monitorAnnotation) {
+			// if we don't have the annotation add in the default
+			currJunit.Name = fmt.Sprintf("%s%s", defaultMonitorAnnotation, currJunit.Name)
+		}
 
 		junitSuite.NumTests++
 		if currJunit.FailureOutput != nil {
