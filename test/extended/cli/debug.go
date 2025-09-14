@@ -7,6 +7,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/test/extended/util/image"
+	corev1 "k8s.io/api/core/v1"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -277,5 +279,63 @@ spec:
 		out, err = oc.Run("debug").Args(fmt.Sprintf("isimage/wildfly@%s", sha), "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7"))
+	})
+
+	g.It("ensure that the label is set for node debug", func() {
+		var err error
+
+		ns := oc.Namespace()
+
+		err = oc.AsAdmin().Run("label").Args("namespace", ns, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.AsAdmin().WithoutNamespace().Run("auth").Args("can-i", "get", "nodes").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred(), "User should be able to get nodes")
+
+		nodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodes.Items).NotTo(o.BeEmpty(), "No worker nodes found")
+
+		var readyWorkerNode string
+
+		for _, node := range nodes.Items {
+			for _, nodeStatus := range node.Status.Conditions {
+				if nodeStatus.Type == corev1.NodeReady && nodeStatus.Status == corev1.ConditionTrue {
+					readyWorkerNode = node.Name
+					break
+				}
+			}
+		}
+		o.Expect(readyWorkerNode).NotTo(o.BeEmpty(), "No ready worker node found")
+
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--image="+image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"), "--keep-labels=true", "--preserve-pod=true", "--", "sleep", "1").Execute()
+		pods, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pods.Items).To(o.HaveLen(1))
+		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
+		o.Expect(pods.Items[0].Labels).To(o.HaveLen(1))
+
+		oc.AsAdmin().Run("delete").Args("pod", pods.Items[0].Name, "-n", ns).Output()
+
+		// Wait for the pod to be deleted with 2 minute timeout and 10 second interval
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		err = wait.PollUntilContextTimeout(ctx, 10*time.Second, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+			pods, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+			if err != nil {
+				return false, err
+			}
+			return len(pods.Items) == 0, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Expected debug pod to be deleted")
+
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--image="+image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"), "--preserve-pod=true", "--", "sleep", "1").Execute()
+
+		// Tests the code fix in https://github.com/openshift/oc/pull/2074
+		o.Expect(err).NotTo(o.HaveOccurred())
+		pods, err = oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
+		o.Expect(pods.Items).To(o.HaveLen(1))
+		o.Expect(pods.Items[0].Labels).To(o.HaveKeyWithValue("debug.openshift.io/managed-by", "oc-debug"))
+		o.Expect(pods.Items[0].Labels).To(o.HaveLen(1))
 	})
 })
