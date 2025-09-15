@@ -94,8 +94,6 @@ ip-10-0-111-19.us-west-1.compute.internal   Outdated     Pending   4.20.0-0.ci-2
 SINCE   LEVEL   IMPACT   MESSAGE
 8m57s   Info    None     Update is proceeding well`
 
-// TODO: This is a bug in `oc adm upgrade status` that we will fix but for now we need to tolerate
-// Eventually we will fail on output like this and we will also need to add a testcase for the fixed output
 var operatorsWithLinebreaksInMessages = `Unable to fetch alerts, ignoring alerts in 'Update Health':  failed to get alerts from Thanos: no token is currently in use for this session
 = Control Plane =
 Assessment:      Progressing
