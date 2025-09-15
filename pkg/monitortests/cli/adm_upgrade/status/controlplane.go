@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	operatorFirstLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S+\s+.*$`)
+	operatorFirstLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S+(\s+.*)?$`)
 )
 
 func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
