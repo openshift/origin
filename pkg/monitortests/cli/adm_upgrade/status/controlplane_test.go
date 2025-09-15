@@ -134,6 +134,28 @@ ip-10-0-64-121.ec2.internal   Outdated     Pending   4.20.0-0.ci-2025-08-13-1748
 SINCE    LEVEL   IMPACT   MESSAGE
 24m12s   Info    None     Update is proceeding well`
 
+var operatorsWithEmptyMessage = `Unable to fetch alerts, ignoring alerts in 'Update Health':  failed to get alerts from Thanos: no token is currently in use for this session
+= Control Plane =
+Assessment:      Progressing
+Target Version:  4.20.0-0.ci-2025-08-26-154705-test-ci-op-jy9dt0lx-latest (from 4.20.0-0.ci-2025-08-26-145530-test-ci-op-jy9dt0lx-initial)
+Updating:        authentication
+Completion:      9% (3 operators updated, 1 updating, 30 waiting)
+Duration:        7m27s (Est. Time Remaining: 36m)
+Operator Health: 32 Healthy, 1 Unavailable, 1 Available but degraded
+
+Updating Cluster Operators
+NAME             SINCE   REASON                 MESSAGE
+authentication   58s     WellKnownReadyCon...   
+
+Control Plane Nodes
+NAME                                       ASSESSMENT   PHASE     VERSION                                                     EST   MESSAGE
+ip-10-0-35-68.us-east-2.compute.internal   Outdated     Pending   4.20.0-0.ci-2025-08-26-145530-test-ci-op-jy9dt0lx-initial   ?     
+
+= Update Health =
+SINCE   LEVEL   IMPACT   MESSAGE
+7m27s   Info    None     Update is proceeding well
+`
+
 var controlPlaneCompleted = `Unable to fetch alerts, ignoring alerts in 'Update Health':  failed to get alerts from Thanos: no token is currently in use for this session
 = Control Plane =
 Update to 4.20.0-0.ci-2025-08-13-182454-test-ci-op-5wilvz46-latest successfully completed at 2025-08-13T20:33:32Z (duration: 59m)
@@ -231,6 +253,15 @@ func TestMonitor_ControlPlane(t *testing.T) {
 			name: "operators section with line breaks in messages",
 			snapshots: []snapshot{
 				{when: time.Now(), out: operatorsWithLinebreaksInMessages},
+			},
+			expected: &junitapi.JUnitTestCase{
+				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
+			},
+		},
+		{
+			name: "operators section with empty message",
+			snapshots: []snapshot{
+				{when: time.Now(), out: operatorsWithEmptyMessage},
 			},
 			expected: &junitapi.JUnitTestCase{
 				Name: "[sig-cli][OCPFeatureGate:UpgradeStatus] oc adm upgrade status control plane section is consistent",
