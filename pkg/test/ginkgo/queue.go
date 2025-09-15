@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"sync"
+	//"sync"
 )
 
 // parallelByFileTestQueue runs tests in parallel unless they have
@@ -107,25 +107,31 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 
 	serial, parallel := splitTests(tests, isSerialTest)
 
-	remainingParallelTests := make(chan *testCase, 100)
-	go queueAllTests(remainingParallelTests, parallel)
+	// TODO: can combine this using ginkgo's serial label?
+	testSuiteRunner.RunMultipleTests(ctx, parallel...)
+	testSuiteRunner.RunMultipleTests(ctx, serial...)
 
-	var wg sync.WaitGroup
-	for i := 0; i < parallelism; i++ {
-		wg.Add(1)
-		go func(ctx context.Context) {
-			defer wg.Done()
-			runTestsUntilChannelEmpty(ctx, remainingParallelTests, testSuiteRunner)
-		}(ctx)
-	}
-	wg.Wait()
+	/*
+		remainingParallelTests := make(chan *testCase, 100)
+		go queueAllTests(remainingParallelTests, parallel)
 
-	for _, test := range serial {
-		if ctx.Err() != nil {
-			return
+		var wg sync.WaitGroup
+		for i := 0; i < parallelism; i++ {
+			wg.Add(1)
+			go func(ctx context.Context) {
+				defer wg.Done()
+				runTestsUntilChannelEmpty(ctx, remainingParallelTests, testSuiteRunner)
+			}(ctx)
 		}
-		testSuiteRunner.RunOneTest(ctx, test)
-	}
+		wg.Wait()
+
+		for _, test := range serial {
+			if ctx.Err() != nil {
+				return
+			}
+			testSuiteRunner.RunOneTest(ctx, test)
+		}
+	*/
 }
 
 func isSerialTest(test *testCase) bool {

@@ -787,6 +787,12 @@ var Annotations = map[string]string{
 
 	"[sig-ci] [Suite:none] Test should fail at a configurable rate": "",
 
+	"[sig-ci][suite:openshift/dummy-suite] dummy suite should be fast": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-ci][suite:openshift/dummy-suite] dummy suite should be quick": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-ci][suite:openshift/dummy-suite] dummy suite shouldn't take long": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc --request-timeout works as expected for deployment": " [Suite:openshift/conformance/parallel]",

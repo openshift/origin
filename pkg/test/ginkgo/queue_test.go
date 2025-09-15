@@ -44,6 +44,10 @@ func (r *testingSuiteRunner) RunOneTest(ctx context.Context, test *testCase) {
 	r.testsRun = append(r.testsRun, test.name)
 }
 
+func (r *testingSuiteRunner) RunMultipleTests(ctx context.Context, tests ...*testCase) {
+	return
+}
+
 func (r *testingSuiteRunner) getTestsRun() []string {
 	r.lock.Lock()
 	defer r.lock.Unlock()

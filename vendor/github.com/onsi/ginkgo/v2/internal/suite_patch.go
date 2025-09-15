@@ -69,3 +69,32 @@ func (suite *Suite) RunSpec(spec types.TestSpec, suiteLabels Labels, suiteDescri
 
 	return success, false
 }
+
+func (suite *Suite) RunSpecs(specs []types.TestSpec, suiteLabels Labels, suiteDescription, suitePath string, failer *Failer, writer WriterInterface, suiteConfig types.SuiteConfig, reporterConfig types.ReporterConfig) (bool, bool) {
+	if suite.phase != PhaseBuildTree {
+		panic("cannot run before building the tree = call suite.BuildTree() first")
+	}
+
+	suite.phase = PhaseRun
+	suite.client = nil
+	suite.failer = failer
+	suite.reporter = reporters.NewDefaultReporter(reporterConfig, writer)
+	suite.writer = writer
+	suite.outputInterceptor = NoopOutputInterceptor{}
+	if suite.config.Timeout > 0 {
+		suite.deadline = time.Now().Add(suiteConfig.Timeout)
+	}
+	suite.interruptHandler = interrupt_handler.NewInterruptHandler(nil)
+	suite.config = suiteConfig
+
+	specsToRun := []Spec{}
+	for _, spec := range specs {
+		specsToRun = append(specsToRun, spec.(Spec))
+	}
+
+	success := suite.runSpecs(suiteDescription, suiteLabels, suitePath, false, specsToRun)
+
+	return success, false
+}
+
+

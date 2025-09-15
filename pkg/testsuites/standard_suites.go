@@ -451,6 +451,14 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 1 * time.Minute,
 	},
+	{
+		Name:        "openshift/dummy-suite",
+		Description: templates.LongDesc(`dummy suite`),
+		Qualifiers: []string{
+			`name.contains("[suite:openshift/dummy-suite")`,
+		},
+		TestTimeout: 1 * time.Minute,
+	},
 }
 
 func withExcludedTestsFilter(baseExpr string) string {
