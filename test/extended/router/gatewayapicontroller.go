@@ -260,8 +260,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		waitForIstioHealthy(oc)
 		waitIstioErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
 			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if strings.Contains(istioEnv, `ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`) {
+			if err != nil {
+				e2e.Logf("Failed getting openshift-gateway istio cr: %v", err)
+				return false, nil
+			}
+			if strings.Contains(istioEnv, `"ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true"`) {
 				e2e.Logf("GIE has been enabled, and the env variable is present in Istio resource")
 				return true, nil
 			}
@@ -275,8 +278,11 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		o.Expect(err).NotTo(o.HaveOccurred())
 		waitIstioErr = wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
 			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			if strings.Contains(istioEnv, `ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true`) {
+			if err != nil {
+				e2e.Logf("Failed getting openshift-gateway istio cr: %v", err)
+				return false, nil
+			}
+			if strings.Contains(istioEnv, `"ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true"`) {
 				e2e.Logf("GIE env variable is still present, trying again...")
 				return false, nil
 			}
@@ -307,7 +313,10 @@ func waitForIstioHealthy(oc *exutil.CLI) {
 	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
-		o.Expect(errIstio).NotTo(o.HaveOccurred())
+		if errIstio != nil {
+			e2e.Logf("Failed getting openshift-gateway istio cr status: %v", errIstio)
+			return false, nil
+		}
 		if istioStatus != "Healthy" {
 			e2e.Logf("Istio CR %q is not healthy, retrying...", resource.Name)
 			return false, nil
