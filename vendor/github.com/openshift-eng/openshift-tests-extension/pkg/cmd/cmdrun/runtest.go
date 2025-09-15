@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 	"k8s.io/klog"
 
-	//	ogenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	ogenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -38,6 +38,7 @@ func NewRunTestCommand(registry *extension.Registry) *cobra.Command {
 		concurrencyFlags *flags.ConcurrencyFlags
 		nameFlags        *flags.NamesFlags
 		outputFlags      *flags.OutputFlags
+		new bool
 	}{
 		componentFlags:   flags.NewComponentFlags(),
 		nameFlags:        flags.NewNamesFlags(),
@@ -138,7 +139,9 @@ func runSpecsForSuite(names ...string) (extensiontests.ExtensionTestResults, err
 			}
 		}
 
-		if !wantSet.Has(testName) {
+		annotatedTestName := annotateTestName(testName)
+
+		if !wantSet.Has(annotatedTestName) && !wantSet.Has(testName) {
 			return
 		}
 
@@ -201,7 +204,7 @@ func runSpecsForSuite(names ...string) (extensiontests.ExtensionTestResults, err
 		}
 
 		result := extensiontests.ExtensionTestResult{
-			Name:      strings.Join(append(summary.ContainerHierarchyTexts, summary.LeafNodeText), " "),
+			Name:      annotateTestName(strings.Join(append(summary.ContainerHierarchyTexts, summary.LeafNodeText), " ")),
 			Lifecycle: GetLifecycle(summary.Labels()),
 			Duration:  int64(summary.RunTime),
 			StartTime: (*dbtime.DBTime)(&summary.StartTime),
@@ -315,4 +318,13 @@ func configureGinkgo() (*types.SuiteConfig, *types.ReporterConfig, error) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	return &suiteConfig, &reporterConfig, nil
+}
+
+func annotateTestName(name string) string {
+	annotation, ok := ogenerated.Annotations[name]
+	if !ok {
+		return name
+	}
+
+	return name + annotation
 }

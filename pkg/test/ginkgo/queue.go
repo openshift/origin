@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	//"sync"
 )
 
@@ -87,7 +88,7 @@ func runTestsUntilChannelEmpty(ctx context.Context, remainingParallelTests chan 
 }
 
 // tests are currently being mutated during the run process.
-func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc) {
+func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc, runMultiple bool) {
 	testSuiteProgress := newTestSuiteProgress(len(tests))
 	testSuiteRunner := &testSuiteRunnerImpl{
 		commandContext:        q.commandContext,
@@ -96,42 +97,45 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
 	}
 
-	execute(ctx, testSuiteRunner, tests, parallelism)
+	execute(ctx, testSuiteRunner, tests, parallelism, runMultiple)
 }
 
 // execute is a convenience for unit testing
-func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int) {
+func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int, runMultiple bool) {
 	if ctx.Err() != nil {
 		return
 	}
 
 	serial, parallel := splitTests(tests, isSerialTest)
 
-	// TODO: can combine this using ginkgo's serial label?
-	testSuiteRunner.RunMultipleTests(ctx, parallel...)
-	testSuiteRunner.RunMultipleTests(ctx, serial...)
+	if runMultiple {
+		// TODO: can combine this using ginkgo's serial label?
+		testSuiteRunner.RunMultipleTests(ctx, parallel...)
 
-	/*
-		remainingParallelTests := make(chan *testCase, 100)
-		go queueAllTests(remainingParallelTests, parallel)
+		testSuiteRunner.RunMultipleTests(ctx, serial...)
 
-		var wg sync.WaitGroup
-		for i := 0; i < parallelism; i++ {
-			wg.Add(1)
-			go func(ctx context.Context) {
-				defer wg.Done()
-				runTestsUntilChannelEmpty(ctx, remainingParallelTests, testSuiteRunner)
-			}(ctx)
+		return
+	}
+
+	remainingParallelTests := make(chan *testCase, 100)
+	go queueAllTests(remainingParallelTests, parallel)
+
+	var wg sync.WaitGroup
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func(ctx context.Context) {
+			defer wg.Done()
+			runTestsUntilChannelEmpty(ctx, remainingParallelTests, testSuiteRunner)
+		}(ctx)
+	}
+	wg.Wait()
+
+	for _, test := range serial {
+		if ctx.Err() != nil {
+			return
 		}
-		wg.Wait()
-
-		for _, test := range serial {
-			if ctx.Err() != nil {
-				return
-			}
-			testSuiteRunner.RunOneTest(ctx, test)
-		}
-	*/
+		testSuiteRunner.RunOneTest(ctx, test)
+	}
 }
 
 func isSerialTest(test *testCase) bool {

@@ -70,13 +70,15 @@ func (r *testSuiteRunnerImpl) RunMultipleTests(ctx context.Context, tests ...*te
 	// however, we can change the values of the content, so we assign the content lower down to have a cleaner set of
 	// the many defers in this function.
 	// remember that defers are last-added, first-executed.
-	//testRunResults := []testRunResultHandle{}
+	// testRunResults := []testRunResultHandle{}
 
 	for _, test := range tests {
 		// record the test happening with the monitor
 		r.testOutput.monitorRecorder.AddIntervals(monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
 			Locator(monitorapi.NewLocator().E2ETest(test.name)).
 			Message(monitorapi.NewMessage().HumanMessage("started").Reason(monitorapi.E2ETestStarted)).BuildNow())
+
+		r.testSuiteProgress.LogTestStart(r.testOutput.out, test.name)
 	}
 
 	// defer recordTestResultInMonitor(testRunResult, r.testOutput.monitorRecorder)
@@ -98,7 +100,11 @@ func (r *testSuiteRunnerImpl) RunMultipleTests(ctx context.Context, tests ...*te
 			continue
 		}
 
-		mutateTestCaseWithResults(test, &testRunResultHandle{&testRunResults[ind]})
+		res := &testRunResultHandle{&testRunResults[ind]}
+		mutateTestCaseWithResults(test, res)
+
+		r.testSuiteProgress.TestEnded(test.name, res)
+		recordTestResultInLogWithoutOverlap(res, r.testOutput.testOutputLock, r.testOutput.out, r.testOutput.includeSuccessfulOutput)
 	}
 }
 
@@ -436,7 +442,9 @@ func testRunResultsForBinaryResults(results ...*extensions.ExtensionTestResult) 
 	ret := []testRunResult{}
 
 	for _, result := range results {
-		converted := testRunResult{}
+		converted := testRunResult{
+			name: result.Name,
+		}
 		switch result.Result {
 		case extensiontests.ResultFailed:
 			converted.testState = TestFailed

@@ -1,4 +1,4 @@
-package ci
+package authentication
 
 import (
 	"time"
@@ -8,12 +8,12 @@ import (
 	o "github.com/onsi/gomega"
 )
 
-var _ = g.Describe("[sig-ci][suite:openshift/dummy-suite] dummy suite", g.Ordered, func() {
+var _ = g.Describe("[sig-auth][Serial][suite:openshift/dummy-suite] dummy suite", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	g.BeforeAll(func() {
 		// Do some long setup....
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	})
 
 	g.It("should be quick", func() {
@@ -31,6 +31,6 @@ var _ = g.Describe("[sig-ci][suite:openshift/dummy-suite] dummy suite", g.Ordere
 
 	g.AfterAll(func() {
 		// Do some long cleanup
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	})
 })
