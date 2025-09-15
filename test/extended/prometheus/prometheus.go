@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -105,32 +106,43 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete pod %s/%s", execPod.Namespace, execPod.Name))
 		}()
 
-		contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		promTargets := func() (*prometheusTargets, error) {
+			contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+			if err != nil {
+				return nil, err
+			}
+			targets := &prometheusTargets{}
+			err = json.Unmarshal([]byte(contents), targets)
+			if err != nil {
+				return nil, err
+			}
+			// sanity check.
+			if len(targets.Data.ActiveTargets) < 5 {
+				return nil, fmt.Errorf("only got %d targets, something is wrong", len(targets.Data.ActiveTargets))
+			}
+			return targets, nil
+		}
 
-		targets := &prometheusTargets{}
-		err = json.Unmarshal([]byte(contents), targets)
+		initialPromTargets, err := promTargets()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(targets.Data.ActiveTargets)).Should(o.BeNumerically(">=", 5))
-
 		eg := errgroup.Group{}
 		eg.SetLimit(runtime.GOMAXPROCS(0))
-		errChan := make(chan error, len(targets.Data.ActiveTargets))
-		for _, target := range targets.Data.ActiveTargets {
+		errChan := make(chan error, len(initialPromTargets.Data.ActiveTargets))
+		for _, target := range initialPromTargets.Data.ActiveTargets {
 			eg.Go(func() error {
-				ns := target.Labels["namespace"]
-				o.Expect(ns).NotTo(o.BeEmpty())
-				if namespaceUnderTest != "" && ns != namespaceUnderTest {
+				targetNs, targetJob, targetPod, targetScrapeURL := target.Labels["namespace"], target.Labels["job"], target.Labels["pod"], target.ScrapeUrl
+				o.Expect(targetNs).NotTo(o.BeEmpty())
+				if namespaceUnderTest != "" && targetNs != namespaceUnderTest {
 					return nil
 				}
-				job, pod := target.Labels["job"], target.Labels["pod"]
 				err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
-					statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
-					e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", target.ScrapeUrl, ns, job, pod, statusCode, execError, namespacesToSkip.Has(ns))
+					statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
+					e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, execError, namespacesToSkip.Has(targetNs))
 					if expectedStatusCodes.Has(statusCode) {
 						return true, nil
 					}
-					// retry on those cases
+
+					// retry
 					if execError != nil ||
 						statusCode/100 == 5 ||
 						statusCode == http.StatusRequestTimeout ||
@@ -140,12 +152,22 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 					return false, fmt.Errorf("expecting status code %v but returned %d", expectedStatusCodes.UnsortedList(), statusCode)
 				})
 
-				// Decided to ignore targets that Prometheus itself failed to scrape; may be leftovers from earlier tests.
-				// See: https://issues.redhat.com/browse/OCPBUGS-61193
-				if err != nil && target.Health == "up" && !namespacesToSkip.Has(ns) {
-					errChan <- fmt.Errorf("Scraping target %s of pod %s/%s/%s is probably possible without auth: %w", target.ScrapeUrl, ns, job, pod, err)
+				// Ignoring targets that Prometheus no longer scrapes or fails to scrape.
+				// These may be leftovers from earlier tests.
+				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
+				if err != nil && !namespacesToSkip.Has(targetNs) {
+					targets, err := promTargets()
+					o.Expect(err).NotTo(o.HaveOccurred())
+					idx := slices.IndexFunc(targets.Data.ActiveTargets, func(t prometheusTarget) bool {
+						return t.Labels["namespace"] == targetNs &&
+							t.Labels["job"] == targetJob &&
+							t.Labels["pod"] == targetPod &&
+							t.ScrapeUrl == targetScrapeURL
+					})
+					if idx >= 0 && targets.Data.ActiveTargets[idx].Health == "up" {
+						errChan <- fmt.Errorf("Failed to ensure scraping target %s of pod %s/%s/%s requires auth: %w", targetScrapeURL, targetNs, targetJob, targetPod, err)
+					}
 				}
-
 				return nil
 			})
 		}
@@ -929,13 +951,15 @@ func all(errs ...error) []error {
 	return result
 }
 
+type prometheusTarget struct {
+	Labels    map[string]string
+	Health    string
+	ScrapeUrl string
+}
+
 type prometheusTargets struct {
 	Data struct {
-		ActiveTargets []struct {
-			Labels    map[string]string
-			Health    string
-			ScrapeUrl string
-		}
+		ActiveTargets []prometheusTarget
 	}
 	Status string
 }
