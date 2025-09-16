@@ -135,15 +135,15 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				if namespaceUnderTest != "" && targetNs != namespaceUnderTest {
 					return nil
 				}
-				err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
-					statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
-					e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, execError, namespacesToSkip.Has(targetNs))
+				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+					statusCode, err := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
+					e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, err, namespacesToSkip.Has(targetNs))
 					if expectedStatusCodes.Has(statusCode) {
 						return true, nil
 					}
 
 					// retry
-					if execError != nil ||
+					if err != nil ||
 						statusCode/100 == 5 ||
 						statusCode == http.StatusRequestTimeout ||
 						statusCode == http.StatusTooManyRequests {
@@ -155,7 +155,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				// Ignoring targets that Prometheus no longer scrapes or fails to scrape.
 				// These may be leftovers from earlier tests.
 				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
-				if err != nil && !namespacesToSkip.Has(targetNs) {
+				if scrapeErr != nil && !namespacesToSkip.Has(targetNs) {
 					targets, err := promTargets()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					idx := slices.IndexFunc(targets.Data.ActiveTargets, func(t prometheusTarget) bool {
@@ -165,7 +165,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 							t.ScrapeUrl == targetScrapeURL
 					})
 					if idx >= 0 && targets.Data.ActiveTargets[idx].Health == "up" {
-						errChan <- fmt.Errorf("Failed to ensure scraping target %s of pod %s/%s/%s requires auth: %w", targetScrapeURL, targetNs, targetJob, targetPod, err)
+						errChan <- fmt.Errorf("Failed to ensure scraping target %s of pod %s/%s/%s requires auth: %w", targetScrapeURL, targetNs, targetJob, targetPod, scrapeErr)
 					}
 				}
 				return nil
