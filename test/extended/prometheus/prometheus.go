@@ -137,7 +137,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				}
 				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
 					statusCode, err := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
-					e2e.Logf("Scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, err, namespacesToSkip.Has(targetNs))
+					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, err, namespacesToSkip.Has(targetNs))
 					if expectedStatusCodes.Has(statusCode) {
 						return true, nil
 					}
@@ -157,7 +157,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
 				if scrapeErr != nil && !namespacesToSkip.Has(targetNs) {
 					targets, err := promTargets()
-					o.Expect(err).NotTo(o.HaveOccurred())
+					if err != nil {
+						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, namespacesToSkip.Has(targetNs))
+						targets = initialPromTargets
+					}
 					idx := slices.IndexFunc(targets.Data.ActiveTargets, func(t prometheusTarget) bool {
 						return t.Labels["namespace"] == targetNs &&
 							t.Labels["job"] == targetJob &&
@@ -165,7 +168,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 							t.ScrapeUrl == targetScrapeURL
 					})
 					if idx >= 0 && targets.Data.ActiveTargets[idx].Health == "up" {
-						errChan <- fmt.Errorf("Failed to ensure scraping target %s of pod %s/%s/%s requires auth: %w", targetScrapeURL, targetNs, targetJob, targetPod, scrapeErr)
+						errChan <- fmt.Errorf("failed to ensure scraping target %s of pod %s/%s/%s requires auth: %w", targetScrapeURL, targetNs, targetJob, targetPod, scrapeErr)
 					}
 				}
 				return nil
