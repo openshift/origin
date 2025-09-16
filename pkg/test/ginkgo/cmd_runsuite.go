@@ -500,11 +500,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests = append(tests, storageTestsCopy...)
 
 		networkK8sTestsCopy := copyTests(networkK8sTests)
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
+		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism*3), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkK8sTestsCopy...)
 
 		networkTestsCopy := copyTests(networkTests)
-		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
+		q.Execute(testCtx, networkTestsCopy, max(1, parallelism*3), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkTestsCopy...)
 
 		buildsTestsCopy := copyTests(buildsTests)
