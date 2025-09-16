@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"time"
@@ -357,9 +358,18 @@ func createKeycloakRoute(ctx context.Context, service *corev1.Service, client ty
 	}
 	route.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
-	_, err := client.Create(ctx, route, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return nil, fmt.Errorf("creating route: %w", err)
+	var createErr error
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, err := client.Create(ctx, route, metav1.CreateOptions{})
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			createErr = err
+			return false, nil
+		}
+
+		return true, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating route: %w", errors.Join(err, createErr))
 	}
 
 	return func(ctx context.Context) error {
