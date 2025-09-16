@@ -803,6 +803,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm must-gather runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc adm must-gather runs successfully for metrics gathering [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc adm must-gather runs successfully with options [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm must-gather when looking at the audit logs [apigroup:config.openshift.io] [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": " [Suite:openshift/conformance/parallel]",
