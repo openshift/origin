@@ -3,9 +3,11 @@ package pods
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -85,6 +87,37 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		if numInvalidPodPriorities > 0 {
 			e2e.Failf("\n%d pods found with invalid priority class (should be openshift-user-critical or begin with system-):\n%s", numInvalidPodPriorities, strings.Join(invalidPodPriority.List(), "\n"))
 		}
+	})
+})
+
+var _ = Describe("[sig-node] Pod priority should match the default priorityClassName values", func() {
+	defer GinkgoRecover()
+	var (
+		oc                           = exutil.NewCLI("priority-class-name")
+		systemNodeCriticalPodFile    = filepath.Join("testdata", "priority-class-name", "system-node-critical.yaml")
+		systemClusterCriticalPodFile = filepath.Join("testdata", "priority-class-name", "system-cluster-critical.yaml")
+	)
+
+	It("system-node-critical=2000001000", func() {
+		By("creating the pods")
+		err := oc.Run("create").Args("-f", systemNodeCriticalPodFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		By("checking the pod priority")
+		out, err := oc.Run("get").Args("pods/pod-with-system-node-critical-priority-class").Template("{{.spec.priority}}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.Equal("2000001000"))
+	})
+
+	It("system-cluster-critical=2000000000", func() {
+		By("creating the pods")
+		err := oc.Run("create").Args("-f", systemClusterCriticalPodFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		By("checking the pod priority")
+		out, err := oc.Run("get").Args("pods/pod-with-system-cluster-critical-priority-class").Template("{{.spec.priority}}").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.Equal("2000000000"))
 	})
 })
 
