@@ -208,4 +208,126 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(err.Error()).To(o.ContainSubstring("Forbidden: not usable by user or serviceaccount"))
 	})
+
+	g.It("SCC validated-scc-subject-type annotation reflects the correct subject type", func() {
+		ctx := context.Background()
+
+		g.By("Creating a service account")
+		testSA, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Create(
+			ctx,
+			&corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "scc-subject-test-sa-",
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Use the existing ClusterRole that grants access to the anyuid SCC
+		anyuidClusterRole := "system:openshift:scc:anyuid"
+
+		// Create a role binding for the regular user
+		g.By("Creating a role binding for the regular user")
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(
+			ctx,
+			&rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "user-anyuid-",
+					Namespace:    oc.Namespace(),
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     anyuidClusterRole,
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     "User",
+						Name:     oc.Username(),
+						APIGroup: "rbac.authorization.k8s.io",
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Create a role binding for the service account
+		g.By("Creating a role binding for the service account")
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(
+			ctx,
+			&rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "sa-anyuid-",
+					Namespace:    oc.Namespace(),
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     anyuidClusterRole,
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      testSA.Name,
+						Namespace: oc.Namespace(),
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Create a pod with the regular user - should match anyuid SCC
+		g.By("Creating a pod as a regular user")
+		userPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "user-pod-",
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:    "test-container",
+						Image:   "fedora:latest",
+						Command: []string{"sleep"},
+						Args:    []string{"infinity"},
+					},
+				},
+			},
+		}
+		userCreatedPod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, userPod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Verify SCC annotations on user-created pod
+		g.By("Verifying annotations on user-created pod")
+		o.Expect(userCreatedPod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("anyuid"), "Pod should be validated against anyuid SCC")
+		o.Expect(userCreatedPod.Annotations[securityv1.ValidatedSCCSubjectTypeAnnotation]).To(o.Equal("user"), "Subject type annotation should be set to 'user'")
+
+		// Create a pod with the service account - should also match anyuid SCC
+		g.By("Creating a pod with service account")
+		saPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "sa-pod-",
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: testSA.Name,
+				Containers: []corev1.Container{
+					{
+						Name:    "test-container",
+						Image:   "fedora:latest",
+						Command: []string{"sleep"},
+						Args:    []string{"infinity"},
+					},
+				},
+			},
+		}
+		saCreatedPod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Create(ctx, saPod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// Verify SCC annotations on service-account-created pod
+		g.By("Verifying annotations on service-account-created pod")
+		o.Expect(saCreatedPod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("anyuid"), "Pod should be validated against anyuid SCC")
+		o.Expect(saCreatedPod.Annotations[securityv1.ValidatedSCCSubjectTypeAnnotation]).To(o.Equal("serviceaccount"), "Subject type annotation should be set to 'serviceaccount'")
+	})
 })
