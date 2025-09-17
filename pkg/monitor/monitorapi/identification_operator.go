@@ -1,6 +1,8 @@
 package monitorapi
 
 import (
+	"fmt"
+
 	configv1 "github.com/openshift/api/config/v1"
 )
 
@@ -24,4 +26,18 @@ func GetOperatorConditionStatus(interval Interval) *configv1.ClusterOperatorStat
 
 	condition.Message = interval.Message.HumanMessage
 	return condition
+}
+
+func GetOperatorConditionMessage(s *configv1.ClusterOperatorStatusCondition) string {
+	if s == nil {
+		return ""
+	}
+	switch {
+	case len(s.Reason) > 0 && len(s.Message) > 0:
+		return fmt.Sprintf("changed %s to %s: %s: %s", s.Type, s.Status, s.Reason, s.Message)
+	case len(s.Message) > 0:
+		return fmt.Sprintf("changed %s to %s: %s", s.Type, s.Status, s.Message)
+	default:
+		return fmt.Sprintf("changed %s to %s", s.Type, s.Status)
+	}
 }
