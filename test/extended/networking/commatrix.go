@@ -110,13 +110,16 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		platformType, err := utilsHelpers.GetPlatformType()
 		Expect(err).NotTo(HaveOccurred())
 
+		ipv6Enabled, err := utilsHelpers.IsIPv6Enabled()
+		Expect(err).NotTo(HaveOccurred())
+
 		// if cluster's type is not supported by the commatrix app, skip tests
 		if !slices.Contains(types.SupportedPlatforms, platformType) {
 			Skip(fmt.Sprintf("unsupported platform type: %s. Supported platform types are: %v", platformType, types.SupportedPlatforms))
 		}
 
 		By("Generating cluster's communication matrix")
-		commMatrixCreator, err := commatrixcreator.New(epExporter, "", "", platformType, deployment)
+		commMatrixCreator, err := commatrixcreator.New(epExporter, "", "", platformType, deployment, ipv6Enabled)
 		Expect(err).NotTo(HaveOccurred())
 
 		commatrix, err := commMatrixCreator.CreateEndpointMatrix()

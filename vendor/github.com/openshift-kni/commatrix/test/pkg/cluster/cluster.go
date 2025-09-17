@@ -16,6 +16,7 @@ import (
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	mcoac "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/discovery"
 	controllersClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -24,6 +25,7 @@ import (
 const (
 	thresholdVersion = "4.16" // above this version the nft service must be added to the NodeDisruptionPolicy in the MachineConfiguration.
 	timeout          = 20 * time.Minute
+	interval         = 5 * time.Second
 )
 
 // getClusterVersion return cluster's Y stream version.
@@ -143,5 +145,14 @@ func ValidateClusterVersionAndMachineConfiguration(cs *client.ClientSet) error {
 			return err
 		}
 	}
+
 	return nil
+}
+
+func WaitForAPIGroupAvailable(cs *client.ClientSet, groupVersion string) {
+	disco := discovery.NewDiscoveryClientForConfigOrDie(cs.Config)
+	gomega.Eventually(func() bool {
+		_, err := disco.ServerResourcesForGroupVersion(groupVersion)
+		return err == nil
+	}, timeout, interval).Should(gomega.BeTrue(), "API group %s not available", groupVersion)
 }
