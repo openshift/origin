@@ -26,9 +26,6 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ImageStreamImportMode][Se
 
 func TestImageStreamImportMode(t g.GinkgoTInterface, oc *exutil.CLI) {
 	ctx := context.Background()
-	if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-		g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-	}
 
 	// Check desired.Architecture in the CV
 	configClient, err := configclient.NewForConfig(oc.AdminConfig())
