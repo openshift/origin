@@ -221,6 +221,18 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "operator-lifecycle-manager",
 		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-openshift-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "openshift-controller-manager",
+		binaryPath: "/usr/bin/openshift-controller-manager-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-config-operator",
+		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
