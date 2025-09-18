@@ -19,10 +19,6 @@ func AllowedAlertsDuringConformance(featureSet configv1.FeatureSet) (allowedFiri
 			AlertName: "VirtControllerRESTErrorsHigh",
 			Text:      "https://issues.redhat.com/browse/CNV-50418",
 		},
-		{
-			AlertName: "InstallPlanStepAppliedWithWarnings",
-			Text:      "https://issues.redhat.com/browse/OSSM-10876",
-		},
 	}
 	allowedFiringAlerts := MetricConditions{
 		{
