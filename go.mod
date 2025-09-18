@@ -60,7 +60,7 @@ require (
 	github.com/onsi/gomega v1.37.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250711173707-dc2a20e5a5f8
-	github.com/openshift-kni/commatrix v0.0.4-0.20250604173218-064b4004e9fb
+	github.com/openshift-kni/commatrix v0.0.4-0.20250918040042-3db235b190b1
 	github.com/openshift/api v0.0.0-20250710004639-926605d3338b
 	github.com/openshift/apiserver-library-go v0.0.0-20250710132015-f0d44ef6e53b
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
