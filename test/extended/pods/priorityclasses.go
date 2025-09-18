@@ -99,24 +99,28 @@ var _ = Describe("[sig-node] Pod priority should match the default priorityClass
 
 	It("system-node-critical=2000001000", func() {
 		By("creating the pods")
-		err := oc.Run("create").Args("-f", systemNodeCriticalPodFile).Execute()
+		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", systemNodeCriticalPodFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		By("checking the pod priority")
-		out, err := oc.Run("get").Args("pods/pod-with-system-node-critical-priority-class").Template("{{.spec.priority}}").Output()
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), "pod-with-system-node-critical-priority-class", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal("2000001000"))
+		o.Expect(pod.Spec.Priority).To(o.Equal(2000001000))
+		err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(context.Background(), "pod-with-system-node-critical-priority-class", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	It("system-cluster-critical=2000000000", func() {
 		By("creating the pods")
-		err := oc.Run("create").Args("-f", systemClusterCriticalPodFile).Execute()
+		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", systemClusterCriticalPodFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		By("checking the pod priority")
-		out, err := oc.Run("get").Args("pods/pod-with-system-cluster-critical-priority-class").Template("{{.spec.priority}}").Output()
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), "pod-with-system-cluster-critical-priority-class", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal("2000000000"))
+		o.Expect(pod.Spec.Priority).To(o.Equal(2000001000))
+		err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(context.Background(), "pod-with-system-cluster-critical-priority-class", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
