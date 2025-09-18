@@ -3,7 +3,6 @@ package pods
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -94,8 +93,8 @@ var _ = Describe("[sig-node] Pod priority should match the default priorityClass
 	defer GinkgoRecover()
 	var (
 		oc                           = exutil.NewCLI("priority-class-name")
-		systemNodeCriticalPodFile    = filepath.Join("testdata", "priority-class-name", "system-node-critical.yaml")
-		systemClusterCriticalPodFile = filepath.Join("testdata", "priority-class-name", "system-cluster-critical.yaml")
+		systemNodeCriticalPodFile    = exutil.FixturePath("testdata", "priority-class-name", "system-node-critical.yaml")
+		systemClusterCriticalPodFile = exutil.FixturePath("testdata", "priority-class-name", "system-cluster-critical.yaml")
 	)
 
 	It("system-node-critical=2000001000", func() {
