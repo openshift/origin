@@ -18,6 +18,7 @@ import (
 	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
@@ -106,12 +107,23 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 	}
 	fmt.Println(string(out))
 	if opt.JUnitDir != "" {
+		if _, err := os.Stat(opt.JUnitDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(opt.JUnitDir, 0755); err != nil {
+				err = fmt.Errorf("failed to create junit directory %q: %w", opt.JUnitDir, err)
+				logrus.WithError(err).Error("JUnit report write error:")
+				return err
+			}
+		}
 		filePrefix := "junit_e2e_analysis"
 		start := time.Now()
 		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 		path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s_%s.xml", filePrefix, timeSuffix))
 		fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
-		os.WriteFile(path, test.StripANSI(out), 0640)
+		err := os.WriteFile(path, test.StripANSI(out), 0640)
+		if err != nil {
+			logrus.WithError(err).Error("Fail to write junit file:")
+			return err
+		}
 	}
 
 	return nil
@@ -162,7 +174,11 @@ func (opt *Options) Run() error {
 	// ======================================================
 	// ===== Consistency check between machine and node =====
 	// ======================================================
-	checkMachineNodeConsistency(cs, dc, tm)
+	ret, err = checkMachineNodeConsistency(cs, dc, tm)
+	if ret == -1 {
+		logrus.WithError(err).Error("Fatal failure:")
+		return nil
+	}
 
 	// ======================================================
 	// =========== Check cluster operators health ===========
@@ -274,12 +290,23 @@ func (opt *Options) Run() error {
 			logrus.Infof("%s PASSed", opName)
 			tm.AddTestCase(tc, "", "")
 		} else {
-			failureMsg = fmt.Sprintf("Operator %q - Available=%s, Degraded=%s, Progressing=%s", opName, available, degraded, progressing)
-			logrus.Infof("%s", failureMsg)
+			var failures []string
+			if available != "True" {
+				failures = append(failures, fmt.Sprintf("Operator Available=%s (%s): %s", available, availableCond.Get("reason").String(), availableCond.Get("message").String()))
+			}
+			if degraded != "False" {
+				failures = append(failures, fmt.Sprintf("Operator Degraded=%s (%s): %s", degraded, degradedCond.Get("reason").String(), degradedCond.Get("message").String()))
+			}
+			if progressing != "False" {
+				failures = append(failures, fmt.Sprintf("Operator Progressing=%s (%s): %s", progressing, progressingCond.Get("reason").String(), progressingCond.Get("message").String()))
+			}
+			failureMsg = strings.Join(failures, "\n")
+			logrus.Infof("%s FAILed: %s", opName, failureMsg)
 			tm.AddTestCase(tc, failureMsg, "")
-			// add a flake case in here to begin with, so that we can analyze new tests without causing job failures.
-			// once we verify stability we can remove the flake
-			tm.AddTestCase(tc, "", "")
+			// add a flake case in here to begin with, so that we can
+			// analyze new tests without causing job failures. Once we verify
+			// stability we can remove the flake
+			// tm.AddTestCase(NewTestCase(tcName), "", "")
 			failedOperators[opName] = true
 		}
 	}
@@ -472,7 +499,7 @@ func checkClusterVersionStable(dc dynamic.Interface) (int, error) {
 	return 0, nil
 }
 
-func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Interface, tm *TestManager) {
+func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Interface, tm *TestManager) (int, error) {
 	logrus.Info("Starting Machine and Node consistency check")
 
 	// ===== Case 1 =====
@@ -528,7 +555,7 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 	if err != nil {
 		message := fmt.Sprintf("Failed to list nodes: %v.", err)
 		tm.AddTestCase(tc, message, "")
-		return
+		return -1, err
 	}
 
 	notReadyNodes := getUnreadyOrUnschedulableNodeNames(nodeList)
@@ -569,6 +596,44 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 		}
 		tm.AddTestCase(tc, message, "")
 	}
+
+	// ===== Case 4 =====
+	tcName = "ensure 1 worker node at least gets ready"
+	tc = NewTestCase(tcName)
+	workerReadyCount, err := GetReadyNodeCountByLabel(nodeList, "node-role.kubernetes.io/worker")
+	if err != nil {
+		tm.AddTestCase(tc, fmt.Sprintf("%v", err), "")
+		return -1, err
+	}
+	if workerReadyCount > 0 {
+		tm.AddTestCase(tc, "", "")
+	} else {
+		message := "No Schedulable worker nodes available"
+		tm.AddTestCase(tc, message, "")
+		return -1, fmt.Errorf("%s", message)
+	}
+
+	return 0, nil
+}
+
+// GetReadyNodeCountByLabel filters a list of nodes by a label selector and returns the count of ready nodes.
+func GetReadyNodeCountByLabel(nodeList *k8sv1.NodeList, labelSelector string) (int, error) {
+	selector, err := labels.Parse(labelSelector)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse label selector %q: %w", labelSelector, err)
+	}
+
+	readyNodeCount := 0
+	for _, node := range nodeList.Items {
+		// First, check if the node's labels match the selector.
+		if selector.Matches(labels.Set(node.Labels)) {
+			// If they match, then check if the node is schedulable.
+			if e2enode.IsNodeSchedulable(&node) {
+				readyNodeCount++
+			}
+		}
+	}
+	return readyNodeCount, nil
 }
 
 // GetUnreadyOrUnschedulableNodeNames returns a list of node names that are
