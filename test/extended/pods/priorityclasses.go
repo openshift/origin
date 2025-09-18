@@ -118,7 +118,7 @@ var _ = Describe("[sig-node] Pod priority should match the default priorityClass
 		By("checking the pod priority")
 		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), "pod-with-system-cluster-critical-priority-class", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(pod.Spec.Priority).To(o.Equal(2000001000))
+		o.Expect(pod.Spec.Priority).To(o.Equal(2000000000))
 		err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(context.Background(), "pod-with-system-cluster-critical-priority-class", metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
