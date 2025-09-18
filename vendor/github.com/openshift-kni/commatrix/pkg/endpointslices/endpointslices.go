@@ -2,6 +2,7 @@ package endpointslices
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -51,6 +52,8 @@ func New(cs *client.ClientSet) (*EndpointSlicesExporter, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Info-level log to trace node to role mapping during initialization
+		log.Infof("node role mapping: node=%s role=%s", node.Name, nodeToRole[node.Name])
 	}
 
 	return &EndpointSlicesExporter{cs, nodeToRole, []EndpointSlicesInfo{}}, nil
@@ -83,29 +86,38 @@ func (ep *EndpointSlicesExporter) LoadExposedEndpointSlicesInfo() error {
 			continue
 		}
 
-		label = labels.SelectorFromSet(service.Spec.Selector)
 		pods := &corev1.PodList{}
-		err = ep.List(context.TODO(), pods, &rtclient.ListOptions{Namespace: service.Namespace, LabelSelector: label})
-		if err != nil {
-			return fmt.Errorf("failed to list pods, %v", err)
-		}
+		exposedService := isExposedService(service)
+		if len(service.Spec.Selector) == 0 {
+			// If an internal service has no selector, ports can't be exposed, skip.
+			if !exposedService {
+				log.Debug("no pods found for internal service, selector wasn't defined", service.Name)
+				continue
+			}
+		} else {
+			label = labels.SelectorFromSet(service.Spec.Selector)
+			err = ep.List(context.TODO(), pods, &rtclient.ListOptions{Namespace: service.Namespace, LabelSelector: label})
+			if err != nil {
+				return fmt.Errorf("failed to list pods, %v", err)
+			}
 
-		if len(pods.Items) == 0 {
-			log.Debug("no pods found for service name", service.Name)
-			continue
-		}
+			// If there are no pods found for the service, skip.
+			if len(pods.Items) == 0 {
+				log.Debug("no pods found for service name", service.Name)
+				continue
+			}
 
-		ports := epl.Items[0].Ports
-		// 	Check if all pod ports are exposed, otherwise, keep only ports linked to an EndpointSlice and hostPort.
-		if !isExposedService(service) && !isHostNetworked(pods.Items[0]) {
-			epsPortsInfo := getEndpointSlicePortsFromPod(pods.Items[0], epl.Items[0].Ports)
-			ports = filterEndpointPortsByPodHostPort(epsPortsInfo)
+			ports := epl.Items[0].Ports
+			// 	Check if all pod ports are exposed, otherwise, keep only ports linked to an EndpointSlice and hostPort.
+			if !exposedService && !isHostNetworked(pods.Items[0]) {
+				epsPortsInfo := getEndpointSlicePortsFromPod(pods.Items[0], epl.Items[0].Ports)
+				ports = filterEndpointPortsByPodHostPort(epsPortsInfo)
+			}
+			if len(ports) == 0 {
+				continue
+			}
+			epl.Items[0].Ports = ports
 		}
-		if len(ports) == 0 {
-			continue
-		}
-		epl.Items[0].Ports = ports
-
 		epsliceInfo := createEPSliceInfo(service, epl.Items[0], pods.Items)
 		log.Debug("epsliceInfo created", epsliceInfo)
 		epsliceInfos = append(epsliceInfos, epsliceInfo)
@@ -149,8 +161,28 @@ func createEPSliceInfo(service corev1.Service, ep discoveryv1.EndpointSlice, pod
 func (ei *EndpointSlicesInfo) getEndpointSliceNodeRoles(nodesRoles map[string]string) []string {
 	// map to prevent duplications
 	rolesMap := make(map[string]bool)
+	// Dump the full node->role map for troubleshooting empty roles
+	log.Infof("node->role map entries=%d content=%v", len(nodesRoles), nodesRoles)
 	for _, endpoint := range ei.EndpointSlice.Endpoints {
-		role := nodesRoles[*endpoint.NodeName]
+		var nodeName string
+		if endpoint.NodeName == nil {
+			log.Warningf("EndpointSlice %s/%s: endpoint has nil NodeName; service=%s", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, ei.Service.Name)
+			if dump, err := json.MarshalIndent(ei.EndpointSlice, "", "  "); err == nil {
+				log.Infof("EndpointSlice dump %s/%s:\n%s", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, string(dump))
+			} else {
+				log.Warningf("failed to marshal EndpointSlice %s/%s: %v", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, err)
+			}
+			nodeName = ""
+		} else {
+			nodeName = *endpoint.NodeName
+		}
+		role, ok := nodesRoles[nodeName]
+		if !ok {
+			log.Warningf("EndpointSlice %s/%s: node %s not found in node->role map; service=%s", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, nodeName, ei.Service.Name)
+		}
+		if role == "" {
+			log.Warningf("EndpointSlice %s/%s: empty role for node %s; service=%s", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, nodeName, ei.Service.Name)
+		}
 		rolesMap[role] = true
 	}
 
@@ -169,6 +201,13 @@ func (ei *EndpointSlicesInfo) toComDetails(nodesRoles map[string]string) ([]type
 
 	res := make([]types.ComDetails, 0)
 
+	// Dump the entire EndpointSlice for visibility
+	if dump, err := json.MarshalIndent(ei.EndpointSlice, "", "  "); err == nil {
+		log.Infof("EndpointSlice full dump %s/%s:\n%s", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, string(dump))
+	} else {
+		log.Warningf("failed to marshal EndpointSlice %s/%s: %v", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, err)
+	}
+
 	// Get the Namespace and Pod's name from the service.
 	namespace := ei.Service.Namespace
 	name, err := extractControllerName(&ei.Pods[0])
@@ -178,6 +217,9 @@ func (ei *EndpointSlicesInfo) toComDetails(nodesRoles map[string]string) ([]type
 
 	// Get the node roles of this endpointslice.
 	roles := ei.getEndpointSliceNodeRoles(nodesRoles)
+	if len(roles) == 0 {
+		log.Warningf("EndpointSlice %s/%s: no node roles resolved; service=%s", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name, ei.Service.Name)
+	}
 
 	epSlice := ei.EndpointSlice
 	optional := isOptional(epSlice)
@@ -190,6 +232,9 @@ func (ei *EndpointSlicesInfo) toComDetails(nodesRoles map[string]string) ([]type
 		}
 
 		for _, role := range roles {
+			if role == "" {
+				log.Warningf("EndpointSlice %s/%s: creating ComDetails with empty node role; service=%s port=%d protocol=%s pod=%s", namespace, ei.EndpointSlice.Name, ei.Service.Name, int(*port.Port), string(*port.Protocol), name)
+			}
 			res = append(res, types.ComDetails{
 				Direction: consts.IngressLabel,
 				Protocol:  string(*port.Protocol),
