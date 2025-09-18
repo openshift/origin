@@ -51141,22 +51141,18 @@ func testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml
 	return a, nil
 }
 
-var _testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml = []byte(`kind: Template
-apiVersion: template.openshift.io/v1
+var _testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml = []byte(`apiVersion: v1
+kind: Pod
 metadata:
-  name: template
-objects:
-- kind: Pod
-  apiVersion: v1
-  metadata:
-    name: pod-with-system-cluster-critical-priority-class
-  spec:
-    containers:
-    - name: new-container
-      image: busybox
-      command:
-      - ls
-    priorityClassName: system-cluster-critical
+  name: pod-with-system-cluster-critical-priority-class
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - sleep
+    - "3600"
+  priorityClassName: system-cluster-critical
 `)
 
 func testExtendedTestdataPriorityClassNameSystemClusterCriticalYamlBytes() ([]byte, error) {
@@ -51174,22 +51170,18 @@ func testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml() (*asset, e
 	return a, nil
 }
 
-var _testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml = []byte(`kind: Template
-apiVersion: template.openshift.io/v1
+var _testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml = []byte(`apiVersion: v1
+kind: Pod
 metadata:
-  name: template
-objects:
-- kind: Pod
-  apiVersion: v1
-  metadata:
-    name: pod-with-system-node-critical-priority-class
-  spec:
-    containers:
-    - name: new-container
-      image: busybox
-      command:
-      - ls
-    priorityClassName: system-node-critical
+  name: pod-with-system-node-critical-priority-class
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - sleep
+    - "3600"
+  priorityClassName: system-node-critical
 `)
 
 func testExtendedTestdataPriorityClassNameSystemNodeCriticalYamlBytes() ([]byte, error) {

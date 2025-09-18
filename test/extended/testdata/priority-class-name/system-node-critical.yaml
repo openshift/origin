@@ -1,16 +1,12 @@
-kind: Template
-apiVersion: template.openshift.io/v1
+apiVersion: v1
+kind: Pod
 metadata:
-  name: template
-objects:
-- kind: Pod
-  apiVersion: v1
-  metadata:
-    name: pod-with-system-node-critical-priority-class
-  spec:
-    containers:
-    - name: new-container
-      image: busybox
-      command:
-      - ls
-    priorityClassName: system-node-critical
+  name: pod-with-system-node-critical-priority-class
+spec:
+  containers:
+  - name: busybox
+    image: busybox
+    command:
+    - sleep
+    - "3600"
+  priorityClassName: system-node-critical
