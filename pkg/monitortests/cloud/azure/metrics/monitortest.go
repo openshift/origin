@@ -2,9 +2,12 @@ package azuremetricsanalyzer
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/monitor/query/azlogs"
@@ -34,6 +37,12 @@ const (
 	// based on value collected in real test environment.
 	avgOSDiskQueueDepthThreshold = 3.0
 	lbAvailabilityThreshold      = 99
+
+	// Load balancer retry configuration
+	maxRetries        = 10
+	initialBackoff    = 10 * time.Second
+	maxBackoff        = 5 * time.Minute
+	backoffMultiplier = 2.0
 )
 
 type azureMetricsCollector struct {
@@ -118,14 +127,50 @@ func getLoadBalancerID(ctx context.Context, credential *azidentity.DefaultAzureC
 		return "", fmt.Errorf("failed to create load balancers client: %v", err)
 	}
 
-	// Retrieve the load balancer
-	lb, err := client.Get(ctx, resourceGroup, loadBalancerName, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to get load balancer: %v", err)
+	var lastErr error
+	backoff := initialBackoff
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		logrus.Infof("Attempting to get load balancer %s (attempt %d/%d)", loadBalancerName, attempt+1, maxRetries)
+
+		// Retrieve the load balancer
+		lb, err := client.Get(ctx, resourceGroup, loadBalancerName, nil)
+		if err != nil {
+			lastErr = err
+
+			// Check if this is a retryable error (404 - resource not found)
+			var responseError *azcore.ResponseError
+			if errors.As(err, &responseError) && responseError.StatusCode == http.StatusNotFound {
+				logrus.Warnf("Load balancer %s not found (attempt %d/%d), will retry after %v", loadBalancerName, attempt+1, maxRetries, backoff)
+
+				// Don't sleep on the last attempt
+				if attempt < maxRetries-1 {
+					select {
+					case <-ctx.Done():
+						return "", fmt.Errorf("context cancelled while waiting for load balancer: %v", ctx.Err())
+					case <-time.After(backoff):
+					}
+
+					// Increase backoff for next attempt
+					backoff = time.Duration(float64(backoff) * backoffMultiplier)
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
+				}
+				continue
+			}
+
+			// For non-retryable errors, return immediately
+			return "", fmt.Errorf("failed to get load balancer (non-retryable error): %v", err)
+		}
+
+		// Success - return the ARM ID
+		logrus.Infof("Successfully found load balancer %s after %d attempt(s)", loadBalancerName, attempt+1)
+		return *lb.ID, nil
 	}
 
-	// Return the ARM ID
-	return *lb.ID, nil
+	// All retries exhausted
+	return "", fmt.Errorf("failed to get load balancer %s after %d attempts, last error: %v", loadBalancerName, maxRetries, lastErr)
 }
 
 func configureDiagnosticSettings(ctx context.Context, credential *azidentity.DefaultAzureCredential, loadBalancerID, workspaceResourceID string) error {
