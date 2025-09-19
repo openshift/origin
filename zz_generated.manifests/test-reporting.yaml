@@ -194,6 +194,15 @@ spec:
     - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
         Two Node with Fencing etcd recovery Should recover from ungraceful node shutdown
         with etcd member re-addition'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive]
+        Two Node Kubelet Service Disruption Should handle kubelet service disruption
+        with workload validation'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive]
+        Two Node Kubelet Service Disruption Should recover from sequential kubelet
+        service disruption on both nodes'
+    - testName: '[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive]
+        Two Node Kubelet Service Disruption Should recover from single node kubelet
+        service disruption'
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
         Two Node with Fencing topology should have BareMetalHost operational status
         set to detached if they exist'
@@ -203,6 +212,12 @@ spec:
     - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica]
         Two Node with Fencing topology should only have two control plane nodes and
         no arbiter nodes'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
+        Two Node Cold Boot Recovery Should recover from complete cluster graceful
+        shutdown and restart'
+    - testName: '[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive]
+        Two Node Cold Boot Recovery Should recover from ungraceful complete cluster
+        shutdown and restart'
   - featureGate: DynamicResourceAllocation
     tests:
     - testName: '[sig-node] DRA [Feature:DynamicResourceAllocation] [FeatureGate:DynamicResourceAllocation]
