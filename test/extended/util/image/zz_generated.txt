@@ -41,6 +41,7 @@ registry.k8s.io/sig-storage/csi-resizer:v1.13.1 quay.io/openshift/community-e2e-
 registry.k8s.io/sig-storage/csi-snapshotter:v8.3.0 quay.io/openshift/community-e2e-images:e2e-41-registry-k8s-io-sig-storage-csi-snapshotter-v8-3-0-LSRhS3Dw_X9lUrAu
 registry.k8s.io/sig-storage/hello-populator:v1.0.1 quay.io/openshift/community-e2e-images:e2e-32-registry-k8s-io-sig-storage-hello-populator-v1-0-1-Ei7libli17J5IWn-
 registry.k8s.io/sig-storage/hostpathplugin:v1.16.1 quay.io/openshift/community-e2e-images:e2e-34-registry-k8s-io-sig-storage-hostpathplugin-v1-16-1-E8rDn5RMceBiqrUX
+registry.k8s.io/sig-storage/hostpathplugin:v1.7.3 quay.io/openshift/community-e2e-images:e2e-registry-k8s-io-sig-storage-hostpathplugin-v1-7-3-21xBgDoXose1BoCT
 registry.k8s.io/sig-storage/livenessprobe:v2.15.0 quay.io/openshift/community-e2e-images:e2e-37-registry-k8s-io-sig-storage-livenessprobe-v2-15-0-4bLc1k1ifxb_KkX9
 registry.k8s.io/sig-storage/nfs-provisioner:v4.0.8 quay.io/openshift/community-e2e-images:e2e-17-registry-k8s-io-sig-storage-nfs-provisioner-v4-0-8-W5pbwDbNliDm1x4k
 registry.k8s.io/sig-storage/volume-data-source-validator:v1.0.0 quay.io/openshift/community-e2e-images:e2e-33-registry-k8s-io-sig-storage-volume-data-source-validator-v1-0-0-pJwTeQGTDmAV8753
