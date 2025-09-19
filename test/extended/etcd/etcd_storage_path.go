@@ -194,10 +194,14 @@ var kindWhiteList = sets.NewString(
 	"ImageStreamTag",
 	"ImageTag",
 	"UserIdentityMapping",
+
 	// these are now served using CRDs
 	"ClusterResourceQuota",
 	"SecurityContextConstraints",
 	"RoleBindingRestriction",
+
+	// blocked by VAP in OCP
+	"ServiceCIDR",
 )
 
 type helperT struct {
