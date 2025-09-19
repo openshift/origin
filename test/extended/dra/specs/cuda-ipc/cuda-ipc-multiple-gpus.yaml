@@ -1,0 +1,436 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cuda-ipc
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: resource.k8s.io/v1beta1
+kind: ResourceClaim
+metadata:
+  namespace: cuda-ipc
+  name: single-gpu
+spec:
+  devices:
+    requests:
+    - name: producer
+      deviceClassName: gpu.nvidia.com
+      selectors:
+      - cel:
+          expression: |
+            device.attributes['gpu.nvidia.com'].uuid == "GPU-d1a2be06-94f6-cd5f-0c15-b5558bcf3025"
+    - name: consumer
+      deviceClassName: gpu.nvidia.com
+      selectors:
+      - cel:
+          expression: |
+            device.attributes['gpu.nvidia.com'].uuid == "GPU-06410d4e-8bec-2933-dcc3-ac0497011913"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: producer
+  namespace: cuda-ipc
+  labels:
+    app: producer
+spec:
+  hostIPC: true
+  hostPID: true
+  containers:
+  - name: producer
+    image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    command: ["/bin/bash", "-c"]
+    startupProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/ready
+      initialDelaySeconds: 15
+      failureThreshold: 12
+      periodSeconds: 10
+    env:
+    args:
+    - |
+      echo "Producer: Listing available GPUs with nvidia-smi..."
+      nvidia-smi -L
+      echo "Producer: GPU UUIDs:"
+      nvidia-smi --query-gpu=uuid --format=csv,noheader
+      echo "Producer: GPU information complete."
+      echo ""
+
+      cat > /tmp/producer.cu << 'EOF'
+      #include <cuda_runtime.h>
+      #include <stdio.h>
+      #include <unistd.h>
+      #include <stdlib.h>
+
+      int main() {
+          void* devPtr;
+          cudaIpcMemHandle_t handle;
+          int deviceCount;
+
+          printf("Producer: Initializing CUDA...\n");
+          fflush(stdout);
+
+          // Check available GPUs
+          cudaError_t err = cudaGetDeviceCount(&deviceCount);
+          if (err != cudaSuccess) {
+              printf("ERROR getting device count: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+          printf("Producer: Found %d GPU(s)\n", deviceCount);
+
+          // List all available GPUs
+          for (int i = 0; i < deviceCount; i++) {
+              cudaDeviceProp prop;
+              cudaGetDeviceProperties(&prop, i);
+              printf("Producer: GPU %d: %s\n", i, prop.name);
+          }
+          fflush(stdout);
+
+          err = cudaSetDevice(0);
+          if (err != cudaSuccess) {
+              printf("ERROR setting CUDA device: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Allocating GPU memory on device 0...\n");
+          fflush(stdout);
+          err = cudaMalloc(&devPtr, 1024 * 1024); // 1MB
+          if (err != cudaSuccess) {
+              printf("ERROR allocating GPU memory: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Writing test data to GPU memory...\n");
+          fflush(stdout);
+          int* hostData = (int*)malloc(1024 * 1024);
+          for (int i = 0; i < 256 * 1024; i++) {
+              hostData[i] = i + 42; // Simple pattern: index + 42
+          }
+          err = cudaMemcpy(devPtr, hostData, 1024 * 1024, cudaMemcpyHostToDevice);
+          if (err != cudaSuccess) {
+              printf("ERROR copying data to GPU: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Creating IPC handle...\n");
+          fflush(stdout);
+          err = cudaIpcGetMemHandle(&handle, devPtr);
+          if (err != cudaSuccess) {
+              printf("ERROR creating IPC handle: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Producer: Writing handle to shared volume...\n");
+          fflush(stdout);
+          FILE* f = fopen("/shared/cuda_ipc_handle.dat", "wb");
+          if (!f) {
+              printf("ERROR: Could not open handle file for writing\n");
+              return 1;
+          }
+          fwrite(&handle, sizeof(handle), 1, f);
+          fclose(f);
+
+          printf("Producer: Success! Memory contains values 42, 43, 44, 45, 46...\n");
+          printf("Producer: Hanging infinitely to keep GPU memory alive...\n");
+          fflush(stdout);
+
+          // signal that the producer has created the IPC handle
+          FILE* ready = fopen("/tmp/ready", "w");
+          if (!ready) {
+              printf("ERROR: Could not open liveness file for writing\n");
+              return 1;
+          }
+          fclose(ready);
+
+          // Hang forever to keep the GPU memory allocated
+          while (1) {
+              sleep(3600);
+          }
+
+          return 0;
+      }
+      EOF
+
+      echo "Compiling producer..."
+      nvcc /tmp/producer.cu -o /tmp/producer
+      echo "Starting producer..."
+      /tmp/producer
+    resources:
+      claims:
+      - name: gpu
+        request: producer
+    securityContext:
+      privileged: true
+      capabilities:
+        add: ["IPC_LOCK"]
+    volumeMounts:
+    - name: shared-volume
+      mountPath: /shared
+
+  resourceClaims:
+  - name: gpu
+    resourceClaimName: single-gpu
+
+  volumes:
+  - name: shared-volume
+    hostPath:
+      path: /tmp/cuda-ipc-shared-dra
+      type: DirectoryOrCreate
+
+  tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+  restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: cuda-ipc
+  name: consumer
+  labels:
+    app: consumer
+spec:
+  hostIPC: true
+  hostPID: true
+  containers:
+  - name: consumer
+    image: nvidia/cuda:12.4.1-devel-ubuntu22.04
+    command: ["/bin/bash", "-c"]
+    startupProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/ready
+      initialDelaySeconds: 15
+      failureThreshold: 12
+      periodSeconds: 10
+    env:
+      - name: GPU_UUID
+        value: "06410d4e-8bec-2933-dcc3-ac0497011913"
+    args:
+    - |
+      echo "Consumer: Waiting for producer to create handle..."
+
+      # Wait for the handle file to be created
+      while [ ! -f /shared/cuda_ipc_handle.dat ]; do
+          echo "Consumer: Waiting for handle file..."
+          sleep 2
+      done
+
+      echo "Consumer: Handle file found!"
+      echo "Consumer: Listing available GPUs with nvidia-smi..."
+      nvidia-smi -L
+      echo "Consumer: GPU UUIDs:"
+      nvidia-smi --query-gpu=uuid --format=csv,noheader
+      echo "Consumer: GPU information complete."
+      echo ""
+      sleep 2
+
+      cat > /tmp/consumer.cu << 'EOF'
+      #include <cuda_runtime.h>
+      #include <stdio.h>
+      #include <unistd.h>
+      #include <stdlib.h>
+
+      // Helper function to print a cudaUUID_t for verification
+      void print_uuid(const cudaUUID_t uuid) {
+        for (int i = 0; i < 16; i++) {
+          printf("%02x", (unsigned char)uuid.bytes[i]);
+            if (i == 3 || i == 5 || i == 7 || i == 9) {
+              printf("-");
+            }
+        }
+        printf("\n");
+      }
+
+      int convert_to_uuid(const char* src, unsigned char* dest) {
+          // Use sscanf to parse the UUID string with hyphens
+          int bytes_read;
+          bytes_read = sscanf(src,
+            "%02hhx%02hhx%02hhx%02hhx-"
+            "%02hhx%02hhx-"
+            "%02hhx%02hhx-"
+            "%02hhx%02hhx-"
+            "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
+            &dest[0], &dest[1], &dest[2], &dest[3],
+            &dest[4], &dest[5],
+            &dest[6], &dest[7],
+            &dest[8], &dest[9],
+            &dest[10], &dest[11], &dest[12], &dest[13], &dest[14], &dest[15]);
+          return bytes_read;
+      }
+
+      // Helper function to compare two cudaUUID_t structures
+      bool uuid_equal(cudaUUID_t a, cudaUUID_t b) {
+        for (int i = 0; i < sizeof(a.bytes); i++) {
+          if (a.bytes[i] != b.bytes[i]) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      int main() {
+          const char* uuid_env_var = getenv("GPU_UUID");
+          if (uuid_env_var == NULL) {
+            printf("Error: Environment variable 'GPU_UUID' not set.\n");
+            return 1;
+          }
+          printf("Read GPU UUID from env: %s\n", uuid_env_var);
+
+          cudaUUID_t uuid;
+          // A pointer to the byte array inside the cudaUUID_t struct
+          unsigned char* uuid_bytes = (unsigned char*)uuid.bytes;
+          int bytes_read;
+          bytes_read = convert_to_uuid(uuid_env_var, uuid_bytes);
+          if (bytes_read != 16) {
+            printf("Error: Failed to parse UUID string. Expected 16 bytes, but read %d.\n", bytes_read);
+            return 1;
+          }
+
+          printf("Converted to cudaUUID_t: ");
+          print_uuid(uuid);
+          printf("Consumer: Initializing CUDA...\n");
+          fflush(stdout);
+
+          // find the matching GPU
+          int deviceCount;
+          cudaError_t err = cudaGetDeviceCount(&deviceCount);
+          if (err != cudaSuccess) {
+              printf("ERROR getting device count: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Consumer: Found %d GPU(s), finding the matching device index\n", deviceCount);
+          int device_index = -1;
+          for (int i = 0; i < deviceCount; i++) {
+              cudaDeviceProp prop;
+              cudaGetDeviceProperties(&prop, i);
+              int match = memcmp(prop.uuid.bytes, uuid.bytes, sizeof(uuid.bytes));              
+              printf("Consumer: GPU index: %d, name: %s, match: %d, uuid: ", i, prop.name, match == 0);
+              print_uuid(prop.uuid);
+              if (match == 0) {
+                device_index = i;
+                break;
+              }
+          }
+          if (device_index == -1) {
+            printf("Could not find a CUDA device matching the UUID.\n");
+            return 1;
+          }
+
+          err = cudaSetDevice(device_index);
+          if (err != cudaSuccess) {
+              printf("ERROR setting CUDA device: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          void* devPtr;
+          cudaIpcMemHandle_t handle;
+
+          printf("Consumer: Reading IPC handle from shared volume...\n");
+          fflush(stdout);
+          FILE* f = fopen("/shared/cuda_ipc_handle.dat", "rb");
+          if (!f) {
+              printf("ERROR: Handle file not found\n");
+              return 1;
+          }
+          fread(&handle, sizeof(handle), 1, f);
+          fclose(f);
+
+          printf("Consumer: Opening IPC memory handle...\n");
+          fflush(stdout);
+          err = cudaIpcOpenMemHandle(&devPtr, handle, cudaIpcMemLazyEnablePeerAccess);
+          if (err != cudaSuccess) {
+              printf("ERROR opening IPC handle: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Consumer: Successfully opened shared GPU memory!\n");
+          fflush(stdout);
+
+          // Read the data once
+          int* hostData = (int*)malloc(1024 * sizeof(int));
+          err = cudaMemcpy(hostData, devPtr, 1024 * sizeof(int), cudaMemcpyDeviceToHost);
+          if (err != cudaSuccess) {
+              printf("ERROR reading GPU memory: %s\n", cudaGetErrorString(err));
+              return 1;
+          }
+
+          printf("Consumer: First 10 values from shared memory: ");
+          for (int i = 0; i < 10; i++) {
+              printf("%d ", hostData[i]);
+          }
+          printf("\n");
+          fflush(stdout);
+
+          // Verify expected pattern (index + 42)
+          bool correct = true;
+          for (int i = 0; i < 1024; i++) {
+              if (hostData[i] != i + 42) {
+                  correct = false;
+                  break;
+              }
+          }
+
+          if (correct) {
+              printf("Consumer: ✓ Data verification PASSED!\n");
+          } else {
+              printf("Consumer: ✗ Data verification FAILED!\n");
+          }
+
+          printf("Consumer: Success! Hanging infinitely...\n");
+          fflush(stdout);
+
+          // signal that the consumer has read the data through the IPC handle
+          FILE* ready = fopen("/tmp/ready", "w");
+          if (!ready) {
+              printf("ERROR: Could not open liveness file for writing\n");
+              return 1;
+          }
+          fclose(ready);
+
+          // Hang forever
+          while (1) {
+              sleep(3600);
+          }
+
+          return 0;
+      }
+      EOF
+
+      echo "Compiling consumer..."
+      nvcc /tmp/consumer.cu -o /tmp/consumer
+      echo "Starting consumer..."
+      /tmp/consumer
+    resources:
+      claims:
+      - name: gpu
+    securityContext:
+      privileged: true
+      capabilities:
+        add: ["IPC_LOCK"]
+    volumeMounts:
+    - name: shared-volume
+      mountPath: /shared
+
+  resourceClaims:
+  - name: gpu
+    resourceClaimName: single-gpu
+
+  volumes:
+  - name: shared-volume
+    hostPath:
+      path: /tmp/cuda-ipc-shared-dra
+      type: DirectoryOrCreate
+
+  tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+  restartPolicy: Never

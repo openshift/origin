@@ -1965,6 +1965,22 @@ var Annotations = map[string]string{
 
 	"[sig-node] [FeatureGate:ImageVolume] ImageVolume when subPath is used should handle image volume with subPath": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-example-driver] one pod, one container, asking for 1 distinct GPU": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] [MIGEnabled=true] one pod, three containers, asking for 3g.20gb, 2g.10gb, and 1g.5gb respectively": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] [MPS=true] one pod, 2 containers share GPU using MPS": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] [TimeSlicing,MPS=true] gpu sharing with both MPS and TimeSlicing": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] [TimeSlicing=true] one pod, 2 containers, with time slice": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] one pod, one container, asking for 1 distinct GPU": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] two pods, one container each, asking for 1 distinct GPU": "",
+
+	"[sig-node] [Suite:openshift/dra-gpu-validation] [Feature:DynamicResourceAllocation] [Driver:dra-nvidia-driver] two pods, share data using CUDA IPC": "",
+
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
