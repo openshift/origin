@@ -1289,9 +1289,11 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing should have podman etcd containers running on each node": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery Should recover from graceful node shutdown with etcd member re-addition": " [Serial]",
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery should recover from graceful node shutdown with etcd member re-addition": " [Serial]",
 
-	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery Should recover from ungraceful node shutdown with etcd member re-addition": " [Serial]",
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery should recover from network disruption with etcd member re-addition": " [Serial]",
+
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery should recover from ungraceful node shutdown with etcd member re-addition": " [Serial]",
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
 
