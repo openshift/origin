@@ -39,7 +39,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
-	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
@@ -826,17 +825,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
-		networking.InOpenShiftSDNContext(func() {
-			g.It("should be able to get the sdn ovs flows", func() {
-				tests := map[string]bool{
-					// something
-					`openshift_sdn_ovs_flows >= 1`: true,
-				}
-				err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
 		})
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {

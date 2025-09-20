@@ -21,14 +21,13 @@ import (
 )
 
 const (
-	egressFWTestPod      = "egressfirewall"
-	egressFWE2E          = "egress-firewall-e2e"
-	wcEgressFWE2E        = "wildcard-egress-firewall-e2e"
-	noEgressFWE2E        = "no-egress-firewall-e2e"
-	egressFWTestImage    = "registry.k8s.io/e2e-test-images/agnhost:2.53"
-	oVNKManifest         = "ovnk-egressfirewall-test.yaml"
-	oVNKWCManifest       = "ovnk-egressfirewall-wildcard-test.yaml"
-	openShiftSDNManifest = "sdn-egressnetworkpolicy-test.yaml"
+	egressFWTestPod   = "egressfirewall"
+	egressFWE2E       = "egress-firewall-e2e"
+	wcEgressFWE2E     = "wildcard-egress-firewall-e2e"
+	noEgressFWE2E     = "no-egress-firewall-e2e"
+	egressFWTestImage = "registry.k8s.io/e2e-test-images/agnhost:2.53"
+	oVNKManifest      = "ovnk-egressfirewall-test.yaml"
+	oVNKWCManifest    = "ovnk-egressfirewall-wildcard-test.yaml"
 )
 
 var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
@@ -38,19 +37,10 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	mgmtFw := e2e.NewDefaultFramework("mgmt-framework")
 	mgmtFw.SkipNamespaceCreation = true
 
-	// The OVNKubernetes subnet plugin supports EgressFirewall objects.
 	InOVNKubernetesContext(
 		func() {
 			g.It("should ensure egressfirewall is created", func() {
 				doEgressFwTest(egFwf, mgmtFw, egFwoc, oVNKManifest, true, false)
-			})
-		},
-	)
-	// For Openshift SDN its supports EgressNetworkPolicy objects
-	InOpenShiftSDNContext(
-		func() {
-			g.It("should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]", func() {
-				doEgressFwTest(egFwf, mgmtFw, egFwoc, openShiftSDNManifest, false, false)
 			})
 		},
 	)
