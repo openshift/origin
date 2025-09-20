@@ -316,19 +316,33 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 	}
 
-	parallelism := o.Parallelism
-	if parallelism == 0 {
-		parallelism = suite.Parallelism
-	}
-
-	if parallelism == 0 {
-		parallelism = 10
-	}
+	// start with suite value which should be based on a 3 worker node cluster
+	parallelism := suite.Parallelism
+	logrus.Infof("Suite defined parallelism %d", parallelism)
 
 	// adjust based on the number of workers
 	totalNodes, workerNodes, err := getClusterNodeCounts(ctx, restConfig)
 	if err != nil {
 		logrus.Errorf("Failed to get cluster node counts: %v", err)
+	} else {
+		// default to 1/3 the defined parallelism value per worker but use the min of that
+		// and the current parallelism value so we don't increase parallelism
+		if workerNodes > 0 && parallelism > 0 {
+			workerParallelism := max(1, parallelism/3) * workerNodes
+			logrus.Infof("Parallelism based on worker node count: %d", workerParallelism)
+			parallelism = min(parallelism, workerParallelism)
+		}
+	}
+
+	// if 0 set our min value
+	if parallelism <= 0 {
+		parallelism = 10
+	}
+
+	// if explicitly set then use the specified value
+	if o.Parallelism > 0 {
+		parallelism = o.Parallelism
+		logrus.Infof("Using specified parallelism value: %d", parallelism)
 	}
 
 	logrus.Infof("Total nodes: %d, Worker nodes: %d, Parallelism: %d", totalNodes, workerNodes, parallelism)
