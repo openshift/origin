@@ -108,7 +108,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		}).Info("Found override for this extension")
 		return &TestBinary{
 			imageTag:   tag,
-			binaryPath: override,
+			BinaryPath: override,
 		}, nil
 	}
 
@@ -133,7 +133,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		logrus.Infof("Using existing binary %s for tag %s", binPath, tag)
 		return &TestBinary{
 			imageTag:   tag,
-			binaryPath: binPath,
+			BinaryPath: binPath,
 		}, nil
 	}
 
@@ -183,7 +183,7 @@ func (provider *ExternalBinaryProvider) ExtractBinaryFromReleaseImage(tag, binar
 		binary, tag, image, fileInfo.Size(), extractDuration)
 
 	return &TestBinary{
-		binaryPath: extractedBinary,
+		BinaryPath: extractedBinary,
 	}, nil
 }
 

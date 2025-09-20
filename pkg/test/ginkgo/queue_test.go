@@ -44,6 +44,10 @@ func (r *testingSuiteRunner) RunOneTest(ctx context.Context, test *testCase) {
 	r.testsRun = append(r.testsRun, test.name)
 }
 
+func (r *testingSuiteRunner) RunMultipleTests(ctx context.Context, tests ...*testCase) {
+	return
+}
+
 func (r *testingSuiteRunner) getTestsRun() []string {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -57,7 +61,7 @@ func Test_execute(t *testing.T) {
 	tests := makeTestCases()
 	testSuiteRunner := &testingSuiteRunner{}
 	parallelism := 30
-	execute(context.TODO(), testSuiteRunner, tests, parallelism)
+	execute(context.TODO(), testSuiteRunner, tests, parallelism, false)
 
 	testsCompleted := testSuiteRunner.getTestsRun()
 	if len(tests) != len(testsCompleted) {

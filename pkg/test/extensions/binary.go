@@ -137,7 +137,7 @@ type TestBinary struct {
 	// The payload image tag in which an external binary path can be found
 	imageTag string
 	// The binary path to extract from the image
-	binaryPath string
+	BinaryPath string
 
 	// Cache the info after gathering it
 	info *Extension
@@ -161,61 +161,61 @@ var extensionBinaries = []TestBinary{
 	// Self reference for origin's own internal extension
 	{
 		imageTag:   "tests",
-		binaryPath: os.Args[0],
+		BinaryPath: os.Args[0],
 	},
 
 	// Extensions in other payload images
 	{
 		imageTag:   "hyperkube",
-		binaryPath: "/usr/bin/k8s-tests-ext.gz",
+		BinaryPath: "/usr/bin/k8s-tests-ext.gz",
 	},
 	{
 		imageTag:   "machine-api-operator",
-		binaryPath: "/machine-api-tests-ext.gz",
+		BinaryPath: "/machine-api-tests-ext.gz",
 	},
 	{
 		imageTag:   "olm-operator-controller",
-		binaryPath: "/usr/bin/olmv1-tests-ext.gz",
+		BinaryPath: "/usr/bin/olmv1-tests-ext.gz",
 	},
 	{
 		imageTag:   "machine-config-operator",
-		binaryPath: "/usr/bin/machine-config-tests-ext.gz",
+		BinaryPath: "/usr/bin/machine-config-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-monitoring-operator",
-		binaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/cluster-monitoring-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-storage-operator",
-		binaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/cluster-storage-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-kube-apiserver-operator",
-		binaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/cluster-kube-apiserver-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-openshift-apiserver-operator",
-		binaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/cluster-openshift-apiserver-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "openshift-apiserver",
-		binaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
+		BinaryPath: "/usr/bin/openshift-apiserver-tests-ext.gz",
 	},
 	{
 		imageTag:   "oauth-apiserver",
-		binaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
+		BinaryPath: "/usr/bin/oauth-apiserver-tests-ext.gz",
 	},
 	{
 		imageTag:   "service-ca-operator",
-		binaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/service-ca-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-kube-controller-manager-operator",
-		binaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/cluster-kube-controller-manager-operator-tests-ext.gz",
 	},
 	{
 		imageTag:   "cluster-kube-storage-version-migrator-operator",
-		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
+		BinaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
 	},
 }
 
@@ -226,15 +226,15 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 	}
 
 	start := time.Now()
-	binName := filepath.Base(b.binaryPath)
+	binName := filepath.Base(b.BinaryPath)
 
 	logrus.Infof("Fetching info for %s", binName)
-	command := exec.Command(b.binaryPath, "info")
+	command := exec.Command(b.BinaryPath, "info")
 	infoJson, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
 		logrus.Errorf("Failed to fetch info for %s: %v", binName, err)
 		logrus.Errorf("Command output for %s: %s", binName, string(infoJson))
-		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.binaryPath, err, infoJson)
+		return nil, fmt.Errorf("failed running '%s info': %w\nOutput: %s", b.BinaryPath, err, infoJson)
 	}
 	// Some binaries may output logging that includes JSON-like data, so we need to find the first line that starts with '{'
 	jsonBegins := -1
@@ -283,18 +283,18 @@ func (b *TestBinary) Info(ctx context.Context) (*Extension, error) {
 func (b *TestBinary) ListTests(ctx context.Context, envFlags EnvironmentFlags) (ExtensionTestSpecs, error) {
 	var tests ExtensionTestSpecs
 	start := time.Now()
-	binName := filepath.Base(b.binaryPath)
+	binName := filepath.Base(b.BinaryPath)
 
 	binLogger := logrus.WithField("binary", binName)
 	binLogger.Info("Listing tests")
 	binLogger.Infof("OTE API version is: %s", b.info.APIVersion)
 	envFlags = b.filterToApplicableEnvironmentFlags(envFlags)
-	command := exec.Command(b.binaryPath, "list", "-o", "jsonl")
+	command := exec.Command(b.BinaryPath, "list", "-o", "jsonl")
 	binLogger.Infof("Adding the following applicable flags to the list command: %s", envFlags.String())
 	command.Args = append(command.Args, envFlags.ArgStrings()...)
 	testList, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, testList)
+		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.BinaryPath, err, testList)
 	}
 	buf := bytes.NewBuffer(testList)
 	for {
@@ -323,7 +323,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 	names ...string) []*ExtensionTestResult {
 	var results []*ExtensionTestResult
 	expectedTests := sets.New[string](names...)
-	binName := filepath.Base(b.binaryPath)
+	binName := filepath.Base(b.BinaryPath)
 
 	// Configure EXTENSION_ARTIFACTS_DIR -- extension is responsible for MkdirAll if they want
 	// to produce artifacts.
@@ -341,7 +341,7 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 		args = append(args, "-n", name)
 	}
 	args = append(args, "-o", "jsonl")
-	command := exec.Command(b.binaryPath, args...)
+	command := exec.Command(b.BinaryPath, args...)
 	if len(env) == 0 {
 		env = os.Environ()
 	}
@@ -399,13 +399,13 @@ func (b *TestBinary) RunTests(ctx context.Context, timeout time.Duration, env []
 
 func (b *TestBinary) ListImages(ctx context.Context) (ImageSet, error) {
 	start := time.Now()
-	binName := filepath.Base(b.binaryPath)
+	binName := filepath.Base(b.BinaryPath)
 
 	logrus.Infof("Listing images for %q", binName)
-	command := exec.Command(b.binaryPath, "images")
+	command := exec.Command(b.BinaryPath, "images")
 	output, err := runWithTimeout(ctx, command, 10*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.binaryPath, err, output)
+		return nil, fmt.Errorf("failed running '%s list': %w\nOutput: %s", b.BinaryPath, err, output)
 	}
 
 	var images []Image
@@ -434,7 +434,7 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 		logrus.Warning("Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set")
 		var internalBinaries []*TestBinary
 		for _, b := range extensionBinaries {
-			if b.binaryPath == os.Args[0] {
+			if b.BinaryPath == os.Args[0] {
 				internalBinaries = append(internalBinaries, &b)
 			}
 		}
@@ -507,14 +507,14 @@ func ExtractAllTestBinaries(ctx context.Context, parallelism int) (func(), TestB
 					}
 
 					// Self reference, no need to extract
-					if b.binaryPath == os.Args[0] {
+					if b.BinaryPath == os.Args[0] {
 						mu.Lock()
 						binaries = append(binaries, &b)
 						mu.Unlock()
 						continue
 					}
 
-					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.binaryPath)
+					testBinary, err := externalBinaryProvider.ExtractBinaryFromReleaseImage(b.imageTag, b.BinaryPath)
 					if err != nil {
 						errCh <- err
 						continue
@@ -584,7 +584,7 @@ func (binaries TestBinaries) Info(ctx context.Context, parallelism int) ([]*Exte
 					}
 					info, err := binary.Info(ctx)
 					if err != nil {
-						binName := filepath.Base(binary.binaryPath)
+						binName := filepath.Base(binary.BinaryPath)
 						logrus.Errorf("Failed to get info from binary %s: %v", binName, err)
 						errCh <- fmt.Errorf("binary %s: %w", binName, err)
 					}
@@ -647,7 +647,7 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 					if !ok {
 						return // Channel was closed
 					}
-					if binary.binaryPath == os.Args[0] {
+					if binary.BinaryPath == os.Args[0] {
 						continue // Skip self - only external binaries need to be queried for images
 					}
 

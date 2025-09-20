@@ -10,10 +10,10 @@ import (
 func TestFilterExtensionBinariesByTags(t *testing.T) {
 	// Test data
 	testBinaries := []TestBinary{
-		{imageTag: "tests", binaryPath: "/usr/bin/openshift-tests"},
-		{imageTag: "hyperkube", binaryPath: "/usr/bin/k8s-tests-ext.gz"},
-		{imageTag: "machine-api-operator", binaryPath: "/machine-api-tests-ext.gz"},
-		{imageTag: "custom-operator", binaryPath: "/custom-tests-ext.gz"},
+		{imageTag: "tests", BinaryPath: "/usr/bin/openshift-tests"},
+		{imageTag: "hyperkube", BinaryPath: "/usr/bin/k8s-tests-ext.gz"},
+		{imageTag: "machine-api-operator", BinaryPath: "/machine-api-tests-ext.gz"},
+		{imageTag: "custom-operator", BinaryPath: "/custom-tests-ext.gz"},
 	}
 
 	tests := []struct {
