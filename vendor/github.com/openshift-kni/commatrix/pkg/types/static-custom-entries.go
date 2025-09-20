@@ -158,16 +158,6 @@ var GeneralStaticEntriesMaster = []ComDetails{
 	}, {
 		Direction: "Ingress",
 		Protocol:  "TCP",
-		Port:      9258,
-		NodeRole:  "master",
-		Service:   "machine-approver",
-		Namespace: "openshift-cloud-controller-manager-operator",
-		Pod:       "cluster-cloud-controller-manager",
-		Container: "cluster-cloud-controller-manager",
-		Optional:  false,
-	}, {
-		Direction: "Ingress",
-		Protocol:  "TCP",
 		Port:      22624,
 		NodeRole:  "master",
 		Service:   "machine-config-server",
@@ -296,20 +286,6 @@ var BaremetalStaticEntriesMaster = []ComDetails{
 	},
 }
 
-var CloudStaticEntriesMaster = []ComDetails{
-	{
-		Direction: "Ingress",
-		Protocol:  "TCP",
-		Port:      10258,
-		NodeRole:  "master",
-		Service:   "cloud-controller",
-		Namespace: "openshift-cloud-controller-manager-operator",
-		Pod:       "cloud-controller-manager",
-		Container: "cloud-controller-manager",
-		Optional:  false,
-	},
-}
-
 var StandardStaticEntries = []ComDetails{
 	{
 		Direction: "Ingress",
@@ -328,6 +304,35 @@ var StandardStaticEntries = []ComDetails{
 		NodeRole:  "master",
 		Service:   "ovn-kubernetes geneve",
 		Namespace: "openshift-ovn-kubernetes",
+		Pod:       "",
+		Container: "",
+		Optional:  false,
+	},
+}
+
+// General IPv6-only static entries that should be applied when the cluster supports IPv6.
+var GeneralIPv6StaticEntriesWorker = []ComDetails{
+	{
+		Direction: "Ingress",
+		Protocol:  "UDP",
+		Port:      546,
+		NodeRole:  "worker",
+		Service:   "NetworkManager",
+		Namespace: "",
+		Pod:       "",
+		Container: "",
+		Optional:  false,
+	},
+}
+
+var GeneralIPv6StaticEntriesMaster = []ComDetails{
+	{
+		Direction: "Ingress",
+		Protocol:  "UDP",
+		Port:      546,
+		NodeRole:  "master",
+		Service:   "NetworkManager",
+		Namespace: "",
 		Pod:       "",
 		Container: "",
 		Optional:  false,
