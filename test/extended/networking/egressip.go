@@ -23,6 +23,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
 
+	"github.com/openshift/origin/pkg/test"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -346,7 +347,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		})
 
 		// Skipped on Azure due to https://bugzilla.redhat.com/show_bug.cgi?id=2073045
-		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", func() {
+		g.It("pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]", test.ExtendedDuration(), func() {
 			g.By("Creating the EgressIP test source deployment with number of pods equals number of EgressIP nodes")
 			_, routeName, err := createAgnhostDeploymentAndIngressRoute(oc, egressIPNamespace, "", ingressDomain, len(egressIPNodesOrderedNames), egressIPNodesOrderedNames)
 			o.Expect(err).NotTo(o.HaveOccurred())

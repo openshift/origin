@@ -7,15 +7,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	"github.com/openshift/origin/pkg/test"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = Describe("[sig-network] services", func() {
@@ -23,7 +23,7 @@ var _ = Describe("[sig-network] services", func() {
 	var retryInterval = 1 * time.Minute
 
 	InIPv4ClusterContext(oc, func() {
-		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+		It("ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", test.ExtendedDuration(), func() {
 			// Check if the test can write to cluster/network.config.openshift.io
 			hasAccess, err := hasNetworkConfigWriteAccess(oc)
 			Expect(err).NotTo(HaveOccurred())
@@ -107,7 +107,7 @@ var _ = Describe("[sig-network] services", func() {
 	})
 
 	InBareMetalIPv4ClusterContext(oc, func() {
-		It("ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", func() {
+		It("ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]", test.ExtendedDuration(), func() {
 			// Check if the test can write to cluster/network.config.openshift.io
 			hasAccess, err := hasNetworkConfigWriteAccess(oc)
 			Expect(err).NotTo(HaveOccurred())
