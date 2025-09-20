@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/extensions"
@@ -300,6 +301,15 @@ func (i *InvariantInClusterDisruption) PrepareCollection(ctx context.Context, ad
 	return nil
 }
 
+// isMultiArch checks if the cluster is multi-arch cluster
+func (i *InvariantInClusterDisruption) isMultiArch(nodesList *corev1.NodeList) (bool, error) {
+	architectures := sets.NewString()
+	for _, nodeArchitecture := range nodesList.Items {
+		architectures = architectures.Insert(nodeArchitecture.Status.NodeInfo.Architecture)
+	}
+	return len(architectures) > 1, nil
+}
+
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
@@ -362,6 +372,19 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return nil
 	}
 
+	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil || allNodes == nil {
+		return fmt.Errorf("error getting nodes: %v", err)
+	}
+
+	if ok, err := i.isMultiArch(allNodes); err != nil {
+		return err
+	} else if ok {
+		i.notSupportedReason = "multi-arch clusters are not supported"
+		log.Infof("IsMultiArchCluster: %s", i.notSupportedReason)
+		return nil
+	}
+
 	// Replace namespace from earlier test
 	if err := i.removeExistingMonitorNamespaces(ctx); err != nil {
 		log.Infof("removeExistingMonitorNamespaces returned error %v", err)
@@ -384,10 +407,6 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	}
 	apiIntHost := internalAPI.Hostname()
 
-	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("error getting nodes: %v", err)
-	}
 	i.replicas = 2
 	if len(allNodes.Items) == 1 {
 		i.replicas = 1
