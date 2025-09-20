@@ -193,3 +193,70 @@ func createNodeDisruptionPod(kubeClient kubernetes.Interface, nodeName string, a
 	}
 	return err
 }
+
+// TriggerNodeShutdownGraceful initiates a graceful node shutdown which allows the system to terminate processes cleanly before shutting down.
+func TriggerNodeShutdownGraceful(kubeClient kubernetes.Interface, nodeName string) error {
+	command := "echo 'shutdown in 1 minute'; exec chroot /host shutdown -h 1"
+	return triggerNodeShutdown(kubeClient, nodeName, 0, command)
+}
+
+// TriggerNodeShutdownUngraceful initiates an ungraceful node shutdown which does not allow the system to terminate processes cleanly before shutting down.
+func TriggerNodeShutdownUngraceful(kubeClient kubernetes.Interface, nodeName string) error {
+	command := "echo 'shutdown in 1 minute'; exec chroot /host sudo systemd-run sh -c 'pcs property set stonith-action=off && sleep 60 && poweroff --force --force'"
+	return triggerNodeShutdown(kubeClient, nodeName, 0, command)
+}
+
+func triggerNodeShutdown(kubeClient kubernetes.Interface, nodeName string, attempt int, command string) error {
+	isTrue := true
+	zero := int64(0)
+	name := fmt.Sprintf("shutdown-%s-%d", nodeName, attempt)
+	_, err := kubeClient.CoreV1().Pods("kube-system").Create(context.Background(), &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			Annotations: map[string]string{
+				"test.openshift.io/disrupt-target": nodeName,
+			},
+		},
+		Spec: corev1.PodSpec{
+			HostPID:       true,
+			RestartPolicy: corev1.RestartPolicyNever,
+			NodeName:      nodeName,
+			Volumes: []corev1.Volume{
+				{
+					Name: "host",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/",
+						},
+					},
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name: "shutdown",
+					SecurityContext: &corev1.SecurityContext{
+						RunAsUser:  &zero,
+						Privileged: &isTrue,
+					},
+					Image: image.ShellImage(),
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						command,
+					},
+					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							MountPath: "/host",
+							Name:      "host",
+						},
+					},
+				},
+			},
+		},
+	}, metav1.CreateOptions{})
+	if errors.IsAlreadyExists(err) {
+		return triggerNodeShutdown(kubeClient, nodeName, attempt+1, command)
+	}
+	return err
+}
