@@ -6,9 +6,12 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -16,6 +19,7 @@ import (
 
 type noDefaultServiceAccountChecker struct {
 	kubeClient kubernetes.Interface
+	cfgClient  *configv1.ConfigV1Client
 }
 
 func NewAnalyzer() monitortestframework.MonitorTest {
@@ -29,8 +33,14 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 
 // CollectData implements monitortestframework.MonitorTest.
 func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storageDir string, beginning time.Time, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if n.kubeClient == nil {
+
+	if n.cfgClient == nil || n.kubeClient == nil {
 		return nil, nil, nil
+	}
+
+	clusterOperators, err := n.cfgClient.ClusterOperators().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, err
 	}
 
 	namespaces, err := n.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
@@ -43,13 +53,56 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 			continue
 		}
 
+		clusterOperatorsItems := []v1.ClusterOperator{} // used to filter on namespace
+
+		for _, item := range clusterOperators.Items {
+			if item.Namespace == ns.Name {
+				clusterOperatorsItems = append(clusterOperatorsItems, item)
+			}
+		}
+
+		// Grab the related objects within each cluster operator
+
+		clusterOperatorsItemsRelatedObjects := [][]v1.ObjectReference{}
+
+		for _, item := range clusterOperatorsItems {
+			// append related objects for each operator in the list
+			clusterOperatorsItemsRelatedObjects = append(clusterOperatorsItemsRelatedObjects, item.Status.RelatedObjects)
+		}
+
+		// create new list for pod items
+		clusterOperatorObjects := []v1.ObjectReference{}
+
+		// filter any objects that are pods using the Group ref. use later to perform lookup on pods service accounts.
+		for _, item := range clusterOperatorsItemsRelatedObjects {
+			// check the kind of the object (i.e. is it Pod ?)
+			for _, item1 := range item {
+				if item1.Group == "pods" {
+					// add the item to the list
+					clusterOperatorObjects = append(clusterOperatorObjects, item1)
+				}
+			}
+		}
+
+		// create a pod list
+		podList := []corev1.Pod{}
+
 		pods, err := n.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			return nil, nil, err
 		}
 
+		// perform a lookup on the kubeclient to obtain all ACTUAL pod objects, which contain the `.Spec.ServiceAccountName` attribute.
+		for _, object := range clusterOperatorObjects {
+			for _, pod := range pods.Items {
+				if pod.Name == object.Name && pod.Namespace == object.Namespace { // this check ensures uniqueness because a pod name MUST be unique in a given namespace
+					podList = append(podList, pod)
+				}
+			}
+		}
+
 		failures := make([]string, 0)
-		for _, pod := range pods.Items {
+		for _, pod := range podList {
 			podSA := pod.Spec.ServiceAccountName
 			// if the service account name is not default, we can exit for that iteration
 			if podSA != "default" {
@@ -68,8 +121,6 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 			Name:          testName,
 			SystemOut:     failureMsg,
 			FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
-		}, &junitapi.JUnitTestCase{
-			Name: testName,
 		})
 	}
 	return nil, junits, nil
@@ -94,6 +145,10 @@ func (n *noDefaultServiceAccountChecker) PrepareCollection(ctx context.Context, 
 func (n *noDefaultServiceAccountChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 	n.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	n.cfgClient, err = configv1.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
