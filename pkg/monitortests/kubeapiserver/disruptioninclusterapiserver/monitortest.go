@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -337,6 +338,11 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 			i.notSupportedReason = "no image pull spec specified."
 			return nil
 		}
+	}
+
+	// Chained upgrade jobs have multiple release images, comma-separated. We need only the last one.
+	if strings.Contains(i.payloadImagePullSpec, ",") {
+		i.payloadImagePullSpec = strings.Split(i.payloadImagePullSpec, ",")[len(strings.Split(i.payloadImagePullSpec, ","))-1]
 	}
 
 	log.Infof("payload image pull spec is %s", i.payloadImagePullSpec)
