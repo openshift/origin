@@ -15,6 +15,8 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/test"
+
 	"golang.org/x/sync/errgroup"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -95,7 +97,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		}
 	})
 
-	g.It("should not be accessible without auth [Serial]", func() {
+	g.It("should not be accessible without auth [Serial]", test.ExtendedDuration(), func() {
 		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 
 		g.By("checking that targets reject the requests with 401 or 403")
