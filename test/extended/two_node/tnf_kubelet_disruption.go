@@ -301,6 +301,26 @@ func isKubeletServiceRunning(oc *util.CLI, nodeName string) bool {
 	return err == nil
 }
 
+// validateClusterOperatorsAvailable ensures all cluster operators are available
+func validateClusterOperatorsAvailable(oc *util.CLI) error {
+	clusterOperators, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list cluster operators: %v", err)
+	}
+
+	for _, operator := range clusterOperators.Items {
+		if !isClusterOperatorAvailable(&operator) {
+			return fmt.Errorf("cluster operator %s is not available", operator.Name)
+		}
+		if isClusterOperatorDegraded(&operator) {
+			return fmt.Errorf("cluster operator %s is degraded", operator.Name)
+		}
+	}
+
+	framework.Logf("All %d cluster operators are available and not degraded", len(clusterOperators.Items))
+	return nil
+}
+
 // createTestWorkload creates a simple test deployment for workload validation
 func createTestWorkload(oc *util.CLI, namespace string) error {
 	framework.Logf("Creating test workload in namespace %s", namespace)
