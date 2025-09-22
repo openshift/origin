@@ -80,7 +80,7 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 				errCh <- err
 				return
 			}
-			newCrioLogs := eventsFromCrioLogs(nodeName, crioLogs)
+			newCrioEvents := eventsFromCrioLogs(nodeName, crioLogs)
 
 			lock.Lock()
 			defer lock.Unlock()
@@ -88,7 +88,7 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			ret = append(ret, newOVSEvents...)
 			ret = append(ret, newNetworkManagerIntervals...)
 			ret = append(ret, newSystemdCoreDumpIntervals...)
-			ret = append(ret, newCrioLogs...)
+			ret = append(ret, newCrioEvents...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -726,21 +726,10 @@ func getNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, syst
 var panicHeadlineRegex = regexp.MustCompile(`(panic:|fatal error:)`)
 
 func kubeletPanicDetected(nodeName, logLine string) monitorapi.Intervals {
-	if !panicHeadlineRegex.MatchString(logLine) {
-		return nil
-	}
-
-	failureTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
-	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
-
-	return monitorapi.Intervals{
-		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
-			Locator(nodeLocator).
-			Message(monitorapi.NewMessage().Reason(monitorapi.KubeletPanic).
-				HumanMessage("kubelet panic detected, check logs for details")).
-			Display().
-			Build(failureTime, failureTime.Add(1*time.Second)),
-	}
+	return panicDetected(nodeName, logLine,
+		monitorapi.SourceKubeletLog,
+		monitorapi.KubeletPanic,
+		"kubelet panic detected, check logs for details")
 }
 
 // eventsFromCrioLogs returns the produced intervals from CRI-O logs.
@@ -758,6 +747,13 @@ func eventsFromCrioLogs(nodeName string, crioLog []byte) monitorapi.Intervals {
 }
 
 func crioPanicDetected(nodeName, logLine string) monitorapi.Intervals {
+	return panicDetected(nodeName, logLine,
+		monitorapi.SourceCrioLog,
+		monitorapi.CrioPanic,
+		"CRI-O panic detected, check logs for details")
+}
+
+func panicDetected(nodeName, logLine string, source monitorapi.IntervalSource, reason monitorapi.IntervalReason, human string) monitorapi.Intervals {
 	if !panicHeadlineRegex.MatchString(logLine) {
 		return nil
 	}
@@ -766,12 +762,13 @@ func crioPanicDetected(nodeName, logLine string) monitorapi.Intervals {
 	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
 
 	return monitorapi.Intervals{
-		monitorapi.NewInterval(monitorapi.SourceCrioLog, monitorapi.Error).
+		monitorapi.NewInterval(source, monitorapi.Error).
 			Locator(nodeLocator).
-			Message(monitorapi.NewMessage().Reason(monitorapi.CrioPanic).
-				HumanMessage("CRI-O panic detected, check logs for details")).
+			Message(monitorapi.NewMessage().
+				Reason(reason).
+				HumanMessage(human)).
 			Display().
-			Build(failureTime, failureTime.Add(1*time.Second)),
+			Build(failureTime, failureTime.Add(time.Second)),
 	}
 }
 
