@@ -1,6 +1,8 @@
 package extensions
 
 import (
+	"fmt"
+
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 )
 
@@ -23,7 +25,11 @@ func addLabelsToSpecs(specs et.ExtensionTestSpecs) {
 			selectFunctions = append(selectFunctions, et.NameContains(name))
 		}
 
-		//TODO: once annotation logic has been removed, it might also be necessary to annotate the test name with the label as well
-		specs.SelectAny(selectFunctions).AddLabel(label)
+		// Add the label AND append it to the name
+		matching := specs.SelectAny(selectFunctions)
+		for _, spec := range matching {
+			spec.Name = fmt.Sprintf("%s %s", spec.Name, label)
+			spec.Labels.Insert(label)
+		}
 	}
 }
