@@ -12,6 +12,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/operator"
 	authnv1 "k8s.io/api/authentication/v1"
@@ -555,24 +556,48 @@ func waitForRollout(ctx context.Context, client *exutil.CLI) {
 	// This means that the KAS-O has successfully started being configured
 	// with our auth resource changes.
 	o.Eventually(func(gomega o.Gomega) {
-		kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
-		gomega.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error fetching the KAS")
-
-		found := false
-		nipCond := operatorv1.OperatorCondition{}
-		for _, cond := range kas.Status.Conditions {
-			if cond.Type == condition.NodeInstallerProgressingConditionType {
-				found = true
-				nipCond = cond
-				break
-			}
-		}
-
-		gomega.Expect(found).To(o.BeTrue(), "should have found the NodeInstallerProgressing condition")
-		gomega.Expect(nipCond.Status).To(o.Equal(operatorv1.ConditionTrue), "NodeInstallerProgressing condition should be True", nipCond)
+		err := checkKubeAPIServerCondition(ctx, kasCli, condition.NodeInstallerProgressingConditionType, operatorv1.ConditionTrue)
+		gomega.Expect(err).NotTo(o.HaveOccurred())
 	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually begin rolling out a new revision")
 
-	// waitTime is in minutes - set to 30 minute wait for cluster operators to settle
-	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 30)
+	// waitTime is in minutes - set to 50 minute wait for cluster operators to settle
+	// Usually, it doesn't take nearly an hour for cluster operators to settle
+	// but due to the disruptive nature of how we are testing here means we _may_
+	// encounter scenarios where the KAS is undergoing multiple revision rollouts
+	// in succession. The worst case we've seen is 2 back-to-back revision rollouts
+	// which lead to the cluster-authentication-operator being unavailable for ~35-45
+	// minutes as it waits for the KAS to finish rolling out so it can begin
+	// doing whatever configurations it needs to.
+	err := operator.WaitForOperatorsToSettle(ctx, client.AdminConfigClient(), 50)
 	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error waiting for the cluster operators to settle")
+}
+
+// checkKubeAPIServerCondition is a utility function to check that the KubeAPIServer
+// resource on the cluster has a status condition type set with the expected
+// condition status. If it does not, it returns an error. If it does, it returns <nil>.
+func checkKubeAPIServerCondition(ctx context.Context, kasCli operatorv1client.KubeAPIServerInterface, conditionType string, conditionStatus operatorv1.ConditionStatus) error {
+	kas, err := kasCli.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("getting KAS: %w", err)
+	}
+
+	found := false
+	nipCond := operatorv1.OperatorCondition{}
+	for _, cond := range kas.Status.Conditions {
+		if cond.Type == condition.NodeInstallerProgressingConditionType {
+			found = true
+			nipCond = cond
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("no condition %q found in KAS status conditions", conditionType)
+	}
+
+	if nipCond.Status != conditionStatus {
+		return fmt.Errorf("condition %q expected to have status %q, but has status %q instead. Full condition: %v", conditionType, conditionStatus, nipCond.Status, nipCond)
+	}
+
+	return nil
 }
