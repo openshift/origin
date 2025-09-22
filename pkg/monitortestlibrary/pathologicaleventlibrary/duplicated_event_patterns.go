@@ -11,6 +11,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -170,9 +171,7 @@ func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bo
 // AllowedByAny checks if the given event locator and message match any registered matcher, and if
 // the repeating event should be allowed.
 // Returns true if so, the matcher name, and the matcher itself.
-func (r *AllowedPathologicalEventRegistry) AllowedByAny(
-	i monitorapi.Interval,
-	topology v1.TopologyMode) (bool, EventMatcher) {
+func (r *AllowedPathologicalEventRegistry) AllowedByAny(i monitorapi.Interval, topology v1.TopologyMode) (bool, EventMatcher) {
 	l := i.Locator
 	msg := i.Message
 	for k, m := range r.matchers {
@@ -196,7 +195,11 @@ func (r *AllowedPathologicalEventRegistry) GetMatcherByName(name string) (EventM
 
 // AllowedPathologicalEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
 // list which is combined with this one.
-func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
+func NewUniversalPathologicalEventMatchers(
+	kubeConfig *rest.Config,
+	finalIntervals monitorapi.Intervals,
+	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest,
+) *AllowedPathologicalEventRegistry {
 	registry := &AllowedPathologicalEventRegistry{matchers: map[string]EventMatcher{}}
 
 	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
@@ -502,15 +505,56 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
 
+	// Add disruption matchers for Disruptive suites only
+	if clusterStabilityDuringTest != nil && *clusterStabilityDuringTest == monitortestframework.Disruptive {
+		disruptivePeriodList := NewDisruptivePeriodListCordonedPeriods(finalIntervals)
+
+		// cluster-storage-operator reports some events that may look pathological but are expected if the
+		// nodes are rebooting/being upgraded
+		registry.AddPathologicalEventMatcherOrDie(
+			&DisruptionAwarePathologicalEventMatcher{
+				disruptivePeriodList: disruptivePeriodList,
+				delegate: &SimplePathologicalEventMatcher{
+					name:               "DriverOperatorCRProgressing",
+					messageReasonRegex: regexp.MustCompile("^OperatorStatusChanged$"),
+					messageHumanRegex:  regexp.MustCompile(`^Status for clusteroperator\/storage changed: Progressing changed from (True|False) to (True|False)`),
+					locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+						monitorapi.LocatorDeploymentKey: regexp.MustCompile(`^cluster-storage-operator$`),
+						monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`^openshift-cluster-storage-operator$`),
+					},
+				},
+			},
+		)
+
+		// TopologyAwareHints events need to be discarded during node reboot/upgrade
+		registry.AddPathologicalEventMatcherOrDie(
+			&DisruptionAwarePathologicalEventMatcher{
+				disruptivePeriodList: disruptivePeriodList,
+				delegate: &SimplePathologicalEventMatcher{
+					name:               "TopologyAwareHints",
+					messageReasonRegex: regexp.MustCompile("^TopologyAwareHints(Enabled|Disabled)$"),
+					locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+						monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-dns$`),
+						monitorapi.LocatorServiceKey:   regexp.MustCompile(`^dns-default$`),
+					},
+				},
+			},
+		)
+	}
+
 	return registry
 }
 
 // NewUpgradePathologicalEventMatchers creates the registry for allowed events during upgrade.
 // Contains everything in the universal set as well.
-func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
+func NewUpgradePathologicalEventMatchers(
+	kubeConfig *rest.Config,
+	finalIntervals monitorapi.Intervals,
+	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest,
+) *AllowedPathologicalEventRegistry {
 
 	// Start with the main list of matchers:
-	registry := NewUniversalPathologicalEventMatchers(kubeConfig, finalIntervals)
+	registry := NewUniversalPathologicalEventMatchers(kubeConfig, finalIntervals, clusterStabilityDuringTest)
 
 	// Now add in the matchers we only want to apply during upgrade:
 
