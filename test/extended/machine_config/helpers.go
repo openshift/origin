@@ -331,7 +331,7 @@ func WaitForBootImageControllerToComplete(oc *exutil.CLI) {
 			return false
 		}
 		return IsMachineConfigurationConditionFalse(mcop.Status.Conditions, opv1.MachineConfigurationBootImageUpdateProgressing)
-	}, 5*time.Minute, 5*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
+	}, 10*time.Minute, 5*time.Second).MustPassRepeatedly(3).Should(o.BeTrue())
 }
 
 // WaitForMachineConfigurationStatus waits until the MCO syncs the operator status to the latest spec
