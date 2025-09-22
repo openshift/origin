@@ -41,7 +41,8 @@ func (r *testSuiteRunnerImpl) RunOneTest(ctx context.Context, test *testCase) {
 	// however, we can change the values of the content, so we assign the content lower down to have a cleaner set of
 	// the many defers in this function.
 	// remember that defers are last-added, first-executed.
-	testRunResult := &testRunResultHandle{}
+	// Initialize with a non-nil inner struct so deferred functions can safely read fields
+	testRunResult := &testRunResultHandle{testRunResult: &testRunResult{testState: TestUnknown}}
 
 	// if we need to abort, then abort
 	defer r.maybeAbortOnFailureFn(testRunResult)
@@ -225,6 +226,10 @@ func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, in
 		fmt.Fprintln(os.Stderr, "testRunResult is nil")
 		return
 	}
+	if testRunResult.testRunResult == nil {
+		fmt.Fprintln(os.Stderr, "testRunResult.testRunResult is nil")
+		return
+	}
 
 	// output the status of the test
 	switch testRunResult.testState {
@@ -264,6 +269,11 @@ func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, in
 func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecorder monitorapi.Recorder) {
 	if testRunResult == nil {
 		fmt.Fprintln(os.Stderr, "testRunResult is nil")
+		return
+	}
+
+	if testRunResult.testRunResult == nil {
+		fmt.Fprintln(os.Stderr, "testRunResult.testRunResult is nil")
 		return
 	}
 
@@ -363,15 +373,21 @@ func updateEnvVars(envs []string) []string {
 	// copied from provider.go
 	// TODO: add error handling, and maybe turn this into sharable helper?
 	config := &clusterdiscovery.ClusterConfiguration{}
-	clientConfig, _ := framework.LoadConfig(true)
-	clusterState, _ := clusterdiscovery.DiscoverClusterState(clientConfig)
-	if clusterState != nil {
-		config, _ = clusterdiscovery.LoadConfig(clusterState)
+	if clientConfig, err := framework.LoadConfig(true); err == nil {
+		if clusterState, err := clusterdiscovery.DiscoverClusterState(clientConfig); err == nil && clusterState != nil {
+			if loaded, err := clusterdiscovery.LoadConfig(clusterState); err == nil && loaded != nil {
+				config = loaded
+			}
+		}
 	}
 	if len(config.ProviderName) == 0 {
 		config.ProviderName = "skeleton"
 	}
-	provider, _ := json.Marshal(config)
-	result = append(result, fmt.Sprintf("TEST_PROVIDER=%s", provider))
+	if provider, err := json.Marshal(config); err == nil {
+		result = append(result, fmt.Sprintf("TEST_PROVIDER=%s", provider))
+	} else {
+		// fallback to a minimal default if marshal fails for any reason
+		result = append(result, "TEST_PROVIDER=\"{\\\"ProviderName\\\":\\\"skeleton\\\"}\"")
+	}
 	return result
 }
