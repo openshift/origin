@@ -176,7 +176,7 @@ func testNoSystemdCoreDumps(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 }
 
 func nodeKubeletAndCrioPanicsInvariant(startedAt time.Time, finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] kubelet-log-collector detects kubelet or CRI-O panics"
+	const testName = "[sig-node] node-system-log-collector detects kubelet or CRI-O panics"
 	var failures []string
 
 	intervalsToFailOn := findKubeletAndCrioPanics(finalIntervals)

@@ -1250,7 +1250,7 @@ func TestKubeletPanicDetected(t *testing.T) {
 	nonPanicLog := "normal log line"
 
 	intervals := kubeletPanicDetected(nodeName, panicLog)
-	if intervals == nil || len(intervals) == 0 {
+	if len(intervals) == 0 {
 		t.Errorf("Expected interval for panic log, got none")
 	}
 	if intervals[0].Condition.Message.HumanMessage != "kubelet panic detected, check logs for details" {
@@ -1269,7 +1269,7 @@ func TestCrioPanicDetected(t *testing.T) {
 	nonPanicLog := "normal log line"
 
 	intervals := crioPanicDetected(nodeName, panicLog)
-	if intervals == nil || len(intervals) == 0 {
+	if len(intervals) == 0 {
 		t.Errorf("Expected interval for CRI-O panic log, got none")
 	}
 	if intervals[0].Condition.Message.HumanMessage != "CRI-O panic detected, check logs for details" {
