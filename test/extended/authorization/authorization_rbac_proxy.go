@@ -3,7 +3,7 @@ package authorization
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -639,7 +639,8 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 			Name: userName,
 		},
 	}
-	escalationFormat := `%s %q is forbidden: user %q (groups=["system:authenticated:oauth" "system:authenticated"]) is attempting to grant RBAC permissions not currently held:`
+	// the two groups appear in different order in different cases
+	escalationFormatRegex := `^%s %q is forbidden: user %q \(groups=\[("system:authenticated" "system:authenticated:oauth"|"system:authenticated:oauth" "system:authenticated")\]\) is attempting to grant RBAC permissions not currently held:`
 	escalatingRules := []authorizationv1.PolicyRule{
 		{
 			Verbs:     []string{"hug"},
@@ -879,10 +880,14 @@ func RunLegacyEndpointConfirmNoEscalation(t g.GinkgoTInterface, clusterAdminAuth
 				t.Errorf("expected group resource %s got %s", wantGR, gotGR)
 			}
 
-			wantErr := fmt.Sprintf(escalationFormat, wantGR.String(), resourceName, userName)
+			wantErrRegex := regexp.MustCompile(fmt.Sprintf(escalationFormatRegex,
+				regexp.QuoteMeta(wantGR.String()),
+				regexp.QuoteMeta(resourceName),
+				regexp.QuoteMeta(userName),
+			))
 			gotErr := err.Error()
-			if !strings.HasPrefix(gotErr, wantErr) {
-				t.Errorf("expected escalation message prefix %q got %q", wantErr, gotErr)
+			if !wantErrRegex.MatchString(gotErr) {
+				t.Errorf("expected escalation message to match pattern `%q` got `%q`", escalationFormatRegex, gotErr)
 			}
 		})
 	}
