@@ -27,6 +27,7 @@ type auditLogAnalyzer struct {
 
 	summarizer                    *summarizer
 	excessiveApplyChecker         *excessiveApplies
+	excessiveConflictsChecker     *excessiveConflicts
 	requestCountTracking          *countTracking
 	invalidRequestsChecker        *invalidRequests
 	requestsDuringShutdownChecker *lateRequestTracking
@@ -43,6 +44,7 @@ func NewAuditLogAnalyzer(info monitortestframework.MonitorTestInitializationInfo
 	return &auditLogAnalyzer{
 		summarizer:                    NewAuditLogSummarizer(),
 		excessiveApplyChecker:         CheckForExcessiveApplies(),
+		excessiveConflictsChecker:     CheckForExcessiveConflicts(),
 		invalidRequestsChecker:        CheckForInvalidMutations(),
 		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 		violationChecker:              CheckForViolations(),
@@ -93,6 +95,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 	auditLogHandlers := []AuditEventHandler{
 		w.summarizer,
 		w.excessiveApplyChecker,
+		w.excessiveConflictsChecker,
 		w.invalidRequestsChecker,
 		w.requestsDuringShutdownChecker,
 		w.violationChecker,
@@ -279,6 +282,91 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			continue
 		}
 		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())
+		flakes = append(flakes, errorMessage)
+	}
+	switch {
+	case len(flakes) > 1:
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(flakes, "\n"),
+					Output:  "details in audit log",
+				},
+			},
+		)
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
+
+	default:
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
+	}
+
+	for _, namespace := range allPlatformNamespaces {
+		testName := fmt.Sprintf("users in ns/%s must not produce too many conflicts", namespace)
+		usersToConflicts := w.excessiveConflictsChecker.namespacesToUserToNumberOfConflicts[namespace]
+
+		failures := []string{}
+		flakes := []string{}
+		for username, numberOfConflicts := range usersToConflicts {
+			if numberOfConflicts > 10 {
+				errorMessage := fmt.Sprintf("user %v had %d update conflicts, check the audit log and operator log to figure out why", username, numberOfConflicts)
+				failures = append(failures, errorMessage)
+			}
+		}
+
+		switch {
+		case len(failures) > 1:
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+					FailureOutput: &junitapi.FailureOutput{
+						Message: strings.Join(failures, "\n"),
+						Output:  "details in audit log",
+					},
+				},
+			)
+
+		case len(flakes) > 1:
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+					FailureOutput: &junitapi.FailureOutput{
+						Message: strings.Join(flakes, "\n"),
+						Output:  "details in audit log",
+					},
+				},
+			)
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				},
+			)
+
+		default:
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				},
+			)
+		}
+
+	}
+
+	testName = `[Jira:"kube-apiserver"] API resources are not conflicting excessively`
+	flakes = []string{}
+	for resource, conflicts := range w.excessiveConflictsChecker.resourcesToNumberOfConflicts {
+		if conflicts.numberOfConflicts < 10 {
+			continue
+		}
+		errorMessage := fmt.Sprintf("resource %s had %d conflicts, %s", resource, conflicts.numberOfConflicts, conflicts.toErrorString())
 		flakes = append(flakes, errorMessage)
 	}
 	switch {
