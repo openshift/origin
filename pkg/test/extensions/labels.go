@@ -2,6 +2,7 @@ package extensions
 
 import (
 	"fmt"
+	"strings"
 
 	et "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 )
@@ -25,10 +26,12 @@ func addLabelsToSpecs(specs et.ExtensionTestSpecs) {
 			selectFunctions = append(selectFunctions, et.NameContains(name))
 		}
 
-		// Add the label AND append it to the name
+		// Add the label AND append it to the name (if it isn't present already)
 		matching := specs.SelectAny(selectFunctions)
 		for _, spec := range matching {
-			spec.Name = fmt.Sprintf("%s %s", spec.Name, label)
+			if !strings.Contains(spec.Name, label) {
+				spec.Name = fmt.Sprintf("%s %s", spec.Name, label)
+			}
 			spec.Labels.Insert(label)
 		}
 	}
