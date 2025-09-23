@@ -9,6 +9,8 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
@@ -186,12 +188,28 @@ func scaleMachineSet(name string, replicas int) error {
 	return nil
 }
 
+func getOperatorsNotProgressing(c configclient.Interface) map[string]metav1.Time {
+	operators, err := c.ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	result := map[string]metav1.Time{}
+	for _, operator := range operators.Items {
+		for _, condition := range operator.Status.Conditions {
+			if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionFalse {
+				result[operator.Name] = condition.LastTransitionTime
+			}
+		}
+	}
+	return result
+}
+
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cluster should", func() {
 
 	var (
-		c      *kubernetes.Clientset
-		dc     dynamic.Interface
-		helper *bmhelper.BaremetalTestHelper
+		c                       *kubernetes.Clientset
+		configClient            configclient.Interface
+		dc                      dynamic.Interface
+		helper                  *bmhelper.BaremetalTestHelper
+		operatorsNotProgressing map[string]metav1.Time
 	)
 
 	g.BeforeEach(func() {
@@ -210,10 +228,26 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 			helper.Setup()
 			helper.DeployExtraWorker(0)
 		}
+
+		configClient, err = configclient.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		operatorsNotProgressing = getOperatorsNotProgressing(configClient)
 	})
 
 	g.AfterEach(func() {
 		helper.DeleteAllExtraWorkers()
+
+		// No cluster operator should leave Progressing=False only up to cluster scaling
+		// https://github.com/openshift/api/blob/61248d910ff74aef020492922d14e6dadaba598b/config/v1/types_cluster_operator.go#L163-L164
+		operatorsNotProgressingAfter := getOperatorsNotProgressing(configClient)
+		var violations []string
+		for operator, t1 := range operatorsNotProgressing {
+			t2, ok := operatorsNotProgressingAfter[operator]
+			if !ok || t1.Unix() != t2.Unix() {
+				violations = append(violations, operator)
+			}
+		}
+		o.Expect(violations).To(o.BeEmpty(), "those cluster operators left Progressing=False while cluster was scaling: %v", violations)
 	})
 
 	// The 30m timeout is essentially required by the baremetal platform environment,
