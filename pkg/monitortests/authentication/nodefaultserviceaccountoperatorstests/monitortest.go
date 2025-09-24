@@ -76,14 +76,31 @@ func fetchPodList(clusterOperatorPodObjects []v1.ObjectReference, pods corev1.Po
 	// create a pod list
 	podList := []corev1.Pod{}
 
-	// perform a lookup on the kubeclient to obtain all ACTUAL pod objects, which contain the `.Spec.ServiceAccountName` attribute.
+	// create a pod map
+	podMap := map[string]corev1.Pod{}
+
+	// create an object map
+	objectMap := map[string]v1.ObjectReference{}
+
+	// add pod items to pod map
+	for _, pod := range pods.Items {
+		podMap[pod.Name] = pod
+	}
+
+	// add object items to object map
 	for _, object := range clusterOperatorPodObjects {
-		for _, pod := range pods.Items {
-			if pod.Name == object.Name && pod.Namespace == object.Namespace { // this check ensures uniqueness because a pod name MUST be unique in a given namespace
-				podList = append(podList, pod)
-			}
+		objectMap[object.Name] = object
+	}
+
+	// perform a lookup on the kubeclient to obtain all ACTUAL pod objects, which contain the `.Spec.ServiceAccountName` attribute.
+	for _, pod := range podMap {
+		// this check ensures uniqueness because a pod name MUST be unique in a given namespace
+		if podMap[pod.Name].Name == objectMap[pod.Name].Name &&
+			podMap[pod.Name].Namespace == objectMap[pod.Name].Namespace {
+			podList = append(podList, pod)
 		}
 	}
+
 	return podList
 }
 
