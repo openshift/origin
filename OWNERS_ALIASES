@@ -54,7 +54,7 @@ aliases:
   - stlaz # Authentication
   - sttts # API Server
   - travier # CoreOS
-  - trozet # Networking
+  - tssurya # Networking
   - umohnani8 # Container Engine Tools
   - davidvossel # HyperShift on KubeVirt Platform
   - orenc1 # HyperShift on KubeVirt Platform
