@@ -61,6 +61,11 @@ var (
 
 		// used by external OIDC tests to simulate an external IdP
 		"quay.io/keycloak/keycloak:25.0": -1,
+
+		// DRA e2e test manifests located in the e2e/testing-manifests/dra floder
+		// use hostpathplugin:v1.7.3 and this image is not included in the mapping
+		// allow this image explicitly so the DRA e2e tests can pass
+		"registry.k8s.io/sig-storage/hostpathplugin:v1.7.3": -1,
 	}
 )
 
