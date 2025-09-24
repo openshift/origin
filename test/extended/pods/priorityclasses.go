@@ -97,7 +97,7 @@ var _ = Describe("[sig-node] Pod priority should match the default priorityClass
 		systemClusterCriticalPodFile = exutil.FixturePath("testdata", "priority-class-name", "system-cluster-critical.yaml")
 	)
 
-	It("system-node-critical=2000001000", func() {
+	It("system-node-critical", func() {
 		By("creating the pods")
 		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", systemNodeCriticalPodFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -110,7 +110,7 @@ var _ = Describe("[sig-node] Pod priority should match the default priorityClass
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	It("system-cluster-critical=2000000000", func() {
+	It("system-cluster-critical", func() {
 		By("creating the pods")
 		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", systemClusterCriticalPodFile).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

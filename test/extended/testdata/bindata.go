@@ -51147,8 +51147,8 @@ metadata:
   name: pod-with-system-cluster-critical-priority-class
 spec:
   containers:
-  - name: busybox
-    image: busybox
+  - name: tools
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
     - sleep
     - "3600"
@@ -51176,8 +51176,8 @@ metadata:
   name: pod-with-system-node-critical-priority-class
 spec:
   containers:
-  - name: busybox
-    image: busybox
+  - name: tools
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
     command:
     - sleep
     - "3600"
