@@ -1297,6 +1297,12 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery should recover from ungraceful node shutdown with etcd member re-addition": " [Serial]",
 
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node Kubelet Service Disruption Should handle kubelet service disruption with workload validation": "",
+
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node Kubelet Service Disruption Should recover from sequential kubelet service disruption on both nodes": "",
+
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node Kubelet Service Disruption Should recover from single node kubelet service disruption": "",
+
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] One master node outage is handled seamlessly should maintain etcd quorum and workloads with one master node down": " [Serial]",
@@ -1948,6 +1954,10 @@ var Annotations = map[string]string{
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology should have infrastructure platform type set correctly": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology should only have two control plane nodes and no arbiter nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node Cold Boot Recovery Should recover from complete cluster graceful shutdown and restart": " [Serial]",
+
+	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node Cold Boot Recovery Should recover from ungraceful complete cluster shutdown and restart": " [Serial]",
 
 	"[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts Should validate that there are Master and Arbiter nodes as specified in the cluster": " [Suite:openshift/conformance/parallel]",
 
