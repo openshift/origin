@@ -316,7 +316,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		failures := []string{}
 		flakes := []string{}
 		for username, numberOfConflicts := range usersToConflicts {
-			if numberOfConflicts > 10 {
+			if numberOfConflicts > 0 {
 				errorMessage := fmt.Sprintf("user %v had %d update conflicts, check the audit log and operator log to figure out why", username, numberOfConflicts)
 				failures = append(failures, errorMessage)
 			}
@@ -363,7 +363,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	testName = `[Jira:"kube-apiserver"] API resources are not conflicting excessively`
 	flakes = []string{}
 	for resource, conflicts := range w.excessiveConflictsChecker.resourcesToNumberOfConflicts {
-		if conflicts.numberOfConflicts < 10 {
+		if conflicts.numberOfConflicts < 1 {
 			continue
 		}
 		errorMessage := fmt.Sprintf("resource %s had %d conflicts, %s", resource, conflicts.numberOfConflicts, conflicts.toErrorString())
