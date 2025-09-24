@@ -96,6 +96,8 @@ type GinkgoRunSuiteOptions struct {
 
 	// RetryStrategy controls retry behavior and final outcome decisions
 	RetryStrategy RetryStrategy
+
+	RunMultiple bool
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -133,6 +135,8 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
 	availableStrategies := getAvailableRetryStrategies()
 	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
+
+	flags.BoolVar(&o.RunMultiple, "run-multiple", false, "uses ginkgo to run the whole set of specs at a time instead of a single test at a time")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -481,7 +485,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	// run our Early tests
 	q := newParallelTestQueue(testRunnerContext)
-	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn)
+	q.Execute(testCtx, early, parallelism, testOutputConfig, abortFn, o.RunMultiple)
 	tests = append(tests, early...)
 
 	// TODO: will move to the monitor
@@ -491,12 +495,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
+		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn, o.RunMultiple)
 		tests = append(tests, kubeTestsCopy...)
 
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
-		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
+		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn, o.RunMultiple) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
 
 		networkK8sTestsCopy := copyTests(networkK8sTests)
@@ -508,16 +512,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		tests = append(tests, networkTestsCopy...)
 
 		buildsTestsCopy := copyTests(buildsTests)
-		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
+		q.Execute(testCtx, buildsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn, o.RunMultiple) // builds tests only run at half the parallelism, so we can avoid high cpu problems.
 		tests = append(tests, buildsTestsCopy...)
 
 		openshiftTestsCopy := copyTests(openshiftTests)
-		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
+		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn, o.RunMultiple)
 		tests = append(tests, openshiftTestsCopy...)
 
 		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
-		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
+		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn, o.RunMultiple)
 		tests = append(tests, mustGatherTestsCopy...)
 	}
 
@@ -525,7 +529,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	pc.SetEvents([]string{postUpgradeEvent})
 
 	// run Late test suits after everything else
-	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn)
+	q.Execute(testCtx, late, parallelism, testOutputConfig, abortFn, o.RunMultiple)
 	tests = append(tests, late...)
 
 	// TODO: will move to the monitor
@@ -746,7 +750,7 @@ func (o *GinkgoRunSuiteOptions) performRetries(ctx context.Context, tests []*tes
 		logrus.Infof("Retrying %d tests", len(retries))
 
 		// Execute retries
-		q.Execute(ctx, retries, parallelism, testOutputConfig, abortFn)
+		q.Execute(ctx, retries, parallelism, testOutputConfig, abortFn, o.RunMultiple)
 
 		// Process results and update attempts
 		for _, retry := range retries {

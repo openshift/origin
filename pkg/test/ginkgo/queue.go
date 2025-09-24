@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	//"sync"
 )
 
 // parallelByFileTestQueue runs tests in parallel unless they have
@@ -87,7 +88,7 @@ func runTestsUntilChannelEmpty(ctx context.Context, remainingParallelTests chan 
 }
 
 // tests are currently being mutated during the run process.
-func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc) {
+func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase, parallelism int, testOutput testOutputConfig, maybeAbortOnFailureFn testAbortFunc, runMultiple bool) {
 	testSuiteProgress := newTestSuiteProgress(len(tests))
 	testSuiteRunner := &testSuiteRunnerImpl{
 		commandContext:        q.commandContext,
@@ -96,16 +97,25 @@ func (q *parallelByFileTestQueue) Execute(ctx context.Context, tests []*testCase
 		maybeAbortOnFailureFn: maybeAbortOnFailureFn,
 	}
 
-	execute(ctx, testSuiteRunner, tests, parallelism)
+	execute(ctx, testSuiteRunner, tests, parallelism, runMultiple)
 }
 
 // execute is a convenience for unit testing
-func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int) {
+func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*testCase, parallelism int, runMultiple bool) {
 	if ctx.Err() != nil {
 		return
 	}
 
 	serial, parallel := splitTests(tests, isSerialTest)
+
+	if runMultiple {
+		// TODO: can combine this using ginkgo's serial label?
+		testSuiteRunner.RunMultipleTests(ctx, parallel...)
+
+		testSuiteRunner.RunMultipleTests(ctx, serial...)
+
+		return
+	}
 
 	remainingParallelTests := make(chan *testCase, 100)
 	go queueAllTests(remainingParallelTests, parallel)

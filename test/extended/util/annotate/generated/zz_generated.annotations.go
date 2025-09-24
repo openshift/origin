@@ -479,6 +479,12 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:UserAPI] users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Serial][suite:openshift/dummy-suite] dummy suite should be fast": " [Suite:openshift/conformance/serial]",
+
+	"[sig-auth][Serial][suite:openshift/dummy-suite] dummy suite should be quick": " [Suite:openshift/conformance/serial]",
+
+	"[sig-auth][Serial][suite:openshift/dummy-suite] dummy suite shouldn't take long": " [Suite:openshift/conformance/serial]",
+
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured with invalid specified UID or Extra claim mappings should reject admission when Extra claim expression is not compilable CEL": "",
 
 	"[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow][Disruptive] [OCPFeatureGate:ExternalOIDCWithUIDAndExtraClaimMappings] external IdP is configured with invalid specified UID or Extra claim mappings should reject admission when UID claim expression is not compilable CEL": "",

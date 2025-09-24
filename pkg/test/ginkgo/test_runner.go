@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ import (
 
 type testSuiteRunner interface {
 	RunOneTest(ctx context.Context, test *testCase)
+	RunMultipleTests(ctx context.Context, test ...*testCase)
 }
 
 // testRunner contains all the content required to run a test.  It must be threadsafe and must be re-useable
@@ -60,6 +62,50 @@ func (r *testSuiteRunnerImpl) RunOneTest(ctx context.Context, test *testCase) {
 
 	testRunResult.testRunResult = r.commandContext.RunTestInNewProcess(ctx, test)
 	mutateTestCaseWithResults(test, testRunResult)
+}
+
+func (r *testSuiteRunnerImpl) RunMultipleTests(ctx context.Context, tests ...*testCase) {
+	// this construct is a little odd, but the defer statements that ensure we run at the end have the variables
+	// assigned/resolved at the time defer statement is created, which means that pointer must remain consistent.
+	// however, we can change the values of the content, so we assign the content lower down to have a cleaner set of
+	// the many defers in this function.
+	// remember that defers are last-added, first-executed.
+	// testRunResults := []testRunResultHandle{}
+
+	for _, test := range tests {
+		// record the test happening with the monitor
+		r.testOutput.monitorRecorder.AddIntervals(monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
+			Locator(monitorapi.NewLocator().E2ETest(test.name)).
+			Message(monitorapi.NewMessage().HumanMessage("started").Reason(monitorapi.E2ETestStarted)).BuildNow())
+
+		r.testSuiteProgress.LogTestStart(r.testOutput.out, test.name)
+	}
+
+	// defer recordTestResultInMonitor(testRunResult, r.testOutput.monitorRecorder)
+
+	// log the results to systemout
+	// r.testSuiteProgress.LogTestStart(r.testOutput.out, test.name)
+	// defer r.testSuiteProgress.TestEnded(test.name, testRunResult)
+	// defer recordTestResultInLogWithoutOverlap(testRunResult, r.testOutput.testOutputLock, r.testOutput.out, r.testOutput.includeSuccessfulOutput)
+
+	testRunResults := r.commandContext.RunTestsInNewProcess(ctx, tests...)
+
+	for _, test := range tests {
+		ind := slices.IndexFunc(testRunResults, func(e testRunResult) bool {
+			return e.name == test.name
+		})
+
+		// TODO: no known result case?
+		if ind == -1 {
+			continue
+		}
+
+		res := &testRunResultHandle{&testRunResults[ind]}
+		mutateTestCaseWithResults(test, res)
+
+		r.testSuiteProgress.TestEnded(test.name, res)
+		recordTestResultInLogWithoutOverlap(res, r.testOutput.testOutputLock, r.testOutput.out, r.testOutput.includeSuccessfulOutput)
+	}
 }
 
 func mutateTestCaseWithResults(test *testCase, testRunResult *testRunResultHandle) {
@@ -350,6 +396,82 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	ret.start = extensions.Time(results[0].StartTime)
 	ret.end = extensions.Time(results[0].EndTime)
 	ret.extensionTestResult = results[0]
+	return ret
+}
+
+func (c *commandContext) RunTestsInNewProcess(ctx context.Context, tests ...*testCase) []testRunResult {
+	ret := []testRunResult{}
+
+	testEnv := append(os.Environ(), updateEnvVars(c.env)...)
+
+	testsByBinary := map[*extensions.TestBinary][]*testCase{}
+
+	for _, test := range tests {
+		testsByBinary[test.binary] = append(testsByBinary[test.binary], test)
+	}
+
+	for _, testNoBinary := range testsByBinary[nil] {
+		ret = append(ret, testRunResult{
+			name:            testNoBinary.name,
+			testState:       TestFailed,
+			testOutputBytes: []byte("test has no binary configured; this should not be possible"),
+			start:           time.Now(),
+		})
+	}
+
+	for binary, tests := range testsByBinary {
+		// handled earlier
+		if binary == nil {
+			continue
+		}
+
+		testNames := []string{}
+
+		for _, test := range tests {
+			if test.skipped {
+				ret = append(ret, testRunResult{
+					name:      test.name,
+					testState: TestSkipped,
+					start:     time.Now(),
+				})
+				continue
+			}
+
+			testNames = append(testNames, test.name)
+		}
+
+		results := binary.RunTests(ctx, c.timeout, testEnv, testNames...)
+
+		ret = append(ret, testRunResultsForBinaryResults(results...)...)
+	}
+
+	return ret
+}
+
+func testRunResultsForBinaryResults(results ...*extensions.ExtensionTestResult) []testRunResult {
+	ret := []testRunResult{}
+
+	for _, result := range results {
+		converted := testRunResult{
+			name: result.Name,
+		}
+		switch result.Result {
+		case extensiontests.ResultFailed:
+			converted.testState = TestFailed
+			converted.testOutputBytes = []byte(fmt.Sprintf("%s\n%s", result.Output, result.Error))
+		case extensiontests.ResultPassed:
+			converted.testState = TestSucceeded
+		case extensiontests.ResultSkipped:
+			converted.testState = TestSkipped
+			converted.testOutputBytes = []byte(result.Output)
+		}
+		converted.start = extensions.Time(result.StartTime)
+		converted.end = extensions.Time(result.EndTime)
+		converted.extensionTestResult = result
+
+		ret = append(ret, converted)
+	}
+
 	return ret
 }
 
