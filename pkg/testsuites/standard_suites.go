@@ -147,6 +147,7 @@ var staticSuites = []ginkgo.TestSuite{
 			withExcludedTestsFilter(withStandardEarlyOrLateTests("name.contains('[Suite:openshift/conformance/serial')")),
 		},
 		TestTimeout: 40 * time.Minute,
+		Parallelism: 1,
 	},
 	{
 		Name: "openshift/disruptive",
