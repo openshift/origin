@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -85,6 +86,41 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		if numInvalidPodPriorities > 0 {
 			e2e.Failf("\n%d pods found with invalid priority class (should be openshift-user-critical or begin with system-):\n%s", numInvalidPodPriorities, strings.Join(invalidPodPriority.List(), "\n"))
 		}
+	})
+})
+
+var _ = Describe("[sig-node] Pod priority should match the default priorityClassName values", func() {
+	defer GinkgoRecover()
+	var (
+		oc                           = exutil.NewCLI("priority-class-name")
+		systemNodeCriticalPodFile    = exutil.FixturePath("testdata", "priority-class-name", "system-node-critical.yaml")
+		systemClusterCriticalPodFile = exutil.FixturePath("testdata", "priority-class-name", "system-cluster-critical.yaml")
+	)
+
+	It("system-node-critical", func() {
+		By("creating the pods")
+		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", systemNodeCriticalPodFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		By("checking the pod priority")
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), "pod-with-system-node-critical-priority-class", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect((int)(*pod.Spec.Priority)).To(o.Equal(2000001000))
+		err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(context.Background(), "pod-with-system-node-critical-priority-class", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	It("system-cluster-critical", func() {
+		By("creating the pods")
+		err := oc.Run("create").Args("-n", oc.Namespace(), "-f", systemClusterCriticalPodFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		By("checking the pod priority")
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), "pod-with-system-cluster-critical-priority-class", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect((int)(*pod.Spec.Priority)).To(o.Equal(2000000000))
+		err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(context.Background(), "pod-with-system-cluster-critical-priority-class", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 

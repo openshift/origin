@@ -1893,6 +1893,10 @@ var Annotations = map[string]string{
 
 	"[sig-node] Managed cluster should verify that nodes have no unexpected reboots [Late]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node] Pod priority should match the default priorityClassName values system-cluster-critical": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] Pod priority should match the default priorityClassName values system-node-critical": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node] [Conformance] Prevent openshift node labeling on update by the node TestOpenshiftNodeLabeling": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-node] [FeatureGate:ImageVolume] ImageVolume should fail when image does not exist": " [Suite:openshift/conformance/parallel]",

@@ -466,6 +466,8 @@
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
 // test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
+// test/extended/testdata/priority-class-name/system-cluster-critical.yaml
+// test/extended/testdata/priority-class-name/system-node-critical.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
 // test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
@@ -51103,6 +51105,64 @@ func testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml
 	return a, nil
 }
 
+var _testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-system-cluster-critical-priority-class
+spec:
+  containers:
+  - name: tools
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+    command:
+    - sleep
+    - "3600"
+  priorityClassName: system-cluster-critical
+`)
+
+func testExtendedTestdataPriorityClassNameSystemClusterCriticalYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml, nil
+}
+
+func testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataPriorityClassNameSystemClusterCriticalYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/priority-class-name/system-cluster-critical.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-system-node-critical-priority-class
+spec:
+  containers:
+  - name: tools
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+    command:
+    - sleep
+    - "3600"
+  priorityClassName: system-node-critical
+`)
+
+func testExtendedTestdataPriorityClassNameSystemNodeCriticalYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml, nil
+}
+
+func testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataPriorityClassNameSystemNodeCriticalYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/priority-class-name/system-node-critical.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences = []byte(`kind: ImageStream
 apiVersion: image.openshift.io/v1
 spec:
@@ -56621,6 +56681,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
 	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
+	"test/extended/testdata/priority-class-name/system-cluster-critical.yaml":                                testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml,
+	"test/extended/testdata/priority-class-name/system-node-critical.yaml":                                   testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                               testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                  testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
 	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml":                    testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
@@ -57421,6 +57483,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
 					"if-healthy-budget-policy-pdb.yaml":        {testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml, map[string]*bintree{}},
 					"nginx-with-delayed-ready-deployment.yaml": {testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml, map[string]*bintree{}},
+				}},
+				"priority-class-name": {nil, map[string]*bintree{
+					"system-cluster-critical.yaml": {testExtendedTestdataPriorityClassNameSystemClusterCriticalYaml, map[string]*bintree{}},
+					"system-node-critical.yaml":    {testExtendedTestdataPriorityClassNameSystemNodeCriticalYaml, map[string]*bintree{}},
 				}},
 				"releases": {nil, map[string]*bintree{
 					"payload-1": {nil, map[string]*bintree{

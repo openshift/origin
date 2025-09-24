@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-with-system-cluster-critical-priority-class
+spec:
+  containers:
+  - name: tools
+    image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+    command:
+    - sleep
+    - "3600"
+  priorityClassName: system-cluster-critical
