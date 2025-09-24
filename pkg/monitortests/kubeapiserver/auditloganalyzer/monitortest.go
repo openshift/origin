@@ -216,7 +216,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 		failures := []string{}
 		flakes := []string{}
 		for username, numberOfApplies := range usersToApplies {
-			if numberOfApplies > 100 {
+			if numberOfApplies > 50 {
 				errorMessage := fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies)
 				switch username {
 				case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
@@ -275,7 +275,7 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	testName := `[Jira:"kube-apiserver"] API resources are not updated excessively`
 	flakes := []string{}
 	for resource, applies := range w.excessiveApplyChecker.resourcesToNumberOfApplies {
-		if applies.numberOfApplies < 100 {
+		if applies.numberOfApplies < 50 {
 			continue
 		}
 		errorMessage := fmt.Sprintf("resource %s had %d applies, %s", resource, applies.numberOfApplies, applies.toErrorString())
