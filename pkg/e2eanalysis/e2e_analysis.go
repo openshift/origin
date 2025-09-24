@@ -107,12 +107,23 @@ func (tm *TestManager) GenerateReport(opt *Options) error {
 	}
 	fmt.Println(string(out))
 	if opt.JUnitDir != "" {
+		if _, err := os.Stat(opt.JUnitDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(opt.JUnitDir, 0755); err != nil {
+				err = fmt.Errorf("failed to create junit directory %q: %w", opt.JUnitDir, err)
+				logrus.WithError(err).Error("JUnit report write error:")
+				return err
+			}
+		}
 		filePrefix := "junit_e2e_analysis"
 		start := time.Now()
 		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 		path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s_%s.xml", filePrefix, timeSuffix))
 		fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
-		os.WriteFile(path, test.StripANSI(out), 0640)
+		err := os.WriteFile(path, test.StripANSI(out), 0640)
+		if err != nil {
+			logrus.WithError(err).Error("Fail to write junit file:")
+			return err
+		}
 	}
 
 	return nil
@@ -587,7 +598,7 @@ func checkMachineNodeConsistency(clientset clientset.Interface, dc dynamic.Inter
 	if workerReadyCount > 0 {
 		tm.AddTestCase(tc, "", "")
 	} else {
-		message := "No any Ready and Scheduable worker node"
+		message := "Not any Ready and Scheduable worker node"
 		tm.AddTestCase(tc, message, "")
 		return -1, fmt.Errorf("%s", message)
 	}
