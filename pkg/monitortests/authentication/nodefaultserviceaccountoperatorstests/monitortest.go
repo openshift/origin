@@ -33,34 +33,16 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 
 // fetchRelatedObjects returns a list of RelatedObjects found within a specified
 // namespace for a given list of cluster operators .
-func fetchRelatedObjects(clusterOperators *v1.ClusterOperatorList, ns corev1.Namespace) [][]v1.ObjectReference {
-	clusterOperatorsItems := []v1.ClusterOperator{} // used to filter on namespace
-
-	for _, item := range clusterOperators.Items {
-		if item.Namespace == ns.Name {
-			clusterOperatorsItems = append(clusterOperatorsItems, item)
-		}
-	}
-
-	// Grab the related objects within each cluster operator
-	clusterOperatorsItemsRelatedObjects := [][]v1.ObjectReference{}
-
-	for _, item := range clusterOperatorsItems {
-		// append related objects for each operator in the list
-		clusterOperatorsItemsRelatedObjects = append(clusterOperatorsItemsRelatedObjects, item.Status.RelatedObjects)
-	}
-
-	return clusterOperatorsItemsRelatedObjects
-}
-
-// fetchPodObjects returns a list of pod related objects from a list of related objects.
-func fetchPodObjects(clusterOperatorsItemsRelatedObjects [][]v1.ObjectReference) []v1.ObjectReference {
+func fetchPodObjects(clusterOperators *v1.ClusterOperatorList, ns corev1.Namespace) []v1.ObjectReference {
 	// create new list for pod items (object references to pods)
 	clusterOperatorPodObjects := []v1.ObjectReference{}
 	// filter any objects that are pods using the Group ref. use later to perform lookup on pods service accounts.
-	for _, item := range clusterOperatorsItemsRelatedObjects {
+	for _, item := range clusterOperators.Items {
+		if item.Namespace != ns.Namespace {
+			continue
+		}
 		// check the kind of the object (i.e. is it Pod ?)
-		for _, item1 := range item {
+		for _, item1 := range item.Status.RelatedObjects {
 			if item1.Group == "pods" {
 				// add the item to the list
 				clusterOperatorPodObjects = append(clusterOperatorPodObjects, item1)
@@ -142,11 +124,8 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 			continue
 		}
 
-		// use helper method to fetch related objects for cluster operators in the current ns iteration.
-		clusterOperatorsItemsRelatedObjects := fetchRelatedObjects(clusterOperators, ns)
-
-		// use helper method to fetch pod related objects
-		clusterOperatorPodObjects := fetchPodObjects(clusterOperatorsItemsRelatedObjects)
+		// use helper method to fetch pod related objects for cluster operators in the current ns iteration.
+		clusterOperatorPodObjects := fetchPodObjects(clusterOperators, ns)
 
 		// get list of all pods in the namespace
 		pods, err := n.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
