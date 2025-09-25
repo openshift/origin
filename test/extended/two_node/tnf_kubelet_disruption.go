@@ -65,10 +65,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("Should recover from single node kubelet service disruption", func() {
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
+		var constraintId string
 
 		g.By(fmt.Sprintf("Adding constraint to avoid kubelet resource on node: %s", targetNode.Name))
 		err := addConstraint(oc, targetNode.Name, "kubelet-clone")
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to add constraint for kubelet resource on node %s without errors", targetNode.Name))
+
+		g.By("Discovering the constraint ID for later removal")
+		constraintId, err = discoverConstraintId(oc, targetNode.Name, "kubelet-clone", "master-1")
+		o.Expect(err).To(o.BeNil(), "Expected to discover constraint ID without errors")
+		framework.Logf("Discovered constraint ID: %s", constraintId)
 
 		g.By("Waiting for target node to become NotReady due to kubelet constraint")
 		o.Eventually(func() bool {
@@ -85,9 +91,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
 		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
-		g.By(fmt.Sprintf("Removing constraint to allow kubelet resource on node: %s", targetNode.Name))
-		err = removeConstraint(oc, targetNode.Name, "kubelet-clone")
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to remove constraint for kubelet resource on node %s without errors", targetNode.Name))
+		g.By(fmt.Sprintf("Removing constraint (ID: %s) to allow kubelet resource on node: %s", constraintId, targetNode.Name))
+		err = removeConstraint(oc, targetNode.Name, constraintId)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to remove constraint %s for kubelet resource on node %s without errors", constraintId, targetNode.Name))
 
 		g.By("Waiting for target node to become Ready after kubelet constraint removal")
 		o.Eventually(func() bool {

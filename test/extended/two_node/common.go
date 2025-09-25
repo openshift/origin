@@ -2,10 +2,10 @@ package two_node
 
 import (
 	"fmt"
+	"strings"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/util"
-	exutil "github.com/openshift/origin/test/extended/util"
+	util "github.com/openshift/origin/test/extended/util"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
@@ -17,8 +17,8 @@ const (
 	labelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"
 )
 
-func skipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
-	current, err := exutil.GetControlPlaneTopology(oc)
+func skipIfNotTopology(oc *util.CLI, wanted v1.TopologyMode) {
+	current, err := util.GetControlPlaneTopology(oc)
 	if err != nil {
 		e2eskipper.Skip(fmt.Sprintf("Could not get current topology, skipping test: error %v", err))
 	}
@@ -64,21 +64,94 @@ func addConstraint(oc *util.CLI, nodeName string, resourceName string) error {
 }
 
 // removeConstraint removes constraint that avoids having resource as part of the cluster
-func removeConstraint(oc *util.CLI, nodeName string, resourceName string) error {
-	framework.Logf("Removing constraint to avoid %s resource on %s", resourceName, nodeName)
+func removeConstraint(oc *util.CLI, nodeName string, constraintId string) error {
+	framework.Logf("Removing constraint to avoid %s resource on %s", constraintId, nodeName)
 
 	cmd := []string{
 		"chroot", "/host",
-		"pcs", "constraint", "location", resourceName, "avoids", "master-1",
+		"pcs", "constraint", "remove", constraintId,
 	}
 
 	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	if err != nil {
-		return fmt.Errorf("failed to remove constraint to avoid resource %s on node %s: %v", resourceName, nodeName, err)
+		return fmt.Errorf("failed to remove constraint to avoid resource %s on node %s: %v", constraintId, nodeName, err)
 	}
 
-	framework.Logf("Successfully removed constraint to avoid resource %s on node %s", resourceName, nodeName)
+	framework.Logf("Successfully removed constraint to avoid resource %s on node %s", constraintId, nodeName)
 	return nil
+}
+
+// discoverConstraintId discovers the constraint ID for a specific resource and node combination
+func discoverConstraintId(oc *util.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
+	framework.Logf("Discovering constraint ID for resource %s avoiding node %s", resourceName, targetNode)
+
+	cmd := []string{
+		"chroot", "/host",
+		"pcs", "constraint", "list", "--full",
+	}
+
+	output, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
+	if err != nil {
+		return "", fmt.Errorf("failed to list constraints on node %s: %v", nodeName, err)
+	}
+
+	// Parse the output to find the constraint ID
+	// Example output line: "Location Constraints:\n  Resource: kubelet-clone\n    Constraint: location-kubelet-clone-master-1-INFINITY\n      Avoid: master-1 (score:-INFINITY)"
+	lines := strings.Split(output, "\n")
+
+	var constraintId string
+	resourceFound := false
+
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+
+		// Look for the resource line
+		if strings.HasPrefix(line, "Resource: "+resourceName) {
+			resourceFound = true
+			continue
+		}
+
+		// If we found the resource, look for the constraint line
+		if resourceFound && strings.HasPrefix(line, "Constraint: ") {
+			constraintId = strings.TrimPrefix(line, "Constraint: ")
+
+			// Check if this constraint affects the target node
+			if i+1 < len(lines) {
+				nextLine := strings.TrimSpace(lines[i+1])
+				if strings.Contains(nextLine, "Avoid: "+targetNode) {
+					framework.Logf("Found constraint ID: %s for resource %s avoiding node %s", constraintId, resourceName, targetNode)
+					return constraintId, nil
+				}
+			}
+		}
+
+		// Reset if we hit a new resource section
+		if strings.HasPrefix(line, "Resource: ") && !strings.HasPrefix(line, "Resource: "+resourceName) {
+			resourceFound = false
+		}
+	}
+
+	return "", fmt.Errorf("constraint ID not found for resource %s avoiding node %s", resourceName, targetNode)
+}
+
+// addConstraintAndGetId adds a constraint and returns the constraint ID for later removal
+func addConstraintAndGetId(oc *util.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
+	// First add the constraint
+	err := addConstraint(oc, nodeName, resourceName)
+	if err != nil {
+		return "", err
+	}
+
+	// Wait a moment for the constraint to be created
+	framework.Logf("Waiting for constraint to be created in Pacemaker...")
+
+	// Then discover the constraint ID
+	constraintId, err := discoverConstraintId(oc, nodeName, resourceName, targetNode)
+	if err != nil {
+		return "", fmt.Errorf("failed to discover constraint ID after adding constraint: %v", err)
+	}
+
+	return constraintId, nil
 }
 
 // stopKubeletService stops the kubelet service on the specified node
