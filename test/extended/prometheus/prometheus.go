@@ -553,7 +553,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= %d`, testDuration, averageSeriesLimit): false,
 			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration):                   false,
 		}
-		err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
