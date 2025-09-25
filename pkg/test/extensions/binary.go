@@ -217,6 +217,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-kube-storage-version-migrator-operator",
 		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "ovn-kubernetes",
+		binaryPath: "/usr/bin/ovnk-tests-ext.gz",
+	},
 }
 
 // Info returns information about this particular extension.
