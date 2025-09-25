@@ -535,7 +535,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
 			// rule contains the count of the all the series that are sent via telemetry. It is permissible
-			// for some scenarios to generate more series than 760, we just want the basic state to be below
+			// for some scenarios to generate more series than 1000, we just want the basic state to be below
 			// a threshold.
 
 			// The following query can be executed against the telemetry server
