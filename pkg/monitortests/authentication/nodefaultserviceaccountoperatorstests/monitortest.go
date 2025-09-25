@@ -34,17 +34,15 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 // fetchRelatedObjects returns a list of RelatedObjects found within a specified
 // namespace for a given list of cluster operators .
 func fetchPodObjects(clusterOperators *v1.ClusterOperatorList, ns corev1.Namespace) []v1.ObjectReference {
-	// create new list for pod items (object references to pods)
 	clusterOperatorPodObjects := []v1.ObjectReference{}
 	// filter any objects that are pods using the Group ref. use later to perform lookup on pods service accounts.
 	for _, item := range clusterOperators.Items {
-		if item.Namespace != ns.Namespace {
+		if item.Namespace != ns.Name {
 			continue
 		}
 		// check the kind of the object (i.e. is it Pod ?)
 		for _, item1 := range item.Status.RelatedObjects {
 			if item1.Group == "pods" {
-				// add the item to the list
 				clusterOperatorPodObjects = append(clusterOperatorPodObjects, item1)
 			}
 		}
@@ -55,30 +53,14 @@ func fetchPodObjects(clusterOperators *v1.ClusterOperatorList, ns corev1.Namespa
 // fetchPodList returns a list of pods from a list of pod related objects based on a list of pods
 // retrieved elsewhere - in our case, from a namespace.
 func fetchPodList(clusterOperatorPodObjects []v1.ObjectReference, pods corev1.PodList) []corev1.Pod {
-	// create a pod list
-	podList := []corev1.Pod{}
-
-	// create a pod map
-	podMap := map[string]corev1.Pod{}
-
-	// create an object map
-	objectMap := map[string]v1.ObjectReference{}
-
-	// add pod items to pod map
+	podMap := make(map[string]corev1.Pod, len(pods.Items))
 	for _, pod := range pods.Items {
 		podMap[pod.Name] = pod
 	}
 
-	// add object items to object map
-	for _, object := range clusterOperatorPodObjects {
-		objectMap[object.Name] = object
-	}
-
-	// perform a lookup on the kubeclient to obtain all ACTUAL pod objects, which contain the `.Spec.ServiceAccountName` attribute.
-	for _, pod := range podMap {
-		// this check ensures uniqueness because a pod name MUST be unique in a given namespace
-		if podMap[pod.Name].Name == objectMap[pod.Name].Name &&
-			podMap[pod.Name].Namespace == objectMap[pod.Name].Namespace {
+	var podList []corev1.Pod
+	for _, obj := range clusterOperatorPodObjects {
+		if pod, ok := podMap[obj.Name]; ok && pod.Namespace == obj.Namespace {
 			podList = append(podList, pod)
 		}
 	}
@@ -97,7 +79,7 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 			continue
 		}
 		// otherwise, we need to flag the failure
-		failures = append(failures, fmt.Sprintf("service account name %s is being used in pod %s", podSA, pod.Name))
+		failures = append(failures, fmt.Sprintf("service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace))
 	}
 	return failures
 }
