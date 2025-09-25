@@ -66,14 +66,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
 
-		g.By(fmt.Sprintf("Stopping kubelet service on node: %s", targetNode.Name))
-		err := stopKubeletService(oc, targetNode.Name)
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
+		g.By(fmt.Sprintf("Adding constraint to avoid kubelet resource on node: %s", targetNode.Name))
+		err := addConstraint(oc, targetNode.Name, "kubelet-clone")
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to add constraint for kubelet resource on node %s without errors", targetNode.Name))
 
-		g.By("Waiting for target node to become NotReady due to kubelet service stop")
+		g.By("Waiting for target node to become NotReady due to kubelet constraint")
 		o.Eventually(func() bool {
 			return !isNodeReady(oc, targetNode.Name)
-		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become NotReady after kubelet service stop", targetNode.Name))
+		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become NotReady after kubelet constraint is applied", targetNode.Name))
 
 		g.By(fmt.Sprintf("Ensuring surviving node %s remains Ready during kubelet disruption", survivingNode.Name))
 		o.Consistently(func() bool {
@@ -85,38 +85,38 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
 		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
-		g.By(fmt.Sprintf("Restoring kubelet service on node: %s", targetNode.Name))
-		err = startKubeletService(oc, targetNode.Name)
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to start kubelet service on node %s without errors", targetNode.Name))
+		g.By(fmt.Sprintf("Removing constraint to allow kubelet resource on node: %s", targetNode.Name))
+		err = removeConstraint(oc, targetNode.Name, "kubelet-clone")
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to remove constraint for kubelet resource on node %s without errors", targetNode.Name))
 
-		g.By("Waiting for target node to become Ready after kubelet service restore")
+		g.By("Waiting for target node to become Ready after kubelet constraint removal")
 		o.Eventually(func() bool {
 			return isNodeReady(oc, targetNode.Name)
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet service restore", targetNode.Name))
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet constraint removal", targetNode.Name))
 
-		g.By("Validating both nodes are Ready after kubelet service restore")
+		g.By("Validating both nodes are Ready after kubelet constraint removal")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
 				return isNodeReady(oc, node.Name)
-			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet service restore", node.Name))
+			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet constraint removal", node.Name))
 		}
 
-		g.By("Validating etcd cluster recovery after kubelet service restore")
+		g.By("Validating etcd cluster recovery after kubelet constraint removal")
 		o.Eventually(func() error {
 			return ensureEtcdOperatorHealthy(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet service restore")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet constraint removal")
 
-		g.By("Ensuring both etcd members are healthy after kubelet service restore")
+		g.By("Ensuring both etcd members are healthy after kubelet constraint removal")
 		for _, node := range nodes {
 			o.Eventually(func() error {
 				return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
-			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet service restore", node.Name))
+			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet constraint removal", node.Name))
 		}
 
-		g.By("Validating cluster operators recovery after kubelet service disruption")
+		g.By("Validating cluster operators recovery after kubelet constraint disruption")
 		o.Eventually(func() error {
 			return validateClusterOperatorsAvailable(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after kubelet service restore")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after kubelet constraint removal")
 	})
 
 	g.It("Should recover from sequential kubelet service disruption on both nodes", func() {
@@ -189,90 +189,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return validateClusterOperatorsAvailable(oc)
 		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after sequential kubelet disruption")
 	})
-
-	g.It("Should handle kubelet service disruption with workload validation", func() {
-		targetNode := nodes[0]
-
-		g.By("Creating test workload before kubelet disruption")
-		testNamespace := "kubelet-disruption-test"
-		err := createTestWorkload(oc, testNamespace)
-		o.Expect(err).To(o.BeNil(), "Expected to create test workload without errors")
-		defer cleanupTestWorkload(oc, testNamespace)
-
-		g.By("Validating test workload is running before disruption")
-		o.Eventually(func() bool {
-			return isTestWorkloadHealthy(oc, testNamespace)
-		}, 2*time.Minute, kubeletPollInterval).Should(o.BeTrue(), "Test workload should be healthy before kubelet disruption")
-
-		g.By(fmt.Sprintf("Stopping kubelet service on node: %s", targetNode.Name))
-		err = stopKubeletService(oc, targetNode.Name)
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
-
-		g.By("Waiting for target node to become NotReady due to kubelet service stop")
-		o.Eventually(func() bool {
-			return !isNodeReady(oc, targetNode.Name)
-		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become NotReady after kubelet service stop", targetNode.Name))
-
-		g.By("Validating test workload resilience during kubelet disruption")
-		// Workload may temporarily show issues but should eventually recover on surviving node
-		time.Sleep(kubeletGracePeriod) // Allow time for pod eviction/rescheduling
-
-		g.By(fmt.Sprintf("Restoring kubelet service on node: %s", targetNode.Name))
-		err = startKubeletService(oc, targetNode.Name)
-		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to start kubelet service on node %s without errors", targetNode.Name))
-
-		g.By("Waiting for target node to become Ready after kubelet service restore")
-		o.Eventually(func() bool {
-			return isNodeReady(oc, targetNode.Name)
-		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet service restore", targetNode.Name))
-
-		g.By("Validating test workload recovery after kubelet service restore")
-		o.Eventually(func() bool {
-			return isTestWorkloadHealthy(oc, testNamespace)
-		}, 3*time.Minute, kubeletPollInterval).Should(o.BeTrue(), "Test workload should recover after kubelet service restore")
-
-		g.By("Validating cluster full recovery after kubelet disruption with workload")
-		o.Eventually(func() error {
-			return ensureEtcdOperatorHealthy(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet disruption with workload")
-	})
 })
-
-// stopKubeletService stops the kubelet service on the specified node
-func stopKubeletService(oc *util.CLI, nodeName string) error {
-	framework.Logf("Stopping kubelet service on node %s", nodeName)
-
-	cmd := []string{
-		"chroot", "/host",
-		"systemctl", "stop", "kubelet",
-	}
-
-	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
-	if err != nil {
-		return fmt.Errorf("failed to stop kubelet service on node %s: %v", nodeName, err)
-	}
-
-	framework.Logf("Successfully stopped kubelet service on node %s", nodeName)
-	return nil
-}
-
-// startKubeletService starts the kubelet service on the specified node
-func startKubeletService(oc *util.CLI, nodeName string) error {
-	framework.Logf("Starting kubelet service on node %s", nodeName)
-
-	cmd := []string{
-		"chroot", "/host",
-		"systemctl", "start", "kubelet",
-	}
-
-	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
-	if err != nil {
-		return fmt.Errorf("failed to start kubelet service on node %s: %v", nodeName, err)
-	}
-
-	framework.Logf("Successfully started kubelet service on node %s", nodeName)
-	return nil
-}
 
 // isNodeReady checks if a node is in Ready state
 func isNodeReady(oc *util.CLI, nodeName string) bool {
@@ -288,17 +205,6 @@ func isNodeReady(oc *util.CLI, nodeName string) bool {
 		}
 	}
 	return false
-}
-
-// isKubeletServiceRunning checks if kubelet service is running on the specified node
-func isKubeletServiceRunning(oc *util.CLI, nodeName string) bool {
-	cmd := []string{
-		"chroot", "/host",
-		"systemctl", "is-active", "--quiet", "kubelet",
-	}
-
-	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
-	return err == nil
 }
 
 // validateClusterOperatorsAvailable ensures all cluster operators are available

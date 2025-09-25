@@ -1295,6 +1295,10 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery should recover from ungraceful node shutdown with etcd member re-addition": " [Serial]",
 
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node Kubelet Service Disruption Should recover from sequential kubelet service disruption on both nodes": "",
+
+	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node Kubelet Service Disruption Should recover from single node kubelet service disruption": "",
+
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] Ensure etcd health and quorum in HighlyAvailableArbiterMode should have all etcd pods running and quorum met": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter][Suite:openshift/two-node][Disruptive] One master node outage is handled seamlessly should maintain etcd quorum and workloads with one master node down": " [Serial]",
