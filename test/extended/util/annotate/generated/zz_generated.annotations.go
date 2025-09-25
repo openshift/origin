@@ -141,8 +141,6 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-api-machinery][Feature:ReadOnlyRootFilesystem] Explicitly set readOnlyRootFilesystem to true [OCP-83088][Timeout:50m][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-api-machinery][Feature:ResourceQuota] Object count check the quota after import-image with --all option [Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
