@@ -237,13 +237,30 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 	g.AfterEach(func() {
 		helper.DeleteAllExtraWorkers()
 
+		except := func(co string) string {
+			switch co {
+			case "dns":
+				return "https://issues.redhat.com/browse/OCPBUGS-62623"
+			case "image-registry":
+				return "https://issues.redhat.com/browse/OCPBUGS-62626"
+			case "network":
+				return "https://issues.redhat.com/browse/OCPBUGS-62630"
+			case "node-tuning":
+				return "https://issues.redhat.com/browse/OCPBUGS-62632"
+			case "storage":
+				return "https://issues.redhat.com/browse/OCPBUGS-62633"
+			default:
+				return ""
+			}
+		}
+
 		// No cluster operator should leave Progressing=False only up to cluster scaling
 		// https://github.com/openshift/api/blob/61248d910ff74aef020492922d14e6dadaba598b/config/v1/types_cluster_operator.go#L163-L164
 		operatorsNotProgressingAfter := getOperatorsNotProgressing(configClient)
 		var violations []string
 		for operator, t1 := range operatorsNotProgressing {
 			t2, ok := operatorsNotProgressingAfter[operator]
-			if !ok || t1.Unix() != t2.Unix() {
+			if reason := except(operator); reason == "" && (!ok || t1.Unix() != t2.Unix()) {
 				violations = append(violations, operator)
 			}
 		}
