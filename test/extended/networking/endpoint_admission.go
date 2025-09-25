@@ -62,7 +62,10 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		// Project admin
 		testOneEndpoint(oc, projectAdminClient, "cluster", clusterIP, false)
 		testOneEndpoint(oc, projectAdminClient, "service", serviceIP, false)
-		testOneEndpoint(oc, projectAdminClient, "external", "1.2.3.4", false)
+		// FIXME: This was allowed by default up to OCP 4.20 but will be flipped
+		// to deny-by-default once the k8s 1.34 rebase is finished, at which
+		// point this (and the other chunk below) should be uncommented.
+		// testOneEndpoint(oc, projectAdminClient, "external", "1.2.3.4", false)
 
 		// Now try giving the project admin endpoints create/edit permission...
 		out, err := oc.AsAdmin().Run("create", "role", "--namespace", oc.Namespace(), "endpoints-edit", "--verb=create,update,patch", "--resource=endpoints").Output()
@@ -83,9 +86,10 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "unexpected error updating endpoint annotation")
 
-		ep.Subsets[0].Addresses[0].IP = serviceIP
-		ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
-		o.Expect(err).To(o.HaveOccurred(), "unexpected success modifying endpoint")
+		// FIXME: as above, uncomment after 1.34 rebase
+		// ep.Subsets[0].Addresses[0].IP = serviceIP
+		// ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
+		// o.Expect(err).To(o.HaveOccurred(), "unexpected success modifying endpoint")
 	})
 
 	g.It("blocks manual creation of EndpointSlices pointing to the cluster or service network", func() {
