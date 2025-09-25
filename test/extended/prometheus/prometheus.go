@@ -529,22 +529,15 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// we only consider series sent since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
-		isManagedServiceCluster, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
-		// rule contains the count of the all the series that are sent via telemetry. It is permissible
-		// for some scenarios to generate more series than 760, we just want the basic state to be below
-		// a threshold.
 		var averageSeriesLimit int
-		switch {
-		case isManagedServiceCluster:
-			averageSeriesLimit = 850
-		default:
-			averageSeriesLimit = 1000
-		}
+		averageSeriesLimit = 1000
 
 		tests := map[string]bool{
+			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
+			// rule contains the count of the all the series that are sent via telemetry. It is permissible
+			// for some scenarios to generate more series than 760, we just want the basic state to be below
+			// a threshold.
+
 			// The following query can be executed against the telemetry server
 			// to reevaluate the threshold value (replace the matcher on the version label accordingly):
 			//
