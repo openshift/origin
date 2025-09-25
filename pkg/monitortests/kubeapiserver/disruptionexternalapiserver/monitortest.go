@@ -3,6 +3,7 @@ package disruptionexternalapiserver
 import (
 	"context"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -14,6 +15,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,6 +92,44 @@ func createOauthApiChecker(adminRESTConfig *rest.Config, url string, cache bool)
 	return createApiServerChecker(adminRESTConfig, disruptionBackendName, "oauth-apiserver", url)
 }
 
+func createOauthApiCheckerForOAuthClient(adminRESTConfig *rest.Config, baseURL string, cache bool) (*disruptionlibrary.Availability, error) {
+	oauthClient, err := oauthv1.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create oauth client for oauth-apiserver api checker: %v", err)
+	}
+	oauthclients, err := oauthClient.OAuthClients().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("unable to list oauth for oauth-apiserver api checker: %v", err)
+	}
+	if len(oauthclients.Items) == 0 {
+		return nil, fmt.Errorf("found no suitable imagestream for oauth-apiserver api checker: %v", err)
+	}
+	oauthClientName := oauthclients.Items[0].Name
+	oauthClientRevision := oauthclients.Items[0].ResourceVersion
+
+	url := path.Join(baseURL, fmt.Sprintf("%s?resourceVersion=%s", oauthClientName, oauthClientRevision))
+	return createOauthApiChecker(adminRESTConfig, url, cache)
+}
+
+func oauthAvailable(ctx context.Context, adminRESTConfig *rest.Config) (bool, error) {
+	configClient, err := configclient.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return false, err
+	}
+
+	authn, err := configClient.ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	switch authn.Spec.Type {
+	case "", configv1.AuthenticationTypeIntegratedOAuth:
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (i *InvariantExternalDisruption) PrepareCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	return nil
 }
@@ -140,20 +181,6 @@ func (i *InvariantExternalDisruption) StartCollection(ctx context.Context, admin
 	imageStreamName := imagestreams.Items[0].Name
 	imageStreamRevision := imagestreams.Items[0].ResourceVersion
 
-	oauthClient, err := oauthv1.NewForConfig(i.adminRESTConfig)
-	if err != nil {
-		return fmt.Errorf("unable to create oauth client for oauth-apiserver api checker: %v", err)
-	}
-	oauthclients, err := oauthClient.OAuthClients().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("unable to list oauth for oauth-apiserver api checker: %v", err)
-	}
-	if len(oauthclients.Items) == 0 {
-		return fmt.Errorf("found no suitable imagestream for oauth-apiserver api checker: %v", err)
-	}
-	oauthClientName := oauthclients.Items[0].Name
-	oauthClientRevision := oauthclients.Items[0].ResourceVersion
-
 	kubeApiChecker, err := createKubeApiChecker(i.adminRESTConfig, "/api/v1/namespaces/default", false)
 	if err != nil {
 		return fmt.Errorf("unable to create kube api checker: %v", err)
@@ -178,18 +205,22 @@ func (i *InvariantExternalDisruption) StartCollection(ctx context.Context, admin
 	}
 	i.disruptionCheckers = append(i.disruptionCheckers, openshiftApiCachedChecker)
 
-	oauthApiChecker, err := createOauthApiChecker(i.adminRESTConfig, "/apis/oauth.openshift.io/v1/oauthclients", false)
-	if err != nil {
-		return fmt.Errorf("unable to create oauth api checker: %v", err)
-	}
+	if oauthAvailable, err := oauthAvailable(ctx, i.adminRESTConfig); err != nil {
+		return fmt.Errorf("unable to check authentication type: %v", err)
 
-	i.disruptionCheckers = append(i.disruptionCheckers, oauthApiChecker)
+	} else if oauthAvailable {
+		oauthApiChecker, err := createOauthApiChecker(i.adminRESTConfig, "/apis/oauth.openshift.io/v1/oauthclients", false)
+		if err != nil {
+			return fmt.Errorf("unable to create oauth api checker: %v", err)
+		}
+		i.disruptionCheckers = append(i.disruptionCheckers, oauthApiChecker)
 
-	oauthApiCachedChecker, err := createOauthApiChecker(i.adminRESTConfig, fmt.Sprintf("/apis/oauth.openshift.io/v1/oauthclients/%s?resourceVersion=%s", oauthClientName, oauthClientRevision), true)
-	if err != nil {
-		return fmt.Errorf("unable to create cached openshift api checker: %v", err)
+		oauthApiCachedChecker, err := createOauthApiCheckerForOAuthClient(i.adminRESTConfig, "/apis/oauth.openshift.io/v1/oauthclients", true)
+		if err != nil {
+			return fmt.Errorf("unable to create cached openshift api checker: %v", err)
+		}
+		i.disruptionCheckers = append(i.disruptionCheckers, oauthApiCachedChecker)
 	}
-	i.disruptionCheckers = append(i.disruptionCheckers, oauthApiCachedChecker)
 
 	for n := range i.disruptionCheckers {
 		if err := i.disruptionCheckers[n].StartCollection(ctx, adminRESTConfig, recorder); err != nil {
