@@ -105,7 +105,7 @@ func TestImageConfigImageStreamImportModeLegacy(t g.GinkgoTInterface, oc *exutil
 }
 
 func TestImageConfigImageStreamImportModePreserveOriginal(t g.GinkgoTInterface, oc *exutil.CLI) {
-ctx := context.Background()
+	ctx := context.Background()
 
 	clusterAdminConfigClient := oc.AdminConfigClient().ConfigV1()
 	imageConfig, err := clusterAdminConfigClient.Images().Get(ctx, "cluster", metav1.GetOptions{})
