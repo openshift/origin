@@ -62,9 +62,22 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		// Project admin
 		testOneEndpoint(oc, projectAdminClient, "cluster", clusterIP, false)
 		testOneEndpoint(oc, projectAdminClient, "service", serviceIP, false)
+		testOneEndpoint(oc, projectAdminClient, "external", "1.2.3.4", false)
+
+		// Now try giving the project admin endpoints create/edit permission...
+		out, err := oc.AsAdmin().Run("create", "role", "--namespace", oc.Namespace(), "endpoints-edit", "--verb=create,update,patch", "--resource=endpoints").Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "error adding endpoints-edit role: %s", out)
+		out, err = oc.AsAdmin().Run("create", "rolebinding", "--namespace", oc.Namespace(), "user-endpoints-edit", "--role=endpoints-edit", "--user", oc.Username()).Output()
+		o.Expect(err).NotTo(o.HaveOccurred(), "error adding user-endpoints-edit rolebinding: ", out)
+
+		// Project admin + endpoints edit; restricted IPs are still blocked, but
+		// the external IP will work now
+		testOneEndpoint(oc, projectAdminClient, "cluster", clusterIP, false)
+		testOneEndpoint(oc, projectAdminClient, "service", serviceIP, false)
 		testOneEndpoint(oc, projectAdminClient, "external", "1.2.3.4", true)
 
-		// User without restricted endpoint permission can't modify IPs but can still do other modifications
+		// User with endpoints edit permission but without endpoints/restricted
+		// permission can't modify IPs but can still do other modifications
 		ep := testOneEndpoint(oc, clusterAdminKubeClient, "cluster", clusterIP, true)
 		ep.Annotations = map[string]string{"foo": "bar"}
 		ep, err = projectAdminClient.CoreV1().Endpoints(oc.Namespace()).Update(context.Background(), ep, metav1.UpdateOptions{})
@@ -92,7 +105,6 @@ var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshif
 		// Project admin
 		testOneEndpointSlice(oc, projectAdminClient, "cluster", clusterIP, false)
 		testOneEndpointSlice(oc, projectAdminClient, "service", serviceIP, false)
-		// EndpointSlice is more locked-down than Endpoints, so even this will fail...
 		testOneEndpointSlice(oc, projectAdminClient, "external", "1.2.3.4", false)
 
 		// Now try giving the project admin endpointslice create/edit permission...
