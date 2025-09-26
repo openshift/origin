@@ -75,6 +75,7 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 	for _, pod := range podList {
 		podSA := pod.Spec.ServiceAccountName
 		// if the service account name is not default, we can exit for that iteration
+		fmt.Printf("Service account for pod %s in namespace %s is %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
 		if podSA != "default" {
 			continue
 		}
