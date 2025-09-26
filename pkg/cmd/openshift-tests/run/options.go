@@ -36,6 +36,8 @@ type RunSuiteOptions struct {
 
 	// Extension is the internal origin extension of its own test specs.
 	Extension *extension.Extension
+
+	UseGinkgoRunner bool
 }
 
 func (o *RunSuiteOptions) TestCommandEnvironment() []string {
@@ -100,6 +102,15 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	}
 
 	o.GinkgoRunSuiteOptions.Extension = o.Extension
+
+	if o.UseGinkgoRunner {
+		exitErr := o.GinkgoRunSuiteOptions.RunNew(o.Suite, o.ClusterConfig, "openshift-tests", monitorTestInfo, false)
+		if exitErr != nil {
+			fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
+		}
+
+		return exitErr
+	}
 
 	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, o.ClusterConfig, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {

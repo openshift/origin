@@ -48,6 +48,9 @@ func NewRunCommand(streams genericclioptions.IOStreams, internalExtension *exten
 				return errors.WithMessage(err, "error converting to options")
 			}
 
+			// TODO: make flag
+			o.UseGinkgoRunner = true
+
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			if err := o.Run(ctx); err != nil {

@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"iter"
 	"math/rand"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -18,6 +21,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
@@ -44,6 +48,8 @@ import (
 	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/filters"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
+	"github.com/openshift-eng/openshift-tests-extension/pkg/dbtime"
 )
 
 const (
@@ -114,7 +120,6 @@ func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSui
 }
 
 func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
-
 	monitorNames := defaultmonitortests.ListAllMonitorTests()
 
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
@@ -167,7 +172,8 @@ func max(a, b int) int {
 }
 
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo,
-	upgrade bool) error {
+	upgrade bool,
+) error {
 	ctx := context.Background()
 	var sharder Sharder
 	switch o.ShardStrategy {
@@ -902,12 +908,16 @@ func writeRunSuiteOptions(seed int64, totalNodes, workerNodes, parallelism int, 
 	var rows []map[string]string
 
 	rows = make([]map[string]string, 0)
-	rows = append(rows, map[string]string{"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest),
-		"WorkerNodes": fmt.Sprintf("%d", workerNodes), "TotalNodes": fmt.Sprintf("%d", totalNodes), "Parallelism": fmt.Sprintf("%d", parallelism)})
+	rows = append(rows, map[string]string{
+		"RandomSeed": fmt.Sprintf("%d", seed), "ClusterStability": string(info.ClusterStabilityDuringTest),
+		"WorkerNodes": fmt.Sprintf("%d", workerNodes), "TotalNodes": fmt.Sprintf("%d", totalNodes), "Parallelism": fmt.Sprintf("%d", parallelism),
+	})
 	dataFile := dataloader.DataFile{
 		TableName: "run_suite_options",
-		Schema: map[string]dataloader.DataType{"ClusterStability": dataloader.DataTypeString, "RandomSeed": dataloader.DataTypeInteger, "WorkerNodes": dataloader.DataTypeInteger,
-			"TotalNodes": dataloader.DataTypeInteger, "Parallelism": dataloader.DataTypeInteger},
+		Schema: map[string]dataloader.DataType{
+			"ClusterStability": dataloader.DataTypeString, "RandomSeed": dataloader.DataTypeInteger, "WorkerNodes": dataloader.DataTypeInteger,
+			"TotalNodes": dataloader.DataTypeInteger, "Parallelism": dataloader.DataTypeInteger,
+		},
 		Rows: rows,
 	}
 	fileName := filepath.Join(artifactDir, fmt.Sprintf("run-suite-options%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
@@ -999,7 +1009,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 		envFlagBuilder.AddTopology(&singleReplicaTopology)
 	}
 
-	//Additional flags can only be determined if we are able to obtain the clusterState
+	// Additional flags can only be determined if we are able to obtain the clusterState
 	if clusterState != nil {
 		envFlagBuilder.AddAPIGroups(clusterState.APIGroups.UnsortedList()...).
 			AddFeatureGates(clusterState.EnabledFeatureGates.UnsortedList()...)
@@ -1012,7 +1022,7 @@ func determineEnvironmentFlags(ctx context.Context, upgrade bool, dryRun bool) (
 
 		arch := "Unknown"
 		if len(clusterState.Masters.Items) > 0 {
-			//TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
+			// TODO(sgoeddel): eventually, we may need to check every node and pass "multi" as the value if any of them differ from the masters
 			arch = clusterState.Masters.Items[0].Status.NodeInfo.Architecture
 		}
 		envFlagBuilder.AddArchitecture(arch)
@@ -1085,4 +1095,466 @@ func getClusterNodeCounts(ctx context.Context, config *rest.Config) (int, int, e
 	logrus.Infof("Found %d nodes", totalNodes)
 
 	return totalNodes, workerNodes, nil
+}
+
+func (o *GinkgoRunSuiteOptions) RunNew(suite *TestSuite, clusterConfig *clusterdiscovery.ClusterConfiguration, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) error {
+	start := time.Now()
+	if o.StartTime.IsZero() {
+		o.StartTime = start
+	}
+
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	// ******************
+	// Context building
+	// ******************
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+	abortCh := make(chan os.Signal, 2)
+	go func() {
+		<-abortCh
+		logrus.Error("Interrupted, terminating tests")
+		cancelFn()
+		sig := <-abortCh
+		logrus.Errorf("Interrupted twice, exiting (%s)", sig)
+		switch sig {
+		case syscall.SIGINT:
+			os.Exit(130)
+		default:
+			os.Exit(0)
+		}
+	}()
+	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
+
+	// **************************
+	// Environmental Context
+	// **************************
+
+	envFlags, err := determineEnvironmentFlags(ctx, upgrade, o.DryRun)
+	if err != nil {
+		return err
+	}
+
+	// *************************
+	// Cluster stability checks
+	// *************************
+
+	// Skip stable cluster check if OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER is set.
+	// This is useful in development for rapid iteration where cluster stability
+	// verification may be unnecessary and time-consuming.
+	var stableClusterTestResults []*junitapi.JUnitTestCase
+	if os.Getenv("OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER") == "" {
+		logrus.Infof("Waiting for all cluster operators to become stable")
+		var err error
+		stableClusterTestResults, err = clusterinfo.WaitForStableCluster(ctx, restConfig)
+		if err != nil {
+			logrus.Errorf("Error waiting for stable cluster: %v", err)
+		}
+	} else {
+		logrus.Infof("Skipping stable cluster check due to OPENSHIFT_TESTS_SKIP_STABLE_CLUSTER environment variable")
+	}
+
+	// *************************
+	// Monitor Tests setup
+	// *************************
+	monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
+	if err != nil {
+		logrus.Errorf("Error getting monitor tests: %v", err)
+	}
+
+	monitorEventRecorder := monitor.NewRecorder()
+	m := monitor.NewMonitor(
+		monitorEventRecorder,
+		restConfig,
+		o.JUnitDir,
+		monitorTests,
+	)
+	if err := m.Start(ctx); err != nil {
+		return err
+	}
+
+	pc, err := SetupNewPodCollector(ctx)
+	if err != nil {
+		return err
+	}
+
+	pc.SetEvents([]string{setupEvent})
+	pc.Run(ctx)
+
+	// ********************************
+	// Run Ginkgo Test Binaries
+	// ********************************
+
+	// *********
+	// Extract Ginkgo Binary from $images
+	// *********
+
+	// TODO: Implement this behavior
+
+	// *********
+	// Run extracted Ginkgo binaries
+	// *********
+
+	// Temporarily use a hard-coded ginkgo binary
+
+	extractedBinaries := []string{
+		"./dummy-suite.test",
+	}
+
+	results := []testRunResult{}
+
+	for _, extractedBinary := range extractedBinaries {
+		testResults, err := runGinkgoBinaryWithEnv(extractedBinary, envFlags)
+		if err != nil {
+			return err
+		}
+
+		results = append(results, testResults...)
+	}
+
+	// ********************************
+	// Post-Testing Result Aggregation
+	// ********************************
+
+	end := time.Now()
+	duration := end.Sub(start).Round(time.Second / 10)
+	if duration > time.Minute {
+		duration = duration.Round(time.Second)
+	}
+
+	passing := slices.Collect(passingSeq(results...))
+	failing := slices.Collect(failingSeq(results...))
+	flaky := 0 // TODO: collect this result as well
+	skipped := slices.Collect(skippedSeq(results...))
+	pass := len(passing)
+	skip := len(skipped)
+
+	// monitor the cluster while the tests are running and report any detected anomalies
+	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
+	var syntheticTestResults []*junitapi.JUnitTestCase
+	var syntheticFailure bool
+	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
+
+	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+
+	monitorTestResultState, err := m.Stop(ctx)
+	if err != nil {
+		fmt.Fprintf(o.ErrOut, "error: Failed to stop monitor test: %v\n", err)
+		monitorTestResultState = monitor.Failed
+	}
+	if err := m.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
+		fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
+	}
+
+	// default is empty string as that is what entries prior to adding this will have
+	// wasMasterNodeUpdated := ""
+	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
+		buf := &bytes.Buffer{}
+		if !upgrade {
+			// the current mechanism for external binaries does not support upgrade
+			// tests, so don't report information there at all
+			syntheticTestResults = append(syntheticTestResults, fallbackSyntheticTestResult...)
+		}
+
+		if len(syntheticTestResults) > 0 {
+			// mark any failures by name
+			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
+			for _, test := range syntheticTestResults {
+				if test.FailureOutput != nil {
+					failingSyntheticTestNames.Insert(test.Name)
+				}
+			}
+			// if a test has both a pass and a failure, flag it
+			// as a flake
+			for _, test := range syntheticTestResults {
+				if test.FailureOutput == nil {
+					if failingSyntheticTestNames.Has(test.Name) {
+						flakySyntheticTestNames.Insert(test.Name)
+					}
+				}
+			}
+			failingSyntheticTestNames = failingSyntheticTestNames.Difference(flakySyntheticTestNames)
+			if failingSyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Failing invariants:\n\n%s\n\n", strings.Join(failingSyntheticTestNames.List(), "\n"))
+				syntheticFailure = true
+			}
+			if flakySyntheticTestNames.Len() > 0 {
+				fmt.Fprintf(buf, "Flaky invariants:\n\n%s\n\n", strings.Join(flakySyntheticTestNames.List(), "\n"))
+			}
+		}
+
+		// we only write the buffer if we have an artifact location
+		if len(o.JUnitDir) > 0 {
+			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", o.StartTime.UTC().Format("20060102-150405"))
+			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
+			}
+
+			filename = fmt.Sprintf("events_used_for_junits_%s.json", o.StartTime.UTC().Format("20060102-150405"))
+			if err := monitorserialization.EventsToFile(filepath.Join(o.JUnitDir, filename), events); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to junit event info: %v\n", err)
+			}
+		}
+
+		// wasMasterNodeUpdated = clusterinfo.WasMasterNodeUpdated(events)
+	}
+
+	blockingFailures := slices.Collect(blockingSeq(failing...))
+	informingFailures := slices.Collect(informingSeq(failing...))
+
+	if len(informingFailures) > 0 {
+		names := slices.Collect(func(yield func(string) bool) {
+			for _, fail := range informingFailures {
+				if !yield(fail.name) {
+					return
+				}
+			}
+		})
+		fmt.Fprintf(o.Out, "Informing test failures that don't prevent the overall suite from passing:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
+	}
+
+	if len(blockingFailures) > 0 {
+		names := slices.Collect(func(yield func(string) bool) {
+			for _, fail := range blockingFailures {
+				if !yield(fail.name) {
+					return
+				}
+			}
+		})
+		fmt.Fprintf(o.Out, "Blocking test failures:\n\n\t* %s\n\n", strings.Join(names, "\n\t* "))
+	}
+
+	/*
+		if len(o.JUnitDir) > 0 {
+			finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
+			if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
+				fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
+			}
+
+			if err := writeExtensionTestResults(tests, o.JUnitDir, "extension_test_result_e2e", timeSuffix, o.ErrOut); err != nil {
+				fmt.Fprintf(o.Out, "error: Unable to write e2e Extension Test Result JSON results: %v", err)
+			}
+
+			if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated, ""); err != nil {
+				fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
+			}
+
+			writeRunSuiteOptions(123, 1, 1, o.Parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
+		}
+	*/
+
+	switch {
+	case len(blockingFailures) > 0:
+		return fmt.Errorf("%d blocking fail, %d informing fail, %d pass, %d flaky, %d skip (%s)", len(blockingFailures), len(informingFailures), pass, flaky, skip, duration)
+	case syntheticFailure:
+		return fmt.Errorf("failed because an invariant was violated, %d pass, %d flaky, %d skip (%s)", pass, flaky, skip, duration)
+	case monitorTestResultState != monitor.Succeeded:
+		return fmt.Errorf("failed due to a MonitorTest failure")
+	case len(informingFailures) > 0:
+		fmt.Fprintf(o.Out, "%d informing fail, %d pass, %d flaky, %d skip (%s): suite passes despite failures", len(informingFailures), pass, flaky, skip, duration)
+	default:
+		fmt.Fprintf(o.Out, "%d pass, %d flaky, %d skip (%s)\n", pass, flaky, skip, duration)
+	}
+
+	return ctx.Err()
+}
+
+func runGinkgoBinaryWithEnv(binary string, env extensions.EnvironmentFlags) ([]testRunResult, error) {
+	labelFilter := envBasedLabelFilterQuery(env)
+
+	tmpFile, err := os.CreateTemp("", "results*.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "creating tmp results file")
+	}
+
+	defer tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	args := []string{
+		fmt.Sprintf("--ginkgo.json-report=%s", tmpFile.Name()),
+	}
+
+	if labelFilter != "" {
+		args = append(args, fmt.Sprintf("--ginkgo.label-filter=%q", labelFilter))
+	}
+
+	cmd := exec.Command(binary, args...)
+	err = cmd.Run()
+	if err != nil {
+		return nil, errors.Wrap(err, "running ginkgo binary")
+	}
+
+	reportBytes, err := io.ReadAll(tmpFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "reading tmpFile bytes")
+	}
+
+	reports := []types.Report{}
+	err = json.Unmarshal(reportBytes, &reports)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshalling tmpFile bytes")
+	}
+
+	results := []*extensions.ExtensionTestResult{}
+	for _, report := range reports {
+		for _, summary := range report.SpecReports {
+			if summary.NumAttempts == 0 {
+				continue
+			}
+
+			result := extensiontests.ExtensionTestResult{
+				Name:      strings.Join(append(summary.ContainerHierarchyTexts, summary.LeafNodeText), " "),
+				Lifecycle: GetLifecycle(summary.Labels()),
+				Duration:  int64(summary.RunTime),
+				StartTime: (*dbtime.DBTime)(&summary.StartTime),
+				EndTime:   (*dbtime.DBTime)(&summary.EndTime),
+				Output:    summary.CapturedGinkgoWriterOutput,
+				Error:     summary.CapturedStdOutErr,
+			}
+
+			switch {
+			case summary.State == types.SpecStatePassed:
+				result.Result = extensiontests.ResultPassed
+			case summary.State == types.SpecStateSkipped:
+				result.Result = extensiontests.ResultSkipped
+				if len(summary.Failure.Message) > 0 {
+					result.Output = fmt.Sprintf(
+						"%s\n skip [%s:%d]: %s\n",
+						result.Output,
+						lastFilenameSegment(summary.Failure.Location.FileName),
+						summary.Failure.Location.LineNumber,
+						summary.Failure.Message,
+					)
+				} else if len(summary.Failure.ForwardedPanic) > 0 {
+					result.Output = fmt.Sprintf(
+						"%s\n skip [%s:%d]: %s\n",
+						result.Output,
+						lastFilenameSegment(summary.Failure.Location.FileName),
+						summary.Failure.Location.LineNumber,
+						summary.Failure.ForwardedPanic,
+					)
+				}
+			case summary.State == types.SpecStateFailed, summary.State == types.SpecStatePanicked, summary.State == types.SpecStateInterrupted:
+				result.Result = extensiontests.ResultFailed
+				var errors []string
+				if len(summary.Failure.ForwardedPanic) > 0 {
+					if len(summary.Failure.Location.FullStackTrace) > 0 {
+						errors = append(errors, fmt.Sprintf("\n%s\n", summary.Failure.Location.FullStackTrace))
+					}
+					errors = append(errors, fmt.Sprintf("fail [%s:%d]: Test Panicked: %s", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic))
+				}
+				errors = append(errors, fmt.Sprintf("fail [%s:%d]: %s", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message))
+				result.Error = strings.Join(errors, "\n")
+			default:
+				panic(fmt.Sprintf("test produced unknown outcome: %#v", summary))
+			}
+
+			results = append(results, &extensions.ExtensionTestResult{
+				&result,
+				extensions.Source{
+					SourceBinary: binary,
+				},
+			})
+		}
+	}
+
+	return testRunResultsForBinaryResults(results...), nil
+}
+
+func envBasedLabelFilterQuery(env extensions.EnvironmentFlags) string {
+	return ""
+}
+
+func GetLifecycle(labels ginkgo.Labels) extensiontests.Lifecycle {
+	for _, label := range labels {
+		res := strings.Split(label, ":")
+		if len(res) != 2 || !strings.EqualFold(res[0], "lifecycle") {
+			continue
+		}
+		return MustLifecycle(res[1]) // this panics if unsupported lifecycle is used
+	}
+
+	return extensiontests.LifecycleBlocking
+}
+
+func MustLifecycle(l string) extensiontests.Lifecycle {
+	switch extensiontests.Lifecycle(l) {
+	case extensiontests.LifecycleInforming, extensiontests.LifecycleBlocking:
+		return extensiontests.Lifecycle(l)
+	default:
+		panic(fmt.Sprintf("unknown test lifecycle: %s", l))
+	}
+}
+
+func lastFilenameSegment(filename string) string {
+	if parts := strings.Split(filename, "/vendor/"); len(parts) > 1 {
+		return parts[len(parts)-1]
+	}
+	if parts := strings.Split(filename, "/src/"); len(parts) > 1 {
+		return parts[len(parts)-1]
+	}
+	return filename
+}
+
+func passingSeq(testResults ...testRunResult) iter.Seq[testRunResult] {
+	return func(yield func(testRunResult) bool) {
+		for _, result := range testResults {
+			if result.extensionTestResult.ExtensionTestResult.Result == extensiontests.ResultPassed {
+				if !yield(result) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func failingSeq(testResults ...testRunResult) iter.Seq[testRunResult] {
+	return func(yield func(testRunResult) bool) {
+		for _, result := range testResults {
+			if result.extensionTestResult.ExtensionTestResult.Result == extensiontests.ResultFailed {
+				if !yield(result) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func skippedSeq(testResults ...testRunResult) iter.Seq[testRunResult] {
+	return func(yield func(testRunResult) bool) {
+		for _, result := range testResults {
+			if result.extensionTestResult.ExtensionTestResult.Result == extensiontests.ResultSkipped {
+				if !yield(result) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func blockingSeq(testResults ...testRunResult) iter.Seq[testRunResult] {
+	return func(yield func(testRunResult) bool) {
+		for _, result := range testResults {
+			if result.extensionTestResult.ExtensionTestResult.Lifecycle == extensiontests.LifecycleBlocking {
+				if !yield(result) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func informingSeq(testResults ...testRunResult) iter.Seq[testRunResult] {
+	return func(yield func(testRunResult) bool) {
+		for _, result := range testResults {
+			if result.extensionTestResult.ExtensionTestResult.Lifecycle == extensiontests.LifecycleInforming {
+				if !yield(result) {
+					return
+				}
+			}
+		}
+	}
 }
