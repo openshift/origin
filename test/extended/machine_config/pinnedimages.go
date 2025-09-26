@@ -32,8 +32,8 @@ var (
 	customConfigPrefix = "rendered-custom"
 )
 
-// This test is [Serial] because it modifies the state of the images present on Node in each test.
-var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:PinnedImages][OCPFeatureGate:MachineConfigNodes][Serial]", func() {
+// These tests are `Disruptive` because they result in disruptive actions in the cluster, including node reboots and degrades and pod creations and deletions.
+var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][sig-mco][OCPFeatureGate:PinnedImages][Disruptive]", func() {
 	defer g.GinkgoRecover()
 	var (
 		MCOPinnedImageBaseDir       = exutil.FixturePath("testdata", "machine_config", "pinnedimage")
@@ -63,7 +63,8 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:o
 		}
 	})
 
-	g.It("All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {
+	// This test is also considered `Slow` because it takes longer than 5 minutes to run.
+	g.It("[Slow]All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {
 		// Skip this test on single node and two-node platforms since custom MCPs are not supported
 		// for clusters with only a master MCP
 		skipOnSingleNodeTopology(oc)
