@@ -180,7 +180,7 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 	return nil
 }
 
-func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost string) error {
+func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost, apiIntPort string) error {
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
 	// set amount of deployment replicas to make sure it runs on all nodes
@@ -385,26 +385,20 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		i.payloadImagePullSpec = clusterVersion.Status.History[0].Image
 	}
 
-	// Check for ARO HCP and skip if detected
+	// Check for Hypershift and ARO HCP
 	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
-	var isAROHCPcluster bool
-	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
-	if isHypershift {
+	i.isHypershift, _ = exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	if i.isHypershift {
 		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 		if err != nil {
 			logrus.WithError(err).Error("failed to get hypershift management cluster config and namespace")
 		}
 
-		// For Hypershift, only skip if it's specifically ARO HCP
-		// Use management cluster client to check the control-plane-operator deployment
 		managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
-		if isAROHCPcluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
+		i.isAROHCPCluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient())
+		if err != nil {
 			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
 			i.isAROHCPCluster = false // Assume not ARO HCP on error
-		} else if isAROHCPcluster {
-			i.isAROHCPCluster = true
-		} else {
-			i.isAROHCPCluster = false
 		}
 
 		// Check if this is a bare metal HyperShift cluster
@@ -543,7 +537,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating localhost: %v", err)
 	}
-	err = i.createInternalLBDeployment(ctx, apiIntHost)
+	err = i.createInternalLBDeployment(ctx, apiIntHost, apiIntPort)
 	if err != nil {
 		return fmt.Errorf("error creating internal LB: %v", err)
 	}
