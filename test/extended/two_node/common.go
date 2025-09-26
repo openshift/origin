@@ -50,7 +50,6 @@ func addConstraint(oc *util.CLI, nodeName string, resourceName string) error {
 	framework.Logf("Avoiding %s resource on %s", resourceName, nodeName)
 
 	cmd := []string{
-		"chroot", "/host",
 		"pcs", "constraint", "location", resourceName, "avoids", "master-1",
 	}
 
@@ -68,7 +67,6 @@ func removeConstraint(oc *util.CLI, nodeName string, constraintId string) error 
 	framework.Logf("Removing constraint to avoid %s resource on %s", constraintId, nodeName)
 
 	cmd := []string{
-		"chroot", "/host",
 		"pcs", "constraint", "remove", constraintId,
 	}
 
@@ -86,7 +84,6 @@ func discoverConstraintId(oc *util.CLI, nodeName string, resourceName string, ta
 	framework.Logf("Discovering constraint ID for resource %s avoiding node %s", resourceName, targetNode)
 
 	cmd := []string{
-		"chroot", "/host",
 		"pcs", "constraint", "list", "--full",
 	}
 
@@ -193,7 +190,6 @@ func startKubeletService(oc *util.CLI, nodeName string) error {
 // isServiceRunning checks if the specified service is running on the specified node
 func isServiceRunning(oc *util.CLI, nodeName string, serviceName string) bool {
 	cmd := []string{
-		"chroot", "/host",
 		"systemctl", "is-active", "--quiet", serviceName,
 	}
 
