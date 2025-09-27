@@ -50,7 +50,7 @@ func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string
 //  2. ensures that the suite filters out tests from providers that aren't relevant (see exutilcluster.ClusterConfig.MatchFn) by
 //     loading the provider info from the cluster or flags, including API groups and feature gates.
 func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdiscovery.ClusterConfiguration, error) {
-	providerConfig, err := clusterdiscovery.DecodeProvider(f.ProviderTypeOrJSON, f.GinkgoRunSuiteOptions.DryRun, true, nil)
+	providerConfig, err := clusterdiscovery.DecodeProvider(f.ProviderTypeOrJSON, true, nil)
 	if err != nil {
 		return nil, err
 	}
