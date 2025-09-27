@@ -32,7 +32,7 @@ require (
 	github.com/coreos/stream-metadata-go v0.4.9
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/distribution/distribution/v3 v3.0.0-20230530204932-ba46c769b3d1
-	github.com/docker/docker v27.1.2+incompatible
+	github.com/docker/docker v27.3.1+incompatible
 	github.com/fsouza/go-dockerclient v1.12.0
 	github.com/gebn/bmc v0.0.0-20250519231546-bf709e03fe3c
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32
@@ -59,11 +59,12 @@ require (
 	github.com/onsi/gomega v1.37.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250711173707-dc2a20e5a5f8
-	github.com/openshift/api v0.0.0-20250710004639-926605d3338b
+	github.com/openshift/api v3.9.0+incompatible
 	github.com/openshift/apiserver-library-go v0.0.0-20250710132015-f0d44ef6e53b
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
 	github.com/openshift/client-go v0.0.0-20250710075018-396b36f983ee
 	github.com/openshift/library-go v0.0.0-20250812160438-378de074fe7b
+	github.com/operator-framework/operator-lifecycle-manager v0.30.1-0.20250114164243-1b6752ec65fa
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -88,7 +89,7 @@ require (
 	go.etcd.io/etcd/client/pkg/v3 v3.5.21
 	go.etcd.io/etcd/client/v3 v3.5.21
 	golang.org/x/crypto v0.40.0
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/mod v0.25.0
 	golang.org/x/net v0.42.0
 	golang.org/x/oauth2 v0.30.0
@@ -132,7 +133,6 @@ require (
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
 	git.sr.ht/~sbinet/gg v0.5.0 // indirect
-	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/keyvault/azsecrets v0.12.0 // indirect
@@ -198,7 +198,7 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/felixge/fgprof v0.9.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
@@ -310,6 +310,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
 	github.com/opencontainers/selinux v1.11.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
+	github.com/operator-framework/api v0.27.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
@@ -398,7 +399,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient v0.0.29 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16 // indirect
-	sigs.k8s.io/controller-runtime v0.19.0 // indirect
+	sigs.k8s.io/controller-runtime v0.19.4 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect
@@ -440,3 +441,6 @@ replace (
 	k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20250906192346-6efb6a95323f
 	k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20250906192346-6efb6a95323f
 )
+
+// github.com/operator-framework/operator-lifecycle-manager requires this import.
+replace github.com/openshift/api => github.com/openshift/api v0.0.0-20250710004639-926605d3338b
