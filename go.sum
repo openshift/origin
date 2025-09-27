@@ -707,6 +707,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.30 h1:bVreufq3EAIG1Quvws73du3/QgdeZ3myglJlrzSYYCY=
 github.com/mattn/go-sqlite3 v1.14.30/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+github.com/metal3-io/baremetal-operator/apis v0.11.0 h1:sYxjnObegWnDyz028m5Rc6gVYxbSLlvjOAqo6Iq1vOE=
+github.com/metal3-io/baremetal-operator/apis v0.11.0/go.mod h1:T0v/wKeJeUfVFeTq1sihv76IZEE2Bn+hqKkh5kGMxA4=
 github.com/metallb/frr-k8s v0.0.15 h1:6M3UGhovX1EFoaSGjrRD7djUAx3w2I+g81FH8OVtHkM=
 github.com/metallb/frr-k8s v0.0.15/go.mod h1:TjrGoAf+v00hYGlI8jUdyDxY5udMAOs2GWwrvLWnA4E=
 github.com/microsoft/kiota-abstractions-go v1.9.3 h1:cqhbqro+VynJ7kObmo7850h3WN2SbvoyhypPn8uJ1SE=
@@ -986,8 +988,8 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
-github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
+github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tecbiz-ch/nutanix-go-sdk v0.1.15 h1:ZT5I6OFGswvMceujUE10ZXPNnT5UQIW9gAX4FEFK6Ds=
@@ -1592,8 +1594,8 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient v0.0.29 h1:qiifAaaBqV3d/EcN9dKJaJI
 sigs.k8s.io/cloud-provider-azure/pkg/azclient v0.0.29/go.mod h1:ZFAt0qF1kR+w8nBVJK56s6CFvLrlosN1i2c+Sxb7LBk=
 sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16 h1:Fm/Yjv4nXjUtJ90uXKSKwPwaTWYuDFMhDNNOd77PlOg=
 sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16/go.mod h1:+kl90flu4+WCP6HBGVYbKVQR+5ztDzUNrWJz8rsnvRU=
-sigs.k8s.io/controller-runtime v0.19.0 h1:nWVM7aq+Il2ABxwiCizrVDSlmDcshi9llbaFbC0ji/Q=
-sigs.k8s.io/controller-runtime v0.19.0/go.mod h1:iRmWllt8IlaLjvTTDLhRBXIEtkCK6hwVBJJsYS9Ajf4=
+sigs.k8s.io/controller-runtime v0.21.0 h1:CYfjpEuicjUecRk+KAeyYh+ouUBn4llGyDYytIGcJS8=
+sigs.k8s.io/controller-runtime v0.21.0/go.mod h1:OSg14+F65eWqIu4DceX7k/+QRAbTTvxeQSNSOQpukWM=
 sigs.k8s.io/gateway-api v1.2.1 h1:fZZ/+RyRb+Y5tGkwxFKuYuSRQHu9dZtbjenblleOLHM=
 sigs.k8s.io/gateway-api v1.2.1/go.mod h1:EpNfEXNjiYfUJypf0eZ0P5iXA9ekSGWaS1WgPaM42X0=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 h1:gBQPwqORJ8d8/YNZWEjoZs7npUVDpVXUUOFfW6CgAqE=

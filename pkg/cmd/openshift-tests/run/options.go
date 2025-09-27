@@ -31,6 +31,11 @@ type RunSuiteOptions struct {
 	CloseFn iooptions.CloseFunc
 	genericclioptions.IOStreams
 
+	// HypervisorConfig contains SSH configuration for hypervisor-based recovery operations
+	// If set, will run recovery tests that require the hypervisor-based recovery, such as
+	// the node replacement test in the two_node recovery suite.
+	HypervisorConfig *clusterdiscovery.HypervisorConfig
+
 	// ClusterConfig contains cluster-specific configuration for filtering tests
 	ClusterConfig *clusterdiscovery.ClusterConfiguration
 
