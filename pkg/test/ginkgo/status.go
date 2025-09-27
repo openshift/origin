@@ -44,6 +44,11 @@ func (s *testSuiteProgress) TestEnded(testName string, testRunResult *testRunRes
 		return
 	}
 
+	if testRunResult.testRunResult == nil {
+		fmt.Fprintln(os.Stderr, "testRunResult.testRunResult is nil")
+		return
+	}
+
 	if isTestFailed(testRunResult.testState) {
 		s.failures++
 	}
