@@ -328,6 +328,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 								preconfiguredIPs: []string{"203.203.0.100", "2014:100:200::100"},
 							},
 						),
+						Entry(
+							"[OCPFeatureGate:PreconfiguredUDNAddresses] when the VM with preconfigured MAC address is created when the address is already taken",
+							networkAttachmentConfigParams{
+								name:               nadName,
+								topology:           "layer2",
+								role:               "primary",
+								allowPersistentIPs: true,
+							},
+							kubevirt.FedoraVMWithPreconfiguredPrimaryUDNAttachment,
+							duplicateVM,
+							workloadNetworkConfig{
+								preconfiguredMAC: "02:00:00:22:22:22",
+							},
+						),
 					)
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) networkAttachmentConfig {
@@ -586,6 +600,21 @@ func duplicateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 			)
 		})
 	}
+
+	mac, err := cli.GetJSONPath("vmi", vmName, "{.spec.domain.devices.interfaces[0].macAddress}")
+	Expect(err).NotTo(HaveOccurred())
+	if len(mac) > 0 {
+		vmiExpectations = append(vmiExpectations, func() {
+			waitForVMPodEventWithMessage(
+				cli,
+				vmNamespace,
+				duplicateVMName,
+				"MAC address already in use",
+				2*time.Minute,
+			)
+		})
+	}
+
 	Expect(cli.CreateVMIFromSpec(vmNamespace, duplicateVMName, vmiSpec, vmiCreationOptions...)).To(Succeed())
 	for _, expectation := range vmiExpectations {
 		expectation()
