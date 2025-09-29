@@ -221,6 +221,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "operator-lifecycle-manager",
 		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-version-operator",
+		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
+	},
 }
 
 // Info returns information about this particular extension.
