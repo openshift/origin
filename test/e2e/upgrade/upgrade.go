@@ -41,6 +41,7 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
+	mc "github.com/openshift/origin/test/extended/machine_config"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/operator"
@@ -625,6 +626,21 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		func() (error, bool) {
 			framework.Logf("Waiting on pools to be upgraded")
 			if err := wait.PollImmediate(10*time.Second, 30*time.Minute, func() (bool, error) {
+
+				nodes, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+				if err != nil {
+					framework.Logf("error getting nodes %v", err)
+					return false, nil
+				}
+
+				allNodesReady := true
+				for _, node := range nodes.Items {
+					if !mc.IsNodeReady(node) {
+						allNodesReady = false
+						break
+					}
+				}
+
 				mcps := dc.Resource(schema.GroupVersionResource{
 					Group:    "machineconfiguration.openshift.io",
 					Version:  "v1",
@@ -641,7 +657,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					allUpdated = allUpdated && updated
 
 					// Invariant: when CVO reaches level, MCO is required to have rolled out control plane updates
-					if p.GetName() == "master" && requiresUpdate && errMasterUpdating == nil {
+					if p.GetName() == "master" && requiresUpdate && !allNodesReady && errMasterUpdating == nil {
 						errMasterUpdating = fmt.Errorf("the %q pool should be updated before the CVO reports available at the new version", p.GetName())
 						framework.Logf("Invariant violation detected: %s", errMasterUpdating)
 					}
