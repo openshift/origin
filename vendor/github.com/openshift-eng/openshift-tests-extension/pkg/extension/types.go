@@ -88,4 +88,5 @@ type Image struct {
 	Registry string `json:"registry"`
 	Name     string `json:"name"`
 	Version  string `json:"version"`
+	Mapped   *Image `json:"mapped,omitempty"`
 }
