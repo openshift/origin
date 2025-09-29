@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csi-secrets-store-provider-gcp
+  namespace: openshift-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: csi-secrets-store-provider-gcp-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: csi-secrets-store-provider-gcp-role
+subjects:
+  - kind: ServiceAccount
+    name: csi-secrets-store-provider-gcp
+    namespace: openshift-cluster-csi-drivers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: csi-secrets-store-provider-gcp-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts/token
+    verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: csi-secrets-store-provider-gcp
+  name: csi-secrets-store-provider-gcp
+  namespace: openshift-cluster-csi-drivers
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: csi-secrets-store-provider-gcp
+  template:
+    metadata:
+      labels:
+        app: csi-secrets-store-provider-gcp
+    spec:
+      serviceAccountName: csi-secrets-store-provider-gcp
+      initContainers:
+      - name: chown-provider-mount
+        image: busybox
+        command:
+        - chown
+        - "1000:1000"
+        - /etc/kubernetes/secrets-store-csi-providers
+        volumeMounts:
+        - mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+          name: providervol
+        securityContext:
+          privileged: true
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      containers:
+        - name: provider
+          image: us-docker.pkg.dev/secretmanager-csi/secrets-store-csi-driver-provider-gcp/plugin@sha256:a493a78bbb4ebce5f5de15acdccc6f4d19486eae9aa4fa529bb60ac112dd6650
+          securityContext:
+            privileged: true
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+            limits:
+              cpu: 50m
+              memory: 100Mi
+          env:
+            - name: TARGET_DIR
+              value: "/etc/kubernetes/secrets-store-csi-providers"
+          volumeMounts:
+            - mountPath: "/etc/kubernetes/secrets-store-csi-providers"
+              name: providervol
+              mountPropagation: None
+              readOnly: false
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /live
+              port: 8095
+            initialDelaySeconds: 5
+            timeoutSeconds: 10
+            periodSeconds: 30
+      volumes:
+        - name: providervol
+          hostPath:
+            path: /etc/kubernetes/secrets-store-csi-providers
+      tolerations:
+        - key: kubernetes.io/arch
+          operator: Equal
+          value: amd64
+          effect: NoSchedule
+      nodeSelector:
+        kubernetes.io/os: linux

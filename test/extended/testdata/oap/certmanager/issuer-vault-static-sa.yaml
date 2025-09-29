@@ -1,0 +1,28 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: issuer-vault-static-sa-template
+objects:
+  - apiVersion: cert-manager.io/v1
+    kind: Issuer
+    metadata:
+      name: "${ISSUER_NAME}"
+    spec:
+      vault:
+        server: https://${VAULT_SERVICE}.${VAULT_NAMESPACE}.svc:8200
+        caBundleSecretRef:
+          name: vault-server-tls
+          key: ca.crt
+        path: pki_int/sign/cluster-dot-local
+        auth:
+          kubernetes:
+            mountPath: /v1/auth/kubernetes
+            role: issuer
+            secretRef:
+              name: "${SECRET_NAME}"
+              key: token
+parameters:
+  - name: ISSUER_NAME
+  - name: VAULT_SERVICE
+  - name: VAULT_NAMESPACE
+  - name: SECRET_NAME

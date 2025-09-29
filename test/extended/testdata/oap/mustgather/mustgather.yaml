@@ -1,0 +1,26 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: mustgather-template
+objects:
+  - apiVersion: managed.openshift.io/v1alpha1
+    kind: MustGather
+    metadata:
+      name: "${NAME}"
+      namespace: "${NAMESPACE}"
+    spec:
+      caseID: "${CASEID}"
+      caseManagementAccountSecretRef:
+        name:  "${CASESECRET}"
+      serviceAccountRef:
+        name:  "${SA}"
+parameters:
+  - name: NAME
+  - name: NAMESPACE
+  - name: CASEID
+    value: "04230315"
+  - name: CASESECRET
+    value: "mustgather-creds"
+  - name: SA
+    value: "must-gather-operator"
+

@@ -1,0 +1,41 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: invalid-app-secrets
+spec:
+  provider: gcp
+  parameters:
+    secrets: |
+      - resourceName: "invalid/../secrets/testsecret1/versions/1"
+        path: "testsecret1.txt"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: invalidmypod
+spec:
+  serviceAccountName: mypodserviceaccount
+  containers:
+  - image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    imagePullPolicy: IfNotPresent
+    name: invalidmypod2
+    resources:
+      requests:
+        cpu: 100m
+    stdin: true
+    stdinOnce: true
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    tty: true
+    volumeMounts:
+      - mountPath: "/mnt/secrets-store"
+        name: mysecret
+  volumes:
+  - name: mysecret
+    csi:
+      driver: secrets-store.csi.k8s.io
+      readOnly: true
+      volumeAttributes:
+        secretProviderClass: "invalid-app-secrets"
+      nodePublishSecretRef:
+        name: secret75963
