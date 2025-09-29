@@ -111,7 +111,6 @@ var (
 		"monitoring",
 		"network",
 		"node-tuning",
-		"olm",
 		"openshift-apiserver",
 		"openshift-controller-manager",
 		"openshift-samples",
@@ -155,7 +154,6 @@ func init() {
 	utilruntime.Must(addOperatorMapping("monitoring", "Monitoring"))
 	utilruntime.Must(addOperatorMapping("network", "Networking"))
 	utilruntime.Must(addOperatorMapping("node-tuning", "Node Tuning Operator"))
-	utilruntime.Must(addOperatorMapping("olm", "OLM"))
 	utilruntime.Must(addOperatorMapping("openshift-apiserver", "openshift-apiserver"))
 	utilruntime.Must(addOperatorMapping("openshift-controller-manager", "openshift-controller-manager"))
 	utilruntime.Must(addOperatorMapping("openshift-samples", "Samples"))
