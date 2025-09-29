@@ -98,7 +98,7 @@ var (
 	Stable ClusterStabilityDuringTest = "Stable"
 	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
 	// TODO please contact @deads2k for vetting if you think you found something
-	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
+	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 )
@@ -119,7 +119,9 @@ type TestSuite struct {
 
 	// The number of times to execute each test in this suite.
 	Count int `json:"count,omitempty"`
-	// The maximum parallelism of this suite.
+	// The maximum parallelism of this suite based on a minimum of 3 workers.
+	// Otherwise, parallelism is automatically scaled down using 1/3 the parallelism value x the number of workers.
+	// Jobs can explicitly set the parallelism value via max-parallel-tests
 	Parallelism int `json:"parallelism,omitempty"`
 	// The number of flakes that may occur before this test is marked as a failure.
 	MaximumAllowedFlakes int `json:"maximumAllowedFlakes,omitempty"`

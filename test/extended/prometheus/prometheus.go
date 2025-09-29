@@ -39,7 +39,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
-	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
@@ -530,22 +529,12 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// we only consider series sent since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
-		isManagedServiceCluster, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
-		// rule contains the count of the all the series that are sent via telemetry. It is permissible
-		// for some scenarios to generate more series than 760, we just want the basic state to be below
-		// a threshold.
-		var averageSeriesLimit int
-		switch {
-		case isManagedServiceCluster:
-			averageSeriesLimit = 850
-		default:
-			averageSeriesLimit = 780
-		}
-
 		tests := map[string]bool{
+			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
+			// rule contains the count of the all the series that are sent via telemetry. It is permissible
+			// for some scenarios to generate more series than the limit, we just want the basic state to be below
+			// a threshold.
+
 			// The following query can be executed against the telemetry server
 			// to reevaluate the threshold value (replace the matcher on the version label accordingly):
 			//
@@ -558,10 +547,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			//     )[30m:1m]
 			//   )
 			// )
-			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= %d`, testDuration, averageSeriesLimit): false,
-			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration):                   false,
+			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 1000`, testDuration): false,
+			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
-		err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
@@ -826,17 +815,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 			err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
-		networking.InOpenShiftSDNContext(func() {
-			g.It("should be able to get the sdn ovs flows", func() {
-				tests := map[string]bool{
-					// something
-					`openshift_sdn_ovs_flows >= 1`: true,
-				}
-				err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
 		})
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {

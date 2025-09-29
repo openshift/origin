@@ -171,6 +171,5 @@ func testNoSystemdCoreDumps(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 		},
 	}
 
-	// Core dumps are serious issues, but treating as flake initially to gather data
-	return []*junitapi.JUnitTestCase{failure, success}
+	return []*junitapi.JUnitTestCase{failure}
 }
