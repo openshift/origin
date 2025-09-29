@@ -85,19 +85,20 @@ func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
 	log := logrus.WithField("allower", ade.Name())
 	for lk, r := range ade.locatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
-			log.Debugf("%s: key %s did not match", ade.Name(), lk)
+			log.Debugf("%s: key %s did not match %s", ade.Name(), lk, i.Message.HumanMessage)
 			return false
 		}
 	}
 	if ade.messageHumanRegex != nil && !ade.messageHumanRegex.MatchString(msg.HumanMessage) {
-		log.Debugf("%s: human message did not match", ade.Name())
+		log.Debugf("%s: human message did not match: %s", ade.Name(), msg.HumanMessage)
 		return false
 	}
 	if ade.messageReasonRegex != nil && !ade.messageReasonRegex.MatchString(string(msg.Reason)) {
-		log.Debugf("%s: message reason did not match", ade.Name())
+		log.Debugf("%s: message reason did not match: %s: %s", ade.Name(), msg.Reason, msg.HumanMessage)
 		return false
 	}
 
+	log.Debugf("%s: JSAF interval matched: %s", ade.Name(), i.Message.HumanMessage)
 	return true
 }
 

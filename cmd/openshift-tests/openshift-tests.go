@@ -54,7 +54,7 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	logrus.SetLevel(logrus.InfoLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	// The GCE PD drivers were removed in kube 1.31, so we can ignore the env var that
 	// some automation sets.
