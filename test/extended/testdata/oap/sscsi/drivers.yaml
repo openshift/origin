@@ -1,8 +1,0 @@
-apiVersion: operator.openshift.io/v1
-kind: ClusterCSIDriver
-metadata:
-  name: secrets-store.csi.k8s.io
-spec:
-  logLevel: Normal
-  managementState: Managed
-  operatorLogLevel: Trace
