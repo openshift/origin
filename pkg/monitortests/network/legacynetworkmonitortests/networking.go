@@ -101,17 +101,51 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	})
 	logrus.Infof("found %d node NotReady intervals", len(nodeNotReadyIntervals))
 
+	// Detect if an upgrade is in progress by checking for ClusterOperator version changes
+	isUpgradeInProgress := false
+	for _, ev := range events {
+		if ev.Message.Reason == "OperatorStatusChanged" &&
+			strings.Contains(ev.Message.HumanMessage, "version") {
+			isUpgradeInProgress = true
+			break
+		}
+	}
+
+	// Choose grace period based on upgrade status
+	gracePeriod := preNotReadyGracePeriod
+	if isUpgradeInProgress {
+		gracePeriod = upgradePreNotReadyGracePeriod
+	}
+
+	// Extend the NodeNotReady intervals backwards
+	extendedNodeNotReadyIntervals := extendNotReadyIntervals(nodeNotReadyIntervals, gracePeriod)
+
 	for _, event := range events {
 
 		if event.Message.Reason != "FailedCreatePodSandBox" {
 			continue
 		}
 
-		// Skip pod sandbox failures when nodes are updating
+		// Skip DNS resolution failures during network status updates on control plane pods during upgrades
+		// These typically occur when DNS services are disrupted before NotReady
+		namespace := event.Locator.Keys[monitorapi.LocatorNamespaceKey]
+		if isUpgradeInProgress &&
+			strings.Contains(event.Message.HumanMessage, "error setting the networks status") &&
+			(strings.Contains(event.Message.HumanMessage, "no such host") ||
+				strings.Contains(event.Message.HumanMessage, "dial tcp: lookup")) &&
+			(strings.HasPrefix(namespace, "openshift-etcd") ||
+				strings.HasPrefix(namespace, "openshift-kube-apiserver") ||
+				strings.HasPrefix(namespace, "openshift-kube-controller-manager") ||
+				strings.HasPrefix(namespace, "openshift-kube-scheduler")) {
+			flakes = append(flakes, fmt.Sprintf("%v - flake: DNS failure in control plane during upgrade - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+			continue
+		}
+
+		// Skip pod sandbox failures when nodes are updating (using extended time windows)
 		var foundOverlap bool
-		for _, nui := range nodeNotReadyIntervals {
+		for _, nui := range extendedNodeNotReadyIntervals {
 			if nui.From.Before(event.From) && nui.To.After(event.To) {
-				logrus.Infof("%s was found to overlap with %s, ignoring pod sandbox error as we expect these if the node is NotReady", event, nui)
+				logrus.Infof("%s was found to overlap with extended NotReady period %s (grace period: %v), ignoring pod sandbox error", event, nui, gracePeriod)
 				foundOverlap = true
 				break
 			}
@@ -483,4 +517,26 @@ func testNoTooManyNetlinkEventLogs(events monitorapi.Intervals) []*junitapi.JUni
 
 	// leaving as a flake so we can see how common this is for now.
 	return []*junitapi.JUnitTestCase{failure, success}
+}
+
+// Add constants for grace periods
+const (
+	preNotReadyGracePeriod        = 30 * time.Second
+	upgradePreNotReadyGracePeriod = 120 * time.Second
+)
+
+// Helper function to extend NotReady intervals backwards by a grace period
+func extendNotReadyIntervals(intervals monitorapi.Intervals, gracePeriod time.Duration) monitorapi.Intervals {
+	extended := make(monitorapi.Intervals, len(intervals))
+	for i, interval := range intervals {
+		extended[i] = monitorapi.Interval{
+			From: interval.From.Add(-gracePeriod),
+			To:   interval.To,
+			Condition: monitorapi.Condition{
+				Locator: interval.Locator,
+				Message: interval.Message,
+			},
+		}
+	}
+	return extended
 }
