@@ -662,7 +662,54 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 			continue
 		}
 
-		except := func(co string, condition *configv1.ClusterOperatorStatusCondition) string {
+		except := func(co string, reason string) string {
+			switch co {
+			case "csi-snapshot-controller":
+				if reason == "CSISnapshotController_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62624"
+				}
+			case "dns":
+				if reason == "DNSReportsProgressingIsTrue" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62623"
+				}
+			case "image-registry":
+				if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62626"
+				}
+			case "ingress":
+				if reason == "Reconciling" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62627"
+				}
+			case "kube-storage-version-migrator":
+				if reason == "KubeStorageVersionMigrator_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62629"
+				}
+			case "network":
+				if reason == "Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62630"
+				}
+			case "node-tuning":
+				if reason == "Reconciling" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62632"
+				}
+			case "service-ca":
+				if reason == "_ManagedDeploymentsAvailable" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62633"
+				}
+			case "storage":
+				// GCPPDCSIDriverOperatorCR_GCPPDDriverControllerServiceController_Deploying
+				// GCPPDCSIDriverOperatorCR_GCPPDDriverNodeServiceController_Deploying
+				// AWSEBSCSIDriverOperatorCR_AWSEBSDriverNodeServiceController_Deploying
+				// VolumeDataSourceValidatorDeploymentController_Deploying
+				if strings.HasSuffix(reason, "Controller_Deploying") ||
+					reason == "GCPPD_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62634"
+				}
+			case "olm":
+				if reason == "CatalogdDeploymentCatalogdControllerManager_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62635"
+				}
+			}
 			return ""
 		}
 
@@ -687,7 +734,7 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 			// if there was any switch, it was wrong/unexpected at some point
 			failure := fmt.Sprintf("%v", operatorEvent)
 
-			exception := except(operatorName, condition)
+			exception := except(operatorName, condition.Reason)
 			if exception == "" {
 				fatal = append(fatal, failure)
 			} else {
