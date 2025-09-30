@@ -91,7 +91,7 @@ type evaluator struct {
 
 func (e evaluator) Reports() []*junitapi.JUnitTestCase {
 	out := []*junitapi.JUnitTestCase{}
-	
+
 	for _, eval := range e.evaluations {
 		out = append(out, eval.Report())
 	}
@@ -122,21 +122,22 @@ type evaluation struct {
 
 var defaultEvaluations = []evaluation{
 	{
-		name:      "[kas] should not excessively log informer reflector unhandled errors",
+		name:      "[Jira:\"kube-apiserver\"] should not excessively log informer reflector unhandled errors",
 		regex:     regexp.MustCompile("reflector\\.go.+\\\"Unhandled Error\\\".+Failed to watch.+failed to list.+"),
-		threshold: 10,
+		threshold: 0,
 	},
 }
 
 func (e evaluation) Report() *junitapi.JUnitTestCase {
-	if e.count <= e.threshold {
-		return nil
+	out := &junitapi.JUnitTestCase{
+		Name: e.name,
 	}
 
-	return &junitapi.JUnitTestCase{
-		Name: e.name,
-		FailureOutput: &junitapi.FailureOutput{
+	if e.count > e.threshold {
+		out.FailureOutput = &junitapi.FailureOutput{
 			Message: fmt.Sprintf("kube-apiserver logged %d informer-related unhandled errors. Should not log more than %d", e.count, e.threshold),
-		},
+		}
 	}
+
+	return out
 }
