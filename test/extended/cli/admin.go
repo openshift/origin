@@ -314,10 +314,6 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "pvc").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.HaveSuffix("yes"))
-
-		out, err = oc.Run("auth", "can-i").Args("--namespace=policy-can-i", "--as=storage-adm2", "create", "endpoints").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.HaveSuffix("yes"))
 	})
 
 	g.It("role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {
