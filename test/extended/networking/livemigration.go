@@ -307,13 +307,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 				},
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
 					netConfig := newNetworkAttachmentConfig(c)
-					nad := generateNAD(netConfig)
+					nad := generateNAD(oc, netConfig)
 					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 					Expect(err).NotTo(HaveOccurred())
 				}),
 				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) {
-					udnManifest := generateUserDefinedNetworkManifest(&c)
+					udnManifest := generateUserDefinedNetworkManifest(oc, &c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
@@ -369,7 +369,7 @@ var _ = Describe("[sig-network][Feature:Layer2LiveMigration][OCPFeatureGate:Netw
 				cidr:               correctCIDRFamily(oc, cidrIPv4, cidrIPv6),
 			}
 
-			nad := generateNAD(newNetworkAttachmentConfig(netConfig))
+			nad := generateNAD(oc, newNetworkAttachmentConfig(netConfig))
 			By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 			_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
 				context.Background(),

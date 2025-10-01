@@ -421,7 +421,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 				framework.Logf("Allocated subnets %s %s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 
 				nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
-				cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
+				cudnManifest := generateClusterUserDefinedNetworkManifest(oc, nc)
 				cleanup, err = createManifest("", cudnManifest)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Eventually(clusterUserDefinedNetworkReadyFunc(oc.AdminDynamicClient(), testCUDNName), 60*time.Second, time.Second).Should(o.Succeed())
@@ -722,7 +722,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteAdvertisements][Feature:Ro
 						framework.Logf("Allocated subnets %s %s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 
 						nc.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
-						cudnManifest := generateClusterUserDefinedNetworkManifest(nc)
+						cudnManifest := generateClusterUserDefinedNetworkManifest(oc, nc)
 						cleanup, err = createManifest(targetNamespace, cudnManifest)
 
 						o.Expect(err).NotTo(o.HaveOccurred())
