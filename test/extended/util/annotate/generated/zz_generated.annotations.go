@@ -1413,9 +1413,9 @@ var Annotations = map[string]string{
 
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
-	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]": "",
+	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode-techpreview][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be Legacy if the import mode specified in image.config.openshift.io config is Legacy [apigroup:image.openshift.io]": "",
 
-	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]": "",
+	"[sig-imageregistry][Suite:openshift/test-image-stream-import-mode-techpreview][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API import mode should be PreserveOriginal if the import mode specified in image.config.openshift.io config is PreserveOriginal [apigroup:image.openshift.io]": "",
 
 	"[sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
 
