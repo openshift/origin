@@ -80,7 +80,8 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		}
 		isNetwork := ev.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "network"
 		isMCO := ev.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "machine-config"
-		if isNetwork || isMCO {
+		isDNS := ev.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "dns"
+		if isNetwork || isMCO || isDNS {
 			return true
 		}
 		return false
