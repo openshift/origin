@@ -21,7 +21,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-api-machinery][Feature:ReadOnlyRootFilesystem]", func() {
+var _ = g.Describe("[sig-api-machinery][Serial][Feature:ReadOnlyRootFilesystem]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithPodSecurityLevel("rorfs", admissionapi.LevelPrivileged)
@@ -35,7 +35,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ReadOnlyRootFilesystem]", func()
 		}
 	})
 
-	g.It("Explicitly set readOnlyRootFilesystem to true [OCP-83088][Timeout:50m][Skipped:Disconnected]", func() {
+	g.It("Explicitly set readOnlyRootFilesystem to true [OCP-83088][Timeout:50m][Skipped:Disconnected][Serial]", func() {
 		var (
 			randmStr = uuid.New()
 			testNs1  = "test-rofs-cm-" + randmStr
