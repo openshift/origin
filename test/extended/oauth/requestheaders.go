@@ -20,7 +20,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,6 +32,7 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	clusteroperatorhelpers "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 
+	"github.com/openshift/origin/pkg/test"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -61,7 +61,7 @@ type certAuthTest struct {
 var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
 	var oc = exutil.NewCLI("request-headers")
 
-	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]", func() {
+	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]", test.ExtendedDuration(), func() {
 
 		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
 		// of this test might flaky. This check ensures that we capture such situation early and

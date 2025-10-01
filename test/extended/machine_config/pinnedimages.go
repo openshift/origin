@@ -10,9 +10,9 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	mcClient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
+	"github.com/openshift/origin/pkg/test"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,7 +63,7 @@ var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:o
 		}
 	})
 
-	g.It("All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", func() {
+	g.It("All Nodes in a custom Pool should have the PinnedImages even after Garbage Collection [apigroup:machineconfiguration.openshift.io]", test.ExtendedDuration(), func() {
 		// Skip this test on single node and two-node platforms since custom MCPs are not supported
 		// for clusters with only a master MCP
 		skipOnSingleNodeTopology(oc)
