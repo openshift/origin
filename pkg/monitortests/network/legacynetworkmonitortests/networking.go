@@ -179,9 +179,9 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			continue
 		}
 		if strings.Contains(event.Message.HumanMessage, "Multus") &&
-			strings.Contains(event.Message.HumanMessage, "error getting pod") &&
+			(strings.Contains(event.Message.HumanMessage, "error getting pod") || strings.Contains(event.Message.HumanMessage, "failed to update the pod")) &&
 			(strings.Contains(event.Message.HumanMessage, "connection refused") || strings.Contains(event.Message.HumanMessage, "i/o timeout")) {
-			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to access pod due to LB disruption https://bugzilla.redhat.com/show_bug.cgi?id=1927264 - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
 			continue
 		}
 		if strings.Contains(event.Message.HumanMessage, "Multus") && strings.Contains(event.Message.HumanMessage, "error getting pod: Unauthorized") {
