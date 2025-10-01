@@ -452,12 +452,12 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 1 * time.Minute,
 	},
 	{
-		Name: "openshift/test-image-stream-import-mode",
+		Name: "openshift/test-image-stream-import-mode-techpreview",
 		Description: templates.LongDesc(`
 		This test suite is to validate the ImageStreamImportMode feature.
 		`),
 		Qualifiers: []string{
-			`name.contains("[Suite:openshift/test-image-stream-import-mode")`,
+			`name.contains("[Suite:openshift/test-image-stream-import-mode-techpreview")`,
 		},
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
