@@ -313,7 +313,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 					Expect(err).NotTo(HaveOccurred())
 				}),
 				Entry("[OCPFeatureGate:NetworkSegmentation] UserDefinedNetwork", func(c networkAttachmentConfigParams) {
-					udnManifest := generateUserDefinedNetworkManifest(&c)
+					udnManifest := generateUserDefinedNetworkManifest(oc, &c)
 					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())

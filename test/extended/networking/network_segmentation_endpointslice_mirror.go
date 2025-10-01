@@ -172,7 +172,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				return err
 			}),
 			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
-				udnManifest := generateUserDefinedNetworkManifest(&c)
+				udnManifest := generateUserDefinedNetworkManifest(oc, &c)
 				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
 				DeferCleanup(cleanup)
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), 5*time.Second, time.Second).Should(Succeed())
@@ -265,7 +265,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				return err
 			}),
 			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
-				udnManifest := generateUserDefinedNetworkManifest(&c)
+				udnManifest := generateUserDefinedNetworkManifest(oc, &c)
 				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), 5*time.Second, time.Second).Should(Succeed())
