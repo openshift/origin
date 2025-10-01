@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"golang.org/x/sync/errgroup"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -36,7 +39,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
-	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 )
@@ -52,7 +54,7 @@ type TelemeterClientConfig struct {
 }
 
 // Set $MONITORING_AUTH_TEST_NAMESPACE to focus on the targets from a single namespace
-var monitoringAuthTestNamespace = os.Getenv("MONITORING_AUTH_TEST_NAMESPACE")
+var namespaceUnderTest = os.Getenv("MONITORING_AUTH_TEST_NAMESPACE")
 
 var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", func() {
 	defer g.GinkgoRecover()
@@ -87,14 +89,14 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 
-		if namespacesToSkip.Has(monitoringAuthTestNamespace) {
-			e2e.Logf("The namespace %s is not skipped because $MONITORING_AUTH_TEST_NAMESPACE is set to it", monitoringAuthTestNamespace)
-			namespacesToSkip.Delete(monitoringAuthTestNamespace)
+		if namespacesToSkip.Has(namespaceUnderTest) {
+			e2e.Logf("The namespace %s is not skipped because $MONITORING_AUTH_TEST_NAMESPACE is set to it", namespaceUnderTest)
+			namespacesToSkip.Delete(namespaceUnderTest)
 		}
 	})
 
 	g.It("should not be accessible without auth [Serial]", func() {
-		var errs []error
+		expectedStatusCodes := sets.New(http.StatusUnauthorized, http.StatusForbidden)
 
 		g.By("checking that targets reject the requests with 401 or 403")
 		execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), oc.Namespace(), "execpod-targets-authorization")
@@ -103,43 +105,82 @@ var _ = g.Describe("[sig-instrumentation][Late] Platform Prometheus targets", fu
 			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("Delete pod %s/%s", execPod.Namespace, execPod.Name))
 		}()
 
-		contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		targets := &prometheusTargets{}
-		err = json.Unmarshal([]byte(contents), targets)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(targets.Data.ActiveTargets)).Should(o.BeNumerically(">=", 5))
-
-		expected := sets.New[int](http.StatusUnauthorized, http.StatusForbidden)
-		for _, target := range targets.Data.ActiveTargets {
-			ns := target.Labels["namespace"]
-			o.Expect(ns).NotTo(o.BeEmpty())
-			if monitoringAuthTestNamespace != "" && ns != monitoringAuthTestNamespace {
-				continue
+		promTargets := func() (*prometheusTargets, error) {
+			contents, err := helper.GetURLWithToken(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+			if err != nil {
+				return nil, err
 			}
-			pod := target.Labels["pod"]
-			e2e.Logf("Checking via pod exec status code from the scrape url %s for pod %s/%s without authorization (skip=%t)", target.ScrapeUrl, ns, pod, namespacesToSkip.Has(ns))
-			err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, time.Minute, true, func(context.Context) (bool, error) {
-				statusCode, execError := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, target.ScrapeUrl)
-				e2e.Logf("The scrape url %s for pod %s/%s without authorization returned %d, %v (skip=%t)", target.ScrapeUrl, ns, pod, statusCode, execError, namespacesToSkip.Has(ns))
-				if expected.Has(statusCode) {
-					return true, nil
-				}
-				// retry on those cases
-				if execError != nil ||
-					statusCode/100 == 5 ||
-					statusCode == http.StatusRequestTimeout ||
-					statusCode == http.StatusTooManyRequests {
-					return false, nil
-				}
-				return false, fmt.Errorf("expecting status code %v but returned %d", expected.UnsortedList(), statusCode)
-			})
-			if err != nil && !namespacesToSkip.Has(ns) {
-				errs = append(errs, fmt.Errorf("the scrape url %s for pod %s/%s is accessible without authorization: %w", target.ScrapeUrl, ns, pod, err))
+			targets := &prometheusTargets{}
+			err = json.Unmarshal([]byte(contents), targets)
+			if err != nil {
+				return nil, err
 			}
+			// sanity check.
+			if len(targets.Data.ActiveTargets) < 5 {
+				return nil, fmt.Errorf("only got %d targets, something is wrong", len(targets.Data.ActiveTargets))
+			}
+			return targets, nil
 		}
 
+		initialPromTargets, err := promTargets()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		eg := errgroup.Group{}
+		eg.SetLimit(runtime.GOMAXPROCS(0))
+		errChan := make(chan error, len(initialPromTargets.Data.ActiveTargets))
+		for _, target := range initialPromTargets.Data.ActiveTargets {
+			eg.Go(func() error {
+				targetNs, targetJob, targetPod, targetScrapeURL := target.Labels["namespace"], target.Labels["job"], target.Labels["pod"], target.ScrapeUrl
+				o.Expect(targetNs).NotTo(o.BeEmpty())
+				if namespaceUnderTest != "" && targetNs != namespaceUnderTest {
+					return nil
+				}
+				scrapeErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+					statusCode, err := helper.URLStatusCodeExecViaPod(execPod.Namespace, execPod.Name, targetScrapeURL)
+					e2e.Logf("scraping target %s of pod %s/%s/%s without auth returned %d, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, statusCode, err, namespacesToSkip.Has(targetNs))
+					if expectedStatusCodes.Has(statusCode) {
+						return true, nil
+					}
+
+					// retry
+					if err != nil ||
+						statusCode/100 == 5 ||
+						statusCode == http.StatusRequestTimeout ||
+						statusCode == http.StatusTooManyRequests {
+						return false, nil
+					}
+					return false, fmt.Errorf("expecting status code %v but returned %d", expectedStatusCodes.UnsortedList(), statusCode)
+				})
+
+				// Ignoring targets that Prometheus no longer scrapes or fails to scrape.
+				// These may be leftovers from earlier tests.
+				// Reference: https://issues.redhat.com/browse/OCPBUGS-61193
+				if scrapeErr != nil && !namespacesToSkip.Has(targetNs) {
+					targets, err := promTargets()
+					if err != nil {
+						e2e.Logf("refreshing state of target %s of pod %s/%s/%s failed, err: %v (skip=%t)", targetScrapeURL, targetNs, targetJob, targetPod, err, namespacesToSkip.Has(targetNs))
+						targets = initialPromTargets
+					}
+					idx := slices.IndexFunc(targets.Data.ActiveTargets, func(t prometheusTarget) bool {
+						return t.Labels["namespace"] == targetNs &&
+							t.Labels["job"] == targetJob &&
+							t.Labels["pod"] == targetPod &&
+							t.ScrapeUrl == targetScrapeURL
+					})
+					if idx >= 0 && targets.Data.ActiveTargets[idx].Health == "up" {
+						errChan <- fmt.Errorf("failed to ensure scraping target %s of pod %s/%s/%s requires auth: %w", targetScrapeURL, targetNs, targetJob, targetPod, scrapeErr)
+					}
+				}
+				return nil
+			})
+		}
+		err = eg.Wait()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		close(errChan)
+
+		var errs []error
+		for err := range errChan {
+			errs = append(errs, err)
+		}
 		o.Expect(errs).To(o.BeEmpty())
 	})
 
@@ -149,25 +190,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	defer g.GinkgoRecover()
 
 	criticalAlertsMissingRunbookURLExceptions := sets.NewString(
-		// Repository: https://github.com/openshift/cluster-network-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14062
-		"OVNKubernetesNorthboundDatabaseClusterIDError",
-		"OVNKubernetesSouthboundDatabaseClusterIDError",
-		"OVNKubernetesNorthboundDatabaseLeaderError",
-		"OVNKubernetesSouthboundDatabaseLeaderError",
-		"OVNKubernetesNorthboundDatabaseMultipleLeadersError",
-		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
-		"OVNKubernetesNorthdInactive",
-
-		// Repository: https://github.com/openshift/machine-api-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14055
-		"MachineAPIOperatorMetricsCollectionFailing",
-
-		// Repository: https://github.com/openshift/machine-config-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14056
-		"MCDRebootError",
-		"ExtremelyHighIndividualControlPlaneMemory",
-
 		// Repository: https://github.com/openshift/cluster-ingress-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14057
 		"HAProxyDown",
@@ -507,22 +529,12 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		// we only consider series sent since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds().String()
 
-		isManagedServiceCluster, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
-		// rule contains the count of the all the series that are sent via telemetry. It is permissible
-		// for some scenarios to generate more series than 760, we just want the basic state to be below
-		// a threshold.
-		var averageSeriesLimit int
-		switch {
-		case isManagedServiceCluster:
-			averageSeriesLimit = 850
-		default:
-			averageSeriesLimit = 780
-		}
-
 		tests := map[string]bool{
+			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
+			// rule contains the count of the all the series that are sent via telemetry. It is permissible
+			// for some scenarios to generate more series than the limit, we just want the basic state to be below
+			// a threshold.
+
 			// The following query can be executed against the telemetry server
 			// to reevaluate the threshold value (replace the matcher on the version label accordingly):
 			//
@@ -535,10 +547,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			//     )[30m:1m]
 			//   )
 			// )
-			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= %d`, testDuration, averageSeriesLimit): false,
-			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration):                   false,
+			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 1000`, testDuration): false,
+			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
-		err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		e2e.Logf("Total number of series sent via telemetry is below the limit")
@@ -805,17 +817,6 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		networking.InOpenShiftSDNContext(func() {
-			g.It("should be able to get the sdn ovs flows", func() {
-				tests := map[string]bool{
-					// something
-					`openshift_sdn_ovs_flows >= 1`: true,
-				}
-				err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			})
-		})
-
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
 			// Copy so we can expand:
 			allowedAlertNames := make([]string, len(allowedalerts.AllowedAlertNames))
@@ -931,13 +932,15 @@ func all(errs ...error) []error {
 	return result
 }
 
+type prometheusTarget struct {
+	Labels    map[string]string
+	Health    string
+	ScrapeUrl string
+}
+
 type prometheusTargets struct {
 	Data struct {
-		ActiveTargets []struct {
-			Labels    map[string]string
-			Health    string
-			ScrapeUrl string
-		}
+		ActiveTargets []prometheusTarget
 	}
 	Status string
 }

@@ -7,8 +7,6 @@ RUN make; \
 
 FROM registry.ci.openshift.org/ocp/4.20:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
-RUN mkdir -p /manifests
-COPY --from=builder /go/src/github.com/openshift/origin/zz_generated.manifests/* /manifests
 
 RUN PACKAGES="git gzip util-linux" && \
     if [ $HOSTTYPE = x86_64 ]; then PACKAGES="$PACKAGES python3-cinderclient"; fi && \

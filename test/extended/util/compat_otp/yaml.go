@@ -3,6 +3,7 @@ package compat_otp
 import (
 	"encoding/json"
 	"io/ioutil"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -157,4 +158,36 @@ func setYamlValue(root *yaml.Node, path []string, value yaml.Node) {
 			setYamlValue(root.Content[index], rest, value)
 		}
 	}
+}
+
+// ConvertStrToJson converts a JSON format string to data structure of map[string]interface{}
+func ConvertStrToJson(str string) (map[string]interface{}, error) {
+	var strMap map[string]interface{}
+	if err := json.Unmarshal([]byte(str), &strMap); err != nil {
+		return nil, err
+	}
+	return strMap, nil
+}
+
+// ContainsAll checks if all keys and values in small are also in the big map.
+func ContainsAll(big, small map[string]interface{}) bool {
+	for k, vSmall := range small {
+		vBig, ok := big[k]
+		if !ok {
+			return false // key missing
+		}
+
+		switch vSmallTyped := vSmall.(type) {
+		case map[string]interface{}:
+			vBigTyped, ok := vBig.(map[string]interface{})
+			if !ok || !ContainsAll(vBigTyped, vSmallTyped) {
+				return false
+			}
+		default:
+			if !reflect.DeepEqual(vBig, vSmall) {
+				return false
+			}
+		}
+	}
+	return true
 }

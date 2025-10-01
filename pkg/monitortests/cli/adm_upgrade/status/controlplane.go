@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	operatorLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S+\s+.*$`)
+	operatorFirstLinePattern = regexp.MustCompile(`^\S+\s+\S+\s+\S+(\s+.*)?$`)
 )
 
 func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
@@ -100,20 +100,18 @@ func (w *monitor) controlPlane() *junitapi.JUnitTestCase {
 			}
 
 			items := len(strings.Split(updatingOperators, ","))
-			// TODO: These should actually exactly match, but `oc adm upgrade status` emits operators with linebreaks in
-			// messages in a crappy way which we will need to fix
-			if len(cp.Operators) < items {
+			if len(cp.Operators) != items {
 				fail(fmt.Sprintf("Control plane summary contains Updating key with %d operators but operators section has %d items", items, len(cp.Operators)))
 				continue
 			}
 		}
 
-		// TODO: `oc adm upgrade status` emits operators with linebreaks in messages in a crappy way which we will need to fix
-		// for _, operator := range cp.Operators {
-		// 	if !operatorLinePattern.MatchString(operator) {
-		// 		fail(fmt.Sprintf("Bad line in operators: %s", operator))
-		// 	}
-		// }
+		for _, operator := range cp.Operators {
+			firstLine := strings.Split(operator, "\n")[0]
+			if !operatorFirstLinePattern.MatchString(firstLine) {
+				fail(fmt.Sprintf("Bad first line in operators: %s", operator))
+			}
+		}
 
 		for _, node := range cp.Nodes {
 			if !nodeLinePattern.MatchString(node) {

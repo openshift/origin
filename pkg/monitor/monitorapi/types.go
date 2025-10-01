@@ -272,7 +272,8 @@ const (
 	ReasonHighGeneration    IntervalReason = "HighGeneration"
 	ReasonInvalidGeneration IntervalReason = "GenerationViolation"
 
-	ReasonEtcdBootstrap IntervalReason = "EtcdBootstrap"
+	ReasonEtcdBootstrap     IntervalReason = "EtcdBootstrap"
+	ReasonProcessDumpedCore IntervalReason = "ProcessDumpedCore"
 )
 
 type AnnotationKey string
@@ -358,6 +359,7 @@ const (
 	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
 	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
+	SourceSystemdCoreDumpLog        IntervalSource = "SystemdCoreDumpLog"
 	SourcePodLog                    IntervalSource = "PodLog"
 	SourceEtcdLog                   IntervalSource = "EtcdLog"
 	SourceEtcdLeadership            IntervalSource = "EtcdLeadership"

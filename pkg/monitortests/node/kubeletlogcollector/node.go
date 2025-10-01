@@ -56,7 +56,7 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 				errCh <- err
 				return
 			}
-			newOVSEvents := eventsFromOVSVswitchdLogs(nodeName, ovsVswitchdLogs)
+			newOVSEvents := intervalsFromOVSVswitchdLogs(nodeName, ovsVswitchdLogs)
 
 			networkManagerLogs, err := getNodeLog(ctx, kubeClient, nodeName, "NetworkManager")
 			if err != nil {
@@ -66,11 +66,20 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newNetworkManagerIntervals := intervalsFromNetworkManagerLogs(nodeName, networkManagerLogs)
 
+			systemdCoreDumpLogs, err := getNodeLog(ctx, kubeClient, nodeName, "systemd-coredump")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node systemd-coredump logs from %s: %s", nodeName, err.Error())
+				errCh <- err
+				return
+			}
+			newSystemdCoreDumpIntervals := intervalsFromSystemdCoreDumpLogs(nodeName, systemdCoreDumpLogs)
+
 			lock.Lock()
 			defer lock.Unlock()
 			ret = append(ret, newEvents...)
 			ret = append(ret, newOVSEvents...)
 			ret = append(ret, newNetworkManagerIntervals...)
+			ret = append(ret, newSystemdCoreDumpIntervals...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -114,9 +123,9 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 	return ret
 }
 
-// eventsFromOVSVswitchdLogs returns the produced intervals.  Any errors during this creation are logged, but
+// intervalsFromOVSVswitchdLogs returns the produced intervals.  Any errors during this creation are logged, but
 // not returned because this is a best effort step
-func eventsFromOVSVswitchdLogs(nodeName string, ovsLogs []byte) monitorapi.Intervals {
+func intervalsFromOVSVswitchdLogs(nodeName string, ovsLogs []byte) monitorapi.Intervals {
 	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
 	ret := monitorapi.Intervals{}
 
@@ -163,6 +172,55 @@ func unreasonablyLongPollInterval(logLine string, nodeLocator monitorapi.Locator
 }
 
 var unreasonablyLongPollIntervalRE = regexp.MustCompile(`Unreasonably long (\d+)ms poll interval`)
+
+// intervalsFromSystemdCoreDumpLogs returns the produced intervals.  Any errors during this creation are logged, but
+// not returned because this is a best effort step
+func intervalsFromSystemdCoreDumpLogs(nodeName string, coreDumpLogs []byte) monitorapi.Intervals {
+	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
+	ret := monitorapi.Intervals{}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(coreDumpLogs))
+	for scanner.Scan() {
+		currLine := scanner.Text()
+		ret = append(ret, processCoreDump(currLine, nodeLocator)...)
+	}
+
+	return ret
+}
+
+// processCoreDump searches for core dump events with process information
+//
+// Process 7798 (haproxy) of user 1000680000 dumped core.
+func processCoreDump(logLine string, nodeLocator monitorapi.Locator) monitorapi.Intervals {
+	if !strings.Contains(logLine, "dumped core") {
+		return nil
+	}
+
+	logTime := utility.SystemdJournalLogTime(logLine, time.Now().Year())
+
+	// Extract the process name from within parentheses
+	var processName string
+	match := coreDumpProcessRE.FindStringSubmatch(logLine)
+	if match != nil && len(match) > 1 {
+		processName = match[1]
+	}
+
+	message := logLine[strings.Index(logLine, "Process"):]
+
+	// Build the message with process annotation if we extracted it
+	messageBuilder := monitorapi.NewMessage().HumanMessage(message).Reason(monitorapi.ReasonProcessDumpedCore)
+	if processName != "" {
+		messageBuilder = messageBuilder.WithAnnotation("process", processName)
+	}
+
+	interval := monitorapi.NewInterval(monitorapi.SourceSystemdCoreDumpLog, monitorapi.Warning).Locator(
+		nodeLocator).Message(messageBuilder).
+		Display().Build(logTime, logTime.Add(1*time.Second))
+
+	return monitorapi.Intervals{interval}
+}
+
+var coreDumpProcessRE = regexp.MustCompile(`Process \d+ \(([^)]+)\) of user \d+ dumped core`)
 
 // intervalsFromNetworkManagerLogs returns the produced intervals.  Any errors during this creation are logged, but
 // not returned because this is a best effort step

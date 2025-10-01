@@ -79,5 +79,7 @@ func AllAlertTests(jobType *platformidentification.JobType, clusterStability *mo
 
 	ret = append(ret, newAlertTest("bz-apiserver-auth", "PodSecurityViolation", jobType).firing().toTests()...)
 
+	ret = append(ret, newAlertTest("bz-Cluster Version Operator", "ClusterOperatorDegraded", jobType).firing().alwaysFail().toTests()...)
+
 	return ret
 }

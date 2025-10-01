@@ -16,11 +16,10 @@ import (
 	"syscall"
 	"time"
 
-	originVersion "github.com/openshift/origin/pkg/version"
-
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
+	originVersion "github.com/openshift/origin/pkg/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
@@ -28,13 +27,10 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
-
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
 	exutil "github.com/openshift/origin/test/extended/util"
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
@@ -78,24 +74,26 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
 	}
 
-	// Apply annotations to test names
-	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-		// we need to ensure the default path always annotates both
-		// origin and k8s tests accordingly, since each of these
-		// currently have their own annotations which are not
-		// merged anywhere else but applied here
-		if append, ok := origingenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-	})
-
+	klog.Infof("Found %d test specs", len(specs))
 	// Filter out kube tests, vendor filtering isn't working within origin
 	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
-		return !strings.Contains(spec.Name, "[Suite:k8s")
+		for _, cl := range spec.CodeLocations {
+			// If there is a CodeLocation for origin, that isn't simply "framework" it is not a vendored test
+			if strings.Contains(cl, "github.com/openshift/origin/") &&
+				!strings.Contains(cl, "github.com/openshift/origin/test/extended/util/framework.go") {
+				return true
+			}
+		}
+		return false
 	})
+	klog.Infof("%d test specs remain, after filtering out k8s", len(specs))
+
+	// Filter out tests that are always disabled based on name matching
+	specs = filterOutDisabledSpecs(specs)
+	// Add environment selectors that include or exclude tests in specific environments
+	addEnvironmentSelectors(specs)
+	addLabelsToSpecs(specs)
+	appendSuiteNames(specs)
 
 	specs.AddBeforeAll(func() {
 		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, false, nil)
@@ -218,9 +216,25 @@ var extensionBinaries = []TestBinary{
 		binaryPath: "/usr/bin/cluster-kube-storage-version-migrator-operator-tests-ext.gz",
 	},
 	{
+		imageTag:   "operator-lifecycle-manager",
+		binaryPath: "/usr/bin/olmv0-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-openshift-controller-manager-operator",
+		binaryPath: "/usr/bin/cluster-openshift-controller-manager-operator-tests-ext.gz",
+	},
+	{
+		imageTag:   "openshift-controller-manager",
+		binaryPath: "/usr/bin/openshift-controller-manager-tests-ext.gz",
+	},
+	{
+		imageTag:   "cluster-config-operator",
+		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
+	},
+  {
 		imageTag:   "aws-cloud-controller-manager",
 		binaryPath: "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
-	},
+  },
 }
 
 // Info returns information about this particular extension.

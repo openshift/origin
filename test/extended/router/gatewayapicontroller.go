@@ -47,10 +47,11 @@ const (
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc       = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
-		csvName  string
-		err      error
-		gateways []string
+		oc         = exutil.NewCLIWithPodSecurityLevel("gatewayapi-controller", admissionapi.LevelBaseline)
+		csvName    string
+		err        error
+		gateways   []string
+		infPoolCRD = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api-inference-extension/main/config/crd/bases/inference.networking.k8s.io_inferencepools.yaml"
 	)
 
 	const (
@@ -246,6 +247,50 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		g.By("Validating the http connectivity to the backend application")
 		assertHttpRouteConnection(defaultRoutename)
 	})
+
+	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
+		errCheck := checkGatewayClass(oc, gatewayClassName)
+		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
+
+		g.By("Install the GIE CRD")
+		err := oc.AsAdmin().Run("create").Args("-f", infPoolCRD).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("Confirm istio is healthy and contains the env variable")
+		waitForIstioHealthy(oc)
+		waitIstioErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+			if err != nil {
+				e2e.Logf("Failed getting openshift-gateway istio cr: %v", err)
+				return false, nil
+			}
+			if strings.Contains(istioEnv, `"ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true"`) {
+				e2e.Logf("GIE has been enabled, and the env variable is present in Istio resource")
+				return true, nil
+			}
+			e2e.Logf("GIE env variable is not present, retrying...")
+			return false, nil
+		})
+		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to have GIE env variable")
+
+		g.By("Uninstall the GIE CRD and confirm the env variable is removed")
+		err = oc.AsAdmin().Run("delete").Args("-f", infPoolCRD).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		waitIstioErr = wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 5*time.Minute, false, func(context context.Context) (bool, error) {
+			istioEnv, err := oc.AsAdmin().Run("get").Args("-n", "openshift-ingress", "istio", "openshift-gateway", "-o=jsonpath={.spec.values.pilot.env}").Output()
+			if err != nil {
+				e2e.Logf("Failed getting openshift-gateway istio cr: %v", err)
+				return false, nil
+			}
+			if strings.Contains(istioEnv, `"ENABLE_GATEWAY_API_INFERENCE_EXTENSION":"true"`) {
+				e2e.Logf("GIE env variable is still present, trying again...")
+				return false, nil
+			}
+			e2e.Logf("GIE env variable has been removed from the Istio resource")
+			return true, nil
+		})
+		o.Expect(waitIstioErr).NotTo(o.HaveOccurred(), "Timed out waiting for Istio to remove GIE env variable")
+	})
 })
 
 func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
@@ -268,7 +313,10 @@ func waitForIstioHealthy(oc *exutil.CLI) {
 	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
-		o.Expect(errIstio).NotTo(o.HaveOccurred())
+		if errIstio != nil {
+			e2e.Logf("Failed getting openshift-gateway istio cr status: %v", errIstio)
+			return false, nil
+		}
 		if istioStatus != "Healthy" {
 			e2e.Logf("Istio CR %q is not healthy, retrying...", resource.Name)
 			return false, nil

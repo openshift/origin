@@ -44,7 +44,8 @@ var AllowedAlertNames = []string{
 
 	// indicates a problem in the external Telemeter service, presently very common, does not impact our ability to e2e test:
 	"TelemeterClientFailures",
-	"CDIDefaultStorageClassDegraded", // Installing openshift virt with RWX storage fire an alarm, that is not relevant for most of the tests.
-	"VirtHandlerRESTErrorsHigh",      // https://issues.redhat.com/browse/CNV-50418
-	"VirtControllerRESTErrorsHigh",   // https://issues.redhat.com/browse/CNV-50418
+	"CDIDefaultStorageClassDegraded",     // Installing openshift virt with RWX storage fire an alarm, that is not relevant for most of the tests.
+	"VirtHandlerRESTErrorsHigh",          // https://issues.redhat.com/browse/CNV-50418
+	"VirtControllerRESTErrorsHigh",       // https://issues.redhat.com/browse/CNV-50418
+	"InstallPlanStepAppliedWithWarnings", // https://issues.redhat.com/browse/OCPBUGS-61855
 }

@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"time"
@@ -10,6 +11,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	typedroutev1 "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -316,7 +318,7 @@ func keycloakContainers() []corev1.Container {
 	return []corev1.Container{
 		{
 			Name:         "keycloak",
-			Image:        keycloakImage,
+			Image:        image.LocationFor(keycloakImage),
 			Env:          keycloakEnvVars(),
 			VolumeMounts: keycloakVolumeMounts(),
 			Ports: []corev1.ContainerPort{
@@ -356,9 +358,18 @@ func createKeycloakRoute(ctx context.Context, service *corev1.Service, client ty
 	}
 	route.SetGroupVersionKind(routev1.SchemeGroupVersion.WithKind("Route"))
 
-	_, err := client.Create(ctx, route, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return nil, fmt.Errorf("creating route: %w", err)
+	var createErr error
+	err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		_, err := client.Create(ctx, route, metav1.CreateOptions{})
+		if err != nil && !apierrors.IsAlreadyExists(err) {
+			createErr = err
+			return false, nil
+		}
+
+		return true, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating route: %w", errors.Join(err, createErr))
 	}
 
 	return func(ctx context.Context) error {

@@ -22,12 +22,12 @@ import (
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
+	e2e_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/e2e-analysis"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run_monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/render"
 	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run"
 	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
@@ -100,11 +100,11 @@ func main() {
 		monitor.NewMonitorCommand(ioStreams),
 		disruption.NewDisruptionCommand(ioStreams),
 		risk_analysis.NewTestFailureRiskAnalysisCommand(),
+		e2e_analysis.NewTestFailureClusterAnalysisCheckCommand(),
 		run_resource_watch.NewRunResourceWatchCommand(),
 		timeline.NewTimelineCommand(ioStreams),
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
 		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
-		render.NewRenderCommand(ioStreams),
 		versioncmd.NewVersionCommand(ioStreams),
 	)
 

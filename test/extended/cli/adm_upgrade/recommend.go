@@ -148,7 +148,7 @@ No updates available. You may still upgrade to a specific release image.*`)
           "url": "https://example.com/testRiskA",
           "name": "TestRiskA",
           "message": "This is a test risk.",
-          "matchingRules": [{"type": "PromQL", "promql": {"promql": "group(cluster_version)"}}]
+          "matchingRules": [{"type": "PromQL", "promql": {"promql": "group(max_over_time(cluster_version[1h]))"}}]
         }
       ]
     }
