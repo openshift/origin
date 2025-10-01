@@ -66,7 +66,7 @@ func (w *kasLogAnalyzer) CollectData(ctx context.Context, storageDir string, beg
 	// wait until we're drained
 	<-w.finishedCollecting
 
-	return nil, nil, nil
+	return nil, w.evaluator.Reports(), nil
 }
 
 func (w *kasLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
