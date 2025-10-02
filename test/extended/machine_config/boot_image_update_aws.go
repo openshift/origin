@@ -10,8 +10,8 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-// This test is [Serial] because it modifies the cluster/machineconfigurations.operator.openshift.io object in each test.
-var _ = g.Describe("[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", func() {
+// These tests are `Serial` because they all modify the cluster/machineconfigurations.operator.openshift.io object.
+var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", func() {
 	defer g.GinkgoRecover()
 	var (
 		MCOMachineConfigurationBaseDir = exutil.FixturePath("testdata", "machine_config", "machineconfigurations")
