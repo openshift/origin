@@ -144,6 +144,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie(faultyloadbalancer.MonitorName, "kube-apiserver", faultyloadbalancer.NewMonitorTest())
 	monitorTestRegistry.AddMonitorTestOrDie(staticpodinstall.MonitorName, "kube-apiserver", staticpodinstall.NewStaticPodInstallMonitorTest())
 	monitorTestRegistry.AddMonitorTestOrDie(containerfailures.MonitorName, "Node / Kubelet", containerfailures.NewContainerFailuresTests())
+	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.PathologicalMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyPathologicalMonitorTests(info))
 
 	return monitorTestRegistry
 }
@@ -193,7 +194,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
 
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-test-framework-invariants", "Test Framework", legacytestframeworkmonitortests.NewLegacyTests(info))
+	monitorTestRegistry.AddMonitorTestOrDie(legacytestframeworkmonitortests.AlertsMonitorName, "Test Framework", legacytestframeworkmonitortests.NewLegacyAlertsMonitorTests(info))
 	monitorTestRegistry.AddMonitorTestOrDie("timeline-serializer", "Test Framework", timelineserializer.NewTimelineSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
