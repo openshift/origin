@@ -46,95 +46,121 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 }
 
 // addConstraint adds constraint that avoids having resource as part of the cluster
-func addConstraint(oc *util.CLI, nodeName string, resourceName string) error {
-	framework.Logf("Avoiding %s resource on %s", resourceName, nodeName)
+func addConstraint(oc *util.CLI, nodeName string, resourceName string, targetNode string) error {
+	framework.Logf("Adding constraint for %s resource to avoid %s", resourceName, targetNode)
 
-	cmd := []string{
-		"pcs", "constraint", "location", resourceName, "avoids", "master-1",
-	}
+	command := fmt.Sprintf("echo 'adding pacemaker constraint'; exec chroot /host pcs constraint location %s avoids %s", resourceName, targetNode)
 
-	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
+	err := util.CreateNodeDisruptionPod(oc.KubeClient(), nodeName, command)
 	if err != nil {
-		return fmt.Errorf("failed to avoid resource %s on node %s: %v", resourceName, nodeName, err)
+		framework.Logf("Failed to add constraint via disruption pod")
+		return fmt.Errorf("failed to add constraint for resource %s to avoid %s: %v", resourceName, targetNode, err)
 	}
 
-	framework.Logf("Successfully added constraint to avoid resource %s on node %s", resourceName, nodeName)
+	framework.Logf("Successfully added constraint for resource %s to avoid %s", resourceName, targetNode)
 	return nil
 }
 
 // removeConstraint removes constraint that avoids having resource as part of the cluster
 func removeConstraint(oc *util.CLI, nodeName string, constraintId string) error {
-	framework.Logf("Removing constraint to avoid %s resource on %s", constraintId, nodeName)
+	framework.Logf("Removing constraint with ID %s on %s", constraintId, nodeName)
 
-	cmd := []string{
-		"pcs", "constraint", "remove", constraintId,
-	}
+	command := fmt.Sprintf("echo 'removing pacemaker constraint'; exec chroot /host pcs constraint remove %s", constraintId)
 
-	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
+	err := util.CreateNodeDisruptionPod(oc.KubeClient(), nodeName, command)
 	if err != nil {
-		return fmt.Errorf("failed to remove constraint to avoid resource %s on node %s: %v", constraintId, nodeName, err)
+		framework.Logf("Failed to remove constraint via disruption pod")
+		return fmt.Errorf("failed to remove constraint %s: %v", constraintId, err)
 	}
 
-	framework.Logf("Successfully removed constraint to avoid resource %s on node %s", constraintId, nodeName)
+	framework.Logf("Successfully removed constraint %s", constraintId)
 	return nil
 }
 
-// discoverConstraintId discovers the constraint ID for a specific resource and node combination
+// discoverConstraintId discovers the constraint ID for a specific resource and node combination using JSON output and jq
 func discoverConstraintId(oc *util.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
-	framework.Logf("Discovering constraint ID for resource %s avoiding node %s", resourceName, targetNode)
+	framework.Logf("Discovering constraint ID for resource %s avoiding node %s using node %s", resourceName, targetNode, nodeName)
+
+	// Use jq to extract the constraint ID from JSON output directly
+	jqQuery := fmt.Sprintf(`'.location[] | select(.resource_id == "%s" and .attributes.node == "%s" and .attributes.score == "-INFINITY") | .attributes.constraint_id'`, resourceName, targetNode)
 
 	cmd := []string{
-		"pcs", "constraint", "list", "--full",
+		"bash", "-c",
+		fmt.Sprintf(`sudo pcs constraint config --output-format json | jq -r %s`, jqQuery),
+	}
+
+	constraintId, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
+	if err != nil {
+		framework.Logf("Failed to discover constraint ID from node %s", nodeName)
+		return "", fmt.Errorf("failed to discover constraint ID using jq on node %s: %v", nodeName, err)
+	}
+
+	constraintId = strings.TrimSpace(constraintId)
+	if constraintId == "" || constraintId == "null" {
+		framework.Logf("Constraint ID not found for resource %s avoiding node %s", resourceName, targetNode)
+		return "", fmt.Errorf("constraint ID not found for resource %s avoiding node %s", resourceName, targetNode)
+	}
+
+	framework.Logf("Found constraint ID: %s for resource %s avoiding node %s", constraintId, resourceName, targetNode)
+	return constraintId, nil
+}
+
+// isResourceStopped checks if a Pacemaker resource is stopped on a specific node
+func isResourceStopped(oc *util.CLI, nodeName string, resourceName string) (bool, error) {
+	framework.Logf("Checking if resource %s is stopped on node %s", resourceName, nodeName)
+
+	cmd := []string{
+		"pcs", "status", "resources", resourceName, fmt.Sprintf("node=%s", nodeName),
 	}
 
 	output, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	if err != nil {
-		return "", fmt.Errorf("failed to list constraints on node %s: %v", nodeName, err)
+		return false, fmt.Errorf("failed to get pcs status resources on node %s: %v", nodeName, err)
 	}
 
-	// Parse the output to find the constraint ID
-	// Example output line: "Location Constraints:\n  Resource: kubelet-clone\n    Constraint: location-kubelet-clone-master-1-INFINITY\n      Avoid: master-1 (score:-INFINITY)"
+	framework.Logf("PCS status resources output:\n%s", output)
+
+	// Resource is stopped if output contains "no active resources"
+	if strings.Contains(strings.ToLower(output), "no active resources") {
+		framework.Logf("Resource %s is stopped on node %s (no active resources)", resourceName, nodeName)
+		return true, nil
+	}
+
+	// Parse each line to check the specific node status
 	lines := strings.Split(output, "\n")
-
-	var constraintId string
-	resourceFound := false
-
-	for i, line := range lines {
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 
-		// Look for the resource line
-		if strings.HasPrefix(line, "Resource: "+resourceName) {
-			resourceFound = true
-			continue
-		}
-
-		// If we found the resource, look for the constraint line
-		if resourceFound && strings.HasPrefix(line, "Constraint: ") {
-			constraintId = strings.TrimPrefix(line, "Constraint: ")
-
-			// Check if this constraint affects the target node
-			if i+1 < len(lines) {
-				nextLine := strings.TrimSpace(lines[i+1])
-				if strings.Contains(nextLine, "Avoid: "+targetNode) {
-					framework.Logf("Found constraint ID: %s for resource %s avoiding node %s", constraintId, resourceName, targetNode)
-					return constraintId, nil
-				}
+		// Look for lines containing the resource name
+		if strings.Contains(line, resourceName) {
+			// Check if this line shows the target node as Started
+			if strings.Contains(line, "Started") && strings.Contains(line, nodeName) {
+				framework.Logf("Resource %s is running on node %s (Started)", resourceName, nodeName)
+				return false, nil
 			}
-		}
 
-		// Reset if we hit a new resource section
-		if strings.HasPrefix(line, "Resource: ") && !strings.HasPrefix(line, "Resource: "+resourceName) {
-			resourceFound = false
+			// Check if this line shows the target node as Stopped
+			if strings.Contains(line, "Stopped") && strings.Contains(line, nodeName) {
+				framework.Logf("Resource %s is stopped on node %s (Stopped)", resourceName, nodeName)
+				return true, nil
+			}
 		}
 	}
 
-	return "", fmt.Errorf("constraint ID not found for resource %s avoiding node %s", resourceName, targetNode)
+	// Unknown state - log the output for debugging
+	framework.Logf("Unknown resource state for %s on node %s. Output: %s", resourceName, nodeName, output)
+	return false, fmt.Errorf("could not determine resource %s state on node %s", resourceName, nodeName)
+}
+
+// isKubeletResourceStopped is a convenience function to check if kubelet-clone resource is stopped
+func isKubeletResourceStopped(oc *util.CLI, nodeName string) (bool, error) {
+	return isResourceStopped(oc, nodeName, "kubelet-clone")
 }
 
 // addConstraintAndGetId adds a constraint and returns the constraint ID for later removal
 func addConstraintAndGetId(oc *util.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
 	// First add the constraint
-	err := addConstraint(oc, nodeName, resourceName)
+	err := addConstraint(oc, nodeName, resourceName, targetNode)
 	if err != nil {
 		return "", err
 	}
@@ -190,6 +216,7 @@ func startKubeletService(oc *util.CLI, nodeName string) error {
 // isServiceRunning checks if the specified service is running on the specified node
 func isServiceRunning(oc *util.CLI, nodeName string, serviceName string) bool {
 	cmd := []string{
+		"chroot", "/host",
 		"systemctl", "is-active", "--quiet", serviceName,
 	}
 

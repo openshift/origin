@@ -68,11 +68,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		var constraintId string
 
 		g.By(fmt.Sprintf("Adding constraint to avoid kubelet resource on node: %s", targetNode.Name))
-		err := addConstraint(oc, targetNode.Name, "kubelet-clone")
+		err := addConstraint(oc, targetNode.Name, "kubelet-clone", targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to add constraint for kubelet resource on node %s without errors", targetNode.Name))
 
 		g.By("Discovering the constraint ID for later removal")
-		constraintId, err = discoverConstraintId(oc, targetNode.Name, "kubelet-clone", "master-1")
+		constraintId, err = discoverConstraintId(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
 		o.Expect(err).To(o.BeNil(), "Expected to discover constraint ID without errors")
 		framework.Logf("Discovered constraint ID: %s", constraintId)
 
@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet disruption", survivingNode.Name))
 
 		g.By(fmt.Sprintf("Removing constraint (ID: %s) to allow kubelet resource on node: %s", constraintId, targetNode.Name))
-		err = removeConstraint(oc, targetNode.Name, constraintId)
+		err = removeConstraint(oc, survivingNode.Name, constraintId)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to remove constraint %s for kubelet resource on node %s without errors", constraintId, targetNode.Name))
 
 		g.By("Waiting for target node to become Ready after kubelet constraint removal")
