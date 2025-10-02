@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -40,10 +41,20 @@ func (w *kasLogAnalyzer) PrepareCollection(ctx context.Context, adminRESTConfig 
 	kubeInformers := informers.NewSharedInformerFactory(kubeClient, 0)
 	namespaceScopedCoreInformers := coreinformers.New(kubeInformers, "openshift-kube-apiserver", nil)
 
+	okasAppLabel, err := labels.NewRequirement("app", selection.Equals, []string{"openshift-kube-apiserver"})
+	if err != nil {
+		return err
+	}
+
+	okasApiServerLabel, err := labels.NewRequirement("apiserver", selection.Equals, []string{"true"})
+	if err != nil {
+		return err
+	}
+
 	ctx, w.stopCollection = context.WithCancel(ctx)
 	podStreamer := podaccess.NewPodsStreamer(
 		kubeClient,
-		labels.NewSelector(),
+		labels.NewSelector().Add(*okasAppLabel, *okasApiServerLabel),
 		"openshift-kube-apiserver",
 		"kube-apiserver",
 		w.evaluator,
