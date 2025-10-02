@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
-var _ = g.Describe("[sig-imageregistry][Suite:openshift/test-image-stream-import-mode-techpreview][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API", func() {
+var _ = g.Describe("[sig-imageregistry][Suite:openshift/test-image-stream-import-mode][OCPFeatureGate:ImageStreamImportMode][Serial][Disruptive] ImageStream API", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("imagestream-api")
 
