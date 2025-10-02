@@ -123,7 +123,7 @@ type evaluation struct {
 var defaultEvaluations = []evaluation{
 	{
 		name:      "[Jira:\"kube-apiserver\"] should not excessively log informer reflector unhandled errors",
-		regex:     regexp.MustCompile("reflector\\.go.+\\\"Unhandled Error\\\".+Failed to watch.+failed to list.+"),
+		regex:     regexp.MustCompile(`reflector\.go.+\"Failed to watch\".+err=\"failed to list.+\".+logger=\"UnhandledError\"`),
 		threshold: 0,
 	},
 }
