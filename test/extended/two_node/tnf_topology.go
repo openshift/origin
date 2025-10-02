@@ -19,7 +19,7 @@ const ensurePodmanEtcdContainerIsRunning = "podman inspect --format '{{.State.Ru
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing topology", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("")
+		oc = createCLI(nonAdmin)
 	)
 
 	g.BeforeEach(func() {
@@ -33,15 +33,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		)
 
 		g.By(fmt.Sprintf("Ensuring only %d control-plane nodes in the cluster and no arbiter nodes", expectedControlPlanes))
-		controlPlaneNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleControlPlane,
-		})
+		controlPlaneNodes, err := getNodes(oc, labelNodeRoleControlPlane)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve control-plane nodes without error")
 		o.Expect(len(controlPlaneNodes.Items)).To(o.Equal(expectedControlPlanes), fmt.Sprintf("Expected %d Control-plane Nodes, found %d", expectedControlPlanes, len(controlPlaneNodes.Items)))
 
-		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		arbiterNodes, err := getNodes(oc, labelNodeRoleArbiter)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve arbiter nodes without error")
 		o.Expect(len(arbiterNodes.Items)).To(o.Equal(expectedArbiters), fmt.Sprintf("Expected %d Arbiter Nodes, found %d", expectedArbiters, len(arbiterNodes.Items)))
 	})
@@ -88,7 +84,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica] Two Node with Fencing", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("")
+		oc = createCLI(nonAdmin)
 	)
 
 	g.BeforeEach(func() {
@@ -110,7 +106,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		etcdContainerCount := 0
 		etcdctlContainerCount := 0
-
 		for _, pod := range pods.Items {
 			for _, container := range pod.Spec.Containers {
 				if container.Name == "etcd" {
