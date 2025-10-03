@@ -494,7 +494,7 @@ func ValidateMCNForNodeInPool(oc *exutil.CLI, clientSet *machineconfigclient.Cli
 // `GetRandomNode` gets a random node from with a given role and checks whether the node is ready. If no
 // nodes are ready, it will wait for up to 5 minutes for a node to become available.
 func GetRandomNode(oc *exutil.CLI, role string) corev1.Node {
-	if node := getRandomNode(oc, role); isNodeReady(node) {
+	if node := getRandomNode(oc, role); IsNodeReady(node) {
 		return node
 	}
 
@@ -503,7 +503,7 @@ func GetRandomNode(oc *exutil.CLI, role string) corev1.Node {
 	framework.Logf("No ready nodes found with role '%s', waiting up to %s for a ready node to become available", role, waitPeriod)
 	var targetNode corev1.Node
 	o.Eventually(func() bool {
-		if node := getRandomNode(oc, role); isNodeReady(node) {
+		if node := getRandomNode(oc, role); IsNodeReady(node) {
 			targetNode = node
 			return true
 		}
@@ -549,7 +549,7 @@ func GetAllNodes(oc *exutil.CLI) ([]corev1.Node, error) {
 }
 
 // `isNodeReady` determines if a given node is ready
-func isNodeReady(node corev1.Node) bool {
+func IsNodeReady(node corev1.Node) bool {
 	// If the node is cordoned, it is not ready.
 	if node.Spec.Unschedulable {
 		return false
@@ -1038,7 +1038,7 @@ func GetNewReadyNodeInMachine(oc *exutil.CLI, machineName string) (corev1.Node, 
 
 		// Check if node is in desiredStatus
 		framework.Logf("Checking if node '%v' is ready.", node.Name)
-		if isNodeReady(node) {
+		if IsNodeReady(node) {
 			framework.Logf("Node '%v' is ready.", node.Name)
 			desiredNode = node
 			err = nil

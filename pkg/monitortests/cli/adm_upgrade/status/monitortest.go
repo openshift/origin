@@ -162,12 +162,13 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 
 	// TODO: Maybe utilize Intervals somehow and do tests in ComputeComputedIntervals and EvaluateTestsFromConstructedIntervals
 
-	wasUpdated := func() (bool, error) {
+	updateCount := func() (int, error) {
 		cv, err := w.configv1client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 		if err != nil {
-			return false, fmt.Errorf("failed to get cluster version: %w", err)
+			return 0, fmt.Errorf("failed to get cluster version: %w", err)
 		}
-		return len(cv.Status.History) > len(w.initialClusterVersion.Status.History), nil
+		hops := len(cv.Status.History) - len(w.initialClusterVersion.Status.History)
+		return hops, nil
 	}
 
 	return nil, []*junitapi.JUnitTestCase{
@@ -176,7 +177,7 @@ func (w *monitor) CollectData(ctx context.Context, storageDir string, beginning,
 		w.controlPlane(),
 		w.workers(),
 		w.health(),
-		w.updateLifecycle(wasUpdated),
+		w.updateLifecycle(updateCount),
 	}, nil
 }
 

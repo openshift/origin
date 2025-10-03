@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	corev1 "k8s.io/api/core/v1"
 	crdv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
@@ -189,8 +190,7 @@ func (c *CLI) Template(t string) *CLI {
 		FatalErr("Cannot use Template() for non-get verbs.")
 	}
 	templateArgs := []string{"--output=template", fmt.Sprintf("--template=%s", t)}
-	commandArgs := append(c.commandArgs, templateArgs...)
-	c.finalArgs = append(c.globalArgs, commandArgs...)
+	c.commandArgs = append(c.commandArgs, templateArgs...)
 	return c
 }
 

@@ -401,6 +401,13 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
 				return "https://issues.redhat.com/browse/OCPBUGS-39026", nil
 			}
+		case "olm":
+			if condition.Type == configv1.OperatorAvailable &&
+				condition.Status == configv1.ConditionFalse &&
+				(condition.Reason == "OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying" ||
+					condition.Reason == "CatalogdDeploymentCatalogdControllerManager_Deploying") {
+				return "https://issues.redhat.com/browse/OCPBUGS-62517", nil
+			}
 		case "openshift-apiserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse &&
 				(condition.Reason == "APIServerDeployment_NoDeployment" ||
