@@ -182,10 +182,8 @@ func stopKubeletService(oc *util.CLI, nodeName string) error {
 	framework.Logf("Stopping kubelet service on node %s", nodeName)
 
 	cmd := []string{
-		"chroot", "/host",
 		"systemctl", "stop", "kubelet",
 	}
-
 	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	if err != nil {
 		return fmt.Errorf("failed to stop kubelet service on node %s: %v", nodeName, err)
@@ -200,7 +198,6 @@ func startKubeletService(oc *util.CLI, nodeName string) error {
 	framework.Logf("Starting kubelet service on node %s", nodeName)
 
 	cmd := []string{
-		"chroot", "/host",
 		"systemctl", "start", "kubelet",
 	}
 
@@ -216,7 +213,6 @@ func startKubeletService(oc *util.CLI, nodeName string) error {
 // isServiceRunning checks if the specified service is running on the specified node
 func isServiceRunning(oc *util.CLI, nodeName string, serviceName string) bool {
 	cmd := []string{
-		"chroot", "/host",
 		"systemctl", "is-active", "--quiet", serviceName,
 	}
 

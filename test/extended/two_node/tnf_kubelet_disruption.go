@@ -125,6 +125,54 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after kubelet constraint removal")
 	})
 
+	g.It("Should properly stop kubelet service and verify automatic restart on target node", func() {
+		targetNode := nodes[0]
+		survivingNode := nodes[1]
+
+		g.By(fmt.Sprintf("Verifying kubelet service is initially running on target node: %s", targetNode.Name))
+		o.Eventually(func() bool {
+			return isKubeletServiceRunning(oc, targetNode.Name)
+		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
+
+		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
+		err := stopKubeletService(oc, targetNode.Name)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop kubelet service on node %s without errors", targetNode.Name))
+
+		g.By("Validating etcd cluster remains healthy with surviving node during kubelet disruption")
+		o.Eventually(func() error {
+			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, survivingNode.Name)
+		}, kubeletDisruptionTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should remain healthy during kubelet service disruption", survivingNode.Name))
+
+		g.By("Waiting for kubelet service to automatically restart on target node")
+		o.Eventually(func() bool {
+			return isKubeletServiceRunning(oc, targetNode.Name)
+		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should automatically restart on node %s", targetNode.Name))
+
+		g.By("Validating both nodes are Ready after kubelet service automatic restart")
+		for _, node := range nodes {
+			o.Eventually(func() bool {
+				return isNodeReady(oc, node.Name)
+			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet automatic restart", node.Name))
+		}
+
+		g.By("Validating etcd cluster recovery after kubelet service automatic restart")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet automatic restart")
+
+		g.By("Ensuring both etcd members are healthy after kubelet service automatic restart")
+		for _, node := range nodes {
+			o.Eventually(func() error {
+				return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
+			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet automatic restart", node.Name))
+		}
+
+		g.By("Validating cluster operators recovery after kubelet service automatic restart")
+		o.Eventually(func() error {
+			return validateClusterOperatorsAvailable(oc)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after kubelet automatic restart")
+	})
+
 })
 
 // isNodeReady checks if a node is in Ready state
