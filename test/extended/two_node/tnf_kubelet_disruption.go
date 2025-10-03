@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		var constraintId string
 
 		g.By(fmt.Sprintf("Adding constraint to avoid kubelet resource on node: %s", targetNode.Name))
-		err := addConstraint(oc, targetNode.Name, "kubelet-clone", targetNode.Name)
+		err := addConstraint(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
 		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to add constraint for kubelet resource on node %s without errors", targetNode.Name))
 
 		g.By("Discovering the constraint ID for later removal")
