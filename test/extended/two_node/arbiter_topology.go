@@ -37,7 +37,7 @@ var expectedPods = map[string]int{
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] expected Master and Arbiter node counts", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("")
+	oc := createCLI(nonAdmin)
 
 	g.BeforeEach(func() {
 		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
@@ -51,15 +51,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 			expectedMasterNodes  = 2
 			expectedArbiterNodes = 1
 		)
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleMaster,
-		})
+		masterNodes, err := getNodes(oc, labelNodeRoleControlPlane)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
 		o.Expect(len(masterNodes.Items)).To(o.Equal(expectedMasterNodes))
 
-		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		arbiterNodes, err := getNodes(oc, labelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter nodes without error")
 		o.Expect(len(arbiterNodes.Items)).To(o.Equal(expectedArbiterNodes))
 	})
@@ -68,16 +64,14 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:HighlyAvailableArbiter] required pods on the Arbiter node", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("")
+	oc := createCLI(nonAdmin)
 
 	g.BeforeEach(func() {
 		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
 		g.By("Retrieving the Arbiter node name")
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		nodes, err := getNodes(oc, labelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodes.Items)).To(o.Equal(1))
 		g.By("by comparing pod counts")
@@ -154,7 +148,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		ctx := context.Background()
 		g.By("Retrieving Master nodes")
 		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: labelNodeRoleMaster,
+			LabelSelector: labelNodeRoleControlPlane,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
 		o.Expect(len(masterNodes.Items)).To(o.Equal(2), "Expected to find two Master nodes")

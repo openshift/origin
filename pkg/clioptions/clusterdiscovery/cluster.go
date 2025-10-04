@@ -30,6 +30,13 @@ import (
 	"github.com/openshift/origin/test/extended/util/azure"
 )
 
+// HypervisorConfig contains configuration for hypervisor-based recovery operations
+type HypervisorConfig struct {
+	HypervisorIP   string `json:"hypervisorIP"`
+	SSHUser        string `json:"sshUser"`
+	PrivateKeyPath string `json:"privateKeyPath"`
+}
+
 type ClusterConfiguration struct {
 	ProviderName string `json:"type"`
 
@@ -75,6 +82,9 @@ type ClusterConfiguration struct {
 
 	// IsNoOptionalCapabilities indicates the cluster has no optional capabilities enabled
 	HasNoOptionalCapabilities bool
+
+	// HypervisorConfig contains SSH configuration for hypervisor-based recovery operations
+	HypervisorConfig *HypervisorConfig
 
 	// APIGroups contains the set of API groups available in the cluster
 	APIGroups sets.Set[string] `json:"-"`

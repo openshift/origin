@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	defer g.GinkgoRecover()
 
 	var (
-		oc                   = util.NewCLIWithoutNamespace("").AsAdmin()
+		oc                   = createCLI(admin)
 		etcdClientFactory    *helpers.EtcdClientFactoryImpl
 		peerNode, targetNode corev1.Node
 	)
@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			return ensureEtcdOperatorHealthy(oc)
 		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy before starting test")
 
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		nodes, err := getNodes(oc, allNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically("==", 2), "Expected to find 2 Nodes only")
 
@@ -56,6 +56,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		peerNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n", targetNode.Name, targetNode.Status.Addresses[0].Address, &peerNode.Name, peerNode.Status.Addresses[0].Address)
 
 		kubeClient := oc.KubeClient()
 		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
