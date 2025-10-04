@@ -269,12 +269,9 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		if len(newTLSRegistry.CertKeyPairs) > 0 || len(newTLSRegistry.CertificateAuthorityBundles) > 0 {
 			registryString, err := json.MarshalIndent(newTLSRegistry, "", "  ")
 			if err != nil {
-				//g.Fail("Failed to marshal registry %#v: %v", newTLSRegistry, err)
-				testresult.Flakef("Failed to marshal registry %#v: %v", newTLSRegistry, err)
+				g.Fail(fmt.Sprintf("Failed to marshal registry %#v: %v", newTLSRegistry, err))
 			}
-			// TODO: uncomment when test no longer fails and enhancement is merged
-			//g.Fail(fmt.Sprintf("Unregistered TLS certificates:\n%s", registryString))
-			testresult.Flakef("Unregistered TLS certificates found:\n%s\nSee tls/ownership/README.md in origin repo", registryString)
+			g.Fail(fmt.Sprintf("Unregistered TLS certificates found:\n%s\nSee tls/ownership/README.md in origin repo", registryString))
 		}
 	})
 
@@ -284,9 +281,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if len(messages) > 0 {
-			// TODO: uncomment when test no longer fails and enhancement is merged
-			//g.Fail(strings.Join(messages, "\n"))
-			testresult.Flakef("%s", strings.Join(messages, "\n"))
+			g.Fail(strings.Join(messages, "\n"))
 		}
 	})
 
