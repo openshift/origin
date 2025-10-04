@@ -114,6 +114,11 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 }
 
 func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost string) error {
+	// Don't start internal LB deployment on hypershift
+	if i.controlPlaneNodes == 0 {
+		return nil
+	}
+
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
 	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
