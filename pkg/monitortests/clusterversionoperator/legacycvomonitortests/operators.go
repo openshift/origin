@@ -6,21 +6,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
-	"github.com/sirupsen/logrus"
-
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
+	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/client-go/rest"
 )
 
 // exceptionCallback consumes a suspicious condition and returns an
@@ -600,6 +600,199 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				// add a success so we flake (or pass) and don't fail
 				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
 			}
+		}
+	}
+
+	return ret
+}
+
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	var ret []*junitapi.JUnitTestCase
+	upgradeWindows := getUpgradeWindows(events)
+
+	var eventsInUpgradeWindows monitorapi.Intervals
+	var start, stop time.Time
+	for _, event := range events {
+		if !isInUpgradeWindow(upgradeWindows, event) {
+			continue
+		}
+		eventsInUpgradeWindows = append(eventsInUpgradeWindows, event)
+		if start.IsZero() || event.From.Before(start) {
+			start = event.From
+		}
+		if stop.IsZero() || event.To.After(stop) {
+			stop = event.To
+		}
+	}
+	duration := stop.Sub(start).Seconds()
+
+	eventsByOperator := getEventsByOperator(eventsInUpgradeWindows)
+	coProgressing := map[string]time.Time{}
+	for _, operatorName := range platformidentification.KnownOperators.List() {
+		for _, mcEvent := range eventsByOperator[operatorName] {
+			condition := monitorapi.GetOperatorConditionStatus(mcEvent)
+			if condition == nil {
+				continue // ignore non-condition intervals
+			}
+			if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionTrue {
+				coProgressing[operatorName] = mcEvent.To
+				break
+			}
+		}
+	}
+
+	// Each cluster operator must report Progressing=True during cluster upgrade
+	var machineConfigProgressing time.Time
+	for _, operatorName := range platformidentification.KnownOperators.List() {
+		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
+		if bzComponent == "Unknown" {
+			bzComponent = operatorName
+		}
+		mcTestCase := &junitapi.JUnitTestCase{
+			Name:     fmt.Sprintf("[bz-%s] clusteroperator/%s must go Progressing=True during an upgrade test", bzComponent, operatorName),
+			Duration: duration,
+		}
+
+		if t, ok := coProgressing[operatorName]; !ok || t.IsZero() {
+			mcTestCase.FailureOutput = &junitapi.FailureOutput{
+				Output: fmt.Sprintf("clusteroperator/%s was never Progressing=True during the upgrade window from %s to %s", operatorName, start.Format(time.RFC3339), stop.Format(time.RFC3339)),
+			}
+		} else {
+			if operatorName == "machine-config" {
+				machineConfigProgressing = t
+			}
+			mcTestCase.SystemOut = fmt.Sprintf("clusteroperator/%s became Progressing=True at %s during the upgrade window from %s to %s", operatorName, t.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		}
+		ret = append(ret, mcTestCase)
+	}
+
+	if machineConfigProgressing.IsZero() {
+		return ret
+	}
+
+	// No cluster operator report Progressing=True when machine-config does
+	for _, operatorName := range platformidentification.KnownOperators.Difference(sets.NewString("machine-config")).List() {
+		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
+		if bzComponent == "Unknown" {
+			bzComponent = operatorName
+		}
+		testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should stay Progressing=False while MCO is Progressing=True", bzComponent, operatorName)
+		operatorEvents := eventsByOperator[operatorName]
+		if len(operatorEvents) == 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:     testName,
+				Duration: duration,
+			})
+			continue
+		}
+
+		except := func(co string, reason string) string {
+			switch co {
+			case "csi-snapshot-controller":
+				if reason == "CSISnapshotController_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62624"
+				}
+			case "dns":
+				if reason == "DNSReportsProgressingIsTrue" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62623"
+				}
+			case "image-registry":
+				if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62626"
+				}
+			case "ingress":
+				if reason == "Reconciling" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62627"
+				}
+			case "kube-storage-version-migrator":
+				if reason == "KubeStorageVersionMigrator_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62629"
+				}
+			case "network":
+				if reason == "Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62630"
+				}
+			case "node-tuning":
+				if reason == "Reconciling" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62632"
+				}
+			case "service-ca":
+				if reason == "_ManagedDeploymentsAvailable" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62633"
+				}
+			case "storage":
+				// GCPPDCSIDriverOperatorCR_GCPPDDriverControllerServiceController_Deploying
+				// GCPPDCSIDriverOperatorCR_GCPPDDriverNodeServiceController_Deploying
+				// AWSEBSCSIDriverOperatorCR_AWSEBSDriverNodeServiceController_Deploying
+				// VolumeDataSourceValidatorDeploymentController_Deploying
+				if strings.HasSuffix(reason, "Controller_Deploying") ||
+					reason == "GCPPD_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62634"
+				}
+			case "olm":
+				if reason == "CatalogdDeploymentCatalogdControllerManager_Deploying" {
+					return "https://issues.redhat.com/browse/OCPBUGS-62635"
+				}
+			}
+			return ""
+		}
+
+		var excepted, fatal []string
+		for _, operatorEvent := range operatorEvents {
+			if operatorEvent.From.Before(machineConfigProgressing) {
+				continue
+			}
+			condition := monitorapi.GetOperatorConditionStatus(operatorEvent)
+			if condition == nil {
+				continue // ignore non-condition intervals
+			}
+			if condition.Type == "" {
+				fatal = append(fatal, fmt.Sprintf("failed to convert %v into a condition with a type", operatorEvent))
+				continue
+			}
+
+			if condition.Type != configv1.OperatorProgressing || condition.Status == configv1.ConditionFalse {
+				continue
+			}
+
+			// if there was any switch, it was wrong/unexpected at some point
+			failure := fmt.Sprintf("%v", operatorEvent)
+
+			exception := except(operatorName, condition.Reason)
+			if exception == "" {
+				fatal = append(fatal, failure)
+			} else {
+				excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, exception))
+			}
+		}
+
+		output := fmt.Sprintf("%d (out of %d) unexpected clusteroperator state transitions while machine-config is progressing during the upgrade window from %s to %s", len(fatal), len(operatorEvents), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		if len(fatal) > 0 {
+			output = fmt.Sprintf("%s.  These did not match any known exceptions, so they cause this test-case to fail:\n\n%v\n", output, strings.Join(fatal, "\n"))
+		} else {
+			output = fmt.Sprintf("%s, as desired.", output)
+		}
+		output = fmt.Sprintf("%s\n%d unwelcome but acceptable clusteroperator state transitions while machine-config is progressing during the upgrade window from %s to %s", output, len(excepted), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		if len(excepted) > 0 {
+			output = fmt.Sprintf("%s.  These should not happen, but because they are tied to exceptions, the fact that they did happen is not sufficient to cause this test-case to fail:\n\n%v\n", output, strings.Join(excepted, "\n"))
+		} else {
+			output = fmt.Sprintf("%s, as desired.", output)
+		}
+
+		if len(fatal) > 0 || len(excepted) > 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:      testName,
+				Duration:  duration,
+				SystemOut: output,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: output,
+				},
+			})
+		}
+
+		if len(fatal) == 0 {
+			// add a success so we flake (or pass) and don't fail
+			ret = append(ret, &junitapi.JUnitTestCase{Name: testName, Duration: duration, SystemOut: output})
 		}
 	}
 
