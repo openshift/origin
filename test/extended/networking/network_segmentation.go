@@ -63,6 +63,11 @@ const podReadyPollInterval = 6 * time.Second
 const serverConnectPollTimeout = 30 * time.Second
 const serverConnectPollInterval = 1 * time.Second
 
+const (
+	userDefinedNetworkIPv4JoinSubnet = "100.66.0.0/16"
+	userDefinedNetworkIPv6JoinSubnet = "fe00::/64"
+)
+
 var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]", func() {
 	// TODO: so far, only the isolation tests actually require this PSA ... Feels wrong to run everything priviliged.
 	// I've tried to have multiple kubeframeworks (from multiple OCs) running (with different project names) but
@@ -647,7 +652,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				return err
 			}),
 			Entry("UserDefinedNetwork", func(c *networkAttachmentConfigParams) error {
-				udnManifest := generateUserDefinedNetworkManifest(c)
+				udnManifest := generateUserDefinedNetworkManifest(oc, c)
 				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), udnCrReadyTimeout, time.Second).Should(Succeed())
@@ -656,7 +661,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Entry("ClusterUserDefinedNetwork", func(c *networkAttachmentConfigParams) error {
 				cudnName := randomNetworkMetaName()
 				c.name = cudnName
-				cudnManifest := generateClusterUserDefinedNetworkManifest(c)
+				cudnManifest := generateClusterUserDefinedNetworkManifest(oc, c)
 				cleanup, err := createManifest("", cudnManifest)
 				DeferCleanup(func() {
 					cleanup()
@@ -686,7 +691,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				f.Namespace = namespace
 
 				By("create tests UserDefinedNetwork")
-				cleanup, err := createManifest(f.Namespace.Name, newUserDefinedNetworkManifest(testUdnName))
+				cleanup, err := createManifest(f.Namespace.Name, newUserDefinedNetworkManifest(oc, testUdnName))
 				DeferCleanup(cleanup)
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, testUdnName), udnCrReadyTimeout, time.Second).Should(Succeed())
@@ -881,7 +886,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			BeforeEach(func() {
 				testClusterUdnName = randomNetworkMetaName()
 				By("create test CR")
-				cleanup, err := createManifest("", newClusterUDNManifest(testClusterUdnName, testTenantNamespaces...))
+				cleanup, err := createManifest("", newClusterUDNManifest(oc, testClusterUdnName, testTenantNamespaces...))
 				DeferCleanup(func() error {
 					cleanup()
 					_, _ = e2ekubectl.RunKubectl("", "delete", clusterUserDefinedNetworkResource, testClusterUdnName)
@@ -1299,8 +1304,9 @@ var nadToUdnParams = map[string]string{
 	"layer3":    "Layer3",
 }
 
-func generateUserDefinedNetworkManifest(params *networkAttachmentConfigParams) string {
+func generateUserDefinedNetworkManifest(oc *exutil.CLI, params *networkAttachmentConfigParams) string {
 	subnets := generateSubnetsYaml(params)
+	joinSubnets := generateJoinSubnetsYaml(oc)
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: UserDefinedNetwork
@@ -1308,15 +1314,17 @@ metadata:
   name: ` + params.name + `
 spec:
   topology: ` + nadToUdnParams[params.topology] + `
-  ` + params.topology + `: 
+  ` + params.topology + `:
     role: ` + nadToUdnParams[params.role] + `
     subnets: ` + subnets + `
+    joinSubnets: ` + joinSubnets + `
     ` + generateIPAMLifecycle(params) + `
 `
 }
 
-func generateClusterUserDefinedNetworkManifest(params *networkAttachmentConfigParams) string {
+func generateClusterUserDefinedNetworkManifest(oc *exutil.CLI, params *networkAttachmentConfigParams) string {
 	subnets := generateSubnetsYaml(params)
+	joinSubnets := generateJoinSubnetsYaml(oc)
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: ClusterUserDefinedNetwork
@@ -1330,9 +1338,10 @@ spec:
       values: [` + params.namespace + `]
   network:
     topology: ` + nadToUdnParams[params.topology] + `
-    ` + params.topology + `: 
+    ` + params.topology + `:
       role: ` + nadToUdnParams[params.role] + `
       subnets: ` + subnets + `
+      joinSubnets: ` + joinSubnets + `
 `
 }
 
@@ -1342,6 +1351,11 @@ func generateSubnetsYaml(params *networkAttachmentConfigParams) string {
 		return fmt.Sprintf("[%s]", strings.Join(l3Subnets, ","))
 	}
 	return fmt.Sprintf("[%s]", params.cidr)
+}
+
+func generateJoinSubnetsYaml(oc *exutil.CLI) string {
+	joinSubnet := correctCIDRFamily(oc, userDefinedNetworkIPv4JoinSubnet, userDefinedNetworkIPv6JoinSubnet)
+	return fmt.Sprintf("[%s]", joinSubnet)
 }
 
 func generateLayer3Subnets(cidrs string) []string {
@@ -1479,6 +1493,7 @@ func clusterUserDefinedNetworkReadyFunc(client dynamic.Interface, name string) f
 }
 
 func newPrimaryUserDefinedNetworkManifest(oc *exutil.CLI, name string) string {
+	joinSubnets := generateJoinSubnetsYaml(oc)
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: UserDefinedNetwork
@@ -1488,7 +1503,9 @@ spec:
   topology: Layer3
   layer3:
     role: Primary
-    subnets: ` + generateCIDRforUDN(oc)
+    subnets: ` + generateCIDRforUDN(oc) + `
+    joinSubnets: ` + joinSubnets + `
+`
 }
 
 func generateCIDRforUDN(oc *exutil.CLI) string {
@@ -1510,7 +1527,8 @@ func generateCIDRforUDN(oc *exutil.CLI) string {
 	return cidr
 }
 
-func newUserDefinedNetworkManifest(name string) string {
+func newUserDefinedNetworkManifest(oc *exutil.CLI, name string) string {
+	joinSubnets := generateJoinSubnetsYaml(oc)
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: UserDefinedNetwork
@@ -1521,6 +1539,7 @@ spec:
   layer2:
     role: Secondary
     subnets: ["10.100.0.0/16"]
+    joinSubnets: ` + joinSubnets + `
 `
 }
 
@@ -1714,8 +1733,9 @@ func validateClusterUDNStatusReportConsumers(client dynamic.Interface, cUDNName,
 	return fmt.Errorf("failed to find NetworkCreated/NetworkReady condition in %v", conditions)
 }
 
-func newClusterUDNManifest(name string, targetNamespaces ...string) string {
+func newClusterUDNManifest(oc *exutil.CLI, name string, targetNamespaces ...string) string {
 	targetNs := strings.Join(targetNamespaces, ",")
+	joinSubnets := generateJoinSubnetsYaml(oc)
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: ClusterUserDefinedNetwork
@@ -1732,11 +1752,13 @@ spec:
     layer2:
       role: Secondary
       subnets: ["10.100.0.0/16"]
+      joinSubnets: ` + joinSubnets + `
 `
 }
 
 func newPrimaryClusterUDNManifest(oc *exutil.CLI, name string, targetNamespaces ...string) string {
 	targetNs := strings.Join(targetNamespaces, ",")
+	joinSubnets := generateJoinSubnetsYaml(oc)
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: ClusterUserDefinedNetwork
@@ -1752,7 +1774,9 @@ spec:
     topology: Layer3
     layer3:
       role: Primary
-      subnets: ` + generateCIDRforClusterUDN(oc)
+      subnets: ` + generateCIDRforClusterUDN(oc) + `
+      joinSubnets: ` + joinSubnets + `
+`
 }
 
 func generateCIDRforClusterUDN(oc *exutil.CLI) string {
