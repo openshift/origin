@@ -85,10 +85,6 @@ func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Co
 			},
 		})
 	}
-	// Add a success so this is marked as a flake at worst, no idea what this will unleash in the wild.
-	junits = append(junits, &junitapi.JUnitTestCase{
-		Name: testName,
-	})
 	return junits, nil
 }
 
