@@ -233,6 +233,10 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-config-operator",
 		binaryPath: "/usr/bin/cluster-config-operator-tests-ext.gz",
 	},
+	{
+		imageTag:   "cluster-version-operator",
+		binaryPath: "/usr/bin/cluster-version-operator-tests.gz",
+	},
 }
 
 // Info returns information about this particular extension.
