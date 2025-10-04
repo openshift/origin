@@ -12,6 +12,7 @@ import (
 	o "github.com/onsi/gomega"
 	opv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	util "github.com/openshift/origin/test/extended/util"
 	"gopkg.in/ini.v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -140,6 +141,14 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 			g.It(fmt.Sprintf("%s", t.name), func() {
 
 				setClusterCSIDriverSnapshotOptions(ctx, oc, t.clusterCSIDriverOptions)
+
+				// Wait for operator to be Progressing=False to ensure all pod creation events complete before test ends.
+				// This allows the pathological event matcher (newVsphereConfigurationTestsRollOutTooOftenEventMatcher in
+				// pkg/monitortestlibrary/pathologicaleventlibrary/duplicated_event_patterns.go) to accurately attribute
+				// pod events to this test's time window (interval); any events emitted later would not be matched.
+				err := util.WaitForOperatorProgressingFalse(ctx, oc.AdminConfigClient(), providerName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				o.Eventually(func() error {
 					return loadAndCheckCloudConf(ctx, oc, "Snapshot", t.cloudConfigOptions, t.clusterCSIDriverOptions)
 				}, pollTimeout, pollInterval).Should(o.Succeed())
