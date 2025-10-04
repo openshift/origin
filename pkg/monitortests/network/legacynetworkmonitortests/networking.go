@@ -484,3 +484,39 @@ func testNoTooManyNetlinkEventLogs(events monitorapi.Intervals) []*junitapi.JUni
 	// leaving as a flake so we can see how common this is for now.
 	return []*junitapi.JUnitTestCase{failure, success}
 }
+
+// We are suspecting an ingress disruption might be related to this signature. We are adding this to collect some stats
+func testRouterHealthCheckFailureWhenHAProxyUP(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-network] Router health check should not fail while HAProxy process is up"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if event.Source != monitorapi.SourceKubeEvent {
+			continue
+		}
+		pod, _ := event.Locator.Keys[monitorapi.LocatorPodKey]
+		if len(pod) == 0 || !strings.Contains(pod, "router-default") {
+			continue
+		}
+		if strings.Contains(event.Message.HumanMessage, "backend-http failed") && strings.Contains(event.Message.HumanMessage, "process-running ok") {
+			msg := fmt.Sprintf("from %v to %v - %v - %v", event.From, event.To, event.Locator.OldLocator(), event.Message.OldMessage())
+			failures = append(failures, msg)
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Found %d instances of router health check failures while haproxy process is up.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// flake for now
+	return []*junitapi.JUnitTestCase{failure, success}
+}
