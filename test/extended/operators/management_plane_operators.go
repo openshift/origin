@@ -7,6 +7,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,19 +19,61 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+type runtimeConfigConditionsFunc func(context.Context, *exutil.CLI) ([]string, error)
+
 var (
+	// some conditions depend on cluster runtime configuration
+	operatorResourceToConditionalConditions = map[schema.GroupVersionResource]runtimeConfigConditionsFunc{
+		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"}: func(ctx context.Context, oc *exutil.CLI) ([]string, error) {
+			authn, err := oc.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+			if err != nil {
+				return nil, err
+			}
+
+			switch authn.Spec.Type {
+			case configv1.AuthenticationTypeOIDC:
+				return nil, nil
+
+			default:
+				return []string{
+					"APIServerDeploymentAvailable",
+					"APIServerDeploymentDegraded",
+					"APIServerDeploymentProgressing",
+					"APIServerWorkloadDegraded",
+					"AuthConfigDegraded",
+					"AuthenticatorCertKeyProgressing",
+					"IngressConfigDegraded",
+					"IngressStateEndpointsDegraded",
+					"IngressStatePodsDegraded",
+					"OAuthConfigDegraded",
+					"OAuthConfigIngressDegraded",
+					"OAuthConfigRouteDegraded",
+					"OAuthConfigServiceDegraded",
+					"OAuthServerDeploymentAvailable",
+					"OAuthServerDeploymentDegraded",
+					"OAuthServerDeploymentProgressing",
+					"OAuthServerRouteEndpointAccessibleControllerAvailable",
+					"OAuthServerServiceEndpointAccessibleControllerAvailable",
+					"OAuthServerServiceEndpointsEndpointAccessibleControllerAvailable",
+					"OAuthServerWorkloadDegraded",
+					"OAuthServiceDegraded",
+					"OAuthSessionSecretDegraded",
+					"OAuthSystemMetadataDegraded",
+					"ReadyIngressNodesAvailable",
+					"RouterCertsDegraded",
+					"SystemServiceCAConfigDegraded",
+					"WellKnownAvailable",
+					"WellKnownReadyControllerProgressing",
+				}, nil
+			}
+		},
+	}
 	operatorResourceToRequiredConditions = map[schema.GroupVersionResource][]string{
 		{Group: "operator.openshift.io", Version: "v1", Resource: "authentications"}: {
-			"APIServerDeploymentAvailable",
-			"APIServerDeploymentDegraded",
-			"APIServerDeploymentProgressing",
 			"APIServerStaticResourcesDegraded",
-			"APIServerWorkloadDegraded",
 			"APIServicesAvailable",
 			"APIServicesDegraded",
 			"AuditPolicyDegraded",
-			"AuthConfigDegraded",
-			"AuthenticatorCertKeyProgressing",
 			"CustomRouteControllerDegraded",
 			"Encrypted",
 			"EncryptionKeyControllerDegraded",
@@ -38,44 +81,22 @@ var (
 			"EncryptionMigrationControllerProgressing",
 			"EncryptionPruneControllerDegraded",
 			"EncryptionStateControllerDegraded",
-			"IngressConfigDegraded",
-			"IngressStateEndpointsDegraded",
-			"IngressStatePodsDegraded",
 			"ManagementStateDegraded",
 			"OAuthAPIServerConfigObservationDegraded",
 			"OAuthClientsControllerDegraded",
-			"OAuthConfigDegraded",
-			"OAuthConfigIngressDegraded",
-			"OAuthConfigRouteDegraded",
-			"OAuthConfigServiceDegraded",
 			"OAuthServerConfigObservationDegraded",
-			"OAuthServerDeploymentAvailable",
-			"OAuthServerDeploymentDegraded",
-			"OAuthServerDeploymentProgressing",
-			"OAuthServerRouteEndpointAccessibleControllerAvailable",
 			"OAuthServerRouteEndpointAccessibleControllerDegraded",
-			"OAuthServerServiceEndpointAccessibleControllerAvailable",
 			"OAuthServerServiceEndpointAccessibleControllerDegraded",
-			"OAuthServerServiceEndpointsEndpointAccessibleControllerAvailable",
 			"OAuthServerServiceEndpointsEndpointAccessibleControllerDegraded",
-			"OAuthServerWorkloadDegraded",
-			"OAuthServiceDegraded",
-			"OAuthSessionSecretDegraded",
-			"OAuthSystemMetadataDegraded",
 			"OpenshiftAuthenticationStaticResourcesDegraded",
 			"ProxyConfigControllerDegraded",
-			"ReadyIngressNodesAvailable",
 			"ResourceSyncControllerDegraded",
 			"RevisionControllerDegraded",
-			"RouterCertsDegraded",
 			"RouterCertsDomainValidationControllerDegraded",
-			"SystemServiceCAConfigDegraded",
 			"UnsupportedConfigOverridesUpgradeable",
 			"WebhookAuthenticatorCertApprover_OpenShiftAuthenticatorDegraded",
 			"WebhookAuthenticatorControllerDegraded",
-			"WellKnownAvailable",
 			"WellKnownReadyControllerDegraded",
-			"WellKnownReadyControllerProgressing",
 		},
 		//{Group: "operator.openshift.io", Version: "v1", Resource: "clustercsidrivers"}:           {}, // TODO special names
 		{Group: "operator.openshift.io", Version: "v1", Resource: "configs"}: {
@@ -392,7 +413,15 @@ var _ = g.Describe("[sig-arch][Early] Operators", func() {
 				operatorStatus, err := getOperatorStatusFromUnstructured(uncastOperatorResource.Object)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				for _, requiredCondition := range requiredConditions {
+				var runtimeConditions []string
+				if runtimeConditionsFunc := operatorResourceToConditionalConditions[gvr]; runtimeConditionsFunc != nil {
+					runtimeConditions, err = runtimeConditionsFunc(ctx, oc)
+					if err != nil {
+						failures = append(failures, fmt.Sprintf("could not determine runtime conditions for resource=%v: %v", gvr, err))
+					}
+				}
+
+				for _, requiredCondition := range append(requiredConditions, runtimeConditions...) {
 					condition := v1helpers.FindOperatorCondition(operatorStatus.Conditions, requiredCondition)
 					if condition == nil {
 						failures = append(failures, fmt.Sprintf("resource=%v is missing condition %q that was present in 4.17.  If this is intentional, update the list in this test.", gvr, requiredCondition))
