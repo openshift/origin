@@ -27,8 +27,6 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
-
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
@@ -75,13 +73,6 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
 	}
-
-	// Apply annotations to test names only for upstream tests
-	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-	})
 
 	klog.Infof("Found %d test specs", len(specs))
 	// Filter out kube tests, vendor filtering isn't working within origin
