@@ -75,8 +75,13 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	}
 
 	klog.Infof("Found %d test specs", len(specs))
-	// Filter out kube tests, vendor filtering isn't working within origin
+	// Filter out kube tests (while retaining CSI tests), vendor filtering isn't working within origin
+	csiPrefix := "External Storage"
 	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+		// The CSI tests all have the same prefix, and we need to retain them all
+		if strings.HasPrefix(spec.Name, csiPrefix) {
+			return true
+		}
 		for _, cl := range spec.CodeLocations {
 			// If there is a CodeLocation for origin, that isn't simply "framework" it is not a vendored test
 			if strings.Contains(cl, "github.com/openshift/origin/") &&
