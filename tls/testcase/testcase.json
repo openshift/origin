@@ -287,25 +287,6 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-cluster-csi-drivers",
-                    "Name": "openstack-cinder-csi-driver-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "Networking / cluster-network-operator"
-                        }
-                    ],
-                    "owningJiraComponent": "Networking / cluster-network-operator",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-cluster-csi-drivers",
                     "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -553,8 +534,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1035,8 +1020,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1169,8 +1158,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1196,8 +1189,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1223,8 +1220,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1250,8 +1251,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1277,8 +1282,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1304,8 +1313,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1331,16 +1344,20 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
-                            "value": "CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc)."
+                            "value": "CA for recognizing the kube-apiserver when connecting via the service network (kubernetes.default.svc)."
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
-                    "description": "CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc)."
+                    "description": "CA for recognizing the kube-apiserver when connecting via the service network (kubernetes.default.svc)."
                 }
             },
             "OnDiskLocation": null
@@ -1358,8 +1375,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -1589,25 +1610,6 @@
                     ],
                     "owningJiraComponent": "Machine Config Operator",
                     "description": "CA bundle that stores all valid CAs for the MachineConfigServer TLS certificate"
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-manila-csi-driver",
-                    "Name": "manila-csi-driver-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "Networking / cluster-network-operator"
-                        }
-                    ],
-                    "owningJiraComponent": "Networking / cluster-network-operator",
-                    "description": ""
                 }
             },
             "OnDiskLocation": null
@@ -2503,29 +2505,6 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-cluster-csi-drivers",
-                    "Name": "openstack-cinder-csi-driver-controller-metrics-serving-cert"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "service-ca"
-                        },
-                        {
-                            "key": "openshift.io/description",
-                            "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openstack-cinder-csi-driver-controller-metrics with hostname openstack-cinder-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openstack-cinder-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-                        }
-                    ],
-                    "owningJiraComponent": "service-ca",
-                    "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openstack-cinder-csi-driver-controller-metrics with hostname openstack-cinder-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openstack-cinder-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-cluster-csi-drivers",
                     "Name": "vmware-vsphere-csi-driver-controller-metrics-serving-cert"
                 },
                 "certKeyInfo": {
@@ -2857,8 +2836,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -2888,8 +2871,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -3175,33 +3162,6 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
-                    "Name": "etcd-peer-2r9n12ip-92bf1-s62z8bootstrap"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "etcd"
-                        },
-                        {
-                            "key": "certificates.openshift.io/refresh-period",
-                            "value": "36792h0m0s"
-                        },
-                        {
-                            "key": "openshift.io/description",
-                            "value": "Peer (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
-                        }
-                    ],
-                    "owningJiraComponent": "etcd",
-                    "description": "Peer (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-etcd",
                     "Name": "etcd-peer-\u003cbootstrap\u003e"
                 },
                 "certKeyInfo": {
@@ -3310,33 +3270,6 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-etcd",
-                    "Name": "etcd-serving-2r9n12ip-92bf1-s62z8bootstrap"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "etcd"
-                        },
-                        {
-                            "key": "certificates.openshift.io/refresh-period",
-                            "value": "36792h0m0s"
-                        },
-                        {
-                            "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
-                        }
-                    ],
-                    "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-etcd",
                     "Name": "etcd-serving-\u003cbootstrap\u003e"
                 },
                 "certKeyInfo": {
@@ -3437,33 +3370,6 @@
                     ],
                     "owningJiraComponent": "etcd",
                     "description": "Serving (client and server) certificate for node \u003cmaster-2\u003e, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-etcd",
-                    "Name": "etcd-serving-metrics-2r9n12ip-92bf1-s62z8bootstrap"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "etcd"
-                        },
-                        {
-                            "key": "certificates.openshift.io/refresh-period",
-                            "value": "36792h0m0s"
-                        },
-                        {
-                            "key": "openshift.io/description",
-                            "value": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
-                        }
-                    ],
-                    "owningJiraComponent": "etcd",
-                    "description": "Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days."
                 }
             },
             "OnDiskLocation": null
@@ -3903,8 +3809,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -3934,8 +3844,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"check-endpoints.kubeconfig\" should be present in all kube-apiserver containers [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"check-endpoints.kubeconfig\" should be present in all kube-apiserver containers [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -3965,16 +3879,24 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"control-plane-node.kubeconfig\" should be present in all kube-apiserver containers [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"control-plane-node.kubeconfig\" should be present in all kube-apiserver containers [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
                             "value": "6h0m0s"
+                        },
+                        {
+                            "key": "openshift.io/description",
+                            "value": "Client certificate and key for the control plane node kubeconfig"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
-                    "description": ""
+                    "description": "Client certificate and key for the control plane node kubeconfig"
                 }
             },
             "OnDiskLocation": null
@@ -4019,8 +3941,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4050,8 +3976,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4081,8 +4011,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4112,8 +4046,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4143,8 +4081,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4193,8 +4135,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4243,8 +4189,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io] [Suite:openshift/conformance/parallel]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4293,8 +4243,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4320,8 +4274,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4347,8 +4305,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via api-int endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4374,8 +4336,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4405,8 +4371,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4432,8 +4402,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4463,8 +4437,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4494,8 +4472,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[Conformance][sig-api-machinery][Feature:APIServer] kube-apiserver should be accessible via service network endpoint [Suite:openshift/conformance/parallel/minimal]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "openshift.io/description",
@@ -4519,6 +4501,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-controller-manager"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "360h0m0s"
                         }
                     ],
                     "owningJiraComponent": "kube-controller-manager",
@@ -4540,8 +4526,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -4592,6 +4582,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-controller-manager"
+                        },
+                        {
+                            "key": "certificates.openshift.io/refresh-period",
+                            "value": "360h0m0s"
                         }
                     ],
                     "owningJiraComponent": "kube-controller-manager",
@@ -4655,8 +4649,12 @@
                             "value": "kube-apiserver"
                         },
                         {
+                            "key": "certificates.openshift.io/test-name",
+                            "value": "[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]"
+                        },
+                        {
                             "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-apps] Deployment RollingUpdateDeployment should delete old pods and create new ones [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631"
                         },
                         {
                             "key": "certificates.openshift.io/refresh-period",
@@ -5079,29 +5077,6 @@
                     ],
                     "owningJiraComponent": "service-ca",
                     "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-daemon with hostname machine-config-daemon.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-manila-csi-driver",
-                    "Name": "manila-csi-driver-controller-metrics-serving-cert"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "service-ca"
-                        },
-                        {
-                            "key": "openshift.io/description",
-                            "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/manila-csi-driver-controller-metrics with hostname manila-csi-driver-controller-metrics.openshift-manila-csi-driver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: manila-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-                        }
-                    ],
-                    "owningJiraComponent": "service-ca",
-                    "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/manila-csi-driver-controller-metrics with hostname manila-csi-driver-controller-metrics.openshift-manila-csi-driver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: manila-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
                 }
             },
             "OnDiskLocation": null

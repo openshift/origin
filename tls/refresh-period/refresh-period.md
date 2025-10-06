@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (234)](#Items-Do-NOT-Meet-the-Requirement-234)
+  - [Items Do NOT Meet the Requirement (228)](#Items-Do-NOT-Meet-the-Requirement-228)
     - [Unknown Owner (5)](#Unknown-Owner-5)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
@@ -22,9 +22,9 @@
     - [Monitoring (8)](#Monitoring-8)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (5)](#Certificate-Authority-Bundles-5)
-    - [Networking / cluster-network-operator (41)](#Networking-/-cluster-network-operator-41)
+    - [Networking / cluster-network-operator (39)](#Networking-/-cluster-network-operator-39)
       - [Certificates (8)](#Certificates-8)
-      - [Certificate Authority Bundles (33)](#Certificate-Authority-Bundles-33)
+      - [Certificate Authority Bundles (31)](#Certificate-Authority-Bundles-31)
     - [Node / Kubelet (2)](#Node-/-Kubelet-2)
       - [Certificates (2)](#Certificates-2)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
@@ -41,21 +41,23 @@
     - [kube-apiserver (30)](#kube-apiserver-30)
       - [Certificates (9)](#Certificates-9)
       - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
-    - [kube-controller-manager (12)](#kube-controller-manager-12)
-      - [Certificates (3)](#Certificates-3)
+    - [kube-controller-manager (10)](#kube-controller-manager-10)
+      - [Certificates (1)](#Certificates-1)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
     - [kube-scheduler (1)](#kube-scheduler-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [openshift-apiserver (1)](#openshift-apiserver-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-    - [service-ca (101)](#service-ca-101)
-      - [Certificates (98)](#Certificates-98)
+    - [service-ca (99)](#service-ca-99)
+      - [Certificates (96)](#Certificates-96)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
-  - [Items That DO Meet the Requirement (41)](#Items-That-DO-Meet-the-Requirement-41)
-    - [etcd (25)](#etcd-25)
-      - [Certificates (25)](#Certificates-25)
+  - [Items That DO Meet the Requirement (40)](#Items-That-DO-Meet-the-Requirement-40)
+    - [etcd (22)](#etcd-22)
+      - [Certificates (22)](#Certificates-22)
     - [kube-apiserver (16)](#kube-apiserver-16)
       - [Certificates (16)](#Certificates-16)
+    - [kube-controller-manager (2)](#kube-controller-manager-2)
+      - [Certificates (2)](#Certificates-2)
 
 
 ## How to meet the requirement
@@ -76,7 +78,7 @@ This assertion means that you have
 3. This TLS artifact has associated test name annotation ("certificates.openshift.io/test-name").
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (234)
+## Items Do NOT Meet the Requirement (228)
 ### Unknown Owner (5)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -291,7 +293,7 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### Networking / cluster-network-operator (41)
+### Networking / cluster-network-operator (39)
 #### Certificates (8)
 1. ns/openshift-network-node-identity secret/network-node-identity-ca
 
@@ -335,7 +337,7 @@ If you have not done this, you should not merge the annotation.
 
 
 
-#### Certificate Authority Bundles (33)
+#### Certificate Authority Bundles (31)
 1. ns/openshift-apiserver configmap/trusted-ca-bundle
 
       **Description:** 
@@ -391,112 +393,102 @@ If you have not done this, you should not merge the annotation.
       **Description:** 
       
 
-12. ns/openshift-cluster-csi-drivers configmap/openstack-cinder-csi-driver-trusted-ca-bundle
+12. ns/openshift-cluster-csi-drivers configmap/vmware-vsphere-csi-driver-trusted-ca-bundle
 
       **Description:** 
       
 
-13. ns/openshift-cluster-csi-drivers configmap/vmware-vsphere-csi-driver-trusted-ca-bundle
+13. ns/openshift-cluster-csi-drivers configmap/vsphere-csi-driver-operator-trusted-ca-bundle
 
       **Description:** 
       
 
-14. ns/openshift-cluster-csi-drivers configmap/vsphere-csi-driver-operator-trusted-ca-bundle
+14. ns/openshift-cluster-node-tuning-operator configmap/trusted-ca
 
       **Description:** 
       
 
-15. ns/openshift-cluster-node-tuning-operator configmap/trusted-ca
+15. ns/openshift-cluster-storage-operator configmap/trusted-ca-bundle
 
       **Description:** 
       
 
-16. ns/openshift-cluster-storage-operator configmap/trusted-ca-bundle
+16. ns/openshift-config-managed configmap/trusted-ca-bundle
 
       **Description:** 
       
 
-17. ns/openshift-config-managed configmap/trusted-ca-bundle
+17. ns/openshift-console configmap/trusted-ca-bundle
 
       **Description:** 
       
 
-18. ns/openshift-console configmap/trusted-ca-bundle
+18. ns/openshift-console-operator configmap/trusted-ca
 
       **Description:** 
       
 
-19. ns/openshift-console-operator configmap/trusted-ca
+19. ns/openshift-controller-manager configmap/openshift-global-ca
 
       **Description:** 
       
 
-20. ns/openshift-controller-manager configmap/openshift-global-ca
+20. ns/openshift-image-registry configmap/trusted-ca
 
       **Description:** 
       
 
-21. ns/openshift-image-registry configmap/trusted-ca
+21. ns/openshift-ingress-operator configmap/trusted-ca
 
       **Description:** 
       
 
-22. ns/openshift-ingress-operator configmap/trusted-ca
+22. ns/openshift-insights configmap/trusted-ca-bundle
 
       **Description:** 
       
 
-23. ns/openshift-insights configmap/trusted-ca-bundle
-
-      **Description:** 
-      
-
-24. ns/openshift-kube-apiserver configmap/trusted-ca-bundle
+23. ns/openshift-kube-apiserver configmap/trusted-ca-bundle
 
       **Description:** CA used to recognize proxy servers.  By default this will contain standard root CAs on the cluster-network-operator pod.
       
 
-25. ns/openshift-kube-controller-manager configmap/trusted-ca-bundle
+24. ns/openshift-kube-controller-manager configmap/trusted-ca-bundle
 
       **Description:** 
       
 
-26. ns/openshift-machine-api configmap/cbo-trusted-ca
+25. ns/openshift-machine-api configmap/cbo-trusted-ca
 
       **Description:** 
       
 
-27. ns/openshift-machine-api configmap/mao-trusted-ca
+26. ns/openshift-machine-api configmap/mao-trusted-ca
 
       **Description:** 
       
 
-28. ns/openshift-manila-csi-driver configmap/manila-csi-driver-trusted-ca-bundle
+27. ns/openshift-marketplace configmap/marketplace-trusted-ca
 
       **Description:** 
       
 
-29. ns/openshift-marketplace configmap/marketplace-trusted-ca
+28. ns/openshift-network-node-identity configmap/network-node-identity-ca
 
       **Description:** 
       
 
-30. ns/openshift-network-node-identity configmap/network-node-identity-ca
+29. ns/openshift-operator-controller configmap/operator-controller-trusted-ca-bundle
 
       **Description:** 
       
 
-31. ns/openshift-operator-controller configmap/operator-controller-trusted-ca-bundle
+30. ns/openshift-ovn-kubernetes configmap/ovn-ca
 
       **Description:** 
       
 
-32. ns/openshift-ovn-kubernetes configmap/ovn-ca
-
-      **Description:** 
-      
-
-33. ns/openshift-ovn-kubernetes configmap/signer-ca
+31. ns/openshift-ovn-kubernetes configmap/signer-ca
 
       **Description:** 
       
@@ -876,7 +868,7 @@ If you have not done this, you should not merge the annotation.
 
 16. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
 
-      **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc).
+      **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kubernetes.default.svc).
       
 
 17. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
@@ -934,19 +926,9 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### kube-controller-manager (12)
-#### Certificates (3)
-1. ns/openshift-kube-controller-manager secret/csr-signer
-
-      **Description:** 
-      
-
-2. ns/openshift-kube-controller-manager-operator secret/csr-signer
-
-      **Description:** 
-      
-
-3. ns/openshift-kube-controller-manager-operator secret/csr-signer-signer
+### kube-controller-manager (10)
+#### Certificates (1)
+1. ns/openshift-kube-controller-manager-operator secret/csr-signer-signer
 
       **Description:** 
       
@@ -1019,8 +1001,8 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### service-ca (101)
-#### Certificates (98)
+### service-ca (99)
+#### Certificates (96)
 1. ns/openshift-apiserver secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/api with hostname api.openshift-apiserver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
@@ -1126,387 +1108,377 @@ If you have not done this, you should not merge the annotation.
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/gcp-pd-csi-driver-controller-metrics with hostname gcp-pd-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: gcp-pd-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-22. ns/openshift-cluster-csi-drivers secret/openstack-cinder-csi-driver-controller-metrics-serving-cert
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openstack-cinder-csi-driver-controller-metrics with hostname openstack-cinder-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openstack-cinder-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
-      
-
-23. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-controller-metrics-serving-cert
+22. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-controller-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-controller-metrics with hostname vmware-vsphere-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-24. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-operator-metrics-serving-cert
+23. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-operator-metrics-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-operator-metrics with hostname vmware-vsphere-csi-driver-operator-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-operator-metrics-serving-cert'. The certificate is valid for 2 years.
       
 
-25. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-webhook-secret
+24. ns/openshift-cluster-csi-drivers secret/vmware-vsphere-csi-driver-webhook-secret
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-webhook-svc with hostname vmware-vsphere-csi-driver-webhook-svc.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-webhook-secret'. The certificate is valid for 2 years.
       
 
-26. ns/openshift-cluster-machine-approver secret/machine-approver-tls
+25. ns/openshift-cluster-machine-approver secret/machine-approver-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-approver with hostname machine-approver.openshift-cluster-machine-approver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-approver-tls'. The certificate is valid for 2 years.
       
 
-27. ns/openshift-cluster-node-tuning-operator secret/node-tuning-operator-tls
+26. ns/openshift-cluster-node-tuning-operator secret/node-tuning-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/node-tuning-operator with hostname node-tuning-operator.openshift-cluster-node-tuning-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: node-tuning-operator-tls'. The certificate is valid for 2 years.
       
 
-28. ns/openshift-cluster-node-tuning-operator secret/performance-addon-operator-webhook-cert
+27. ns/openshift-cluster-node-tuning-operator secret/performance-addon-operator-webhook-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/performance-addon-operator-service with hostname performance-addon-operator-service.openshift-cluster-node-tuning-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: performance-addon-operator-webhook-cert'. The certificate is valid for 2 years.
       
 
-29. ns/openshift-cluster-olm-operator secret/cluster-olm-operator-serving-cert
+28. ns/openshift-cluster-olm-operator secret/cluster-olm-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-olm-operator-metrics with hostname cluster-olm-operator-metrics.openshift-cluster-olm-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-olm-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-30. ns/openshift-cluster-samples-operator secret/samples-operator-tls
+29. ns/openshift-cluster-samples-operator secret/samples-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-cluster-samples-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: samples-operator-tls'. The certificate is valid for 2 years.
       
 
-31. ns/openshift-cluster-storage-operator secret/cluster-storage-operator-serving-cert
+30. ns/openshift-cluster-storage-operator secret/cluster-storage-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-storage-operator-metrics with hostname cluster-storage-operator-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-storage-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-32. ns/openshift-cluster-storage-operator secret/serving-cert
+31. ns/openshift-cluster-storage-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/csi-snapshot-controller-operator-metrics with hostname csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-33. ns/openshift-cluster-storage-operator secret/vsphere-problem-detector-serving-cert
+32. ns/openshift-cluster-storage-operator secret/vsphere-problem-detector-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vsphere-problem-detector-metrics with hostname vsphere-problem-detector-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vsphere-problem-detector-serving-cert'. The certificate is valid for 2 years.
       
 
-34. ns/openshift-cluster-version secret/cluster-version-operator-serving-cert
+33. ns/openshift-cluster-version secret/cluster-version-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-version-operator with hostname cluster-version-operator.openshift-cluster-version.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-version-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-35. ns/openshift-config-operator secret/config-operator-serving-cert
+34. ns/openshift-config-operator secret/config-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: config-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-36. ns/openshift-console secret/console-serving-cert
+35. ns/openshift-console secret/console-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/console with hostname console.openshift-console.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: console-serving-cert'. The certificate is valid for 2 years.
       
 
-37. ns/openshift-console-operator secret/serving-cert
+36. ns/openshift-console-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-console-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-38. ns/openshift-controller-manager secret/serving-cert
+37. ns/openshift-controller-manager secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/controller-manager with hostname controller-manager.openshift-controller-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-39. ns/openshift-controller-manager-operator secret/openshift-controller-manager-operator-serving-cert
+38. ns/openshift-controller-manager-operator secret/openshift-controller-manager-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-controller-manager-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-40. ns/openshift-dns secret/dns-default-metrics-tls
+39. ns/openshift-dns secret/dns-default-metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/dns-default with hostname dns-default.openshift-dns.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: dns-default-metrics-tls'. The certificate is valid for 2 years.
       
 
-41. ns/openshift-dns-operator secret/metrics-tls
+40. ns/openshift-dns-operator secret/metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-dns-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years.
       
 
-42. ns/openshift-e2e-loki secret/proxy-tls
+41. ns/openshift-e2e-loki secret/proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/promtail with hostname promtail.openshift-e2e-loki.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years.
       
 
-43. ns/openshift-etcd secret/serving-cert
+42. ns/openshift-etcd secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/etcd with hostname etcd.openshift-etcd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-44. ns/openshift-etcd-operator secret/etcd-operator-serving-cert
+43. ns/openshift-etcd-operator secret/etcd-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-etcd-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: etcd-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-45. ns/openshift-image-registry secret/image-registry-operator-tls
+44. ns/openshift-image-registry secret/image-registry-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/image-registry-operator with hostname image-registry-operator.openshift-image-registry.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: image-registry-operator-tls'. The certificate is valid for 2 years.
       
 
-46. ns/openshift-image-registry secret/image-registry-tls
+45. ns/openshift-image-registry secret/image-registry-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/image-registry with hostname image-registry.openshift-image-registry.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: image-registry-tls'. The certificate is valid for 2 years.
       
 
-47. ns/openshift-ingress secret/router-metrics-certs-default
+46. ns/openshift-ingress secret/router-metrics-certs-default
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/router-internal-default with hostname router-internal-default.openshift-ingress.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: router-metrics-certs-default'. The certificate is valid for 2 years.
       
 
-48. ns/openshift-ingress-canary secret/canary-serving-cert
+47. ns/openshift-ingress-canary secret/canary-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ingress-canary with hostname ingress-canary.openshift-ingress-canary.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: canary-serving-cert'. The certificate is valid for 2 years.
       
 
-49. ns/openshift-ingress-operator secret/metrics-tls
+48. ns/openshift-ingress-operator secret/metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-ingress-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years.
       
 
-50. ns/openshift-insights secret/insights-runtime-extractor-tls
+49. ns/openshift-insights secret/insights-runtime-extractor-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/exporter with hostname exporter.openshift-insights.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: insights-runtime-extractor-tls'. The certificate is valid for 2 years.
       
 
-51. ns/openshift-insights secret/openshift-insights-serving-cert
+50. ns/openshift-insights secret/openshift-insights-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-insights.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-insights-serving-cert'. The certificate is valid for 2 years.
       
 
-52. ns/openshift-kube-apiserver-operator secret/kube-apiserver-operator-serving-cert
+51. ns/openshift-kube-apiserver-operator secret/kube-apiserver-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-apiserver-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-apiserver-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-53. ns/openshift-kube-controller-manager secret/serving-cert
+52. ns/openshift-kube-controller-manager secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/kube-controller-manager with hostname kube-controller-manager.openshift-kube-controller-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-54. ns/openshift-kube-controller-manager-operator secret/kube-controller-manager-operator-serving-cert
+53. ns/openshift-kube-controller-manager-operator secret/kube-controller-manager-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-controller-manager-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-55. ns/openshift-kube-scheduler secret/serving-cert
+54. ns/openshift-kube-scheduler secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/scheduler with hostname scheduler.openshift-kube-scheduler.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-56. ns/openshift-kube-scheduler-operator secret/kube-scheduler-operator-serving-cert
+55. ns/openshift-kube-scheduler-operator secret/kube-scheduler-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-scheduler-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-scheduler-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-57. ns/openshift-kube-storage-version-migrator-operator secret/serving-cert
+56. ns/openshift-kube-storage-version-migrator-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-storage-version-migrator-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-58. ns/openshift-machine-api secret/baremetal-operator-webhook-server-cert
+57. ns/openshift-machine-api secret/baremetal-operator-webhook-server-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/baremetal-operator-webhook-service with hostname baremetal-operator-webhook-service.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: baremetal-operator-webhook-server-cert'. The certificate is valid for 2 years.
       
 
-59. ns/openshift-machine-api secret/cluster-autoscaler-operator-cert
+58. ns/openshift-machine-api secret/cluster-autoscaler-operator-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-autoscaler-operator with hostname cluster-autoscaler-operator.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-autoscaler-operator-cert'. The certificate is valid for 2 years.
       
 
-60. ns/openshift-machine-api secret/cluster-baremetal-operator-tls
+59. ns/openshift-machine-api secret/cluster-baremetal-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-baremetal-operator-service with hostname cluster-baremetal-operator-service.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-baremetal-operator-tls'. The certificate is valid for 2 years.
       
 
-61. ns/openshift-machine-api secret/cluster-baremetal-webhook-server-cert
+60. ns/openshift-machine-api secret/cluster-baremetal-webhook-server-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-baremetal-webhook-service with hostname cluster-baremetal-webhook-service.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-baremetal-webhook-server-cert'. The certificate is valid for 2 years.
       
 
-62. ns/openshift-machine-api secret/control-plane-machine-set-operator-tls
+61. ns/openshift-machine-api secret/control-plane-machine-set-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/control-plane-machine-set-operator with hostname control-plane-machine-set-operator.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: control-plane-machine-set-operator-tls'. The certificate is valid for 2 years.
       
 
-63. ns/openshift-machine-api secret/machine-api-controllers-tls
+62. ns/openshift-machine-api secret/machine-api-controllers-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-controllers with hostname machine-api-controllers.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-controllers-tls'. The certificate is valid for 2 years.
       
 
-64. ns/openshift-machine-api secret/machine-api-operator-machine-webhook-cert
+63. ns/openshift-machine-api secret/machine-api-operator-machine-webhook-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-operator-machine-webhook with hostname machine-api-operator-machine-webhook.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-machine-webhook-cert'. The certificate is valid for 2 years.
       
 
-65. ns/openshift-machine-api secret/machine-api-operator-tls
+64. ns/openshift-machine-api secret/machine-api-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-operator with hostname machine-api-operator.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-tls'. The certificate is valid for 2 years.
       
 
-66. ns/openshift-machine-api secret/machine-api-operator-webhook-cert
+65. ns/openshift-machine-api secret/machine-api-operator-webhook-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-api-operator-webhook with hostname machine-api-operator-webhook.openshift-machine-api.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-webhook-cert'. The certificate is valid for 2 years.
       
 
-67. ns/openshift-machine-config-operator secret/mcc-proxy-tls
+66. ns/openshift-machine-config-operator secret/mcc-proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-controller with hostname machine-config-controller.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: mcc-proxy-tls'. The certificate is valid for 2 years.
       
 
-68. ns/openshift-machine-config-operator secret/mco-proxy-tls
+67. ns/openshift-machine-config-operator secret/mco-proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-operator with hostname machine-config-operator.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: mco-proxy-tls'. The certificate is valid for 2 years.
       
 
-69. ns/openshift-machine-config-operator secret/proxy-tls
+68. ns/openshift-machine-config-operator secret/proxy-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/machine-config-daemon with hostname machine-config-daemon.openshift-machine-config-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years.
       
 
-70. ns/openshift-manila-csi-driver secret/manila-csi-driver-controller-metrics-serving-cert
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/manila-csi-driver-controller-metrics with hostname manila-csi-driver-controller-metrics.openshift-manila-csi-driver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: manila-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years.
-      
-
-71. ns/openshift-marketplace secret/marketplace-operator-metrics
+69. ns/openshift-marketplace secret/marketplace-operator-metrics
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/marketplace-operator-metrics with hostname marketplace-operator-metrics.openshift-marketplace.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: marketplace-operator-metrics'. The certificate is valid for 2 years.
       
 
-72. ns/openshift-monitoring secret/alertmanager-main-tls
+70. ns/openshift-monitoring secret/alertmanager-main-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/alertmanager-main with hostname alertmanager-main.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: alertmanager-main-tls'. The certificate is valid for 2 years.
       
 
-73. ns/openshift-monitoring secret/cluster-monitoring-operator-tls
+71. ns/openshift-monitoring secret/cluster-monitoring-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cluster-monitoring-operator with hostname cluster-monitoring-operator.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-monitoring-operator-tls'. The certificate is valid for 2 years.
       
 
-74. ns/openshift-monitoring secret/kube-state-metrics-tls
+72. ns/openshift-monitoring secret/kube-state-metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/kube-state-metrics with hostname kube-state-metrics.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-state-metrics-tls'. The certificate is valid for 2 years.
       
 
-75. ns/openshift-monitoring secret/metrics-server-tls
+73. ns/openshift-monitoring secret/metrics-server-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics-server with hostname metrics-server.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-server-tls'. The certificate is valid for 2 years.
       
 
-76. ns/openshift-monitoring secret/monitoring-plugin-cert
+74. ns/openshift-monitoring secret/monitoring-plugin-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/monitoring-plugin with hostname monitoring-plugin.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: monitoring-plugin-cert'. The certificate is valid for 2 years.
       
 
-77. ns/openshift-monitoring secret/node-exporter-tls
+75. ns/openshift-monitoring secret/node-exporter-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/node-exporter with hostname node-exporter.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: node-exporter-tls'. The certificate is valid for 2 years.
       
 
-78. ns/openshift-monitoring secret/openshift-state-metrics-tls
+76. ns/openshift-monitoring secret/openshift-state-metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openshift-state-metrics with hostname openshift-state-metrics.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-state-metrics-tls'. The certificate is valid for 2 years.
       
 
-79. ns/openshift-monitoring secret/prometheus-k8s-thanos-sidecar-tls
+77. ns/openshift-monitoring secret/prometheus-k8s-thanos-sidecar-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/prometheus-k8s-thanos-sidecar with hostname prometheus-k8s-thanos-sidecar.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-k8s-thanos-sidecar-tls'. The certificate is valid for 2 years.
       
 
-80. ns/openshift-monitoring secret/prometheus-k8s-tls
+78. ns/openshift-monitoring secret/prometheus-k8s-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/prometheus-k8s with hostname prometheus-k8s.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-k8s-tls'. The certificate is valid for 2 years.
       
 
-81. ns/openshift-monitoring secret/prometheus-operator-admission-webhook-tls
+79. ns/openshift-monitoring secret/prometheus-operator-admission-webhook-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/prometheus-operator-admission-webhook with hostname prometheus-operator-admission-webhook.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-operator-admission-webhook-tls'. The certificate is valid for 2 years.
       
 
-82. ns/openshift-monitoring secret/prometheus-operator-tls
+80. ns/openshift-monitoring secret/prometheus-operator-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/prometheus-operator with hostname prometheus-operator.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-operator-tls'. The certificate is valid for 2 years.
       
 
-83. ns/openshift-monitoring secret/telemeter-client-tls
+81. ns/openshift-monitoring secret/telemeter-client-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/telemeter-client with hostname telemeter-client.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: telemeter-client-tls'. The certificate is valid for 2 years.
       
 
-84. ns/openshift-monitoring secret/thanos-querier-tls
+82. ns/openshift-monitoring secret/thanos-querier-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/thanos-querier with hostname thanos-querier.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: thanos-querier-tls'. The certificate is valid for 2 years.
       
 
-85. ns/openshift-multus secret/metrics-daemon-secret
+83. ns/openshift-multus secret/metrics-daemon-secret
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/network-metrics-service with hostname network-metrics-service.openshift-multus.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-daemon-secret'. The certificate is valid for 2 years.
       
 
-86. ns/openshift-multus secret/multus-admission-controller-secret
+84. ns/openshift-multus secret/multus-admission-controller-secret
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/multus-admission-controller with hostname multus-admission-controller.openshift-multus.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: multus-admission-controller-secret'. The certificate is valid for 2 years.
       
 
-87. ns/openshift-network-console secret/networking-console-plugin-cert
+85. ns/openshift-network-console secret/networking-console-plugin-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/networking-console-plugin with hostname networking-console-plugin.openshift-network-console.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: networking-console-plugin-cert'. The certificate is valid for 2 years.
       
 
-88. ns/openshift-network-operator secret/metrics-tls
+86. ns/openshift-network-operator secret/metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-network-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years.
       
 
-89. ns/openshift-oauth-apiserver secret/serving-cert
+87. ns/openshift-oauth-apiserver secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/api with hostname api.openshift-oauth-apiserver.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-90. ns/openshift-operator-controller secret/operator-controller-cert
+88. ns/openshift-operator-controller secret/operator-controller-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/operator-controller-service with hostname operator-controller-service.openshift-operator-controller.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: operator-controller-cert'. The certificate is valid for 2 years.
       
 
-91. ns/openshift-operator-lifecycle-manager secret/catalog-operator-serving-cert
+89. ns/openshift-operator-lifecycle-manager secret/catalog-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalog-operator-metrics with hostname catalog-operator-metrics.openshift-operator-lifecycle-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalog-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-92. ns/openshift-operator-lifecycle-manager secret/olm-operator-serving-cert
+90. ns/openshift-operator-lifecycle-manager secret/olm-operator-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/olm-operator-metrics with hostname olm-operator-metrics.openshift-operator-lifecycle-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: olm-operator-serving-cert'. The certificate is valid for 2 years.
       
 
-93. ns/openshift-operator-lifecycle-manager secret/package-server-manager-serving-cert
+91. ns/openshift-operator-lifecycle-manager secret/package-server-manager-serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/package-server-manager-metrics with hostname package-server-manager-metrics.openshift-operator-lifecycle-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: package-server-manager-serving-cert'. The certificate is valid for 2 years.
       
 
-94. ns/openshift-ovn-kubernetes secret/ovn-control-plane-metrics-cert
+92. ns/openshift-ovn-kubernetes secret/ovn-control-plane-metrics-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ovn-kubernetes-control-plane with hostname ovn-kubernetes-control-plane.openshift-ovn-kubernetes.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ovn-control-plane-metrics-cert'. The certificate is valid for 2 years.
       
 
-95. ns/openshift-ovn-kubernetes secret/ovn-node-metrics-cert
+93. ns/openshift-ovn-kubernetes secret/ovn-node-metrics-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/ovn-kubernetes-node with hostname ovn-kubernetes-node.openshift-ovn-kubernetes.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ovn-node-metrics-cert'. The certificate is valid for 2 years.
       
 
-96. ns/openshift-route-controller-manager secret/serving-cert
+94. ns/openshift-route-controller-manager secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/route-controller-manager with hostname route-controller-manager.openshift-route-controller-manager.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
 
-97. ns/openshift-service-ca secret/signing-key
+95. ns/openshift-service-ca secret/signing-key
 
       **Description:** Service CA secret contains a signing key that will be used to issue a signed serving certificate/key pair to services annotated with 'service.beta.openshift.io/serving-cert-secret-name'
       
 
-98. ns/openshift-service-ca-operator secret/serving-cert
+96. ns/openshift-service-ca-operator secret/serving-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-service-ca-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years.
       
@@ -1531,9 +1503,9 @@ If you have not done this, you should not merge the annotation.
 
 
 
-## Items That DO Meet the Requirement (41)
-### etcd (25)
-#### Certificates (25)
+## Items That DO Meet the Requirement (40)
+### etcd (22)
+#### Certificates (22)
 1. ns/openshift-apiserver secret/etcd-client
 
       **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
@@ -1559,17 +1531,12 @@ If you have not done this, you should not merge the annotation.
       **Description:** Generated by cluster-etcd-operator for etcd and is used to sign peer, server and client certificates for Prometheus ServiceMonitors. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-6. ns/openshift-etcd secret/etcd-peer-2r9n12ip-92bf1-s62z8bootstrap
-
-      **Description:** Peer (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
-      
-
-7. ns/openshift-etcd secret/etcd-peer-\<bootstrap>
+6. ns/openshift-etcd secret/etcd-peer-\<bootstrap>
 
       **Description:** Peer (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-8. ns/openshift-etcd secret/etcd-peer-\<master-0>
+7. ns/openshift-etcd secret/etcd-peer-\<master-0>
 
       **Description:** Peer (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1579,7 +1546,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-0>.crt
       
 
-9. ns/openshift-etcd secret/etcd-peer-\<master-1>
+8. ns/openshift-etcd secret/etcd-peer-\<master-1>
 
       **Description:** Peer (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1589,7 +1556,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-1>.crt
       
 
-10. ns/openshift-etcd secret/etcd-peer-\<master-2>
+9. ns/openshift-etcd secret/etcd-peer-\<master-2>
 
       **Description:** Peer (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1599,17 +1566,12 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-2>.crt
       
 
-11. ns/openshift-etcd secret/etcd-serving-2r9n12ip-92bf1-s62z8bootstrap
-
-      **Description:** Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
-      
-
-12. ns/openshift-etcd secret/etcd-serving-\<bootstrap>
+10. ns/openshift-etcd secret/etcd-serving-\<bootstrap>
 
       **Description:** Serving (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-13. ns/openshift-etcd secret/etcd-serving-\<master-0>
+11. ns/openshift-etcd secret/etcd-serving-\<master-0>
 
       **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1619,7 +1581,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-0>.crt
       
 
-14. ns/openshift-etcd secret/etcd-serving-\<master-1>
+12. ns/openshift-etcd secret/etcd-serving-\<master-1>
 
       **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1629,7 +1591,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-1>.crt
       
 
-15. ns/openshift-etcd secret/etcd-serving-\<master-2>
+13. ns/openshift-etcd secret/etcd-serving-\<master-2>
 
       **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1639,17 +1601,12 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-2>.crt
       
 
-16. ns/openshift-etcd secret/etcd-serving-metrics-2r9n12ip-92bf1-s62z8bootstrap
-
-      **Description:** Serving (client and server) certificate for node 2r9n12ip-92bf1-s62z8bootstrap, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
-      
-
-17. ns/openshift-etcd secret/etcd-serving-metrics-\<bootstrap>
+14. ns/openshift-etcd secret/etcd-serving-metrics-\<bootstrap>
 
       **Description:** Serving (client and server) certificate for node \<bootstrap>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-18. ns/openshift-etcd secret/etcd-serving-metrics-\<master-0>
+15. ns/openshift-etcd secret/etcd-serving-metrics-\<master-0>
 
       **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1659,7 +1616,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-0>.crt
       
 
-19. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
+16. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
 
       **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1669,7 +1626,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-1>.crt
       
 
-20. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
+17. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
 
       **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1679,27 +1636,27 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-2>.crt
       
 
-21. ns/openshift-etcd secret/etcd-signer
+18. ns/openshift-etcd secret/etcd-signer
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to sign peer, server and client certificates. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-22. ns/openshift-etcd-operator secret/etcd-client
+19. ns/openshift-etcd-operator secret/etcd-client
 
       **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-23. ns/openshift-etcd-operator secret/etcd-metric-client
+20. ns/openshift-etcd-operator secret/etcd-metric-client
 
       **Description:** Client certificate for Prometheus ServiceMonitors to reach etcd grpc-proxy to retrieve metrics. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-24. ns/openshift-kube-apiserver secret/etcd-client
+21. ns/openshift-kube-apiserver secret/etcd-client
 
       **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
 
-25. ns/openshift-oauth-apiserver secret/etcd-client
+22. ns/openshift-oauth-apiserver secret/etcd-client
 
       **Description:** Client certificate for apiserver, cluster-etcd-operator and etcdctl to reach etcd. Generated by cluster-etcd-operator for etcd. This certificate is valid for 1825 days and starts refreshing after 1533 days.
       
@@ -1750,7 +1707,7 @@ If you have not done this, you should not merge the annotation.
 
 5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
 
-      **Description:** 
+      **Description:** Client certificate and key for the control plane node kubeconfig
       
 
       Other locations:
@@ -1854,6 +1811,20 @@ If you have not done this, you should not merge the annotation.
       Other locations:
 
       * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+
+
+### kube-controller-manager (2)
+#### Certificates (2)
+1. ns/openshift-kube-controller-manager secret/csr-signer
+
+      **Description:** 
+      
+
+2. ns/openshift-kube-controller-manager-operator secret/csr-signer
+
+      **Description:** 
       
 
 
