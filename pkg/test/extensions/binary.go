@@ -86,7 +86,14 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	klog.Infof("Found %d test specs", len(specs))
 	// Filter out kube tests, vendor filtering isn't working within origin
 	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
-		return !strings.Contains(spec.Name, "[Suite:k8s")
+		for _, cl := range spec.CodeLocations {
+			// If there is a CodeLocation for origin, that isn't simply "framework" it is not a vendored test
+			if strings.Contains(cl, "github.com/openshift/origin/") &&
+				!strings.Contains(cl, "github.com/openshift/origin/test/extended/util/framework.go") {
+				return true
+			}
+		}
+		return false
 	})
 	klog.Infof("%d test specs remain, after filtering out k8s", len(specs))
 
