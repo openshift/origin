@@ -40,15 +40,13 @@ func NewTcpdumpSamplerHook() *TcpdumpSamplerHook {
 }
 
 type TcpdumpSamplerHook struct {
-	tcpdumpInstalled bool
-	installMutex     sync.Mutex
-	tcpdumpRunning   bool
-	runningMutex     sync.Mutex
-	tcpdumpCancel    context.CancelFunc
-	cancelMutex      sync.Mutex
-	pcapFilePaths    []string
-	logFilePaths     []string
-	pcapMutex        sync.RWMutex
+	tcpdumpRunning bool
+	runningMutex   sync.Mutex
+	tcpdumpCancel  context.CancelFunc
+	cancelMutex    sync.Mutex
+	pcapFilePaths  []string
+	logFilePaths   []string
+	pcapMutex      sync.RWMutex
 }
 
 func (h *TcpdumpSamplerHook) DisruptionStarted() {
@@ -98,9 +96,9 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 		}
 	}()
 
-	// Ensure tcpdump is installed
-	if err := h.ensureTcpdumpInstalled(); err != nil {
-		logger.WithError(err).Error("Failed to install tcpdump")
+	// origin image should already contain tcpdump from tools
+	if err := h.checkTcpdumpAvailable(); err != nil {
+		logger.WithError(err).Error("tcpdump is not available")
 		return
 	}
 
@@ -140,7 +138,6 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 		"-i", "any", // Capture on all interfaces
 		"-s", "256", // Capture first 256 bytes of each packet
 		"-w", pcapFile, // Write to file
-		"-u", "root", // Running as root
 		"tcp", "and", "port", "80", // Filter for HTTP traffic
 	}
 
@@ -256,51 +253,24 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 	}()
 }
 
-func (h *TcpdumpSamplerHook) ensureTcpdumpInstalled() error {
-	h.installMutex.Lock()
-	defer h.installMutex.Unlock()
+// checkTcpdumpAvailable verifies that tcpdump is available and executable
+func (h *TcpdumpSamplerHook) checkTcpdumpAvailable() error {
+	logger := logrus.WithField("function", "checkTcpdumpAvailable")
 
-	// Check if already installed
-	if h.tcpdumpInstalled {
-		return nil
-	}
-
-	logger := logrus.WithField("function", "ensureTcpdumpInstalled")
-
-	// Check if tcpdump is already available
+	// Check if tcpdump is available in PATH
 	if _, err := exec.LookPath("tcpdump"); err == nil {
-		logger.Info("tcpdump already available in PATH")
-		h.tcpdumpInstalled = true
+		logger.Info("tcpdump found in PATH")
 		return nil
 	}
 
 	// Check if tcpdump exists at expected location
 	if _, err := os.Stat("/usr/sbin/tcpdump"); err == nil {
-		logger.Info("tcpdump already installed at /usr/sbin/tcpdump")
-		h.tcpdumpInstalled = true
+		logger.Info("tcpdump found at /usr/sbin/tcpdump")
 		return nil
 	}
 
-	logger.Info("Installing tcpdump from CentOS 8 RPM")
-
-	// Download and install tcpdump RPM
-	rpmURL := "http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/tcpdump-4.9.3-2.el8.x86_64.rpm"
-
-	// Use rpm command to install from URL
-	installCmd := exec.Command("rpm", "-ivh", rpmURL)
-	if output, err := installCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to install tcpdump RPM: %v, output: %s", err, output)
-	}
-
-	logger.Info("Successfully installed tcpdump")
-
-	// Verify installation
-	if _, err := os.Stat("/usr/sbin/tcpdump"); err != nil {
-		return fmt.Errorf("tcpdump not found at /usr/sbin/tcpdump after installation: %v", err)
-	}
-
-	h.tcpdumpInstalled = true
-	return nil
+	// tcpdump is not available
+	return fmt.Errorf("tcpdump is not installed - please ensure tcpdump is available in PATH or at /usr/sbin/tcpdump")
 }
 
 // hasRequiredCapabilities checks if the container has NET_ADMIN and NET_RAW capabilities
