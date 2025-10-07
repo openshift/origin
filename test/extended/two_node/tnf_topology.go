@@ -8,6 +8,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/two_node/utils"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -23,7 +24,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	)
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 	})
 
 	g.It("should only have two control plane nodes and no arbiter nodes", func() {
@@ -33,15 +34,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		)
 
 		g.By(fmt.Sprintf("Ensuring only %d control-plane nodes in the cluster and no arbiter nodes", expectedControlPlanes))
-		controlPlaneNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleControlPlane,
-		})
+		controlPlaneNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve control-plane nodes without error")
 		o.Expect(len(controlPlaneNodes.Items)).To(o.Equal(expectedControlPlanes), fmt.Sprintf("Expected %d Control-plane Nodes, found %d", expectedControlPlanes, len(controlPlaneNodes.Items)))
 
-		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		arbiterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleArbiter)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve arbiter nodes without error")
 		o.Expect(len(arbiterNodes.Items)).To(o.Equal(expectedArbiters), fmt.Sprintf("Expected %d Arbiter Nodes, found %d", expectedArbiters, len(arbiterNodes.Items)))
 	})
@@ -92,7 +89,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	)
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 	})
 	g.It("should have etcd pods and containers configured correctly", func() {
 		const (
@@ -110,7 +107,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		etcdContainerCount := 0
 		etcdctlContainerCount := 0
-
 		for _, pod := range pods.Items {
 			for _, container := range pod.Spec.Containers {
 				if container.Name == "etcd" {
@@ -126,9 +122,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	})
 
 	g.It("should have podman etcd containers running on each node", func() {
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleControlPlane,
-		})
+		nodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve control plane nodes without error")
 		o.Expect(nodes.Items).To(o.HaveLen(2), "Expected to retrieve two control plane nodes for DualReplica topology")
 

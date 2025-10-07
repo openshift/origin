@@ -725,6 +725,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.30 h1:bVreufq3EAIG1Quvws73du3/QgdeZ3myglJlrzSYYCY=
 github.com/mattn/go-sqlite3 v1.14.30/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0 h1:DMdk7yuxgLXGTL+HmUNHzm8WyZaZGkSFxxdXJjWq6IU=
+github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0/go.mod h1:TB7T7qAumrfrY/TCSuHvKtpEOLGw9QjnG43ez3vX14g=
 github.com/metallb/frr-k8s v0.0.15 h1:6M3UGhovX1EFoaSGjrRD7djUAx3w2I+g81FH8OVtHkM=
 github.com/metallb/frr-k8s v0.0.15/go.mod h1:TjrGoAf+v00hYGlI8jUdyDxY5udMAOs2GWwrvLWnA4E=
 github.com/microsoft/kiota-abstractions-go v1.9.3 h1:cqhbqro+VynJ7kObmo7850h3WN2SbvoyhypPn8uJ1SE=

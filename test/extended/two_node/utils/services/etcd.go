@@ -2,13 +2,15 @@
 package services
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	exutil "github.com/openshift/origin/test/extended/util"
+	batchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -202,7 +204,7 @@ func WaitForEtcdRevisionCreation(targetNodeIP string, timeout, pollInterval time
 //
 //	err := DeleteJob("tnf-auth-job-master-0", "openshift-etcd", oc)
 func DeleteJob(jobName, namespace string, oc *exutil.CLI) error {
-	_, err := oc.AsAdmin().Run("delete").Args("job", jobName, "-n", namespace).Output()
+	err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Delete(context.Background(), jobName, metav1.DeleteOptions{})
 	if err != nil {
 		return core.WrapError("delete job", fmt.Sprintf("%s in namespace %s", jobName, namespace), err)
 	}
@@ -231,56 +233,29 @@ func WaitForJobCompletion(jobName, namespace string, timeout, pollInterval time.
 	klog.V(2).Infof("Waiting for job %s in namespace %s to complete (timeout: %v)", jobName, namespace, timeout)
 
 	return core.PollUntil(func() (bool, error) {
-		// Get job status in JSON format
-		jobOutput, err := oc.AsAdmin().Run("get").Args("job", jobName, "-n", namespace, "-o", "json").Output()
+		// Get job status using client API
+		job, err := oc.AdminKubeClient().BatchV1().Jobs(namespace).Get(context.Background(), jobName, metav1.GetOptions{})
 		if err != nil {
 			klog.V(4).Infof("Job %s not found yet, waiting...", jobName)
 			return false, nil // Job doesn't exist yet, continue polling
 		}
 
-		// Parse job status to check for completion
-		// Job status structure has:
-		// - status.conditions[].type: "Complete" or "Failed"
-		// - status.conditions[].status: "True" or "False"
-		var jobData map[string]interface{}
-		if err := json.Unmarshal([]byte(jobOutput), &jobData); err != nil {
-			klog.V(4).Infof("Failed to parse job JSON, retrying...")
-			return false, nil // Parse error, continue polling
-		}
-
-		// Check job conditions
-		status, ok := jobData["status"].(map[string]interface{})
-		if !ok {
-			klog.V(4).Infof("Job %s has no status yet, waiting...", jobName)
-			return false, nil // No status yet, continue polling
-		}
-
-		conditions, ok := status["conditions"].([]interface{})
-		if !ok {
+		// Check if job has conditions
+		if len(job.Status.Conditions) == 0 {
 			klog.V(4).Infof("Job %s has no conditions yet, waiting...", jobName)
 			return false, nil // No conditions yet, continue polling
 		}
 
 		// Check each condition
-		for _, condInterface := range conditions {
-			cond, ok := condInterface.(map[string]interface{})
-			if !ok {
-				continue
-			}
-
-			condType, _ := cond["type"].(string)
-			condStatus, _ := cond["status"].(string)
-
-			if condType == "Complete" && condStatus == "True" {
+		for _, cond := range job.Status.Conditions {
+			if cond.Type == batchv1.JobComplete && cond.Status == "True" {
 				klog.V(2).Infof("Job %s completed successfully", jobName)
 				return true, nil // Job completed, stop polling
 			}
 
-			if condType == "Failed" && condStatus == "True" {
-				reason, _ := cond["reason"].(string)
-				message, _ := cond["message"].(string)
+			if cond.Type == batchv1.JobFailed && cond.Status == "True" {
 				// Return error to stop polling - job failed permanently
-				return false, core.NewError(fmt.Sprintf("job %s", jobName), fmt.Sprintf("failed: %s - %s", reason, message))
+				return false, core.NewError(fmt.Sprintf("job %s", jobName), fmt.Sprintf("failed: %s - %s", cond.Reason, cond.Message))
 			}
 		}
 
