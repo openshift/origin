@@ -652,7 +652,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 			}
 
 			if !kapihelper.Semantic.DeepDerivative(input, output) {
-				t.Errorf("Test stub for %v does not match: %s", gvk, diff.ObjectGoPrintDiff(input, output))
+				t.Errorf("Test stub for %v does not match: %s", gvk, diff.Diff(input, output))
 			}
 
 			addGVKToEtcdBucket(cohabitatingResources, actualGVK, getEtcdBucket(testData.ExpectedEtcdPath))
