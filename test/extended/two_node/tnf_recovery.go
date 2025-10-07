@@ -13,9 +13,11 @@ import (
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
+	"github.com/openshift/origin/test/extended/two_node/utils"
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
@@ -45,20 +47,20 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	defer g.GinkgoRecover()
 
 	var (
-		oc                   = util.NewCLIWithoutNamespace("").AsAdmin()
+		oc                   = exutil.NewCLIWithoutNamespace("").AsAdmin()
 		etcdClientFactory    *helpers.EtcdClientFactoryImpl
 		peerNode, targetNode corev1.Node
 	)
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.DualReplicaTopologyMode)
+		utils.SkipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 
 		g.By("Verifying etcd cluster operator is healthy before starting test")
 		o.Eventually(func() error {
 			return ensureEtcdOperatorHealthy(oc)
 		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy before starting test")
 
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		nodes, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically("==", 2), "Expected to find 2 Nodes only")
 
@@ -67,6 +69,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		peerNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
+		g.GinkgoT().Printf("Randomly selected %s (%s) to be shut down and %s (%s) to take the lead\n", targetNode.Name, targetNode.Status.Addresses[0].Address, &peerNode.Name, peerNode.Status.Addresses[0].Address)
 
 		kubeClient := oc.KubeClient()
 		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
@@ -285,14 +288,13 @@ func ensureEtcdOperatorHealthy(oc *util.CLI) error {
 	}
 
 	// Check if etcd operator is Available
-	available := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorAvailable)
-	if available == nil || available.Status != v1.ConditionTrue {
-		return fmt.Errorf("etcd ClusterOperator is not Available: %v", available)
+	if !utils.IsClusterOperatorAvailable(etcdOperator) {
+		return fmt.Errorf("etcd ClusterOperator is not Available")
 	}
 
 	// Check if etcd operator is not Degraded
-	degraded := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorDegraded)
-	if degraded != nil && degraded.Status == v1.ConditionTrue {
+	if utils.IsClusterOperatorDegraded(etcdOperator) {
+		degraded := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorDegraded)
 		return fmt.Errorf("etcd ClusterOperator is Degraded: %s", degraded.Message)
 	}
 

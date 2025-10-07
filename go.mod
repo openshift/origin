@@ -53,18 +53,19 @@ require (
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
 	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-sqlite3 v1.14.30
+	github.com/metal3-io/baremetal-operator/apis v0.11.1
 	github.com/metallb/frr-k8s v0.0.15
 	github.com/microsoftgraph/msgraph-sdk-go v1.81.0
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.37.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/openshift-eng/openshift-tests-extension v0.0.0-20250711173707-dc2a20e5a5f8
-	github.com/openshift/api v3.9.0+incompatible
+	github.com/openshift/api v0.0.0-20251016080153-44baf885fd37
 	github.com/openshift/apiserver-library-go v0.0.0-20250710132015-f0d44ef6e53b
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
 	github.com/openshift/client-go v0.0.0-20250710075018-396b36f983ee
 	github.com/openshift/library-go v0.0.0-20250812160438-378de074fe7b
-	github.com/operator-framework/operator-lifecycle-manager v0.30.1-0.20250114164243-1b6752ec65fa
+	github.com/operator-framework/operator-lifecycle-manager v0.22.0
 	github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
@@ -79,7 +80,7 @@ require (
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/objx v0.5.2
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tecbiz-ch/nutanix-go-sdk v0.1.15
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/pretty v1.2.0
@@ -101,9 +102,9 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.33.4
+	k8s.io/api v0.33.5
 	k8s.io/apiextensions-apiserver v0.33.4
-	k8s.io/apimachinery v0.33.4
+	k8s.io/apimachinery v0.33.5
 	k8s.io/apiserver v0.33.4
 	k8s.io/cli-runtime v0.33.4
 	k8s.io/client-go v0.33.4
@@ -399,7 +400,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient v0.0.29 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16 // indirect
-	sigs.k8s.io/controller-runtime v0.19.4 // indirect
+	sigs.k8s.io/controller-runtime v0.21.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect

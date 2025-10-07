@@ -21,13 +21,10 @@ const (
 	pcsResourceDebugStop         = "resource debug-stop etcd"
 	pcsResourceDebugStartEnvVars = "OCF_RESKEY_CRM_meta_notify_start_resource='etcd'"
 	pcsResourceDebugStart        = "resource debug-start etcd"
-	pcsDisableStonith            = "property set stonith-enabled=false"
-	pcsEnableStonith             = "property set stonith-enabled=true"
 	pcsClusterNodeRemove         = "cluster node remove %s"
 	pcsResourceStatus            = "resource status etcd node=%s"
 	pcsStatus                    = "status"
 	pcsStatusXML                 = "status xml"
-	pcsQuorumUnblock             = "quorum unblock --yes"
 	pcsResourceCleanup           = "resource cleanup"
 	pcsStonithCleanup            = "stonith cleanup"
 )
