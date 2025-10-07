@@ -81,6 +81,38 @@ func GetNodes(oc *exutil.CLI, roleLabel string) (*corev1.NodeList, error) {
 	})
 }
 
+// IsNodeReady checks if a node exists and is in Ready state.
+// Returns true if the node exists and has Ready condition, false otherwise.
+//
+//	if !IsNodeReady(oc, "master-0") { /* node not ready, approve CSRs */ }
+func IsNodeReady(oc *exutil.CLI, nodeName string) bool {
+	node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		// Node doesn't exist or error retrieving it
+		return false
+	}
+
+	// Check node conditions for Ready status
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IsAPIResponding checks if the Kubernetes API server is responding to requests.
+// Returns true if the API responds successfully, false otherwise.
+//
+//	if !IsAPIResponding(oc) { /* API not ready, continue waiting */ }
+func IsAPIResponding(oc *exutil.CLI) bool {
+	// Try a simple API call to check if the server is responding
+	// Using whoami is lightweight and doesn't require specific permissions
+	_, err := oc.AsAdmin().Run("whoami").Output()
+	return err == nil
+}
+
 // UnmarshalJSON parses JSON string into a Go type using generics.
 //
 //	var node corev1.Node
