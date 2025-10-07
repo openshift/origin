@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/two_node/utils"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	appv1 "k8s.io/api/apps/v1"
@@ -40,7 +41,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("")
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("Should validate that there are Master and Arbiter nodes as specified in the cluster", func() {
@@ -51,15 +52,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 			expectedMasterNodes  = 2
 			expectedArbiterNodes = 1
 		)
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleMaster,
-		})
+		masterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
 		o.Expect(len(masterNodes.Items)).To(o.Equal(expectedMasterNodes))
 
-		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		arbiterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter nodes without error")
 		o.Expect(len(arbiterNodes.Items)).To(o.Equal(expectedArbiterNodes))
 	})
@@ -71,13 +68,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("")
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 	g.It("Should verify that the correct number of pods are running on the Arbiter node", func() {
 		g.By("Retrieving the Arbiter node name")
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		nodes, err := utils.GetNodes(oc, utils.LabelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodes.Items)).To(o.Equal(1))
 		g.By("by comparing pod counts")
@@ -102,7 +97,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 
 	oc := exutil.NewCLI("arbiter-pod-validation").SetManagedNamespace().AsAdmin()
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should be created on arbiter nodes when arbiter node is selected", func() {
@@ -112,7 +107,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		defer cancel()
 		err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 300*time.Second, true, func(ctx context.Context) (done bool, err error) {
 			arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-				LabelSelector: labelNodeRoleArbiter,
+				LabelSelector: utils.LabelNodeRoleArbiter,
 			})
 			if kapierror.IsTimeout(err) {
 				return false, nil
@@ -154,7 +149,7 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 		ctx := context.Background()
 		g.By("Retrieving Master nodes")
 		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: labelNodeRoleMaster,
+			LabelSelector: utils.LabelNodeRoleControlPlane,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Master nodes without error")
 		o.Expect(len(masterNodes.Items)).To(o.Equal(2), "Expected to find two Master nodes")
@@ -197,13 +192,13 @@ var _ = g.Describe("[sig-apps][apigroup:apps.openshift.io][OCPFeatureGate:Highly
 	oc := exutil.NewCLI("daemonset-pod-validation").SetManagedNamespace().AsAdmin()
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should not create a DaemonSet on the Arbiter node", func() {
 		g.By("Retrieving the Arbiter node")
 		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
+			LabelSelector: utils.LabelNodeRoleArbiter,
 		})
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve Arbiter node without error")
 		o.Expect(len(arbiterNodes.Items)).To(o.BeNumerically(">", 0), "Expected at least one Arbiter node")
@@ -247,7 +242,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should have all etcd pods running and quorum met", func() {
@@ -276,8 +271,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 		o.Expect(err).To(o.BeNil(), "Expected to retrieve etcd ClusterOperator without error")
 
 		g.By("Verifying ClusterOperator conditions for Availability and Degradation")
-		o.Expect(isClusterOperatorAvailable(etcdOperator)).To(o.BeTrue(), "Expected etcd operator to be available, indicating quorum is met")
-		o.Expect(isClusterOperatorDegraded(etcdOperator)).To(o.BeFalse(), "Expected etcd operator not to be degraded")
+		o.Expect(utils.IsClusterOperatorAvailable(etcdOperator)).To(o.BeTrue(), "Expected etcd operator to be available, indicating quorum is met")
+		o.Expect(utils.IsClusterOperatorDegraded(etcdOperator)).To(o.BeFalse(), "Expected etcd operator not to be degraded")
 	})
 })
 

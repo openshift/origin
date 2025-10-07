@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	o "github.com/onsi/gomega"
+	"k8s.io/klog/v2"
 )
 
 // --- Error Pattern Standardization ---
@@ -39,6 +40,14 @@ func NewError(operation, details string) error {
 //	return ValidationError("node name", "contains invalid characters")
 func ValidationError(field, reason string) error {
 	return fmt.Errorf("%s: %s", field, reason)
+}
+
+// ValidationWarning logs a non-fatal validation issue that doesn't prevent test execution.
+// Use for best practices or environment-specific checks that may differ in CI vs prod.
+//
+//	ValidationWarning("config", "suboptimal setting detected but will continue")
+func ValidationWarning(field, reason string) {
+	klog.Warningf("VALIDATION WARNING [%s]: %s", field, reason)
 }
 
 // ValidateResourceName ensures a name is safe for shell commands (prevents command injection).
@@ -77,6 +86,8 @@ func ValidateResourceName(name, resourceType string) error {
 }
 
 // ValidateSSHKeyPermissions checks SSH private key has secure permissions (0600 or 0400).
+// Logs a warning for insecure permissions but continues to support CI environments where
+// file permissions may be set differently (e.g., 0644).
 //
 //	if err := ValidateSSHKeyPermissions(privateKeyPath); err != nil { return err }
 func ValidateSSHKeyPermissions(keyPath string) error {
@@ -91,7 +102,9 @@ func ValidateSSHKeyPermissions(keyPath string) error {
 
 	mode := info.Mode().Perm()
 	if mode&0077 != 0 {
-		return ValidationError("SSH key permissions", fmt.Sprintf("%s has insecure permissions %o (should be 0600 or 0400)", keyPath, mode))
+		ValidationWarning("SSH key permissions",
+			fmt.Sprintf("%s has permissions %o (recommended: 0600 or 0400). "+
+				"This may be acceptable in CI environments but should be fixed in production.", keyPath, mode))
 	}
 
 	return nil

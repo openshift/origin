@@ -74,10 +74,15 @@ func CreateFromTemplate(templatePath string, replacements map[string]string) (st
 		return "", nil, WrapError("validate template path", templatePath, err)
 	}
 
+	// Use FixturePath to get the absolute path to the template file
+	// This handles the case where tests run from different working directories
+	absolutePath := exutil.FixturePath(templatePath)
+	klog.V(4).Infof("Resolved template path to: %s", absolutePath)
+
 	// Read the template file
-	templateContent, err := os.ReadFile(templatePath)
+	templateContent, err := os.ReadFile(absolutePath)
 	if err != nil {
-		return "", nil, WrapError("read template", templatePath, err)
+		return "", nil, WrapError("read template", fmt.Sprintf("%s (resolved from %s)", absolutePath, templatePath), err)
 	}
 
 	// Apply all placeholder replacements
@@ -128,10 +133,15 @@ func CreateResourceFromTemplate(oc *exutil.CLI, templatePath string, replacement
 		return WrapError("validate template path", templatePath, err)
 	}
 
+	// Use FixturePath to get the absolute path to the template file
+	// This handles the case where tests run from different working directories
+	absolutePath := exutil.FixturePath(templatePath)
+	klog.V(4).Infof("Resolved template path to: %s", absolutePath)
+
 	// Read the template file
-	templateContent, err := os.ReadFile(templatePath)
+	templateContent, err := os.ReadFile(absolutePath)
 	if err != nil {
-		return WrapError("read template", templatePath, err)
+		return WrapError("read template", fmt.Sprintf("%s (resolved from %s)", absolutePath, templatePath), err)
 	}
 
 	// Apply all placeholder replacements

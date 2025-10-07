@@ -10,6 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/two_node/utils"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -28,16 +29,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 
 	g.It("should maintain etcd quorum and workloads with one master node down", func() {
 		ctx := context.Background()
 
 		g.By("Identifying one master node to simulate failure")
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: labelNodeRoleMaster,
-		})
+		masterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
 		o.Expect(err).To(o.BeNil())
 		o.Expect(masterNodes.Items).To(o.HaveLen(2))
 		targetNode := masterNodes.Items[0].Name
@@ -54,15 +53,14 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 			if err != nil {
 				return false, nil
 			}
-			return isClusterOperatorAvailable(operator), nil
+			return utils.IsClusterOperatorAvailable(operator), nil
 		})
 		o.Expect(err).To(o.BeNil(), "Expected etcd operator to remain healthy while one master node is NotReady")
 	})
 	g.AfterEach(func() {
-		ctx := context.Background()
 		g.By("Ensuring all cluster nodes are back to Ready state")
 
-		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		nodeList, err := utils.GetNodes(oc, utils.AllNodes)
 		o.Expect(err).To(o.BeNil(), "Failed to list cluster nodes")
 
 		for _, node := range nodeList.Items {
@@ -76,15 +74,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 	oc := exutil.NewCLIWithoutNamespace("").AsAdmin()
 	var arbiterNodeName string
 	g.BeforeEach(func() {
-		skipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
+		utils.SkipIfNotTopology(oc, v1.HighlyAvailableArbiterMode)
 	})
 	g.It("should regain quorum after arbiter down and master nodes restart", func() {
-		ctx := context.Background()
-
 		g.By("Getting arbiter node")
-		arbiterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: labelNodeRoleArbiter,
-		})
+		arbiterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleArbiter)
 		o.Expect(err).To(o.BeNil())
 		o.Expect(arbiterNodes.Items).To(o.HaveLen(1))
 		arbiterNode := arbiterNodes.Items[0]
@@ -99,31 +93,31 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:High
 		waitForNodeCondition(oc, arbiterNodeName, corev1.NodeReady, corev1.ConditionUnknown, statusUnknown, 5*time.Minute)
 
 		g.By("Rebooting both master nodes")
-		masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: labelNodeRoleMaster,
-		})
+		masterNodes, err := utils.GetNodes(oc, utils.LabelNodeRoleControlPlane)
 		o.Expect(err).To(o.BeNil())
-		for _, node := range masterNodes.Items {
-			shutdownOrRebootNode(oc, node.Name, "openshift-etcd", "shutdown", "-r", "+1")
+		o.Expect(masterNodes.Items).To(o.HaveLen(2))
+
+		for _, masterNode := range masterNodes.Items {
+			shutdownOrRebootNode(oc, masterNode.Name, "openshift-etcd", "shutdown", "-r", "+1")
 		}
 
 		g.By("Waiting for master nodes to become NotReady")
-		for _, node := range masterNodes.Items {
-			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionFalse, statusNotReady, 10*time.Minute)
+		for _, masterNode := range masterNodes.Items {
+			waitForNodeCondition(oc, masterNode.Name, corev1.NodeReady, corev1.ConditionFalse, statusNotReady, 10*time.Minute)
 		}
 
 		g.By("Waiting for master nodes to become Ready")
-		for _, node := range masterNodes.Items {
-			waitForNodeCondition(oc, node.Name, corev1.NodeReady, corev1.ConditionTrue, statusReady, 15*time.Minute)
+		for _, masterNode := range masterNodes.Items {
+			waitForNodeCondition(oc, masterNode.Name, corev1.NodeReady, corev1.ConditionTrue, statusReady, 15*time.Minute)
 		}
 
 		g.By("Waiting for etcd quorum to be restored")
-		err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, func(ctx context.Context) (bool, error) {
+		err = wait.PollUntilContextTimeout(context.Background(), 15*time.Second, 15*time.Minute, true, func(ctx context.Context) (bool, error) {
 			operator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "etcd", metav1.GetOptions{})
 			if err != nil {
 				return false, nil
 			}
-			return isClusterOperatorAvailable(operator), nil
+			return utils.IsClusterOperatorAvailable(operator), nil
 		})
 		o.Expect(err).To(o.BeNil(), "Expected etcd operator to become available again")
 	})
