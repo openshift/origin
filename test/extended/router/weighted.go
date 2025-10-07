@@ -245,7 +245,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"),
 							Args: []string{
 								"netexec",
 							},
@@ -276,7 +276,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"),
 							Args: []string{
 								"netexec",
 							},
@@ -307,7 +307,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"),
 							Args: []string{
 								"netexec",
 							},

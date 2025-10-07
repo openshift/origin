@@ -308,7 +308,7 @@ spec:
 		}
 		o.Expect(readyWorkerNode).NotTo(o.BeEmpty(), "No ready worker node found")
 
-		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--image="+image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"), "--keep-labels=true", "--preserve-pod=true", "--", "sleep", "1").Execute()
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--image="+image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"), "--keep-labels=true", "--preserve-pod=true", "--", "sleep", "1").Execute()
 		pods, err := oc.AdminKubeClient().CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: "debug.openshift.io/managed-by=oc-debug"})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pods.Items).To(o.HaveLen(1))
@@ -329,7 +329,7 @@ spec:
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Expected debug pod to be deleted")
 
-		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--image="+image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"), "--preserve-pod=true", "--", "sleep", "1").Execute()
+		err = oc.AsAdmin().Run("debug").Args("node/"+readyWorkerNode, "--image="+image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.56"), "--preserve-pod=true", "--", "sleep", "1").Execute()
 
 		// Tests the code fix in https://github.com/openshift/oc/pull/2074
 		o.Expect(err).NotTo(o.HaveOccurred())
