@@ -64,6 +64,7 @@ func extractServiceCatalogAPIServer(serviceCatalogAPIServer *operatorv1.ServiceC
 	b.WithAPIVersion("operator.openshift.io/v1")
 	return b, nil
 }
+func (b ServiceCatalogAPIServerApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
@@ -239,8 +240,24 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithStatus(value *ServiceCat
 	return b
 }
 
+// GetKind retrieves the value of the Kind field in the declarative configuration.
+func (b *ServiceCatalogAPIServerApplyConfiguration) GetKind() *string {
+	return b.TypeMetaApplyConfiguration.Kind
+}
+
+// GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
+func (b *ServiceCatalogAPIServerApplyConfiguration) GetAPIVersion() *string {
+	return b.TypeMetaApplyConfiguration.APIVersion
+}
+
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *ServiceCatalogAPIServerApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
+}
+
+// GetNamespace retrieves the value of the Namespace field in the declarative configuration.
+func (b *ServiceCatalogAPIServerApplyConfiguration) GetNamespace() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.ObjectMetaApplyConfiguration.Namespace
 }

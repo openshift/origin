@@ -8,6 +8,7 @@ type MachineConfigNodeSpecApplyConfiguration struct {
 	Node          *MCOObjectReferenceApplyConfiguration                        `json:"node,omitempty"`
 	Pool          *MCOObjectReferenceApplyConfiguration                        `json:"pool,omitempty"`
 	ConfigVersion *MachineConfigNodeSpecMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
+	ConfigImage   *MachineConfigNodeSpecConfigImageApplyConfiguration          `json:"configImage,omitempty"`
 }
 
 // MachineConfigNodeSpecApplyConfiguration constructs a declarative configuration of the MachineConfigNodeSpec type for use with
@@ -37,5 +38,13 @@ func (b *MachineConfigNodeSpecApplyConfiguration) WithPool(value *MCOObjectRefer
 // If called multiple times, the ConfigVersion field is set to the value of the last call.
 func (b *MachineConfigNodeSpecApplyConfiguration) WithConfigVersion(value *MachineConfigNodeSpecMachineConfigVersionApplyConfiguration) *MachineConfigNodeSpecApplyConfiguration {
 	b.ConfigVersion = value
+	return b
+}
+
+// WithConfigImage sets the ConfigImage field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ConfigImage field is set to the value of the last call.
+func (b *MachineConfigNodeSpecApplyConfiguration) WithConfigImage(value *MachineConfigNodeSpecConfigImageApplyConfiguration) *MachineConfigNodeSpecApplyConfiguration {
+	b.ConfigImage = value
 	return b
 }

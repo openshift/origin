@@ -6,12 +6,16 @@ func readByte(reader io.Reader) (byte, error) {
 	bytes := make([]byte, 1)
 	_, err := io.ReadFull(reader, bytes)
 	if err != nil {
-		if err == io.EOF {
-			return 0, io.ErrUnexpectedEOF
-		}
 		return 0, err
 	}
 	return bytes[0], nil
+}
+
+func unexpectedEOF(err error) error {
+	if err == io.EOF {
+		return io.ErrUnexpectedEOF
+	}
+	return err
 }
 
 func isEOCPacket(p *Packet) bool {

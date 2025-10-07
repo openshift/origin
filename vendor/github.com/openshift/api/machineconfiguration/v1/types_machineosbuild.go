@@ -11,7 +11,6 @@ import (
 // +kubebuilder:resource:path=machineosbuilds,scope=Cluster
 // +kubebuilder:subresource:status
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2090
-// +openshift:enable:FeatureGate=OnClusterBuild
 // +openshift:file-pattern=cvoRunLevel=0000_80,operatorName=machine-config,operatorOrdering=01
 // +kubebuilder:metadata:labels=openshift.io/operator-managed=
 // +kubebuilder:printcolumn:name="Prepared",type="string",JSONPath=.status.conditions[?(@.type=="Prepared")].status

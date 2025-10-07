@@ -6,6 +6,7 @@ import (
 	ber "github.com/go-asn1-ber/asn1-ber"
 )
 
+// ErrConnUnbound is returned when Unbind is called on an already closing connection.
 var ErrConnUnbound = NewError(ErrorNetwork, errors.New("ldap: connection is closed"))
 
 type unbindRequest struct{}

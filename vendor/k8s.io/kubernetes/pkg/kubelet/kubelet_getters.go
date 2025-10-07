@@ -280,11 +280,6 @@ func (kl *Kubelet) GetPodByCgroupfs(cgroupfs string) (*v1.Pod, bool) {
 	return nil, false
 }
 
-// GetHostname Returns the hostname as the kubelet sees it.
-func (kl *Kubelet) GetHostname() string {
-	return kl.hostname
-}
-
 // getRuntime returns the current Runtime implementation in use by the kubelet.
 func (kl *Kubelet) getRuntime() kubecontainer.Runtime {
 	return kl.containerRuntime
@@ -320,15 +315,6 @@ func (kl *Kubelet) GetNodeConfig() cm.NodeConfig {
 // GetPodCgroupRoot returns the listeral cgroupfs value for the cgroup containing all pods
 func (kl *Kubelet) GetPodCgroupRoot() string {
 	return kl.containerManager.GetPodCgroupRoot()
-}
-
-// GetHostIPs returns host IPs or nil in case of error.
-func (kl *Kubelet) GetHostIPs() ([]net.IP, error) {
-	node, err := kl.GetNode()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get node: %v", err)
-	}
-	return utilnode.GetNodeHostIPs(node)
 }
 
 // getHostIPsAnyWay attempts to return the host IPs from kubelet's nodeInfo, or
@@ -480,4 +466,14 @@ func (kl *Kubelet) setCachedMachineInfo(info *cadvisorapiv1.MachineInfo) {
 	kl.machineInfoLock.Lock()
 	defer kl.machineInfoLock.Unlock()
 	kl.machineInfo = info
+}
+
+// getLastStableNodeAddresses returns the last observed node addresses.
+func (kl *Kubelet) getLastObservedNodeAddresses() []v1.NodeAddress {
+	node, err := kl.GetNode()
+	if err != nil || node == nil {
+		klog.V(4).InfoS("fail to obtain node from local cache", "node", kl.nodeName, "error", err)
+		return nil
+	}
+	return node.Status.Addresses
 }

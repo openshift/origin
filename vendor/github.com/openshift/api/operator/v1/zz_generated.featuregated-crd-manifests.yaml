@@ -155,7 +155,6 @@ etcds.operator.openshift.io:
   Category: coreoperators
   FeatureGates:
   - EtcdBackendQuota
-  - HardwareSpeed
   FilenameOperatorName: etcd
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_12"
@@ -306,6 +305,7 @@ machineconfigurations.operator.openshift.io:
   Capability: ""
   Category: ""
   FeatureGates:
+  - IrreconcilableMachineConfig
   - ManagedBootImages
   FilenameOperatorName: machine-config
   FilenameOperatorOrdering: "01"

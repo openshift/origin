@@ -69,6 +69,7 @@ func extractTemplate(template *templatev1.Template, fieldManager string, subreso
 	b.WithAPIVersion("template.openshift.io/v1")
 	return b, nil
 }
+func (b TemplateApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
@@ -273,8 +274,24 @@ func (b *TemplateApplyConfiguration) WithObjectLabels(entries map[string]string)
 	return b
 }
 
+// GetKind retrieves the value of the Kind field in the declarative configuration.
+func (b *TemplateApplyConfiguration) GetKind() *string {
+	return b.TypeMetaApplyConfiguration.Kind
+}
+
+// GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
+func (b *TemplateApplyConfiguration) GetAPIVersion() *string {
+	return b.TypeMetaApplyConfiguration.APIVersion
+}
+
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *TemplateApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
+}
+
+// GetNamespace retrieves the value of the Namespace field in the declarative configuration.
+func (b *TemplateApplyConfiguration) GetNamespace() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.ObjectMetaApplyConfiguration.Namespace
 }

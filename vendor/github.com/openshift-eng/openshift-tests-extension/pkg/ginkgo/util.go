@@ -1,6 +1,7 @@
 package ginkgo
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -35,6 +36,7 @@ func configureGinkgo() (*types.SuiteConfig, *types.ReporterConfig, error) {
 
 	// Write output to Stderr
 	ginkgo.GinkgoWriter = ginkgo.NewWriter(os.Stderr)
+	ginkgo.GinkgoLogr = GinkgoLogrFunc(ginkgo.GinkgoWriter)
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
@@ -69,7 +71,7 @@ func BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(selectFns ...ext.SelectFunc
 			Labels:        sets.New[string](spec.Labels()...),
 			CodeLocations: codeLocations,
 			Lifecycle:     GetLifecycle(spec.Labels()),
-			Run: func() *ext.ExtensionTestResult {
+			Run: func(ctx context.Context) *ext.ExtensionTestResult {
 				enforceSerialExecutionForGinkgo.Lock()
 				defer enforceSerialExecutionForGinkgo.Unlock()
 
@@ -94,7 +96,7 @@ func BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(selectFns ...ext.SelectFunc
 				switch {
 				case summary.State == types.SpecStatePassed:
 					result.Result = ext.ResultPassed
-				case summary.State == types.SpecStateSkipped:
+				case summary.State == types.SpecStateSkipped, summary.State == types.SpecStatePending:
 					result.Result = ext.ResultSkipped
 					if len(summary.Failure.Message) > 0 {
 						result.Output = fmt.Sprintf(
@@ -129,6 +131,10 @@ func BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(selectFns ...ext.SelectFunc
 				}
 
 				return result
+			},
+			RunParallel: func(ctx context.Context) *ext.ExtensionTestResult {
+				// TODO pass through timeout and determine Lifecycle
+				return SpawnProcessToRunTest(ctx, name, 90*time.Minute)
 			},
 		}
 		specs = append(specs, testCase)

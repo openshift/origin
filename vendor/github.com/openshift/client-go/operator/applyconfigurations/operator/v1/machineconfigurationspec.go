@@ -11,8 +11,9 @@ import (
 // with apply.
 type MachineConfigurationSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
-	ManagedBootImages                       *ManagedBootImagesApplyConfiguration          `json:"managedBootImages,omitempty"`
-	NodeDisruptionPolicy                    *NodeDisruptionPolicyConfigApplyConfiguration `json:"nodeDisruptionPolicy,omitempty"`
+	ManagedBootImages                       *ManagedBootImagesApplyConfiguration                 `json:"managedBootImages,omitempty"`
+	NodeDisruptionPolicy                    *NodeDisruptionPolicyConfigApplyConfiguration        `json:"nodeDisruptionPolicy,omitempty"`
+	IrreconcilableValidationOverrides       *IrreconcilableValidationOverridesApplyConfiguration `json:"irreconcilableValidationOverrides,omitempty"`
 }
 
 // MachineConfigurationSpecApplyConfiguration constructs a declarative configuration of the MachineConfigurationSpec type for use with
@@ -98,5 +99,13 @@ func (b *MachineConfigurationSpecApplyConfiguration) WithManagedBootImages(value
 // If called multiple times, the NodeDisruptionPolicy field is set to the value of the last call.
 func (b *MachineConfigurationSpecApplyConfiguration) WithNodeDisruptionPolicy(value *NodeDisruptionPolicyConfigApplyConfiguration) *MachineConfigurationSpecApplyConfiguration {
 	b.NodeDisruptionPolicy = value
+	return b
+}
+
+// WithIrreconcilableValidationOverrides sets the IrreconcilableValidationOverrides field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IrreconcilableValidationOverrides field is set to the value of the last call.
+func (b *MachineConfigurationSpecApplyConfiguration) WithIrreconcilableValidationOverrides(value *IrreconcilableValidationOverridesApplyConfiguration) *MachineConfigurationSpecApplyConfiguration {
+	b.IrreconcilableValidationOverrides = value
 	return b
 }
