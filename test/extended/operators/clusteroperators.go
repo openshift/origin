@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -110,7 +111,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 							Group:    relatedObj.Group,
 							Resource: relatedObj.Resource,
 						})
-						o.Expect(err).ToNot(o.HaveOccurred())
+						o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("unexpected error while getting mapping for relatedObject of cluster operator '%s'", clusterOperator.Name))
 						o.Expect(len(resourceMatches)).To(o.BeNumerically(">", 0),
 							"No valid rest mapping found for cluster operator %s related object %s",
 							clusterOperator.Name, relatedObj.Resource)
