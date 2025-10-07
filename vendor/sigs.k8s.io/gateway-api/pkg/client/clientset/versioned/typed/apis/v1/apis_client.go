@@ -19,15 +19,16 @@ limitations under the License.
 package v1
 
 import (
-	"net/http"
+	http "net/http"
 
 	rest "k8s.io/client-go/rest"
-	v1 "sigs.k8s.io/gateway-api/apis/v1"
-	"sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
+	apisv1 "sigs.k8s.io/gateway-api/apis/v1"
+	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
 type GatewayV1Interface interface {
 	RESTClient() rest.Interface
+	BackendTLSPoliciesGetter
 	GRPCRoutesGetter
 	GatewaysGetter
 	GatewayClassesGetter
@@ -37,6 +38,10 @@ type GatewayV1Interface interface {
 // GatewayV1Client is used to interact with features provided by the gateway.networking.k8s.io group.
 type GatewayV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *GatewayV1Client) BackendTLSPolicies(namespace string) BackendTLSPolicyInterface {
+	return newBackendTLSPolicies(c, namespace)
 }
 
 func (c *GatewayV1Client) GRPCRoutes(namespace string) GRPCRouteInterface {
@@ -60,9 +65,7 @@ func (c *GatewayV1Client) HTTPRoutes(namespace string) HTTPRouteInterface {
 // where httpClient was generated with rest.HTTPClientFor(c).
 func NewForConfig(c *rest.Config) (*GatewayV1Client, error) {
 	config := *c
-	if err := setConfigDefaults(&config); err != nil {
-		return nil, err
-	}
+	setConfigDefaults(&config)
 	httpClient, err := rest.HTTPClientFor(&config)
 	if err != nil {
 		return nil, err
@@ -74,9 +77,7 @@ func NewForConfig(c *rest.Config) (*GatewayV1Client, error) {
 // Note the http client provided takes precedence over the configured transport values.
 func NewForConfigAndClient(c *rest.Config, h *http.Client) (*GatewayV1Client, error) {
 	config := *c
-	if err := setConfigDefaults(&config); err != nil {
-		return nil, err
-	}
+	setConfigDefaults(&config)
 	client, err := rest.RESTClientForConfigAndClient(&config, h)
 	if err != nil {
 		return nil, err
@@ -99,17 +100,15 @@ func New(c rest.Interface) *GatewayV1Client {
 	return &GatewayV1Client{c}
 }
 
-func setConfigDefaults(config *rest.Config) error {
-	gv := v1.SchemeGroupVersion
+func setConfigDefaults(config *rest.Config) {
+	gv := apisv1.SchemeGroupVersion
 	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	config.NegotiatedSerializer = scheme.Codecs.WithoutConversion()
+	config.NegotiatedSerializer = rest.CodecFactoryForGeneratedClient(scheme.Scheme, scheme.Codecs).WithoutConversion()
 
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()
 	}
-
-	return nil
 }
 
 // RESTClient returns a RESTClient that is used to communicate
