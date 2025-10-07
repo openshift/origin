@@ -1,0 +1,41 @@
+kind: VerticalPodAutoscalerController
+apiVersion: autoscaling.openshift.io/v1
+metadata:
+  name: vpa-70962
+  namespace: openshift-vertical-pod-autoscaler
+spec:
+  deploymentOverrides:
+    admission:
+      container:
+        args:
+          - '--kube-api-qps=30.0'
+          - '--kube-api-burst=40.0'
+        resources:
+          requests:
+            cpu: 40m
+            memory: 40Mi
+    recommender:
+      container:
+        args:
+          - '--kube-api-qps=20.0'
+          - '--kube-api-burst=60.0'
+          - '--memory-saver=true'
+        resources:
+          requests:
+            cpu: 60m
+            memory: 60Mi
+    updater:
+      container:
+        args:
+          - '--kube-api-qps=20.0'
+          - '--kube-api-burst=80.0'
+        resources:
+          requests:
+            cpu: 80m
+            memory: 80Mi
+  minReplicas: 2
+  podMinCPUMillicores: 25
+  podMinMemoryMb: 250
+  recommendationOnly: false
+  safetyMarginFraction: 0.15
+

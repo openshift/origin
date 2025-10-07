@@ -448,10 +448,101 @@
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
+// test/extended/testdata/node/ContainerRuntimeConfigMaster-78610.yaml
+// test/extended/testdata/node/ContainerRuntimeConfigWorker-78610.yaml
+// test/extended/testdata/node/ImageContentSourcePolicy-1.yaml
+// test/extended/testdata/node/ImageContentSourcePolicy.yaml
+// test/extended/testdata/node/ImageDigestMirrorSet-1.yaml
+// test/extended/testdata/node/ImageDigestMirrorSet.yaml
+// test/extended/testdata/node/ImageTagMirrorSet.yaml
+// test/extended/testdata/node/amq-operatorgroup-52384.yaml
+// test/extended/testdata/node/amq-sub.yaml
+// test/extended/testdata/node/clusterresource-override.yaml
+// test/extended/testdata/node/cma-keda-controller-template.yaml
+// test/extended/testdata/node/containerRuntimeConfig-crun.yaml
+// test/extended/testdata/node/containerRuntimeConfig-overlay.yaml
+// test/extended/testdata/node/containerRuntimeConfig_log_level.yaml
+// test/extended/testdata/node/cpu-performanceprofile.yaml
+// test/extended/testdata/node/cr-operatorgroup.yaml
+// test/extended/testdata/node/cr-subscription.yaml
+// test/extended/testdata/node/custom-kubelet-test1.yaml
+// test/extended/testdata/node/custom-kubelet-test2.yaml
+// test/extended/testdata/node/generic-deployment.yaml
+// test/extended/testdata/node/guaranteed-deployment.yaml
+// test/extended/testdata/node/image-config.json
+// test/extended/testdata/node/imagePolicy.yaml
+// test/extended/testdata/node/kafka-52384.yaml
+// test/extended/testdata/node/kafka-consumer-deployment-52384.yaml
+// test/extended/testdata/node/kafka-load-52384.yaml
+// test/extended/testdata/node/kafka-scaledobject-52384.yaml
+// test/extended/testdata/node/kafka-topic-52384.yaml
+// test/extended/testdata/node/keda-controller-default.yaml
+// test/extended/testdata/node/keda-hpa-demo-deployment.yaml
+// test/extended/testdata/node/kubeletconfig-cpumanager.yaml
+// test/extended/testdata/node/kubeletconfig-defaultsysres.yaml
+// test/extended/testdata/node/kubeletconfig-hardeviction.yaml
+// test/extended/testdata/node/kubeletconfig-maxpod.yaml
+// test/extended/testdata/node/kubeletconfig-runReqTout.yaml
+// test/extended/testdata/node/livenessProbe-terminationPeriod.yaml
+// test/extended/testdata/node/livenessProbe-without-terminationPeriod.yaml
+// test/extended/testdata/node/load-52385.yaml
+// test/extended/testdata/node/machineconfig-cpu-override-52328.yaml
+// test/extended/testdata/node/machineconfig-cpu-override.yaml
+// test/extended/testdata/node/machineconfig-image-signature-59552.yaml
+// test/extended/testdata/node/machineconfig-log-link.yaml
+// test/extended/testdata/node/machineconfig-wasm.yaml
+// test/extended/testdata/node/machineconfigpool-affinity.yaml
+// test/extended/testdata/node/mem-hog-ocp11600.yaml
+// test/extended/testdata/node/mem-scaledobject.yaml
 // test/extended/testdata/node/nested_container/Dockerfile
 // test/extended/testdata/node/nested_container/containers.conf
 // test/extended/testdata/node/nested_container/run_tests.sh
 // test/extended/testdata/node/nested_container/skip_tests.sh
+// test/extended/testdata/node/ns-clusterresource-operator.yaml
+// test/extended/testdata/node/ns-keda-operator.yaml
+// test/extended/testdata/node/ns-vpa-operator.yaml
+// test/extended/testdata/node/operatorgroup.yaml
+// test/extended/testdata/node/pod-cpu-load-balance.yaml
+// test/extended/testdata/node/pod-dev-fuse.yaml
+// test/extended/testdata/node/pod-disruption-budget.yaml
+// test/extended/testdata/node/pod-guaranteed.yaml
+// test/extended/testdata/node/pod-hello.yaml
+// test/extended/testdata/node/pod-initContainer.yaml
+// test/extended/testdata/node/pod-liveness-probe.yaml
+// test/extended/testdata/node/pod-loglink.yaml
+// test/extended/testdata/node/pod-modify.yaml
+// test/extended/testdata/node/pod-sigStore.yaml
+// test/extended/testdata/node/pod-termination.yaml
+// test/extended/testdata/node/pod-user-namespace.yaml
+// test/extended/testdata/node/pod-wasm.yaml
+// test/extended/testdata/node/pod-with-two-containers.yaml
+// test/extended/testdata/node/pod-without-workload-cpu.yaml
+// test/extended/testdata/node/pod-workload-cpu-without-anotation.yaml
+// test/extended/testdata/node/pod-workload-cpu.yaml
+// test/extended/testdata/node/prometheus-comsumer-deployment.yaml
+// test/extended/testdata/node/prometheus-configmap.yaml
+// test/extended/testdata/node/pvc-60964.yaml
+// test/extended/testdata/node/pvcKedaControllerTemp-60964.yaml
+// test/extended/testdata/node/readinessProbe-terminationPeriod.yaml
+// test/extended/testdata/node/role.yaml
+// test/extended/testdata/node/rolebinding-52385.yaml
+// test/extended/testdata/node/rolebinding-73296.yaml
+// test/extended/testdata/node/scaledobject-52385.yaml
+// test/extended/testdata/node/secret-52385.yaml
+// test/extended/testdata/node/servicetoken-52385.yaml
+// test/extended/testdata/node/servicetoken-73296.yaml
+// test/extended/testdata/node/sleepPod46306.yaml
+// test/extended/testdata/node/startupProbe-terminationPeriod.yaml
+// test/extended/testdata/node/sub-template.yaml
+// test/extended/testdata/node/subscription.yaml
+// test/extended/testdata/node/testdeployment-73296.yaml
+// test/extended/testdata/node/timezonescaledobject-73296.yaml
+// test/extended/testdata/node/triggerauthentication-52385.yaml
+// test/extended/testdata/node/triggerauthentication-73296.yaml
+// test/extended/testdata/node/vpa-operatorgroup.yaml
+// test/extended/testdata/node/vpa-subscription.yaml
+// test/extended/testdata/node/vpacontroller-70961.yaml
+// test/extended/testdata/node/vpacontroller-70962.yaml
 // test/extended/testdata/node/zstd-chunked/Dockerfile
 // test/extended/testdata/node/zstd-chunked/Dockerfile.sample
 // test/extended/testdata/node/zstd-chunked/build.sh
@@ -50231,6 +50322,1746 @@ func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml() (*asset, error)
 	return a, nil
 }
 
+var _testExtendedTestdataNodeContainerruntimeconfigmaster78610Yaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: ContainerRuntimeConfig
+metadata:
+  name: runc-ctrcfg-master
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/master: ""
+  containerRuntimeConfig:
+     defaultRuntime: runc
+`)
+
+func testExtendedTestdataNodeContainerruntimeconfigmaster78610YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeContainerruntimeconfigmaster78610Yaml, nil
+}
+
+func testExtendedTestdataNodeContainerruntimeconfigmaster78610Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeContainerruntimeconfigmaster78610YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ContainerRuntimeConfigMaster-78610.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeContainerruntimeconfigworker78610Yaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: ContainerRuntimeConfig
+metadata:
+  name: runc-ctrcfg-worker
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/worker: ""
+  containerRuntimeConfig:
+     defaultRuntime: runc
+`)
+
+func testExtendedTestdataNodeContainerruntimeconfigworker78610YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeContainerruntimeconfigworker78610Yaml, nil
+}
+
+func testExtendedTestdataNodeContainerruntimeconfigworker78610Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeContainerruntimeconfigworker78610YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ContainerRuntimeConfigWorker-78610.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImagecontentsourcepolicy1Yaml = []byte(`apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: nodetest-ubi8repo
+spec:
+  repositoryDigestMirrors:
+  - mirrors:
+    - example.io/example/ubi-minimal
+    - example.com/example/ubi-minimal
+    source: registry.access.redhat.com/ubi8/ubi-minimal
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example
+`)
+
+func testExtendedTestdataNodeImagecontentsourcepolicy1YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImagecontentsourcepolicy1Yaml, nil
+}
+
+func testExtendedTestdataNodeImagecontentsourcepolicy1Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImagecontentsourcepolicy1YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ImageContentSourcePolicy-1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImagecontentsourcepolicyYaml = []byte(`apiVersion: operator.openshift.io/v1alpha1
+kind: ImageContentSourcePolicy
+metadata:
+  name: ubi8repo
+spec:
+  repositoryDigestMirrors:
+  - mirrors:
+    - example.io/example/ubi-minimal
+    - example.com/example/ubi-minimal
+    source: registry.access.redhat.com/ubi8/ubi-minimal
+  - mirrors:
+    - mirror.example.com/redhat
+    source: registry.redhat.io/openshift4
+  - mirrors:
+    - mirror.example.com
+    source: registry.redhat.io
+  - mirrors:
+    - mirror.example.net/image
+    source: registry.example.com/example/myimage
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example
+  - mirrors:
+    - mirror.example.net/registry-example-com
+    source: registry.example.com
+`)
+
+func testExtendedTestdataNodeImagecontentsourcepolicyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImagecontentsourcepolicyYaml, nil
+}
+
+func testExtendedTestdataNodeImagecontentsourcepolicyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImagecontentsourcepolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ImageContentSourcePolicy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImagedigestmirrorset1Yaml = []byte(`apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: nodetest-digest-mirror
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - example.io/example/ubi-minimal
+    - example.com/example/ubi-minimal
+    source: registry.access.redhat.com/ubi8/ubi-minimal
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example
+    mirrorSourcePolicy: AllowContactingSource
+
+`)
+
+func testExtendedTestdataNodeImagedigestmirrorset1YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImagedigestmirrorset1Yaml, nil
+}
+
+func testExtendedTestdataNodeImagedigestmirrorset1Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImagedigestmirrorset1YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ImageDigestMirrorSet-1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImagedigestmirrorsetYaml = []byte(`apiVersion: config.openshift.io/v1 
+kind: ImageDigestMirrorSet 
+metadata:
+  name: digest-mirror
+spec:
+  imageDigestMirrors: 
+  - mirrors:
+    - example.io/example/ubi-minimal 
+    - example.com/example/ubi-minimal 
+    source: registry.access.redhat.com/ubi9/ubi-minimal 
+    mirrorSourcePolicy: AllowContactingSource 
+  - mirrors:
+    - mirror.example.com
+    source: registry.redhat.io 
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.net/image
+    source: registry.example.com/example/myimage 
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example 
+    mirrorSourcePolicy: NeverContactSource
+`)
+
+func testExtendedTestdataNodeImagedigestmirrorsetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImagedigestmirrorsetYaml, nil
+}
+
+func testExtendedTestdataNodeImagedigestmirrorsetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImagedigestmirrorsetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ImageDigestMirrorSet.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImagetagmirrorsetYaml = []byte(`apiVersion: config.openshift.io/v1
+kind: ImageTagMirrorSet
+metadata:
+  name: nodetest-tag-mirror
+spec:
+  imageTagMirrors:
+  - mirrors:
+    - example.io/example/ubi-minimal
+    - example.com/example/ubi-minimal
+    source: registry.access.redhat.com/ubi9/ubi-minimal
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.com
+    source: registry.redhat.io
+    mirrorSourcePolicy: NeverContactSource
+
+`)
+
+func testExtendedTestdataNodeImagetagmirrorsetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImagetagmirrorsetYaml, nil
+}
+
+func testExtendedTestdataNodeImagetagmirrorsetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImagetagmirrorsetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ImageTagMirrorSet.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeAmqOperatorgroup52384Yaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: amq-streams-cluster-operator
+  namespace: kafka-52384
+spec:
+  targetNamespaces:
+  - kafka-52384
+`)
+
+func testExtendedTestdataNodeAmqOperatorgroup52384YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeAmqOperatorgroup52384Yaml, nil
+}
+
+func testExtendedTestdataNodeAmqOperatorgroup52384Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeAmqOperatorgroup52384YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/amq-operatorgroup-52384.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeAmqSubYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: amq-streams
+  namespace: kafka-52384
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: amq-streams
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+`)
+
+func testExtendedTestdataNodeAmqSubYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeAmqSubYaml, nil
+}
+
+func testExtendedTestdataNodeAmqSubYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeAmqSubYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/amq-sub.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeClusterresourceOverrideYaml = []byte(`apiVersion: operator.autoscaling.openshift.io/v1
+kind: ClusterResourceOverride
+metadata:
+    name: cluster
+    namespace: clusterresourceoverride-operator 
+spec:
+  podResourceOverride:
+    spec:
+      memoryRequestToLimitPercent: 50 
+      cpuRequestToLimitPercent: 25 
+      limitCPUToMemoryPercent: 200 
+`)
+
+func testExtendedTestdataNodeClusterresourceOverrideYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeClusterresourceOverrideYaml, nil
+}
+
+func testExtendedTestdataNodeClusterresourceOverrideYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeClusterresourceOverrideYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/clusterresource-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCmaKedaControllerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kedacontroller-template
+objects:
+  - apiVersion: keda.sh/v1alpha1
+    kind: KedaController
+    metadata:
+      name: keda
+      namespace: ${NAMESPACE}
+    spec:
+      metricsServer:
+        logLevel: '0'
+        auditConfig:
+          logFormat: "json"
+          policy:
+             rules:
+             - level: ${LEVEL}
+             omitStages:
+              - RequestReceived
+             omitManagedFields: false
+      operator:
+        logLevel: info
+        logEncoder: console
+      serviceAccount: {}
+      watchNamespace: ${WATCHNAMESPACE}
+parameters:
+  - name: NAMESPACE
+    value: openshift-keda
+  - name: LEVEL
+  - name: WATCHNAMESPACE
+    value: openshift-keda
+`)
+
+func testExtendedTestdataNodeCmaKedaControllerTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCmaKedaControllerTemplateYaml, nil
+}
+
+func testExtendedTestdataNodeCmaKedaControllerTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCmaKedaControllerTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cma-keda-controller-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeContainerruntimeconfigCrunYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: ContainerRuntimeConfig
+metadata:
+  name: crun-ctrcfg
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      pools.operator.machineconfiguration.openshift.io/worker: ""
+  containerRuntimeConfig:
+    defaultRuntime: crun
+`)
+
+func testExtendedTestdataNodeContainerruntimeconfigCrunYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeContainerruntimeconfigCrunYaml, nil
+}
+
+func testExtendedTestdataNodeContainerruntimeconfigCrunYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeContainerruntimeconfigCrunYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/containerRuntimeConfig-crun.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeContainerruntimeconfigOverlayYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: ContainerRuntimeConfig-overlay-template
+objects:
+- apiVersion: machineconfiguration.openshift.io/v1
+  kind: ContainerRuntimeConfig
+  metadata:
+   name: "${NAME}"
+  spec:
+   machineConfigPoolSelector:
+     matchLabels:
+       pools.operator.machineconfiguration.openshift.io/worker: '' 
+   containerRuntimeConfig: 
+     overlaySize: "${OVERLAY}"
+parameters:      
+- name: NAME
+- name: OVERLAY
+`)
+
+func testExtendedTestdataNodeContainerruntimeconfigOverlayYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeContainerruntimeconfigOverlayYaml, nil
+}
+
+func testExtendedTestdataNodeContainerruntimeconfigOverlayYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeContainerruntimeconfigOverlayYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/containerRuntimeConfig-overlay.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeContainerruntimeconfig_log_levelYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: ContainerRuntimeConfig
+metadata:
+ name: set-loglevel
+spec:
+ machineConfigPoolSelector:
+   matchLabels:
+    pools.operator.machineconfiguration.openshift.io/worker: ""
+ containerRuntimeConfig:
+   logLevel: debug
+`)
+
+func testExtendedTestdataNodeContainerruntimeconfig_log_levelYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeContainerruntimeconfig_log_levelYaml, nil
+}
+
+func testExtendedTestdataNodeContainerruntimeconfig_log_levelYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeContainerruntimeconfig_log_levelYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/containerRuntimeConfig_log_level.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCpuPerformanceprofileYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cpu-performance-template
+objects:
+- kind: PerformanceProfile
+  apiVersion: performance.openshift.io/v2
+  metadata:
+    name: "${NAME}"
+  spec:
+    cpu:
+      isolated: ${{ISOLATED}}
+      reserved: 1-4
+    machineConfigPoolSelector:
+      pools.operator.machineconfiguration.openshift.io/worker: ""
+    nodeSelector:
+      node-role.kubernetes.io/worker: ""
+parameters:
+- name: NAME
+- name: ISOLATED
+`)
+
+func testExtendedTestdataNodeCpuPerformanceprofileYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCpuPerformanceprofileYaml, nil
+}
+
+func testExtendedTestdataNodeCpuPerformanceprofileYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCpuPerformanceprofileYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cpu-performanceprofile.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCrOperatorgroupYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: clusterresourceoverride-operator
+  namespace: clusterresourceoverride-operator
+spec:
+  targetNamespaces:
+    - clusterresourceoverride-operator
+
+`)
+
+func testExtendedTestdataNodeCrOperatorgroupYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCrOperatorgroupYaml, nil
+}
+
+func testExtendedTestdataNodeCrOperatorgroupYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCrOperatorgroupYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cr-operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCrSubscriptionYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: clusterresourceoverride
+  namespace: clusterresourceoverride-operator
+spec:
+  channel: stable
+  name: clusterresourceoverride
+  source: qe-app-registry
+  sourceNamespace: openshift-marketplace
+
+`)
+
+func testExtendedTestdataNodeCrSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCrSubscriptionYaml, nil
+}
+
+func testExtendedTestdataNodeCrSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCrSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/cr-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCustomKubeletTest1Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: max-pod-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        pools.operator.machineconfiguration.openshift.io/worker: ""
+    kubeletConfig:
+      maxPods: 260
+parameters:
+- name: NAME
+
+`)
+
+func testExtendedTestdataNodeCustomKubeletTest1YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCustomKubeletTest1Yaml, nil
+}
+
+func testExtendedTestdataNodeCustomKubeletTest1Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCustomKubeletTest1YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/custom-kubelet-test1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeCustomKubeletTest2Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: max-pod-1-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        pools.operator.machineconfiguration.openshift.io/worker: ""
+    kubeletConfig:
+      maxPods: 270
+parameters:
+- name: NAME
+
+`)
+
+func testExtendedTestdataNodeCustomKubeletTest2YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeCustomKubeletTest2Yaml, nil
+}
+
+func testExtendedTestdataNodeCustomKubeletTest2Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeCustomKubeletTest2YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/custom-kubelet-test2.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeGenericDeploymentYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deployment-hello
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      app: myapp
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      matchLabels:
+        app: myapp
+    template:
+      metadata:
+        labels:
+          app: myapp
+        name: myapp
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+        - name: myapp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+          image: "${IMAGE}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: REPLICAS
+- name: IMAGE
+  value: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+`)
+
+func testExtendedTestdataNodeGenericDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeGenericDeploymentYaml, nil
+}
+
+func testExtendedTestdataNodeGenericDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeGenericDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/generic-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeGuaranteedDeploymentYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: deployment-guaranteed
+objects:
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: ${{REPLICAS}}
+    selector:
+      matchLabels:
+        app: rhel-ubi
+    template:
+      metadata:
+        labels:
+          app: rhel-ubi
+      spec:
+        containers:
+        - name: rhel-ubi
+          stdin: true
+          tty: true
+          image: registry.access.redhat.com/ubi7/ubi:latest
+          imagePullPolicy: Always
+          resources:
+           limits:
+             cpu: 2
+             memory: 200Mi
+           requests:
+             cpu: 2
+             memory: 200Mi
+        nodeName: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: REPLICAS
+- name: NODENAME 
+`)
+
+func testExtendedTestdataNodeGuaranteedDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeGuaranteedDeploymentYaml, nil
+}
+
+func testExtendedTestdataNodeGuaranteedDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeGuaranteedDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/guaranteed-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImageConfigJson = []byte(`{
+    "apiVersion": "config.openshift.io/v1",
+    "kind": "Image",
+    "metadata": {
+      "annotations": {
+        "include.release.openshift.io/ibm-cloud-managed": "true",
+        "include.release.openshift.io/self-managed-high-availability": "true",
+        "include.release.openshift.io/single-node-developer": "true",
+        "release.openshift.io/create-only": "true"
+      },
+      "name": "cluster"
+    },
+    "spec": {
+      "registrySources": {
+        "containerRuntimeSearchRegistries": [
+          "registry.access.redhat.com",
+          "docker.io",
+          "quay.io",
+          "qe.quay.io"
+        ],
+        "allowedRegistries": [
+          "registry.access.redhat.com",
+          "docker.io",
+          "quay.io",
+          "qe.quay.io"
+        ]
+      }
+    }
+}
+`)
+
+func testExtendedTestdataNodeImageConfigJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImageConfigJson, nil
+}
+
+func testExtendedTestdataNodeImageConfigJson() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImageConfigJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/image-config.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeImagepolicyYaml = []byte(`apiVersion: config.openshift.io/v1alpha1
+kind: ClusterImagePolicy 
+metadata:
+  name: p0
+spec:
+  scopes:
+    - docker.io
+  policy:
+    rootOfTrust:
+      policyType: PublicKey
+      publicKey:
+        keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFdkpnZDVkR0V3b2xoS2w2R2VIMUZUN1M5SHJ5RgorVjNzaEwzdEZ6QWh4UDA2V2loMW9ic21aN3ZzMWNXR0FRY0VNVWVZSnlZanpydFd5ZFdkUFZaVmJ3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t
+    signedIdentity:
+      matchPolicy: MatchRepoDigestOrExact
+`)
+
+func testExtendedTestdataNodeImagepolicyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeImagepolicyYaml, nil
+}
+
+func testExtendedTestdataNodeImagepolicyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeImagepolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/imagePolicy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKafka52384Yaml = []byte(`apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: kafka-52384
+spec:
+  kafka:
+    config:
+      default.replication.factor: 3
+      inter.broker.protocol.version: '3.7'
+      min.insync.replicas: 2
+      offsets.topic.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      transaction.state.log.replication.factor: 3
+    storage:
+      type: ephemeral
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    version: 3.7.0
+    replicas: 3
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3
+`)
+
+func testExtendedTestdataNodeKafka52384YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKafka52384Yaml, nil
+}
+
+func testExtendedTestdataNodeKafka52384Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKafka52384YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kafka-52384.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKafkaConsumerDeployment52384Yaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-amqstreams-consumer
+  labels:
+    app: kafka-amqstreams-consumer
+spec:
+  selector:
+    matchLabels:
+      app: kafka-amqstreams-consumer
+  template:
+    metadata:
+      labels:
+        app: kafka-amqstreams-consumer
+    spec:
+      containers:
+      - name: kafka-amqstreams-consumer
+        image: quay.io/zroubalik/kafka-app:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        env:
+          - name: BOOTSTRAP_SERVERS
+            value: my-cluster-kafka-bootstrap.openshift-operators.svc:9092
+        resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 500m
+              memory: 500Mi
+        command:
+        - /kafkaconsumerapp
+`)
+
+func testExtendedTestdataNodeKafkaConsumerDeployment52384YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKafkaConsumerDeployment52384Yaml, nil
+}
+
+func testExtendedTestdataNodeKafkaConsumerDeployment52384Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKafkaConsumerDeployment52384YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kafka-consumer-deployment-52384.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKafkaLoad52384Yaml = []byte(`apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: kafka-amqstreams-producer-
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 1
+  template:
+    metadata:
+      name: kafka-amqstreams-producer
+      labels:
+        app: kafka-amqstreams-producer
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: kafka-amqstreams-producer
+        image: quay.io/zroubalik/kafka-app:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        command: [ "/kafkaproducerapp" ]
+        env:
+          - name: BOOTSTRAP_SERVERS
+            value: my-cluster-kafka-bootstrap.kafka-52384.svc:9092
+          - name: TOPIC
+            value: my-topic
+          - name: MESSAGE_COUNT
+            value: "1500"                    # increase this for a bigger load
+          - name: DELAY_MS
+            value: "100"
+`)
+
+func testExtendedTestdataNodeKafkaLoad52384YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKafkaLoad52384Yaml, nil
+}
+
+func testExtendedTestdataNodeKafkaLoad52384Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKafkaLoad52384YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kafka-load-52384.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKafkaScaledobject52384Yaml = []byte(`apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: kafka-amqstreams-consumer-scaledobject
+spec:
+  minReplicaCount: 0
+  maxReplicaCount: 5
+  cooldownPeriod: 5
+  pollingInterval: 10
+  scaleTargetRef:
+    name: kafka-amqstreams-consumer
+  triggers:
+  - type: kafka
+    metadata:
+      topic: my-topic
+      bootstrapServers: my-cluster-kafka-bootstrap.kafka-52384.svc:9092
+      consumerGroup: my-group
+      lagThreshold: '1'
+      offsetResetPolicy: 'latest'
+
+`)
+
+func testExtendedTestdataNodeKafkaScaledobject52384YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKafkaScaledobject52384Yaml, nil
+}
+
+func testExtendedTestdataNodeKafkaScaledobject52384Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKafkaScaledobject52384YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kafka-scaledobject-52384.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKafkaTopic52384Yaml = []byte(`kind: KafkaTopic
+apiVersion: kafka.strimzi.io/v1beta2
+metadata:
+  name: my-topic
+  labels:
+    strimzi.io/cluster: my-cluster
+  namespace: kafka-52384
+spec:
+  partitions: 5
+  replicas: 1
+  config:
+    retention.ms: 604800000
+    segment.bytes: 1073741824
+
+`)
+
+func testExtendedTestdataNodeKafkaTopic52384YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKafkaTopic52384Yaml, nil
+}
+
+func testExtendedTestdataNodeKafkaTopic52384Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKafkaTopic52384YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kafka-topic-52384.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKedaControllerDefaultYaml = []byte(`apiVersion: keda.sh/v1alpha1
+kind: KedaController
+metadata:
+  name: keda
+  namespace: openshift-keda
+spec:
+  admissionWebhooks:
+    logEncoder: console
+    logLevel: info
+  metricsServer:
+    logLevel: '0'
+  operator:
+    logEncoder: console
+    logLevel: info
+  watchNamespace: ''
+`)
+
+func testExtendedTestdataNodeKedaControllerDefaultYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKedaControllerDefaultYaml, nil
+}
+
+func testExtendedTestdataNodeKedaControllerDefaultYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKedaControllerDefaultYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/keda-controller-default.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKedaHpaDemoDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-hpa-demo-deployment
+spec:
+  selector:
+    matchLabels:
+      run: keda-hpa-demo-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: keda-hpa-demo-deployment
+    spec:
+      containers:
+      - name: keda-hpa-demo-deployment
+        image: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: 256Mi
+          limits:
+            memory: 512Mi
+`)
+
+func testExtendedTestdataNodeKedaHpaDemoDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKedaHpaDemoDeploymentYaml, nil
+}
+
+func testExtendedTestdataNodeKedaHpaDemoDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKedaHpaDemoDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/keda-hpa-demo-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKubeletconfigCpumanagerYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: KubeletConfig
+metadata:
+  name: set-cpu-manager
+spec:
+  machineConfigPoolSelector:
+    matchLabels:
+      machineconfiguration.openshift.io/role: worker-affinity-tests
+  kubeletConfig:
+    cpuManagerPolicy: static
+    cpuManagerReconcilePeriod: 6s
+`)
+
+func testExtendedTestdataNodeKubeletconfigCpumanagerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKubeletconfigCpumanagerYaml, nil
+}
+
+func testExtendedTestdataNodeKubeletconfigCpumanagerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKubeletconfigCpumanagerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kubeletconfig-cpumanager.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKubeletconfigDefaultsysresYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: system-reserve-es-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+      #aro.openshift.io/limits: ""
+    kubeletConfig:
+       runtimeRequestTimeout: 3m0s
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE
+
+`)
+
+func testExtendedTestdataNodeKubeletconfigDefaultsysresYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKubeletconfigDefaultsysresYaml, nil
+}
+
+func testExtendedTestdataNodeKubeletconfigDefaultsysresYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKubeletconfigDefaultsysresYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kubeletconfig-defaultsysres.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKubeletconfigHardevictionYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kubeletconfig-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    kubeletConfig:
+      evictionHard:
+        memory.available: "2Gi"
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE
+`)
+
+func testExtendedTestdataNodeKubeletconfigHardevictionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKubeletconfigHardevictionYaml, nil
+}
+
+func testExtendedTestdataNodeKubeletconfigHardevictionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKubeletconfigHardevictionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kubeletconfig-hardeviction.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKubeletconfigMaxpodYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kubeletconfig-maxpod-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+    kubeletConfig:
+      maxPods: ${{MAXPODS}}
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE
+- name: MAXPODS
+`)
+
+func testExtendedTestdataNodeKubeletconfigMaxpodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKubeletconfigMaxpodYaml, nil
+}
+
+func testExtendedTestdataNodeKubeletconfigMaxpodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKubeletconfigMaxpodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kubeletconfig-maxpod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeKubeletconfigRunreqtoutYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: runtime-timeout-template
+objects:
+- kind: KubeletConfig
+  apiVersion: machineconfiguration.openshift.io/v1
+  metadata: 
+    name: "${NAME}"
+  spec:
+    machineConfigPoolSelector:
+      matchLabels:
+        "${LABELKEY}": "${LABELVALUE}"
+      #aro.openshift.io/limits: ""
+    kubeletConfig:
+      runtimeRequestTimeout: 3m0s
+parameters:
+- name: NAME
+- name: LABELKEY
+- name: LABELVALUE
+`)
+
+func testExtendedTestdataNodeKubeletconfigRunreqtoutYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeKubeletconfigRunreqtoutYaml, nil
+}
+
+func testExtendedTestdataNodeKubeletconfigRunreqtoutYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeKubeletconfigRunreqtoutYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/kubeletconfig-runReqTout.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeLivenessprobeTerminationperiodYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: livenessprobe-terminationPeriod-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    terminationGracePeriodSeconds: ${{TERMINATIONGRACE}}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: test
+        image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command: [bash, -c, "sleep 100000000"]
+        ports:
+          - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 1
+          periodSeconds: 60
+          terminationGracePeriodSeconds: ${{PROBETERMINATIONGRACE}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TERMINATIONGRACE
+- name: PROBETERMINATIONGRACE
+`)
+
+func testExtendedTestdataNodeLivenessprobeTerminationperiodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeLivenessprobeTerminationperiodYaml, nil
+}
+
+func testExtendedTestdataNodeLivenessprobeTerminationperiodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeLivenessprobeTerminationperiodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/livenessProbe-terminationPeriod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: livenessprobe-no-probeterminationPeriod-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    terminationGracePeriodSeconds: ${{TERMINATIONGRACE}}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: test
+        image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command: [bash, -c, "sleep 100000000"]
+        ports:
+          - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 1
+          periodSeconds: 60
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TERMINATIONGRACE
+`)
+
+func testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYaml, nil
+}
+
+func testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/livenessProbe-without-terminationPeriod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeLoad52385Yaml = []byte(`apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: generate-requests-
+spec:
+  template:
+    spec:
+      containers:
+      - image: jordi/ab
+        name: test
+        command: ["/bin/sh"]
+        args: ["-c", "for i in $(seq 1 30);do echo $i;ab -c 5 -n 100 -v 2 http://test-app.cma-52385.svc/;sleep 1;done"]   # replace <NAMESPACE>
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+      restartPolicy: Never
+  activeDeadlineSeconds: 120
+  backoffLimit: 2
+
+`)
+
+func testExtendedTestdataNodeLoad52385YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeLoad52385Yaml, nil
+}
+
+func testExtendedTestdataNodeLoad52385Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeLoad52385YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/load-52385.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigCpuOverride52328Yaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: cpu-partition-override-52328
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - path: /etc/crio/crio.conf.d/01-workload.conf
+        overwrite: true
+        contents:
+          source: data:text/plain;charset=utf-8;base64,W2NyaW8ucnVudGltZS53b3JrbG9hZHMubWFuYWdlbWVudF0KYWN0aXZhdGlvbl9hbm5vdGF0aW9uID0gImlvLm9wZW5zaGlmdC5tYW5hZ2VyIgphbm5vdGF0aW9uX3ByZWZpeCA9ICJpby5vcGVuc2hpZnQud29ya2xvYWQubWFuYWdlciIKW2NyaW8ucnVudGltZS53b3JrbG9hZHMubWFuYWdlbWVudC5yZXNvdXJjZXNdCmNwdXNoYXJlcyA9IDUxMgpjcHVzZXQgPSAiIgo=
+
+`)
+
+func testExtendedTestdataNodeMachineconfigCpuOverride52328YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigCpuOverride52328Yaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigCpuOverride52328Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigCpuOverride52328YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfig-cpu-override-52328.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigCpuOverrideYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: cpu-partition-override
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - path: /etc/crio/crio.conf.d/01-workload.conf
+        overwrite: true
+        contents:
+          source: data:text/plain;charset=utf-8;base64,W2NyaW8ucnVudGltZS53b3JrbG9hZHMubWFuYWdlbWVudF0KYWN0aXZhdGlvbl9hbm5vdGF0aW9uID0gImlvLm9wZW5zaGlmdC5tYW5hZ2VyIgphbm5vdGF0aW9uX3ByZWZpeCA9ICJpby5vcGVuc2hpZnQud29ya2xvYWQubWFuYWdlciIKW2NyaW8ucnVudGltZS53b3JrbG9hZHMubWFuYWdlbWVudC5yZXNvdXJjZXNdCmNwdXNoYXJlcyA9IDUxMgpjcHVzZXQgPSAiMCIK
+`)
+
+func testExtendedTestdataNodeMachineconfigCpuOverrideYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigCpuOverrideYaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigCpuOverrideYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigCpuOverrideYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfig-cpu-override.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigImageSignature59552Yaml = []byte(`# Generated by Butane; do not edit
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 51-worker-rh-registry-trust
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+        - contents:
+            source: data:;base64,ewogICJkZWZhdWx0IjogWwogICAgewogICAgICAidHlwZSI6ICJpbnNlY3VyZUFjY2VwdEFueXRoaW5nIgogICAgfQogIF0sCiAgInRyYW5zcG9ydHMiOiB7CiAgICAiZG9ja2VyIjogewogICAgICAicmVnaXN0cnkuYWNjZXNzLnJlZGhhdC5jb20iOiBbCiAgICAgICAgewogICAgICAgICAgInR5cGUiOiAic2lnbmVkQnkiLAogICAgICAgICAgImtleVR5cGUiOiAiR1BHS2V5cyIsCiAgICAgICAgICAia2V5UGF0aCI6ICIvZXRjL3BraS9ycG0tZ3BnL1JQTS1HUEctS0VZLXJlZGhhdC1yZWxlYXNlIgogICAgICAgIH0KICAgICAgXSwKICAgICAgInJlZ2lzdHJ5LnJlZGhhdC5pbyI6IFsKICAgICAgICB7CiAgICAgICAgICAidHlwZSI6ICJzaWduZWRCeSIsCiAgICAgICAgICAia2V5VHlwZSI6ICJHUEdLZXlzIiwKICAgICAgICAgICJrZXlQYXRoIjogIi9ldGMvcGtpL3JwbS1ncGcvUlBNLUdQRy1LRVktcmVkaGF0LXJlbGVhc2UiCiAgICAgICAgfQogICAgICBdCiAgICB9LAogICAgImRvY2tlci1kYWVtb24iOiB7CiAgICAgICIiOiBbCiAgICAgICAgewogICAgICAgICAgInR5cGUiOiAiaW5zZWN1cmVBY2NlcHRBbnl0aGluZyIKICAgICAgICB9CiAgICAgIF0KICAgIH0KICB9Cn0K
+          mode: 420
+          overwrite: true
+          path: /etc/containers/policy.json
+`)
+
+func testExtendedTestdataNodeMachineconfigImageSignature59552YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigImageSignature59552Yaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigImageSignature59552Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigImageSignature59552YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfig-image-signature-59552.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigLogLinkYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-workers-linked-log
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 3.1.0
+    networkd: {}
+    passwd: {}
+    storage:
+      files:
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,W2NyaW8ucnVudGltZS53b3JrbG9hZHMubGlua2VkXQphY3RpdmF0aW9uX2Fubm90YXRpb24gPSAiaW8ua3ViZXJuZXRlcy5jcmktby5MaW5rTG9ncyIgCmFsbG93ZWRfYW5ub3RhdGlvbnMgPSBbICJpby5rdWJlcm5ldGVzLmNyaS1vLkxpbmtMb2dzIiBdCg==
+        mode: 420
+        overwrite: true
+        path: /etc/crio/crio.conf.d/99-linked-log.conf
+  osImageURL: ""
+
+`)
+
+func testExtendedTestdataNodeMachineconfigLogLinkYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigLogLinkYaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigLogLinkYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigLogLinkYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfig-log-link.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigWasmYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: worker-extensions
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+        - path: /etc/crio/crio.conf.d/99-crun-wasm.conf
+          mode: 0644
+          contents:
+            source: data:text/plain;charset=utf-8;base64,W2NyaW8ucnVudGltZV0KZGVmYXVsdF9ydW50aW1lID0gImNydW4td2FzbSIKCltjcmlvLnJ1bnRpbWUucnVudGltZXMuY3J1bi13YXNtXQpydW50aW1lX3BhdGggPSAiL3Vzci9iaW4vY3J1biIKCltjcmlvLnJ1bnRpbWUucnVudGltZXMuY3J1bi13YXNtLnBsYXRmb3JtX3J1bnRpbWVfcGF0aHNdCiJ3YXNpL3dhc20zMiIgPSAiL3Vzci9iaW4vY3J1bi13YXNtIgo=
+  extensions:
+    - wasm
+
+`)
+
+func testExtendedTestdataNodeMachineconfigWasmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigWasmYaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigWasmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigWasmYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfig-wasm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMachineconfigpoolAffinityYaml = []byte(`apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  name: worker-affinity-tests
+  labels:
+    machineconfiguration.openshift.io/role: worker-affinity-tests
+spec:
+  machineConfigSelector:
+    matchExpressions:
+      - {
+          key: machineconfiguration.openshift.io/role,
+          operator: In,
+         values: [worker-affinity-tests, worker],
+        }
+  paused: false
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/worker-affinity-tests: ''
+`)
+
+func testExtendedTestdataNodeMachineconfigpoolAffinityYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMachineconfigpoolAffinityYaml, nil
+}
+
+func testExtendedTestdataNodeMachineconfigpoolAffinityYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMachineconfigpoolAffinityYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/machineconfigpool-affinity.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMemHogOcp11600Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: mem-hog-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    generateName: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: ${LABELKEY}"
+            operator: In
+            values:
+            - "${LABELVALUE}"
+        topologyKey: "kubernetes.io/hostname"
+    containers:
+    - args:
+      - -mem-alloc-size
+      - 36Mi
+      - -mem-alloc-sleep
+      - 1s
+      - -mem-total
+      - $(MEMORY_LIMIT)
+      env:
+      - name: MEMORY_LIMIT
+        valueFrom:
+          resourceFieldRef:
+            divisor: "0"
+            resource: limits.memory
+      image: k8s.gcr.io/stress:v1
+      name: memory-hog
+    restartPolicy: Never
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: LABELKEY
+- name: LABELVALUE
+`)
+
+func testExtendedTestdataNodeMemHogOcp11600YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMemHogOcp11600Yaml, nil
+}
+
+func testExtendedTestdataNodeMemHogOcp11600Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMemHogOcp11600YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/mem-hog-ocp11600.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeMemScaledobjectYaml = []byte(`apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: mem-scaledobject
+spec:
+  scaleTargetRef:
+    name: keda-hpa-demo-deployment
+  minReplicaCount: 1  # Ensure at least one replica is always running
+  maxReplicaCount: 10  # Adjust max replica count as needed
+  triggers:
+    - type: memory
+      metricType: AverageValue  # This specifies using the average value across pods
+      metadata:
+        value: "100Mi"  # Target memory threshold for scaling
+
+`)
+
+func testExtendedTestdataNodeMemScaledobjectYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeMemScaledobjectYaml, nil
+}
+
+func testExtendedTestdataNodeMemScaledobjectYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeMemScaledobjectYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/mem-scaledobject.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNodeNested_containerDockerfile = []byte(`FROM registry.fedoraproject.org/fedora:41
 ARG VERSION=v5.4.0
 
@@ -50492,6 +52323,1923 @@ func testExtendedTestdataNodeNested_containerSkip_testsSh() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/node/nested_container/skip_tests.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeNsClusterresourceOperatorYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterresourceoverride-operator
+  labels:
+          clusterresourceoverrides.admission.autoscaling.openshift.io/enabled: "true"
+
+`)
+
+func testExtendedTestdataNodeNsClusterresourceOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeNsClusterresourceOperatorYaml, nil
+}
+
+func testExtendedTestdataNodeNsClusterresourceOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeNsClusterresourceOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ns-clusterresource-operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeNsKedaOperatorYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-keda
+`)
+
+func testExtendedTestdataNodeNsKedaOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeNsKedaOperatorYaml, nil
+}
+
+func testExtendedTestdataNodeNsKedaOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeNsKedaOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ns-keda-operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeNsVpaOperatorYaml = []byte(`apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-vertical-pod-autoscaler
+`)
+
+func testExtendedTestdataNodeNsVpaOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeNsVpaOperatorYaml, nil
+}
+
+func testExtendedTestdataNodeNsVpaOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeNsVpaOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/ns-vpa-operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeOperatorgroupYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-keda
+  namespace: openshift-keda
+spec:
+  targetNamespaces:
+  - openshift-keda
+`)
+
+func testExtendedTestdataNodeOperatorgroupYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeOperatorgroupYaml, nil
+}
+
+func testExtendedTestdataNodeOperatorgroupYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeOperatorgroupYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodCpuLoadBalanceYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-cpu-load-balancing-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      irq-load-balancing.crio.io: "disable"
+      cpu-quota.crio.io: "disable"
+      cpu-load-balancing.crio.io: "disable"
+  spec:
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    runtimeClassName: "${RUNTIMECLASS}"
+    containers:
+    - name: container-perf-tools
+      image: busybox
+      imagePullPolicy: Always
+      args:
+        - sleep
+        - "100000"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      resources:
+        limits:
+          cpu: 1
+          memory: 200Mi
+        requests:
+          cpu: 1
+          memory: 200Mi
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: RUNTIMECLASS
+`)
+
+func testExtendedTestdataNodePodCpuLoadBalanceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodCpuLoadBalanceYaml, nil
+}
+
+func testExtendedTestdataNodePodCpuLoadBalanceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodCpuLoadBalanceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-cpu-load-balance.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodDevFuseYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-devfuse
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: pod-devfuse
+    annotations:
+      io.kubernetes.cri-o.Devices: "/dev/fuse"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: pod-devfuse
+      image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+parameters:
+- name: NAME
+- name: NAMESPACE
+
+`)
+
+func testExtendedTestdataNodePodDevFuseYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodDevFuseYaml, nil
+}
+
+func testExtendedTestdataNodePodDevFuseYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodDevFuseYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-dev-fuse.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodDisruptionBudgetYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pdb-generic
+objects:
+- kind: PodDisruptionBudget
+  apiVersion: policy/v1
+  metadata:
+    namespace: "${NAMESPACE}"
+    name: "${NAME}"
+  spec:
+    minAvailable: "${MIN_AVAILABLE}"
+    # Empty selector means that it will impact to all pods in
+    # the namespace
+    selector: {}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: MIN_AVAILABLE
+  description: "Number or percentage of expected minimum available pods"
+`)
+
+func testExtendedTestdataNodePodDisruptionBudgetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodDisruptionBudgetYaml, nil
+}
+
+func testExtendedTestdataNodePodDisruptionBudgetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodDisruptionBudgetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-disruption-budget.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodGuaranteedYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-guaranteed
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      app: rhel-ubi
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    restartPolicy: Always
+    containers:
+    - name: rhel-ubi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      stdin: true
+      tty: true
+      image: registry.access.redhat.com/ubi7/ubi:latest
+      imagePullPolicy: Always
+      resources:
+       limits:
+         cpu: 2
+         memory: 200Mi
+       requests:
+         cpu: 2
+         memory: 200Mi
+    nodeName: "${NODENAME}"
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: NODENAME
+`)
+
+func testExtendedTestdataNodePodGuaranteedYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodGuaranteedYaml, nil
+}
+
+func testExtendedTestdataNodePodGuaranteedYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodGuaranteedYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-guaranteed.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodHelloYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-hello
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: hello-openshift
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: hello-openshift
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodHelloYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodHelloYaml, nil
+}
+
+func testExtendedTestdataNodePodHelloYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodHelloYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-hello.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodInitcontainerYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-initcontainer
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    initContainers:
+    - name: inittest
+      image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["bin/sh", "-ec", "echo running >> /mnt/data/test"]
+      volumeMounts:
+      - name: my-volume
+        mountPath: /mnt/data
+    containers:
+    - name: my-container
+      image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["/bin/sh", "-ec", "ls /mnt/data; sleep 999999"]
+      volumeMounts:
+      - mountPath: /mnt/data
+        name: my-volume
+    volumes:
+    - name: my-volume
+      emptyDir: {}
+parameters:      
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodInitcontainerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodInitcontainerYaml, nil
+}
+
+func testExtendedTestdataNodePodInitcontainerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodInitcontainerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-initContainer.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodLivenessProbeYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-livenessprobe-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations: 
+      "unsupported.do-not-use.openshift.io/override-liveness-grace-period-seconds": ${OVERRIDELIVENESSGRACE}
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    terminationGracePeriodSeconds: ${{TERMINATIONGRACE}}
+    containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+      name: test
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: [bash, -c, "sleep 100000000"] 
+      ports:
+        - containerPort: 8080
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        failureThreshold: ${{FAILURETHRESHOLD}}
+        periodSeconds: ${{PERIODSECONDS}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: OVERRIDELIVENESSGRACE
+- name: TERMINATIONGRACE
+- name: FAILURETHRESHOLD
+- name: PERIODSECONDS
+`)
+
+func testExtendedTestdataNodePodLivenessProbeYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodLivenessProbeYaml, nil
+}
+
+func testExtendedTestdataNodePodLivenessProbeYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodLivenessProbeYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-liveness-probe.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodLoglinkYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-loglink-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}" 
+    annotations:
+      io.kubernetes.cri-o.LinkLogs: "logging-volume"
+  spec:
+    containers:
+    - name: httpd
+      image: httpd:2.4-alpine
+      volumeMounts:
+      - name: logging-volume
+        mountPath: /acme-logs
+    restartPolicy: Always
+    volumes:
+    - name: logging-volume
+      emptyDir: {}
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodLoglinkYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodLoglinkYaml, nil
+}
+
+func testExtendedTestdataNodePodLoglinkYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodLoglinkYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-loglink.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodModifyYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-modify-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - name: hello-pod
+      image: quay.io/openshifttest/hello-openshift:1.2.0
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      ports:
+      - containerPort: 8080
+      volumeMounts:
+      - name: workdir
+        mountPath: "${MOUNTPATH}"
+    initContainers:
+    - name: init
+      image: centos:centos7
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["${COMMAND}"]
+      args: 
+      - "-c"
+      - "${ARGS}"
+      volumeMounts:
+      - name: workdir
+        mountPath: /work-dir
+    restartPolicy: "${POLICY}"
+    securityContext:
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+      seLinuxOptions:
+        user: "${USER}"
+        role: "${ROLE}"
+        level: "${LEVEL}"
+    volumes:
+    - name: workdir
+      emptyDir: {}
+parameters:      
+- name: NAME
+- name: NAMESPACE
+- name: MOUNTPATH
+- name: COMMAND
+- name: ARGS  
+- name: POLICY
+- name: USER
+- name: ROLE
+- name: LEVEL
+`)
+
+func testExtendedTestdataNodePodModifyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodModifyYaml, nil
+}
+
+func testExtendedTestdataNodePodModifyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodModifyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-modify.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodSigstoreYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-sigstore-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      app: pod-sigstore
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: rhel8-pod
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: docker.io/lyman9966/rhel8
+      ports:
+      - containerPort: 80
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodSigstoreYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodSigstoreYaml, nil
+}
+
+func testExtendedTestdataNodePodSigstoreYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodSigstoreYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-sigStore.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodTerminationYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-termination-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    terminationGracePeriodSeconds: 60
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - image: "quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339"
+      name: termination
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: [bash, -c, "sleep 100000000"] 
+      ports:
+        - containerPort: 8080
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodTerminationYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodTerminationYaml, nil
+}
+
+func testExtendedTestdataNodePodTerminationYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodTerminationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-termination.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodUserNamespaceYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-user-namespace
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      io.openshift.builder: "true"
+      io.kubernetes.cri-o.userns-mode: "auto"
+  spec:
+    securityContext:
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: userns-test-1
+      image: quay.io/openshifttest/fedora@sha256:e01002e4dceea4fed7b2883f801a858defe5f9bc2a8a32029457e9d97352648c
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      command: ["sleep", "3601"]
+parameters:      
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodUserNamespaceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodUserNamespaceYaml, nil
+}
+
+func testExtendedTestdataNodePodUserNamespaceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodUserNamespaceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-user-namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodWasmYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-wasm-template
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: http-server
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: http-server
+      image: quay.io/crio/example-wasm-http:latest
+      command: ["/http_server.wasm"]
+      ports:
+        - containerPort: 1234
+          protocol: TCP
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+      livenessProbe:
+        tcpSocket:
+          port: 1234
+        initialDelaySeconds: 3
+        periodSeconds: 30
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodWasmYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodWasmYaml, nil
+}
+
+func testExtendedTestdataNodePodWasmYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodWasmYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-wasm.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodWithTwoContainersYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-with-two-containers
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    labels:
+      name: hello-openshift
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: hello-openshift
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83
+    - name: hello-openshift-fedora
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/hello-openshift@sha256:56c354e7885051b6bb4263f9faa58b2c292d44790599b7dde0e49e7c466cf339
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodWithTwoContainersYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodWithTwoContainersYaml, nil
+}
+
+func testExtendedTestdataNodePodWithTwoContainersYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodWithTwoContainersYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-with-two-containers.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodWithoutWorkloadCpuYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-without-workload-cpu
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      io.openshift.manager: "true"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: cpu-workload-override
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+      command: ["sleep", "3601"]
+parameters:
+- name: NAME
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodePodWithoutWorkloadCpuYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodWithoutWorkloadCpuYaml, nil
+}
+
+func testExtendedTestdataNodePodWithoutWorkloadCpuYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodWithoutWorkloadCpuYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-without-workload-cpu.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-workload-cpu-no-anota
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      io.openshift.workload.manager/cpu-workload-override: "${WORKLOADCPU}"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: cpu-workload
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+      command: ["sleep", "3601"]
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: WORKLOADCPU
+`)
+
+func testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYaml, nil
+}
+
+func testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-workload-cpu-without-anotation.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePodWorkloadCpuYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pod-workload-cpu
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+    annotations:
+      io.openshift.manager: "true"
+      io.openshift.workload.manager/cpu-workload-override: "${WORKLOADCPU}"
+  spec:
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+    - name: cpu-workload-override
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+      image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+      command: ["sleep", "3601"]
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: WORKLOADCPU
+`)
+
+func testExtendedTestdataNodePodWorkloadCpuYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePodWorkloadCpuYaml, nil
+}
+
+func testExtendedTestdataNodePodWorkloadCpuYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePodWorkloadCpuYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pod-workload-cpu.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePrometheusComsumerDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: test-app
+  name: test-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+        type: keda-testing
+    spec:
+      containers:
+      - name: prom-test-app
+        image: quay.io/zroubalik/prometheus-app:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: test-app
+  annotations:
+    prometheus.io/scrape: "true"
+  name: test-app
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    type: keda-testing
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+  name: keda-testing-sm
+spec:
+  endpoints:
+  - scheme: http
+    port: http
+  namespaceSelector: {}
+  selector:
+    matchLabels:
+       app: test-app
+
+`)
+
+func testExtendedTestdataNodePrometheusComsumerDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePrometheusComsumerDeploymentYaml, nil
+}
+
+func testExtendedTestdataNodePrometheusComsumerDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePrometheusComsumerDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/prometheus-comsumer-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePrometheusConfigmapYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    enableUserWorkload: true
+
+`)
+
+func testExtendedTestdataNodePrometheusConfigmapYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePrometheusConfigmapYaml, nil
+}
+
+func testExtendedTestdataNodePrometheusConfigmapYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePrometheusConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/prometheus-configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePvc60964Yaml = []byte(`apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: log-out-pvc
+  namespace: openshift-keda
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+
+`)
+
+func testExtendedTestdataNodePvc60964YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePvc60964Yaml, nil
+}
+
+func testExtendedTestdataNodePvc60964Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePvc60964YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pvc-60964.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodePvckedacontrollertemp60964Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: kedacontroller-template
+objects:
+  - apiVersion: keda.sh/v1alpha1
+    kind: KedaController
+    metadata:
+      name: keda
+      namespace: ${NAMESPACE}
+    spec:
+      metricsServer:
+        logLevel: '0'
+        auditConfig:
+          logFormat: "json"
+          logOutputVolumeClaim: "log-out-pvc"
+          policy:
+             rules:
+             - level: ${LEVEL}
+             omitStages:
+              - RequestReceived
+             omitManagedFields: false
+          lifetime:
+            maxAge: "2"
+            maxBackup: "1"
+            maxSize: "50"
+      operator:
+        logLevel: info
+        logEncoder: console
+      serviceAccount: {}
+      watchNamespace: ${WATCHNAMESPACE}
+parameters:
+  - name: NAMESPACE
+  - name: LEVEL
+  - name: WATCHNAMESPACE
+
+
+`)
+
+func testExtendedTestdataNodePvckedacontrollertemp60964YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodePvckedacontrollertemp60964Yaml, nil
+}
+
+func testExtendedTestdataNodePvckedacontrollertemp60964Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodePvckedacontrollertemp60964YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/pvcKedaControllerTemp-60964.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeReadinessprobeTerminationperiodYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: readinessprobe-terminationPeriod-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    terminationGracePeriodSeconds: ${{TERMINATIONGRACE}}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: testreadiness
+        image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command: [bash, -c, "sleep 100000000"]
+        ports:
+          - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 1
+          periodSeconds: 60
+          terminationGracePeriodSeconds: ${{PROBETERMINATIONGRACE}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TERMINATIONGRACE
+- name: PROBETERMINATIONGRACE
+`)
+
+func testExtendedTestdataNodeReadinessprobeTerminationperiodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeReadinessprobeTerminationperiodYaml, nil
+}
+
+func testExtendedTestdataNodeReadinessprobeTerminationperiodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeReadinessprobeTerminationperiodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/readinessProbe-terminationPeriod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeRoleYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: thanos-metrics-reader
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+
+`)
+
+func testExtendedTestdataNodeRoleYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeRoleYaml, nil
+}
+
+func testExtendedTestdataNodeRoleYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeRoleYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/role.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeRolebinding52385Yaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: thanos-metrics-reader
+  namespace: cma-52385
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: thanos-metrics-reader
+subjects:
+- kind: ServiceAccount
+  name: thanos-52385
+  namespace: cma-52385`)
+
+func testExtendedTestdataNodeRolebinding52385YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeRolebinding52385Yaml, nil
+}
+
+func testExtendedTestdataNodeRolebinding52385Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeRolebinding52385YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/rolebinding-52385.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeRolebinding73296Yaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: thanos-metrics-reader
+  namespace: cma-73296
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: thanos-metrics-reader
+subjects:
+- kind: ServiceAccount
+  name: thanos-73296
+  namespace: cma-73296`)
+
+func testExtendedTestdataNodeRolebinding73296YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeRolebinding73296Yaml, nil
+}
+
+func testExtendedTestdataNodeRolebinding73296Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeRolebinding73296YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/rolebinding-73296.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeScaledobject52385Yaml = []byte(`apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: prometheus-scaledobject
+spec:
+  scaleTargetRef:
+    name: test-app
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod:  10
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: https://thanos-querier.openshift-monitoring.svc.cluster.local:9092
+      namespace: cma-52385 # replace <NAMESPACE>
+      metricName: http_requests_total
+      threshold: '5'
+      query: sum(rate(http_requests_total{job="test-app"}[1m]))
+      authModes: "bearer"
+    authenticationRef:
+      name: keda-trigger-auth-prometheus
+
+`)
+
+func testExtendedTestdataNodeScaledobject52385YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeScaledobject52385Yaml, nil
+}
+
+func testExtendedTestdataNodeScaledobject52385Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeScaledobject52385YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/scaledobject-52385.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeSecret52385Yaml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-token-ocp52385
+  annotations:
+    kubernetes.io/service-account.name: default
+type: kubernetes.io/service-account-token
+`)
+
+func testExtendedTestdataNodeSecret52385YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeSecret52385Yaml, nil
+}
+
+func testExtendedTestdataNodeSecret52385Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeSecret52385YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/secret-52385.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeServicetoken52385Yaml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-token
+  annotations:
+    kubernetes.io/service-account.name: thanos-52385
+type: kubernetes.io/service-account-token
+`)
+
+func testExtendedTestdataNodeServicetoken52385YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeServicetoken52385Yaml, nil
+}
+
+func testExtendedTestdataNodeServicetoken52385Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeServicetoken52385YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/servicetoken-52385.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeServicetoken73296Yaml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-token
+  annotations:
+    kubernetes.io/service-account.name: thanos-73296
+type: kubernetes.io/service-account-token`)
+
+func testExtendedTestdataNodeServicetoken73296YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeServicetoken73296Yaml, nil
+}
+
+func testExtendedTestdataNodeServicetoken73296Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeServicetoken73296YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/servicetoken-73296.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeSleeppod46306Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: podsleep46306
+objects:
+- kind: Pod
+  apiVersion: v1
+  metadata:
+    generateName: podsleep46306
+    namespace: "${NAMESPACE}"
+  spec:
+    containers:
+    - command:
+      - "/bin/bash"
+      - "-c"
+      - "sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600 & sleep 3600"
+      image: quay.io/openshifttest/origin-base@sha256:cbd0e2931e6ae8cbd1522cd7226cff89629c21a3652f6fd57d84f405d432c07a
+      imagePullPolicy: IfNotPresent
+      name: sleep-pod
+      readinessProbe:
+        exec:
+          command:
+          - cat
+          - /proc/1/comm
+    failureThreshold: 5
+    initialDelaySeconds: 4
+    periodSeconds: 2
+    successThreshold: 1
+    timeoutSeconds: 5
+    restartPolicy: Never
+    nodeSelector:
+      app: sleep
+parameters:
+- name: NAMESPACE
+`)
+
+func testExtendedTestdataNodeSleeppod46306YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeSleeppod46306Yaml, nil
+}
+
+func testExtendedTestdataNodeSleeppod46306Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeSleeppod46306YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/sleepPod46306.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeStartupprobeTerminationperiodYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: startupprobe-terminationPeriod-template
+objects:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: "${NAME}"
+    namespace: "${NAMESPACE}"
+  spec:
+    terminationGracePeriodSeconds: ${{TERMINATIONGRACE}}
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    containers:
+      - name: teststartup
+        image: quay.io/openshifttest/nginx-alpine@sha256:04f316442d48ba60e3ea0b5a67eb89b0b667abf1c198a3d0056ca748736336a0
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        command: [bash, -c, "sleep 100000000"]
+        ports:
+          - containerPort: 8080
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 1
+          periodSeconds: 60
+          terminationGracePeriodSeconds: ${{PROBETERMINATIONGRACE}}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: TERMINATIONGRACE
+- name: PROBETERMINATIONGRACE
+
+`)
+
+func testExtendedTestdataNodeStartupprobeTerminationperiodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeStartupprobeTerminationperiodYaml, nil
+}
+
+func testExtendedTestdataNodeStartupprobeTerminationperiodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeStartupprobeTerminationperiodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/startupProbe-terminationPeriod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeSubTemplateYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: subscription-template
+objects:
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: ${PACKAGE_NAME}
+    namespace: ${NAMESPACE}
+  spec:
+    channel: ${CHANNEL}
+    installPlanApproval: ${INSTALL_PLAN_APPROVAL}
+    name: ${PACKAGE_NAME}
+    source: ${SOURCE}
+    sourceNamespace: ${SOURCE_NAMESPACE}
+parameters:
+  - name: PACKAGE_NAME
+  - name: NAMESPACE
+  - name: CHANNEL
+  - name: SOURCE
+    value: "qe-app-registry"
+  - name: SOURCE_NAMESPACE
+    value: "openshift-marketplace"
+  - name: INSTALL_PLAN_APPROVAL
+    value: Automatic
+`)
+
+func testExtendedTestdataNodeSubTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeSubTemplateYaml, nil
+}
+
+func testExtendedTestdataNodeSubTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeSubTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/sub-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeSubscriptionYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-custom-metrics-autoscaler-operator
+  namespace: openshift-keda
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: openshift-custom-metrics-autoscaler-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+
+`)
+
+func testExtendedTestdataNodeSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeSubscriptionYaml, nil
+}
+
+func testExtendedTestdataNodeSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeTestdeployment73296Yaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: busybox
+  namespace: cma-73296 # replace <NAMESPACE>
+  labels:
+    app: busybox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+    spec:
+      containers:
+      - image: gcr.io/google-containers/busybox:latest
+        name: busybox
+        command: ["/bin/sh"]
+        args: ["-c", "while sleep 3600; do echo sleeping another hour; done; echo Exiting"]
+`)
+
+func testExtendedTestdataNodeTestdeployment73296YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeTestdeployment73296Yaml, nil
+}
+
+func testExtendedTestdataNodeTestdeployment73296Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeTestdeployment73296YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/testdeployment-73296.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeTimezonescaledobject73296Yaml = []byte(`apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  labels:
+    scaledobject.keda.sh/name: cron-scaledobject
+  name: cron-scaledobject
+  namespace: cma-73296  # Replace with your namespace
+spec:
+  scaleTargetRef:
+    name: busybox
+  triggers:
+  - metadata:
+      desiredReplicas: "2"
+      end: '*/10 * * * *'
+      start: '*/5 * * * *'
+      timezone: Europe/Zurich
+    type: cron
+`)
+
+func testExtendedTestdataNodeTimezonescaledobject73296YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeTimezonescaledobject73296Yaml, nil
+}
+
+func testExtendedTestdataNodeTimezonescaledobject73296Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeTimezonescaledobject73296YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/timezonescaledobject-73296.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeTriggerauthentication52385Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: keda.sh/v1alpha1
+  kind: TriggerAuthentication
+  metadata:
+    name: keda-trigger-auth-prometheus
+    namespace: ${NAMESPACE}
+  spec:
+    secretTargetRef:
+    - parameter: bearerToken
+      name: ${SECRET_NAME}
+      key: token
+    - parameter: ca
+      name: ${SECRET_NAME}
+      key: ca.crt 
+parameters:
+- name: SECRET_NAME
+  value: thanos-token
+- name: NAMESPACE
+  value: cma-52385
+`)
+
+func testExtendedTestdataNodeTriggerauthentication52385YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeTriggerauthentication52385Yaml, nil
+}
+
+func testExtendedTestdataNodeTriggerauthentication52385Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeTriggerauthentication52385YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/triggerauthentication-52385.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeTriggerauthentication73296Yaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+objects:
+- apiVersion: keda.sh/v1alpha1
+  kind: TriggerAuthentication
+  metadata:
+    name: keda-trigger-auth-prometheus
+    namespace: ${NAMESPACE}
+  spec:
+    secretTargetRef:
+    - parameter: bearerToken
+      name: ${SECRET_NAME}
+      key: token
+    - parameter: ca
+      name: ${SECRET_NAME}
+      key: ca.crt 
+parameters:
+- name: SECRET_NAME
+  value: thanos-token
+- name: NAMESPACE
+  value: cma-73296`)
+
+func testExtendedTestdataNodeTriggerauthentication73296YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeTriggerauthentication73296Yaml, nil
+}
+
+func testExtendedTestdataNodeTriggerauthentication73296Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeTriggerauthentication73296YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/triggerauthentication-73296.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeVpaOperatorgroupYaml = []byte(`apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-vertical-pod-autoscaler
+  namespace: openshift-vertical-pod-autoscaler
+spec:
+  targetNamespaces:
+  - openshift-vertical-pod-autoscaler
+`)
+
+func testExtendedTestdataNodeVpaOperatorgroupYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeVpaOperatorgroupYaml, nil
+}
+
+func testExtendedTestdataNodeVpaOperatorgroupYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeVpaOperatorgroupYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/vpa-operatorgroup.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeVpaSubscriptionYaml = []byte(`apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: vertical-pod-autoscaler
+  namespace: openshift-vertical-pod-autoscaler
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  #name: openshift-vertical-pod-autoscaler-operator
+  name: vertical-pod-autoscaler
+  #source: redhat-operators 
+  source: qe-app-registry
+  sourceNamespace: openshift-marketplace
+`)
+
+func testExtendedTestdataNodeVpaSubscriptionYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeVpaSubscriptionYaml, nil
+}
+
+func testExtendedTestdataNodeVpaSubscriptionYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeVpaSubscriptionYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/vpa-subscription.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeVpacontroller70961Yaml = []byte(`kind: VerticalPodAutoscalerController
+apiVersion: autoscaling.openshift.io/v1
+metadata:
+  name: vpa-70961
+  namespace: openshift-vertical-pod-autoscaler
+spec:
+  deploymentOverrides:
+    admission:
+      container:
+        args:
+          - '--kube-api-qps=30.0'
+          - '--kube-api-burst=40.0'
+        resources:
+          requests:
+            cpu: 40m
+            memory: 40Mi
+    recommender:
+      container:
+        args:
+          - '--kube-api-qps=20.0'
+          - '--kube-api-burst=60.0'
+          - '--memory-saver=true'
+        resources:
+          requests:
+            cpu: 60m
+            memory: 60Mi
+    updater:
+      container:
+        args:
+          - '--kube-api-qps=20.0'
+          - '--kube-api-burst=80.0'
+        resources:
+          requests:
+            cpu: 80m
+            memory: 80Mi
+  minReplicas: 2
+  podMinCPUMillicores: 25
+  podMinMemoryMb: 250
+  recommendationOnly: false
+  safetyMarginFraction: 0.15
+
+`)
+
+func testExtendedTestdataNodeVpacontroller70961YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeVpacontroller70961Yaml, nil
+}
+
+func testExtendedTestdataNodeVpacontroller70961Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeVpacontroller70961YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/vpacontroller-70961.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNodeVpacontroller70962Yaml = []byte(`kind: VerticalPodAutoscalerController
+apiVersion: autoscaling.openshift.io/v1
+metadata:
+  name: vpa-70962
+  namespace: openshift-vertical-pod-autoscaler
+spec:
+  deploymentOverrides:
+    admission:
+      container:
+        args:
+          - '--kube-api-qps=30.0'
+          - '--kube-api-burst=40.0'
+        resources:
+          requests:
+            cpu: 40m
+            memory: 40Mi
+    recommender:
+      container:
+        args:
+          - '--kube-api-qps=20.0'
+          - '--kube-api-burst=60.0'
+          - '--memory-saver=true'
+        resources:
+          requests:
+            cpu: 60m
+            memory: 60Mi
+    updater:
+      container:
+        args:
+          - '--kube-api-qps=20.0'
+          - '--kube-api-burst=80.0'
+        resources:
+          requests:
+            cpu: 80m
+            memory: 80Mi
+  minReplicas: 2
+  podMinCPUMillicores: 25
+  podMinMemoryMb: 250
+  recommendationOnly: false
+  safetyMarginFraction: 0.15
+
+`)
+
+func testExtendedTestdataNodeVpacontroller70962YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNodeVpacontroller70962Yaml, nil
+}
+
+func testExtendedTestdataNodeVpacontroller70962Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNodeVpacontroller70962YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node/vpacontroller-70962.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -56628,10 +60376,101 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
+	"test/extended/testdata/node/ContainerRuntimeConfigMaster-78610.yaml":                                    testExtendedTestdataNodeContainerruntimeconfigmaster78610Yaml,
+	"test/extended/testdata/node/ContainerRuntimeConfigWorker-78610.yaml":                                    testExtendedTestdataNodeContainerruntimeconfigworker78610Yaml,
+	"test/extended/testdata/node/ImageContentSourcePolicy-1.yaml":                                            testExtendedTestdataNodeImagecontentsourcepolicy1Yaml,
+	"test/extended/testdata/node/ImageContentSourcePolicy.yaml":                                              testExtendedTestdataNodeImagecontentsourcepolicyYaml,
+	"test/extended/testdata/node/ImageDigestMirrorSet-1.yaml":                                                testExtendedTestdataNodeImagedigestmirrorset1Yaml,
+	"test/extended/testdata/node/ImageDigestMirrorSet.yaml":                                                  testExtendedTestdataNodeImagedigestmirrorsetYaml,
+	"test/extended/testdata/node/ImageTagMirrorSet.yaml":                                                     testExtendedTestdataNodeImagetagmirrorsetYaml,
+	"test/extended/testdata/node/amq-operatorgroup-52384.yaml":                                               testExtendedTestdataNodeAmqOperatorgroup52384Yaml,
+	"test/extended/testdata/node/amq-sub.yaml":                                                               testExtendedTestdataNodeAmqSubYaml,
+	"test/extended/testdata/node/clusterresource-override.yaml":                                              testExtendedTestdataNodeClusterresourceOverrideYaml,
+	"test/extended/testdata/node/cma-keda-controller-template.yaml":                                          testExtendedTestdataNodeCmaKedaControllerTemplateYaml,
+	"test/extended/testdata/node/containerRuntimeConfig-crun.yaml":                                           testExtendedTestdataNodeContainerruntimeconfigCrunYaml,
+	"test/extended/testdata/node/containerRuntimeConfig-overlay.yaml":                                        testExtendedTestdataNodeContainerruntimeconfigOverlayYaml,
+	"test/extended/testdata/node/containerRuntimeConfig_log_level.yaml":                                      testExtendedTestdataNodeContainerruntimeconfig_log_levelYaml,
+	"test/extended/testdata/node/cpu-performanceprofile.yaml":                                                testExtendedTestdataNodeCpuPerformanceprofileYaml,
+	"test/extended/testdata/node/cr-operatorgroup.yaml":                                                      testExtendedTestdataNodeCrOperatorgroupYaml,
+	"test/extended/testdata/node/cr-subscription.yaml":                                                       testExtendedTestdataNodeCrSubscriptionYaml,
+	"test/extended/testdata/node/custom-kubelet-test1.yaml":                                                  testExtendedTestdataNodeCustomKubeletTest1Yaml,
+	"test/extended/testdata/node/custom-kubelet-test2.yaml":                                                  testExtendedTestdataNodeCustomKubeletTest2Yaml,
+	"test/extended/testdata/node/generic-deployment.yaml":                                                    testExtendedTestdataNodeGenericDeploymentYaml,
+	"test/extended/testdata/node/guaranteed-deployment.yaml":                                                 testExtendedTestdataNodeGuaranteedDeploymentYaml,
+	"test/extended/testdata/node/image-config.json":                                                          testExtendedTestdataNodeImageConfigJson,
+	"test/extended/testdata/node/imagePolicy.yaml":                                                           testExtendedTestdataNodeImagepolicyYaml,
+	"test/extended/testdata/node/kafka-52384.yaml":                                                           testExtendedTestdataNodeKafka52384Yaml,
+	"test/extended/testdata/node/kafka-consumer-deployment-52384.yaml":                                       testExtendedTestdataNodeKafkaConsumerDeployment52384Yaml,
+	"test/extended/testdata/node/kafka-load-52384.yaml":                                                      testExtendedTestdataNodeKafkaLoad52384Yaml,
+	"test/extended/testdata/node/kafka-scaledobject-52384.yaml":                                              testExtendedTestdataNodeKafkaScaledobject52384Yaml,
+	"test/extended/testdata/node/kafka-topic-52384.yaml":                                                     testExtendedTestdataNodeKafkaTopic52384Yaml,
+	"test/extended/testdata/node/keda-controller-default.yaml":                                               testExtendedTestdataNodeKedaControllerDefaultYaml,
+	"test/extended/testdata/node/keda-hpa-demo-deployment.yaml":                                              testExtendedTestdataNodeKedaHpaDemoDeploymentYaml,
+	"test/extended/testdata/node/kubeletconfig-cpumanager.yaml":                                              testExtendedTestdataNodeKubeletconfigCpumanagerYaml,
+	"test/extended/testdata/node/kubeletconfig-defaultsysres.yaml":                                           testExtendedTestdataNodeKubeletconfigDefaultsysresYaml,
+	"test/extended/testdata/node/kubeletconfig-hardeviction.yaml":                                            testExtendedTestdataNodeKubeletconfigHardevictionYaml,
+	"test/extended/testdata/node/kubeletconfig-maxpod.yaml":                                                  testExtendedTestdataNodeKubeletconfigMaxpodYaml,
+	"test/extended/testdata/node/kubeletconfig-runReqTout.yaml":                                              testExtendedTestdataNodeKubeletconfigRunreqtoutYaml,
+	"test/extended/testdata/node/livenessProbe-terminationPeriod.yaml":                                       testExtendedTestdataNodeLivenessprobeTerminationperiodYaml,
+	"test/extended/testdata/node/livenessProbe-without-terminationPeriod.yaml":                               testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYaml,
+	"test/extended/testdata/node/load-52385.yaml":                                                            testExtendedTestdataNodeLoad52385Yaml,
+	"test/extended/testdata/node/machineconfig-cpu-override-52328.yaml":                                      testExtendedTestdataNodeMachineconfigCpuOverride52328Yaml,
+	"test/extended/testdata/node/machineconfig-cpu-override.yaml":                                            testExtendedTestdataNodeMachineconfigCpuOverrideYaml,
+	"test/extended/testdata/node/machineconfig-image-signature-59552.yaml":                                   testExtendedTestdataNodeMachineconfigImageSignature59552Yaml,
+	"test/extended/testdata/node/machineconfig-log-link.yaml":                                                testExtendedTestdataNodeMachineconfigLogLinkYaml,
+	"test/extended/testdata/node/machineconfig-wasm.yaml":                                                    testExtendedTestdataNodeMachineconfigWasmYaml,
+	"test/extended/testdata/node/machineconfigpool-affinity.yaml":                                            testExtendedTestdataNodeMachineconfigpoolAffinityYaml,
+	"test/extended/testdata/node/mem-hog-ocp11600.yaml":                                                      testExtendedTestdataNodeMemHogOcp11600Yaml,
+	"test/extended/testdata/node/mem-scaledobject.yaml":                                                      testExtendedTestdataNodeMemScaledobjectYaml,
 	"test/extended/testdata/node/nested_container/Dockerfile":                                                testExtendedTestdataNodeNested_containerDockerfile,
 	"test/extended/testdata/node/nested_container/containers.conf":                                           testExtendedTestdataNodeNested_containerContainersConf,
 	"test/extended/testdata/node/nested_container/run_tests.sh":                                              testExtendedTestdataNodeNested_containerRun_testsSh,
 	"test/extended/testdata/node/nested_container/skip_tests.sh":                                             testExtendedTestdataNodeNested_containerSkip_testsSh,
+	"test/extended/testdata/node/ns-clusterresource-operator.yaml":                                           testExtendedTestdataNodeNsClusterresourceOperatorYaml,
+	"test/extended/testdata/node/ns-keda-operator.yaml":                                                      testExtendedTestdataNodeNsKedaOperatorYaml,
+	"test/extended/testdata/node/ns-vpa-operator.yaml":                                                       testExtendedTestdataNodeNsVpaOperatorYaml,
+	"test/extended/testdata/node/operatorgroup.yaml":                                                         testExtendedTestdataNodeOperatorgroupYaml,
+	"test/extended/testdata/node/pod-cpu-load-balance.yaml":                                                  testExtendedTestdataNodePodCpuLoadBalanceYaml,
+	"test/extended/testdata/node/pod-dev-fuse.yaml":                                                          testExtendedTestdataNodePodDevFuseYaml,
+	"test/extended/testdata/node/pod-disruption-budget.yaml":                                                 testExtendedTestdataNodePodDisruptionBudgetYaml,
+	"test/extended/testdata/node/pod-guaranteed.yaml":                                                        testExtendedTestdataNodePodGuaranteedYaml,
+	"test/extended/testdata/node/pod-hello.yaml":                                                             testExtendedTestdataNodePodHelloYaml,
+	"test/extended/testdata/node/pod-initContainer.yaml":                                                     testExtendedTestdataNodePodInitcontainerYaml,
+	"test/extended/testdata/node/pod-liveness-probe.yaml":                                                    testExtendedTestdataNodePodLivenessProbeYaml,
+	"test/extended/testdata/node/pod-loglink.yaml":                                                           testExtendedTestdataNodePodLoglinkYaml,
+	"test/extended/testdata/node/pod-modify.yaml":                                                            testExtendedTestdataNodePodModifyYaml,
+	"test/extended/testdata/node/pod-sigStore.yaml":                                                          testExtendedTestdataNodePodSigstoreYaml,
+	"test/extended/testdata/node/pod-termination.yaml":                                                       testExtendedTestdataNodePodTerminationYaml,
+	"test/extended/testdata/node/pod-user-namespace.yaml":                                                    testExtendedTestdataNodePodUserNamespaceYaml,
+	"test/extended/testdata/node/pod-wasm.yaml":                                                              testExtendedTestdataNodePodWasmYaml,
+	"test/extended/testdata/node/pod-with-two-containers.yaml":                                               testExtendedTestdataNodePodWithTwoContainersYaml,
+	"test/extended/testdata/node/pod-without-workload-cpu.yaml":                                              testExtendedTestdataNodePodWithoutWorkloadCpuYaml,
+	"test/extended/testdata/node/pod-workload-cpu-without-anotation.yaml":                                    testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYaml,
+	"test/extended/testdata/node/pod-workload-cpu.yaml":                                                      testExtendedTestdataNodePodWorkloadCpuYaml,
+	"test/extended/testdata/node/prometheus-comsumer-deployment.yaml":                                        testExtendedTestdataNodePrometheusComsumerDeploymentYaml,
+	"test/extended/testdata/node/prometheus-configmap.yaml":                                                  testExtendedTestdataNodePrometheusConfigmapYaml,
+	"test/extended/testdata/node/pvc-60964.yaml":                                                             testExtendedTestdataNodePvc60964Yaml,
+	"test/extended/testdata/node/pvcKedaControllerTemp-60964.yaml":                                           testExtendedTestdataNodePvckedacontrollertemp60964Yaml,
+	"test/extended/testdata/node/readinessProbe-terminationPeriod.yaml":                                      testExtendedTestdataNodeReadinessprobeTerminationperiodYaml,
+	"test/extended/testdata/node/role.yaml":                                                                  testExtendedTestdataNodeRoleYaml,
+	"test/extended/testdata/node/rolebinding-52385.yaml":                                                     testExtendedTestdataNodeRolebinding52385Yaml,
+	"test/extended/testdata/node/rolebinding-73296.yaml":                                                     testExtendedTestdataNodeRolebinding73296Yaml,
+	"test/extended/testdata/node/scaledobject-52385.yaml":                                                    testExtendedTestdataNodeScaledobject52385Yaml,
+	"test/extended/testdata/node/secret-52385.yaml":                                                          testExtendedTestdataNodeSecret52385Yaml,
+	"test/extended/testdata/node/servicetoken-52385.yaml":                                                    testExtendedTestdataNodeServicetoken52385Yaml,
+	"test/extended/testdata/node/servicetoken-73296.yaml":                                                    testExtendedTestdataNodeServicetoken73296Yaml,
+	"test/extended/testdata/node/sleepPod46306.yaml":                                                         testExtendedTestdataNodeSleeppod46306Yaml,
+	"test/extended/testdata/node/startupProbe-terminationPeriod.yaml":                                        testExtendedTestdataNodeStartupprobeTerminationperiodYaml,
+	"test/extended/testdata/node/sub-template.yaml":                                                          testExtendedTestdataNodeSubTemplateYaml,
+	"test/extended/testdata/node/subscription.yaml":                                                          testExtendedTestdataNodeSubscriptionYaml,
+	"test/extended/testdata/node/testdeployment-73296.yaml":                                                  testExtendedTestdataNodeTestdeployment73296Yaml,
+	"test/extended/testdata/node/timezonescaledobject-73296.yaml":                                            testExtendedTestdataNodeTimezonescaledobject73296Yaml,
+	"test/extended/testdata/node/triggerauthentication-52385.yaml":                                           testExtendedTestdataNodeTriggerauthentication52385Yaml,
+	"test/extended/testdata/node/triggerauthentication-73296.yaml":                                           testExtendedTestdataNodeTriggerauthentication73296Yaml,
+	"test/extended/testdata/node/vpa-operatorgroup.yaml":                                                     testExtendedTestdataNodeVpaOperatorgroupYaml,
+	"test/extended/testdata/node/vpa-subscription.yaml":                                                      testExtendedTestdataNodeVpaSubscriptionYaml,
+	"test/extended/testdata/node/vpacontroller-70961.yaml":                                                   testExtendedTestdataNodeVpacontroller70961Yaml,
+	"test/extended/testdata/node/vpacontroller-70962.yaml":                                                   testExtendedTestdataNodeVpacontroller70962Yaml,
 	"test/extended/testdata/node/zstd-chunked/Dockerfile":                                                    testExtendedTestdataNodeZstdChunkedDockerfile,
 	"test/extended/testdata/node/zstd-chunked/Dockerfile.sample":                                             testExtendedTestdataNodeZstdChunkedDockerfileSample,
 	"test/extended/testdata/node/zstd-chunked/build.sh":                                                      testExtendedTestdataNodeZstdChunkedBuildSh,
@@ -57417,12 +61256,103 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
 				}},
 				"node": {nil, map[string]*bintree{
+					"ContainerRuntimeConfigMaster-78610.yaml":      {testExtendedTestdataNodeContainerruntimeconfigmaster78610Yaml, map[string]*bintree{}},
+					"ContainerRuntimeConfigWorker-78610.yaml":      {testExtendedTestdataNodeContainerruntimeconfigworker78610Yaml, map[string]*bintree{}},
+					"ImageContentSourcePolicy-1.yaml":              {testExtendedTestdataNodeImagecontentsourcepolicy1Yaml, map[string]*bintree{}},
+					"ImageContentSourcePolicy.yaml":                {testExtendedTestdataNodeImagecontentsourcepolicyYaml, map[string]*bintree{}},
+					"ImageDigestMirrorSet-1.yaml":                  {testExtendedTestdataNodeImagedigestmirrorset1Yaml, map[string]*bintree{}},
+					"ImageDigestMirrorSet.yaml":                    {testExtendedTestdataNodeImagedigestmirrorsetYaml, map[string]*bintree{}},
+					"ImageTagMirrorSet.yaml":                       {testExtendedTestdataNodeImagetagmirrorsetYaml, map[string]*bintree{}},
+					"amq-operatorgroup-52384.yaml":                 {testExtendedTestdataNodeAmqOperatorgroup52384Yaml, map[string]*bintree{}},
+					"amq-sub.yaml":                                 {testExtendedTestdataNodeAmqSubYaml, map[string]*bintree{}},
+					"clusterresource-override.yaml":                {testExtendedTestdataNodeClusterresourceOverrideYaml, map[string]*bintree{}},
+					"cma-keda-controller-template.yaml":            {testExtendedTestdataNodeCmaKedaControllerTemplateYaml, map[string]*bintree{}},
+					"containerRuntimeConfig-crun.yaml":             {testExtendedTestdataNodeContainerruntimeconfigCrunYaml, map[string]*bintree{}},
+					"containerRuntimeConfig-overlay.yaml":          {testExtendedTestdataNodeContainerruntimeconfigOverlayYaml, map[string]*bintree{}},
+					"containerRuntimeConfig_log_level.yaml":        {testExtendedTestdataNodeContainerruntimeconfig_log_levelYaml, map[string]*bintree{}},
+					"cpu-performanceprofile.yaml":                  {testExtendedTestdataNodeCpuPerformanceprofileYaml, map[string]*bintree{}},
+					"cr-operatorgroup.yaml":                        {testExtendedTestdataNodeCrOperatorgroupYaml, map[string]*bintree{}},
+					"cr-subscription.yaml":                         {testExtendedTestdataNodeCrSubscriptionYaml, map[string]*bintree{}},
+					"custom-kubelet-test1.yaml":                    {testExtendedTestdataNodeCustomKubeletTest1Yaml, map[string]*bintree{}},
+					"custom-kubelet-test2.yaml":                    {testExtendedTestdataNodeCustomKubeletTest2Yaml, map[string]*bintree{}},
+					"generic-deployment.yaml":                      {testExtendedTestdataNodeGenericDeploymentYaml, map[string]*bintree{}},
+					"guaranteed-deployment.yaml":                   {testExtendedTestdataNodeGuaranteedDeploymentYaml, map[string]*bintree{}},
+					"image-config.json":                            {testExtendedTestdataNodeImageConfigJson, map[string]*bintree{}},
+					"imagePolicy.yaml":                             {testExtendedTestdataNodeImagepolicyYaml, map[string]*bintree{}},
+					"kafka-52384.yaml":                             {testExtendedTestdataNodeKafka52384Yaml, map[string]*bintree{}},
+					"kafka-consumer-deployment-52384.yaml":         {testExtendedTestdataNodeKafkaConsumerDeployment52384Yaml, map[string]*bintree{}},
+					"kafka-load-52384.yaml":                        {testExtendedTestdataNodeKafkaLoad52384Yaml, map[string]*bintree{}},
+					"kafka-scaledobject-52384.yaml":                {testExtendedTestdataNodeKafkaScaledobject52384Yaml, map[string]*bintree{}},
+					"kafka-topic-52384.yaml":                       {testExtendedTestdataNodeKafkaTopic52384Yaml, map[string]*bintree{}},
+					"keda-controller-default.yaml":                 {testExtendedTestdataNodeKedaControllerDefaultYaml, map[string]*bintree{}},
+					"keda-hpa-demo-deployment.yaml":                {testExtendedTestdataNodeKedaHpaDemoDeploymentYaml, map[string]*bintree{}},
+					"kubeletconfig-cpumanager.yaml":                {testExtendedTestdataNodeKubeletconfigCpumanagerYaml, map[string]*bintree{}},
+					"kubeletconfig-defaultsysres.yaml":             {testExtendedTestdataNodeKubeletconfigDefaultsysresYaml, map[string]*bintree{}},
+					"kubeletconfig-hardeviction.yaml":              {testExtendedTestdataNodeKubeletconfigHardevictionYaml, map[string]*bintree{}},
+					"kubeletconfig-maxpod.yaml":                    {testExtendedTestdataNodeKubeletconfigMaxpodYaml, map[string]*bintree{}},
+					"kubeletconfig-runReqTout.yaml":                {testExtendedTestdataNodeKubeletconfigRunreqtoutYaml, map[string]*bintree{}},
+					"livenessProbe-terminationPeriod.yaml":         {testExtendedTestdataNodeLivenessprobeTerminationperiodYaml, map[string]*bintree{}},
+					"livenessProbe-without-terminationPeriod.yaml": {testExtendedTestdataNodeLivenessprobeWithoutTerminationperiodYaml, map[string]*bintree{}},
+					"load-52385.yaml":                              {testExtendedTestdataNodeLoad52385Yaml, map[string]*bintree{}},
+					"machineconfig-cpu-override-52328.yaml":        {testExtendedTestdataNodeMachineconfigCpuOverride52328Yaml, map[string]*bintree{}},
+					"machineconfig-cpu-override.yaml":              {testExtendedTestdataNodeMachineconfigCpuOverrideYaml, map[string]*bintree{}},
+					"machineconfig-image-signature-59552.yaml":     {testExtendedTestdataNodeMachineconfigImageSignature59552Yaml, map[string]*bintree{}},
+					"machineconfig-log-link.yaml":                  {testExtendedTestdataNodeMachineconfigLogLinkYaml, map[string]*bintree{}},
+					"machineconfig-wasm.yaml":                      {testExtendedTestdataNodeMachineconfigWasmYaml, map[string]*bintree{}},
+					"machineconfigpool-affinity.yaml":              {testExtendedTestdataNodeMachineconfigpoolAffinityYaml, map[string]*bintree{}},
+					"mem-hog-ocp11600.yaml":                        {testExtendedTestdataNodeMemHogOcp11600Yaml, map[string]*bintree{}},
+					"mem-scaledobject.yaml":                        {testExtendedTestdataNodeMemScaledobjectYaml, map[string]*bintree{}},
 					"nested_container": {nil, map[string]*bintree{
 						"Dockerfile":      {testExtendedTestdataNodeNested_containerDockerfile, map[string]*bintree{}},
 						"containers.conf": {testExtendedTestdataNodeNested_containerContainersConf, map[string]*bintree{}},
 						"run_tests.sh":    {testExtendedTestdataNodeNested_containerRun_testsSh, map[string]*bintree{}},
 						"skip_tests.sh":   {testExtendedTestdataNodeNested_containerSkip_testsSh, map[string]*bintree{}},
 					}},
+					"ns-clusterresource-operator.yaml":        {testExtendedTestdataNodeNsClusterresourceOperatorYaml, map[string]*bintree{}},
+					"ns-keda-operator.yaml":                   {testExtendedTestdataNodeNsKedaOperatorYaml, map[string]*bintree{}},
+					"ns-vpa-operator.yaml":                    {testExtendedTestdataNodeNsVpaOperatorYaml, map[string]*bintree{}},
+					"operatorgroup.yaml":                      {testExtendedTestdataNodeOperatorgroupYaml, map[string]*bintree{}},
+					"pod-cpu-load-balance.yaml":               {testExtendedTestdataNodePodCpuLoadBalanceYaml, map[string]*bintree{}},
+					"pod-dev-fuse.yaml":                       {testExtendedTestdataNodePodDevFuseYaml, map[string]*bintree{}},
+					"pod-disruption-budget.yaml":              {testExtendedTestdataNodePodDisruptionBudgetYaml, map[string]*bintree{}},
+					"pod-guaranteed.yaml":                     {testExtendedTestdataNodePodGuaranteedYaml, map[string]*bintree{}},
+					"pod-hello.yaml":                          {testExtendedTestdataNodePodHelloYaml, map[string]*bintree{}},
+					"pod-initContainer.yaml":                  {testExtendedTestdataNodePodInitcontainerYaml, map[string]*bintree{}},
+					"pod-liveness-probe.yaml":                 {testExtendedTestdataNodePodLivenessProbeYaml, map[string]*bintree{}},
+					"pod-loglink.yaml":                        {testExtendedTestdataNodePodLoglinkYaml, map[string]*bintree{}},
+					"pod-modify.yaml":                         {testExtendedTestdataNodePodModifyYaml, map[string]*bintree{}},
+					"pod-sigStore.yaml":                       {testExtendedTestdataNodePodSigstoreYaml, map[string]*bintree{}},
+					"pod-termination.yaml":                    {testExtendedTestdataNodePodTerminationYaml, map[string]*bintree{}},
+					"pod-user-namespace.yaml":                 {testExtendedTestdataNodePodUserNamespaceYaml, map[string]*bintree{}},
+					"pod-wasm.yaml":                           {testExtendedTestdataNodePodWasmYaml, map[string]*bintree{}},
+					"pod-with-two-containers.yaml":            {testExtendedTestdataNodePodWithTwoContainersYaml, map[string]*bintree{}},
+					"pod-without-workload-cpu.yaml":           {testExtendedTestdataNodePodWithoutWorkloadCpuYaml, map[string]*bintree{}},
+					"pod-workload-cpu-without-anotation.yaml": {testExtendedTestdataNodePodWorkloadCpuWithoutAnotationYaml, map[string]*bintree{}},
+					"pod-workload-cpu.yaml":                   {testExtendedTestdataNodePodWorkloadCpuYaml, map[string]*bintree{}},
+					"prometheus-comsumer-deployment.yaml":     {testExtendedTestdataNodePrometheusComsumerDeploymentYaml, map[string]*bintree{}},
+					"prometheus-configmap.yaml":               {testExtendedTestdataNodePrometheusConfigmapYaml, map[string]*bintree{}},
+					"pvc-60964.yaml":                          {testExtendedTestdataNodePvc60964Yaml, map[string]*bintree{}},
+					"pvcKedaControllerTemp-60964.yaml":        {testExtendedTestdataNodePvckedacontrollertemp60964Yaml, map[string]*bintree{}},
+					"readinessProbe-terminationPeriod.yaml":   {testExtendedTestdataNodeReadinessprobeTerminationperiodYaml, map[string]*bintree{}},
+					"role.yaml":                               {testExtendedTestdataNodeRoleYaml, map[string]*bintree{}},
+					"rolebinding-52385.yaml":                  {testExtendedTestdataNodeRolebinding52385Yaml, map[string]*bintree{}},
+					"rolebinding-73296.yaml":                  {testExtendedTestdataNodeRolebinding73296Yaml, map[string]*bintree{}},
+					"scaledobject-52385.yaml":                 {testExtendedTestdataNodeScaledobject52385Yaml, map[string]*bintree{}},
+					"secret-52385.yaml":                       {testExtendedTestdataNodeSecret52385Yaml, map[string]*bintree{}},
+					"servicetoken-52385.yaml":                 {testExtendedTestdataNodeServicetoken52385Yaml, map[string]*bintree{}},
+					"servicetoken-73296.yaml":                 {testExtendedTestdataNodeServicetoken73296Yaml, map[string]*bintree{}},
+					"sleepPod46306.yaml":                      {testExtendedTestdataNodeSleeppod46306Yaml, map[string]*bintree{}},
+					"startupProbe-terminationPeriod.yaml":     {testExtendedTestdataNodeStartupprobeTerminationperiodYaml, map[string]*bintree{}},
+					"sub-template.yaml":                       {testExtendedTestdataNodeSubTemplateYaml, map[string]*bintree{}},
+					"subscription.yaml":                       {testExtendedTestdataNodeSubscriptionYaml, map[string]*bintree{}},
+					"testdeployment-73296.yaml":               {testExtendedTestdataNodeTestdeployment73296Yaml, map[string]*bintree{}},
+					"timezonescaledobject-73296.yaml":         {testExtendedTestdataNodeTimezonescaledobject73296Yaml, map[string]*bintree{}},
+					"triggerauthentication-52385.yaml":        {testExtendedTestdataNodeTriggerauthentication52385Yaml, map[string]*bintree{}},
+					"triggerauthentication-73296.yaml":        {testExtendedTestdataNodeTriggerauthentication73296Yaml, map[string]*bintree{}},
+					"vpa-operatorgroup.yaml":                  {testExtendedTestdataNodeVpaOperatorgroupYaml, map[string]*bintree{}},
+					"vpa-subscription.yaml":                   {testExtendedTestdataNodeVpaSubscriptionYaml, map[string]*bintree{}},
+					"vpacontroller-70961.yaml":                {testExtendedTestdataNodeVpacontroller70961Yaml, map[string]*bintree{}},
+					"vpacontroller-70962.yaml":                {testExtendedTestdataNodeVpacontroller70962Yaml, map[string]*bintree{}},
 					"zstd-chunked": {nil, map[string]*bintree{
 						"Dockerfile":             {testExtendedTestdataNodeZstdChunkedDockerfile, map[string]*bintree{}},
 						"Dockerfile.sample":      {testExtendedTestdataNodeZstdChunkedDockerfileSample, map[string]*bintree{}},

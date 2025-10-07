@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-token
+  annotations:
+    kubernetes.io/service-account.name: thanos-73296
+type: kubernetes.io/service-account-token

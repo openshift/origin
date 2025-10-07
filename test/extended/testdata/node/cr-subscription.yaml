@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: clusterresourceoverride
+  namespace: clusterresourceoverride-operator
+spec:
+  channel: stable
+  name: clusterresourceoverride
+  source: qe-app-registry
+  sourceNamespace: openshift-marketplace
+
