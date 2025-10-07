@@ -67,6 +67,10 @@ func NewClusterStateFilter(config *clusterdiscovery.ClusterConfiguration) *Clust
 		skips = append(skips, "[Skipped:NoOptionalCapabilities]")
 	}
 
+	if config.HypervisorConfig == nil {
+		skips = append(skips, "[Requires:HypervisorSSHConfig]")
+	}
+
 	logrus.WithField("skips", skips).Info("Generated skips for cluster state")
 
 	return &ClusterStateFilter{
