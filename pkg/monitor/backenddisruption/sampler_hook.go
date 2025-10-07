@@ -173,6 +173,7 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 		"pcap_file": pcapFile,
 		"log_file":  logFile,
 	}).Info("Tcpdump started successfully")
+	logger.Infof("cmd is %+v\nprocess %+v", cmd, cmd.Process)
 
 	// Log initial system resource state for baseline
 	go func() {
@@ -416,6 +417,7 @@ func getProcessExitInfo(err error) (exitCode int, signal string, details string)
 				exitCode = status.ExitStatus()
 				details = fmt.Sprintf("process exited with code %d", exitCode)
 			} else if status.Signaled() {
+				logrus.Infof("Process exit status %+v", status)
 				sig := status.Signal()
 				signal = sig.String()
 				details = fmt.Sprintf("process killed by signal %s (%d)", signal, sig)
