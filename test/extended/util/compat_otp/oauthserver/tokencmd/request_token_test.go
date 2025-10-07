@@ -723,7 +723,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 
 		// compare the configs to see if they match
 		if !reflect.DeepEqual(*tc.expectedConfig, *opts.OsinConfig) {
-			t.Errorf("%s: expected osin config does not match, %s", tc.name, diff.ObjectDiff(*tc.expectedConfig, *opts.OsinConfig))
+			t.Errorf("%s: expected osin config does not match, %s", tc.name, diff.Diff(*tc.expectedConfig, *opts.OsinConfig))
 		}
 	}
 }
