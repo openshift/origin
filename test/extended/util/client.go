@@ -1040,18 +1040,10 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	return cmd, err
 }
 
-var (
-	reAuthorizationBearer = regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
-	reBearerToken         = regexp.MustCompile(`BearerToken:\s*\"[^\"]+\"`)
-)
+var reToken = regexp.MustCompile(`(?i)(Authorization:\s*Bearer\s+)[^\s"]+|((BearerToken:\s*")[^"]+)`)
 
 func RedactBearerToken(args string) string {
-	if strings.Contains(args, "Authorization: Bearer") {
-		args = reAuthorizationBearer.ReplaceAllString(args, "Authorization: Bearer <redacted> ")
-	} else if strings.Contains(args, "BearerToken") {
-		args = reBearerToken.ReplaceAllString(args, "BearerToken: <redacted> ")
-	}
-	return args
+	return reToken.ReplaceAllString(args, `${1}${3}<redacted>`)
 }
 
 // getStartingIndexForLastN calculates a byte offset in a byte slice such that when using
