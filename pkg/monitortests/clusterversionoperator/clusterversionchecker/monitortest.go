@@ -79,7 +79,7 @@ func (w *monitor) EvaluateTestsFromConstructedIntervals(ctx context.Context, fin
 }
 
 func (w *monitor) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	outputFile := filepath.Join(storageDir, "cluster-version-checker.json")
+	outputFile := filepath.Join(storageDir, fmt.Sprintf("cluster-version-checker%s.json", timeSuffix))
 	data, err := json.Marshal(w.summary)
 	if err != nil {
 		return fmt.Errorf("unable to marshal summary: %w", err)
