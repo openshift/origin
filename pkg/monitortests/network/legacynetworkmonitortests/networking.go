@@ -73,14 +73,13 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 
 	failures := []string{}
 	flakes := []string{}
-	networkOperatorProgressing := events.Filter(func(ev monitorapi.Interval) bool {
+	operatorsProgressing := events.Filter(func(ev monitorapi.Interval) bool {
 		annotations := ev.Message.Annotations
 		if annotations[monitorapi.AnnotationCondition] != string(configv1.OperatorProgressing) {
 			return false
 		}
-		isNetwork := ev.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "network"
-		isMCO := ev.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "machine-config"
-		if isNetwork || isMCO {
+		switch ev.Locator.Keys[monitorapi.LocatorClusterOperatorKey] {
+		case "network", "machine-config", "dns", "kube-apiserver", "etcd":
 			return true
 		}
 		return false
@@ -183,22 +182,23 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
 		if deletionTime := getPodDeletionTime(eventsForPods[partialLocator], event.Locator); deletionTime == nil {
-			// mark sandboxes errors as flakes if networking is being updated
-			match := -1
-			for i := range networkOperatorProgressing {
-				matchesFrom := event.From.After(networkOperatorProgressing[i].From)
-				matchesTo := event.To.Before(networkOperatorProgressing[i].To)
-				if matchesFrom && matchesTo {
-					match = i
+			var progressingOperatorName string
+			for _, operatorProgressingInterval := range operatorsProgressing {
+				if event.From.After(operatorProgressingInterval.From) &&
+					event.To.Before(operatorProgressingInterval.To) {
+					progressingOperatorName = operatorProgressingInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey]
 					break
 				}
 			}
-			if match != -1 {
-				flakes = append(flakes, fmt.Sprintf("%v - never deleted - network rollout - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+			if len(progressingOperatorName) > 0 {
+				flakes = append(flakes, fmt.Sprintf(
+					"%v - never deleted - %s operator rollout - %v",
+					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			} else {
-				failures = append(failures, fmt.Sprintf("%v - never deleted - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+				failures = append(failures, fmt.Sprintf(
+					"%v - never deleted - %s operator rollout - %v",
+					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			}
-
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
 			switch {
