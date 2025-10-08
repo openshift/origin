@@ -202,15 +202,9 @@ func testOneEndpointSlice(oc *exutil.CLI, client kubernetes.Interface, addrType,
 }
 
 func getClientForServiceAccount(adminClient kubernetes.Interface, clientConfig *rest.Config, namespace, name string) (*kubernetes.Clientset, *rest.Config, error) {
-	_, err := adminClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return nil, nil, err
-		}
-		_, err = adminClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}, metav1.CreateOptions{})
-		if err != nil {
-			return nil, nil, err
-		}
+	_, err := adminClient.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}, metav1.CreateOptions{})
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return nil, nil, err
 	}
 
 	_, err = adminClient.CoreV1().ServiceAccounts(namespace).Create(context.Background(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}}, metav1.CreateOptions{})
