@@ -31,6 +31,7 @@ func (w *legacyPathologicalMonitorTests) PrepareCollection(ctx context.Context, 
 }
 
 func (w *legacyPathologicalMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	w.adminRESTConfig = adminRESTConfig
 	return nil
 }
 
