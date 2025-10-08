@@ -27,8 +27,6 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
-	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
-
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
@@ -76,17 +74,22 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
 	}
 
-	// Apply annotations to test names only for upstream tests
-	specs.Walk(func(spec *extensiontests.ExtensionTestSpec) {
-		if append, ok := k8sgenerated.Annotations[spec.Name]; ok {
-			spec.Name += append
-		}
-	})
-
 	klog.Infof("Found %d test specs", len(specs))
-	// Filter out kube tests, vendor filtering isn't working within origin
+	// Filter out kube tests (while retaining CSI tests), vendor filtering isn't working within origin
+	csiPrefix := "External Storage"
 	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
-		return !strings.Contains(spec.Name, "[Suite:k8s")
+		// The CSI tests all have the same prefix, and we need to retain them all
+		if strings.HasPrefix(spec.Name, csiPrefix) {
+			return true
+		}
+		for _, cl := range spec.CodeLocations {
+			// If there is a CodeLocation for origin, that isn't simply "framework" it is not a vendored test
+			if strings.Contains(cl, "github.com/openshift/origin/") &&
+				!strings.Contains(cl, "github.com/openshift/origin/test/extended/util/framework.go") {
+				return true
+			}
+		}
+		return false
 	})
 	klog.Infof("%d test specs remain, after filtering out k8s", len(specs))
 
