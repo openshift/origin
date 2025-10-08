@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"fmt"
 	"io"
+	"os"
 	"sort"
 	"sync"
 )
@@ -37,6 +38,11 @@ func (s *testSuiteProgress) LogTestStart(out io.Writer, testName string) {
 func (s *testSuiteProgress) TestEnded(testName string, testRunResult *testRunResultHandle) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	if testRunResult == nil {
+		fmt.Fprintln(os.Stderr, "testRunResult is nil")
+		return
+	}
 
 	if isTestFailed(testRunResult.testState) {
 		s.failures++
