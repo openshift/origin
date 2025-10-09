@@ -71,9 +71,9 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				g.Skip("Skip on platforms where the default router is not exposed by a load balancer service.")
 			}
 
-			g.By("Getting the default domain")
-			defaultDomain, err := getDefaultIngressClusterDomainName(oc, time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find default domain name")
+			g.By("Getting the base domain")
+			baseDomain, err := getClusterBaseDomainName(oc, time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to find base domain name")
 
 			g.By("Locating the router image reference")
 			routerImage, err := exutil.FindRouterImage(oc)
@@ -393,7 +393,7 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), oc.KubeClient(), "h2spec-haproxy", oc.KubeFramework().Namespace.Name))
 			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), oc.KubeClient(), "h2spec", oc.KubeFramework().Namespace.Name))
 
-			shardFQDN := oc.Namespace() + "." + defaultDomain
+			shardFQDN := oc.Namespace() + "." + baseDomain
 
 			// The new router shard is using a namespace
 			// selector so label this test namespace to
