@@ -59,6 +59,9 @@ var (
 
 		// used by external OIDC tests to simulate an external IdP
 		"quay.io/keycloak/keycloak:25.0": -1,
+
+		// image required for OLMv1 tests in https://github.com/openshift/operator-framework-operator-controller/tree/main/openshift/tests-extension
+		"quay.io/olmtest/webhook-operator:v0.0.5": -1,
 	}
 )
 
