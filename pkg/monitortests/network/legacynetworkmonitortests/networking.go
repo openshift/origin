@@ -193,11 +193,11 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			}
 			if len(progressingOperatorName) > 0 {
 				flakes = append(flakes, fmt.Sprintf(
-					"%v - never deleted - operator: %s was progressing which may cause pod sandbox creation errors - %v",
+					"%v - never deleted - operator:%s was progressing which may cause pod sandbox creation errors - %v",
 					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			} else {
 				failures = append(failures, fmt.Sprintf(
-					"%v - never deleted - operator: %s was progressing which may cause pod sandbox creation errors - %v",
+					"%v - never deleted - operator:%s was progressing which may cause pod sandbox creation errors - %v",
 					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			}
 		} else {
