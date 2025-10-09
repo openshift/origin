@@ -40,12 +40,17 @@ func NewCLIForKubeOpenShift(basename string) *exutil.CLI {
 
 // IsNamespacePrivileged checks if a namespace has privileged SCC
 func IsNamespacePrivileged(oc *exutil.CLI, namespace string) (bool, error) {
-	stdout, err := oc.AsAdmin().Run("get").Args("ns", namespace, "-o", "jsonpath={.metadata.labels.security\\.openshift\\.io/scc\\.podSecurityLabelSync}").Output()
+	// Check for the Kubernetes Pod Security Admission 'enforce: privileged' label.
+	// This is the direct confirmation that the namespace's admission controller
+	// will allow an unrestricted pod (like the one created by 'oc debug node').
+	stdout, err := oc.AsAdmin().Run("get").Args("ns", namespace, "-o", `jsonpath={.metadata.labels.pod-security\.kubernetes\.io/enforce}`).Output()
+
 	if err != nil {
 		return false, err
 	}
 
-	if strings.Contains(stdout, "false") {
+	// The namespace is privileged if it explicitly enforces the privileged standard.
+	if labelValue := strings.TrimSpace(stdout); labelValue == "privileged" {
 		return true, nil
 	}
 
