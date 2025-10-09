@@ -2087,6 +2087,12 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Network Policy should ensure required NetworkPolicies exist with correct labels": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Network Policy should verify required labels for CSI related Operators": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-storage][OCPFeature:StorageNetworkPolicy] Storage Network Policy should verify required labels for CSO related Operators": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-windows] Nodes should fail with invalid version annotation": " [Suite:openshift/conformance/parallel]",
 }
 
