@@ -73,6 +73,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 
 	failures := []string{}
 	flakes := []string{}
+	// Any disruption during cluster's upgrading, such as node restarts, CNI/OVN/DNS outages, or API lookups used by the CNI, can result in a FailedCreatePodSandBox error.
 	operatorsProgressing := events.Filter(func(ev monitorapi.Interval) bool {
 		annotations := ev.Message.Annotations
 		if annotations[monitorapi.AnnotationCondition] != string(configv1.OperatorProgressing) {
@@ -192,11 +193,11 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			}
 			if len(progressingOperatorName) > 0 {
 				flakes = append(flakes, fmt.Sprintf(
-					"%v - never deleted - %s operator rollout - %v",
+					"%v - never deleted - operator: %s was progressing which may cause pod sandbox creation errors - %v",
 					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			} else {
 				failures = append(failures, fmt.Sprintf(
-					"%v - never deleted - %s operator rollout - %v",
+					"%v - never deleted - operator: %s was progressing which may cause pod sandbox creation errors - %v",
 					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			}
 		} else {
