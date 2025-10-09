@@ -1,0 +1,14 @@
+apiVersion: config.openshift.io/v1alpha1
+kind: ClusterImagePolicy 
+metadata:
+  name: p0
+spec:
+  scopes:
+    - docker.io
+  policy:
+    rootOfTrust:
+      policyType: PublicKey
+      publicKey:
+        keyData: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFdkpnZDVkR0V3b2xoS2w2R2VIMUZUN1M5SHJ5RgorVjNzaEwzdEZ6QWh4UDA2V2loMW9ic21aN3ZzMWNXR0FRY0VNVWVZSnlZanpydFd5ZFdkUFZaVmJ3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t
+    signedIdentity:
+      matchPolicy: MatchRepoDigestOrExact

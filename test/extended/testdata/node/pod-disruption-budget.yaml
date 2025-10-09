@@ -1,0 +1,20 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pdb-generic
+objects:
+- kind: PodDisruptionBudget
+  apiVersion: policy/v1
+  metadata:
+    namespace: "${NAMESPACE}"
+    name: "${NAME}"
+  spec:
+    minAvailable: "${MIN_AVAILABLE}"
+    # Empty selector means that it will impact to all pods in
+    # the namespace
+    selector: {}
+parameters:
+- name: NAME
+- name: NAMESPACE
+- name: MIN_AVAILABLE
+  description: "Number or percentage of expected minimum available pods"

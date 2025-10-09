@@ -1,0 +1,23 @@
+apiVersion: config.openshift.io/v1 
+kind: ImageDigestMirrorSet 
+metadata:
+  name: digest-mirror
+spec:
+  imageDigestMirrors: 
+  - mirrors:
+    - example.io/example/ubi-minimal 
+    - example.com/example/ubi-minimal 
+    source: registry.access.redhat.com/ubi9/ubi-minimal 
+    mirrorSourcePolicy: AllowContactingSource 
+  - mirrors:
+    - mirror.example.com
+    source: registry.redhat.io 
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.net/image
+    source: registry.example.com/example/myimage 
+    mirrorSourcePolicy: AllowContactingSource
+  - mirrors:
+    - mirror.example.net
+    source: registry.example.com/example 
+    mirrorSourcePolicy: NeverContactSource
