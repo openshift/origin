@@ -22,7 +22,7 @@ const (
 	kubeletGracePeriod       = 30 * time.Second // Grace period for kubelet to start/stop
 )
 
-var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node Kubelet Service Disruption", func() {
+var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Serial][Slow][Disruptive] Two Node with Fencing cluster", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -76,10 +76,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to discover constraint ID without errors")
 		framework.Logf("Discovered constraint ID: %s", constraintId)
 
-		g.By("Waiting for target node to become NotReady due to kubelet constraint")
+		g.By("Checking that the node is not in state Ready due to kubelet constraint")
 		o.Eventually(func() bool {
 			return !isNodeReady(oc, targetNode.Name)
-		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become NotReady after kubelet constraint is applied", targetNode.Name))
+		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet constraint is applied", targetNode.Name))
 
 		g.By(fmt.Sprintf("Ensuring surviving node %s remains Ready during kubelet disruption", survivingNode.Name))
 		o.Consistently(func() bool {
@@ -131,7 +131,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By(fmt.Sprintf("Verifying kubelet service is initially running on target node: %s", targetNode.Name))
 		o.Eventually(func() bool {
-			return isKubeletServiceRunning(oc, targetNode.Name)
+			return isServiceRunning(oc, targetNode.Name, "kubelet")
 		}, kubeletGracePeriod, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should be running initially on node %s", targetNode.Name))
 
 		g.By(fmt.Sprintf("Stopping kubelet service on target node: %s", targetNode.Name))
@@ -145,7 +145,7 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Waiting for kubelet service to automatically restart on target node")
 		o.Eventually(func() bool {
-			return isKubeletServiceRunning(oc, targetNode.Name)
+			return isServiceRunning(oc, targetNode.Name, "kubelet")
 		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Kubelet service should automatically restart on node %s", targetNode.Name))
 
 		g.By("Validating both nodes are Ready after kubelet service automatic restart")
@@ -155,17 +155,17 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet automatic restart", node.Name))
 		}
 
-		g.By("Validating etcd cluster recovery after kubelet service automatic restart")
-		o.Eventually(func() error {
-			return ensureEtcdOperatorHealthy(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet automatic restart")
-
 		g.By("Ensuring both etcd members are healthy after kubelet service automatic restart")
 		for _, node := range nodes {
 			o.Eventually(func() error {
 				return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, node.Name)
 			}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("etcd member %s should be healthy after kubelet automatic restart", node.Name))
 		}
+
+		g.By("Validating etcd cluster recovery after kubelet service automatic restart")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet automatic restart")
 
 		g.By("Validating cluster operators recovery after kubelet service automatic restart")
 		o.Eventually(func() error {
@@ -209,76 +209,4 @@ func validateClusterOperatorsAvailable(oc *util.CLI) error {
 
 	framework.Logf("All %d cluster operators are available and not degraded", len(clusterOperators.Items))
 	return nil
-}
-
-// createTestWorkload creates a simple test deployment for workload validation
-func createTestWorkload(oc *util.CLI, namespace string) error {
-	framework.Logf("Creating test workload in namespace %s", namespace)
-
-	// Create namespace
-	_, err := oc.AsAdmin().Run("create").Args("namespace", namespace).Output()
-	if err != nil {
-		return fmt.Errorf("failed to create namespace %s: %v", namespace, err)
-	}
-
-	// Create test deployment
-	deploymentYAML := fmt.Sprintf(`
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kubelet-disruption-test
-  namespace: %s
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: kubelet-disruption-test
-  template:
-    metadata:
-      labels:
-        app: kubelet-disruption-test
-    spec:
-      containers:
-      - name: test-container
-        image: registry.redhat.io/ubi8/ubi-minimal:latest
-        command: ['sleep', 'infinity']
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "100m"
-      tolerations:
-      - operator: Exists
-`, namespace)
-
-	err = oc.AsAdmin().Run("apply").Args("-f", "-").InputString(deploymentYAML).Execute()
-	if err != nil {
-		return fmt.Errorf("failed to create test deployment: %v", err)
-	}
-
-	return nil
-}
-
-// isTestWorkloadHealthy checks if the test workload is healthy
-func isTestWorkloadHealthy(oc *util.CLI, namespace string) bool {
-	output, err := oc.AsAdmin().Run("get").Args("deployment", "kubelet-disruption-test", "-n", namespace, "-o", "jsonpath={.status.readyReplicas}").Output()
-	if err != nil {
-		framework.Logf("Error checking test workload health: %v", err)
-		return false
-	}
-
-	if output == "2" {
-		return true
-	}
-
-	framework.Logf("Test workload not fully ready: %s/2 replicas ready", output)
-	return false
-}
-
-// cleanupTestWorkload removes the test workload
-func cleanupTestWorkload(oc *util.CLI, namespace string) {
-	framework.Logf("Cleaning up test workload in namespace %s", namespace)
-	_ = oc.AsAdmin().Run("delete").Args("namespace", namespace, "--ignore-not-found=true").Execute()
 }

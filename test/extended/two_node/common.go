@@ -152,31 +152,6 @@ func isResourceStopped(oc *util.CLI, nodeName string, resourceName string) (bool
 	return false, fmt.Errorf("could not determine resource %s state on node %s", resourceName, nodeName)
 }
 
-// isKubeletResourceStopped is a convenience function to check if kubelet-clone resource is stopped
-func isKubeletResourceStopped(oc *util.CLI, nodeName string) (bool, error) {
-	return isResourceStopped(oc, nodeName, "kubelet-clone")
-}
-
-// addConstraintAndGetId adds a constraint and returns the constraint ID for later removal
-func addConstraintAndGetId(oc *util.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
-	// First add the constraint
-	err := addConstraint(oc, nodeName, resourceName, targetNode)
-	if err != nil {
-		return "", err
-	}
-
-	// Wait a moment for the constraint to be created
-	framework.Logf("Waiting for constraint to be created in Pacemaker...")
-
-	// Then discover the constraint ID
-	constraintId, err := discoverConstraintId(oc, nodeName, resourceName, targetNode)
-	if err != nil {
-		return "", fmt.Errorf("failed to discover constraint ID after adding constraint: %v", err)
-	}
-
-	return constraintId, nil
-}
-
 // stopKubeletService stops the kubelet service on the specified node
 func stopKubeletService(oc *util.CLI, nodeName string) error {
 	framework.Logf("Stopping kubelet service on node %s", nodeName)
@@ -193,23 +168,6 @@ func stopKubeletService(oc *util.CLI, nodeName string) error {
 	return nil
 }
 
-// startKubeletService starts the kubelet service on the specified node
-func startKubeletService(oc *util.CLI, nodeName string) error {
-	framework.Logf("Starting kubelet service on node %s", nodeName)
-
-	cmd := []string{
-		"systemctl", "start", "kubelet",
-	}
-
-	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
-	if err != nil {
-		return fmt.Errorf("failed to start kubelet service on node %s: %v", nodeName, err)
-	}
-
-	framework.Logf("Successfully started kubelet service on node %s", nodeName)
-	return nil
-}
-
 // isServiceRunning checks if the specified service is running on the specified node
 func isServiceRunning(oc *util.CLI, nodeName string, serviceName string) bool {
 	cmd := []string{
@@ -218,10 +176,4 @@ func isServiceRunning(oc *util.CLI, nodeName string, serviceName string) bool {
 
 	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	return err == nil
-}
-
-// isKubeletServiceRunning checks if kubelet service is running on the specified node
-// This is a convenience wrapper around isServiceRunning for kubelet
-func isKubeletServiceRunning(oc *util.CLI, nodeName string) bool {
-	return isServiceRunning(oc, nodeName, "kubelet")
 }
