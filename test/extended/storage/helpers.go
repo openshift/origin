@@ -21,6 +21,13 @@ const (
 	defaultPollingTime    = 2 * time.Second
 )
 
+// Storage operator and CSI driver namespace constants
+const (
+	CSONamespace       = "openshift-cluster-storage-operator" // Cluster Storage Operator namespace
+	CSINamespace       = "openshift-cluster-csi-drivers"      // Default CSI driver operators namespace
+	ManilaCSINamespace = "openshift-manila-csi-driver"        // Manila CSI driver namespace (OpenStack only)
+)
+
 // IsCSOHealthy checks whether the Cluster Storage Operator is healthy
 func IsCSOHealthy(oc *exutil.CLI) (bool, error) {
 	// CSO healthyStatus:[degradedStatus:False, progressingStatus:False, availableStatus:True, upgradeableStatus:True]
