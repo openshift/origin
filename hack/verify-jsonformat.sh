@@ -20,6 +20,7 @@ found=0
 excluded_files=(
   "test/extended/testdata/cmd/test/cmd/testdata/new-app/bc-from-imagestreamimage.json"
   "test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json"
+  "test/extended/util/compat_otp/testdata/opm/render/validate/catalog-error/operator-2/index.json"
 )
 
 set +e
@@ -53,6 +54,6 @@ rm -rf ${tmp_dir}
 
 if [ "$found" == "1" ]; then
   echo -e "\nThere are problems with some JSON files, to verify them you can run:"
-  echo -e "$ go run ./hack/jsonformat.go <filename>\n"
+  echo -e "$ go run ./hack/jsonformat/main.go <filename>\n"
   exit
 fi
