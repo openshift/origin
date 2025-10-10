@@ -1,0 +1,10 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+reviewers:
+  - ming1013
+  - rioliu-rh
+  - tomasdavidorg
+approvers:
+  - ming1013
+  - rioliu-rh
+  - tomasdavidorg
