@@ -1040,11 +1040,16 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	return cmd, err
 }
 
+var (
+	reAuthorizationBearer = regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
+	reBearerToken         = regexp.MustCompile(`BearerToken:\s*\"[^\"]+\"`)
+)
+
 func RedactBearerToken(args string) string {
 	if strings.Contains(args, "Authorization: Bearer") {
-		// redact bearer token
-		re := regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
-		args = re.ReplaceAllString(args, "Authorization: Bearer <redacted> ")
+		args = reAuthorizationBearer.ReplaceAllString(args, "Authorization: Bearer <redacted> ")
+	} else if strings.Contains(args, "BearerToken") {
+		args = reBearerToken.ReplaceAllString(args, "BearerToken: <redacted> ")
 	}
 	return args
 }
