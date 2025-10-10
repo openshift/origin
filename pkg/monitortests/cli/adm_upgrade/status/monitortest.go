@@ -102,20 +102,26 @@ func snapshotOcAdmUpgradeStatus(ch chan *snapshot) {
 	oc := exutil.NewCLIWithoutNamespace("adm-upgrade-status").AsAdmin()
 	now := time.Now()
 
+	var attempts int
+	var attemptRecorder strings.Builder
+
 	var out string
 	var err error
 	// retry on brief apiserver unavailability
 	if errWait := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
+		attempts++
 		cmd := oc.Run("adm", "upgrade", "status", "--details=all")
 		out, err = cmd.Output()
 		if err != nil {
+			attemptRecorder.WriteString(fmt.Sprintf("Attempt #%d failed: %s\nOutput:%s\n", attempts, err.Error(), out))
 			return false, nil
 		}
 		return true, nil
 	}); errWait != nil {
 		out = ""
-		err = errWait
+		err = fmt.Errorf("failed to run oc adm upgrade status after %d attempts: %w\nrecorded attempts and outputs:\n%s", attempts, errWait, attemptRecorder.String())
 	}
+
 	ch <- &snapshot{when: now, out: out, err: err}
 }
 
