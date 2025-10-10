@@ -2,7 +2,9 @@ package two_node
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -232,15 +234,61 @@ func validateClusterOperatorsAvailable(oc *util.CLI) error {
 		return fmt.Errorf("failed to list cluster operators: %v", err)
 	}
 
+	var unavailableOperators []string
+	var degradedOperators []string
+
+	// Slice through all operators and collect problematic ones
 	for _, operator := range clusterOperators.Items {
 		if !isClusterOperatorAvailable(&operator) {
-			return fmt.Errorf("cluster operator %s is not available", operator.Name)
+			unavailableOperators = append(unavailableOperators, operator.Name)
+			// Log detailed condition information for unavailable operators
+			framework.Logf("Operator %s is NOT AVAILABLE. Conditions:", operator.Name)
+			for _, cond := range operator.Status.Conditions {
+				if cond.Type == v1.OperatorAvailable {
+					framework.Logf("  Available: %s (Reason: %s, Message: %s)", cond.Status, cond.Reason, cond.Message)
+				}
+			}
 		}
 		if isClusterOperatorDegraded(&operator) {
-			return fmt.Errorf("cluster operator %s is degraded", operator.Name)
+			degradedOperators = append(degradedOperators, operator.Name)
+			// Log detailed condition information for degraded operators
+			framework.Logf("Operator %s is DEGRADED. Conditions:", operator.Name)
+			for _, cond := range operator.Status.Conditions {
+				if cond.Type == v1.OperatorDegraded {
+					framework.Logf("  Degraded: %s (Reason: %s, Message: %s)", cond.Status, cond.Reason, cond.Message)
+				}
+			}
 		}
 	}
 
-	framework.Logf("All %d cluster operators are available and not degraded", len(clusterOperators.Items))
+	// Report results
+	totalOperators := len(clusterOperators.Items)
+	availableOperators := totalOperators - len(unavailableOperators)
+	nonDegradedOperators := totalOperators - len(degradedOperators)
+
+	framework.Logf("Cluster Operators Summary: %d total, %d available, %d non-degraded",
+		totalOperators, availableOperators, nonDegradedOperators)
+
+	// Return detailed error if any operators are problematic
+	if len(unavailableOperators) > 0 || len(degradedOperators) > 0 {
+		var errorMsg strings.Builder
+
+		if len(unavailableOperators) > 0 {
+			errorMsg.WriteString(fmt.Sprintf("Unavailable operators (%d): %s",
+				len(unavailableOperators), strings.Join(unavailableOperators, ", ")))
+		}
+
+		if len(degradedOperators) > 0 {
+			if errorMsg.Len() > 0 {
+				errorMsg.WriteString("; ")
+			}
+			errorMsg.WriteString(fmt.Sprintf("Degraded operators (%d): %s",
+				len(degradedOperators), strings.Join(degradedOperators, ", ")))
+		}
+
+		return errors.New(errorMsg.String())
+	}
+
+	framework.Logf("All %d cluster operators are available and not degraded", totalOperators)
 	return nil
 }

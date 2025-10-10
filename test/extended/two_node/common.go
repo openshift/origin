@@ -19,7 +19,7 @@ const (
 )
 
 func skipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
-	current, err := util.GetControlPlaneTopology(oc)
+	current, err := exutil.GetControlPlaneTopology(oc)
 	if err != nil {
 		e2eskipper.Skip(fmt.Sprintf("Could not get current topology, skipping test: error %v", err))
 	}
@@ -47,7 +47,7 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 }
 
 // addConstraint adds constraint that avoids having resource as part of the cluster
-func addConstraint(oc *util.CLI, nodeName string, resourceName string, targetNode string) error {
+func addConstraint(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) error {
 	framework.Logf("Adding constraint for %s resource to avoid %s", resourceName, targetNode)
 
 	cmd := []string{
@@ -66,7 +66,7 @@ func addConstraint(oc *util.CLI, nodeName string, resourceName string, targetNod
 }
 
 // removeConstraint removes constraint that avoids having resource as part of the cluster
-func removeConstraint(oc *util.CLI, nodeName string, constraintId string) error {
+func removeConstraint(oc *exutil.CLI, nodeName string, constraintId string) error {
 	framework.Logf("Removing constraint with ID %s on %s", constraintId, nodeName)
 
 	cmd := []string{
@@ -85,7 +85,7 @@ func removeConstraint(oc *util.CLI, nodeName string, constraintId string) error 
 }
 
 // discoverConstraintId discovers the constraint ID for a specific resource and node combination using JSON output and jq
-func discoverConstraintId(oc *util.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
+func discoverConstraintId(oc *exutil.CLI, nodeName string, resourceName string, targetNode string) (string, error) {
 	framework.Logf("Discovering constraint ID for resource %s avoiding node %s using node %s", resourceName, targetNode, nodeName)
 
 	// Use jq to extract the constraint ID from JSON output directly
@@ -113,7 +113,7 @@ func discoverConstraintId(oc *util.CLI, nodeName string, resourceName string, ta
 }
 
 // isResourceStopped checks if a Pacemaker resource is stopped on a specific node
-func isResourceStopped(oc *util.CLI, nodeName string, resourceName string) (bool, error) {
+func isResourceStopped(oc *exutil.CLI, nodeName string, resourceName string) (bool, error) {
 	framework.Logf("Checking if resource %s is stopped on node %s", resourceName, nodeName)
 
 	cmd := []string{
@@ -160,7 +160,7 @@ func isResourceStopped(oc *util.CLI, nodeName string, resourceName string) (bool
 }
 
 // stopKubeletService stops the kubelet service on the specified node
-func stopKubeletService(oc *util.CLI, nodeName string) error {
+func stopKubeletService(oc *exutil.CLI, nodeName string) error {
 	framework.Logf("Stopping kubelet service on node %s", nodeName)
 
 	cmd := []string{
@@ -176,7 +176,7 @@ func stopKubeletService(oc *util.CLI, nodeName string) error {
 }
 
 // isServiceRunning checks if the specified service is running on the specified node
-func isServiceRunning(oc *util.CLI, nodeName string, serviceName string) bool {
+func isServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool {
 	cmd := []string{
 		"systemctl", "is-active", "--quiet", serviceName,
 	}
