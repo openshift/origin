@@ -41,6 +41,14 @@ type Source struct {
 	Bridge string `xml:"bridge,attr"`
 }
 
+type VMState string
+
+const (
+	VMStateUnknown VMState = "unknown"
+	VMStateRunning VMState = "running"
+	VMStateShutOff VMState = "shut off"
+)
+
 // Constants for virsh commands
 const (
 	virshCommand          = "virsh"
@@ -366,4 +374,76 @@ func WaitForVMToStart(vmName string, timeout time.Duration, pollInterval time.Du
 	}
 
 	return err
+}
+
+// WaitForVMState waits for a VM to reach a given state by polling domstate.
+func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollInterval time.Duration, sshConfig *core.SSHConfig, knownHostsPath string) error {
+	klog.V(2).Infof("WaitForVMState: Starting wait for VM '%s' to reach state %s", vmName, vmState)
+
+	err := core.RetryWithOptions(func() error {
+		klog.V(4).Infof("WaitForVMState: Checking VM '%s' state (retry iteration)", vmName)
+
+		// Check if VM exists using VirshVMExists helper
+		_, err := VirshVMExists(vmName, sshConfig, knownHostsPath)
+		if err != nil {
+			klog.V(4).Infof("WaitForVMState: VM '%s' not found in VM list - %v", vmName, err)
+			return fmt.Errorf("VM %s state is not '%s' yet: %v", vmName, vmState, err)
+		}
+
+		// Check VM state (not just defined)
+		statusOutput, err := VirshCommand(fmt.Sprintf("domstate %s", vmName), sshConfig, knownHostsPath)
+		if err != nil {
+			klog.ErrorS(err, "WaitForVMState failed to check VM state", "vm", vmName)
+			return fmt.Errorf("failed to check VM %s state: %v", vmName, err)
+		}
+
+		statusOutput = strings.TrimSpace(statusOutput)
+		klog.V(4).Infof("WaitForVMState: VM '%s' current state: %s", vmName, statusOutput)
+
+		if !strings.Contains(statusOutput, string(vmState)) {
+			return fmt.Errorf("VM %s is not '%s', current state: %s", vmName, vmState, statusOutput)
+		}
+
+		klog.V(2).Infof("WaitForVMState: VM '%s' has reached state '%s'", vmName, vmState)
+		return nil
+	}, core.RetryOptions{
+		Timeout:      timeout,
+		PollInterval: pollInterval,
+	}, fmt.Sprintf("VM %s state check", vmName))
+
+	if err != nil {
+		klog.ErrorS(err, "WaitForVMState timeout or error", "vm", vmName)
+	} else {
+		klog.V(2).Infof("WaitForVMState: Successfully confirmed VM '%s' is '%s'", vmName, vmState)
+	}
+
+	return err
+}
+
+// FindVMByNodeName finds a VM that corresponds to an OpenShift node
+// This uses a simple name-based correlation approach
+func FindVMByNodeName(nodeName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
+	vmListOutput, err := VirshListAllVMs(sshConfig, knownHostsPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to list VMs: %w", err)
+	}
+
+	vmNames := strings.Fields(vmListOutput)
+	// Try different naming patterns commonly used in OpenShift test environments
+	possibleVMNames := []string{
+		nodeName,                                // exact match
+		fmt.Sprintf("%s.example.com", nodeName), // FQDN
+		strings.Replace(nodeName, "-", "_", -1), // underscores instead of dashes
+	}
+	for _, vmName := range vmNames {
+		for _, possibleName := range possibleVMNames {
+			if vmName == possibleName || strings.Contains(vmName, possibleName) || strings.Contains(possibleName, vmName) {
+				klog.V(2).Infof("Matched VM '%s' to node '%s' using pattern '%s'", vmName,
+					nodeName, possibleName)
+				return vmName, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no suitable VM found for node %s among VMs: %v", nodeName, vmNames)
 }
