@@ -138,11 +138,6 @@ func getNodeInternalAddress(node *corev1.Node) string {
 	return node.Status.Addresses[0].Address
 }
 
-// This is a wrapper function for createNodeDisruptionPod that uses podNetworkMode by default
-func CreateNodeDisruptionPod(kubeClient kubernetes.Interface, nodeName string, command string) error {
-	return createNodeDisruptionPod(kubeClient, nodeName, 0, podNetworkMode, command)
-}
-
 func createNodeDisruptionPod(kubeClient kubernetes.Interface, nodeName string, attempt int, networkMode networkMode, command string) error {
 	isTrue := true
 	zero := int64(0)

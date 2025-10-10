@@ -5,7 +5,8 @@ import (
 	"strings"
 
 	v1 "github.com/openshift/api/config/v1"
-	util "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
@@ -17,7 +18,7 @@ const (
 	labelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"
 )
 
-func skipIfNotTopology(oc *util.CLI, wanted v1.TopologyMode) {
+func skipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 	current, err := util.GetControlPlaneTopology(oc)
 	if err != nil {
 		e2eskipper.Skip(fmt.Sprintf("Could not get current topology, skipping test: error %v", err))
@@ -49,11 +50,14 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 func addConstraint(oc *util.CLI, nodeName string, resourceName string, targetNode string) error {
 	framework.Logf("Adding constraint for %s resource to avoid %s", resourceName, targetNode)
 
-	command := fmt.Sprintf("echo 'adding pacemaker constraint'; exec chroot /host pcs constraint location %s avoids %s", resourceName, targetNode)
+	cmd := []string{
+		"bash", "-c",
+		fmt.Sprintf("sudo pcs constraint location %s avoids %s", resourceName, targetNode),
+	}
 
-	err := util.CreateNodeDisruptionPod(oc.KubeClient(), nodeName, command)
+	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	if err != nil {
-		framework.Logf("Failed to add constraint via disruption pod")
+		framework.Logf("Failed to add constraint using debug node")
 		return fmt.Errorf("failed to add constraint for resource %s to avoid %s: %v", resourceName, targetNode, err)
 	}
 
@@ -65,11 +69,14 @@ func addConstraint(oc *util.CLI, nodeName string, resourceName string, targetNod
 func removeConstraint(oc *util.CLI, nodeName string, constraintId string) error {
 	framework.Logf("Removing constraint with ID %s on %s", constraintId, nodeName)
 
-	command := fmt.Sprintf("echo 'removing pacemaker constraint'; exec chroot /host pcs constraint remove %s", constraintId)
+	cmd := []string{
+		"bash", "-c",
+		fmt.Sprintf("sudo pcs constraint remove %s", constraintId),
+	}
 
-	err := util.CreateNodeDisruptionPod(oc.KubeClient(), nodeName, command)
+	_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	if err != nil {
-		framework.Logf("Failed to remove constraint via disruption pod")
+		framework.Logf("Failed to remove constraint using debug node")
 		return fmt.Errorf("failed to remove constraint %s: %v", constraintId, err)
 	}
 

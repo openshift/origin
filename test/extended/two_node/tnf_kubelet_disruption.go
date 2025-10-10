@@ -62,6 +62,40 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available before kubelet disruption")
 	})
 
+	g.AfterEach(func() {
+		// Cleanup: Remove any constraints that may have been created during the test
+		// This ensures the device under test is in the same state the test started in
+		if len(nodes) == 2 {
+			survivingNode := nodes[1] // Use the second node as the surviving node for cleanup commands
+
+			g.By("Cleanup: Attempting to remove any kubelet constraints that may exist")
+			for _, targetNode := range nodes {
+				constraintId, err := discoverConstraintId(oc, survivingNode.Name, "kubelet-clone", targetNode.Name)
+				if err != nil {
+					framework.Logf("No constraint found for kubelet-clone resource avoiding node %s (this is expected if no constraint was created)", targetNode.Name)
+					continue
+				}
+
+				if constraintId != "" {
+					framework.Logf("Cleanup: Found constraint ID %s for kubelet-clone avoiding node %s, removing it", constraintId, targetNode.Name)
+					cleanupErr := removeConstraint(oc, survivingNode.Name, constraintId)
+					if cleanupErr != nil {
+						framework.Logf("Warning: Failed to remove constraint %s during cleanup: %v", constraintId, cleanupErr)
+					} else {
+						framework.Logf("Successfully removed constraint %s during cleanup", constraintId)
+					}
+				}
+			}
+
+			g.By("Cleanup: Waiting for all nodes to become Ready after constraint cleanup")
+			for _, node := range nodes {
+				o.Eventually(func() bool {
+					return isNodeReady(oc, node.Name)
+				}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after cleanup", node.Name))
+			}
+		}
+	})
+
 	g.It("Should recover from single node kubelet service disruption", func() {
 		targetNode := nodes[0]
 		survivingNode := nodes[1]
