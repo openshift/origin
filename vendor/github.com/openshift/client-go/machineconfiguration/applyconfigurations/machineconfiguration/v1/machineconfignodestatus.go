@@ -9,10 +9,12 @@ import (
 // MachineConfigNodeStatusApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatus type for use
 // with apply.
 type MachineConfigNodeStatusApplyConfiguration struct {
-	Conditions         []metav1.ConditionApplyConfiguration                           `json:"conditions,omitempty"`
-	ObservedGeneration *int64                                                         `json:"observedGeneration,omitempty"`
-	ConfigVersion      *MachineConfigNodeStatusMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
-	PinnedImageSets    []MachineConfigNodeStatusPinnedImageSetApplyConfiguration      `json:"pinnedImageSets,omitempty"`
+	Conditions            []metav1.ConditionApplyConfiguration                           `json:"conditions,omitempty"`
+	ObservedGeneration    *int64                                                         `json:"observedGeneration,omitempty"`
+	ConfigVersion         *MachineConfigNodeStatusMachineConfigVersionApplyConfiguration `json:"configVersion,omitempty"`
+	ConfigImage           *MachineConfigNodeStatusConfigImageApplyConfiguration          `json:"configImage,omitempty"`
+	PinnedImageSets       []MachineConfigNodeStatusPinnedImageSetApplyConfiguration      `json:"pinnedImageSets,omitempty"`
+	IrreconcilableChanges []IrreconcilableChangeDiffApplyConfiguration                   `json:"irreconcilableChanges,omitempty"`
 }
 
 // MachineConfigNodeStatusApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatus type for use with
@@ -50,6 +52,14 @@ func (b *MachineConfigNodeStatusApplyConfiguration) WithConfigVersion(value *Mac
 	return b
 }
 
+// WithConfigImage sets the ConfigImage field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ConfigImage field is set to the value of the last call.
+func (b *MachineConfigNodeStatusApplyConfiguration) WithConfigImage(value *MachineConfigNodeStatusConfigImageApplyConfiguration) *MachineConfigNodeStatusApplyConfiguration {
+	b.ConfigImage = value
+	return b
+}
+
 // WithPinnedImageSets adds the given value to the PinnedImageSets field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the PinnedImageSets field.
@@ -59,6 +69,19 @@ func (b *MachineConfigNodeStatusApplyConfiguration) WithPinnedImageSets(values .
 			panic("nil value passed to WithPinnedImageSets")
 		}
 		b.PinnedImageSets = append(b.PinnedImageSets, *values[i])
+	}
+	return b
+}
+
+// WithIrreconcilableChanges adds the given value to the IrreconcilableChanges field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the IrreconcilableChanges field.
+func (b *MachineConfigNodeStatusApplyConfiguration) WithIrreconcilableChanges(values ...*IrreconcilableChangeDiffApplyConfiguration) *MachineConfigNodeStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithIrreconcilableChanges")
+		}
+		b.IrreconcilableChanges = append(b.IrreconcilableChanges, *values[i])
 	}
 	return b
 }

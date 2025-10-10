@@ -1379,6 +1379,15 @@ func (KubeStorageVersionMigratorList) SwaggerDoc() map[string]string {
 	return map_KubeStorageVersionMigratorList
 }
 
+var map_IrreconcilableValidationOverrides = map[string]string{
+	"":        "IrreconcilableValidationOverrides holds the irreconcilable validations overrides to be applied on each rendered MachineConfig generation.",
+	"storage": "storage can be used to allow making irreconcilable changes to the selected sections under the `spec.config.storage` field of MachineConfig CRs It must have at least one item, may not exceed 3 items and must not contain duplicates. Allowed element values are \"Disks\", \"FileSystems\", \"Raid\" and omitted. When contains \"Disks\" changes to the `spec.config.storage.disks` section of MachineConfig CRs are allowed. When contains \"FileSystems\" changes to the `spec.config.storage.filesystems` section of MachineConfig CRs are allowed. When contains \"Raid\" changes to the `spec.config.storage.raid` section of MachineConfig CRs are allowed. When omitted changes to the `spec.config.storage` section are forbidden.",
+}
+
+func (IrreconcilableValidationOverrides) SwaggerDoc() map[string]string {
+	return map_IrreconcilableValidationOverrides
+}
+
 var map_MachineConfiguration = map[string]string{
 	"":         "MachineConfiguration provides information to configure an operator to manage Machine Configuration.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
@@ -1401,8 +1410,9 @@ func (MachineConfigurationList) SwaggerDoc() map[string]string {
 }
 
 var map_MachineConfigurationSpec = map[string]string{
-	"managedBootImages":    "managedBootImages allows configuration for the management of boot images for machine resources within the cluster. This configuration allows users to select resources that should be updated to the latest boot images during cluster upgrades, ensuring that new machines always boot with the current cluster version's boot image. When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The default for each machine manager mode is All for GCP and AWS platforms, and None for all other platforms.",
-	"nodeDisruptionPolicy": "nodeDisruptionPolicy allows an admin to set granular node disruption actions for MachineConfig-based updates, such as drains, service reloads, etc. Specifying this will allow for less downtime when doing small configuration updates to the cluster. This configuration has no effect on cluster upgrades which will still incur node disruption where required.",
+	"managedBootImages":                 "managedBootImages allows configuration for the management of boot images for machine resources within the cluster. This configuration allows users to select resources that should be updated to the latest boot images during cluster upgrades, ensuring that new machines always boot with the current cluster version's boot image. When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The default for each machine manager mode is All for GCP and AWS platforms, and None for all other platforms.",
+	"nodeDisruptionPolicy":              "nodeDisruptionPolicy allows an admin to set granular node disruption actions for MachineConfig-based updates, such as drains, service reloads, etc. Specifying this will allow for less downtime when doing small configuration updates to the cluster. This configuration has no effect on cluster upgrades which will still incur node disruption where required.",
+	"irreconcilableValidationOverrides": "irreconcilableValidationOverrides is an optional field that can used to make changes to a MachineConfig that cannot be applied to existing nodes. When specified, the fields configured with validation overrides will no longer reject changes to those respective fields due to them not being able to be applied to existing nodes. Only newly provisioned nodes will have these configurations applied. Existing nodes will report observed configuration differences in their MachineConfigNode status.",
 }
 
 func (MachineConfigurationSpec) SwaggerDoc() map[string]string {

@@ -89,11 +89,17 @@ func parseBinaryFloat(v []byte) (float64, error) {
 	case 0x02:
 		expLen = 3
 	case 0x03:
+		if len(v) < 2 {
+			return 0.0, errors.New("invalid data")
+		}
 		expLen = int(v[0])
 		if expLen > 8 {
 			return 0.0, errors.New("too big value of exponent")
 		}
 		v = v[1:]
+	}
+	if expLen > len(v) {
+		return 0.0, errors.New("too big value of exponent")
 	}
 	buf, v = v[:expLen], v[expLen:]
 	exponent, err := ParseInt64(buf)

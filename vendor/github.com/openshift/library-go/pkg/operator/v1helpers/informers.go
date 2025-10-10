@@ -32,17 +32,21 @@ type KubeInformersForNamespaces interface {
 
 var _ KubeInformersForNamespaces = kubeInformersForNamespaces{}
 
-func NewKubeInformersForNamespaces(kubeClient kubernetes.Interface, namespaces ...string) KubeInformersForNamespaces {
+func NewKubeInformersForNamespacesWithResyncPeriod(kubeClient kubernetes.Interface, resyncInterval time.Duration, namespaces ...string) KubeInformersForNamespaces {
 	ret := kubeInformersForNamespaces{}
 	for _, namespace := range namespaces {
 		if len(namespace) == 0 {
-			ret[""] = informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+			ret[""] = informers.NewSharedInformerFactory(kubeClient, resyncInterval)
 			continue
 		}
-		ret[namespace] = informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithNamespace(namespace))
+		ret[namespace] = informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncInterval, informers.WithNamespace(namespace))
 	}
 
 	return ret
+}
+
+func NewKubeInformersForNamespaces(kubeClient kubernetes.Interface, namespaces ...string) KubeInformersForNamespaces {
+	return NewKubeInformersForNamespacesWithResyncPeriod(kubeClient, 10*time.Minute, namespaces...)
 }
 
 type kubeInformersForNamespaces map[string]informers.SharedInformerFactory
