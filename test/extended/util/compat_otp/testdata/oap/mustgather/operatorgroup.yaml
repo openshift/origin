@@ -1,0 +1,5 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: must-gather-og
+  namespace: must-gather-operator
