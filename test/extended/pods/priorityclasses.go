@@ -37,6 +37,13 @@ var excludedPriorityClassPods = map[string][]string{
 	"openshift-operators": {
 		"servicemesh-operator3-",
 	},
+
+	// Istio does not provide an option to set priority class on gateway
+	// pods.  https://issues.redhat.com/browse/OCPBUGS-54652 tracks setting
+	// the annotation so that we can remove this exclusion.
+	"openshift-ingress": {
+		"gateway-",
+	},
 }
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {

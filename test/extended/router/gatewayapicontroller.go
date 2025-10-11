@@ -14,6 +14,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
+	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
@@ -24,17 +25,9 @@ import (
 	"k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
-)
-
-var (
-	requiredCapabilities = []configv1.ClusterVersionCapability{
-		configv1.ClusterVersionCapabilityMarketplace,
-		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
-	}
 )
 
 const (
@@ -42,6 +35,41 @@ const (
 	dnsResolutionTimeout = 10 * time.Minute
 	// Max time duration for the Load balancer address
 	loadBalancerReadyTimeout = 10 * time.Minute
+	// ingressNamespace is the name of the "openshift-ingress" operand
+	// namespace.
+	ingressNamespace = "openshift-ingress"
+	// istioName is the name of the Istio CR.
+	istioName = "openshift-gateway"
+	// The name of the default gatewayclass, which is used to install OSSM.
+	gatewayClassName = "openshift-default"
+
+	ossmAndOLMResourcesCreated         = "ensure-resources-are-created"
+	defaultGatewayclassAccepted        = "ensure-default-gatewayclass-is-accepted"
+	customGatewayclassAccepted         = "ensure-custom-gatewayclass-is-accepted"
+	lbAndServiceAndDnsrecordAreCreated = "ensure-lb-and-service-and-dnsrecord-are-created"
+	httprouteObjectCreated             = "ensure-httproute-object-is-created"
+	gieEnabled                         = "ensure-gie-is-enabled"
+)
+
+var (
+	requiredCapabilities = []configv1.ClusterVersionCapability{
+		configv1.ClusterVersionCapabilityMarketplace,
+		configv1.ClusterVersionCapabilityOperatorLifecycleManager,
+	}
+	// testNames is a list of names that are used to track when tests are
+	// done in order to check whether it is safe to clean up resources that
+	// these tests share, such as the gatewayclass and Istio CR.  These
+	// names are embedded within annotation keys of the form test-%s-done.
+	// Because annotation keys are limited to 63 characters, each of these
+	// names must be no longer than 53 characters.
+	testNames = []string{
+		ossmAndOLMResourcesCreated,
+		defaultGatewayclassAccepted,
+		customGatewayclassAccepted,
+		lbAndServiceAndDnsrecordAreCreated,
+		httprouteObjectCreated,
+		gieEnabled,
+	}
 )
 
 var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feature:Router][apigroup:gateway.networking.k8s.io]", g.Ordered, g.Serial, func() {
@@ -57,18 +85,18 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	const (
 		// The expected OSSM subscription name.
 		expectedSubscriptionName = "servicemeshoperator3"
+		// The expected OSSM operator name.
+		serviceMeshOperatorName = expectedSubscriptionName + ".openshift-operators"
 		// Expected Subscription Source
 		expectedSubscriptionSource = "redhat-operators"
 		// The expected OSSM operator namespace.
 		expectedSubscriptionNamespace = "openshift-operators"
-		// The gatewayclass name used to create ossm and other gateway api resources.
-		gatewayClassName = "openshift-default"
 		// gatewayClassControllerName is the name that must be used to create a supported gatewayClass.
 		gatewayClassControllerName = "openshift.io/gateway-controller/v1"
 		//OSSM Deployment Pod Name
 		deploymentOSSMName = "servicemesh-operator3"
 	)
-	g.BeforeAll(func() {
+	g.BeforeEach(func() {
 		isokd, err := isOKD(oc)
 		if err != nil {
 			e2e.Failf("Failed to get clusterversion to determine if release is OKD: %v", err)
@@ -89,19 +117,66 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		gatewayClass := buildGatewayClass(gatewayClassName, gatewayClassControllerName)
 		_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
 		if err != nil && !apierrors.IsAlreadyExists(err) {
-			e2e.Failf("Failed to create GatewayClass %q", gatewayClassName)
+			e2e.Failf("Failed to create GatewayClass %q: %v", gatewayClassName, err)
 		}
 	})
 
-	g.AfterAll(func() {
-		g.By("Cleaning up the GatewayAPI Objects")
-		for _, name := range gateways {
-			err = oc.AdminGatewayApiClient().GatewayV1().Gateways("openshift-ingress").Delete(context.Background(), name, metav1.DeleteOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
+	g.AfterEach(func() {
+		if !checkAllTestsDone(oc) {
+			e2e.Logf("Skipping cleanup while not all GatewayAPIController tests are done")
+		} else {
+			g.By("Deleting the gateways")
+
+			for _, name := range gateways {
+				err = oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Delete(context.Background(), name, metav1.DeleteOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "Gateway %s could not be deleted", name)
+			}
+
+			g.By("Deleting the GatewayClass")
+
+			if err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Delete(context.Background(), gatewayClassName, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+				e2e.Failf("Failed to delete GatewayClass %q", gatewayClassName)
+			}
+
+			g.By("Deleting the Istio CR")
+
+			// Explicitly deleting the Istio CR should not strictly be
+			// necessary; the Istio CR has an owner reference on the
+			// gatewayclass, and so deleting the gatewayclass should cause
+			// the garbage collector to delete the Istio CR.  However, it
+			// has been observed that the Istio CR sometimes does not get
+			// deleted, and so we have an explicit delete command here just
+			// in case.  The --ignore-not-found option should prevent errors
+			// if garbage collection has already deleted the object.
+			o.Expect(oc.AsAdmin().WithoutNamespace().Run("delete").Args("--ignore-not-found=true", "istio", istioName).Execute()).Should(o.Succeed())
+
+			g.By("Waiting for the istiod pod to be deleted")
+
+			o.Eventually(func(g o.Gomega) {
+				podsList, err := oc.AdminKubeClient().CoreV1().Pods(ingressNamespace).List(context.Background(), metav1.ListOptions{LabelSelector: "app=istiod"})
+				g.Expect(err).NotTo(o.HaveOccurred())
+				g.Expect(podsList.Items).Should(o.BeEmpty())
+			}).WithTimeout(10 * time.Minute).WithPolling(10 * time.Second).Should(o.Succeed())
+
+			g.By("Deleting the OSSM Operator resources")
+
+			operator, err := operatorsv1.NewForConfigOrDie(oc.AsAdmin().UserConfig()).Operators().Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
+
+			restmapper := oc.AsAdmin().RESTMapper()
+			for _, ref := range operator.Status.Components.Refs {
+				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
+				o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
+			}
 		}
 	})
 
 	g.It("Ensure OSSM and OLM related resources are created after creating GatewayClass", func() {
+		defer markTestDone(oc, ossmAndOLMResourcesCreated)
+
 		//check the catalogSource
 		g.By("Check OLM catalogSource, subscription, CSV and Pod")
 		waitCatalogErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
@@ -119,7 +194,10 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		// check Subscription
 		waitVersionErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			csvName, err = oc.AsAdmin().Run("get").Args("-n", expectedSubscriptionNamespace, "subscription", expectedSubscriptionName, "-o=jsonpath={.status.installedCSV}").Output()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			if err != nil {
+				e2e.Logf("Failed to get Subscription %q: %v; retrying...", expectedSubscriptionName, err)
+				return false, nil
+			}
 			if csvName == "" {
 				e2e.Logf("Subscription %q doesn't have installed CSV, retrying...", expectedSubscriptionName)
 				return false, nil
@@ -145,7 +223,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 		waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 20*time.Minute, false, func(context context.Context) (bool, error) {
 			deployOSSM, err := oc.AdminKubeClient().AppsV1().Deployments(expectedSubscriptionNamespace).Get(context, "servicemesh-operator3", metav1.GetOptions{})
 			if err != nil {
-				e2e.Logf("Failed to get OSSM operator deployment %q, retrying...", deploymentOSSMName)
+				e2e.Logf("Failed to get OSSM operator deployment %q: %v; retrying...", deploymentOSSMName, err)
 				return false, nil
 			}
 			if deployOSSM.Status.ReadyReplicas < 1 {
@@ -162,6 +240,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure default gatewayclass is accepted", func() {
+		defer markTestDone(oc, defaultGatewayclassAccepted)
 
 		g.By("Check if default GatewayClass is accepted after OLM resources are successful")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
@@ -169,13 +248,15 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure custom gatewayclass can be accepted", func() {
+		defer markTestDone(oc, customGatewayclassAccepted)
+
 		customGatewayClassName := "custom-gatewayclass"
 
 		g.By("Create Custom GatewayClass")
 		gatewayClass := buildGatewayClass(customGatewayClassName, gatewayClassControllerName)
 		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Create(context.TODO(), gatewayClass, metav1.CreateOptions{})
 		if err != nil {
-			e2e.Logf("Gateway Class \"custom-gatewayclass\" already exists, or has failed to be created, checking its status")
+			e2e.Logf("Failed to create GatewayClass %q: %v; checking its status...", customGatewayClassName, err)
 		}
 		errCheck := checkGatewayClass(oc, customGatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gwc.Name)
@@ -196,6 +277,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure LB, service, and dnsRecord are created for a Gateway object", func() {
+		defer markTestDone(oc, lbAndServiceAndDnsrecordAreCreated)
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -219,6 +302,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure HTTPRoute object is created", func() {
+		defer markTestDone(oc, httprouteObjectCreated)
+
 		g.By("Ensure default GatewayClass is accepted")
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
@@ -249,6 +334,8 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 	})
 
 	g.It("Ensure GIE is enabled after creating an inferencePool CRD", func() {
+		defer markTestDone(oc, gieEnabled)
+
 		errCheck := checkGatewayClass(oc, gatewayClassName)
 		o.Expect(errCheck).NotTo(o.HaveOccurred(), "GatewayClass %q was not installed and accepted", gatewayClassName)
 
@@ -310,28 +397,29 @@ func skipGatewayIfNonCloudPlatform(oc *exutil.CLI) {
 }
 
 func waitForIstioHealthy(oc *exutil.CLI) {
-	resource := types.NamespacedName{Namespace: "openshift-ingress", Name: "openshift-gateway"}
-	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
-		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("-n", resource.Namespace, "istio", resource.Name, "-o=jsonpath={.status.state}").Output()
+	timeout := 20 * time.Minute
+	err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
+		istioStatus, errIstio := oc.AsAdmin().Run("get").Args("istio", istioName, "-o=jsonpath={.status.state}").Output()
 		if errIstio != nil {
-			e2e.Logf("Failed getting openshift-gateway istio cr status: %v", errIstio)
+			e2e.Logf("Failed to get Istio CR %q: %v; retrying...", istioName, errIstio)
 			return false, nil
 		}
 		if istioStatus != "Healthy" {
-			e2e.Logf("Istio CR %q is not healthy, retrying...", resource.Name)
+			e2e.Logf("Istio CR %q is not healthy, retrying...", istioName)
 			return false, nil
 		}
-		e2e.Logf("Istio CR %q is healthy", resource.Name)
+		e2e.Logf("Istio CR %q is healthy", istioName)
 		return true, nil
 	})
-	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state in time", resource.Name)
+	o.Expect(err).NotTo(o.HaveOccurred(), "Istio CR %q did not reach healthy state within %v", istioName, timeout)
 }
 
 func checkGatewayClass(oc *exutil.CLI, name string) error {
-	waitErr := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+	timeout := 20 * time.Minute
+	waitErr := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context, name, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Failed to get gatewayclass %s, retrying...", name)
+			e2e.Logf("Failed to get gatewayclass %s: %v; retrying...", name, err)
 			return false, nil
 		}
 		for _, condition := range gwc.Status.Conditions {
@@ -345,7 +433,7 @@ func checkGatewayClass(oc *exutil.CLI, name string) error {
 		return false, nil
 	})
 
-	o.Expect(waitErr).NotTo(o.HaveOccurred(), "Gatewayclass %s is not accepted", name)
+	o.Expect(waitErr).NotTo(o.HaveOccurred(), "GatewayClass %q was not accepted within %v", name, timeout)
 	return nil
 }
 
@@ -361,24 +449,23 @@ func buildGatewayClass(name, controllerName string) *gatewayapiv1.GatewayClass {
 
 // createAndCheckGateway build and creates the Gateway.
 func createAndCheckGateway(oc *exutil.CLI, gwname, gwclassname, domain string) (*gatewayapiv1.Gateway, error) {
-	ingressNameSpace := "openshift-ingress"
-
 	// Build the gateway object
-	gatewaybuild := buildGateway(gwname, ingressNameSpace, gwclassname, "All", domain)
+	gatewaybuild := buildGateway(gwname, ingressNamespace, gwclassname, "All", domain)
 
 	// Create the gateway object
-	_, errGwObj := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
+	_, errGwObj := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Create(context.TODO(), gatewaybuild, metav1.CreateOptions{})
 	if errGwObj != nil {
 		return nil, errGwObj
 	}
 
 	// Confirm the gateway is up and running
-	return checkGatewayStatus(oc, gwname, ingressNameSpace)
+	return checkGatewayStatus(oc, gwname, ingressNamespace)
 }
 
 func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatewayapiv1.Gateway, error) {
 	programmedGateway := &gatewayapiv1.Gateway{}
-	if err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
+	timeout := 20 * time.Minute
+	if err := wait.PollUntilContextTimeout(context.Background(), 10*time.Second, timeout, false, func(context context.Context) (bool, error) {
 		gateway, err := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Get(context, gwname, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get gateway %q: %v, retrying...", gwname, err)
@@ -397,7 +484,7 @@ func checkGatewayStatus(oc *exutil.CLI, gwname, ingressNameSpace string) (*gatew
 		e2e.Logf("Found gateway %q but the controller is still not programmed, retrying...", gwname)
 		return false, nil
 	}); err != nil {
-		return nil, fmt.Errorf("timed out waiting for gateway %q to become programmed: %w", gwname, err)
+		return nil, fmt.Errorf("timed out after %v waiting for gateway %q to become programmed: %w", timeout, gwname, err)
 	}
 	e2e.Logf("Gateway %q successfully programmed!", gwname)
 	return programmedGateway, nil
@@ -425,9 +512,13 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 	// check gateway LB service, note that External-IP might be hostname (AWS) or IP (Azure/GCP)
 	var lbAddress string
 	err := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, loadBalancerReadyTimeout, false, func(context context.Context) (bool, error) {
-		lbService, err := oc.AdminKubeClient().CoreV1().Services("openshift-ingress").Get(context, gwServiceName, metav1.GetOptions{})
+		lbService, err := oc.AdminKubeClient().CoreV1().Services(ingressNamespace).Get(context, gwServiceName, metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get service %q: %v, retrying...", gwServiceName, err)
+			return false, nil
+		}
+		if len(lbService.Status.LoadBalancer.Ingress) == 0 {
+			e2e.Logf("Service %q has no load balancer; retrying...", gwServiceName)
 			return false, nil
 		}
 		if lbService.Status.LoadBalancer.Ingress[0].Hostname != "" {
@@ -441,9 +532,9 @@ func assertGatewayLoadbalancerReady(oc *exutil.CLI, gwName, gwServiceName string
 		}
 		e2e.Logf("Got load balancer address for service %q: %v", gwServiceName, lbAddress)
 
-		gw, err := oc.AdminGatewayApiClient().GatewayV1().Gateways("openshift-ingress").Get(context, gwName, metav1.GetOptions{})
+		gw, err := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(context, gwName, metav1.GetOptions{})
 		if err != nil {
-			e2e.Logf("Failed to get gateway %q, retrying...", gwName)
+			e2e.Logf("Failed to get gateway %q: %v; retrying...", err, gwName)
 			return false, nil
 		}
 		for _, gwAddr := range gw.Status.Addresses {
@@ -463,7 +554,7 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 	// find the DNS Record and confirm its zone status is True
 	err := wait.PollUntilContextTimeout(context.Background(), 2*time.Second, 10*time.Minute, false, func(context context.Context) (bool, error) {
 		gatewayDNSRecord := &operatoringressv1.DNSRecord{}
-		gatewayDNSRecords, err := oc.AdminIngressClient().IngressV1().DNSRecords("openshift-ingress").List(context, metav1.ListOptions{})
+		gatewayDNSRecords, err := oc.AdminIngressClient().IngressV1().DNSRecords(ingressNamespace).List(context, metav1.ListOptions{})
 		if err != nil {
 			e2e.Logf("Failed to list DNS records for gateway %q: %v, retrying...", gatewayName, err)
 			return false, nil
@@ -495,8 +586,7 @@ func assertDNSRecordStatus(oc *exutil.CLI, gatewayName string) {
 // If it can't an error is returned.
 func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname string) (*gatewayapiv1.HTTPRoute, error) {
 	namespace := oc.Namespace()
-	ingressNameSpace := "openshift-ingress"
-	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Get(context.TODO(), gwName, metav1.GetOptions{})
+	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(context.TODO(), gwName, metav1.GetOptions{})
 	if errGwStatus != nil || gateway == nil {
 		e2e.Failf("Unable to create httpRoute, no gateway available during route assertion %v", errGwStatus)
 	}
@@ -515,7 +605,7 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 	o.Expect(echoServiceErr).NotTo(o.HaveOccurred())
 
 	// Create the HTTPRoute
-	buildHTTPRoute := buildHTTPRoute(routeName, namespace, gateway.Name, ingressNameSpace, hostname, backendRefname)
+	buildHTTPRoute := buildHTTPRoute(routeName, namespace, gateway.Name, ingressNamespace, hostname, backendRefname)
 	httpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Create(context.Background(), buildHTTPRoute, metav1.CreateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -523,10 +613,12 @@ func createHttpRoute(oc *exutil.CLI, gwName, routeName, hostname, backendRefname
 	waitErr := wait.PollUntilContextTimeout(context.Background(), 1*time.Second, 4*time.Minute, false, func(context context.Context) (bool, error) {
 		checkHttpRoute, err := oc.GatewayApiClient().GatewayV1().HTTPRoutes(namespace).Get(context, httpRoute.Name, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, condition := range checkHttpRoute.Status.Parents[0].Conditions {
-			if condition.Type == string(gatewayapiv1.RouteConditionAccepted) {
-				if condition.Status == metav1.ConditionTrue {
-					return true, nil
+		if len(checkHttpRoute.Status.Parents) > 0 {
+			for _, condition := range checkHttpRoute.Status.Parents[0].Conditions {
+				if condition.Type == string(gatewayapiv1.RouteConditionAccepted) {
+					if condition.Status == metav1.ConditionTrue {
+						return true, nil
+					}
 				}
 			}
 		}
@@ -634,8 +726,7 @@ func buildHTTPRoute(routeName, namespace, parentgateway, parentNamespace, hostna
 func assertHttpRouteSuccessful(oc *exutil.CLI, gwName, name string) (*gatewayapiv1.HTTPRoute, error) {
 	namespace := oc.Namespace()
 	checkHttpRoute := &gatewayapiv1.HTTPRoute{}
-	ingressNameSpace := "openshift-ingress"
-	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNameSpace).Get(context.TODO(), gwName, metav1.GetOptions{})
+	gateway, errGwStatus := oc.AdminGatewayApiClient().GatewayV1().Gateways(ingressNamespace).Get(context.TODO(), gwName, metav1.GetOptions{})
 	if errGwStatus != nil || gateway == nil {
 		e2e.Failf("Unable to assert httproute, no gateway available, error %v", errGwStatus)
 	}
@@ -720,4 +811,42 @@ func isOKD(oc *exutil.CLI) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// annotationKeyForTest returns the key for an annotation on the default
+// gatewayclass that indicates whether the specified test is done.
+func annotationKeyForTest(testName string) string {
+	return fmt.Sprintf("test-%s-done", testName)
+}
+
+// markTestDone adds an annotation to the default gatewayclass that all the
+// GatewayAPIController tests use to indicate that a particular test has ended.
+// These annotations are used to determine whether it is safe to clean up the
+// gatewayclass and other shared resources.
+func markTestDone(oc *exutil.CLI, testName string) {
+	gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if gwc.Annotations == nil {
+		gwc.Annotations = map[string]string{}
+	}
+	gwc.Annotations[annotationKeyForTest(testName)] = ""
+	_, err = oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Update(context.Background(), gwc, metav1.UpdateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+// checkAllTestsDone checks the annotations on the default gatewayclass that all
+// the GatewayAPIController tests use to determine whether all the tests are
+// done.
+func checkAllTestsDone(oc *exutil.CLI) bool {
+	gwc, err := oc.AdminGatewayApiClient().GatewayV1().GatewayClasses().Get(context.Background(), gatewayClassName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	for _, testName := range testNames {
+		if _, ok := gwc.Annotations[annotationKeyForTest(testName)]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
