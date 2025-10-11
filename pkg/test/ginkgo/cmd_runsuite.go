@@ -96,6 +96,9 @@ type GinkgoRunSuiteOptions struct {
 
 	// RetryStrategy controls retry behavior and final outcome decisions
 	RetryStrategy RetryStrategy
+
+	// WithHypervisorConfigJSON contains JSON configuration for hypervisor-based recovery operations
+	WithHypervisorConfigJSON string
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -133,6 +136,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ShardStrategy, "shard-strategy", o.ShardStrategy, "Which strategy to use for sharding (hash)")
 	availableStrategies := getAvailableRetryStrategies()
 	flags.Var(newRetryStrategyFlag(&o.RetryStrategy), "retry-strategy", fmt.Sprintf("Test retry strategy (available: %s, default: %s)", strings.Join(availableStrategies, ", "), defaultRetryStrategy))
+	flags.StringVar(&o.WithHypervisorConfigJSON, "with-hypervisor-json", os.Getenv("HYPERVISOR_CONFIG"), "JSON configuration for hypervisor-based recovery operations. Must contain hypervisorIP, sshUser, and privateKeyPath fields.")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {

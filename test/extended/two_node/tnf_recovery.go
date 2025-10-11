@@ -5,30 +5,43 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"slices"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/etcd/helpers"
+	"github.com/openshift/origin/test/extended/two_node/utils/core"
+	"github.com/openshift/origin/test/extended/two_node/utils/services"
 	"github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 )
 
 const (
-	nodeIsHealthyTimeout         = time.Minute
-	etcdOperatorIsHealthyTimeout = time.Minute
-	memberHasLeftTimeout         = 5 * time.Minute
-	memberIsLeaderTimeout        = 10 * time.Minute
-	memberRejoinedLearnerTimeout = 10 * time.Minute
-	memberPromotedVotingTimeout  = 15 * time.Minute
-	networkDisruptionDuration    = 15 * time.Second
-	pollInterval                 = 5 * time.Second
+	nodeIsHealthyTimeout            = time.Minute
+	etcdOperatorIsHealthyTimeout    = time.Minute
+	memberHasLeftTimeout            = 5 * time.Minute
+	memberIsLeaderTimeout           = 10 * time.Minute
+	memberRejoinedLearnerTimeout    = 10 * time.Minute
+	memberPromotedVotingTimeout     = 15 * time.Minute
+	networkDisruptionDuration       = 15 * time.Second
+	vmRestartTimeout                = 5 * time.Minute
+	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
+	membersHealthyAfterDoubleReboot = 15 * time.Minute // It takes into account full VM recovering up to Etcd member healthy
+	pollInterval                    = 5 * time.Second
 )
+
+type hypervisorExtendedConfig struct {
+	HypervisorConfig         core.SSHConfig
+	HypervisorKnownHostsPath string
+}
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Disruptive] Two Node with Fencing etcd recovery", func() {
 	defer g.GinkgoRecover()
@@ -167,7 +180,60 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			leaderNode, true, false, // survivedNode expected started == true, learner == false
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, pollInterval)
+	})
 
+	g.It("should recover from a double node failure", func() {
+		// Note: In a double node failure both nodes have the same role, hence we
+		// will call them just NodeA and NodeB
+		nodeA := peerNode
+		nodeB := targetNode
+		c, vmA, vmB, err := setupMinimalTestEnvironment(oc, &nodeA, &nodeB)
+		o.Expect(err).To(o.BeNil(), "Expected to setup test environment without error")
+
+		dataPair := []struct {
+			vm, node string
+		}{
+			{vmA, nodeA.Name},
+			{vmB, nodeB.Name},
+		}
+
+		defer func() {
+			for _, d := range dataPair {
+				if err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath); err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restart VM %s during cleanup: %v\n", d.vm, err)
+				}
+			}
+		}()
+
+		g.By("Simulating double node failure: stopping both nodes' VMs")
+		// First, stop all VMs
+		for _, d := range dataPair {
+			err := services.VirshDestroyVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to stop VM %s (node: %s)", d.vm, d.node))
+		}
+		// Then, wait for all to reach shut off state
+		for _, d := range dataPair {
+			err := services.WaitForVMState(d.vm, services.VMStateShutOff, vmUngracefulShutdownTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to reach shut off state in %s timeout", d.vm, d.node, vmUngracefulShutdownTimeout))
+		}
+
+		g.By("Restarting both nodes")
+		// Start all VMs
+		for _, d := range dataPair {
+			err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to start VM %s (node: %s)", d.vm, d.node))
+		}
+		// Wait for all to be running
+		for _, d := range dataPair {
+			err := services.WaitForVMState(d.vm, services.VMStateRunning, vmUngracefulShutdownTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
+		}
+
+		g.By("Waiting both etcd members to become healthy")
+		validateEtcdRecoveryState(etcdClientFactory,
+			&nodeA, true, false, // member on node A expected started == true, learner == false
+			&nodeB, true, false, // member on node B expected started == true, learner == false
+			membersHealthyAfterDoubleReboot, pollInterval)
 	})
 })
 
@@ -371,4 +437,76 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(e *helpers.EtcdClientFactory
 	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 
 	return leaderNode, learnerNode, learnerStarted
+}
+
+// setupMinimalTestEnvironment validates prerequisites and gathers required information for double node failure test
+func setupMinimalTestEnvironment(oc *util.CLI, nodeA, nodeB *corev1.Node) (c hypervisorExtendedConfig, vmNameNodeA, vmNameNodeB string, err error) {
+	if !util.HasHypervisorConfig() {
+		services.PrintHypervisorConfigUsage()
+		err = fmt.Errorf("no hypervisor configuration available")
+		return
+	}
+
+	sshConfig := util.GetHypervisorConfig()
+	c.HypervisorConfig.IP = sshConfig.HypervisorIP
+	c.HypervisorConfig.User = sshConfig.SSHUser
+	c.HypervisorConfig.PrivateKeyPath = sshConfig.PrivateKeyPath
+
+	// Validate that the private key file exists
+	if _, err = os.Stat(c.HypervisorConfig.PrivateKeyPath); os.IsNotExist(err) {
+		return
+	}
+
+	c.HypervisorKnownHostsPath, err = core.PrepareLocalKnownHostsFile(&c.HypervisorConfig)
+	if err != nil {
+		return
+	}
+
+	err = services.VerifyHypervisorAvailability(&c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	if err != nil {
+		return
+	}
+
+	// This assumes VMs are named similarly to the OpenShift nodes (e.g., master-0, master-1)
+	vmNameNodeA, err = findVMByNodeName(nodeA.Name, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	if err != nil {
+		err = fmt.Errorf("failed to find node's %s VM: %w", nodeA.Name, err)
+		return
+	}
+
+	vmNameNodeB, err = findVMByNodeName(nodeB.Name, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	if err != nil {
+		err = fmt.Errorf("failed to find node's %s VM: %w", nodeB.Name, err)
+		return
+	}
+
+	return
+}
+
+// findVMByNodeName finds a VM that corresponds to an OpenShift node
+// This uses a simple name-based correlation approach
+func findVMByNodeName(nodeName string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
+	vmListOutput, err := services.VirshListAllVMs(sshConfig, knownHostsPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to list VMs: %w", err)
+	}
+
+	vmNames := strings.Fields(vmListOutput)
+	// Try different naming patterns commonly used in OpenShift test environments
+	possibleVMNames := []string{
+		nodeName,                                // exact match
+		fmt.Sprintf("%s.example.com", nodeName), // FQDN
+		strings.Replace(nodeName, "-", "_", -1), // underscores instead of dashes
+	}
+	for _, vmName := range vmNames {
+		for _, possibleName := range possibleVMNames {
+			if vmName == possibleName || strings.Contains(vmName, possibleName) || strings.Contains(possibleName, vmName) {
+				klog.V(2).Infof("Matched VM '%s' to node '%s' using pattern '%s'", vmName,
+					nodeName, possibleName)
+				return vmName, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no suitable VM found for node %s among VMs: %v", nodeName, vmNames)
 }
