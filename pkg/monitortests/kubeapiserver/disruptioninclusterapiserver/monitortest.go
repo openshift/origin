@@ -75,6 +75,9 @@ type InvariantInClusterDisruption struct {
 	replicas                    int32
 	controlPlaneNodes           int32
 
+	isHypershift    bool
+	isAROHCPCluster bool
+
 	adminRESTConfig *rest.Config
 	kubeClient      kubernetes.Interface
 }
@@ -121,6 +124,15 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 	deploymentObj.Spec.Replicas = &i.replicas
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
+
+	if i.isHypershift {
+		for j, env := range deploymentObj.Spec.Template.Spec.Containers[0].Env {
+			if env.Name == "KUBERNETES_SERVICE_PORT" {
+				deploymentObj.Spec.Template.Spec.Containers[0].Env[j].Value = "7443"
+				break
+			}
+		}
+	}
 
 	err := i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
 	if err != nil {
@@ -306,23 +318,19 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 
 	// Check for ARO HCP and skip if detected
 	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
-	var isAROHCPcluster bool
-	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
-	if isHypershift {
+	i.isHypershift, _ = exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	if i.isHypershift {
 		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 		if err != nil {
 			logrus.WithError(err).Error("failed to get hypershift management cluster config and namespace")
 			return err
 		}
 
-		// For Hypershift, only skip if it's specifically ARO HCP
+		// For Hypershift, check if it's ARO HCP
 		// Use management cluster client to check the control-plane-operator deployment
 		managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
-		if isAROHCPcluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
+		if i.isAROHCPCluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
 			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
-		} else if isAROHCPcluster {
-			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
-			return nil
 		}
 	}
 
@@ -378,11 +386,35 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return fmt.Errorf("error getting openshift infrastructure: %v", err)
 	}
 
-	internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
-	if err != nil {
-		return fmt.Errorf("error parsing api int url: %v", err)
+	var apiIntHost string
+	if i.isHypershift {
+		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+		if err != nil {
+			return fmt.Errorf("failed to get hypershift management cluster config and namespace: %w", err)
+		}
+
+		managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
+		// For Hypershift, only skip if it's specifically ARO HCP
+		// Use management cluster client to check the control-plane-operator deployment
+		if isAROHCPcluster, err := exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
+			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
+		} else if isAROHCPcluster {
+			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
+			return nil
+		}
+
+		parsedURL, err := url.Parse(i.adminRESTConfig.Host)
+		if err != nil {
+			return fmt.Errorf("failed to parse adminRESTConfig.Host %q: %v", i.adminRESTConfig.Host, err)
+		}
+		apiIntHost = parsedURL.Hostname()
+	} else {
+		internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
+		if err != nil {
+			return fmt.Errorf("error parsing api int url: %v", err)
+		}
+		apiIntHost = internalAPI.Hostname()
 	}
-	apiIntHost := internalAPI.Hostname()
 
 	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
