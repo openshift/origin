@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"k8s.io/apiserver/pkg/storage/names"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	corev1 "k8s.io/api/core/v1"
@@ -69,12 +70,18 @@ func (c *CLI) WithoutKubeconf() *CLI {
 // CreateNamespaceUDN creates a new namespace with required user defined network label during creation time only
 // required for testing networking UDN features on 4.17z+
 func (c *CLI) CreateNamespaceUDN() {
+	// Create new namespace name here, because c.Namespace() will get existing test namespace
+	// namespace Create func will be failed with below error
+	// namespaces "e2e-test-xxx" already exists
+	newNsName := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-udn-%s-", c.kubeFramework.BaseName))
+	c.SetNamespace(newNsName)
+
 	labels := map[string]string{
-		"k8s.ovn.org/primary-user-defined-network": "udn-net",
+		"k8s.ovn.org/primary-user-defined-network": "",
 	}
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   c.Namespace(),
+			Name:   newNsName,
 			Labels: labels,
 		},
 	}
