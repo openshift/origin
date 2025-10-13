@@ -10,7 +10,9 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 )
 
@@ -131,6 +133,13 @@ func (intervals byLeaseAcquisition) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]
 }
 
+// getNamespaceForJUnits makes a clone of the known namespaces
+func getNamespacesForJUnits() sets.String {
+	namespaces := platformidentification.KnownNamespaces.Clone()
+	namespaces.Insert("")
+	return namespaces
+}
+
 func (*operatorLeaseCheck) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	leaseIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		if eventInterval.Message.Reason == monitorapi.LeaseAcquiring {
@@ -140,6 +149,15 @@ func (*operatorLeaseCheck) EvaluateTestsFromConstructedIntervals(ctx context.Con
 	})
 
 	testNameToFailures := map[string][]string{}
+
+	// we get intermittent hits for openshift-operators that pass
+	// but don't show in all aggregated results, causing failures
+	// init all known namespaces
+	namespaces := getNamespacesForJUnits()
+	for ns := range namespaces {
+		testName := fmt.Sprintf("[sig-arch] all leases in ns/%s must gracefully release", ns)
+		testNameToFailures[testName] = []string{}
+	}
 	for _, interval := range leaseIntervals {
 		ns := monitorapi.NamespaceFromLocator(interval.Locator)
 		testName := fmt.Sprintf("[sig-arch] all leases in ns/%s must gracefully release", ns)
