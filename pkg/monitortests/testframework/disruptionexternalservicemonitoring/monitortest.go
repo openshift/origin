@@ -3,6 +3,7 @@ package disruptionexternalservicemonitoring
 import (
 	"context"
 	_ "embed"
+	"os"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -45,22 +46,31 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 }
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	tcpdumpHook := backenddisruption.NewTcpdumpSamplerHook()
+	var tcpdumpHook *backenddisruption.TcpdumpSamplerHook
 
-	// Store reference to tcpdump hook for cleanup in CollectData
-	w.tcpdumpHook = tcpdumpHook
+	// Check if tcpdump collection is enabled via environment variable
+	if os.Getenv("DEBUG_ENABLE_TCPDUMP") == "true" {
+		tcpdumpHook = backenddisruption.NewTcpdumpSamplerHook()
+		// Store reference to tcpdump hook for cleanup in CollectData
+		w.tcpdumpHook = tcpdumpHook
+	}
+
+	var samplerHooks []backenddisruption.SamplerHook
+	if tcpdumpHook != nil {
+		samplerHooks = append(samplerHooks, tcpdumpHook)
+	}
 
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"ci-cluster-network-liveness-new-connections",
 		"",
-		monitorapi.NewConnectionType).WithSamplerHooks([]backenddisruption.SamplerHook{tcpdumpHook})
+		monitorapi.NewConnectionType).WithSamplerHooks(samplerHooks)
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"ci-cluster-network-liveness-reused-connections",
 		"",
-		monitorapi.ReusedConnectionType).WithSamplerHooks([]backenddisruption.SamplerHook{tcpdumpHook})
+		monitorapi.ReusedConnectionType).WithSamplerHooks(samplerHooks)
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newConnectionTestName, reusedConnectionTestName,
