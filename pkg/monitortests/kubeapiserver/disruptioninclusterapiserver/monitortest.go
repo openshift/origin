@@ -74,8 +74,10 @@ type InvariantInClusterDisruption struct {
 	notSupportedReason          string
 	replicas                    int32
 	controlPlaneNodes           int32
-
-	adminRESTConfig *rest.Config
+	isHypershift                bool
+	isAROHCPCluster             bool
+	isBareMetalHypershift       bool
+	adminRESTConfig             *rest.Config
 	kubeClient      kubernetes.Interface
 }
 
@@ -83,6 +85,68 @@ func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitia
 	return &InvariantInClusterDisruption{
 		payloadImagePullSpec: info.UpgradeTargetPayloadImagePullSpec,
 	}
+}
+
+// parseAdminRESTConfigHost parses the adminRESTConfig.Host URL and returns hostname and port
+func (i *InvariantInClusterDisruption) parseAdminRESTConfigHost() (hostname, port string, err error) {
+	parsedURL, err := url.Parse(i.adminRESTConfig.Host)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse adminRESTConfig.Host %q: %v", i.adminRESTConfig.Host, err)
+	}
+
+	hostname = parsedURL.Hostname()
+	if hostname == "" {
+		return "", "", fmt.Errorf("no hostname found in adminRESTConfig.Host %q", i.adminRESTConfig.Host)
+	}
+
+	port = parsedURL.Port()
+	if port == "" {
+		port = "6443" // default port
+	}
+
+	return hostname, port, nil
+}
+
+// setKubernetesServiceEnvVars sets the KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT environment variables
+// based on the cluster type (ARO HCP, bare metal HyperShift, or standard)
+func (i *InvariantInClusterDisruption) setKubernetesServiceEnvVars(envVars []corev1.EnvVar, apiIntHost, apiIntPort string) []corev1.EnvVar {
+	// Parse adminRESTConfig.Host once for bare metal HyperShift
+	var bareMetalHost, bareMetalPort string
+	var bareMetalErr error
+	if i.isHypershift && i.isBareMetalHypershift {
+		bareMetalHost, bareMetalPort, bareMetalErr = i.parseAdminRESTConfigHost()
+		if bareMetalErr != nil {
+			logrus.WithError(bareMetalErr).Errorf("Failed to parse adminRESTConfig.Host for bare metal HyperShift")
+		}
+	}
+
+	for j, env := range envVars {
+		switch env.Name {
+		case "KUBERNETES_SERVICE_HOST":
+			if i.isHypershift && i.isBareMetalHypershift {
+				if bareMetalErr != nil {
+					envVars[j].Value = apiIntHost
+				} else {
+					envVars[j].Value = bareMetalHost
+				}
+			} else {
+				envVars[j].Value = apiIntHost
+			}
+		case "KUBERNETES_SERVICE_PORT":
+			if i.isHypershift && i.isAROHCPCluster {
+				envVars[j].Value = "7443"
+			} else if i.isHypershift && i.isBareMetalHypershift {
+				if bareMetalErr != nil {
+					envVars[j].Value = apiIntPort
+				} else {
+					envVars[j].Value = bareMetalPort
+				}
+			} else {
+				envVars[j].Value = apiIntPort
+			}
+		}
+	}
+	return envVars
 }
 
 func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx context.Context, deploymentObj *appsv1.Deployment) error {
@@ -113,14 +177,17 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 	return nil
 }
 
-func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost string) error {
+func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost, apiIntPort string) error {
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
-	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
 	// set amount of deployment replicas to make sure it runs on all nodes
 	deploymentObj.Spec.Replicas = &i.replicas
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
+
+	// Set the correct host and port for internal API server based on cluster type
+	deploymentObj.Spec.Template.Spec.Containers[0].Env = i.setKubernetesServiceEnvVars(
+		deploymentObj.Spec.Template.Spec.Containers[0].Env, apiIntHost, apiIntPort)
 
 	err := i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
 	if err != nil {
@@ -308,6 +375,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
 	var isAROHCPcluster bool
 	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
+	i.isHypershift = isHypershift
 	if isHypershift {
 		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 		if err != nil {
@@ -323,6 +391,14 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		} else if isAROHCPcluster {
 			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
 			return nil
+		}
+		i.isAROHCPCluster = isAROHCPcluster
+
+		// Check if this is a bare metal HyperShift cluster
+		i.isBareMetalHypershift, err = exutil.IsBareMetalHyperShiftCluster(ctx, managementOC)
+		if err != nil {
+			logrus.WithError(err).Warning("Failed to check if bare metal HyperShift, assuming it's not")
+			i.isBareMetalHypershift = false // Assume not bare metal HyperShift on error
 		}
 	}
 
@@ -378,11 +454,25 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return fmt.Errorf("error getting openshift infrastructure: %v", err)
 	}
 
-	internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
-	if err != nil {
-		return fmt.Errorf("error parsing api int url: %v", err)
+	var apiIntHost string
+	var apiIntPort string
+	if i.isHypershift {
+		apiIntHost, apiIntPort, err = i.parseAdminRESTConfigHost()
+		if err != nil {
+			return fmt.Errorf("failed to parse adminRESTConfig.Host: %v", err)
+		}
+	} else {
+		internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
+		if err != nil {
+			return fmt.Errorf("error parsing api int url: %v", err)
+		}
+		apiIntHost = internalAPI.Hostname()
+		if internalAPI.Port() != "" {
+			apiIntPort = internalAPI.Port()
+		} else {
+			apiIntPort = "6443" // default port
+		}
 	}
-	apiIntHost := internalAPI.Hostname()
 
 	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -438,7 +528,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating localhost: %v", err)
 	}
-	err = i.createInternalLBDeployment(ctx, apiIntHost)
+	err = i.createInternalLBDeployment(ctx, apiIntHost, apiIntPort)
 	if err != nil {
 		return fmt.Errorf("error creating internal LB: %v", err)
 	}
