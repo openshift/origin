@@ -328,53 +328,6 @@ func GetVMNetworkInfo(vmName string, networkBridge string, sshConfig *core.SSHCo
 	return newUUID, newMACAddress, nil
 }
 
-// WaitForVMToStart waits for a VM to reach running state by polling domstate.
-//
-//	err := WaitForVMToStart("master-0", 5*time.Minute, 10*time.Second, sshConfig, knownHostsPath)
-func WaitForVMToStart(vmName string, timeout time.Duration, pollInterval time.Duration, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("WaitForVMToStart: Starting wait for VM '%s' to reach running state", vmName)
-	klog.V(2).Infof("Waiting for VM %s to start...", vmName)
-
-	err := core.RetryWithOptions(func() error {
-		klog.V(4).Infof("WaitForVMToStart: Checking if VM '%s' is running (retry iteration)", vmName)
-
-		// Check if VM exists using VirshVMExists helper
-		_, err := VirshVMExists(vmName, sshConfig, knownHostsPath)
-		if err != nil {
-			klog.V(4).Infof("WaitForVMToStart: VM '%s' not found in VM list - %v", vmName, err)
-			return fmt.Errorf("VM %s not yet running: %v", vmName, err)
-		}
-
-		// Check if VM is actually running (not just defined)
-		statusOutput, err := VirshCommand(fmt.Sprintf("domstate %s", vmName), sshConfig, knownHostsPath)
-		if err != nil {
-			klog.ErrorS(err, "WaitForVMToStart failed to check VM state", "vm", vmName)
-			return fmt.Errorf("failed to check VM %s state: %v", vmName, err)
-		}
-
-		statusOutput = strings.TrimSpace(statusOutput)
-		klog.V(4).Infof("WaitForVMToStart: VM '%s' current state: %s", vmName, statusOutput)
-
-		if !strings.Contains(statusOutput, "running") {
-			return fmt.Errorf("VM %s is not running, current state: %s", vmName, statusOutput)
-		}
-
-		klog.V(2).Infof("WaitForVMToStart: VM '%s' is confirmed running", vmName)
-		klog.V(2).Infof("VM %s is now running", vmName)
-		return nil
-	}, core.RetryOptions{
-		Timeout:      timeout,
-		PollInterval: pollInterval,
-	}, fmt.Sprintf("VM %s startup", vmName))
-
-	if err != nil {
-		klog.ErrorS(err, "WaitForVMToStart timeout or error", "vm", vmName)
-	} else {
-		klog.V(2).Infof("WaitForVMToStart: Successfully confirmed VM '%s' is running", vmName)
-	}
-
-	return err
-}
 
 // WaitForVMState waits for a VM to reach a given state by polling domstate.
 func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollInterval time.Duration, sshConfig *core.SSHConfig, knownHostsPath string) error {
