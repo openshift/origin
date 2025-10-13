@@ -22,7 +22,7 @@ import (
 // DisruptionStarted is called whenever a new disruption is detected by this sampler.
 // Other functions can be added as we need.
 type SamplerHook interface {
-	DisruptionStarted()
+	DisruptionStarted(ctx context.Context)
 }
 
 var tcpdumpLock = &sync.Mutex{}
@@ -49,7 +49,7 @@ type TcpdumpSamplerHook struct {
 	pcapMutex      sync.RWMutex
 }
 
-func (h *TcpdumpSamplerHook) DisruptionStarted() {
+func (h *TcpdumpSamplerHook) DisruptionStarted(ctx context.Context) {
 	logger := logrus.WithField("hook", "TcpdumpSamplerHook")
 	logger.Info("Disruption detected, checking if tcpdump capture should start")
 
@@ -120,15 +120,13 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 	h.logFilePaths = append(h.logFilePaths, logFile)
 	h.pcapMutex.Unlock()
 
-	// Create context with 30-minute timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	// Create context with 30-minute timeout using the caller's context as parent
+	tcpdumpCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 
 	// Store cancel function for external stopping
 	h.cancelMutex.Lock()
 	h.tcpdumpCancel = cancel
 	h.cancelMutex.Unlock()
-
-	defer cancel()
 
 	// Build tcpdump command
 	tcpdumpCmd := []string{
@@ -153,7 +151,7 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 	defer logFileHandle.Close()
 
 	// Start tcpdump with context timeout
-	cmd := exec.CommandContext(ctx, tcpdumpCmd[0], tcpdumpCmd[1:]...)
+	cmd := exec.CommandContext(tcpdumpCtx, tcpdumpCmd[0], tcpdumpCmd[1:]...)
 
 	// Redirect stdout and stderr to the log file
 	cmd.Stdout = logFileHandle
@@ -213,9 +211,12 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 			h.tcpdumpRunning = false
 			h.runningMutex.Unlock()
 
-			// Clear the cancel function
+			// Clear the cancel function and cancel the context
 			h.cancelMutex.Lock()
-			h.tcpdumpCancel = nil
+			if h.tcpdumpCancel != nil {
+				h.tcpdumpCancel()
+				h.tcpdumpCancel = nil
+			}
 			h.cancelMutex.Unlock()
 
 			// Note: Don't clear pcapFilePaths here - they're needed for MoveToStorage
@@ -224,7 +225,7 @@ func (h *TcpdumpSamplerHook) DisruptionStarted() {
 		// Wait for the command to complete or timeout
 		if err := cmd.Wait(); err != nil {
 			// Check if it was killed due to timeout
-			if ctx.Err() == context.DeadlineExceeded {
+			if tcpdumpCtx.Err() == context.DeadlineExceeded {
 				logger.WithField("pcap_file", pcapFile).Info("Tcpdump completed after 30-minute timeout")
 			} else {
 				// Collect detailed process exit information
