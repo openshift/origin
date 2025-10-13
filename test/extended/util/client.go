@@ -914,7 +914,7 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
 	// Redact any bearer token information from the log.
-	framework.Logf("Running '%s %s'", c.execPath, redactBearerToken(c.finalArgs))
+	framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
 
 	cmd.Stdout = stdOutBuff
 	cmd.Stderr = stdErrBuff
@@ -923,8 +923,7 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	return cmd, err
 }
 
-func redactBearerToken(finalArgs []string) string {
-	args := strings.Join(finalArgs, " ")
+func RedactBearerToken(args string) string {
 	if strings.Contains(args, "Authorization: Bearer") {
 		// redact bearer token
 		re := regexp.MustCompile(`Authorization:\s+Bearer.*\s+`)
@@ -962,8 +961,8 @@ func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, err
 		c.stderr = bytes.NewBuffer(stdErrBytes)
 		return stdOut, stdErr, nil
 	case *exec.ExitError:
-		framework.Logf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n", cmd, stdOut, stdErr)
-		wrappedErr := fmt.Errorf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", cmd, stdOut[getStartingIndexForLastN(stdOutBytes, 4096):], stdErr[getStartingIndexForLastN(stdErrBytes, 4096):], err)
+		framework.Logf("Error running %s %s:\nStdOut>\n%s\nStdErr>\n%s\n", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")), stdOut, stdErr)
+		wrappedErr := fmt.Errorf("Error running %s %s:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")), stdOut[getStartingIndexForLastN(stdOutBytes, 4096):], stdErr[getStartingIndexForLastN(stdErrBytes, 4096):], err)
 		return stdOut, stdErr, wrappedErr
 	default:
 		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
