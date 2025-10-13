@@ -229,6 +229,9 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 		g.Context("with a single service and ReplicationController", func() {
 			g.BeforeEach(func() {
+				if exutil.IsTechPreviewNoUpgrade(context.Background(), oc.AdminConfigClient()) {
+					g.Skip("skipping, this test is only supported on Default featureset until https://issues.redhat.com/browse/NE-1984 is implemented")
+				}
 				fixture = echoServerRcFixture
 			})
 
