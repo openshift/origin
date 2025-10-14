@@ -328,7 +328,6 @@ func GetVMNetworkInfo(vmName string, networkBridge string, sshConfig *core.SSHCo
 	return newUUID, newMACAddress, nil
 }
 
-
 // WaitForVMState waits for a VM to reach a given state by polling domstate.
 func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollInterval time.Duration, sshConfig *core.SSHConfig, knownHostsPath string) error {
 	klog.V(2).Infof("WaitForVMState: Starting wait for VM '%s' to reach state %s", vmName, vmState)
