@@ -3,12 +3,11 @@ package disruptionexternalservicemonitoring
 import (
 	"context"
 	_ "embed"
-	"os"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-	"github.com/sirupsen/logrus"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 
 	"k8s.io/client-go/rest"
 
@@ -46,14 +45,9 @@ func (w *availability) PrepareCollection(ctx context.Context, adminRESTConfig *r
 }
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	var tcpdumpHook *backenddisruption.TcpdumpSamplerHook
-
-	// Check if tcpdump collection is enabled via environment variable
-	if os.Getenv("DEBUG_ENABLE_TCPDUMP") == "true" {
-		tcpdumpHook = backenddisruption.NewTcpdumpSamplerHook()
-		// Store reference to tcpdump hook for cleanup in CollectData
-		w.tcpdumpHook = tcpdumpHook
-	}
+	tcpdumpHook := utility.CreateTcpdumpHookIfEnabled()
+	// Store reference to tcpdump hook for cleanup in CollectData
+	w.tcpdumpHook = tcpdumpHook
 
 	var samplerHooks []backenddisruption.SamplerHook
 	if tcpdumpHook != nil {
@@ -89,9 +83,7 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	}
 
 	// Stop tcpdump collection as the monitoring test is terminating
-	if w.tcpdumpHook != nil {
-		w.tcpdumpHook.StopCollection()
-	}
+	utility.StopTcpdumpCollection(w.tcpdumpHook)
 
 	return w.disruptionChecker.CollectData(ctx)
 }
@@ -114,12 +106,7 @@ func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, ti
 	}
 
 	// Move tcpdump pcap file to storage directory
-	if w.tcpdumpHook != nil {
-		if err := w.tcpdumpHook.MoveToStorage(storageDir); err != nil {
-			// Log error but don't fail the entire WriteContentToStorage operation
-			logrus.WithError(err).Warn("Failed to move tcpdump pcap file to storage")
-		}
-	}
+	utility.MoveTcpdumpToStorage(w.tcpdumpHook, storageDir)
 
 	return nil
 }
