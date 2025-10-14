@@ -190,14 +190,14 @@ func (mo *Monitor) GetRecordRules() (string, error) {
 }
 
 // GetAlerts returns all alerts. It doesn't use the alermanager, and it returns alerts in 'pending' state too
-func (pmo *PrometheusMonitor) GetAlerts() (string, error) {
+func (mo *Monitor) GetAlerts() (string, error) {
 
 	// We don't want to print the token
-	pmo.ocClient.NotShowInfo()
-	defer pmo.ocClient.SetShowInfo()
+	mo.ocClient.NotShowInfo()
+	defer mo.ocClient.SetShowInfo()
 
-	getCmd := "curl -k -s -H \"" + fmt.Sprintf("Authorization: Bearer %v", pmo.Token) + "\" " + pmo.url + monitorAlerts
-	return RemoteShPod(pmo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, "sh", "-c", getCmd)
+	getCmd := "curl -k -s -H \"" + fmt.Sprintf("Authorization: Bearer %v", mo.Token) + "\" " + mo.url + monitorAlerts
+	return RemoteShPod(mo.ocClient, monitorNamespace, "statefulsets/"+prometheusK8s, "sh", "-c", getCmd)
 }
 
 // GetSAToken get a token assigned to prometheus-k8s from openshift-monitoring namespace
