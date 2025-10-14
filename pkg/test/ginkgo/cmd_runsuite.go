@@ -454,6 +454,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
+	// want to isolate oc adm must-gather runs successfully for metrics gathering
+	mustGatherMonitorTests, mustGatherTests := splitTests(mustGatherTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "metrics gathering")
+	})
+
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kube tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
@@ -461,6 +466,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d network tests", len(networkTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
+	logrus.Infof("Found %d must-gather metrics gathering tests", len(mustGatherMonitorTests))
 
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
@@ -472,6 +478,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalNetwork := networkTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
+		originalMustGatherMetrics := mustGatherMonitorTests
 
 		for i := 1; i < count; i++ {
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
@@ -481,9 +488,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
+			mustGatherMonitorTests = append(mustGatherMonitorTests, copyTests(originalMustGatherMetrics)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests) + len(mustGatherMonitorTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -529,10 +537,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		q.Execute(testCtx, openshiftTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, openshiftTestsCopy...)
 
-		// run the must-gather tests after parallel tests to reduce resource contention
 		mustGatherTestsCopy := copyTests(mustGatherTests)
 		q.Execute(testCtx, mustGatherTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, mustGatherTestsCopy...)
+
+		// should be only one but explicitly set parallelism to 1 here
+		mustGatherMonitorTestsCopy := copyTests(mustGatherMonitorTests)
+		q.Execute(testCtx, mustGatherMonitorTestsCopy, 1, testOutputConfig, abortFn)
+		tests = append(tests, mustGatherMonitorTestsCopy...)
 	}
 
 	// TODO: will move to the monitor

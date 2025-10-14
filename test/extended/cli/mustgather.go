@@ -368,7 +368,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		o.Expect(errorFile).To(o.BeAnExistingFile())
 		errorContent, err := os.ReadFile(errorFile)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(errorContent).To(o.BeEmpty())
+		o.Expect(string(errorContent)).To(o.BeEmpty())
 
 		// The metrics file should contain some series with a given format
 		o.Expect(metricsFile).To(o.BeAnExistingFile())
