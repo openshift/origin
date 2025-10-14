@@ -813,8 +813,10 @@ func (c *CLI) KubeClient() kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(c.UserConfig())
 }
 
-func (c *CLI) DynamicClient() dynamic.Interface {
-	return dynamic.NewForConfigOrDie(c.UserConfig())
+type ClientOption func(*rest.Config)
+
+func (c *CLI) DynamicClient(clientOpts ...ClientOption) dynamic.Interface {
+	return dynamic.NewForConfigOrDie(c.UserConfig(clientOpts...))
 }
 
 // AdminKubeClient provides a Kubernetes client for the cluster admin user.
@@ -861,11 +863,15 @@ func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
 	return prometheusClient
 }
 
-func (c *CLI) UserConfig() *rest.Config {
+func (c *CLI) UserConfig(clientOpts ...ClientOption) *rest.Config {
 	if c.token != "" {
 		clientConfig, err := GetClientConfig(c.adminConfigPath)
 		if err != nil {
 			FatalErr(err)
+		}
+
+		for _, clientOpt := range clientOpts {
+			clientOpt(clientConfig)
 		}
 
 		anon := rest.AnonymousClientConfig(clientConfig)
@@ -877,6 +883,11 @@ func (c *CLI) UserConfig() *rest.Config {
 	if err != nil {
 		FatalErr(err)
 	}
+
+	for _, clientOpt := range clientOpts {
+		clientOpt(clientConfig)
+	}
+
 	return clientConfig
 }
 
@@ -1137,7 +1148,6 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 }
 
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
-
 	userAPIExists, err := DoesApiResourceExist(c.AdminConfig(), "users", "user.openshift.io")
 	if err != nil {
 		FatalErr(err)
