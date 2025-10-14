@@ -63,7 +63,7 @@ func (c *CLI) GuestConfig() *rest.Config {
 // WithoutKubeconf simulates running commands without kubeconfig - OTP compatibility
 // This is a no-op in origin but needed for OTP compatibility
 func (c *CLI) WithoutKubeconf() *CLI {
-	// OTP expects this method but origin doesn't need special handling
+	c.configPath = ""
 	return c
 }
 
