@@ -28,17 +28,17 @@ func GetOperatorConditionStatus(interval Interval) *configv1.ClusterOperatorStat
 	return condition
 }
 
-// GetOperatorConditionHumanMessage constructs a human-readable message from a given ClusterOperatorStatusCondition
-func GetOperatorConditionHumanMessage(s *configv1.ClusterOperatorStatusCondition) string {
+// GetOperatorConditionHumanMessage constructs a human-readable message from a given ClusterOperatorStatusCondition with a given prefix
+func GetOperatorConditionHumanMessage(s *configv1.ClusterOperatorStatusCondition, prefix string) string {
 	if s == nil {
 		return ""
 	}
 	switch {
 	case len(s.Reason) > 0 && len(s.Message) > 0:
-		return fmt.Sprintf("changed %s to %s: %s: %s", s.Type, s.Status, s.Reason, s.Message)
+		return fmt.Sprintf("%s%s=%s: %s: %s", prefix, s.Type, s.Status, s.Reason, s.Message)
 	case len(s.Message) > 0:
-		return fmt.Sprintf("changed %s to %s: %s", s.Type, s.Status, s.Message)
+		return fmt.Sprintf("%s%s=%s: %s", prefix, s.Type, s.Status, s.Message)
 	default:
-		return fmt.Sprintf("changed %s to %s", s.Type, s.Status)
+		return fmt.Sprintf("%s%s=%s", prefix, s.Type, s.Status)
 	}
 }

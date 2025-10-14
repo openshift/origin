@@ -25,12 +25,12 @@ func Test_parseClusterOperatorNames(t *testing.T) {
 			name:        "unexpected",
 			reason:      "reason",
 			message:     "unexpected",
-			expectedErr: fmt.Errorf("failed to parse cluster operator names from %q", "changed Some to Unknown: reason: unexpected"),
+			expectedErr: fmt.Errorf("failed to parse cluster operator names from %q", "changed to Some=Unknown: reason: unexpected"),
 		},
 		{
 			name:        "legit waiting on",
 			message:     "Working towards 1.2.3: waiting on co-not-timeout",
-			expectedErr: fmt.Errorf("failed to parse cluster operator names from %q", "changed Some to Unknown: Working towards 1.2.3: waiting on co-not-timeout"),
+			expectedErr: fmt.Errorf("failed to parse cluster operator names from %q", "changed to Some=Unknown: Working towards 1.2.3: waiting on co-not-timeout"),
 		},
 		{
 			name:     "one CO timeout",
@@ -78,7 +78,7 @@ func Test_parseClusterOperatorNames(t *testing.T) {
 				Status:  configv1.ConditionUnknown,
 				Message: tc.message,
 				Reason:  tc.reason,
-			})
+			}, "changed to ")
 			actual, actuallErr := parseClusterOperatorNames(msg)
 			if diff := cmp.Diff(tc.expectedErr, actuallErr, cmp.FilterValues(func(x, y interface{}) bool {
 				_, ok1 := x.(error)

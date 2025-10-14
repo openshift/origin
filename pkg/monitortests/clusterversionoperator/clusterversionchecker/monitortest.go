@@ -156,31 +156,25 @@ func (w *monitor) noFailingUnknownCondition(intervals monitorapi.Intervals) []*j
 
 	ret := []*junitapi.JUnitTestCase{noFailures}
 
-	except := func(coName string) string {
-		return ""
-	}
-
 	for _, coName := range sets.List(violations) {
-		if reason := except(coName); reason == "" {
-			bzComponent := platformidentification.GetBugzillaComponentForOperator(coName)
-			if bzComponent == "Unknown" {
-				bzComponent = coName
-			}
-
-			m := 30
-			if coName == "machine-config" {
-				m = 3 * m
-			}
-			output := fmt.Sprintf("Cluster Operator %s has not completed version change after %d minutes", coName, m)
-			ret = append(ret, &junitapi.JUnitTestCase{
-				Name:     fmt.Sprintf("[bz-%v] clusteroperator/%v must complete version change under %d minutes", bzComponent, coName, m),
-				Duration: duration,
-				FailureOutput: &junitapi.FailureOutput{
-					Output:  output,
-					Message: output,
-				},
-			})
+		bzComponent := platformidentification.GetBugzillaComponentForOperator(coName)
+		if bzComponent == "Unknown" {
+			bzComponent = coName
 		}
+
+		m := 30
+		if coName == "machine-config" {
+			m = 3 * m
+		}
+		output := fmt.Sprintf("Cluster Operator %s has not completed version change after %d minutes", coName, m)
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name:     fmt.Sprintf("[bz-%v] clusteroperator/%v must complete version change under %d minutes", bzComponent, coName, m),
+			Duration: duration,
+			FailureOutput: &junitapi.FailureOutput{
+				Output:  output,
+				Message: output,
+			},
+		})
 	}
 
 	return ret

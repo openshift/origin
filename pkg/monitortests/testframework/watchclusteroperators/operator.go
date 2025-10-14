@@ -192,7 +192,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 								monitorapi.AnnotationStatus:    string(s.Status),
 								monitorapi.AnnotationReason:    s.Reason,
 							}).
-							HumanMessage(monitorapi.GetOperatorConditionHumanMessage(s))).BuildNow())
+							HumanMessage(monitorapi.GetOperatorConditionHumanMessage(s, "changed to "))).BuildNow())
 				}
 			}
 			return intervals
