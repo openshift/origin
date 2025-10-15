@@ -1,6 +1,8 @@
 package run
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
@@ -27,9 +29,6 @@ type RunSuiteFlags struct {
 	UpgradeSuite string
 	ToImage      string
 	TestOptions  []string
-
-	// Shared by initialization code
-	config *clusterdiscovery.ClusterConfiguration
 
 	genericclioptions.IOStreams
 }
@@ -84,7 +83,7 @@ func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.T
 	// shallow copy to mutate
 	ginkgoOptions := f.GinkgoRunSuiteOptions
 
-	providerConfig, err := f.SuiteWithKubeTestInitializationPreSuite()
+	clusterConfig, err := f.SuiteWithKubeTestInitializationPreSuite()
 	if err != nil {
 		return nil, err
 	}
@@ -95,13 +94,39 @@ func (f *RunSuiteFlags) ToOptions(args []string, availableSuites []*testginkgo.T
 		return nil, err
 	}
 
+	// Parse hypervisor configuration if provided and set it in environment for test context
+	if f.GinkgoRunSuiteOptions.WithHypervisorConfigJSON != "" {
+		// Validate the JSON format
+		var hypervisorConfig clusterdiscovery.HypervisorConfig
+		if err := json.Unmarshal([]byte(f.GinkgoRunSuiteOptions.WithHypervisorConfigJSON), &hypervisorConfig); err != nil {
+			return nil, fmt.Errorf("failed to parse hypervisor configuration JSON: %v", err)
+		}
+
+		// Validate required fields
+		if hypervisorConfig.HypervisorIP == "" {
+			return nil, fmt.Errorf("hypervisorIP is required in hypervisor configuration")
+		}
+		if hypervisorConfig.SSHUser == "" {
+			return nil, fmt.Errorf("sshUser is required in hypervisor configuration")
+		}
+		if hypervisorConfig.PrivateKeyPath == "" {
+			return nil, fmt.Errorf("privateKeyPath is required in hypervisor configuration")
+		}
+
+		// Set the hypervisor configuration in the cluster config
+		clusterConfig.HypervisorConfig = &hypervisorConfig
+
+		// Also set it in environment for test context access
+		os.Setenv("HYPERVISOR_CONFIG", f.GinkgoRunSuiteOptions.WithHypervisorConfigJSON)
+	}
+
 	o := &RunSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,
 		Extension:             internalExtension,
-		ClusterConfig:         providerConfig,
+		ClusterConfig:         clusterConfig,
 		FromRepository:        f.FromRepository,
-		CloudProviderJSON:     providerConfig.ToJSONString(),
+		CloudProviderJSON:     clusterConfig.ToJSONString(),
 		CloseFn:               closeFn,
 		IOStreams:             f.IOStreams,
 	}

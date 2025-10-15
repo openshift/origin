@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -55,6 +56,36 @@ func InitStandardFlags() {
 
 func InitTest(dryRun bool) error {
 	InitDefaultEnvironmentVariables()
+
+	// Set hypervisor configuration in TestContext if available
+	hypervisorConfigJSON := os.Getenv("HYPERVISOR_CONFIG")
+	if hypervisorConfigJSON != "" {
+		// Parse and validate hypervisor configuration
+		var hypervisorConfig struct {
+			HypervisorIP   string `json:"hypervisorIP"`
+			SSHUser        string `json:"sshUser"`
+			PrivateKeyPath string `json:"privateKeyPath"`
+		}
+		if err := json.Unmarshal([]byte(hypervisorConfigJSON), &hypervisorConfig); err != nil {
+			return fmt.Errorf("failed to parse hypervisor configuration JSON: %v", err)
+		}
+
+		// Validate required fields
+		if hypervisorConfig.HypervisorIP == "" {
+			return fmt.Errorf("hypervisorIP is required in hypervisor configuration")
+		}
+		if hypervisorConfig.SSHUser == "" {
+			return fmt.Errorf("sshUser is required in hypervisor configuration")
+		}
+		if hypervisorConfig.PrivateKeyPath == "" {
+			return fmt.Errorf("privateKeyPath is required in hypervisor configuration")
+		}
+
+		// Store the hypervisor configuration in TestContext for tests to access
+		// We'll use the existing CloudConfig.ConfigFile field to store the JSON
+		// This is a workaround since we can't extend TestContextType directly
+		TestContext.CloudConfig.ConfigFile = hypervisorConfigJSON
+	}
 
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
@@ -227,4 +258,32 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 	if err != nil {
 		FatalErr(err)
 	}
+}
+
+// GetHypervisorConfig returns the hypervisor configuration if available
+func GetHypervisorConfig() *struct {
+	HypervisorIP   string `json:"hypervisorIP"`
+	SSHUser        string `json:"sshUser"`
+	PrivateKeyPath string `json:"privateKeyPath"`
+} {
+	hypervisorConfigJSON := TestContext.CloudConfig.ConfigFile
+	if hypervisorConfigJSON == "" {
+		return nil
+	}
+
+	var hypervisorConfig struct {
+		HypervisorIP   string `json:"hypervisorIP"`
+		SSHUser        string `json:"sshUser"`
+		PrivateKeyPath string `json:"privateKeyPath"`
+	}
+	if err := json.Unmarshal([]byte(hypervisorConfigJSON), &hypervisorConfig); err != nil {
+		return nil
+	}
+
+	return &hypervisorConfig
+}
+
+// HasHypervisorConfig returns true if hypervisor configuration is available
+func HasHypervisorConfig() bool {
+	return TestContext.CloudConfig.ConfigFile != ""
 }
