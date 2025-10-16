@@ -114,14 +114,14 @@ func IsBareMetalHyperShiftCluster(ctx context.Context, managementOC *CLI) (bool,
 	if err != nil {
 		return false, fmt.Errorf("failed to get hosted cluster names: %v", err)
 	}
-	
+
 	if len(clusterNames) == 0 {
 		return false, fmt.Errorf("no hosted clusters found")
 	}
 
 	// Get the first hosted cluster name
 	clusterName := strings.Split(strings.TrimSpace(clusterNames), " ")[0]
-	
+
 	// Get the platform type of the hosted cluster
 	platformType, err := managementOC.AsAdmin().WithoutNamespace().Run("get").Args(
 		"hostedcluster", clusterName, "-n", hcpNamespace, `-ojsonpath={.spec.platform.type}`).Output()
