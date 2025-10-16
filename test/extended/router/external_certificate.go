@@ -15,7 +15,9 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -27,6 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
@@ -207,6 +211,10 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 				generateRouterRoleBinding(oc.Namespace()), metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("Waiting for router service account permissions to propagate")
+			err = waitForRouterSecretAccess(oc, oc.Namespace(), secret.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("Creating multiple routes referencing same external certificate")
 			for i := 0; i < numRoutes; i++ {
 				route := generateRouteWithExternalCertificate(oc.Namespace(), routeNames[i], secret.Name, helloPodSvc, hosts[i], routev1.TLSTerminationEdge)
@@ -340,7 +348,11 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:RouteExternalCertificate][Featu
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("Updating the existing role to add RBAC permissions for the new secret")
-						err := patchRoleWithSecretAccess(oc, newSecretName)
+						err = patchRoleWithSecretAccess(oc, newSecretName)
+						o.Expect(err).NotTo(o.HaveOccurred())
+
+						g.By("Waiting for router service account permissions to propagate")
+						err = waitForRouterSecretAccess(oc, oc.Namespace(), newSecretName)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("Updating the route to use new external certificate")
@@ -794,6 +806,70 @@ func generateRouteWithExternalCertificate(namespace, routeName, secretName, serv
 			},
 		},
 	}
+}
+
+// waitForRouterSecretAccess ensures that the router service account can interact with the secret using the verbs
+// required by the admission plugin (get, list, watch). RBAC propagation can take a short amount of time, so we poll
+// until all permission checks succeed before continuing.
+func waitForRouterSecretAccess(oc *exutil.CLI, namespace string, secretNames ...string) error {
+	if len(secretNames) == 0 {
+		return nil
+	}
+
+	cfg := rest.CopyConfig(oc.AdminConfig())
+	cfg.Impersonate = rest.ImpersonationConfig{
+		UserName: "system:serviceaccount:openshift-ingress:router",
+		Groups: []string{
+			"system:serviceaccounts",
+			"system:serviceaccounts:openshift-ingress",
+			"system:authenticated",
+		},
+	}
+
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	return wait.PollUntilContextTimeout(context.Background(), time.Second, changeTimeoutSeconds*time.Second, false, func(ctx context.Context) (bool, error) {
+		for _, secretName := range secretNames {
+			if _, err := client.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{}); err != nil {
+				if apierrors.IsForbidden(err) {
+					e2e.Logf("router serviceaccount cannot get secret %q yet: %v", secretName, err)
+					return false, nil
+				}
+				if apierrors.IsNotFound(err) {
+					return false, fmt.Errorf("secret %q not found while waiting for router access: %w", secretName, err)
+				}
+				return false, err
+			}
+
+			listOpts := metav1.ListOptions{
+				FieldSelector: fields.OneTermEqualSelector("metadata.name", secretName).String(),
+				Limit:         1,
+			}
+			if _, err := client.CoreV1().Secrets(namespace).List(ctx, listOpts); err != nil {
+				if apierrors.IsForbidden(err) {
+					e2e.Logf("router serviceaccount cannot list secret %q yet: %v", secretName, err)
+					return false, nil
+				}
+				return false, err
+			}
+
+			watcher, err := client.CoreV1().Secrets(namespace).Watch(ctx, metav1.ListOptions{
+				FieldSelector: fields.OneTermEqualSelector("metadata.name", secretName).String(),
+			})
+			if err != nil {
+				if apierrors.IsForbidden(err) {
+					e2e.Logf("router serviceaccount cannot watch secret %q yet: %v", secretName, err)
+					return false, nil
+				}
+				return false, err
+			}
+			watcher.Stop()
+		}
+		return true, nil
+	})
 }
 
 // generateSecretReaderRole creates a role that grants permissions to get, list, and watch the specified secret.
