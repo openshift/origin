@@ -598,6 +598,11 @@ func DumpPodLogs(pods []corev1.Pod, oc *CLI) {
 	for _, pod := range pods {
 		descOutput, err := oc.AsAdmin().Run("describe").WithoutNamespace().Args("pod/"+pod.Name, "-n", pod.Namespace).Output()
 		if err == nil {
+			if strings.Contains(descOutput, "BEGIN PRIVATE KEY") {
+				// replace private key with XXXXX string
+				re := regexp.MustCompile(`BEGIN\s+PRIVATE\s+KEY[\s\S]*END\s+PRIVATE\s+KEY`)
+				descOutput = re.ReplaceAllString(descOutput, "XXXXXXXXXXXXXX")
+			}
 			e2e.Logf("Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
 			e2e.Logf("Error retrieving description for pod %q: %v\n\n", pod.Name, err)
