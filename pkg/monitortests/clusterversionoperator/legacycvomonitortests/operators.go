@@ -516,9 +516,6 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	for _, conditionType := range conditionTypes {
 		for _, operatorName := range platformidentification.KnownOperators.List() {
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
-			if bzComponent == "Unknown" {
-				bzComponent = operatorName
-			}
 			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, conditionType)
 			operatorEvents := eventsByOperator[operatorName]
 			if len(operatorEvents) == 0 {
@@ -600,8 +597,12 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			}
 
 			if len(fatal) == 0 {
-				// add a success so we flake (or pass) and don't fail
-				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+				if len(excepted) > 0 {
+					// add a success so we flake (or pass) and don't fail
+					ret = append(ret, &junitapi.JUnitTestCase{Name: testName, SystemOut: "Passing the case to make the overall test case flake as the previous failure is expected"})
+				} else {
+					ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+				}
 			}
 		}
 	}
@@ -613,7 +614,7 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 
-	var machineConfigProgressing time.Time
+	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
 
 	var start, stop time.Time
@@ -638,7 +639,7 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 			continue // ignore non-condition intervals
 		}
 		if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionTrue {
-			machineConfigProgressing = mcEvent.To
+			machineConfigProgressingStart = mcEvent.To
 			break
 		}
 	}
@@ -647,21 +648,18 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 		Name:     fmt.Sprintf("[bz-Machine Config Operator] clusteroperator/machine-config must go Progressing=True during an upgrade test"),
 		Duration: duration,
 	}
-	if machineConfigProgressing.IsZero() {
+	if machineConfigProgressingStart.IsZero() {
 		mcTestCase.FailureOutput = &junitapi.FailureOutput{
 			Output: fmt.Sprintf("machine-config was never Progressing=True during the upgrade window from %s to %s", start.Format(time.RFC3339), stop.Format(time.RFC3339)),
 		}
 		return []*junitapi.JUnitTestCase{mcTestCase}
 	} else {
-		mcTestCase.SystemOut = fmt.Sprintf("machine-config became Progressing=True at %s during the upgrade window from %s to %s", machineConfigProgressing.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		mcTestCase.SystemOut = fmt.Sprintf("machine-config became Progressing=True at %s during the upgrade window from %s to %s", machineConfigProgressingStart.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
 	}
 	ret = append(ret, mcTestCase)
 
 	for _, operatorName := range platformidentification.KnownOperators.Difference(sets.NewString("machine-config")).List() {
 		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
-		if bzComponent == "Unknown" {
-			bzComponent = operatorName
-		}
 		testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should stay Progressing=False while MCO is Progressing=True", bzComponent, operatorName)
 		operatorEvents := eventsByOperator[operatorName]
 		if len(operatorEvents) == 0 {
@@ -731,7 +729,7 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 
 		var excepted, fatal []string
 		for _, operatorEvent := range operatorEvents {
-			if operatorEvent.From.Before(machineConfigProgressing) {
+			if operatorEvent.From.Before(machineConfigProgressingStart) {
 				continue
 			}
 			condition := monitorapi.GetOperatorConditionStatus(operatorEvent)
@@ -786,8 +784,12 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 		}
 
 		if len(fatal) == 0 {
-			// add a success so we flake (or pass) and don't fail
-			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+			if len(excepted) > 0 {
+				// add a success so we flake (or pass) and don't fail
+				ret = append(ret, &junitapi.JUnitTestCase{Name: testName, SystemOut: "Passing the case to make the overall test case flake as the previous failure is expected"})
+			} else {
+				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+			}
 		}
 	}
 
