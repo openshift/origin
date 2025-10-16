@@ -79,7 +79,7 @@ type InvariantInClusterDisruption struct {
 	isAROHCPCluster             bool
 	isBareMetalHypershift       bool
 	adminRESTConfig             *rest.Config
-	kubeClient      kubernetes.Interface
+	kubeClient                  kubernetes.Interface
 }
 
 func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
