@@ -209,6 +209,7 @@ func (c *CLI) BackgroundRC() (*exec.Cmd, io.ReadCloser, error) {
 	if c.verbose {
 		fmt.Printf("DEBUG: oc %s\n", c.printCmd())
 	}
+	c.finalArgs = append(c.globalArgs, c.commandArgs...)
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
 	stdout, err := cmd.StdoutPipe()
