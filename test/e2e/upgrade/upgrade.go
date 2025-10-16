@@ -403,9 +403,8 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// to be 30 minutes longer. https://issues.redhat.com/browse/OCPBUGS-13059
 		upgradeDurationLimit = 130 * time.Minute
 	case platformType.Architecture == platformidentification.ArchitecturePPC64le:
-		// ppc appears to take just over 75 minutes, let's lock it into that value, so we don't
-		// get worse.
-		upgradeDurationLimit = 80 * time.Minute
+		// ppc takes slightly more than 80 minutes. https://issues.redhat.com/browse/OCPBUGS-63201
+		upgradeDurationLimit = 100 * time.Minute
 	case infra.Status.InfrastructureTopology == configv1.SingleReplicaTopologyMode:
 		// single node takes a lot less since there's one node
 		upgradeDurationLimit = 65 * time.Minute
