@@ -35,6 +35,21 @@ type KubeAPIServer struct {
 
 type KubeAPIServerSpec struct {
 	StaticPodOperatorSpec `json:",inline"`
+
+	// eventTTLMinutes specifies the amount of time that the events are stored before being deleted.
+	// The TTL is allowed between 5 minutes minimum up to a maximum of 180 minutes (3 hours).
+	//
+	// Lowering this value will reduce the storage required in etcd. Note that this setting will only apply
+	// to new events being created and will not update existing events.
+	//
+	// When omitted this means no opinion, and the platform is left to choose a reasonable default, which is subject to change over time.
+	// The current default value is 3h (180 minutes).
+	//
+	// +openshift:enable:FeatureGate=EventTTL
+	// +kubebuilder:validation:Minimum=5
+	// +kubebuilder:validation:Maximum=180
+	// +optional
+	EventTTLMinutes int32 `json:"eventTTLMinutes,omitempty"`
 }
 
 type KubeAPIServerStatus struct {
@@ -46,6 +61,7 @@ type KubeAPIServerStatus struct {
 	// The default expiration for the items is set by the platform and it defaults to 24h.
 	// see: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection
 	// +optional
+	// +listType=atomic
 	ServiceAccountIssuers []ServiceAccountIssuerStatus `json:"serviceAccountIssuers,omitempty"`
 }
 

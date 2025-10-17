@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -77,7 +78,7 @@ func toKubeContainerState(state runtimeapi.ContainerState) kubecontainer.State {
 }
 
 // toRuntimeProtocol converts v1.Protocol to runtimeapi.Protocol.
-func toRuntimeProtocol(protocol v1.Protocol) runtimeapi.Protocol {
+func toRuntimeProtocol(logger klog.Logger, protocol v1.Protocol) runtimeapi.Protocol {
 	switch protocol {
 	case v1.ProtocolTCP:
 		return runtimeapi.Protocol_TCP
@@ -87,12 +88,12 @@ func toRuntimeProtocol(protocol v1.Protocol) runtimeapi.Protocol {
 		return runtimeapi.Protocol_SCTP
 	}
 
-	klog.InfoS("Unknown protocol, defaulting to TCP", "protocol", protocol)
+	logger.Info("Unknown protocol, defaulting to TCP", "protocol", protocol)
 	return runtimeapi.Protocol_TCP
 }
 
 // toKubeContainer converts runtimeapi.Container to kubecontainer.Container.
-func (m *kubeGenericRuntimeManager) toKubeContainer(c *runtimeapi.Container) (*kubecontainer.Container, error) {
+func (m *kubeGenericRuntimeManager) toKubeContainer(ctx context.Context, c *runtimeapi.Container) (*kubecontainer.Container, error) {
 	if c == nil || c.Id == "" || c.Image == nil {
 		return nil, fmt.Errorf("unable to convert a nil pointer to a runtime container")
 	}
@@ -103,7 +104,7 @@ func (m *kubeGenericRuntimeManager) toKubeContainer(c *runtimeapi.Container) (*k
 		imageID = c.ImageId
 	}
 
-	annotatedInfo := getContainerInfoFromAnnotations(c.Annotations)
+	annotatedInfo := getContainerInfoFromAnnotations(ctx, c.Annotations)
 	return &kubecontainer.Container{
 		ID:                  kubecontainer.ContainerID{Type: m.runtimeName, ID: c.Id},
 		Name:                c.GetMetadata().GetName(),
@@ -175,12 +176,23 @@ func isInitContainerFailed(status *kubecontainer.Status) bool {
 	return false
 }
 
-// GetStableKey generates a key (string) to uniquely identify a
-// (pod, container) tuple. The key should include the content of the
-// container, so that any change to the container generates a new key.
-func GetStableKey(pod *v1.Pod, container *v1.Container) string {
-	hash := strconv.FormatUint(kubecontainer.HashContainer(container), 16)
-	return fmt.Sprintf("%s_%s_%s_%s_%s", pod.Name, pod.Namespace, string(pod.UID), container.Name, hash)
+// GetBackoffKey generates a key (string) to uniquely identify a (pod, container) tuple for tracking
+// container backoff. The key should include any content of the container that is tied to the
+// backoff, so that any change generates a new key.
+func GetBackoffKey(pod *v1.Pod, container *v1.Container) string {
+	// Include stable identifiers (name, namespace, uid) as well as any
+	// fields that should reset the backoff when changed.
+	key := []string{
+		pod.Name,
+		pod.Namespace,
+		string(pod.UID),
+		container.Name,
+		container.Image,
+		container.Resources.String(),
+	}
+	hash := fnv.New64a()
+	hash.Write([]byte(strings.Join(key, "/")))
+	return strconv.FormatUint(hash.Sum64(), 16)
 }
 
 // logPathDelimiter is the delimiter used in the log path.

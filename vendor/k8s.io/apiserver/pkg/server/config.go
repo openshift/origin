@@ -1152,7 +1152,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	}
 	handler = genericfilters.WithOptInRetryAfter(handler, c.newServerFullyInitializedFunc())
 	handler = genericfilters.WithShutdownResponseHeader(handler, c.lifecycleSignals.ShutdownInitiated, c.ShutdownDelayDuration, c.APIServerID)
-	handler = genericfilters.WithHTTPLogging(handler, c.newIsTerminatingFunc())
+	handler = genericfilters.WithHTTPLogging(handler)
 	handler = genericapifilters.WithLatencyTrackers(handler)
 	// WithRoutine will execute future handlers in a separate goroutine and serving
 	// handler in current goroutine to minimize the stack memory usage. It must be

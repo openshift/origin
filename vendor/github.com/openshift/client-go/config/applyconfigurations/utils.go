@@ -12,7 +12,7 @@ import (
 	internal "github.com/openshift/client-go/config/applyconfigurations/internal"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
-	testing "k8s.io/client-go/testing"
+	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
 )
 
 // ForKind returns an apply configuration type for the given GroupVersionKind, or nil if no
@@ -132,6 +132,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.ConsoleSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("ConsoleStatus"):
 		return &configv1.ConsoleStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Custom"):
+		return &configv1.CustomApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CustomFeatureGates"):
 		return &configv1.CustomFeatureGatesApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CustomTLSProfile"):
@@ -172,6 +174,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.FeatureGateStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FulcioCAWithRekor"):
 		return &configv1.FulcioCAWithRekorApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("GatherConfig"):
+		return &configv1.GatherConfigApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("GathererConfig"):
+		return &configv1.GathererConfigApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Gatherers"):
+		return &configv1.GatherersApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPPlatformStatus"):
 		return &configv1.GCPPlatformStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("GCPResourceLabel"):
@@ -246,6 +254,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.IngressSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IngressStatus"):
 		return &configv1.IngressStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("InsightsDataGather"):
+		return &configv1.InsightsDataGatherApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("InsightsDataGatherSpec"):
+		return &configv1.InsightsDataGatherSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KeystoneIdentityProvider"):
 		return &configv1.KeystoneIdentityProviderApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KMSConfig"):
@@ -338,6 +350,10 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.OvirtPlatformLoadBalancerApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("OvirtPlatformStatus"):
 		return &configv1.OvirtPlatformStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("PersistentVolumeClaimReference"):
+		return &configv1.PersistentVolumeClaimReferenceApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("PersistentVolumeConfig"):
+		return &configv1.PersistentVolumeConfigApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("PKI"):
 		return &configv1.PKIApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("PKICertificateSubject"):
@@ -402,6 +418,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.SecretNameReferenceApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("SignatureStore"):
 		return &configv1.SignatureStoreApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Storage"):
+		return &configv1.StorageApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TemplateReference"):
 		return &configv1.TemplateReferenceApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TLSProfileSpec"):
@@ -456,6 +474,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1.WebhookTokenAuthenticatorApplyConfiguration{}
 
 		// Group=config.openshift.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithKind("AlertmanagerConfig"):
+		return &configv1alpha1.AlertmanagerConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("AlertmanagerCustomConfig"):
+		return &configv1alpha1.AlertmanagerCustomConfigApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("Audit"):
+		return &configv1alpha1.AuditApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Backup"):
 		return &configv1alpha1.BackupApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("BackupSpec"):
@@ -470,6 +494,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.ClusterMonitoringApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ClusterMonitoringSpec"):
 		return &configv1alpha1.ClusterMonitoringSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ContainerResource"):
+		return &configv1alpha1.ContainerResourceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("EtcdBackupSpec"):
 		return &configv1alpha1.EtcdBackupSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("FulcioCAWithRekor"):
@@ -486,6 +512,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &configv1alpha1.InsightsDataGatherApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("InsightsDataGatherSpec"):
 		return &configv1alpha1.InsightsDataGatherSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("MetricsServerConfig"):
+		return &configv1alpha1.MetricsServerConfigApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PersistentVolumeClaimReference"):
 		return &configv1alpha1.PersistentVolumeClaimReferenceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("PersistentVolumeConfig"):
@@ -543,6 +571,6 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 	return nil
 }
 
-func NewTypeConverter(scheme *runtime.Scheme) *testing.TypeConverter {
-	return &testing.TypeConverter{Scheme: scheme, TypeResolver: internal.Parser()}
+func NewTypeConverter(scheme *runtime.Scheme) managedfields.TypeConverter {
+	return managedfields.NewSchemeTypeConverter(scheme, internal.Parser())
 }

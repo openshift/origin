@@ -257,7 +257,7 @@ type UpdateHistory struct {
 
 	// acceptedRisks records risks which were accepted to initiate the update.
 	// For example, it may menition an Upgradeable=False or missing signature
-	// that was overriden via desiredUpdate.force, or an update that was
+	// that was overridden via desiredUpdate.force, or an update that was
 	// initiated despite not being in the availableUpdates set of recommended
 	// update targets.
 	// +optional
