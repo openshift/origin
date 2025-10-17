@@ -1166,6 +1166,9 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-sqlite3 v1.14.30
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
+# github.com/metal3-io/baremetal-operator/apis v0.11.1
+## explicit; go 1.24.0
+github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1
 # github.com/metallb/frr-k8s v0.0.15
 ## explicit; go 1.22.0
 github.com/metallb/frr-k8s/api/v1beta1
@@ -1431,7 +1434,7 @@ github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo
 github.com/openshift-eng/openshift-tests-extension/pkg/junit
 github.com/openshift-eng/openshift-tests-extension/pkg/util/sets
 github.com/openshift-eng/openshift-tests-extension/pkg/version
-# github.com/openshift/api v3.9.0+incompatible => github.com/openshift/api v0.0.0-20250710004639-926605d3338b
+# github.com/openshift/api v0.0.0-20251016080153-44baf885fd37 => github.com/openshift/api v0.0.0-20250710004639-926605d3338b
 ## explicit; go 1.24.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -1755,8 +1758,8 @@ github.com/operator-framework/api/pkg/operators/v1
 github.com/operator-framework/api/pkg/operators/v1alpha1
 github.com/operator-framework/api/pkg/operators/v1alpha2
 github.com/operator-framework/api/pkg/operators/v2
-# github.com/operator-framework/operator-lifecycle-manager v0.30.1-0.20250114164243-1b6752ec65fa
-## explicit; go 1.23.0
+# github.com/operator-framework/operator-lifecycle-manager v0.22.0
+## explicit; go 1.18
 github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/scheme
 github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1
 # github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417
@@ -1904,7 +1907,7 @@ github.com/stoewer/go-strcase
 # github.com/stretchr/objx v0.5.2
 ## explicit; go 1.20
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
@@ -2681,7 +2684,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.33.4 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20250906192346-6efb6a95323f
+# k8s.io/api v0.33.5 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20250906192346-6efb6a95323f
 ## explicit; go 1.24.0
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -2793,7 +2796,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.33.4 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250906192346-6efb6a95323f
+# k8s.io/apimachinery v0.33.5 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20250906192346-6efb6a95323f
 ## explicit; go 1.24.0
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -4679,8 +4682,8 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient/virtualnetworklinkclient
 # sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16
 ## explicit; go 1.22.0
 sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader
-# sigs.k8s.io/controller-runtime v0.19.4
-## explicit; go 1.22.0
+# sigs.k8s.io/controller-runtime v0.21.0
+## explicit; go 1.24.0
 sigs.k8s.io/controller-runtime/pkg/conversion
 sigs.k8s.io/controller-runtime/pkg/scheme
 # sigs.k8s.io/gateway-api v1.2.1
