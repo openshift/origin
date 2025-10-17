@@ -359,6 +359,7 @@ const (
 	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
 	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
+	SourceCrioLog                   IntervalSource = "CrioLog"
 	SourceSystemdCoreDumpLog        IntervalSource = "SystemdCoreDumpLog"
 	SourcePodLog                    IntervalSource = "PodLog"
 	SourceEtcdLog                   IntervalSource = "EtcdLog"
@@ -385,6 +386,8 @@ const (
 
 	SourceStaticPodInstallMonitor IntervalSource = "StaticPodInstallMonitor"
 	SourceCPUMonitor              IntervalSource = "CPUMonitor"
+	KubeletPanic                  IntervalReason = "KubeletPanic"
+	CrioPanic                     IntervalReason = "CrioPanic"
 )
 
 type Interval struct {
