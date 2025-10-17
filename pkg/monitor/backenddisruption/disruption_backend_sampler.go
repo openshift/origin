@@ -79,6 +79,8 @@ type BackendSampler struct {
 	stopRunning context.CancelFunc
 	// consumptionFinished is closed when the consumer is done
 	consumptionFinished chan struct{}
+
+	samplerHooks []SamplerHook
 }
 
 type routeCoordinates struct {
@@ -195,7 +197,7 @@ func (b *BackendSampler) WithTLSConfig(tlsConfig *tls.Config) *BackendSampler {
 	return b
 }
 
-// WithTLSConfig sets both the CA bundle for trusting the server and the client cert/key pair for identifying to the server
+// WithExpectedStatusCode sets the expected http status
 func (b *BackendSampler) WithExpectedStatusCode(statusCode int) *BackendSampler {
 	b.expectedStatusCode = statusCode
 	return b
@@ -220,6 +222,12 @@ func (b *BackendSampler) WithUserAgent(userAgent string) *BackendSampler {
 // or 3xx response is acceptable.
 func (b *BackendSampler) WithExpectedBodyRegex(expectedBodyRegex string) *BackendSampler {
 	b.expectRegexp = regexp.MustCompile(expectedBodyRegex)
+	return b
+}
+
+// WithSamplerHooks adds a list of hooks for the sampler to call at different stages of disruption detection
+func (b *BackendSampler) WithSamplerHooks(samplerHooks []SamplerHook) *BackendSampler {
+	b.samplerHooks = samplerHooks
 	return b
 }
 
@@ -620,6 +628,9 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
 			}
 
+			for _, hook := range b.backendSampler.samplerHooks {
+				hook.DisruptionStarted(ctx)
+			}
 			// start a new interval with the new error
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
 			framework.Logf("%s", message.BuildString())
@@ -651,6 +662,10 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			// end the previous interval if we have one because our state changed
 			if previousIntervalID != -1 {
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
+			}
+
+			for _, hook := range b.backendSampler.samplerHooks {
+				hook.DisruptionStarted(ctx)
 			}
 
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
