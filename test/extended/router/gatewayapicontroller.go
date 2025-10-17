@@ -14,11 +14,12 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
-	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1"
+	operatorsv1 "github.com/operator-framework/api/pkg/operators/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -160,10 +161,15 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 			g.By("Deleting the OSSM Operator resources")
 
-			operator, err := operatorsv1.NewForConfigOrDie(oc.AsAdmin().UserConfig()).Operators().Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
-
+			operator := &operatorsv1.Operator{}
 			restmapper := oc.AsAdmin().RESTMapper()
+			mapping, err := restmapper.RESTMapping(operator.GroupVersionKind().GroupKind())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			us, err := oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), operator)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to convert Operator %q", serviceMeshOperatorName)
+
 			for _, ref := range operator.Status.Components.Refs {
 				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
 				o.Expect(err).NotTo(o.HaveOccurred())
