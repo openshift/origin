@@ -215,7 +215,6 @@ type ImageRegistryConfigStorageS3 struct {
 	// The minimum value is 5 and the maximum value is 5120 (5 GiB).
 	// +kubebuilder:validation:Minimum=5
 	// +kubebuilder:validation:Maximum=5120
-	// +openshift:enable:FeatureGate=ChunkSizeMiB
 	// +optional
 	ChunkSizeMiB int32 `json:"chunkSizeMiB,omitempty"`
 	// encrypt specifies whether the registry stores the image in encrypted

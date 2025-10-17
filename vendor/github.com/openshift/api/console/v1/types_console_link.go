@@ -19,7 +19,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:metadata:annotations="displayName=ConsoleLinks"
 // +kubebuilder:printcolumn:name=Text,JSONPath=.spec.text,type=string
 // +kubebuilder:printcolumn:name=URL,JSONPath=.spec.href,type=string
-// +kubebuilder:printcolumn:name=Menu,JSONPath=.spec.menu,type=string
+// +kubebuilder:printcolumn:name=Location,JSONPath=.spec.location,type=string
 // +kubebuilder:printcolumn:name=Age,JSONPath=.metadata.creationTimestamp,type=date
 // +openshift:compatibility-gen:level=2
 type ConsoleLink struct {

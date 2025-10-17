@@ -34,6 +34,7 @@ import (
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -58,7 +59,9 @@ import (
 )
 
 const (
-	globalCacheKey     = "global"
+	// globalCacheKey is the key used for caching credentials that are not specific to a registry or image.
+	// angle brackets are used to avoid conflicts with actual image or registry names.
+	globalCacheKey     = "<global>"
 	cachePurgeInterval = time.Minute * 15
 )
 
@@ -79,6 +82,54 @@ type GetServiceAccountFunc func(namespace, name string) (*v1.ServiceAccount, err
 // getServiceAccountTokenFunc is a function type that returns a service account token for the given namespace and name.
 type getServiceAccountTokenFunc func(namespace, name string, tr *authenticationv1.TokenRequest) (*authenticationv1.TokenRequest, error)
 
+type cacheKeyParams struct {
+	namespace          string
+	serviceAccountName string
+	serviceAccountUID  types.UID
+	saAnnotations      map[string]string
+	podName            string
+	podUID             types.UID
+	saTokenHash        string
+	cacheType          kubeletconfig.ServiceAccountTokenCacheType
+}
+
+type cacheKeyBuilder struct {
+	builder *cryptobyte.Builder
+}
+
+func newCacheKeyBuilder() *cacheKeyBuilder {
+	return &cacheKeyBuilder{builder: cryptobyte.NewBuilder(nil)}
+}
+
+func (c *cacheKeyBuilder) addString(value string) *cacheKeyBuilder {
+	c.builder.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+		b.AddBytes([]byte(value))
+	})
+	return c
+}
+
+func (c *cacheKeyBuilder) addAnnotations(annotations map[string]string) *cacheKeyBuilder {
+	keys := sets.StringKeySet(annotations).List()
+	c.builder.AddUint32(uint32(len(keys)))
+	for _, k := range keys {
+		c.builder.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes([]byte(k))
+		})
+		c.builder.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
+			b.AddBytes([]byte(annotations[k]))
+		})
+	}
+	return c
+}
+
+func (c *cacheKeyBuilder) build() (string, error) {
+	keyBytes, err := c.builder.Bytes()
+	if err != nil {
+		return "", err
+	}
+	return string(keyBytes), nil
+}
+
 func init() {
 	install.Install(scheme)
 	kubeletconfig.AddToScheme(scheme)
@@ -89,7 +140,7 @@ func init() {
 
 // RegisterCredentialProviderPlugins is called from kubelet to register external credential provider
 // plugins according to the CredentialProviderConfig config file.
-func RegisterCredentialProviderPlugins(pluginConfigFile, pluginBinDir string,
+func RegisterCredentialProviderPlugins(pluginConfigPath, pluginBinDir string,
 	getServiceAccountToken getServiceAccountTokenFunc,
 	getServiceAccount GetServiceAccountFunc,
 ) error {
@@ -101,7 +152,7 @@ func RegisterCredentialProviderPlugins(pluginConfigFile, pluginBinDir string,
 		return fmt.Errorf("error inspecting binary directory %s: %w", pluginBinDir, err)
 	}
 
-	credentialProviderConfig, err := readCredentialProviderConfigFile(pluginConfigFile)
+	credentialProviderConfig, configHash, err := readCredentialProviderConfig(pluginConfigPath)
 	if err != nil {
 		return err
 	}
@@ -113,6 +164,10 @@ func RegisterCredentialProviderPlugins(pluginConfigFile, pluginBinDir string,
 
 	// Register metrics for credential providers
 	registerMetrics()
+
+	// Record the hash of the credential provider configuration.
+	// This hash is exposed via metrics as an external API to allow monitoring of configuration changes.
+	recordCredentialProviderConfigHash(configHash)
 
 	for _, provider := range credentialProviderConfig.Providers {
 		// Considering Windows binary with suffix ".exe", LookPath() helps to find the correct path.
@@ -210,6 +265,7 @@ type serviceAccountProvider struct {
 	getServiceAccountTokenFunc           getServiceAccountTokenFunc
 	requiredServiceAccountAnnotationKeys []string
 	optionalServiceAccountAnnotationKeys []string
+	cacheType                            kubeletconfig.ServiceAccountTokenCacheType
 }
 
 func newServiceAccountProvider(
@@ -231,6 +287,7 @@ func newServiceAccountProvider(
 		getServiceAccountTokenFunc:           getServiceAccountToken,
 		requiredServiceAccountAnnotationKeys: provider.TokenAttributes.RequiredServiceAccountAnnotationKeys,
 		optionalServiceAccountAnnotationKeys: provider.TokenAttributes.OptionalServiceAccountAnnotationKeys,
+		cacheType:                            provider.TokenAttributes.CacheType,
 	}
 }
 
@@ -279,8 +336,11 @@ func (s *serviceAccountProvider) getServiceAccountData(namespace, name string) (
 }
 
 // getServiceAccountToken returns a service account token for the service account.
-func (s *serviceAccountProvider) getServiceAccountToken(podNamespace, podName, serviceAccountName string, podUID types.UID) (string, error) {
+func (s *serviceAccountProvider) getServiceAccountToken(podNamespace, podName, serviceAccountName string, serviceAccountUID, podUID types.UID) (string, error) {
 	tr, err := s.getServiceAccountTokenFunc(podNamespace, serviceAccountName, &authenticationv1.TokenRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			UID: serviceAccountUID,
+		},
 		Spec: authenticationv1.TokenRequestSpec{
 			Audiences: []string{s.audience},
 			// expirationSeconds is not set explicitly here. It has the same default value of "ExpirationSeconds" in the TokenRequestSpec.
@@ -341,20 +401,22 @@ type perPodPluginProvider struct {
 	serviceAccountName string
 }
 
-// Enabled always returns true since registration of the plugin via kubelet implies it should be enabled.
-func (p *perPodPluginProvider) Enabled() bool {
-	return true
-}
-
-func (p *perPodPluginProvider) Provide(image string) credentialprovider.DockerConfig {
+// provideWithCoordinates returns the DockerConfig and, if available, the ServiceAccountCoordinates
+// used for credential resolution. If ServiceAccountCoordinates is nil, it means no service account
+// context was used (e.g., the plugin is not operating in service account token mode or no service
+// account was provided for the request).
+func (p *perPodPluginProvider) provideWithCoordinates(image string) (credentialprovider.DockerConfig, *credentialprovider.ServiceAccountCoordinates) {
 	return p.provider.provide(image, p.podNamespace, p.podName, p.podUID, p.serviceAccountName)
 }
 
 // provide returns a credentialprovider.DockerConfig based on the credentials returned
-// from cache or the exec plugin.
-func (p *pluginProvider) provide(image, podNamespace, podName string, podUID types.UID, serviceAccountName string) credentialprovider.DockerConfig {
+// from cache or the exec plugin. The returned ServiceAccountCoordinates may be nil.
+// If ServiceAccountCoordinates is nil, it means no service account context was used
+// (e.g., the plugin is not operating in service account token mode or no service account
+// was provided for the request).
+func (p *pluginProvider) provide(image, podNamespace, podName string, podUID types.UID, serviceAccountName string) (credentialprovider.DockerConfig, *credentialprovider.ServiceAccountCoordinates) {
 	if !p.isImageAllowed(image) {
-		return credentialprovider.DockerConfig{}
+		return credentialprovider.DockerConfig{}, nil
 	}
 
 	var serviceAccountUID types.UID
@@ -362,11 +424,13 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 	var saAnnotations map[string]string
 	var err error
 	var serviceAccountCacheKey string
+	var serviceAccountTokenHash string
+	var serviceAccountCoordinates *credentialprovider.ServiceAccountCoordinates
 
 	if p.serviceAccountProvider != nil {
 		if len(serviceAccountName) == 0 && p.serviceAccountProvider.requireServiceAccount {
 			klog.V(5).Infof("Service account name is empty for pod %s/%s", podNamespace, podName)
-			return credentialprovider.DockerConfig{}
+			return credentialprovider.DockerConfig{}, nil
 		}
 
 		// If the service account name is empty and the plugin has indicated that invoking the plugin
@@ -380,22 +444,40 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 					// for image pull. If any of the required annotation is missing, we will not invoke the plugin. We will log the error
 					// at higher verbosity level as it could be noisy.
 					klog.V(5).Infof("Failed to get service account data %s/%s: %v", podNamespace, serviceAccountName, err)
-					return credentialprovider.DockerConfig{}
+					return credentialprovider.DockerConfig{}, nil
 				}
 
 				klog.Errorf("Failed to get service account %s/%s: %v", podNamespace, serviceAccountName, err)
-				return credentialprovider.DockerConfig{}
+				return credentialprovider.DockerConfig{}, nil
 			}
 
-			if serviceAccountToken, err = p.serviceAccountProvider.getServiceAccountToken(podNamespace, podName, serviceAccountName, podUID); err != nil {
+			if serviceAccountToken, err = p.serviceAccountProvider.getServiceAccountToken(podNamespace, podName, serviceAccountName, serviceAccountUID, podUID); err != nil {
 				klog.Errorf("Error getting service account token %s/%s: %v", podNamespace, serviceAccountName, err)
-				return credentialprovider.DockerConfig{}
+				return credentialprovider.DockerConfig{}, nil
+			}
+			serviceAccountTokenHash = getHashIfNotEmpty(serviceAccountToken)
+
+			c := cacheKeyParams{
+				namespace:          podNamespace,
+				serviceAccountName: serviceAccountName,
+				serviceAccountUID:  serviceAccountUID,
+				saAnnotations:      saAnnotations,
+				podName:            podName,
+				podUID:             podUID,
+				saTokenHash:        serviceAccountTokenHash,
+				cacheType:          p.serviceAccountProvider.cacheType,
 			}
 
-			serviceAccountCacheKey, err = generateServiceAccountCacheKey(podNamespace, serviceAccountName, serviceAccountUID, saAnnotations)
+			serviceAccountCacheKey, err = generateServiceAccountCacheKey(c)
 			if err != nil {
 				klog.Errorf("Error generating service account cache key: %v", err)
-				return credentialprovider.DockerConfig{}
+				return credentialprovider.DockerConfig{}, nil
+			}
+
+			serviceAccountCoordinates = &credentialprovider.ServiceAccountCoordinates{
+				UID:       string(serviceAccountUID),
+				Namespace: podNamespace,
+				Name:      serviceAccountName,
 			}
 		}
 	}
@@ -404,11 +486,11 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 	cachedConfig, found, errCache := p.getCachedCredentials(image, serviceAccountCacheKey)
 	if errCache != nil {
 		klog.Errorf("Failed to get cached docker config: %v", err)
-		return credentialprovider.DockerConfig{}
+		return credentialprovider.DockerConfig{}, nil
 	}
 
 	if found {
-		return cachedConfig
+		return cachedConfig, serviceAccountCoordinates
 	}
 
 	// ExecPlugin is wrapped in single flight to exec plugin once for concurrent same image request.
@@ -425,11 +507,9 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 		// image + sa annotations + sa token.
 		// This does mean the singleflight key is different for each image pull request (even if the image is the same)
 		// and the workload is using the same service account.
-		// In the future, when we support caching of the service account token for pod-sa pairs, this will be singleflighted
-		// for different containers in the same pod using the same image.
-		if singleFlightKey, err = generateSingleFlightKey(image, getHashIfNotEmpty(serviceAccountToken), saAnnotations); err != nil {
+		if singleFlightKey, err = generateSingleFlightKey(image, serviceAccountTokenHash, saAnnotations); err != nil {
 			klog.Errorf("Error generating singleflight key: %v", err)
-			return credentialprovider.DockerConfig{}
+			return credentialprovider.DockerConfig{}, nil
 		}
 	}
 	res, err, _ := p.group.Do(singleFlightKey, func() (interface{}, error) {
@@ -438,13 +518,24 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 
 	if err != nil {
 		klog.Errorf("Failed getting credential from external registry credential provider: %v", err)
-		return credentialprovider.DockerConfig{}
+		return credentialprovider.DockerConfig{}, nil
 	}
 
 	response, ok := res.(*credentialproviderapi.CredentialProviderResponse)
 	if !ok {
 		klog.Errorf("Invalid response type returned by external credential provider")
-		return credentialprovider.DockerConfig{}
+		return credentialprovider.DockerConfig{}, nil
+	}
+	if len(serviceAccountToken) > 0 && p.serviceAccountProvider.cacheType != kubeletconfig.TokenServiceAccountTokenCacheType {
+		// validate that the response credentials are not the echoed token back verbatim when cache
+		// type is not token. Only Token cache type is valid when the service account token
+		// is returned as the registry credentials.
+		for _, authConfig := range response.Auth {
+			if authConfig.Password == serviceAccountToken {
+				klog.Errorf("Credential provider plugin returned the service account token as the password for image %q, which is not allowed when service account cache type is not set to 'Token'", image)
+				return credentialprovider.DockerConfig{}, nil
+			}
+		}
 	}
 
 	var cacheKey string
@@ -458,7 +549,7 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 		cacheKey = globalCacheKey
 	default:
 		klog.Errorf("credential provider plugin did not return a valid cacheKeyType: %q", cacheKeyType)
-		return credentialprovider.DockerConfig{}
+		return credentialprovider.DockerConfig{}, nil
 	}
 
 	dockerConfig := make(credentialprovider.DockerConfig, len(response.Auth))
@@ -471,14 +562,14 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 
 	// cache duration was explicitly 0 so don't cache this response at all.
 	if response.CacheDuration != nil && response.CacheDuration.Duration == 0 {
-		return dockerConfig
+		return dockerConfig, serviceAccountCoordinates
 	}
 
 	var expiresAt time.Time
 	// nil cache duration means use the default cache duration
 	if response.CacheDuration == nil {
 		if p.defaultCacheDuration == 0 {
-			return dockerConfig
+			return dockerConfig, serviceAccountCoordinates
 		}
 		expiresAt = p.clock.Now().Add(p.defaultCacheDuration)
 	} else {
@@ -488,7 +579,7 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 	cacheKey, err = generateCacheKey(cacheKey, serviceAccountCacheKey)
 	if err != nil {
 		klog.Errorf("Error generating cache key: %v", err)
-		return credentialprovider.DockerConfig{}
+		return credentialprovider.DockerConfig{}, nil
 	}
 
 	cachedEntry := &cacheEntry{
@@ -501,12 +592,7 @@ func (p *pluginProvider) provide(image, podNamespace, podName string, podUID typ
 		klog.Errorf("Error adding auth entry to cache: %v", err)
 	}
 
-	return dockerConfig
-}
-
-// Enabled always returns true since registration of the plugin via kubelet implies it should be enabled.
-func (p *pluginProvider) Enabled() bool {
-	return true
+	return dockerConfig, serviceAccountCoordinates
 }
 
 // isImageAllowed returns true if the image matches against the list of allowed matches by the plugin.
@@ -532,42 +618,31 @@ func (p *pluginProvider) getCachedCredentials(image, serviceAccountCacheKey stri
 	}
 	p.Unlock()
 
-	cacheKey, err := generateCacheKey(image, serviceAccountCacheKey)
+	baseCacheKeyCandidates := []string{
+		image,
+		parseRegistry(image),
+		globalCacheKey,
+	}
+
+	for _, baseCacheKey := range baseCacheKeyCandidates {
+		if config, found, err := p.lookupCredentialsInCache(baseCacheKey, serviceAccountCacheKey); err != nil {
+			return nil, false, err
+		} else if found {
+			return config, true, nil
+		}
+	}
+
+	return nil, false, nil
+}
+
+// lookupCredentialsInCache performs a single cache lookup for the given base key and service account cache key
+func (p *pluginProvider) lookupCredentialsInCache(baseKey, serviceAccountCacheKey string) (credentialprovider.DockerConfig, bool, error) {
+	cacheKey, err := generateCacheKey(baseKey, serviceAccountCacheKey)
 	if err != nil {
 		return nil, false, fmt.Errorf("error generating cache key: %w", err)
 	}
 
 	obj, found, err := p.cache.GetByKey(cacheKey)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if found {
-		return obj.(*cacheEntry).credentials, true, nil
-	}
-
-	registry := parseRegistry(image)
-
-	cacheKey, err = generateCacheKey(registry, serviceAccountCacheKey)
-	if err != nil {
-		return nil, false, fmt.Errorf("error generating cache key: %w", err)
-	}
-
-	obj, found, err = p.cache.GetByKey(cacheKey)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if found {
-		return obj.(*cacheEntry).credentials, true, nil
-	}
-
-	cacheKey, err = generateCacheKey(globalCacheKey, serviceAccountCacheKey)
-	if err != nil {
-		return nil, false, fmt.Errorf("error generating cache key: %w", err)
-	}
-
-	obj, found, err = p.cache.GetByKey(cacheKey)
 	if err != nil {
 		return nil, false, err
 	}
@@ -727,89 +802,35 @@ func mergeEnvVars(sysEnvVars, credProviderVars []string) []string {
 	return mergedEnvVars
 }
 
-// generateServiceAccountCacheKey generates the serviceaccount cache key to be used for
-// 1. constructing the cache key for the service account token based plugin in addition to the actual cache key (image, registry, global).
-// 2. the unique key to use singleflight for the plugin in addition to the image.
-func generateServiceAccountCacheKey(serviceAccountNamespace, serviceAccountName string, serviceAccountUID types.UID, saAnnotations map[string]string) (string, error) {
-	b := cryptobyte.NewBuilder(nil)
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(serviceAccountNamespace))
-	})
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(serviceAccountName))
-	})
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(serviceAccountUID))
-	})
+func generateServiceAccountCacheKey(params cacheKeyParams) (string, error) {
+	builder := newCacheKeyBuilder().
+		addString(params.namespace).
+		addString(params.serviceAccountName).
+		addString(string(params.serviceAccountUID)).
+		addAnnotations(params.saAnnotations)
 
-	// add the length of annotations to the cache key
-	b.AddUint32(uint32(len(saAnnotations)))
-
-	// Sort the annotations by key to ensure the cache key is deterministic
-	keys := sets.StringKeySet(saAnnotations).List()
-	for _, k := range keys {
-		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			b.AddBytes([]byte(k))
-		})
-		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			b.AddBytes([]byte(saAnnotations[k]))
-		})
+	if params.cacheType == kubeletconfig.TokenServiceAccountTokenCacheType {
+		builder = builder.addString("token").addString(params.saTokenHash)
 	}
 
-	keyBytes, err := b.Bytes()
-	if err != nil {
-		return "", err
-	}
-
-	return string(keyBytes), nil
+	return builder.build()
 }
 
 func generateCacheKey(baseKey, serviceAccountCacheKey string) (string, error) {
-	b := cryptobyte.NewBuilder(nil)
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(baseKey))
-	})
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(serviceAccountCacheKey))
-	})
+	builder := newCacheKeyBuilder().
+		addString(baseKey).
+		addString(serviceAccountCacheKey)
 
-	keyBytes, err := b.Bytes()
-	if err != nil {
-		return "", err
-	}
-
-	return string(keyBytes), nil
+	return builder.build()
 }
 
 func generateSingleFlightKey(image, saTokenHash string, saAnnotations map[string]string) (string, error) {
-	b := cryptobyte.NewBuilder(nil)
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(image))
-	})
-	b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-		b.AddBytes([]byte(saTokenHash))
-	})
+	builder := newCacheKeyBuilder().
+		addString(image).
+		addString(saTokenHash).
+		addAnnotations(saAnnotations)
 
-	// add the length of annotations to the cache key
-	b.AddUint32(uint32(len(saAnnotations)))
-
-	// Sort the annotations by key to ensure the cache key is deterministic
-	keys := sets.StringKeySet(saAnnotations).List()
-	for _, k := range keys {
-		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			b.AddBytes([]byte(k))
-		})
-		b.AddUint16LengthPrefixed(func(b *cryptobyte.Builder) {
-			b.AddBytes([]byte(saAnnotations[k]))
-		})
-	}
-
-	keyBytes, err := b.Bytes()
-	if err != nil {
-		return "", err
-	}
-
-	return string(keyBytes), nil
+	return builder.build()
 }
 
 // getHashIfNotEmpty returns the sha256 hash of the data if it is not empty.

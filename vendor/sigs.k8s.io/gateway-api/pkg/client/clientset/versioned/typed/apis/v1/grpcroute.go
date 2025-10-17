@@ -19,14 +19,14 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1"
-	v1 "sigs.k8s.io/gateway-api/apis/v1"
+	apisv1 "sigs.k8s.io/gateway-api/apis/v1"
+	applyconfigurationapisv1 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,36 +38,37 @@ type GRPCRoutesGetter interface {
 
 // GRPCRouteInterface has methods to work with GRPCRoute resources.
 type GRPCRouteInterface interface {
-	Create(ctx context.Context, gRPCRoute *v1.GRPCRoute, opts metav1.CreateOptions) (*v1.GRPCRoute, error)
-	Update(ctx context.Context, gRPCRoute *v1.GRPCRoute, opts metav1.UpdateOptions) (*v1.GRPCRoute, error)
+	Create(ctx context.Context, gRPCRoute *apisv1.GRPCRoute, opts metav1.CreateOptions) (*apisv1.GRPCRoute, error)
+	Update(ctx context.Context, gRPCRoute *apisv1.GRPCRoute, opts metav1.UpdateOptions) (*apisv1.GRPCRoute, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, gRPCRoute *v1.GRPCRoute, opts metav1.UpdateOptions) (*v1.GRPCRoute, error)
+	UpdateStatus(ctx context.Context, gRPCRoute *apisv1.GRPCRoute, opts metav1.UpdateOptions) (*apisv1.GRPCRoute, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.GRPCRoute, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.GRPCRouteList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*apisv1.GRPCRoute, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*apisv1.GRPCRouteList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.GRPCRoute, err error)
-	Apply(ctx context.Context, gRPCRoute *apisv1.GRPCRouteApplyConfiguration, opts metav1.ApplyOptions) (result *v1.GRPCRoute, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *apisv1.GRPCRoute, err error)
+	Apply(ctx context.Context, gRPCRoute *applyconfigurationapisv1.GRPCRouteApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.GRPCRoute, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, gRPCRoute *apisv1.GRPCRouteApplyConfiguration, opts metav1.ApplyOptions) (result *v1.GRPCRoute, err error)
+	ApplyStatus(ctx context.Context, gRPCRoute *applyconfigurationapisv1.GRPCRouteApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.GRPCRoute, err error)
 	GRPCRouteExpansion
 }
 
 // gRPCRoutes implements GRPCRouteInterface
 type gRPCRoutes struct {
-	*gentype.ClientWithListAndApply[*v1.GRPCRoute, *v1.GRPCRouteList, *apisv1.GRPCRouteApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1.GRPCRoute, *apisv1.GRPCRouteList, *applyconfigurationapisv1.GRPCRouteApplyConfiguration]
 }
 
 // newGRPCRoutes returns a GRPCRoutes
 func newGRPCRoutes(c *GatewayV1Client, namespace string) *gRPCRoutes {
 	return &gRPCRoutes{
-		gentype.NewClientWithListAndApply[*v1.GRPCRoute, *v1.GRPCRouteList, *apisv1.GRPCRouteApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1.GRPCRoute, *apisv1.GRPCRouteList, *applyconfigurationapisv1.GRPCRouteApplyConfiguration](
 			"grpcroutes",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1.GRPCRoute { return &v1.GRPCRoute{} },
-			func() *v1.GRPCRouteList { return &v1.GRPCRouteList{} }),
+			func() *apisv1.GRPCRoute { return &apisv1.GRPCRoute{} },
+			func() *apisv1.GRPCRouteList { return &apisv1.GRPCRouteList{} },
+		),
 	}
 }

@@ -164,6 +164,11 @@ func needNewTargetCertKeyPair(secret *corev1.Secret, signer *crypto.CA, caBundle
 		return reason
 	}
 
+	// Exit early if we're only refreshing when expired and the certificate does not need an update
+	if refreshOnlyWhenExpired {
+		return ""
+	}
+
 	// check the signer common name against all the common names in our ca bundle so we don't refresh early
 	signerCommonName := annotations[CertificateIssuer]
 	if len(signerCommonName) == 0 {

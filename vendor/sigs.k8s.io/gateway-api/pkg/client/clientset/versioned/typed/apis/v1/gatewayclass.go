@@ -19,14 +19,14 @@ limitations under the License.
 package v1
 
 import (
-	"context"
+	context "context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1"
-	v1 "sigs.k8s.io/gateway-api/apis/v1"
+	apisv1 "sigs.k8s.io/gateway-api/apis/v1"
+	applyconfigurationapisv1 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,36 +38,37 @@ type GatewayClassesGetter interface {
 
 // GatewayClassInterface has methods to work with GatewayClass resources.
 type GatewayClassInterface interface {
-	Create(ctx context.Context, gatewayClass *v1.GatewayClass, opts metav1.CreateOptions) (*v1.GatewayClass, error)
-	Update(ctx context.Context, gatewayClass *v1.GatewayClass, opts metav1.UpdateOptions) (*v1.GatewayClass, error)
+	Create(ctx context.Context, gatewayClass *apisv1.GatewayClass, opts metav1.CreateOptions) (*apisv1.GatewayClass, error)
+	Update(ctx context.Context, gatewayClass *apisv1.GatewayClass, opts metav1.UpdateOptions) (*apisv1.GatewayClass, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, gatewayClass *v1.GatewayClass, opts metav1.UpdateOptions) (*v1.GatewayClass, error)
+	UpdateStatus(ctx context.Context, gatewayClass *apisv1.GatewayClass, opts metav1.UpdateOptions) (*apisv1.GatewayClass, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.GatewayClass, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*v1.GatewayClassList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*apisv1.GatewayClass, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*apisv1.GatewayClassList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.GatewayClass, err error)
-	Apply(ctx context.Context, gatewayClass *apisv1.GatewayClassApplyConfiguration, opts metav1.ApplyOptions) (result *v1.GatewayClass, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *apisv1.GatewayClass, err error)
+	Apply(ctx context.Context, gatewayClass *applyconfigurationapisv1.GatewayClassApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.GatewayClass, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, gatewayClass *apisv1.GatewayClassApplyConfiguration, opts metav1.ApplyOptions) (result *v1.GatewayClass, err error)
+	ApplyStatus(ctx context.Context, gatewayClass *applyconfigurationapisv1.GatewayClassApplyConfiguration, opts metav1.ApplyOptions) (result *apisv1.GatewayClass, err error)
 	GatewayClassExpansion
 }
 
 // gatewayClasses implements GatewayClassInterface
 type gatewayClasses struct {
-	*gentype.ClientWithListAndApply[*v1.GatewayClass, *v1.GatewayClassList, *apisv1.GatewayClassApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1.GatewayClass, *apisv1.GatewayClassList, *applyconfigurationapisv1.GatewayClassApplyConfiguration]
 }
 
 // newGatewayClasses returns a GatewayClasses
 func newGatewayClasses(c *GatewayV1Client) *gatewayClasses {
 	return &gatewayClasses{
-		gentype.NewClientWithListAndApply[*v1.GatewayClass, *v1.GatewayClassList, *apisv1.GatewayClassApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1.GatewayClass, *apisv1.GatewayClassList, *applyconfigurationapisv1.GatewayClassApplyConfiguration](
 			"gatewayclasses",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			"",
-			func() *v1.GatewayClass { return &v1.GatewayClass{} },
-			func() *v1.GatewayClassList { return &v1.GatewayClassList{} }),
+			func() *apisv1.GatewayClass { return &apisv1.GatewayClass{} },
+			func() *apisv1.GatewayClassList { return &apisv1.GatewayClassList{} },
+		),
 	}
 }

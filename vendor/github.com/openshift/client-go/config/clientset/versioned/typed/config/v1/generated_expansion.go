@@ -34,6 +34,8 @@ type InfrastructureExpansion interface{}
 
 type IngressExpansion interface{}
 
+type InsightsDataGatherExpansion interface{}
+
 type NetworkExpansion interface{}
 
 type NodeExpansion interface{}

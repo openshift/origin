@@ -727,7 +727,7 @@ func (d *deployerPodInvariantChecker) UpdatePod(pod *corev1.Pod) {
 		spew.Sprintf("%v: detected deployer pod '%s/%s' transition from terminated phase: %q -> %q;\n"+
 			"old: %#+v\nnew: %#+v\ndiff: %s",
 			time.Now(), pod.Namespace, pod.Name, oldPhase, pod.Status.Phase,
-			oldPod, pod, diff.ObjectReflectDiff(oldPod, pod)))
+			oldPod, pod, diff.Diff(oldPod, pod)))
 
 	d.cache[key][index] = pod
 

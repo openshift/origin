@@ -19,14 +19,14 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"context"
+	context "context"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1alpha2 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1alpha2"
-	v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	apisv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	applyconfigurationapisv1alpha2 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1alpha2"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,36 +38,37 @@ type TCPRoutesGetter interface {
 
 // TCPRouteInterface has methods to work with TCPRoute resources.
 type TCPRouteInterface interface {
-	Create(ctx context.Context, tCPRoute *v1alpha2.TCPRoute, opts v1.CreateOptions) (*v1alpha2.TCPRoute, error)
-	Update(ctx context.Context, tCPRoute *v1alpha2.TCPRoute, opts v1.UpdateOptions) (*v1alpha2.TCPRoute, error)
+	Create(ctx context.Context, tCPRoute *apisv1alpha2.TCPRoute, opts v1.CreateOptions) (*apisv1alpha2.TCPRoute, error)
+	Update(ctx context.Context, tCPRoute *apisv1alpha2.TCPRoute, opts v1.UpdateOptions) (*apisv1alpha2.TCPRoute, error)
 	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, tCPRoute *v1alpha2.TCPRoute, opts v1.UpdateOptions) (*v1alpha2.TCPRoute, error)
+	UpdateStatus(ctx context.Context, tCPRoute *apisv1alpha2.TCPRoute, opts v1.UpdateOptions) (*apisv1alpha2.TCPRoute, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha2.TCPRoute, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha2.TCPRouteList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*apisv1alpha2.TCPRoute, error)
+	List(ctx context.Context, opts v1.ListOptions) (*apisv1alpha2.TCPRouteList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.TCPRoute, err error)
-	Apply(ctx context.Context, tCPRoute *apisv1alpha2.TCPRouteApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha2.TCPRoute, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *apisv1alpha2.TCPRoute, err error)
+	Apply(ctx context.Context, tCPRoute *applyconfigurationapisv1alpha2.TCPRouteApplyConfiguration, opts v1.ApplyOptions) (result *apisv1alpha2.TCPRoute, err error)
 	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-	ApplyStatus(ctx context.Context, tCPRoute *apisv1alpha2.TCPRouteApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha2.TCPRoute, err error)
+	ApplyStatus(ctx context.Context, tCPRoute *applyconfigurationapisv1alpha2.TCPRouteApplyConfiguration, opts v1.ApplyOptions) (result *apisv1alpha2.TCPRoute, err error)
 	TCPRouteExpansion
 }
 
 // tCPRoutes implements TCPRouteInterface
 type tCPRoutes struct {
-	*gentype.ClientWithListAndApply[*v1alpha2.TCPRoute, *v1alpha2.TCPRouteList, *apisv1alpha2.TCPRouteApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1alpha2.TCPRoute, *apisv1alpha2.TCPRouteList, *applyconfigurationapisv1alpha2.TCPRouteApplyConfiguration]
 }
 
 // newTCPRoutes returns a TCPRoutes
 func newTCPRoutes(c *GatewayV1alpha2Client, namespace string) *tCPRoutes {
 	return &tCPRoutes{
-		gentype.NewClientWithListAndApply[*v1alpha2.TCPRoute, *v1alpha2.TCPRouteList, *apisv1alpha2.TCPRouteApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1alpha2.TCPRoute, *apisv1alpha2.TCPRouteList, *applyconfigurationapisv1alpha2.TCPRouteApplyConfiguration](
 			"tcproutes",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha2.TCPRoute { return &v1alpha2.TCPRoute{} },
-			func() *v1alpha2.TCPRouteList { return &v1alpha2.TCPRouteList{} }),
+			func() *apisv1alpha2.TCPRoute { return &apisv1alpha2.TCPRoute{} },
+			func() *apisv1alpha2.TCPRouteList { return &apisv1alpha2.TCPRouteList{} },
+		),
 	}
 }

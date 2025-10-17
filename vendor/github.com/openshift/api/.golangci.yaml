@@ -25,10 +25,28 @@ linters:
                 preference: WhenRequired
                 policy: SuggestFix
               omitEmpty:
-                # Ignore missing omitempty so that we can omit the omitempty for discoverability.
-                # Discoverability is for configuration APIs, generally singletons.
-                # Refer to the API conventions for when to use discoverability (not our default stance).
-                policy: Ignore 
+                # This will force omitempty on optional fields.
+                # This is in line with upstream guidance where optional fields should be omitted
+                # from the serialized output unless they are non-zero.
+                policy: SuggestFix
+              omitzero:
+                # This will force omitzero on optional struct fields.
+                # This means they can be omitted correctly and prevents the need for pointers to structs.
+                policy: SuggestFix
+            requiredFields:
+              pointers:
+                # This will force pointers when the field is required, but only when the zero
+                # value is a valid user choice, and has a semantic difference to being omitted (e.g. replicas allows 0).
+                policy: SuggestFix
+              omitempty:
+                # This will force omitempty on required fields.
+                # We do this so that the behaviour of not setting a value for the field is the same between
+                # both structured and unstructured clients.
+                policy: SuggestFix
+              omitzero:
+                # This will force omitzero on required struct fields.
+                # This means they can be omitted correctly and prevents the need for pointers to structs.
+                policy: SuggestFix
             uniqueMarkers:
               customMarkers:
               - identifier: "openshift:validation:FeatureGateAwareEnum"
@@ -55,6 +73,12 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      - linters:
+        - kubeapilinter
+        # This regex must always be updated in tandem with the regex in .golangci.go-validated.yaml that prevents `optionalfields` from being applied to the files in the path.
+        path: machine/v1beta1/(types_awsprovider.go|types_azureprovider.go|types_gcpprovider.go|types_vsphereprovider.go)|machine/v1alpha1/types_openstack.go
+        text: "optionalfields"
 issues:
   # We have a lot of existing issues.
   # Want to make sure that those adding new fields have an
