@@ -99,7 +99,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 				netConfig.namespace = f.Namespace.Name
 				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
 					context.Background(),
-					generateNAD(netConfig),
+					generateNAD(oc, netConfig),
 					metav1.CreateOptions{},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -205,7 +205,7 @@ var _ = ginkgo.Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Featu
 
 					_, err := nadClient.NetworkAttachmentDefinitions(namespace).Create(
 						context.Background(),
-						generateNAD(netConfig),
+						generateNAD(oc, netConfig),
 						metav1.CreateOptions{},
 					)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred())
