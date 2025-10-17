@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +21,7 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/ptr"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
@@ -538,4 +541,205 @@ func NewRoleBindingForClusterRole(roleName, namespace string) *rbacv1helpers.Rol
 			},
 		},
 	}
+}
+
+var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithPodSecurityLevel("scc-userns", admissionapi.LevelPrivileged)
+	ctx := context.Background()
+
+	g.BeforeEach(func() {
+		// Skip on Microshift clusters
+		isHyperShift, err := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isHyperShift {
+			g.Skip("Skip case as control plane pods are not supported on HyperShift cluster")
+		}
+
+	})
+
+	g.It("[CNTRLPLANE-1544] OCP-85221 Check the pods with uid, gid, hostUsers, annotations parameters are correctly set", func() {
+		// Define namespaces that has annotations present, namespace: deploynames
+		controlPlaneNamespacesWithDeployments := map[string][]string{
+			"openshift-kube-controller-manager-operator": {"kube-controller-manager-operator"},
+			//"openshift-cloud-credential-operator":        []string{"pod-identity-webhook", "cloud-credential-operator"},
+			//"openshift-kube-apiserver-operator":          []string{"kube-apiserver-operator"},
+			"openshift-kube-scheduler-operator": {"openshift-kube-scheduler-operator"},
+		}
+
+		for namespace, deployNames := range controlPlaneNamespacesWithDeployments {
+			for _, deployName := range deployNames {
+				annotationsNs := []string{"openshift-kube-scheduler-operator", "openshift-kube-controller-manager-operator"}
+				// Check if namespace is NOT in the annotationsNs array
+				skipAnnotationCheck := false
+				for _, ns := range annotationsNs {
+					if namespace == ns {
+						skipAnnotationCheck = true
+						break
+					}
+				}
+				commonTestSteps(ctx, oc, namespace, deployName, 1000, 1000, 1000, skipAnnotationCheck)
+			}
+		}
+	})
+
+	g.It("[CNTRLPLANE-1544] OCP-85242  Test the deployment is up and running with parameters set uid,gid,restricted-v3 annotations in new namespace", func() {
+		namespace := "openshift-kube-controller-manager-operator"
+		// namespace = oc.Namespace()
+		deployName := "deployment-uid-gid"
+		skipAnnotationCheck := false
+
+		g.By("Creating the deployment")
+		deployment := createDeploymentFromYAML(namespace, deployName, 1010, 1020, 1000)
+		_, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName)
+
+		commonTestSteps(ctx, oc, namespace, deployName, 1010, 1020, 1000, skipAnnotationCheck)
+	})
+
+	g.It("[CNTRLPLANE-1544] OCP-85303 Test the deployment with invalid security context values are not allowed", func() {
+		// namespace := oc.Namespace()
+		namespace := "openshift-kube-controller-manager-operator"
+
+		g.By("Testing deployment with runAsUser: 65536 (should fail)")
+		deployName1 := "deployment-invalid-user-65536"
+		deployment := createDeploymentFromYAML(namespace, deployName1, 65536, 1000, 1000)
+		_, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName1)
+
+		message := "container create failed: setresuid to `65536`: Invalid argument"
+		commonTestStepsInvalidGroup(oc, deployment, message)
+
+		g.By("Testing deployment with runAsGroup: 65536 (should fail)")
+		deployName2 := "deployment-invalid-group-65536"
+		deployment = createDeploymentFromYAML(namespace, deployName2, 1000, 65536, 1000)
+		_, err = oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName2)
+
+		message = "container create failed: setgroups: Invalid argument"
+		commonTestStepsInvalidGroup(oc, deployment, message)
+	})
+})
+
+func createDeploymentFromYAML(namespace, deployName string, runAsUser, runAsGroup, fsGroup int64) *appsv1.Deployment {
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      deployName,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				"openshift.io/required-scc": "restricted-v3",
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: ptr.To(int32(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": deployName},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": deployName},
+				},
+				Spec: corev1.PodSpec{
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser:    ptr.To(runAsUser),
+						RunAsGroup:   ptr.To(runAsGroup),
+						FSGroup:      ptr.To(fsGroup),
+						RunAsNonRoot: ptr.To(true),
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
+					},
+					HostUsers: ptr.To(false),
+					Containers: []corev1.Container{
+						{
+							Name:    "test-container",
+							Image:   "ubuntu",
+							Command: []string{"/bin/bash", "-c", "sleep 3600"},
+							SecurityContext: &corev1.SecurityContext{
+								AllowPrivilegeEscalation: ptr.To(false),
+								Capabilities: &corev1.Capabilities{
+									Drop: []corev1.Capability{"ALL"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return deployment
+}
+
+func commonTestSteps(ctx context.Context, oc *exutil.CLI, namespace, deployName string, runAsUser, runAsGroup, fsGroup int64, skipAnnotationCheck bool) {
+	g.By("Checking the deployment is ready")
+	err := exutil.WaitForDeploymentReady(oc, deployName, namespace, -1)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	deploy, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(ctx, deployName, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	// If skipAnnotationCheck is true, skip the check for the deployment annotations
+	if !skipAnnotationCheck {
+		g.By("Checking the deployment annotations are set to restricted-v3")
+		o.Expect(deploy.ObjectMeta.Annotations["openshift.io/required-scc"]).To(o.Equal("restricted-v3"))
+	}
+
+	g.By(fmt.Sprintf("Checking the deployment has runAsUser set to %d", runAsUser))
+	o.Expect(deploy.Spec.Template.Spec.SecurityContext.RunAsUser).To(o.Equal(ptr.To(int64(runAsUser))))
+
+	g.By(fmt.Sprintf("Checking the deployment has runAsGroup set to %d", runAsGroup))
+	o.Expect(deploy.Spec.Template.Spec.SecurityContext.RunAsGroup).To(o.Equal(ptr.To(int64(runAsGroup))))
+
+	g.By(fmt.Sprintf("Checking the deployment has fsGroup set to %d", fsGroup))
+	o.Expect(deploy.Spec.Template.Spec.SecurityContext.FSGroup).To(o.Equal(ptr.To(int64(fsGroup))))
+
+	g.By("Checking the deployment has hostUsers set to false")
+	o.Expect(deploy.Spec.Template.Spec.HostUsers).To(o.Equal(ptr.To(false)))
+
+	g.By("Checking the pods have the correct uid, gid, groups")
+	// Get label selector from deployment
+	labelSelector := ""
+	for key, value := range deploy.Spec.Selector.MatchLabels {
+		labelSelector = fmt.Sprintf("%s=%s", key, value)
+		break
+	}
+	pods, err := exutil.GetDeploymentPods(oc, deployName, namespace, labelSelector)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(pods.Items).NotTo(o.BeEmpty())
+	podName := pods.Items[0].Name
+	out, err := oc.AsAdmin().Run("exec").Args(podName, "--namespace="+namespace, "--", "/bin/bash", "-c", "id").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("uid=%d(%d) gid=%d(%d) groups=%d(%d)", runAsUser, runAsUser, runAsGroup, runAsGroup, runAsGroup, runAsGroup)))
+}
+
+func commonTestStepsInvalidGroup(oc *exutil.CLI, deployment *appsv1.Deployment, message string) {
+	var containerStatus corev1.ContainerStatus
+
+	g.By(fmt.Sprintf("Checking the deployment should not be ready: %v", deployment.Name))
+	// Get label selector from deployment
+	labelSelector := ""
+	for key, value := range deployment.Spec.Selector.MatchLabels {
+		labelSelector = fmt.Sprintf("%s=%s", key, value)
+		break
+	}
+
+	g.By("Waiting for container to reach CreateContainerError state")
+	o.Eventually(func() string {
+		pods, err := exutil.GetDeploymentPods(oc, deployment.Name, deployment.Namespace, labelSelector)
+		if err != nil || len(pods.Items) == 0 {
+			return ""
+		}
+		pod := &pods.Items[0]
+		if len(pod.Status.ContainerStatuses) == 0 {
+			return ""
+		}
+		containerStatus = pod.Status.ContainerStatuses[0]
+		if containerStatus.State.Waiting != nil {
+			return containerStatus.State.Waiting.Reason
+		}
+		return ""
+	}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(o.Equal("CreateContainerError"))
+	o.Expect(containerStatus.State.Waiting.Message).To(o.ContainSubstring(message))
 }
