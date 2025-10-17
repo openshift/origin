@@ -125,6 +125,7 @@ var (
 			rbacv1helpers.NewRule("list", "watch").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
 
 			rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v2").RuleOrDie(),
+			rbacv1helpers.NewRule("use").Groups(security.GroupName).Resources("securitycontextconstraints").Names("restricted-v3").RuleOrDie(),
 
 			// TODO: remove when openshift-apiserver has removed these
 			rbacv1helpers.NewRule("get").URLs(
