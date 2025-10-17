@@ -1,8 +1,8 @@
 //go:build solaris
+// +build solaris
 
-// FEN backend for illumos (supported) and Solaris (untested, but should work).
-//
-// See port_create(3c) etc. for docs. https://www.illumos.org/man/3C/port_create
+// Note: the documentation on the Watcher type and methods is generated from
+// mkdoc.zsh
 
 package fsnotify
 
@@ -12,33 +12,150 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
-	"github.com/fsnotify/fsnotify/internal"
 	"golang.org/x/sys/unix"
 )
 
-type fen struct {
+// Watcher watches a set of paths, delivering events on a channel.
+//
+// A watcher should not be copied (e.g. pass it by pointer, rather than by
+// value).
+//
+// # Linux notes
+//
+// When a file is removed a Remove event won't be emitted until all file
+// descriptors are closed, and deletes will always emit a Chmod. For example:
+//
+//	fp := os.Open("file")
+//	os.Remove("file")        // Triggers Chmod
+//	fp.Close()               // Triggers Remove
+//
+// This is the event that inotify sends, so not much can be changed about this.
+//
+// The fs.inotify.max_user_watches sysctl variable specifies the upper limit
+// for the number of watches per user, and fs.inotify.max_user_instances
+// specifies the maximum number of inotify instances per user. Every Watcher you
+// create is an "instance", and every path you add is a "watch".
+//
+// These are also exposed in /proc as /proc/sys/fs/inotify/max_user_watches and
+// /proc/sys/fs/inotify/max_user_instances
+//
+// To increase them you can use sysctl or write the value to the /proc file:
+//
+//	# Default values on Linux 5.18
+//	sysctl fs.inotify.max_user_watches=124983
+//	sysctl fs.inotify.max_user_instances=128
+//
+// To make the changes persist on reboot edit /etc/sysctl.conf or
+// /usr/lib/sysctl.d/50-default.conf (details differ per Linux distro; check
+// your distro's documentation):
+//
+//	fs.inotify.max_user_watches=124983
+//	fs.inotify.max_user_instances=128
+//
+// Reaching the limit will result in a "no space left on device" or "too many open
+// files" error.
+//
+// # kqueue notes (macOS, BSD)
+//
+// kqueue requires opening a file descriptor for every file that's being watched;
+// so if you're watching a directory with five files then that's six file
+// descriptors. You will run in to your system's "max open files" limit faster on
+// these platforms.
+//
+// The sysctl variables kern.maxfiles and kern.maxfilesperproc can be used to
+// control the maximum number of open files, as well as /etc/login.conf on BSD
+// systems.
+//
+// # Windows notes
+//
+// Paths can be added as "C:\path\to\dir", but forward slashes
+// ("C:/path/to/dir") will also work.
+//
+// When a watched directory is removed it will always send an event for the
+// directory itself, but may not send events for all files in that directory.
+// Sometimes it will send events for all times, sometimes it will send no
+// events, and often only for some files.
+//
+// The default ReadDirectoryChangesW() buffer size is 64K, which is the largest
+// value that is guaranteed to work with SMB filesystems. If you have many
+// events in quick succession this may not be enough, and you will have to use
+// [WithBufferSize] to increase the value.
+type Watcher struct {
+	// Events sends the filesystem change events.
+	//
+	// fsnotify can send the following events; a "path" here can refer to a
+	// file, directory, symbolic link, or special file like a FIFO.
+	//
+	//   fsnotify.Create    A new path was created; this may be followed by one
+	//                      or more Write events if data also gets written to a
+	//                      file.
+	//
+	//   fsnotify.Remove    A path was removed.
+	//
+	//   fsnotify.Rename    A path was renamed. A rename is always sent with the
+	//                      old path as Event.Name, and a Create event will be
+	//                      sent with the new name. Renames are only sent for
+	//                      paths that are currently watched; e.g. moving an
+	//                      unmonitored file into a monitored directory will
+	//                      show up as just a Create. Similarly, renaming a file
+	//                      to outside a monitored directory will show up as
+	//                      only a Rename.
+	//
+	//   fsnotify.Write     A file or named pipe was written to. A Truncate will
+	//                      also trigger a Write. A single "write action"
+	//                      initiated by the user may show up as one or multiple
+	//                      writes, depending on when the system syncs things to
+	//                      disk. For example when compiling a large Go program
+	//                      you may get hundreds of Write events, and you may
+	//                      want to wait until you've stopped receiving them
+	//                      (see the dedup example in cmd/fsnotify).
+	//
+	//                      Some systems may send Write event for directories
+	//                      when the directory content changes.
+	//
+	//   fsnotify.Chmod     Attributes were changed. On Linux this is also sent
+	//                      when a file is removed (or more accurately, when a
+	//                      link to an inode is removed). On kqueue it's sent
+	//                      when a file is truncated. On Windows it's never
+	//                      sent.
 	Events chan Event
+
+	// Errors sends any errors.
+	//
+	// ErrEventOverflow is used to indicate there are too many events:
+	//
+	//  - inotify:      There are too many queued events (fs.inotify.max_queued_events sysctl)
+	//  - windows:      The buffer size is too small; WithBufferSize() can be used to increase it.
+	//  - kqueue, fen:  Not used.
 	Errors chan error
 
 	mu      sync.Mutex
 	port    *unix.EventPort
-	done    chan struct{} // Channel for sending a "quit message" to the reader goroutine
-	dirs    map[string]Op // Explicitly watched directories
-	watches map[string]Op // Explicitly watched non-directories
+	done    chan struct{}       // Channel for sending a "quit message" to the reader goroutine
+	dirs    map[string]struct{} // Explicitly watched directories
+	watches map[string]struct{} // Explicitly watched non-directories
 }
 
-func newBackend(ev chan Event, errs chan error) (backend, error) {
-	return newBufferedBackend(0, ev, errs)
+// NewWatcher creates a new Watcher.
+func NewWatcher() (*Watcher, error) {
+	return NewBufferedWatcher(0)
 }
 
-func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error) {
-	w := &fen{
-		Events:  ev,
-		Errors:  errs,
-		dirs:    make(map[string]Op),
-		watches: make(map[string]Op),
+// NewBufferedWatcher creates a new Watcher with a buffered Watcher.Events
+// channel.
+//
+// The main use case for this is situations with a very large number of events
+// where the kernel buffer size can't be increased (e.g. due to lack of
+// permissions). An unbuffered Watcher will perform better for almost all use
+// cases, and whenever possible you will be better off increasing the kernel
+// buffers instead of adding a large userspace buffer.
+func NewBufferedWatcher(sz uint) (*Watcher, error) {
+	w := &Watcher{
+		Events:  make(chan Event, sz),
+		Errors:  make(chan error),
+		dirs:    make(map[string]struct{}),
+		watches: make(map[string]struct{}),
 		done:    make(chan struct{}),
 	}
 
@@ -54,30 +171,27 @@ func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error
 
 // sendEvent attempts to send an event to the user, returning true if the event
 // was put in the channel successfully and false if the watcher has been closed.
-func (w *fen) sendEvent(name string, op Op) (sent bool) {
+func (w *Watcher) sendEvent(name string, op Op) (sent bool) {
 	select {
-	case <-w.done:
-		return false
 	case w.Events <- Event{Name: name, Op: op}:
 		return true
+	case <-w.done:
+		return false
 	}
 }
 
 // sendError attempts to send an error to the user, returning true if the error
 // was put in the channel successfully and false if the watcher has been closed.
-func (w *fen) sendError(err error) (sent bool) {
-	if err == nil {
-		return true
-	}
+func (w *Watcher) sendError(err error) (sent bool) {
 	select {
-	case <-w.done:
-		return false
 	case w.Errors <- err:
 		return true
+	case <-w.done:
+		return false
 	}
 }
 
-func (w *fen) isClosed() bool {
+func (w *Watcher) isClosed() bool {
 	select {
 	case <-w.done:
 		return true
@@ -86,7 +200,8 @@ func (w *fen) isClosed() bool {
 	}
 }
 
-func (w *fen) Close() error {
+// Close removes all watches and closes the Events channel.
+func (w *Watcher) Close() error {
 	// Take the lock used by associateFile to prevent lingering events from
 	// being processed after the close
 	w.mu.Lock()
@@ -98,21 +213,60 @@ func (w *fen) Close() error {
 	return w.port.Close()
 }
 
-func (w *fen) Add(name string) error { return w.AddWith(name) }
+// Add starts monitoring the path for changes.
+//
+// A path can only be watched once; watching it more than once is a no-op and will
+// not return an error. Paths that do not yet exist on the filesystem cannot be
+// watched.
+//
+// A watch will be automatically removed if the watched path is deleted or
+// renamed. The exception is the Windows backend, which doesn't remove the
+// watcher on renames.
+//
+// Notifications on network filesystems (NFS, SMB, FUSE, etc.) or special
+// filesystems (/proc, /sys, etc.) generally don't work.
+//
+// Returns [ErrClosed] if [Watcher.Close] was called.
+//
+// See [Watcher.AddWith] for a version that allows adding options.
+//
+// # Watching directories
+//
+// All files in a directory are monitored, including new files that are created
+// after the watcher is started. Subdirectories are not watched (i.e. it's
+// non-recursive).
+//
+// # Watching files
+//
+// Watching individual files (rather than directories) is generally not
+// recommended as many programs (especially editors) update files atomically: it
+// will write to a temporary file which is then moved to to destination,
+// overwriting the original (or some variant thereof). The watcher on the
+// original file is now lost, as that no longer exists.
+//
+// The upshot of this is that a power failure or crash won't leave a
+// half-written file.
+//
+// Watch the parent directory and use Event.Name to filter out files you're not
+// interested in. There is an example of this in cmd/fsnotify/file.go.
+func (w *Watcher) Add(name string) error { return w.AddWith(name) }
 
-func (w *fen) AddWith(name string, opts ...addOpt) error {
+// AddWith is like [Watcher.Add], but allows adding options. When using Add()
+// the defaults described below are used.
+//
+// Possible options are:
+//
+//   - [WithBufferSize] sets the buffer size for the Windows backend; no-op on
+//     other platforms. The default is 64K (65536 bytes).
+func (w *Watcher) AddWith(name string, opts ...addOpt) error {
 	if w.isClosed() {
 		return ErrClosed
 	}
-	if debug {
-		fmt.Fprintf(os.Stderr, "FSNOTIFY_DEBUG: %s  AddWith(%q)\n",
-			time.Now().Format("15:04:05.000000000"), name)
+	if w.port.PathIsWatched(name) {
+		return nil
 	}
 
-	with := getOptions(opts...)
-	if !w.xSupports(with.op) {
-		return fmt.Errorf("%w: %s", xErrUnsupported, with.op)
-	}
+	_ = getOptions(opts...)
 
 	// Currently we resolve symlinks that were explicitly requested to be
 	// watched. Otherwise we would use LStat here.
@@ -129,7 +283,7 @@ func (w *fen) AddWith(name string, opts ...addOpt) error {
 		}
 
 		w.mu.Lock()
-		w.dirs[name] = with.op
+		w.dirs[name] = struct{}{}
 		w.mu.Unlock()
 		return nil
 	}
@@ -140,21 +294,25 @@ func (w *fen) AddWith(name string, opts ...addOpt) error {
 	}
 
 	w.mu.Lock()
-	w.watches[name] = with.op
+	w.watches[name] = struct{}{}
 	w.mu.Unlock()
 	return nil
 }
 
-func (w *fen) Remove(name string) error {
+// Remove stops monitoring the path for changes.
+//
+// Directories are always removed non-recursively. For example, if you added
+// /tmp/dir and /tmp/dir/subdir then you will need to remove both.
+//
+// Removing a path that has not yet been added returns [ErrNonExistentWatch].
+//
+// Returns nil if [Watcher.Close] was called.
+func (w *Watcher) Remove(name string) error {
 	if w.isClosed() {
 		return nil
 	}
 	if !w.port.PathIsWatched(name) {
 		return fmt.Errorf("%w: %s", ErrNonExistentWatch, name)
-	}
-	if debug {
-		fmt.Fprintf(os.Stderr, "FSNOTIFY_DEBUG: %s  Remove(%q)\n",
-			time.Now().Format("15:04:05.000000000"), name)
 	}
 
 	// The user has expressed an intent. Immediately remove this name from
@@ -188,7 +346,7 @@ func (w *fen) Remove(name string) error {
 }
 
 // readEvents contains the main loop that runs in a goroutine watching for events.
-func (w *fen) readEvents() {
+func (w *Watcher) readEvents() {
 	// If this function returns, the watcher has been closed and we can close
 	// these channels
 	defer func() {
@@ -224,19 +382,17 @@ func (w *fen) readEvents() {
 				continue
 			}
 
-			if debug {
-				internal.Debug(pevent.Path, pevent.Events)
-			}
-
 			err = w.handleEvent(&pevent)
-			if !w.sendError(err) {
-				return
+			if err != nil {
+				if !w.sendError(err) {
+					return
+				}
 			}
 		}
 	}
 }
 
-func (w *fen) handleDirectory(path string, stat os.FileInfo, follow bool, handler func(string, os.FileInfo, bool) error) error {
+func (w *Watcher) handleDirectory(path string, stat os.FileInfo, follow bool, handler func(string, os.FileInfo, bool) error) error {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return err
@@ -262,7 +418,7 @@ func (w *fen) handleDirectory(path string, stat os.FileInfo, follow bool, handle
 // bitmap matches more than one event type (e.g. the file was both modified and
 // had the attributes changed between when the association was created and the
 // when event was returned)
-func (w *fen) handleEvent(event *unix.PortEvent) error {
+func (w *Watcher) handleEvent(event *unix.PortEvent) error {
 	var (
 		events     = event.Events
 		path       = event.Path
@@ -354,9 +510,15 @@ func (w *fen) handleEvent(event *unix.PortEvent) error {
 	}
 
 	if events&unix.FILE_MODIFIED != 0 {
-		if fmode.IsDir() && watchedDir {
-			if err := w.updateDirectory(path); err != nil {
-				return err
+		if fmode.IsDir() {
+			if watchedDir {
+				if err := w.updateDirectory(path); err != nil {
+					return err
+				}
+			} else {
+				if !w.sendEvent(path, Write) {
+					return nil
+				}
 			}
 		} else {
 			if !w.sendEvent(path, Write) {
@@ -381,7 +543,7 @@ func (w *fen) handleEvent(event *unix.PortEvent) error {
 	return nil
 }
 
-func (w *fen) updateDirectory(path string) error {
+func (w *Watcher) updateDirectory(path string) error {
 	// The directory was modified, so we must find unwatched entities and watch
 	// them. If something was removed from the directory, nothing will happen,
 	// as everything else should still be watched.
@@ -401,8 +563,10 @@ func (w *fen) updateDirectory(path string) error {
 			return err
 		}
 		err = w.associateFile(path, finfo, false)
-		if !w.sendError(err) {
-			return nil
+		if err != nil {
+			if !w.sendError(err) {
+				return nil
+			}
 		}
 		if !w.sendEvent(path, Create) {
 			return nil
@@ -411,7 +575,7 @@ func (w *fen) updateDirectory(path string) error {
 	return nil
 }
 
-func (w *fen) associateFile(path string, stat os.FileInfo, follow bool) error {
+func (w *Watcher) associateFile(path string, stat os.FileInfo, follow bool) error {
 	if w.isClosed() {
 		return ErrClosed
 	}
@@ -429,34 +593,34 @@ func (w *fen) associateFile(path string, stat os.FileInfo, follow bool) error {
 		// cleared up that discrepancy. The most likely cause is that the event
 		// has fired but we haven't processed it yet.
 		err := w.port.DissociatePath(path)
-		if err != nil && !errors.Is(err, unix.ENOENT) {
+		if err != nil && err != unix.ENOENT {
 			return err
 		}
 	}
-
-	var events int
-	if !follow {
-		// Watch symlinks themselves rather than their targets unless this entry
-		// is explicitly watched.
-		events |= unix.FILE_NOFOLLOW
+	// FILE_NOFOLLOW means we watch symlinks themselves rather than their
+	// targets.
+	events := unix.FILE_MODIFIED | unix.FILE_ATTRIB | unix.FILE_NOFOLLOW
+	if follow {
+		// We *DO* follow symlinks for explicitly watched entries.
+		events = unix.FILE_MODIFIED | unix.FILE_ATTRIB
 	}
-	if true { // TODO: implement withOps()
-		events |= unix.FILE_MODIFIED
-	}
-	if true {
-		events |= unix.FILE_ATTRIB
-	}
-	return w.port.AssociatePath(path, stat, events, stat.Mode())
+	return w.port.AssociatePath(path, stat,
+		events,
+		stat.Mode())
 }
 
-func (w *fen) dissociateFile(path string, stat os.FileInfo, unused bool) error {
+func (w *Watcher) dissociateFile(path string, stat os.FileInfo, unused bool) error {
 	if !w.port.PathIsWatched(path) {
 		return nil
 	}
 	return w.port.DissociatePath(path)
 }
 
-func (w *fen) WatchList() []string {
+// WatchList returns all paths explicitly added with [Watcher.Add] (and are not
+// yet removed).
+//
+// Returns nil if [Watcher.Close] was called.
+func (w *Watcher) WatchList() []string {
 	if w.isClosed() {
 		return nil
 	}
@@ -473,12 +637,4 @@ func (w *fen) WatchList() []string {
 	}
 
 	return entries
-}
-
-func (w *fen) xSupports(op Op) bool {
-	if op.Has(xUnportableOpen) || op.Has(xUnportableRead) ||
-		op.Has(xUnportableCloseWrite) || op.Has(xUnportableCloseRead) {
-		return false
-	}
-	return true
 }
