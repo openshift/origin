@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -14,8 +13,6 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
@@ -213,7 +210,7 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 }
 
 func (*clusterImageValidator) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return monitorserialization.EventsToFile(filepath.Join(storageDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), finalIntervals)
+	return nil
 }
 
 func (*clusterImageValidator) Cleanup(ctx context.Context) error {
