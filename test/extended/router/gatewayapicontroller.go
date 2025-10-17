@@ -14,11 +14,13 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatoringressv1 "github.com/openshift/api/operatoringress/v1"
-	operatorsv1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/client/clientset/versioned/typed/operators/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -160,11 +162,20 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 
 			g.By("Deleting the OSSM Operator resources")
 
-			operator, err := operatorsv1.NewForConfigOrDie(oc.AsAdmin().UserConfig()).Operators().Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
+			gvr := schema.GroupVersionResource{
+				Group:    "operators.coreos.com",
+				Version:  "v1",
+				Resource: "operators",
+			}
+			operator, err := oc.KubeFramework().DynamicClient.Resource(gvr).Get(context.Background(), serviceMeshOperatorName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "Failed to get Operator %q", serviceMeshOperatorName)
 
+			refs, ok, err := unstructured.NestedSlice(operator.Object, "status", "components", "refs")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(ok).To(o.BeTrue(), "Failed to find status.components.refs in Operator %q", serviceMeshOperatorName)
 			restmapper := oc.AsAdmin().RESTMapper()
-			for _, ref := range operator.Status.Components.Refs {
+			for _, ref := range refs {
+				ref := extractObjectReference(ref.(map[string]any))
 				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -849,4 +860,29 @@ func checkAllTestsDone(oc *exutil.CLI) bool {
 	}
 
 	return true
+}
+
+// getNestedString returns a string value of a nested field value of an
+// unstructured.Unstructured object.  If the named field is of a non-string
+// type, getNestedString returns the empty string.
+func getNestedString(obj map[string]any, field string) string {
+	val, found, err := unstructured.NestedString(obj, field)
+	if !found || err != nil {
+		return ""
+	}
+	return val
+}
+
+// extractObjectReference returns a ObjectReference value of a nested field
+// value of an unstructured.Unstructured object.
+func extractObjectReference(v map[string]any) corev1.ObjectReference {
+	return corev1.ObjectReference{
+		Kind:            getNestedString(v, "kind"),
+		Namespace:       getNestedString(v, "namespace"),
+		Name:            getNestedString(v, "name"),
+		UID:             types.UID(getNestedString(v, "uid")),
+		APIVersion:      getNestedString(v, "apiVersion"),
+		ResourceVersion: getNestedString(v, "resourceVersion"),
+		FieldPath:       getNestedString(v, "fieldPath"),
+	}
 }
