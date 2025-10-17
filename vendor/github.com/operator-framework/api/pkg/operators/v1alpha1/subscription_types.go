@@ -232,6 +232,8 @@ type SubscriptionStatus struct {
 	// CatalogHealth contains the Subscription's view of its relevant CatalogSources' status.
 	// It is used to determine SubscriptionStatusConditions related to CatalogSources.
 	// +optional
+	// +patchMergeKey=
+	// +patchStrategy=merge
 	CatalogHealth []SubscriptionCatalogHealth `json:"catalogHealth,omitempty"`
 
 	// Conditions is a list of the latest available observations about a Subscription's current state.

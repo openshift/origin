@@ -134,7 +134,7 @@ type GrpcPodConfig struct {
 	// specified. Specifying a value other than `legacy` or `restricted` result in a validation error. When using older
 	// catalog images, which can not run in `restricted` mode, the SecurityContextConfig should be set to `legacy`.
 	//
-	// More information about PSA can be found here: https://kubernetes.io/docs/concepts/security/pod-security-admission/'
+	// More information about PSA can be found here: https://kubernetes.io/docs/concepts/security/pod-security-admission/
 	// +optional
 	// +kubebuilder:validation:Enum=legacy;restricted
 	SecurityContextConfig SecurityConfig `json:"securityContextConfig,omitempty"`
@@ -163,8 +163,8 @@ type GrpcPodConfig struct {
 
 // ExtractContentConfig configures context extraction from a file-based catalog index image.
 type ExtractContentConfig struct {
-	// CacheDir is the directory storing the pre-calculated API cache.
-	CacheDir string `json:"cacheDir"`
+	// CacheDir is the (optional) directory storing the pre-calculated API cache.
+	CacheDir string `json:"cacheDir,omitempty"`
 	// CatalogDir is the directory storing the file-based catalog contents.
 	CatalogDir string `json:"catalogDir"`
 }
