@@ -179,6 +179,7 @@ var _ = g.Describe("[sig-network-edge][OCPFeatureGate:GatewayAPIController][Feat
 				mapping, err := restmapper.RESTMapping(ref.GroupVersionKind().GroupKind())
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				e2e.Logf("Deleting %s %s/%s...", ref.Kind, ref.Namespace, ref.Name)
 				err = oc.KubeFramework().DynamicClient.Resource(mapping.Resource).Namespace(ref.Namespace).Delete(context.Background(), ref.Name, metav1.DeleteOptions{})
 				o.Expect(err).Should(o.Or(o.Not(o.HaveOccurred()), o.MatchError(apierrors.IsNotFound, "IsNotFound")), "Failed to delete %s %q: %v", ref.GroupVersionKind().Kind, ref.Name, err)
 			}
