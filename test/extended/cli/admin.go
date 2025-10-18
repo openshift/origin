@@ -48,7 +48,10 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for _, m := range masters.Items {
 			if hostname, ok := m.Labels["kubernetes.io/hostname"]; ok {
-				o.Expect(out).To(o.ContainSubstring(hostname))
+				// Extract short hostname from FQDN (e.g., "ip-10-0-88-44.ec2.internal" -> "ip-10-0-88-44").
+				// The node-logs will contains the normal hostname, but the FQDN isn't guaranteed.
+				shortHostname := strings.Split(hostname, ".")[0]
+				o.Expect(out).To(o.ContainSubstring(shortHostname))
 			}
 		}
 
