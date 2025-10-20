@@ -606,11 +606,10 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 
-	var machineConfigProgressingStart time.Time
 	var eventsInUpgradeWindows monitorapi.Intervals
 
 	var start, stop time.Time
@@ -629,31 +628,47 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 	duration := stop.Sub(start).Seconds()
 
 	eventsByOperator := getEventsByOperator(eventsInUpgradeWindows)
-	for _, mcEvent := range eventsByOperator["machine-config"] {
-		condition := monitorapi.GetOperatorConditionStatus(mcEvent)
-		if condition == nil {
-			continue // ignore non-condition intervals
-		}
-		if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionTrue {
-			machineConfigProgressingStart = mcEvent.To
-			break
+	coProgressingStart := map[string]time.Time{}
+	for _, operatorName := range platformidentification.KnownOperators.List() {
+		for _, mcEvent := range eventsByOperator[operatorName] {
+			condition := monitorapi.GetOperatorConditionStatus(mcEvent)
+			if condition == nil {
+				continue // ignore non-condition intervals
+			}
+			if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionTrue {
+				coProgressingStart[operatorName] = mcEvent.To
+				break
+			}
 		}
 	}
 
-	mcTestCase := &junitapi.JUnitTestCase{
-		Name:     fmt.Sprintf("[bz-Machine Config Operator] clusteroperator/machine-config must go Progressing=True during an upgrade test"),
-		Duration: duration,
+	// Each cluster operator must report Progressing=True during cluster upgrade
+	var machineConfigProgressingStart time.Time
+	for _, operatorName := range platformidentification.KnownOperators.List() {
+		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
+		mcTestCase := &junitapi.JUnitTestCase{
+			Name:     fmt.Sprintf("[bz-%s] clusteroperator/%s must go Progressing=True during an upgrade test", bzComponent, operatorName),
+			Duration: duration,
+		}
+
+		if t, ok := coProgressingStart[operatorName]; !ok || t.IsZero() {
+			mcTestCase.FailureOutput = &junitapi.FailureOutput{
+				Output: fmt.Sprintf("clusteroperator/%s was never Progressing=True during the upgrade window from %s to %s", operatorName, start.Format(time.RFC3339), stop.Format(time.RFC3339)),
+			}
+		} else {
+			if operatorName == "machine-config" {
+				machineConfigProgressingStart = t
+			}
+			mcTestCase.SystemOut = fmt.Sprintf("clusteroperator/%s became Progressing=True at %s during the upgrade window from %s to %s", operatorName, t.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		}
+		ret = append(ret, mcTestCase)
 	}
+
 	if machineConfigProgressingStart.IsZero() {
-		mcTestCase.FailureOutput = &junitapi.FailureOutput{
-			Output: fmt.Sprintf("machine-config was never Progressing=True during the upgrade window from %s to %s", start.Format(time.RFC3339), stop.Format(time.RFC3339)),
-		}
-		return []*junitapi.JUnitTestCase{mcTestCase}
-	} else {
-		mcTestCase.SystemOut = fmt.Sprintf("machine-config became Progressing=True at %s during the upgrade window from %s to %s", machineConfigProgressingStart.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		return ret
 	}
-	ret = append(ret, mcTestCase)
 
+	// No cluster operator report Progressing=True when machine-config does
 	for _, operatorName := range platformidentification.KnownOperators.Difference(sets.NewString("machine-config")).List() {
 		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 		testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should stay Progressing=False while MCO is Progressing=True", bzComponent, operatorName)
