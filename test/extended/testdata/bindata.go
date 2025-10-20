@@ -9284,7 +9284,8 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 		{
 			"name": "SOURCE_REPOSITORY_REF",
 			"displayName": "Git Reference",
-			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+			"value": "4.2.x"
 		},
 		{
 			"name": "CONTEXT_DIR",
@@ -9833,7 +9834,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 		{
 			"name": "SOURCE_REPOSITORY_REF",
 			"displayName": "Git Reference",
-			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+			"value": "4.2.x"
 		},
 		{
 			"name": "CONTEXT_DIR",
@@ -28908,7 +28910,8 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 		{
 			"name": "SOURCE_REPOSITORY_REF",
 			"displayName": "Git Reference",
-			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+			"value": "4.2.x"
 		},
 		{
 			"name": "CONTEXT_DIR",
