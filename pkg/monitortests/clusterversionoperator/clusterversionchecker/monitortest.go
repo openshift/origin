@@ -158,9 +158,6 @@ func (w *monitor) noFailingUnknownCondition(intervals monitorapi.Intervals) []*j
 
 	for _, coName := range platformidentification.KnownOperators.List() {
 		bzComponent := platformidentification.GetBugzillaComponentForOperator(coName)
-		if bzComponent == "Unknown" {
-			bzComponent = coName
-		}
 		name := fmt.Sprintf("[bz-%v] clusteroperator/%v must complete version change within limited time", bzComponent, coName)
 		m := 30
 		if coName == "machine-config" {
@@ -207,6 +204,9 @@ func parseClusterOperatorNames(message string) (sets.Set[string], error) {
 		for _, coName := range coNames {
 			ret.Insert(strings.TrimSpace(coName))
 		}
+	}
+	if diff := sets.List(ret.Difference(sets.New[string](platformidentification.KnownOperators.List()...))); len(diff) > 0 {
+		return nil, fmt.Errorf("found unknown operator names %q from %q", strings.Join(diff, ", "), message)
 	}
 	if len(ret) == 0 {
 		return nil, fmt.Errorf("failed to parse cluster operator names from %q", message)
