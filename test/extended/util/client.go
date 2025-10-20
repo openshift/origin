@@ -824,8 +824,8 @@ func (c *CLI) AdminKubeClient() kubernetes.Interface {
 	return kubernetes.NewForConfigOrDie(c.AdminConfig())
 }
 
-func (c *CLI) AdminDynamicClient() dynamic.Interface {
-	return dynamic.NewForConfigOrDie(c.AdminConfig())
+func (c *CLI) AdminDynamicClient(clientOpts ...ClientOption) dynamic.Interface {
+	return dynamic.NewForConfigOrDie(c.AdminConfig(clientOpts...))
 }
 
 func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
@@ -891,11 +891,16 @@ func (c *CLI) UserConfig(clientOpts ...ClientOption) *rest.Config {
 	return clientConfig
 }
 
-func (c *CLI) AdminConfig() *rest.Config {
+func (c *CLI) AdminConfig(clientOpts ...ClientOption) *rest.Config {
 	clientConfig, err := GetClientConfig(c.adminConfigPath)
 	if err != nil {
 		FatalErr(err)
 	}
+
+	for _, opt := range clientOpts {
+		opt(clientConfig)
+	}
+
 	return clientConfig
 }
 

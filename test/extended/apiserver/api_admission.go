@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
@@ -22,20 +23,43 @@ import (
 
 // TODO: remove this in favor of a better registration approach
 func init() {
-	MustRegisterGVRStub(oauthv1.SchemeGroupVersion.WithResource("useroauthaccesstokens"), &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": oauthv1.SchemeGroupVersion.String(),
-			"kind":       "UserOAuthAccessToken",
-			"metadata": map[string]interface{}{
-				"name": "sha256~tokenneedstobelongenoughelseitwontworkg",
+	MustRegisterGVRStub(oauthv1.SchemeGroupVersion.WithResource("useroauthaccesstokens"), Stub{
+		Object: &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": oauthv1.SchemeGroupVersion.String(),
+				"kind":       "UserOAuthAccessToken",
+				"metadata": map[string]interface{}{
+					"name": "sha256~tokenneedstobelongenoughelseitwontworkg",
+				},
+				"clientName": "testclient",
+				"userName":   "admin",
+				"userUID":    "notempty",
+				"scopes": []string{
+					"user:info",
+				},
+				"redirectURI": "https://something.com/",
 			},
-			"clientName": "testclient",
-			"userName":   "testuser",
-			"userUID":    "notempty",
-			"scopes": []string{
-				"user:info",
+		},
+		UnsupportedVerbs: sets.New("create", "update", "patch", "deletecollection"),
+		DependentResources: map[schema.GroupVersionResource][]unstructured.Unstructured{
+			oauthv1.SchemeGroupVersion.WithResource("oauthaccesstokens"): {
+				{
+					Object: map[string]interface{}{
+						"apiVersion": oauthv1.SchemeGroupVersion.String(),
+						"kind":       "OAuthAccessToken",
+						"metadata": map[string]interface{}{
+							"name": "sha256~tokenneedstobelongenoughelseitwontworkg",
+						},
+						"clientName": "openshift-challenging-client",
+						"userName":   "testuser",
+						"userUID":    "notempty",
+						"scopes": []string{
+							"user:info",
+						},
+						"redirectURI": "https://something.com/",
+					},
+				},
 			},
-			"redirectURI": "https://something.com/",
 		},
 	})
 }
@@ -43,17 +67,19 @@ func init() {
 // TODO: create a generic structure for stubbing out GVRs.
 // TODO: Use a validating admission policy with a response warning for simulating the webhook behavior
 
-type GVRStubRegistry map[schema.GroupVersionResource]*unstructured.Unstructured
+type Stub struct {
+	Object             *unstructured.Unstructured
+	UnsupportedVerbs   sets.Set[string]
+	DependentResources map[schema.GroupVersionResource][]unstructured.Unstructured
+}
+
+type GVRStubRegistry map[schema.GroupVersionResource]Stub
 
 var stubs = make(GVRStubRegistry)
 
-func MustRegisterGVRStub(gvr schema.GroupVersionResource, stub *unstructured.Unstructured) {
+func MustRegisterGVRStub(gvr schema.GroupVersionResource, stub Stub) {
 	if _, ok := stubs[gvr]; ok {
 		panic(fmt.Sprintf("gvr %v is already registered", gvr))
-	}
-
-	if stub == nil {
-		panic("stub should not be nil")
 	}
 
 	stubs[gvr] = stub
@@ -70,82 +96,102 @@ var defaultResourceFuncs = map[string]resourceFunc{
 	"deletecollection": testDeleteCollectionFunc,
 }
 
-var _ = g.Describe("[Jira:\"kube-apiserver\"] Admission behaves correctly for OpenShift APIs", func() {
+var _ = g.Describe("[sig-api-machinery][kube-apiserver] Admission behaves correctly for OpenShift APIs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("apiserver")
 
-	// TODO: should this be created per GVR with a label selection matcher that only matches resources created by this test?
-	vap := &v1.ValidatingAdmissionPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "openshift-admission-testing.openshift.io",
-		},
-		Spec: v1.ValidatingAdmissionPolicySpec{
-			FailurePolicy: ptr.To(v1.Fail),
-			MatchConstraints: &v1.MatchResources{
-				ResourceRules: []v1.NamedRuleWithOperations{
-					{
-						RuleWithOperations: v1.RuleWithOperations{
-							Operations: []v1.OperationType{
-								v1.OperationAll,
-							},
-							Rule: v1.Rule{
-								APIGroups:   []string{"*"},
-								APIVersions: []string{"*"},
-								Resources:   []string{"*"},
+	g.BeforeEach(func() {
+		vap := &v1.ValidatingAdmissionPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "openshift-admission-testing.openshift.io",
+			},
+			Spec: v1.ValidatingAdmissionPolicySpec{
+				FailurePolicy: ptr.To(v1.Fail),
+				MatchConstraints: &v1.MatchResources{
+					ResourceRules: []v1.NamedRuleWithOperations{
+						{
+							RuleWithOperations: v1.RuleWithOperations{
+								Operations: []v1.OperationType{
+									v1.OperationAll,
+								},
+								Rule: v1.Rule{
+									APIGroups:   []string{"*"},
+									APIVersions: []string{"*"},
+									Resources:   []string{"*"},
+								},
 							},
 						},
 					},
 				},
-			},
-			Validations: []v1.Validation{
-				{
-					Expression: "1 != 1",
-					Message:    "oat-boom",
+				Validations: []v1.Validation{
+					{
+						Expression: "1 != 1",
+						Message:    "oat-boom",
+					},
 				},
 			},
-		},
-	}
+		}
 
-	_, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Create(context.TODO(), vap, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating VAP")
+		_, err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Create(context.TODO(), vap, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating VAP")
 
-	vapBinding := &v1.ValidatingAdmissionPolicyBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "openshift-admission-testing-binding.openshift.io",
-		},
-		Spec: v1.ValidatingAdmissionPolicyBindingSpec{
-			PolicyName: "openshift-admission-testing.openshift.io",
-			ValidationActions: []v1.ValidationAction{
-				v1.Warn,
+		vapBinding := &v1.ValidatingAdmissionPolicyBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "openshift-admission-testing-binding.openshift.io",
 			},
-		},
-	}
+			Spec: v1.ValidatingAdmissionPolicyBindingSpec{
+				PolicyName: "openshift-admission-testing.openshift.io",
+				ValidationActions: []v1.ValidationAction{
+					v1.Warn,
+				},
+			},
+		}
 
-	_, err = oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Create(context.TODO(), vapBinding, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating VAP Binding")
-
-	warnHandler := &warningHandler{}
-	dynamicClient := oc.DynamicClient(func(c *rest.Config) {
-		c.WarningHandler = warnHandler
+		_, err = oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Create(context.TODO(), vapBinding, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error creating VAP Binding")
 	})
 
-	failures := []error{}
-	for verb, action := range defaultResourceFuncs {
-		for gvr, stub := range stubs {
-			g.By(fmt.Sprintf("testing admission for verb %s with resource %s", verb, gvr.String()))
+	g.AfterEach(func() {
+		err := oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicies().Delete(context.TODO(), "openshift-admission-testing.openshift.io", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up VAP")
 
-			err := action(context.TODO(), gvr, dynamicClient, stub)
-			if err != nil {
-				failures = append(failures, fmt.Errorf("%s-ing resource %s : %w", verb, gvr.String(), err))
-			}
+		err = oc.AdminKubeClient().AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Delete(context.TODO(), "openshift-admission-testing-binding.openshift.io", metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error cleaning up VAP binding")
+	})
 
-			if warnHandler.warning != "todo" {
-				failures = append(failures, fmt.Errorf("admission warning did not match the expected warning when %s-ing resource %s", verb, gvr.String()))
+	g.It("should work", func() {
+		// TODO: should this be created per GVR with a label selection matcher that only matches resources created by this test?
+		warnHandler := &warningHandler{}
+		dynamicClient := oc.AdminDynamicClient(func(c *rest.Config) {
+			c.WarningHandler = warnHandler
+		})
+
+		for verb, action := range defaultResourceFuncs {
+			for gvr, stub := range stubs {
+				if stub.UnsupportedVerbs.Has(verb) {
+					continue
+				}
+
+				for depGVR, dependentResource := range stub.DependentResources {
+					for _, depRes := range dependentResource {
+						_, err := dynamicClient.Resource(depGVR).Create(context.TODO(), &depRes, metav1.CreateOptions{})
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
+				}
+
+				err := action(context.TODO(), gvr, dynamicClient, stub.Object)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(warnHandler.warning).To(o.Equal("oat-boom"))
+
+				for depGVR, dependentResource := range stub.DependentResources {
+					for _, depRes := range dependentResource {
+						err := dynamicClient.Resource(depGVR).Delete(context.TODO(), depRes.GetName(), metav1.DeleteOptions{})
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
+				}
 			}
 		}
-	}
-
-	o.Expect(failures).To(o.BeEmpty(), "should not have admission failures")
+	})
 })
 
 type warningHandler struct {
