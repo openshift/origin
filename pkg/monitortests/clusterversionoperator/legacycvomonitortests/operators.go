@@ -610,7 +610,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	return ret
 }
 
-func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	var ret []*junitapi.JUnitTestCase
 	upgradeWindows := getUpgradeWindows(events)
 
@@ -633,31 +633,127 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 	duration := stop.Sub(start).Seconds()
 
 	eventsByOperator := getEventsByOperator(eventsInUpgradeWindows)
-	for _, mcEvent := range eventsByOperator["machine-config"] {
-		condition := monitorapi.GetOperatorConditionStatus(mcEvent)
-		if condition == nil {
-			continue // ignore non-condition intervals
-		}
-		if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionTrue {
-			machineConfigProgressingStart = mcEvent.To
-			break
+	coProgressingStart := map[string]time.Time{}
+	for _, operatorName := range platformidentification.KnownOperators.List() {
+		for _, mcEvent := range eventsByOperator[operatorName] {
+			condition := monitorapi.GetOperatorConditionStatus(mcEvent)
+			if condition == nil {
+				continue // ignore non-condition intervals
+			}
+			if condition.Type == configv1.OperatorProgressing && condition.Status == configv1.ConditionTrue {
+				coProgressingStart[operatorName] = mcEvent.To
+				if operatorName == "machine-config" {
+					machineConfigProgressingStart = mcEvent.To
+				}
+				break
+			}
 		}
 	}
 
-	mcTestCase := &junitapi.JUnitTestCase{
-		Name:     fmt.Sprintf("[bz-Machine Config Operator] clusteroperator/machine-config must go Progressing=True during an upgrade test"),
-		Duration: duration,
+	except := func(co string, _ string) string {
+		return ""
 	}
-	if machineConfigProgressingStart.IsZero() {
-		mcTestCase.FailureOutput = &junitapi.FailureOutput{
-			Output: fmt.Sprintf("machine-config was never Progressing=True during the upgrade window from %s to %s", start.Format(time.RFC3339), stop.Format(time.RFC3339)),
-		}
-		return []*junitapi.JUnitTestCase{mcTestCase}
-	} else {
-		mcTestCase.SystemOut = fmt.Sprintf("machine-config became Progressing=True at %s during the upgrade window from %s to %s", machineConfigProgressingStart.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
-	}
-	ret = append(ret, mcTestCase)
 
+	// Each cluster operator must report Progressing=True during cluster upgrade
+	for _, operatorName := range platformidentification.KnownOperators.List() {
+		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
+		name := fmt.Sprintf("[bz-%s] clusteroperator/%s must go Progressing=True during an upgrade test", bzComponent, operatorName)
+		mcTestCase := &junitapi.JUnitTestCase{
+			Name:     name,
+			Duration: duration,
+		}
+		var exception string
+		if t, ok := coProgressingStart[operatorName]; !ok || t.IsZero() {
+			output := fmt.Sprintf("clusteroperator/%s was never Progressing=True during the upgrade window from %s to %s", operatorName, start.Format(time.RFC3339), stop.Format(time.RFC3339))
+			exception = except(operatorName, "")
+			if exception != "" {
+				output = fmt.Sprintf("%s which is expected up to %s", output, exception)
+			}
+			mcTestCase.FailureOutput = &junitapi.FailureOutput{
+				Output: output,
+			}
+		} else {
+			mcTestCase.SystemOut = fmt.Sprintf("clusteroperator/%s became Progressing=True at %s during the upgrade window from %s to %s", operatorName, t.Format(time.RFC3339), start.Format(time.RFC3339), stop.Format(time.RFC3339))
+		}
+		ret = append(ret, mcTestCase)
+		// add a success so we flake (or pass) and don't fail
+		if exception != "" {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name:      name,
+				SystemOut: "Passing the case to make the overall test case flake as the previous failure is expected",
+			})
+		}
+	}
+
+	except = func(co string, reason string) string {
+		switch co {
+		case "console":
+			if reason == "SyncLoopRefresh_InProgress" {
+				return "https://issues.redhat.com/browse/OCPBUGS-64688"
+			}
+		case "csi-snapshot-controller":
+			if reason == "CSISnapshotController_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62624"
+			}
+		case "dns":
+			if reason == "DNSReportsProgressingIsTrue" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62623"
+			}
+		case "image-registry":
+			if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62626"
+			}
+		case "ingress":
+			if reason == "Reconciling" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62627"
+			}
+		case "kube-storage-version-migrator":
+			if reason == "KubeStorageVersionMigrator_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62629"
+			}
+		case "network":
+			if reason == "Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62630"
+			}
+		case "node-tuning":
+			if reason == "Reconciling" || reason == "ProfileProgressing" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62632"
+			}
+		case "openshift-controller-manager":
+			// _DesiredStateNotYetAchieved
+			// RouteControllerManager_DesiredStateNotYetAchieved
+			if strings.HasSuffix(reason, "_DesiredStateNotYetAchieved") {
+				return "https://issues.redhat.com/browse/OCPBUGS-63116"
+			}
+		case "service-ca":
+			if reason == "_ManagedDeploymentsAvailable" {
+				return "https://issues.redhat.com/browse/OCPBUGS-62633"
+			}
+		case "storage":
+			// GCPPDCSIDriverOperatorCR_GCPPDDriverControllerServiceController_Deploying
+			// GCPPDCSIDriverOperatorCR_GCPPDDriverNodeServiceController_Deploying
+			// AWSEBSCSIDriverOperatorCR_AWSEBSDriverNodeServiceController_Deploying
+			// VolumeDataSourceValidatorDeploymentController_Deploying
+			// GCPPD_Deploying
+			// AWSEBS_Deploying
+			if strings.HasSuffix(reason, "_Deploying") {
+				return "https://issues.redhat.com/browse/OCPBUGS-62634"
+			}
+		case "olm":
+			// CatalogdDeploymentCatalogdControllerManager_Deploying
+			// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
+			if strings.HasSuffix(reason, "ControllerManager_Deploying") {
+				return "https://issues.redhat.com/browse/OCPBUGS-62635"
+			}
+		case "operator-lifecycle-manager-packageserver":
+			if reason == "" {
+				return "https://issues.redhat.com/browse/OCPBUGS-63672"
+			}
+		}
+		return ""
+	}
+
+	// No cluster operator report Progressing=True after machine-config does
 	for _, operatorName := range platformidentification.KnownOperators.Difference(sets.NewString("machine-config")).List() {
 		bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 		testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should stay Progressing=False while MCO is Progressing=True", bzComponent, operatorName)
@@ -668,74 +764,6 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 				Duration: duration,
 			})
 			continue
-		}
-
-		except := func(co string, reason string) string {
-			switch co {
-			case "console":
-				if reason == "SyncLoopRefresh_InProgress" {
-					return "https://issues.redhat.com/browse/OCPBUGS-64688"
-				}
-			case "csi-snapshot-controller":
-				if reason == "CSISnapshotController_Deploying" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62624"
-				}
-			case "dns":
-				if reason == "DNSReportsProgressingIsTrue" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62623"
-				}
-			case "image-registry":
-				if reason == "NodeCADaemonUnavailable::Ready" || reason == "DeploymentNotCompleted" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62626"
-				}
-			case "ingress":
-				if reason == "Reconciling" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62627"
-				}
-			case "kube-storage-version-migrator":
-				if reason == "KubeStorageVersionMigrator_Deploying" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62629"
-				}
-			case "network":
-				if reason == "Deploying" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62630"
-				}
-			case "node-tuning":
-				if reason == "Reconciling" || reason == "ProfileProgressing" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62632"
-				}
-			case "openshift-controller-manager":
-				// _DesiredStateNotYetAchieved
-				// RouteControllerManager_DesiredStateNotYetAchieved
-				if strings.HasSuffix(reason, "_DesiredStateNotYetAchieved") {
-					return "https://issues.redhat.com/browse/OCPBUGS-63116"
-				}
-			case "service-ca":
-				if reason == "_ManagedDeploymentsAvailable" {
-					return "https://issues.redhat.com/browse/OCPBUGS-62633"
-				}
-			case "storage":
-				// GCPPDCSIDriverOperatorCR_GCPPDDriverControllerServiceController_Deploying
-				// GCPPDCSIDriverOperatorCR_GCPPDDriverNodeServiceController_Deploying
-				// AWSEBSCSIDriverOperatorCR_AWSEBSDriverNodeServiceController_Deploying
-				// VolumeDataSourceValidatorDeploymentController_Deploying
-				// GCPPD_Deploying
-				// AWSEBS_Deploying
-				if strings.HasSuffix(reason, "_Deploying") {
-					return "https://issues.redhat.com/browse/OCPBUGS-62634"
-				}
-			case "olm":
-				// CatalogdDeploymentCatalogdControllerManager_Deploying
-				// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
-				if strings.HasSuffix(reason, "ControllerManager_Deploying") {
-					return "https://issues.redhat.com/browse/OCPBUGS-62635"
-				}
-			case "operator-lifecycle-manager-packageserver":
-				if reason == "" {
-					return "https://issues.redhat.com/browse/OCPBUGS-63672"
-				}
-			}
-			return ""
 		}
 
 		var excepted, fatal []string

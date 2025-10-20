@@ -45,7 +45,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
 		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
-		junits = append(junits, clusterOperatorIsNotProgressingWhenMachineConfigIs(finalIntervals)...)
+		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals)...)
 	} else {
 		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
 	}
