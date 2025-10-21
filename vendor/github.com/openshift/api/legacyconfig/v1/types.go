@@ -801,7 +801,7 @@ type TokenConfig struct {
 	// accessTokenInactivityTimeoutSeconds defined the default token
 	// inactivity timeout for tokens granted by any client.
 	// Setting it to nil means the feature is completely disabled (default)
-	// The default setting can be overriden on OAuthClient basis.
+	// The default setting can be overridden on OAuthClient basis.
 	// The value represents the maximum amount of time that can occur between
 	// consecutive uses of the token. Tokens become invalid if they are not
 	// used within this temporal window. The user will need to acquire a new

@@ -21,12 +21,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	schedulingv1 "k8s.io/api/scheduling/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -52,13 +54,15 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epv "k8s.io/kubernetes/test/e2e/framework/pv"
 	"k8s.io/kubernetes/test/utils/crd"
+	"k8s.io/kubernetes/test/utils/format"
 	imageutils "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/onsi/gomega/gcustom"
+	gomegatypes "github.com/onsi/gomega/types"
 )
 
 const (
@@ -502,7 +506,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		Delete the ResourceClaim. Deletion MUST succeed and resource usage count against the ResourceClaim object MUST be released from ResourceQuotaStatus of the ResourceQuota.
 		[NotConformancePromotable] alpha feature
 	*/
-	f.It("should create a ResourceQuota and capture the life of a ResourceClaim", feature.DynamicResourceAllocation, func(ctx context.Context) {
+	f.It("should create a ResourceQuota and capture the life of a ResourceClaim", f.WithFeatureGate(features.DynamicResourceAllocation), f.WithLabel("DRA"), func(ctx context.Context) {
 		ginkgo.By("Counting existing ResourceQuota")
 		c, err := countResourceQuota(ctx, f.ClientSet, f.Namespace.Name)
 		framework.ExpectNoError(err)
@@ -523,7 +527,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 
 		ginkgo.By("Creating a ResourceClaim")
 		claim := newTestResourceClaimForQuota("test-claim")
-		claim, err = f.ClientSet.ResourceV1beta1().ResourceClaims(f.Namespace.Name).Create(ctx, claim, metav1.CreateOptions{})
+		claim, err = f.ClientSet.ResourceV1().ResourceClaims(f.Namespace.Name).Create(ctx, claim, metav1.CreateOptions{})
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Ensuring resource quota status captures resource claim creation")
@@ -534,7 +538,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Deleting a ResourceClaim")
-		err = f.ClientSet.ResourceV1beta1().ResourceClaims(f.Namespace.Name).Delete(ctx, claim.Name, metav1.DeleteOptions{})
+		err = f.ClientSet.ResourceV1().ResourceClaims(f.Namespace.Name).Delete(ctx, claim.Name, metav1.DeleteOptions{})
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Ensuring resource quota status released usage")
@@ -656,7 +660,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 
 	ginkgo.It("should create a ResourceQuota and capture the life of a custom resource.", func(ctx context.Context) {
 		ginkgo.By("Creating a Custom Resource Definition")
-		testcrd, err := crd.CreateTestCRD(f)
+		testcrd, err := crd.CreateTestCRD(f, ensureShortCRDNamesForResourceQuota())
 		framework.ExpectNoError(err)
 		ginkgo.DeferCleanup(testcrd.CleanUp)
 		countResourceName := "count/" + testcrd.Crd.Spec.Names.Plural + "." + testcrd.Crd.Spec.Group
@@ -795,7 +799,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourceRequestsMemory] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsCPU] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsMemory] = resource.MustParse("0")
-		err = waitForResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaTerminating.Name, usedResources)
+		err = ensureResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaTerminating.Name, usedResources)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Deleting the pod")
@@ -835,6 +839,8 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourceLimitsCPU] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsMemory] = resource.MustParse("0")
 		err = waitForResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaNotTerminating.Name, usedResources)
+		framework.ExpectNoError(err)
+		err = ensureResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaNotTerminating.Name, usedResources)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Deleting the pod")
@@ -1555,7 +1561,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourceRequestsMemory] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsCPU] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsMemory] = resource.MustParse("0")
-		err = waitForResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaTerminating.Name, usedResources)
+		err = ensureResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaTerminating.Name, usedResources)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Updating the pod to have an active deadline")
@@ -1602,7 +1608,7 @@ var _ = SIGDescribe("ResourceQuota", func() {
 		usedResources[v1.ResourceRequestsMemory] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsCPU] = resource.MustParse("0")
 		usedResources[v1.ResourceLimitsMemory] = resource.MustParse("0")
-		err = waitForResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaNotTerminating.Name, usedResources)
+		err = waitForResourceQuota(ctx, f.ClientSet, f.Namespace.Name, resourceQuotaTerminating.Name, usedResources)
 		framework.ExpectNoError(err)
 
 		ginkgo.By("Creating a terminating pod")
@@ -2140,6 +2146,35 @@ func newTestResourceQuotaWithScopeForVolumeAttributesClass(name string, hard v1.
 	}
 }
 
+// ensureShortCRDNamesForResourceQuota returns a CRD Option that truncates the plural name
+// if needed to ensure "count/{plural}.{group}" fits within 63 characters (Kubernetes resource name limit).
+func ensureShortCRDNamesForResourceQuota() crd.Option {
+	return func(c *apiextensionsv1.CustomResourceDefinition) {
+		const maxResourceNameLength = 63
+		countResourcePrefix := "count/"
+
+		// Calculate what the resource name would be
+		fullResourceName := countResourcePrefix + c.Spec.Names.Plural + "." + c.Spec.Group
+
+		if len(fullResourceName) > maxResourceNameLength {
+			// Calculate max length for the plural name
+			maxPluralLen := maxResourceNameLength - len(countResourcePrefix) - len(".") - len(c.Spec.Group)
+
+			if maxPluralLen > 0 && len(c.Spec.Names.Plural) > maxPluralLen {
+				// Truncate the plural name
+				originalPlural := c.Spec.Names.Plural
+				truncatedPlural := strings.TrimRight(originalPlural[:maxPluralLen], "-.")
+
+				// Update the CRD spec
+				c.Spec.Names.Plural = truncatedPlural
+				c.ObjectMeta.Name = truncatedPlural + "." + c.Spec.Group
+
+				framework.Logf("Truncated CRD plural name from %q to %q to fit ResourceQuota naming constraints", originalPlural, truncatedPlural)
+			}
+		}
+	}
+}
+
 // newTestResourceQuota returns a quota that enforces default constraints for testing
 func newTestResourceQuota(name string) *v1.ResourceQuota {
 	hard := v1.ResourceList{}
@@ -2340,8 +2375,10 @@ func newTestResourceClaimForQuota(name string) *resourceapi.ResourceClaim {
 		Spec: resourceapi.ResourceClaimSpec{
 			Devices: resourceapi.DeviceClaim{
 				Requests: []resourceapi.DeviceRequest{{
-					Name:            "req-0",
-					DeviceClassName: classGold,
+					Name: "req-0",
+					Exactly: &resourceapi.ExactDeviceRequest{
+						DeviceClassName: classGold,
+					},
 				}},
 			},
 		},
@@ -2355,7 +2392,7 @@ func newTestReplicationControllerForQuota(name, image string, replicas int32) *v
 			Name: name,
 		},
 		Spec: v1.ReplicationControllerSpec{
-			Replicas: pointer.Int32(replicas),
+			Replicas: ptr.To[int32](replicas),
 			Selector: map[string]string{
 				"name": name,
 			},
@@ -2480,12 +2517,33 @@ func countResourceQuota(ctx context.Context, c clientset.Interface, namespace st
 	})
 }
 
-// wait for resource quota status to show the expected used resources value
+// Wait for resource quota status to show the expected used resources value.
+// Other resources are ignored.
 func waitForResourceQuota(ctx context.Context, c clientset.Interface, ns, quotaName string, used v1.ResourceList) error {
-	return wait.PollUntilContextTimeout(ctx, framework.Poll, resourceQuotaTimeout, false, func(ctx context.Context) (bool, error) {
-		resourceQuota, err := c.CoreV1().ResourceQuotas(ns).Get(ctx, quotaName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
+	var lastResourceQuota *v1.ResourceQuota
+	err := framework.Gomega().Eventually(ctx, framework.GetObject(c.CoreV1().ResourceQuotas(ns).Get, quotaName, metav1.GetOptions{})).Should(haveUsedResources(used, &lastResourceQuota))
+	if lastResourceQuota != nil && err == nil {
+		framework.Logf("Got expected ResourceQuota:\n%s", format.Object(lastResourceQuota, 1))
+	}
+	return err
+}
+
+// Ensure that the resource quota status shows the expected used resources value and does not change.
+// Other resources are ignored.
+func ensureResourceQuota(ctx context.Context, c clientset.Interface, ns, quotaName string, used v1.ResourceList) error {
+	// The longer we check the higher the confidence that it really remains the same.
+	// But we don't want to delay too long because it makes the test slower.
+	err := framework.Gomega().Consistently(ctx, framework.GetObject(c.CoreV1().ResourceQuotas(ns).Get, quotaName, metav1.GetOptions{})).WithTimeout(10 * time.Second).Should(haveUsedResources(used, nil))
+	return err
+}
+
+func haveUsedResources(used v1.ResourceList, lastResourceQuota **v1.ResourceQuota) gomegatypes.GomegaMatcher {
+	// The template emits the actual ResourceQuota object as YAML.
+	// In particular the ManagedFields are interesting because both
+	// kube-apiserver and kube-controller-manager set the status.
+	return gcustom.MakeMatcher(func(resourceQuota *v1.ResourceQuota) (bool, error) {
+		if lastResourceQuota != nil {
+			*lastResourceQuota = resourceQuota
 		}
 		// used may not yet be calculated
 		if resourceQuota.Status.Used == nil {
@@ -2494,12 +2552,11 @@ func waitForResourceQuota(ctx context.Context, c clientset.Interface, ns, quotaN
 		// verify that the quota shows the expected used resource values
 		for k, v := range used {
 			if actualValue, found := resourceQuota.Status.Used[k]; !found || (actualValue.Cmp(v) != 0) {
-				framework.Logf("resource %s, expected %s, actual %s", k, v.String(), actualValue.String())
 				return false, nil
 			}
 		}
 		return true, nil
-	})
+	}).WithTemplate("Expected:\n{{.FormattedActual}}\n{{.To}} have the following .status.used entries:\n{{range $key, $value := .Data}}    {{$key}}: \"{{$value.ToUnstructured}}\"\n{{end}}").WithTemplateData(used /* Formatting of the map is done inside the template. */)
 }
 
 // updateResourceQuotaUntilUsageAppears updates the resource quota object until the usage is populated

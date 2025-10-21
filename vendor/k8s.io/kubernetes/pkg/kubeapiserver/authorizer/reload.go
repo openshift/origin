@@ -148,10 +148,18 @@ func (r *reloadableAuthorizerResolver) newForConfig(authzConfig *authzconfig.Aut
 			default:
 				return nil, nil, fmt.Errorf("unknown failurePolicy %q", configuredAuthorizer.Webhook.FailurePolicy)
 			}
+
+			authorizedTTL, unauthorizedTTL := configuredAuthorizer.Webhook.AuthorizedTTL.Duration, configuredAuthorizer.Webhook.UnauthorizedTTL.Duration
+			if !configuredAuthorizer.Webhook.CacheAuthorizedRequests {
+				authorizedTTL = 0
+			}
+			if !configuredAuthorizer.Webhook.CacheUnauthorizedRequests {
+				unauthorizedTTL = 0
+			}
 			webhookAuthorizer, err := webhook.New(clientConfig,
 				configuredAuthorizer.Webhook.SubjectAccessReviewVersion,
-				configuredAuthorizer.Webhook.AuthorizedTTL.Duration,
-				configuredAuthorizer.Webhook.UnauthorizedTTL.Duration,
+				authorizedTTL,
+				unauthorizedTTL,
 				*r.initialConfig.WebhookRetryBackoff,
 				decisionOnError,
 				configuredAuthorizer.Webhook.MatchConditions,
@@ -207,7 +215,7 @@ type kubeapiserverWebhookMetrics struct {
 // Blocks until ctx is complete.
 func (r *reloadableAuthorizerResolver) runReload(ctx context.Context) {
 	metrics.RegisterMetrics()
-	metrics.RecordAuthorizationConfigAutomaticReloadSuccess(r.apiServerID)
+	metrics.RecordAuthorizationConfigLastConfigInfo(r.apiServerID, string(r.lastReadData))
 
 	filesystem.WatchUntil(
 		ctx,
@@ -265,5 +273,5 @@ func (r *reloadableAuthorizerResolver) checkFile(ctx context.Context) {
 		ruleResolver: ruleResolver,
 	})
 	klog.InfoS("reloaded authz config")
-	metrics.RecordAuthorizationConfigAutomaticReloadSuccess(r.apiServerID)
+	metrics.RecordAuthorizationConfigAutomaticReloadSuccess(r.apiServerID, string(data))
 }

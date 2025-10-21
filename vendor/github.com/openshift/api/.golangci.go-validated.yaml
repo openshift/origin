@@ -1,0 +1,58 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - kubeapilinter
+  settings:
+    custom:
+      kubeapilinter:
+        path: tools/_output/bin/kube-api-linter.so
+        description: kubeapilinter is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
+        settings:
+          linters:
+            enable:
+            - optionalfields
+            disable:
+            - "*"
+          lintersConfig:
+            optionalfields:
+              pointers:
+                preference: Always
+                policy: SuggestFix
+              omitEmpty:
+                # This will force omitempty on optional fields.
+                # This is in line with upstream guidance where optional fields should be omitted
+                # from the serialized output unless they are non-zero.
+                policy: SuggestFix
+              omitzero:
+                # This will force omitzero on optional struct fields.
+                # This means they can be omitted correctly and prevents the need for pointers to structs.
+                policy: SuggestFix
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+    - linters:
+      - kubeapilinter
+      # This regex must always be updated in tandem with the regex in .golangci.yaml that prevents `optionalfields` from being applied to the files in the path-except.
+      path-except: machine/v1beta1/(types_awsprovider.go|types_azureprovider.go|types_gcpprovider.go|types_vsphereprovider.go)|machine/v1alpha1/types_openstack.go
+issues:
+  # We have a lot of existing issues.
+  # Want to make sure that those adding new fields have an
+  # opportunity to fix them when running the linter locally.
+  max-issues-per-linter: 1000
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -1,6 +1,8 @@
 package extensiontests
 
 import (
+	"context"
+
 	"github.com/openshift-eng/openshift-tests-extension/pkg/dbtime"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/util/sets"
 )
@@ -43,8 +45,13 @@ type ExtensionTestSpec struct {
 	// EnvironmentSelector allows for CEL expressions to be used to control test inclusion
 	EnvironmentSelector EnvironmentSelector `json:"environmentSelector,omitempty"`
 
-	// Run invokes a test
-	Run func() *ExtensionTestResult `json:"-"`
+	// Run invokes a test in-process.  It must not call back into `ote-binary run-test` because that will usually
+	// cause an infinite recursion.
+	Run func(ctx context.Context) *ExtensionTestResult `json:"-"`
+
+	// RunParallel invokes a test in parallel with other tests.  This is usually done by exec-ing out
+	// to the `ote-binary run-test "test name"` commmand and interpretting the result.
+	RunParallel func(ctx context.Context) *ExtensionTestResult `json:"-"`
 
 	// Hook functions
 	afterAll   []*OneTimeTask

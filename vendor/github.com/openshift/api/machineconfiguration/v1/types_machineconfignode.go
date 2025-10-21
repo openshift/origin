@@ -17,6 +17,7 @@ import (
 // +kubebuilder:printcolumn:name="DesiredConfig",type="string",JSONPath=.spec.configVersion.desired,priority=0
 // +kubebuilder:printcolumn:name="CurrentConfig",type="string",JSONPath=.status.configVersion.current,priority=0
 // +kubebuilder:printcolumn:name="Updated",type="string",JSONPath=.status.conditions[?(@.type=="Updated")].status,priority=0
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority=0
 // +kubebuilder:printcolumn:name="UpdatePrepared",type="string",JSONPath=.status.conditions[?(@.type=="UpdatePrepared")].status,priority=1
 // +kubebuilder:printcolumn:name="UpdateExecuted",type="string",JSONPath=.status.conditions[?(@.type=="UpdateExecuted")].status,priority=1
 // +kubebuilder:printcolumn:name="UpdatePostActionComplete",type="string",JSONPath=.status.conditions[?(@.type=="UpdatePostActionComplete")].status,priority=1
@@ -98,6 +99,13 @@ type MachineConfigNodeSpec struct {
 	// the new machine config against the current machine config.
 	// +required
 	ConfigVersion MachineConfigNodeSpecMachineConfigVersion `json:"configVersion"`
+
+	// configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields
+	// When omitted, Image Mode is not be enabled and the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.
+	// When specified, Image Mode is enabled and will attempt to update the node to use the desired image. Following this, the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.
+	// +openshift:enable:FeatureGate=ImageModeStatusReporting
+	// +optional
+	ConfigImage MachineConfigNodeSpecConfigImage `json:"configImage,omitempty,omitzero"`
 }
 
 // MachineConfigNodeStatus holds the reported information on a particular machine config node.
@@ -106,6 +114,8 @@ type MachineConfigNodeStatus struct {
 	// UpdatePrepared, UpdateExecuted, UpdatePostActionComplete, UpdateComplete, Updated, Resumed,
 	// Drained, AppliedFilesAndOS, Cordoned, Uncordoned, RebootedNode, NodeDegraded, PinnedImageSetsProgressing,
 	// and PinnedImageSetsDegraded.
+	// The following types are only available when the ImageModeStatusReporting feature gate is enabled: ImagePulledFromRegistry,
+	// AppliedOSImage, AppliedFiles
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=20
@@ -120,12 +130,56 @@ type MachineConfigNodeStatus struct {
 	// configVersion describes the current and desired machine config version for this node.
 	// +optional
 	ConfigVersion *MachineConfigNodeStatusMachineConfigVersion `json:"configVersion,omitempty"`
+	// configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields.
+	// When omitted, this means that the Image Mode feature is not being used and the node will be up to date with the specific current rendered config version for the nodes MachinePool.
+	// When specified, the Image Mode feature is enabled and the contents of this field show the observed state of the node image.
+	// When Image Mode is enabled and a new MachineConfig is applied such that a new OS image build is not created, only the configVersion field will change.
+	// When Image Mode is enabled and a new MachineConfig is applied such that a new OS image build is created, then only the configImage field will change. It is also possible that both the configImage
+	// and configVersion change during the same update.
+	// +openshift:enable:FeatureGate=ImageModeStatusReporting
+	// +optional
+	ConfigImage MachineConfigNodeStatusConfigImage `json:"configImage,omitempty,omitzero"`
 	// pinnedImageSets describes the current and desired pinned image sets for this node.
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=100
 	// +optional
 	PinnedImageSets []MachineConfigNodeStatusPinnedImageSet `json:"pinnedImageSets,omitempty"`
+	// irreconcilableChanges is an optional field that contains the observed differences between this nodes
+	// configuration and the target rendered MachineConfig.
+	// This field will be set when there are changes to the target rendered MachineConfig that can only be applied to
+	// new nodes joining the cluster.
+	// Entries must be unique, keyed on the fieldPath field.
+	// Must not exceed 32 entries.
+	// +listType=map
+	// +listMapKey=fieldPath
+	// +openshift:enable:FeatureGate=IrreconcilableMachineConfig
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	// +optional
+	IrreconcilableChanges []IrreconcilableChangeDiff `json:"irreconcilableChanges,omitempty"`
+}
+
+// IrreconcilableChangeDiff holds an individual diff between the initial install-time MachineConfig
+// and the latest applied one caused by the presence of irreconcilable changes.
+type IrreconcilableChangeDiff struct {
+	// fieldPath is a required reference to the path in the latest rendered MachineConfig that differs from this nodes
+	// configuration.
+	// Must not be empty and must not exceed 70 characters in length.
+	// Must begin with the prefix 'spec.' and only contain alphanumeric characters, square brackets ('[]'), or dots ('.').
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=70
+	// +kubebuilder:validation:XValidation:rule="self.startsWith('spec.')",message="The fieldPath must start with `spec.`"
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^[\\da-zA-Z\\.\\[\\]]+$')`,message="The fieldPath must consist only of alphanumeric characters, brackets [] and dots ('.')."
+	FieldPath string `json:"fieldPath,omitempty"`
+	// diff is a required field containing the difference between the nodes current configuration and the latest
+	// rendered MachineConfig for the field specified in fieldPath.
+	// Must not be an empty string and must not exceed 4096 characters in length.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=4096
+	Diff string `json:"diff,omitempty"`
 }
 
 // MachineConfigNodeStatusPinnedImageSet holds information about the current, desired, and failed pinned image sets for the observed machine config node.
@@ -209,6 +263,41 @@ type MachineConfigNodeSpecMachineConfigVersion struct {
 	Desired string `json:"desired"`
 }
 
+// MachineConfigNodeSpecConfigImage holds the desired image for the node.
+// This structure is populated from the `machineconfiguration.openshift.io/desiredImage`
+// annotation on the target node, which is set by the Machine Config Pool controller
+// to signal the desired image pullspec for the node to update to.
+type MachineConfigNodeSpecConfigImage struct {
+	// desiredImage is a required field that configures the image that the node should be updated to use.
+	// It must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// desiredImage must not be an empty string and must not exceed 447 characters in length.
+	// +required
+	DesiredImage ImageDigestFormat `json:"desiredImage,omitempty"`
+}
+
+// MachineConfigNodeStatusConfigImage holds the observed state of the image
+// on the node, including both the image targeted for an update and the image
+// currently applied. This allows for monitoring the progress of the layering
+// rollout. If Image Mode is enabled, desiredImage must be defined.
+// +kubebuilder:validation:MinProperties:=1
+type MachineConfigNodeStatusConfigImage struct {
+	// currentImage is an optional field that represents the current image that is applied to the node.
+	// When omitted, this means that no image updates have been applied to the node and it will be up to date with the specific current rendered config version.
+	// When specified, this means that the node is currently using this image.
+	// currentImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// currentImage must not be an empty string and must not exceed 447 characters in length.
+	// +optional
+	CurrentImage ImageDigestFormat `json:"currentImage,omitzero,omitempty"`
+	// desiredImage is an optional field that represents the currently observed state of image that the node should be updated to use.
+	// When not specified, this means that Image Mode has been disabled and the node will up to date with the specific current rendered config version.
+	// When specified, this means that Image Mode has been enabled and the node is actively progressing to update the node to this image.
+	// If currentImage and desiredImage match, the node has been successfully updated to use the desired image.
+	// desiredImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// desiredImage must not be an empty string and must not exceed 447 characters in length.
+	// +optional
+	DesiredImage ImageDigestFormat `json:"desiredImage,omitzero,omitempty"`
+}
+
 // StateProgress is each possible state for each possible MachineConfigNodeType
 // +enum
 type StateProgress string
@@ -228,8 +317,14 @@ const (
 	MachineConfigNodeResumed StateProgress = "Resumed"
 	// MachineConfigNodeUpdateDrained describes the part of the in progress phase where the node drains
 	MachineConfigNodeUpdateDrained StateProgress = "Drained"
+	// MachineConfigNodeUpdateFiles describes the part of the in progress phase where the nodes files changes
+	MachineConfigNodeUpdateFiles StateProgress = "AppliedFiles"
+	// MachineConfigNodeUpdateOS describes the part of the in progress phase where the OS config changes
+	MachineConfigNodeUpdateOS StateProgress = "AppliedOSImage"
 	// MachineConfigNodeUpdateFilesAndOS describes the part of the in progress phase where the nodes files and OS config change
 	MachineConfigNodeUpdateFilesAndOS StateProgress = "AppliedFilesAndOS"
+	// MachineConfigNodeImagePulledFromRegistry describes the part of the in progress phase where the update image is pulled from the registry
+	MachineConfigNodeImagePulledFromRegistry StateProgress = "ImagePulledFromRegistry"
 	// MachineConfigNodeUpdateCordoned describes the part of the in progress phase where the node cordons
 	MachineConfigNodeUpdateCordoned StateProgress = "Cordoned"
 	// MachineConfigNodeUpdateUncordoned describes the part of the completing phase where the node uncordons

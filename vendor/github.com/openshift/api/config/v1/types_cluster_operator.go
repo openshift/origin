@@ -9,10 +9,9 @@ import (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ClusterOperator is the Custom Resource object which holds the current state
-// of an operator. This object is used by operators to convey their state to
-// the rest of the cluster.
-//
+// ClusterOperator holds the status of a core or optional OpenShift component
+// managed by the Cluster Version Operator (CVO). This object is used by
+// operators to convey their state to the rest of the cluster.
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/497
@@ -154,15 +153,21 @@ const (
 	// is functional and available in the cluster. Available=False means at least
 	// part of the component is non-functional, and that the condition requires
 	// immediate administrator intervention.
+	// A component must not report Available=False during the course of a normal upgrade.
 	OperatorAvailable ClusterStatusConditionType = "Available"
 
 	// Progressing indicates that the component (operator and all configured operands)
-	// is actively rolling out new code, propagating config changes, or otherwise
+	// is actively rolling out new code, propagating config changes (e.g, a version change), or otherwise
 	// moving from one steady state to another. Operators should not report
-	// progressing when they are reconciling (without action) a previously known
-	// state. If the observed cluster state has changed and the component is
-	// reacting to it (scaling up for instance), Progressing should become true
+	// Progressing when they are reconciling (without action) a previously known
+	// state. Operators should not report Progressing only because DaemonSets owned by them
+	// are adjusting to a new node from cluster scaleup or a node rebooting from cluster upgrade.
+	// If the observed cluster state has changed and the component is
+	// reacting to it (updated proxy configuration for instance), Progressing should become true
 	// since it is moving from one steady state to another.
+	// A component in a cluster with less than 250 nodes must complete a version
+	// change within a limited period of time: 90 minutes for Machine Config Operator and 20 minutes for others.
+	// Machine Config Operator is given more time as it needs to restart control plane nodes.
 	OperatorProgressing ClusterStatusConditionType = "Progressing"
 
 	// Degraded indicates that the component (operator and all configured operands)
@@ -175,7 +180,7 @@ const (
 	// Degraded because it may have a lower quality of service. A component may be
 	// Progressing but not Degraded because the transition from one state to
 	// another does not persist over a long enough period to report Degraded. A
-	// component should not report Degraded during the course of a normal upgrade.
+	// component must not report Degraded during the course of a normal upgrade.
 	// A component may report Degraded in response to a persistent infrastructure
 	// failure that requires eventual administrator intervention.  For example, if
 	// a control plane host is unhealthy and must be replaced. A component should

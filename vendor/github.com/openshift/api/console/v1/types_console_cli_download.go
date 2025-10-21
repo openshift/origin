@@ -18,7 +18,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:metadata:annotations="description=Extension for configuring openshift web console command line interface (CLI) downloads."
 // +kubebuilder:metadata:annotations="displayName=ConsoleCLIDownload"
 // +kubebuilder:printcolumn:name=Display name,JSONPath=.spec.displayName,type=string
-// +kubebuilder:printcolumn:name=Age,JSONPath=.metadata.creationTimestamp,type=string
+// +kubebuilder:printcolumn:name=Age,JSONPath=.metadata.creationTimestamp,type=date
 // +openshift:compatibility-gen:level=2
 type ConsoleCLIDownload struct {
 	metav1.TypeMeta `json:",inline"`

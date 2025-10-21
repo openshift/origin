@@ -5,7 +5,7 @@ import (
 )
 
 // debugging type
-//     - has a Printf method to write the debug output
+//   - has a Printf method to write the debug output
 type debugging bool
 
 // Enable controls debugging mode.

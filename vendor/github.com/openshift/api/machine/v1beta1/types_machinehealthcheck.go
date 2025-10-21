@@ -76,6 +76,7 @@ type MachineHealthCheckSpec struct {
 	// Expects either a postive integer value or a percentage value.
 	// Percentage values must be positive whole numbers and are capped at 100%.
 	// Both 0 and 0% are valid and will block all remediation.
+	// Defaults to 100% if not set.
 	// +kubebuilder:default:="100%"
 	// +kubebuilder:validation:XIntOrString
 	// +kubebuilder:validation:Pattern="^((100|[0-9]{1,2})%|[0-9]+)$"

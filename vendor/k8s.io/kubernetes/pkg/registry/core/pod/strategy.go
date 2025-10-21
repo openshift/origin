@@ -27,7 +27,7 @@ import (
 	"time"
 
 	netutils "k8s.io/utils/net"
-	"sigs.k8s.io/structured-merge-diff/v4/fieldpath"
+	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 
 	apiv1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -96,6 +96,7 @@ func (podStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 
 	applySchedulingGatedCondition(pod)
 	mutatePodAffinity(pod)
+	mutateTopologySpreadConstraints(pod)
 	applyAppArmorVersionSkew(ctx, pod)
 }
 
@@ -892,6 +893,25 @@ func mutatePodAffinity(pod *api.Pod) {
 	}
 }
 
+func applyMatchLabelKeys(constraint *api.TopologySpreadConstraint, labels map[string]string) {
+	if len(constraint.MatchLabelKeys) == 0 || constraint.LabelSelector == nil {
+		// If LabelSelector is nil, we don't need to apply label keys to it because nil-LabelSelector is match none.
+		return
+	}
+
+	applyLabelKeysToLabelSelector(constraint.LabelSelector, constraint.MatchLabelKeys, metav1.LabelSelectorOpIn, labels)
+}
+
+func mutateTopologySpreadConstraints(pod *api.Pod) {
+	if !utilfeature.DefaultFeatureGate.Enabled(features.MatchLabelKeysInPodTopologySpread) || !utilfeature.DefaultFeatureGate.Enabled(features.MatchLabelKeysInPodTopologySpreadSelectorMerge) || pod.Spec.TopologySpreadConstraints == nil {
+		return
+	}
+	topologySpreadConstraints := pod.Spec.TopologySpreadConstraints
+	for i := range topologySpreadConstraints {
+		applyMatchLabelKeys(&topologySpreadConstraints[i], pod.Labels)
+	}
+}
+
 // applySchedulingGatedCondition adds a {type:PodScheduled, reason:SchedulingGated} condition
 // to a new-created Pod if necessary.
 func applySchedulingGatedCondition(pod *api.Pod) {
@@ -938,23 +958,9 @@ func applyAppArmorVersionSkew(ctx context.Context, pod *api.Pod) {
 				containerProfile = ctr.SecurityContext.AppArmorProfile
 			}
 
-			// sync field and annotation
-			if !hasAnnotation {
-				newAnnotation := ""
-				if containerProfile != nil {
-					newAnnotation = appArmorAnnotationForField(containerProfile)
-				} else if podProfile != nil {
-					newAnnotation = appArmorAnnotationForField(podProfile)
-				}
-
-				if newAnnotation != "" {
-					if pod.Annotations == nil {
-						pod.Annotations = map[string]string{}
-					}
-					pod.Annotations[key] = newAnnotation
-				}
-			} else if containerProfile == nil {
-				newField := apparmorFieldForAnnotation(annotation)
+			// Sync deprecated AppArmor annotations to fields
+			if hasAnnotation && containerProfile == nil {
+				newField := podutil.ApparmorFieldForAnnotation(annotation)
 				if errs := corevalidation.ValidateAppArmorProfileField(newField, &field.Path{}); len(errs) > 0 {
 					// Skip copying invalid value.
 					newField = nil
@@ -984,57 +990,6 @@ func applyAppArmorVersionSkew(ctx context.Context, pod *api.Pod) {
 
 			return true
 		})
-}
-
-// appArmorFieldForAnnotation takes a pod apparmor profile field and returns the
-// converted annotation value
-func appArmorAnnotationForField(field *api.AppArmorProfile) string {
-	// If only apparmor fields are specified, add the corresponding annotations.
-	// This ensures that the fields are enforced even if the node version
-	// trails the API version
-	switch field.Type {
-	case api.AppArmorProfileTypeUnconfined:
-		return api.DeprecatedAppArmorAnnotationValueUnconfined
-
-	case api.AppArmorProfileTypeRuntimeDefault:
-		return api.DeprecatedAppArmorAnnotationValueRuntimeDefault
-
-	case api.AppArmorProfileTypeLocalhost:
-		if field.LocalhostProfile != nil {
-			return api.DeprecatedAppArmorAnnotationValueLocalhostPrefix + *field.LocalhostProfile
-		}
-	}
-
-	// we can only reach this code path if the LocalhostProfile is nil but the
-	// provided field type is AppArmorProfileTypeLocalhost or if an unrecognized
-	// type is specified
-	return ""
-}
-
-// apparmorFieldForAnnotation takes a pod annotation and returns the converted
-// apparmor profile field.
-func apparmorFieldForAnnotation(annotation string) *api.AppArmorProfile {
-	if annotation == api.DeprecatedAppArmorAnnotationValueUnconfined {
-		return &api.AppArmorProfile{Type: api.AppArmorProfileTypeUnconfined}
-	}
-
-	if annotation == api.DeprecatedAppArmorAnnotationValueRuntimeDefault {
-		return &api.AppArmorProfile{Type: api.AppArmorProfileTypeRuntimeDefault}
-	}
-
-	if strings.HasPrefix(annotation, api.DeprecatedAppArmorAnnotationValueLocalhostPrefix) {
-		localhostProfile := strings.TrimPrefix(annotation, api.DeprecatedAppArmorAnnotationValueLocalhostPrefix)
-		if localhostProfile != "" {
-			return &api.AppArmorProfile{
-				Type:             api.AppArmorProfileTypeLocalhost,
-				LocalhostProfile: &localhostProfile,
-			}
-		}
-	}
-
-	// we can only reach this code path if the localhostProfile name has a zero
-	// length or if the annotation has an unrecognized value
-	return nil
 }
 
 // updatePodGeneration bumps metadata.generation if needed for any updates
