@@ -48,25 +48,16 @@ func walkOnAllReferences(walkRef func(ref *spec.Ref), root *spec.Swagger) {
 		walkRef(ref)
 
 		refStr := ref.String()
-		if refStr == "" {
+		if refStr == "" || !strings.HasPrefix(refStr, definitionPrefix) {
 			return
 		}
+		defName := refStr[len(definitionPrefix):]
 
-		if strings.HasPrefix(refStr, parameterPrefix) {
-			paramName := refStr[len(parameterPrefix):]
-			if param, found := root.Parameters[paramName]; found {
-				walker.walkParam(param)
-			}
-		} else if strings.HasPrefix(refStr, definitionPrefix) {
-			defName := refStr[len(definitionPrefix):]
-
-			if _, found := root.Definitions[defName]; found && !alreadyVisited[refStr] {
-				alreadyVisited[refStr] = true
-				def := root.Definitions[defName]
-				walker.walkSchema(&def)
-			}
+		if _, found := root.Definitions[defName]; found && !alreadyVisited[refStr] {
+			alreadyVisited[refStr] = true
+			def := root.Definitions[defName]
+			walker.walkSchema(&def)
 		}
-
 	}
 	walker.Start()
 }
@@ -125,15 +116,11 @@ func (s *readonlyReferenceWalker) walkParams(params []spec.Parameter) {
 		return
 	}
 	for _, param := range params {
-		s.walkParam(param)
-	}
-}
-
-func (s *readonlyReferenceWalker) walkParam(param spec.Parameter) {
-	s.walkRefCallback(&param.Ref)
-	s.walkSchema(param.Schema)
-	if param.Items != nil {
-		s.walkRefCallback(&param.Items.Ref)
+		s.walkRefCallback(&param.Ref)
+		s.walkSchema(param.Schema)
+		if param.Items != nil {
+			s.walkRefCallback(&param.Items.Ref)
+		}
 	}
 }
 
