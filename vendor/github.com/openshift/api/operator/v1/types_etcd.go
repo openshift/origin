@@ -38,7 +38,6 @@ type EtcdSpec struct {
 	// Valid values are "", "Standard" and "Slower".
 	//	"" means no opinion and the platform is left to choose a reasonable default
 	//	which is subject to change without notice.
-	// +openshift:enable:FeatureGate=HardwareSpeed
 	// +optional
 	HardwareSpeed ControlPlaneHardwareSpeed `json:"controlPlaneHardwareSpeed"`
 

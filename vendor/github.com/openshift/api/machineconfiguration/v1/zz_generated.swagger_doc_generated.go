@@ -79,7 +79,7 @@ var map_ContainerRuntimeConfiguration = map[string]string{
 	"logLevel":       "logLevel specifies the verbosity of the logs based on the level it is set to. Options are fatal, panic, error, warn, info, and debug.",
 	"logSizeMax":     "logSizeMax specifies the Maximum size allowed for the container log file. Negative numbers indicate that no size limit is imposed. If it is positive, it must be >= 8192 to match/exceed conmon's read buffer.",
 	"overlaySize":    "overlaySize specifies the maximum size of a container image. This flag can be used to set quota on the size of container images. (default: 10GB)",
-	"defaultRuntime": "defaultRuntime is the name of the OCI runtime to be used as the default.",
+	"defaultRuntime": "defaultRuntime is the name of the OCI runtime to be used as the default for containers. Allowed values are `runc` and `crun`. When set to `runc`, OpenShift will use runc to execute the container When set to `crun`, OpenShift will use crun to execute the container When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time. Currently, the default is `crun`.",
 }
 
 func (ContainerRuntimeConfiguration) SwaggerDoc() map[string]string {
@@ -368,6 +368,16 @@ func (PoolSynchronizerStatus) SwaggerDoc() map[string]string {
 	return map_PoolSynchronizerStatus
 }
 
+var map_IrreconcilableChangeDiff = map[string]string{
+	"":          "IrreconcilableChangeDiff holds an individual diff between the initial install-time MachineConfig and the latest applied one caused by the presence of irreconcilable changes.",
+	"fieldPath": "fieldPath is a required reference to the path in the latest rendered MachineConfig that differs from this nodes configuration. Must not be empty and must not exceed 70 characters in length. Must begin with the prefix 'spec.' and only contain alphanumeric characters, square brackets ('[]'), or dots ('.').",
+	"diff":      "diff is a required field containing the difference between the nodes current configuration and the latest rendered MachineConfig for the field specified in fieldPath. Must not be an empty string and must not exceed 4096 characters in length.",
+}
+
+func (IrreconcilableChangeDiff) SwaggerDoc() map[string]string {
+	return map_IrreconcilableChangeDiff
+}
+
 var map_MCOObjectReference = map[string]string{
 	"":     "MCOObjectReference holds information about an object the MCO either owns or modifies in some way",
 	"name": "name is the name of the object being referenced. For example, this can represent a machine config pool or node name. Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end with an alphanumeric character, and be at most 253 characters in length.",
@@ -403,10 +413,20 @@ var map_MachineConfigNodeSpec = map[string]string{
 	"node":          "node contains a reference to the node for this machine config node.",
 	"pool":          "pool contains a reference to the machine config pool that this machine config node's referenced node belongs to.",
 	"configVersion": "configVersion holds the desired config version for the node targeted by this machine config node resource. The desired version represents the machine config the node will attempt to update to and gets set before the machine config operator validates the new machine config against the current machine config.",
+	"configImage":   "configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields When omitted, Image Mode is not be enabled and the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications. When specified, Image Mode is enabled and will attempt to update the node to use the desired image. Following this, the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.",
 }
 
 func (MachineConfigNodeSpec) SwaggerDoc() map[string]string {
 	return map_MachineConfigNodeSpec
+}
+
+var map_MachineConfigNodeSpecConfigImage = map[string]string{
+	"":             "MachineConfigNodeSpecConfigImage holds the desired image for the node. This structure is populated from the `machineconfiguration.openshift.io/desiredImage` annotation on the target node, which is set by the Machine Config Pool controller to signal the desired image pullspec for the node to update to.",
+	"desiredImage": "desiredImage is a required field that configures the image that the node should be updated to use. It must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9. desiredImage must not be an empty string and must not exceed 447 characters in length.",
+}
+
+func (MachineConfigNodeSpecConfigImage) SwaggerDoc() map[string]string {
+	return map_MachineConfigNodeSpecConfigImage
 }
 
 var map_MachineConfigNodeSpecMachineConfigVersion = map[string]string{
@@ -419,15 +439,27 @@ func (MachineConfigNodeSpecMachineConfigVersion) SwaggerDoc() map[string]string 
 }
 
 var map_MachineConfigNodeStatus = map[string]string{
-	"":                   "MachineConfigNodeStatus holds the reported information on a particular machine config node.",
-	"conditions":         "conditions represent the observations of a machine config node's current state. Valid types are: UpdatePrepared, UpdateExecuted, UpdatePostActionComplete, UpdateComplete, Updated, Resumed, Drained, AppliedFilesAndOS, Cordoned, Uncordoned, RebootedNode, NodeDegraded, PinnedImageSetsProgressing, and PinnedImageSetsDegraded.",
-	"observedGeneration": "observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller. This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.",
-	"configVersion":      "configVersion describes the current and desired machine config version for this node.",
-	"pinnedImageSets":    "pinnedImageSets describes the current and desired pinned image sets for this node.",
+	"":                      "MachineConfigNodeStatus holds the reported information on a particular machine config node.",
+	"conditions":            "conditions represent the observations of a machine config node's current state. Valid types are: UpdatePrepared, UpdateExecuted, UpdatePostActionComplete, UpdateComplete, Updated, Resumed, Drained, AppliedFilesAndOS, Cordoned, Uncordoned, RebootedNode, NodeDegraded, PinnedImageSetsProgressing, and PinnedImageSetsDegraded. The following types are only available when the ImageModeStatusReporting feature gate is enabled: ImagePulledFromRegistry, AppliedOSImage, AppliedFiles",
+	"observedGeneration":    "observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller. This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.",
+	"configVersion":         "configVersion describes the current and desired machine config version for this node.",
+	"configImage":           "configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields. When omitted, this means that the Image Mode feature is not being used and the node will be up to date with the specific current rendered config version for the nodes MachinePool. When specified, the Image Mode feature is enabled and the contents of this field show the observed state of the node image. When Image Mode is enabled and a new MachineConfig is applied such that a new OS image build is not created, only the configVersion field will change. When Image Mode is enabled and a new MachineConfig is applied such that a new OS image build is created, then only the configImage field will change. It is also possible that both the configImage and configVersion change during the same update.",
+	"pinnedImageSets":       "pinnedImageSets describes the current and desired pinned image sets for this node.",
+	"irreconcilableChanges": "irreconcilableChanges is an optional field that contains the observed differences between this nodes configuration and the target rendered MachineConfig. This field will be set when there are changes to the target rendered MachineConfig that can only be applied to new nodes joining the cluster. Entries must be unique, keyed on the fieldPath field. Must not exceed 32 entries.",
 }
 
 func (MachineConfigNodeStatus) SwaggerDoc() map[string]string {
 	return map_MachineConfigNodeStatus
+}
+
+var map_MachineConfigNodeStatusConfigImage = map[string]string{
+	"":             "MachineConfigNodeStatusConfigImage holds the observed state of the image on the node, including both the image targeted for an update and the image currently applied. This allows for monitoring the progress of the layering rollout. If Image Mode is enabled, desiredImage must be defined.",
+	"currentImage": "currentImage is an optional field that represents the current image that is applied to the node. When omitted, this means that no image updates have been applied to the node and it will be up to date with the specific current rendered config version. When specified, this means that the node is currently using this image. currentImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9. currentImage must not be an empty string and must not exceed 447 characters in length.",
+	"desiredImage": "desiredImage is an optional field that represents the currently observed state of image that the node should be updated to use. When not specified, this means that Image Mode has been disabled and the node will up to date with the specific current rendered config version. When specified, this means that Image Mode has been enabled and the node is actively progressing to update the node to this image. If currentImage and desiredImage match, the node has been successfully updated to use the desired image. desiredImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9. desiredImage must not be an empty string and must not exceed 447 characters in length.",
+}
+
+func (MachineConfigNodeStatusConfigImage) SwaggerDoc() map[string]string {
+	return map_MachineConfigNodeStatusConfigImage
 }
 
 var map_MachineConfigNodeStatusMachineConfigVersion = map[string]string{
