@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	nodeutil "k8s.io/kubernetes/pkg/util/node"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -52,7 +53,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Ensuring both nodes are healthy before starting kubelet disruption test")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
-				return isNodeReady(oc, node.Name)
+				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+				if err != nil {
+					framework.Logf("Error getting node %s: %v", node.Name, err)
+					return false
+				}
+				return nodeutil.IsNodeReady(nodeObj)
 			}, nodeIsHealthyTimeout, pollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be ready before kubelet disruption", node.Name))
 		}
 
@@ -90,7 +96,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			g.By("Cleanup: Waiting for all nodes to become Ready after constraint cleanup")
 			for _, node := range nodes {
 				o.Eventually(func() bool {
-					return isNodeReady(oc, node.Name)
+					nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+					if err != nil {
+						framework.Logf("Error getting node %s: %v", node.Name, err)
+						return false
+					}
+					return nodeutil.IsNodeReady(nodeObj)
 				}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after cleanup", node.Name))
 			}
 		}
@@ -112,12 +123,22 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Checking that the node is not in state Ready due to kubelet constraint")
 		o.Eventually(func() bool {
-			return !isNodeReady(oc, targetNode.Name)
+			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting node %s: %v", targetNode.Name, err)
+				return false
+			}
+			return !nodeutil.IsNodeReady(nodeObj)
 		}, kubeletDisruptionTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s is not in state Ready after kubelet constraint is applied", targetNode.Name))
 
 		g.By(fmt.Sprintf("Ensuring surviving node %s remains Ready during kubelet disruption", survivingNode.Name))
 		o.Consistently(func() bool {
-			return isNodeReady(oc, survivingNode.Name)
+			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), survivingNode.Name, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting node %s: %v", survivingNode.Name, err)
+				return false
+			}
+			return nodeutil.IsNodeReady(nodeObj)
 		}, 2*time.Minute, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Surviving node %s should remain Ready during kubelet disruption", survivingNode.Name))
 
 		g.By("Validating etcd cluster remains healthy with surviving node")
@@ -131,13 +152,23 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Waiting for target node to become Ready after kubelet constraint removal")
 		o.Eventually(func() bool {
-			return isNodeReady(oc, targetNode.Name)
+			nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), targetNode.Name, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting node %s: %v", targetNode.Name, err)
+				return false
+			}
+			return nodeutil.IsNodeReady(nodeObj)
 		}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should become Ready after kubelet constraint removal", targetNode.Name))
 
 		g.By("Validating both nodes are Ready after kubelet constraint removal")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
-				return isNodeReady(oc, node.Name)
+				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+				if err != nil {
+					framework.Logf("Error getting node %s: %v", node.Name, err)
+					return false
+				}
+				return nodeutil.IsNodeReady(nodeObj)
 			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet constraint removal", node.Name))
 		}
 
@@ -185,7 +216,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		g.By("Validating both nodes are Ready after kubelet service automatic restart")
 		for _, node := range nodes {
 			o.Eventually(func() bool {
-				return isNodeReady(oc, node.Name)
+				nodeObj, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{})
+				if err != nil {
+					framework.Logf("Error getting node %s: %v", node.Name, err)
+					return false
+				}
+				return nodeutil.IsNodeReady(nodeObj)
 			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet automatic restart", node.Name))
 		}
 

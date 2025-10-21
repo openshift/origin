@@ -9,7 +9,6 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -195,22 +194,6 @@ func isServiceRunning(oc *exutil.CLI, nodeName string, serviceName string) bool 
 
 	_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, nodeName, "openshift-etcd", cmd...)
 	return err == nil
-}
-
-// isNodeReady checks if a node is in Ready state
-func isNodeReady(oc *exutil.CLI, nodeName string) bool {
-	node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		framework.Logf("Error getting node %s: %v", nodeName, err)
-		return false
-	}
-
-	for _, condition := range node.Status.Conditions {
-		if condition.Type == corev1.NodeReady {
-			return condition.Status == corev1.ConditionTrue
-		}
-	}
-	return false
 }
 
 // validateClusterOperatorsAvailable ensures all cluster operators are available
