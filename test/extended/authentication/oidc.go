@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/util/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,6 +117,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 			o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
 			waitForRollout(ctx, oc)
+			waitForHealthyOIDCClients(ctx, oc)
 		})
 
 		g.Describe("external IdP is configured", g.Ordered, func() {
@@ -283,6 +285,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
 					waitForRollout(ctx, oc)
+					waitForHealthyOIDCClients(ctx, oc)
 				})
 
 				g.It("should default UID to the 'sub' claim in the access token from the IdP", func() {
@@ -322,6 +325,7 @@ var _ = g.Describe("[sig-auth][Suite:openshift/auth/external-oidc][Serial][Slow]
 					o.Expect(err).NotTo(o.HaveOccurred(), "should not encounter an error configuring OIDC authentication")
 
 					waitForRollout(ctx, oc)
+					waitForHealthyOIDCClients(ctx, oc)
 				})
 
 				g.Describe("checking cluster identity mapping", g.Ordered, func() {
@@ -600,4 +604,22 @@ func checkKubeAPIServerCondition(ctx context.Context, kasCli operatorv1client.Ku
 	}
 
 	return nil
+}
+
+func waitForHealthyOIDCClients(ctx context.Context, client *exutil.CLI) {
+	o.Eventually(func(gomega o.Gomega) {
+		authn, err := client.AdminConfigClient().ConfigV1().Authentications().Get(ctx, "cluster", metav1.GetOptions{})
+		gomega.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, client := range authn.Status.OIDCClients {
+			// ignore clients that aren't OpenShift default clients
+			if client.ComponentNamespace != "openshift-console" && !(client.ComponentName == "console" || client.ComponentName == "cli") {
+				continue
+			}
+
+			availableCondition := meta.FindStatusCondition(client.Conditions, "Available")
+			gomega.Expect(availableCondition).NotTo(o.BeNil(), fmt.Sprintf("oidc client %s/%s should have an Available condition", client.ComponentNamespace, client.ComponentName))
+			gomega.Expect(availableCondition.Status).To(o.Equal(metav1.ConditionTrue), fmt.Sprintf("oidc client %s/%s should be available but was not", client.ComponentNamespace, client.ComponentName), availableCondition)
+		}
+	}).WithTimeout(10*time.Minute).WithPolling(20*time.Second).Should(o.Succeed(), "should eventually have healthy OIDC client configurations")
 }
