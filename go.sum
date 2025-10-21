@@ -868,10 +868,6 @@ github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20250416174521-4eb003743b54/go.mod 
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
 github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
-github.com/operator-framework/api v0.27.0 h1:OrVaGKZJvbZo58HTv2guz7aURkhVKYhFqZ/6VpifiXI=
-github.com/operator-framework/api v0.27.0/go.mod h1:lg2Xx+S8NQWGYlEOvFwQvH46E5EK5IrAIL7HWfAhciM=
-github.com/operator-framework/operator-lifecycle-manager v0.30.1-0.20250114164243-1b6752ec65fa h1:VzZn+vxGFprQPnaLVDgU5Wfu+2UHsQJh/xLwJw8rXkA=
-github.com/operator-framework/operator-lifecycle-manager v0.30.1-0.20250114164243-1b6752ec65fa/go.mod h1:kzt/wadHjn76OoJeuu7BFzJFRh780BSMYuWaSxk9HGA=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde/go.mod h1:nZgzbfBr3hhjoZnS66nKrHmduYNpc34ny7RK4z5/HM0=
 github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417 h1:7k+dokKFfpICbkpX5TvvpFbKTFsl/6YQd46EpY2JNhc=
 github.com/ovn-org/ovn-kubernetes/go-controller v0.0.0-20250118001652-a8b9c3c31417/go.mod h1:9LxDV3rAHlGHAYtVrT62y/fqfIxc5RrDiYi9RVeD0gg=
