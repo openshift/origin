@@ -19,6 +19,7 @@ import (
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // TODO: remove this in favor of a better registration approach
@@ -31,13 +32,6 @@ func init() {
 				"metadata": map[string]interface{}{
 					"name": "sha256~tokenneedstobelongenoughelseitwontworkg",
 				},
-				"clientName": "testclient",
-				"userName":   "admin",
-				"userUID":    "notempty",
-				"scopes": []string{
-					"user:info",
-				},
-				"redirectURI": "https://something.com/",
 			},
 		},
 		UnsupportedVerbs: sets.New("create", "update", "patch", "deletecollection"),
@@ -61,16 +55,23 @@ func init() {
 				},
 			},
 		},
+		ClientOptions: func(cfg *rest.Config) {
+			cfg.Impersonate = rest.ImpersonationConfig{
+				UserName: "testuser",
+				// system:masters is given cluster-admin
+				Groups: []string{
+					"system:masters",
+				},
+			}
+		},
 	})
 }
-
-// TODO: create a generic structure for stubbing out GVRs.
-// TODO: Use a validating admission policy with a response warning for simulating the webhook behavior
 
 type Stub struct {
 	Object             *unstructured.Unstructured
 	UnsupportedVerbs   sets.Set[string]
 	DependentResources map[schema.GroupVersionResource][]unstructured.Unstructured
+	ClientOptions      func(*rest.Config)
 }
 
 type GVRStubRegistry map[schema.GroupVersionResource]Stub
@@ -172,10 +173,14 @@ var _ = g.Describe("[sig-api-machinery][kube-apiserver] Admission behaves correc
 					continue
 				}
 
+				g.By(fmt.Sprintf("checking admission is successful for GVR %q for %s operations", gvr.String(), verb))
+
 				for depGVR, dependentResource := range stub.DependentResources {
 					for _, depRes := range dependentResource {
 						_, err := dynamicClient.Resource(depGVR).Create(context.TODO(), &depRes, metav1.CreateOptions{})
-						o.Expect(err).NotTo(o.HaveOccurred())
+						if err != nil && !k8serrors.IsAlreadyExists(err) {
+							o.Expect(err).NotTo(o.HaveOccurred())
+						}
 					}
 				}
 
@@ -186,7 +191,9 @@ var _ = g.Describe("[sig-api-machinery][kube-apiserver] Admission behaves correc
 				for depGVR, dependentResource := range stub.DependentResources {
 					for _, depRes := range dependentResource {
 						err := dynamicClient.Resource(depGVR).Delete(context.TODO(), depRes.GetName(), metav1.DeleteOptions{})
-						o.Expect(err).NotTo(o.HaveOccurred())
+						if err != nil && !k8serrors.IsNotFound(err) {
+							o.Expect(err).NotTo(o.HaveOccurred())
+						}
 					}
 				}
 			}
