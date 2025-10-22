@@ -578,7 +578,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 						break
 					}
 				}
-				commonTestSteps(ctx, oc, namespace, deployName, 1000, 1000, 1000, skipAnnotationCheck)
+				commonTestStepsValidGroups(ctx, oc, namespace, deployName, 1000, 1000, 1000, skipAnnotationCheck)
 			}
 		}
 	})
@@ -595,7 +595,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName)
 
-		commonTestSteps(ctx, oc, namespace, deployName, 1010, 1020, 1000, skipAnnotationCheck)
+		commonTestStepsValidGroups(ctx, oc, namespace, deployName, 1010, 1020, 1000, skipAnnotationCheck)
 	})
 
 	g.It("[CNTRLPLANE-1544] OCP-85303 Test the deployment with invalid security context values are not allowed", func() {
@@ -673,7 +673,10 @@ func createDeploymentFromYAML(namespace, deployName string, runAsUser, runAsGrou
 	return deployment
 }
 
-func commonTestSteps(ctx context.Context, oc *exutil.CLI, namespace, deployName string, runAsUser, runAsGroup, fsGroup int64, skipAnnotationCheck bool) {
+func commonTestStepsValidGroups(ctx context.Context, oc *exutil.CLI, namespace, deployName string, runAsUser, runAsGroup, fsGroup int64, skipAnnotationCheck bool) {
+	var pod *corev1.Pod
+	var nodeName string
+
 	g.By("Checking the deployment is ready")
 	err := exutil.WaitForDeploymentReady(oc, deployName, namespace, -1)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -708,10 +711,65 @@ func commonTestSteps(ctx context.Context, oc *exutil.CLI, namespace, deployName 
 	pods, err := exutil.GetDeploymentPods(oc, deployName, namespace, labelSelector)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(pods.Items).NotTo(o.BeEmpty())
-	podName := pods.Items[0].Name
+	pod = &pods.Items[0]
+	podName := pod.Name
+	nodeName = pod.Spec.NodeName
+	o.Expect(nodeName).NotTo(o.BeEmpty())
+	o.Expect(podName).NotTo(o.BeEmpty())
 	out, err := oc.AsAdmin().Run("exec").Args(podName, "--namespace="+namespace, "--", "/bin/bash", "-c", "id").Output()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("uid=%d(%d) gid=%d(%d) groups=%d(%d)", runAsUser, runAsUser, runAsGroup, runAsGroup, runAsGroup, runAsGroup)))
+
+	g.By("Getting container ID and node information for uid_map verification")
+	// Get container ID if container was created (might be empty for CreateContainerError)
+	if len(pod.Status.ContainerStatuses) > 0 && pod.Status.ContainerStatuses[0].ContainerID != "" {
+		containerID := pod.Status.ContainerStatuses[0].ContainerID
+		// Remove cri-o:// prefix if present
+		containerID = strings.TrimPrefix(containerID, "cri-o://")
+
+		g.By("Using debug pod to inspect container and check uid_map")
+		debugCmd := fmt.Sprintf("chroot /host crictl inspect %s | jq -r '.info.pid'", containerID)
+		pidOut, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "bash", "-c", debugCmd).Output()
+		framework.Logf("Debug pod output: %s", pidOut)
+
+		if err == nil && strings.TrimSpace(pidOut) != "" {
+			// Extract PID from debug output - look for numeric value after all the debug messages
+			lines := strings.Split(strings.TrimSpace(pidOut), "\n")
+			pid := strings.TrimSpace(lines[2])
+
+			if pid != "" && pid != "null" {
+				framework.Logf("Extracted PID: %s", pid)
+				g.By("Checking uid_map for user namespace mapping")
+				uidMapCmd := fmt.Sprintf("chroot /host cat /proc/%s/uid_map", pid)
+				uidMapOut, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "bash", "-c", uidMapCmd).Output()
+				if err == nil {
+					framework.Logf("uid_map content: %s", uidMapOut)
+
+					// Parse uid_map format: inside_uid outside_uid length
+					// Check that the second column (outside_uid) is not equal to runAsUser
+					lines := strings.Split(strings.TrimSpace(uidMapOut), "\n")
+					if len(lines) > 0 {
+						fields := strings.Fields(lines[2])
+						if len(fields) >= 2 {
+							outsideUID := fields[1]
+							// The outside UID should be different from the original runAsUser due to user namespace mapping
+							// This verifies that user namespace is working correctly
+							o.Expect(outsideUID).NotTo(o.Equal(fmt.Sprintf("%d", runAsUser)))
+							framework.Logf("Outside UID from uid_map: %s, Expected different from runAsUser %d", outsideUID, runAsUser)
+						}
+					}
+				} else {
+					framework.Logf("Could not read uid_map: %v", err)
+				}
+			} else {
+				framework.Logf("Could not get container PID or container not running")
+			}
+		} else {
+			framework.Logf("Could not get container PID or container not running: %v", err)
+		}
+	} else {
+		framework.Logf("Container ID not available (expected for CreateContainerError state)")
+	}
 }
 
 func commonTestStepsInvalidGroup(oc *exutil.CLI, deployment *appsv1.Deployment, message string) {
