@@ -209,10 +209,10 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 				// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
 				flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
 			case deletionTime.Before(event.From):
-				// something went wrong.  More than five seconds after the pod ws deleted, the CNI is trying to set up pod sandboxes and can't
+				// something went wrong.  More than five seconds after the pod was deleted, the CNI is trying to set up pod sandboxes and can't
 				failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
 			default:
-				// something went wrong.  deletion happend after we had a failure to create the pod sandbox
+				// something went wrong.  deletion happened after we had a failure to create the pod sandbox
 				failures = append(failures, fmt.Sprintf("%v - deletion came AFTER sandbox failure - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
 			}
 		}
