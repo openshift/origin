@@ -197,8 +197,8 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
 			} else {
 				failures = append(failures, fmt.Sprintf(
-					"%v - never deleted - operator:%s was progressing which may cause pod sandbox creation errors - %v",
-					event.Locator.OldLocator(), progressingOperatorName, event.Message.OldMessage()))
+					"%v - never deleted - %v",
+					event.Locator.OldLocator(), event.Message.OldMessage()))
 			}
 		} else {
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
