@@ -549,13 +549,19 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	ctx := context.Background()
 
 	g.BeforeEach(func() {
-		// Skip on Microshift clusters
+		// Skip on Hypershift clusters
 		isHyperShift, err := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isHyperShift {
 			g.Skip("Skip case as control plane pods are not supported on HyperShift cluster")
 		}
 
+		// Skip on Microshift clusters
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("Skip case as control plane pods are not supported on MicroShift cluster")
+		}
 	})
 
 	g.It("[CNTRLPLANE-1544] OCP-85221 Check the pods with uid, gid, hostUsers, annotations parameters are correctly set", func() {
