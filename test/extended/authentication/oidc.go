@@ -489,6 +489,14 @@ func generateOIDCProvider(ctx context.Context, client *exutil.CLI, namespace, oi
 					Name: oidcClientSecret,
 				},
 			},
+			{
+				ComponentName:      "cli",
+				ComponentNamespace: "openshift-console",
+				ClientID:           "openshift-cli-oidc-client",
+				ClientSecret: configv1.SecretNameReference{
+					Name: oidcClientSecret,
+				},
+			},
 		},
 	}, nil
 }
