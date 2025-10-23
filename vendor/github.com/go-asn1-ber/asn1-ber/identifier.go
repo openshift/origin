@@ -37,7 +37,7 @@ func readIdentifier(reader io.Reader) (Identifier, int, error) {
 			if Debug {
 				fmt.Printf("error reading high-tag-number tag byte %d: %v\n", tagBytes, err)
 			}
-			return Identifier{}, read, err
+			return Identifier{}, read, unexpectedEOF(err)
 		}
 		tagBytes++
 		read++

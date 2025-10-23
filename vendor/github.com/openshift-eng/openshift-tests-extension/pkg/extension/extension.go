@@ -117,9 +117,15 @@ func (e *Extension) AddGlobalSuite(suite Suite) *Extension {
 // in its own extension.
 func (e *Extension) AddSuite(suite Suite) *Extension {
 	expr := fmt.Sprintf("source == %q", e.Component.Identifier())
-	for i := range suite.Qualifiers {
-		suite.Qualifiers[i] = fmt.Sprintf("(%s) && (%s)", expr, suite.Qualifiers[i])
+	if len(suite.Qualifiers) == 0 {
+		suite.Qualifiers = []string{expr}
+	} else {
+		for i := range suite.Qualifiers {
+			suite.Qualifiers[i] = fmt.Sprintf("(%s) && (%s)",
+				expr, suite.Qualifiers[i])
+		}
 	}
+
 	e.AddGlobalSuite(suite)
 	return e
 }

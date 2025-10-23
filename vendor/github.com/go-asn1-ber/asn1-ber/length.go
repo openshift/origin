@@ -13,7 +13,7 @@ func readLength(reader io.Reader) (length int, read int, err error) {
 		if Debug {
 			fmt.Printf("error reading length byte: %v\n", err)
 		}
-		return 0, 0, err
+		return 0, 0, unexpectedEOF(err)
 	}
 	read++
 
@@ -47,7 +47,7 @@ func readLength(reader io.Reader) (length int, read int, err error) {
 				if Debug {
 					fmt.Printf("error reading long-form length byte %d: %v\n", i, err)
 				}
-				return 0, read, err
+				return 0, read, unexpectedEOF(err)
 			}
 			read++
 

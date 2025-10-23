@@ -70,6 +70,10 @@ type InfrastructureListerExpansion interface{}
 // IngressLister.
 type IngressListerExpansion interface{}
 
+// InsightsDataGatherListerExpansion allows custom methods to be added to
+// InsightsDataGatherLister.
+type InsightsDataGatherListerExpansion interface{}
+
 // NetworkListerExpansion allows custom methods to be added to
 // NetworkLister.
 type NetworkListerExpansion interface{}

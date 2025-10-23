@@ -18,7 +18,7 @@ func init() {
 }
 
 func ReadNetworkPolicyV1OrDie(objBytes []byte) *networkingv1.NetworkPolicy {
-	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(networkingv1.SchemeGroupVersion), objBytes)
+	requiredObj, err := runtime.Decode(netCodecs.UniversalDecoder(networkingv1.SchemeGroupVersion), objBytes)
 	if err != nil {
 		panic(err)
 	}

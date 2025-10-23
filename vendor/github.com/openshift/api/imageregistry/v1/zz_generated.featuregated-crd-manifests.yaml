@@ -4,8 +4,7 @@ configs.imageregistry.operator.openshift.io:
   CRDName: configs.imageregistry.operator.openshift.io
   Capability: ""
   Category: ""
-  FeatureGates:
-  - ChunkSizeMiB
+  FeatureGates: []
   FilenameOperatorName: ""
   FilenameOperatorOrdering: "00"
   FilenameRunLevel: ""

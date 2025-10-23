@@ -26,13 +26,51 @@ var DefaultRetry = wait.Backoff{
 }
 
 type retryClient struct {
-	// embed because we only want to override a few states
-	storage.Interface
+	// All methods of storage.Interface are implemented directly on *retryClient, even when they
+	// are purely passthroughs to the delegate. During a rebase, consider whether or not it is
+	// safe and appropriate for a new method added to the method set of storage.Interface to
+	// perform retries.
+	delegate storage.Interface
+}
+
+func (c *retryClient) Stats(ctx context.Context) (storage.Stats, error) {
+	return c.delegate.Stats(ctx)
+}
+
+func (c *retryClient) SetKeysFunc(f storage.KeysFunc) {
+	c.delegate.SetKeysFunc(f)
+}
+
+func (c *retryClient) CompactRevision() int64 {
+	return c.delegate.CompactRevision()
+}
+
+func (c *retryClient) ReadinessCheck() error {
+	return c.delegate.ReadinessCheck()
+}
+
+func (c *retryClient) RequestWatchProgress(ctx context.Context) error {
+	return c.delegate.RequestWatchProgress(ctx)
+}
+
+func (c *retryClient) Versioner() storage.Versioner {
+	return c.delegate.Versioner()
 }
 
 // New returns an etcd3 implementation of storage.Interface.
 func NewRetryingEtcdStorage(delegate storage.Interface) storage.Interface {
-	return &retryClient{Interface: delegate}
+	return &retryClient{delegate: delegate}
+}
+
+func (c *retryClient) GetCurrentResourceVersion(ctx context.Context) (uint64, error) {
+	var (
+		rv  uint64
+		err error
+	)
+	return rv, OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
+		rv, err = c.delegate.GetCurrentResourceVersion(ctx)
+		return err
+	})
 }
 
 // Create adds a new object at a key unless it already exists. 'ttl' is time-to-live
@@ -40,7 +78,7 @@ func NewRetryingEtcdStorage(delegate storage.Interface) storage.Interface {
 // set to the read value from database.
 func (c *retryClient) Create(ctx context.Context, key string, obj, out runtime.Object, ttl uint64) error {
 	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
-		return c.Interface.Create(ctx, key, obj, out, ttl)
+		return c.delegate.Create(ctx, key, obj, out, ttl)
 	})
 }
 
@@ -48,7 +86,7 @@ func (c *retryClient) Create(ctx context.Context, key string, obj, out runtime.O
 // If key didn't exist, it will return NotFound storage error.
 func (c *retryClient) Delete(ctx context.Context, key string, out runtime.Object, preconditions *storage.Preconditions, validateDeletion storage.ValidateObjectFunc, cachedExistingObject runtime.Object, opts storage.DeleteOptions) error {
 	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
-		return c.Interface.Delete(ctx, key, out, preconditions, validateDeletion, cachedExistingObject, opts)
+		return c.delegate.Delete(ctx, key, out, preconditions, validateDeletion, cachedExistingObject, opts)
 	})
 }
 
@@ -63,7 +101,7 @@ func (c *retryClient) Watch(ctx context.Context, key string, opts storage.ListOp
 	var ret watch.Interface
 	err := OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
 		var innerErr error
-		ret, innerErr = c.Interface.Watch(ctx, key, opts)
+		ret, innerErr = c.delegate.Watch(ctx, key, opts)
 		return innerErr
 	})
 	return ret, err
@@ -76,7 +114,7 @@ func (c *retryClient) Watch(ctx context.Context, key string, opts storage.ListOp
 // match 'opts.ResourceVersion' according 'opts.ResourceVersionMatch'.
 func (c *retryClient) Get(ctx context.Context, key string, opts storage.GetOptions, objPtr runtime.Object) error {
 	return OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
-		return c.Interface.Get(ctx, key, opts, objPtr)
+		return c.delegate.Get(ctx, key, opts, objPtr)
 	})
 }
 
@@ -88,7 +126,7 @@ func (c *retryClient) Get(ctx context.Context, key string, opts storage.GetOptio
 // match 'opts.ResourceVersion' according 'opts.ResourceVersionMatch'.
 func (c *retryClient) GetList(ctx context.Context, key string, opts storage.ListOptions, listObj runtime.Object) error {
 	return OnError(ctx, DefaultRetry, IsRetriableErrorOnRead, func() error {
-		return c.Interface.GetList(ctx, key, opts, listObj)
+		return c.delegate.GetList(ctx, key, opts, listObj)
 	})
 }
 
@@ -129,7 +167,7 @@ func (c *retryClient) GetList(ctx context.Context, key string, opts storage.List
 func (c *retryClient) GuaranteedUpdate(ctx context.Context, key string, destination runtime.Object, ignoreNotFound bool,
 	preconditions *storage.Preconditions, tryUpdate storage.UpdateFunc, cachedExistingObject runtime.Object) error {
 	return OnError(ctx, DefaultRetry, IsRetriableErrorOnWrite, func() error {
-		return c.Interface.GuaranteedUpdate(ctx, key, destination, ignoreNotFound, preconditions, tryUpdate, cachedExistingObject)
+		return c.delegate.GuaranteedUpdate(ctx, key, destination, ignoreNotFound, preconditions, tryUpdate, cachedExistingObject)
 	})
 }
 
