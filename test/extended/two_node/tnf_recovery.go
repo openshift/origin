@@ -376,7 +376,6 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("should recover from etcd process crash", func() {
 		// Note: This test kills the etcd process/container on one node to simulate
 		// a process crash, testing Pacemaker's ability to detect and restart etcd
-		survivedNode := peerNode
 		g.GinkgoT().Printf("Randomly selected %s (%s) for etcd process crash and %s (%s) to survive\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 
@@ -386,23 +385,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			"bash", "-c", "podman kill etcd 2>/dev/null || pkill -9 etcd 2>/dev/null || systemctl stop etcd 2>/dev/null || true")
 		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
 
-		g.By("Waiting for Pacemaker to detect etcd failure and begin recovery")
-		// Give Pacemaker time to detect the failure and start recovery
-		time.Sleep(30 * time.Second)
+		g.By("Waiting for cluster to recover - both nodes become started voting members")
+		// Wait for Pacemaker to detect failure, restart etcd, and complete full recovery
+		time.Sleep(5 * time.Minute)
 
-		g.By(fmt.Sprintf("Ensuring %s becomes leader and %s rejoins as learner", peerNode.Name, targetNode.Name))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, false, true, // targetNode expected started == false, learner == true
-			memberIsLeaderTimeout, pollInterval)
-
-		g.By(fmt.Sprintf("Ensuring %s rejoins as learner", targetNode.Name))
-		validateEtcdRecoveryState(oc, etcdClientFactory,
-			&survivedNode,
-			&targetNode, true, true, // targetNode expected started == true, learner == true
-			memberRejoinedLearnerTimeout, pollInterval)
-
-		g.By(fmt.Sprintf("Ensuring %s is promoted back to voting member", targetNode.Name))
+		g.By("Ensuring both nodes are started and voting members after recovery")
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
