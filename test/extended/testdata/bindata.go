@@ -46185,7 +46185,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -46216,7 +46215,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -46232,7 +46230,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -46246,7 +46243,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -46276,7 +46272,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -46292,7 +46287,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -46306,7 +46300,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -46336,7 +46329,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -46352,7 +46344,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -46366,7 +46357,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup
@@ -46396,7 +46386,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -46412,7 +46401,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -46442,7 +46430,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -46458,7 +46445,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: secondgroup
@@ -46472,7 +46458,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup
@@ -46502,7 +46487,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -46513,7 +46497,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -46527,7 +46510,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -46555,7 +46537,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -46588,7 +46569,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -46604,7 +46584,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -46934,7 +46913,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group2
@@ -46965,7 +46943,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group1
@@ -46981,7 +46958,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group2
@@ -46995,7 +46971,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group3
@@ -47025,7 +47000,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group2
@@ -47039,7 +47013,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group3
@@ -47069,7 +47042,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
@@ -47085,7 +47057,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
@@ -47099,7 +47070,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
@@ -47129,7 +47099,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group2
@@ -47143,7 +47112,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -47159,7 +47127,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup
@@ -47189,7 +47156,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group1
@@ -47205,7 +47171,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group3
@@ -47235,7 +47200,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -47251,7 +47215,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: secondgroup
@@ -47265,7 +47228,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup
@@ -47295,7 +47257,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group1
@@ -47306,7 +47267,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group2
@@ -47320,7 +47280,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group3
@@ -47348,7 +47307,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group1
@@ -47381,7 +47339,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group1
@@ -47397,7 +47354,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=adextended,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: extended-group2
@@ -47765,7 +47721,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -47796,7 +47751,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -47812,7 +47766,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -47826,7 +47779,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -47856,7 +47808,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
@@ -47872,7 +47823,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
@@ -47886,7 +47836,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
@@ -47916,7 +47865,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -47932,7 +47880,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -47946,7 +47893,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup
@@ -47976,7 +47922,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -47992,7 +47937,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -48022,7 +47966,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -48038,7 +47981,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -48052,7 +47994,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=incomplete-rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -48082,7 +48023,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -48098,7 +48038,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: secondgroup
@@ -48112,7 +48051,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup
@@ -48142,7 +48080,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -48153,7 +48090,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
@@ -48167,7 +48103,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group3,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group3
@@ -48195,7 +48130,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -48228,7 +48162,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group1,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group1
@@ -48244,7 +48177,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: cn=group2,ou=groups,ou=rfc2307,dc=example,dc=com
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: group2
