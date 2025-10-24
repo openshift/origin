@@ -179,6 +179,16 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			leaderNode,
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, pollInterval)
+
+		g.By("Validating etcd cluster operator recovery after network disruption")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, memberPromotedVotingTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after network disruption")
+
+		g.By("Validating all cluster operators recovery after network disruption")
+		o.Eventually(func() error {
+			return validateClusterOperatorsAvailable(oc)
+		}, memberPromotedVotingTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "All cluster operators should be available after network disruption")
 	})
 
 	g.It("should recover from a double node failure", func() {
