@@ -35,8 +35,8 @@ func Test_parseClusterOperatorNames(t *testing.T) {
 		{
 			name:     "one CO timeout",
 			reason:   "SlowClusterOperator",
-			message:  "waiting on co-timeout over 30 minutes which is longer than expected",
-			expected: sets.New[string]("co-timeout"),
+			message:  "waiting on network over 30 minutes which is longer than expected",
+			expected: sets.New[string]("network"),
 		},
 		{
 			name:     "mco timeout",
@@ -53,20 +53,26 @@ func Test_parseClusterOperatorNames(t *testing.T) {
 		{
 			name:     "two COs timeout",
 			reason:   "SlowClusterOperator",
-			message:  "waiting on co-timeout, co-bar-timeout over 30 minutes which is longer than expected",
-			expected: sets.New[string]("co-timeout", "co-bar-timeout"),
+			message:  "waiting on console, network over 30 minutes which is longer than expected",
+			expected: sets.New[string]("console", "network"),
 		},
 		{
 			name:     "one CO and mco timeout",
 			reason:   "SlowClusterOperator",
-			message:  "waiting on co-timeout over 30 minutes and machine-config over 90 minutes which is longer than expected",
-			expected: sets.New[string]("machine-config", "co-timeout"),
+			message:  "waiting on network over 30 minutes and machine-config over 90 minutes which is longer than expected",
+			expected: sets.New[string]("machine-config", "network"),
 		},
 		{
 			name:     "three COs timeout",
 			reason:   "SlowClusterOperator",
-			message:  "waiting on co-timeout, co-bar-timeout over 30 minutes and machine-config over 90 minutes which is longer than expected",
-			expected: sets.New[string]("machine-config", "co-timeout", "co-bar-timeout"),
+			message:  "waiting on console, network over 30 minutes and machine-config over 90 minutes which is longer than expected",
+			expected: sets.New[string]("machine-config", "console", "network"),
+		},
+		{
+			name:        "unknown operators",
+			reason:      "SlowClusterOperator",
+			message:     "waiting on unknown, bar, network over 30 minutes and machine-config over 90 minutes which is longer than expected",
+			expectedErr: fmt.Errorf(`found unknown operator names "bar, unknown" from "changed to Some=Unknown: SlowClusterOperator: waiting on unknown, bar, network over 30 minutes and machine-config over 90 minutes which is longer than expected"`),
 		},
 	}
 
