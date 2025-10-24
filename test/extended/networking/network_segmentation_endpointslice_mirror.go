@@ -167,12 +167,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			},
 			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
 				netConfig := newNetworkAttachmentConfig(c)
-				nad := generateNAD(netConfig)
+				nad := generateNAD(oc, netConfig)
 				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(context.Background(), nad, metav1.CreateOptions{})
 				return err
 			}),
 			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
-				udnManifest := generateUserDefinedNetworkManifest(&c)
+				udnManifest := generateUserDefinedNetworkManifest(oc, &c)
 				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
 				DeferCleanup(cleanup)
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), f.Namespace.Name, c.name), 5*time.Second, time.Second).Should(Succeed())
@@ -260,12 +260,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			},
 			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
 				netConfig := newNetworkAttachmentConfig(c)
-				nad := generateNAD(netConfig)
+				nad := generateNAD(oc, netConfig)
 				_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 				return err
 			}),
 			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
-				udnManifest := generateUserDefinedNetworkManifest(&c)
+				udnManifest := generateUserDefinedNetworkManifest(oc, &c)
 				cleanup, err := createManifest(c.namespace, udnManifest)
 				DeferCleanup(cleanup)
 				Eventually(userDefinedNetworkReadyFunc(oc.AdminDynamicClient(), c.namespace, c.name), 5*time.Second, time.Second).Should(Succeed())
