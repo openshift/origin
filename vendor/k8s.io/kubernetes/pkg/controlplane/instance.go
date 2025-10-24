@@ -45,11 +45,11 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	eventsv1 "k8s.io/api/events/v1"
 	networkingapiv1 "k8s.io/api/networking/v1"
-	networkingapiv1alpha1 "k8s.io/api/networking/v1alpha1"
 	networkingapiv1beta1 "k8s.io/api/networking/v1beta1"
 	nodev1 "k8s.io/api/node/v1"
 	policyapiv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	resourcev1 "k8s.io/api/resource/v1"
 	resourcev1alpha3 "k8s.io/api/resource/v1alpha3"
 	resourcev1beta1 "k8s.io/api/resource/v1beta1"
 	resourcev1beta2 "k8s.io/api/resource/v1beta2"
@@ -119,6 +119,12 @@ const (
 	IdentityLeaseComponentLabelKey = controlplaneapiserver.IdentityLeaseComponentLabelKey
 	// repairLoopInterval defines the interval used to run the Services ClusterIP and NodePort repair loops
 	repairLoopInterval = 3 * time.Minute
+)
+
+var (
+	// AdditionalStorageProvidersForTests allows tests to inject additional test-only API groups.
+	// Only meant for use in integration tests.
+	AdditionalStorageProvidersForTests func(client *kubernetes.Clientset) []controlplaneapiserver.RESTStorageProvider
 )
 
 // Extra defines extra configuration for kube-apiserver
@@ -402,14 +408,14 @@ func (c CompletedConfig) StorageProviders(client *kubernetes.Clientset) ([]contr
 	// with specific priorities.
 	// TODO: describe the priority all the way down in the RESTStorageProviders and plumb it back through the various discovery
 	// handlers that we have.
-	return []controlplaneapiserver.RESTStorageProvider{
+	providers := []controlplaneapiserver.RESTStorageProvider{
 		legacyRESTStorageProvider,
 		apiserverinternalrest.StorageProvider{},
 		authenticationrest.RESTStorageProvider{Authenticator: c.ControlPlane.Generic.Authentication.Authenticator, APIAudiences: c.ControlPlane.Generic.Authentication.APIAudiences},
 		authorizationrest.RESTStorageProvider{Authorizer: c.ControlPlane.Generic.Authorization.Authorizer, RuleResolver: c.ControlPlane.Generic.RuleResolver},
 		autoscalingrest.RESTStorageProvider{},
 		batchrest.RESTStorageProvider{},
-		certificatesrest.RESTStorageProvider{},
+		certificatesrest.RESTStorageProvider{Authorizer: c.ControlPlane.Generic.Authorization.Authorizer},
 		coordinationrest.RESTStorageProvider{},
 		discoveryrest.StorageProvider{},
 		networkingrest.RESTStorageProvider{},
@@ -426,7 +432,13 @@ func (c CompletedConfig) StorageProviders(client *kubernetes.Clientset) ([]contr
 		admissionregistrationrest.RESTStorageProvider{Authorizer: c.ControlPlane.Generic.Authorization.Authorizer, DiscoveryClient: client.Discovery()},
 		eventsrest.RESTStorageProvider{TTL: c.ControlPlane.EventTTL},
 		resourcerest.RESTStorageProvider{NamespaceClient: client.CoreV1().Namespaces()},
-	}, nil
+	}
+
+	if AdditionalStorageProvidersForTests != nil {
+		providers = append(providers, AdditionalStorageProvidersForTests(client)...)
+	}
+
+	return providers, nil
 }
 
 var (
@@ -448,6 +460,7 @@ var (
 		nodev1.SchemeGroupVersion,
 		policyapiv1.SchemeGroupVersion,
 		rbacv1.SchemeGroupVersion,
+		resourcev1.SchemeGroupVersion,
 		storageapiv1.SchemeGroupVersion,
 		schedulingapiv1.SchemeGroupVersion,
 		flowcontrolv1.SchemeGroupVersion,
@@ -477,7 +490,6 @@ var (
 		coordinationv1alpha2.SchemeGroupVersion,
 		resourcev1alpha3.SchemeGroupVersion,
 		certificatesv1alpha1.SchemeGroupVersion,
-		networkingapiv1alpha1.SchemeGroupVersion,
 		storageapiv1alpha1.SchemeGroupVersion,
 		svmv1alpha1.SchemeGroupVersion,
 	}

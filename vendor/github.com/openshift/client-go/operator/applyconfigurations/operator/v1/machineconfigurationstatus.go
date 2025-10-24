@@ -9,10 +9,11 @@ import (
 // MachineConfigurationStatusApplyConfiguration represents a declarative configuration of the MachineConfigurationStatus type for use
 // with apply.
 type MachineConfigurationStatusApplyConfiguration struct {
-	ObservedGeneration         *int64                                        `json:"observedGeneration,omitempty"`
-	Conditions                 []metav1.ConditionApplyConfiguration          `json:"conditions,omitempty"`
-	NodeDisruptionPolicyStatus *NodeDisruptionPolicyStatusApplyConfiguration `json:"nodeDisruptionPolicyStatus,omitempty"`
-	ManagedBootImagesStatus    *ManagedBootImagesApplyConfiguration          `json:"managedBootImagesStatus,omitempty"`
+	ObservedGeneration             *int64                                            `json:"observedGeneration,omitempty"`
+	Conditions                     []metav1.ConditionApplyConfiguration              `json:"conditions,omitempty"`
+	NodeDisruptionPolicyStatus     *NodeDisruptionPolicyStatusApplyConfiguration     `json:"nodeDisruptionPolicyStatus,omitempty"`
+	ManagedBootImagesStatus        *ManagedBootImagesApplyConfiguration              `json:"managedBootImagesStatus,omitempty"`
+	BootImageSkewEnforcementStatus *BootImageSkewEnforcementStatusApplyConfiguration `json:"bootImageSkewEnforcementStatus,omitempty"`
 }
 
 // MachineConfigurationStatusApplyConfiguration constructs a declarative configuration of the MachineConfigurationStatus type for use with
@@ -55,5 +56,13 @@ func (b *MachineConfigurationStatusApplyConfiguration) WithNodeDisruptionPolicyS
 // If called multiple times, the ManagedBootImagesStatus field is set to the value of the last call.
 func (b *MachineConfigurationStatusApplyConfiguration) WithManagedBootImagesStatus(value *ManagedBootImagesApplyConfiguration) *MachineConfigurationStatusApplyConfiguration {
 	b.ManagedBootImagesStatus = value
+	return b
+}
+
+// WithBootImageSkewEnforcementStatus sets the BootImageSkewEnforcementStatus field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the BootImageSkewEnforcementStatus field is set to the value of the last call.
+func (b *MachineConfigurationStatusApplyConfiguration) WithBootImageSkewEnforcementStatus(value *BootImageSkewEnforcementStatusApplyConfiguration) *MachineConfigurationStatusApplyConfiguration {
+	b.BootImageSkewEnforcementStatus = value
 	return b
 }

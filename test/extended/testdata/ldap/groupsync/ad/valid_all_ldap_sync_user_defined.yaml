@@ -4,7 +4,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group1
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: firstgroup
@@ -20,7 +19,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group2
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: secondgroup
@@ -34,7 +32,6 @@ metadata:
   annotations:
     openshift.io/ldap.uid: group3
     openshift.io/ldap.url: LDAP_SERVICE_IP:389
-  creationTimestamp: null
   labels:
     openshift.io/ldap.host: LDAP_SERVICE_IP
   name: thirdgroup

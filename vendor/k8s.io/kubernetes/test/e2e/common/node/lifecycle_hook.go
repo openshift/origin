@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/test/e2e/feature"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
@@ -40,7 +41,8 @@ import (
 
 var _ = SIGDescribe("Container Lifecycle Hook", func() {
 	f := framework.NewDefaultFramework("container-lifecycle-hook")
-	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
+	// FIXME: This test is being run in the privileged mode because of https://github.com/kubernetes/kubernetes/issues/133091
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	var podClient *e2epod.PodClient
 	const (
 		podCheckInterval     = 1 * time.Second
@@ -256,9 +258,10 @@ var _ = SIGDescribe("Container Lifecycle Hook", func() {
 	})
 })
 
-var _ = SIGDescribe(feature.SidecarContainers, "Restartable Init Container Lifecycle Hook", func() {
+var _ = SIGDescribe(feature.SidecarContainers, framework.WithFeatureGate(features.SidecarContainers), "Restartable Init Container Lifecycle Hook", func() {
 	f := framework.NewDefaultFramework("restartable-init-container-lifecycle-hook")
-	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
+	// FIXME: This test is being run in the privileged mode because of https://github.com/kubernetes/kubernetes/issues/133091
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	var podClient *e2epod.PodClient
 	const (
 		podCheckInterval     = 1 * time.Second
@@ -683,7 +686,10 @@ var _ = SIGDescribe("Lifecycle Sleep Hook", func() {
 			podWithHook := getPodWithHook(name, imageutils.GetE2EImage(imageutils.BusyBox), lifecycle)
 			podWithHook.Spec.TerminationGracePeriodSeconds = ptr.To[int64](gracePeriod)
 			podWithHook.Spec.Containers[0].Command = []string{"/bin/sh"}
-			podWithHook.Spec.Containers[0].Args = []string{"-c", "exit 0"}
+			// If we exit the container as soon as it's created,
+			// finishAt - startedAt can be negative due to some internal race
+			// so we need to keep it running for a while
+			podWithHook.Spec.Containers[0].Args = []string{"-c", "sleep 3"}
 			podWithHook.Spec.RestartPolicy = v1.RestartPolicyNever
 			ginkgo.By("create the pod with lifecycle hook using sleep action")
 			p := podClient.Create(ctx, podWithHook)
@@ -706,7 +712,7 @@ var _ = SIGDescribe("Lifecycle Sleep Hook", func() {
 	})
 })
 
-var _ = SIGDescribe(feature.PodLifecycleSleepActionAllowZero, func() {
+var _ = SIGDescribe("Lifecycle sleep action zero value", func() {
 	f := framework.NewDefaultFramework("pod-lifecycle-sleep-action-allow-zero")
 	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
 	var podClient *e2epod.PodClient
@@ -739,7 +745,7 @@ var _ = SIGDescribe(feature.PodLifecycleSleepActionAllowZero, func() {
 	})
 })
 
-var _ = SIGDescribe(feature.ContainerStopSignals, func() {
+var _ = SIGDescribe(feature.ContainerStopSignals, framework.WithFeatureGate(features.ContainerStopSignals), func() {
 	f := framework.NewDefaultFramework("container-stop-signals")
 	f.NamespacePodSecurityLevel = admissionapi.LevelBaseline
 	var podClient *e2epod.PodClient

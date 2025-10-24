@@ -2,8 +2,13 @@ package cmdrun
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
+	"errors"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -30,6 +35,32 @@ func NewRunTestCommand(registry *extension.Registry) *cobra.Command {
 		Short:        "Runs tests by name",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancelCause := context.WithCancelCause(context.Background())
+			defer cancelCause(errors.New("exiting"))
+
+			abortCh := make(chan os.Signal, 2)
+			go func() {
+				<-abortCh
+				fmt.Fprintf(os.Stderr, "Interrupted, terminating tests")
+				cancelCause(errors.New("interrupt received"))
+
+				select {
+				case sig := <-abortCh:
+					fmt.Fprintf(os.Stderr, "Interrupted twice, exiting (%s)", sig)
+					switch sig {
+					case syscall.SIGINT:
+						os.Exit(130)
+					default:
+						os.Exit(130) // if we were interrupted, never return zero.
+					}
+
+				case <-time.After(30 * time.Minute): // allow time for cleanup.  If we finish before this, we'll exit
+					fmt.Fprintf(os.Stderr, "Timed out during cleanup, exiting")
+					os.Exit(130) // if we were interrupted, never return zero.
+				}
+			}()
+			signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
+
 			ext := registry.Get(opts.componentFlags.Component)
 			if ext == nil {
 				return fmt.Errorf("component not found: %s", opts.componentFlags.Component)
@@ -69,7 +100,7 @@ func NewRunTestCommand(registry *extension.Registry) *cobra.Command {
 			}
 			defer w.Flush()
 
-			return specs.Run(w, opts.concurrencyFlags.MaxConcurency)
+			return specs.Run(ctx, w, opts.concurrencyFlags.MaxConcurency)
 		},
 	}
 	opts.componentFlags.BindFlags(cmd.Flags())

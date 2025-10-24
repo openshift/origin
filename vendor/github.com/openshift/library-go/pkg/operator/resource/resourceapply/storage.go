@@ -142,6 +142,9 @@ func ApplyCSIDriver(ctx context.Context, client storageclientv1.CSIDriversGetter
 	if required.Annotations == nil {
 		required.Annotations = map[string]string{}
 	}
+	if required.Labels == nil {
+		required.Labels = map[string]string{}
+	}
 	if err := SetSpecHashAnnotation(&required.ObjectMeta, required.Spec); err != nil {
 		return nil, false, err
 	}

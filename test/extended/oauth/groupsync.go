@@ -394,7 +394,7 @@ func compareAndCleanup(oc *exutil.CLI, validationFileName string) {
 			append([]byte("apiVersion: user.openshift.io/v1\nkind: Group\n"), data...)...)
 	}
 
-	o.Expect(bytes.Compare(validationContent, actualBytes)).To(o.Equal(0), "diff: %s", kdiff.StringDiff(string(validationContent), string(actualBytes)))
+	o.Expect(bytes.Compare(validationContent, actualBytes)).To(o.Equal(0), "diff: %s", kdiff.Diff(string(validationContent), string(actualBytes)))
 }
 
 // normalizeGroupMetadata cleans the metadata of the group object so that it matches the meta expectations

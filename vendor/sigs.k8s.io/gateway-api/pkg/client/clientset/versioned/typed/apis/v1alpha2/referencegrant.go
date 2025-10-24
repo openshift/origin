@@ -19,14 +19,14 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"context"
+	context "context"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	gentype "k8s.io/client-go/gentype"
-	apisv1alpha2 "sigs.k8s.io/gateway-api/apis/applyconfiguration/apis/v1alpha2"
-	v1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	apisv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+	applyconfigurationapisv1alpha2 "sigs.k8s.io/gateway-api/applyconfiguration/apis/v1alpha2"
 	scheme "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/scheme"
 )
 
@@ -38,32 +38,33 @@ type ReferenceGrantsGetter interface {
 
 // ReferenceGrantInterface has methods to work with ReferenceGrant resources.
 type ReferenceGrantInterface interface {
-	Create(ctx context.Context, referenceGrant *v1alpha2.ReferenceGrant, opts v1.CreateOptions) (*v1alpha2.ReferenceGrant, error)
-	Update(ctx context.Context, referenceGrant *v1alpha2.ReferenceGrant, opts v1.UpdateOptions) (*v1alpha2.ReferenceGrant, error)
+	Create(ctx context.Context, referenceGrant *apisv1alpha2.ReferenceGrant, opts v1.CreateOptions) (*apisv1alpha2.ReferenceGrant, error)
+	Update(ctx context.Context, referenceGrant *apisv1alpha2.ReferenceGrant, opts v1.UpdateOptions) (*apisv1alpha2.ReferenceGrant, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha2.ReferenceGrant, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha2.ReferenceGrantList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*apisv1alpha2.ReferenceGrant, error)
+	List(ctx context.Context, opts v1.ListOptions) (*apisv1alpha2.ReferenceGrantList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha2.ReferenceGrant, err error)
-	Apply(ctx context.Context, referenceGrant *apisv1alpha2.ReferenceGrantApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha2.ReferenceGrant, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *apisv1alpha2.ReferenceGrant, err error)
+	Apply(ctx context.Context, referenceGrant *applyconfigurationapisv1alpha2.ReferenceGrantApplyConfiguration, opts v1.ApplyOptions) (result *apisv1alpha2.ReferenceGrant, err error)
 	ReferenceGrantExpansion
 }
 
 // referenceGrants implements ReferenceGrantInterface
 type referenceGrants struct {
-	*gentype.ClientWithListAndApply[*v1alpha2.ReferenceGrant, *v1alpha2.ReferenceGrantList, *apisv1alpha2.ReferenceGrantApplyConfiguration]
+	*gentype.ClientWithListAndApply[*apisv1alpha2.ReferenceGrant, *apisv1alpha2.ReferenceGrantList, *applyconfigurationapisv1alpha2.ReferenceGrantApplyConfiguration]
 }
 
 // newReferenceGrants returns a ReferenceGrants
 func newReferenceGrants(c *GatewayV1alpha2Client, namespace string) *referenceGrants {
 	return &referenceGrants{
-		gentype.NewClientWithListAndApply[*v1alpha2.ReferenceGrant, *v1alpha2.ReferenceGrantList, *apisv1alpha2.ReferenceGrantApplyConfiguration](
+		gentype.NewClientWithListAndApply[*apisv1alpha2.ReferenceGrant, *apisv1alpha2.ReferenceGrantList, *applyconfigurationapisv1alpha2.ReferenceGrantApplyConfiguration](
 			"referencegrants",
 			c.RESTClient(),
 			scheme.ParameterCodec,
 			namespace,
-			func() *v1alpha2.ReferenceGrant { return &v1alpha2.ReferenceGrant{} },
-			func() *v1alpha2.ReferenceGrantList { return &v1alpha2.ReferenceGrantList{} }),
+			func() *apisv1alpha2.ReferenceGrant { return &apisv1alpha2.ReferenceGrant{} },
+			func() *apisv1alpha2.ReferenceGrantList { return &apisv1alpha2.ReferenceGrantList{} },
+		),
 	}
 }

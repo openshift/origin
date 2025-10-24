@@ -109,7 +109,7 @@ func TestMonitor_Events(t *testing.T) {
 				},
 			}
 			if got := m.recorder.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s", diff.ObjectReflectDiff(tt.want, got))
+				t.Errorf("%s", diff.Diff(tt.want, got))
 			}
 		})
 	}

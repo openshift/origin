@@ -66,6 +66,7 @@ func extractDNSRecord(dNSRecord *operatoringressv1.DNSRecord, fieldManager strin
 	b.WithAPIVersion("ingress.operator.openshift.io/v1")
 	return b, nil
 }
+func (b DNSRecordApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
@@ -241,8 +242,24 @@ func (b *DNSRecordApplyConfiguration) WithStatus(value *DNSRecordStatusApplyConf
 	return b
 }
 
+// GetKind retrieves the value of the Kind field in the declarative configuration.
+func (b *DNSRecordApplyConfiguration) GetKind() *string {
+	return b.TypeMetaApplyConfiguration.Kind
+}
+
+// GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
+func (b *DNSRecordApplyConfiguration) GetAPIVersion() *string {
+	return b.TypeMetaApplyConfiguration.APIVersion
+}
+
 // GetName retrieves the value of the Name field in the declarative configuration.
 func (b *DNSRecordApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
+}
+
+// GetNamespace retrieves the value of the Namespace field in the declarative configuration.
+func (b *DNSRecordApplyConfiguration) GetNamespace() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.ObjectMetaApplyConfiguration.Namespace
 }
