@@ -235,9 +235,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
 
-	g.It("should recover from etcd process crash", func() {
+	g.It("should recover from etcd process crash [Skipped:KnownIssue]", func() {
 		// Note: This test kills the etcd process/container on one node to simulate
 		// a process crash, testing Pacemaker's ability to detect and restart etcd
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
 		g.GinkgoT().Printf("Randomly selected %s (%s) for etcd process crash and %s (%s) to survive\n",
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 
