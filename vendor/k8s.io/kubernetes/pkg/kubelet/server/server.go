@@ -179,10 +179,7 @@ func ListenAndServeKubeletServer(
 	port := uint(kubeCfg.Port)
 	klog.InfoS("Starting to listen", "address", address, "port", port)
 	handler := NewServer(host, resourceAnalyzer, checkers, flagz, auth, kubeCfg)
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.KubeletTracing) {
-		handler.InstallTracingFilter(tp)
-	}
+	handler.InstallTracingFilter(tp)
 
 	s := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
@@ -219,10 +216,7 @@ func ListenAndServeKubeletReadOnlyServer(
 	tp oteltrace.TracerProvider) {
 	klog.InfoS("Starting to listen read-only", "address", address, "port", port)
 	s := NewServer(host, resourceAnalyzer, checkers, nil, nil, nil)
-
-	if utilfeature.DefaultFeatureGate.Enabled(features.KubeletTracing) {
-		s.InstallTracingFilter(tp, otelrestful.WithPublicEndpoint())
-	}
+	s.InstallTracingFilter(tp, otelrestful.WithPublicEndpoint())
 
 	server := &http.Server{
 		Addr:           net.JoinHostPort(address.String(), strconv.FormatUint(uint64(port), 10)),
@@ -240,11 +234,11 @@ func ListenAndServeKubeletReadOnlyServer(
 }
 
 // ListenAndServePodResources initializes a gRPC server to serve the PodResources service
-func ListenAndServePodResources(endpoint string, providers podresources.PodResourcesProviders) {
-	server := grpc.NewServer(apisgrpc.WithRateLimiter("podresources", podresources.DefaultQPS, podresources.DefaultBurstTokens))
+func ListenAndServePodResources(ctx context.Context, endpoint string, providers podresources.PodResourcesProviders) {
+	server := grpc.NewServer(apisgrpc.WithRateLimiter(ctx, "podresources", podresources.DefaultQPS, podresources.DefaultBurstTokens))
 
 	podresourcesapiv1alpha1.RegisterPodResourcesListerServer(server, podresources.NewV1alpha1PodResourcesServer(providers))
-	podresourcesapi.RegisterPodResourcesListerServer(server, podresources.NewV1PodResourcesServer(providers))
+	podresourcesapi.RegisterPodResourcesListerServer(server, podresources.NewV1PodResourcesServer(ctx, providers))
 
 	l, err := util.CreateListener(endpoint)
 	if err != nil {
@@ -281,7 +275,6 @@ type HostInterface interface {
 	CheckpointContainer(ctx context.Context, podUID types.UID, podFullName, containerName string, options *runtimeapi.CheckpointContainerRequest) error
 	GetKubeletContainerLogs(ctx context.Context, podFullName, containerName string, logOptions *v1.PodLogOptions, stdout, stderr io.Writer) error
 	ServeLogs(w http.ResponseWriter, req *http.Request)
-	GetHostname() string
 	SyncLoopHealthCheck(req *http.Request) error
 	GetExec(ctx context.Context, podFullName string, podUID types.UID, containerName string, cmd []string, streamOpts remotecommandserver.Options) (*url.URL, error)
 	GetAttach(ctx context.Context, podFullName string, podUID types.UID, containerName string, streamOpts remotecommandserver.Options) (*url.URL, error)
@@ -1155,7 +1148,7 @@ var statusesNoTracePred = httplog.StatusIsNot(
 
 // ServeHTTP responds to HTTP requests on the Kubelet.
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	handler := httplog.WithLogging(s.restfulCont, statusesNoTracePred, nil)
+	handler := httplog.WithLogging(s.restfulCont, statusesNoTracePred)
 
 	// monitor http requests
 	var serverType string

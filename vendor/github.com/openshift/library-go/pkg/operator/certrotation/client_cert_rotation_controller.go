@@ -138,13 +138,21 @@ func (c CertRotationController) getSigningCertKeyPairLocation() string {
 
 func (c CertRotationController) SyncWorker(ctx context.Context) error {
 	signingCertKeyPair, _, err := c.RotatedSigningCASecret.EnsureSigningCertKeyPair(ctx)
-	if err != nil || signingCertKeyPair == nil {
+	if err != nil {
 		return err
+	}
+	// If no signingCertKeyPair returned due to update conflict or otherwise, return an error
+	if signingCertKeyPair == nil {
+		return fmt.Errorf("signingCertKeyPair is nil")
 	}
 
 	cabundleCerts, err := c.CABundleConfigMap.EnsureConfigMapCABundle(ctx, signingCertKeyPair, c.getSigningCertKeyPairLocation())
 	if err != nil {
 		return err
+	}
+	// If no ca bundle returned due to update conflict or otherwise, return an error
+	if cabundleCerts == nil {
+		return fmt.Errorf("cabundleCerts is nil")
 	}
 
 	if _, err := c.RotatedSelfSignedCertKeySecret.EnsureTargetCertKeyPair(ctx, signingCertKeyPair, cabundleCerts); err != nil {

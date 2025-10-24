@@ -144,7 +144,7 @@ var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 
 			clearTransient(appsDC)
 			if !reflect.DeepEqual(appsDC, tc.apps) {
-				t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(appsDC, tc.apps))
+				t.Errorf("Apps DC differs from expected output: %s", diff.Diff(appsDC, tc.apps))
 			}
 		}
 	})

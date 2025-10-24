@@ -25,7 +25,7 @@ const (
 	egressFWE2E       = "egress-firewall-e2e"
 	wcEgressFWE2E     = "wildcard-egress-firewall-e2e"
 	noEgressFWE2E     = "no-egress-firewall-e2e"
-	egressFWTestImage = "registry.k8s.io/e2e-test-images/agnhost:2.53"
+	egressFWTestImage = "registry.k8s.io/e2e-test-images/agnhost:2.56"
 	oVNKManifest      = "ovnk-egressfirewall-test.yaml"
 	oVNKWCManifest    = "ovnk-egressfirewall-wildcard-test.yaml"
 )

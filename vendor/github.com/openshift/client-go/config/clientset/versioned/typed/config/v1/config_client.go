@@ -28,6 +28,7 @@ type ConfigV1Interface interface {
 	ImageTagMirrorSetsGetter
 	InfrastructuresGetter
 	IngressesGetter
+	InsightsDataGathersGetter
 	NetworksGetter
 	NodesGetter
 	OAuthsGetter
@@ -104,6 +105,10 @@ func (c *ConfigV1Client) Infrastructures() InfrastructureInterface {
 
 func (c *ConfigV1Client) Ingresses() IngressInterface {
 	return newIngresses(c)
+}
+
+func (c *ConfigV1Client) InsightsDataGathers() InsightsDataGatherInterface {
+	return newInsightsDataGathers(c)
 }
 
 func (c *ConfigV1Client) Networks() NetworkInterface {

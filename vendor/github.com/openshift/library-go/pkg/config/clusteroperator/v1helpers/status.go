@@ -101,7 +101,7 @@ func GetStatusDiff(oldStatus configv1.ClusterOperatorStatus, newStatus configv1.
 		json.NewEncoder(originalJSON).Encode(oldStatus)
 		newJSON := &bytes.Buffer{}
 		json.NewEncoder(newJSON).Encode(newStatus)
-		messages = append(messages, diff.StringDiff(originalJSON.String(), newJSON.String()))
+		messages = append(messages, diff.Diff(originalJSON.String(), newJSON.String()))
 	}
 
 	return strings.Join(messages, ",")

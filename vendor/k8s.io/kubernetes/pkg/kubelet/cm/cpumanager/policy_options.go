@@ -22,11 +22,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/klog/v2"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
-	"k8s.io/kubernetes/pkg/kubelet/llcalign"
 )
 
 // Names of the options, as part of the user interface.
@@ -43,11 +41,11 @@ var (
 	alphaOptions = sets.New[string](
 		AlignBySocketOption,
 		DistributeCPUsAcrossCoresOption,
-		PreferAlignByUnCoreCacheOption,
 	)
 	betaOptions = sets.New[string](
 		StrictCPUReservationOption,
 		DistributeCPUsAcrossNUMAOption,
+		PreferAlignByUnCoreCacheOption,
 	)
 	stableOptions = sets.New[string](
 		FullPCPUsOnlyOption,
@@ -61,14 +59,6 @@ func CheckPolicyOptionAvailable(option string) error {
 		return fmt.Errorf("unknown CPU Manager Policy option: %q", option)
 	}
 
-	// must override the base feature gate check. Relevant only for alpha (disabled by default).
-	// for beta options are enabled by default and we totally want to keep the possibility to
-	// disable them explicitly.
-	if alphaOptions.Has(option) && checkPolicyOptionHasEnablementFile(option) {
-		// note that we override the decision and shortcut exit with success
-		// all other cases exit early with failure.
-		return nil
-	}
 	if alphaOptions.Has(option) && !utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManagerPolicyAlphaOptions) {
 		return fmt.Errorf("CPU Manager Policy Alpha-level Options not enabled, but option %q provided", option)
 	}
@@ -194,14 +184,4 @@ func ValidateStaticPolicyOptions(opts StaticPolicyOptions, topology *topology.CP
 		}
 	}
 	return nil
-}
-
-func checkPolicyOptionHasEnablementFile(option string) bool {
-	switch option {
-	case PreferAlignByUnCoreCacheOption:
-		val := llcalign.IsEnabled()
-		klog.InfoS("policy option enablement file check", "option", option, "enablementFile", val)
-		return val
-	}
-	return false
 }

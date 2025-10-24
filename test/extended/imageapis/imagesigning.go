@@ -40,13 +40,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 		}
 
 		if len(image.Signatures) != 0 {
-			t.Fatalf("expected empty signatures, not: %s", diff.ObjectDiff(image.Signatures, []imagev1.ImageSignature{}))
+			t.Fatalf("expected empty signatures, not: %s", diff.Diff(image.Signatures, []imagev1.ImageSignature{}))
 		}
 
 		userClient := oc.ImageClient()
 
 		if len(image.Signatures) != 0 {
-			t.Fatalf("expected empty signatures, not: %s", diff.ObjectDiff(image.Signatures, []imagev1.ImageSignature{}))
+			t.Fatalf("expected empty signatures, not: %s", diff.Diff(image.Signatures, []imagev1.ImageSignature{}))
 		}
 
 		// add some dummy signature
@@ -139,7 +139,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 		}
 
 		if len(image.Signatures) != 0 {
-			t.Fatalf("expected empty signatures, not: %s", diff.ObjectDiff(image.Signatures, []imagev1.ImageSignature{}))
+			t.Fatalf("expected empty signatures, not: %s", diff.Diff(image.Signatures, []imagev1.ImageSignature{}))
 		}
 
 		userClient := oc.ImageClient()
@@ -289,7 +289,7 @@ func compareSignatures(t g.GinkgoTInterface, a, b imagev1.ImageSignature) {
 	a.ObjectMeta = b.ObjectMeta
 	a.Name = aName
 	if !reflect.DeepEqual(a, b) {
-		t.Errorf("created and contained signatures differ: %v", diff.ObjectDiff(a, b))
+		t.Errorf("created and contained signatures differ: %v", diff.Diff(a, b))
 	}
 }
 

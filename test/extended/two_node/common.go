@@ -1,10 +1,14 @@
 package two_node
 
 import (
+	"context"
 	"fmt"
 
 	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
@@ -41,4 +45,12 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 		}
 	}
 	return false
+}
+
+func hasNodeRebooted(oc *util.CLI, node *corev1.Node) (bool, error) {
+	if n, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{}); err != nil {
+		return false, err
+	} else {
+		return n.Status.NodeInfo.BootID != node.Status.NodeInfo.BootID, nil
+	}
 }

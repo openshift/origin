@@ -20,6 +20,7 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -92,26 +93,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to gracefully shutdown the node without errors")
 		time.Sleep(time.Minute)
 
-		g.By(fmt.Sprintf("Ensuring %s leaves the member list", targetNode.Name))
+		g.By(fmt.Sprintf("Ensuring %s leaves the member list (timeout: %v)", targetNode.Name, memberHasLeftTimeout))
 		o.Eventually(func() error {
 			return helpers.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, targetNode.Name)
 		}, memberHasLeftTimeout, pollInterval).ShouldNot(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner", peerNode.Name, targetNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			&survivedNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring that %s is a healthy voting member and adds %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
 			&targetNode, false, true, // targetNode expected started == false, learner == true
 			memberIsLeaderTimeout, pollInterval)
 
-		g.By(fmt.Sprintf("Ensuring %s rejoins as learner", targetNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			&survivedNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
 			&targetNode, true, true, // targetNode expected started == true, learner == true
 			memberRejoinedLearnerTimeout, pollInterval)
 
-		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member", targetNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			&survivedNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, pollInterval)
 	})
@@ -127,21 +128,21 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to ungracefully shutdown the node without errors", targetNode.Name, err)
 		time.Sleep(1 * time.Minute)
 
-		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner", peerNode.Name, targetNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			&survivedNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring that %s added %s back as learner (timeout: %v)", peerNode.Name, targetNode.Name, memberIsLeaderTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
 			&targetNode, false, true, // targetNode expected started == false, learner == true
 			memberIsLeaderTimeout, pollInterval)
 
-		g.By(fmt.Sprintf("Ensuring %s rejoins as learner", targetNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			&survivedNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring %s rejoins as learner (timeout: %v)", targetNode.Name, memberRejoinedLearnerTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
 			&targetNode, true, true, // targetNode expected started == true, learner == true
 			memberRejoinedLearnerTimeout, pollInterval)
 
-		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member", targetNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			&survivedNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring %s node is promoted back as voting member (timeout: %v)", targetNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&survivedNode,
 			&targetNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, pollInterval)
 	})
@@ -156,26 +157,26 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		o.Expect(err).To(o.BeNil(), "Expected to disrupt network without errors")
 		g.GinkgoT().Printf("command: '%s'\n", command)
 
-		g.By("Ensuring cluster recovery with proper leader/learner roles after network disruption")
+		g.By(fmt.Sprintf("Ensuring cluster recovery with proper leader/learner roles after network disruption (timeout: %v)", memberIsLeaderTimeout))
 		// Note: The fenced node may recover quickly and already be started when we get
 		// the first etcd membership. This is valid behavior, so we capture the learner's
 		// state and adapt the test accordingly.
-		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(etcdClientFactory,
+		leaderNode, learnerNode, learnerStarted := validateEtcdRecoveryStateWithoutAssumingLeader(oc, etcdClientFactory,
 			&peerNode, &targetNode, memberIsLeaderTimeout, pollInterval)
 
 		if learnerStarted {
 			g.GinkgoT().Printf("Learner node '%s' already started as learner\n", learnerNode.Name)
 		} else {
-			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner", learnerNode.Name))
-			validateEtcdRecoveryState(etcdClientFactory,
-				leaderNode, true, false, // survivedNode expected started == true, learner == false
+			g.By(fmt.Sprintf("Ensuring '%s' rejoins as learner (timeout: %v)", learnerNode.Name, memberRejoinedLearnerTimeout))
+			validateEtcdRecoveryState(oc, etcdClientFactory,
+				leaderNode,
 				learnerNode, true, true, // targetNode expected started == true, learner == true
 				memberRejoinedLearnerTimeout, pollInterval)
 		}
 
-		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member", learnerNode.Name))
-		validateEtcdRecoveryState(etcdClientFactory,
-			leaderNode, true, false, // survivedNode expected started == true, learner == false
+		g.By(fmt.Sprintf("Ensuring learner node '%s' is promoted back as voting member (timeout: %v)", learnerNode.Name, memberPromotedVotingTimeout))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			leaderNode,
 			learnerNode, true, false, // targetNode expected started == true, learner == false
 			memberPromotedVotingTimeout, pollInterval)
 	})
@@ -227,9 +228,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
 		}
 
-		g.By("Waiting both etcd members to become healthy")
-		validateEtcdRecoveryState(etcdClientFactory,
-			&nodeA, true, false, // member on node A expected started == true, learner == false
+		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&nodeA,              // member on node A considered leader, hence started == true, learner == false
 			&nodeB, true, false, // member on node B expected started == true, learner == false
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
@@ -335,9 +336,10 @@ func findClusterOperatorCondition(conditions []v1.ClusterOperatorStatusCondition
 	return nil
 }
 
-func validateEtcdRecoveryState(e *helpers.EtcdClientFactoryImpl,
-	survivedNode *corev1.Node, isSurvivedNodeStartedExpected, isSurvivedNodeLearnerExpected bool,
-	targetNode *corev1.Node, isTargetNodeStartedExpected, isTargetNodeLearnerExpected bool,
+func validateEtcdRecoveryState(
+	oc *util.CLI, e *helpers.EtcdClientFactoryImpl,
+	survivedNode, targetNode *corev1.Node,
+	isTargetNodeStartedExpected, isTargetNodeLearnerExpected bool,
 	timeout, pollInterval time.Duration) {
 	o.EventuallyWithOffset(1, func() error {
 		members, err := getMembers(e)
@@ -348,19 +350,54 @@ func validateEtcdRecoveryState(e *helpers.EtcdClientFactoryImpl,
 			return fmt.Errorf("Not enough members")
 		}
 
-		if started, learner, err := getMemberState(survivedNode, members); err != nil {
+		if isStarted, isLearner, err := getMemberState(survivedNode, members); err != nil {
 			return err
-		} else if isSurvivedNodeStartedExpected != started || isSurvivedNodeLearnerExpected != learner {
-			return fmt.Errorf("Expected node: %s to be a started==%v and voting member==%v, got this membership instead: %+v",
-				survivedNode.Name, isSurvivedNodeStartedExpected, isSurvivedNodeLearnerExpected, members)
+		} else if !isStarted || isLearner {
+			return fmt.Errorf("Expected survived node %s to be started and voting member, got this membership instead: %+v",
+				survivedNode.Name, members)
 		}
 
-		// Ensure GNS node is unstarted and a learner member
-		if started, learner, err := getMemberState(targetNode, members); err != nil {
+		isStarted, isLearner, err := getMemberState(targetNode, members)
+		if err != nil {
 			return err
-		} else if isTargetNodeStartedExpected != started || isTargetNodeLearnerExpected != learner {
-			return fmt.Errorf("Expected node: %s to be a started==%v and voting member==%v, got this membership instead: %+v",
-				targetNode.Name, isTargetNodeStartedExpected, isTargetNodeLearnerExpected, members)
+		}
+
+		// lazy check node reboot: make API calls only if and when needed
+		var hasTargetNodeRebooted bool
+		lazyCheckReboot := func() bool {
+			// return cached value only if the node has already rebooted during this test
+			if !hasTargetNodeRebooted {
+				var checkErr error
+				hasTargetNodeRebooted, checkErr = hasNodeRebooted(oc, targetNode)
+				if checkErr != nil {
+					// Return false on error; Eventually will retry this entire validation function
+					g.GinkgoT().Logf("Warning: failed to check reboot status: %v", checkErr)
+					return false
+				}
+			}
+
+			return hasTargetNodeRebooted
+		}
+
+		// NOTE: Target node restart, and also promotion to a voting member, can happen fast, and the
+		// test might not be as quick as to get an etcd client and observe the intermediate states.
+		// However, the fact that the targetNode rebooted proves disruption occurred as well,
+		// and being its etcd member "started" and "voter" proves the recovery was successful.
+		if isTargetNodeStartedExpected != isStarted {
+			if !isTargetNodeStartedExpected && lazyCheckReboot() { // expected un-started, but started already after a reboot
+				g.GinkgoT().Logf("Target node %s has re-started already", targetNode.Name)
+			} else {
+				return fmt.Errorf("Expected target node %s to have status started==%v (got %v). Full membership: %+v",
+					targetNode.Name, isTargetNodeStartedExpected, isStarted, members)
+			}
+		}
+		if isTargetNodeLearnerExpected != isLearner {
+			if isTargetNodeLearnerExpected && lazyCheckReboot() { // expected "learner", but "voter" already after a reboot
+				g.GinkgoT().Logf("Target node %s was promoted to voter already", targetNode.Name)
+			} else {
+				return fmt.Errorf("Expected target node %s to have status started==%v (got %v) and voting member==%v (got %v). Full membership: %+v",
+					targetNode.Name, isTargetNodeStartedExpected, isStarted, isTargetNodeLearnerExpected, isLearner, members)
+			}
 		}
 
 		g.GinkgoT().Logf("SUCCESS: got membership: %+v", members)
@@ -368,7 +405,8 @@ func validateEtcdRecoveryState(e *helpers.EtcdClientFactoryImpl,
 	}, timeout, pollInterval).ShouldNot(o.HaveOccurred())
 }
 
-func validateEtcdRecoveryStateWithoutAssumingLeader(e *helpers.EtcdClientFactoryImpl,
+func validateEtcdRecoveryStateWithoutAssumingLeader(
+	oc *util.CLI, e *helpers.EtcdClientFactoryImpl,
 	nodeA, nodeB *corev1.Node,
 	timeout, pollInterval time.Duration) (leaderNode, learnerNode *corev1.Node, learnerStarted bool) {
 
@@ -405,8 +443,31 @@ func validateEtcdRecoveryStateWithoutAssumingLeader(e *helpers.EtcdClientFactory
 
 		// This might happen if the disruption didn't occurred yet, or we get this snapshot when the learner has been already promoted
 		if !learnerA && !learnerB {
-			return fmt.Errorf("both nodes are non-learners (should have exactly one learner): %s(started=%v, learner=%v), %s(started=%v, learner=%v)",
-				nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
+			// the disrupted node might have been promoted already due to fast promotion.
+			// The promotion from learner to voting member can happen faster than the time
+			// it takes us to establish an etcd client connection to the new etcd cluster
+			// created by the survivedNode, and query the cluster state.
+			// If one node rebooted, it proves a disruption occurred and recovery was successful,
+			// even though we missed observing the intermediate learner state.
+			hasNodeARebooted, err := hasNodeRebooted(oc, nodeA)
+			if err != nil {
+				return err
+			}
+			hasNodeBRebooted, err := hasNodeRebooted(oc, nodeB)
+			if err != nil {
+				return err
+			}
+
+			if hasNodeARebooted != hasNodeBRebooted {
+				framework.Logf("both nodes are non-learners, but only one has rebooted, hence the cluster has indeed recovered from a disruption")
+				// the rebooted node is the learner
+				learnerA = hasNodeARebooted
+				learnerB = hasNodeBRebooted
+			} else if hasNodeARebooted && hasNodeBRebooted {
+				return fmt.Errorf("both nodes rebooted. This indicates a cluster disruption beyond the expected single-node failure")
+			} else {
+				return fmt.Errorf("both nodes are non-learners (should have exactly one learner): %s(started=%v, learner=%v), %s(started=%v, learner=%v)", nodeA.Name, startedA, learnerA, nodeB.Name, startedB, learnerB)
+			}
 		}
 
 		// Once we get one leader and one learner, we don't care if the latter has started already, but the first must

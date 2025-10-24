@@ -21,8 +21,6 @@ var legacyFeatureGates = sets.New(
 	// never add to this list, if you think you have an exception ask @deads2k
 	"BuildCSIVolumes",
 	// never add to this list, if you think you have an exception ask @deads2k
-	"ChunkSizeMiB",
-	// never add to this list, if you think you have an exception ask @deads2k
 	"ClusterAPIInstall",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"ClusterAPIInstallIBMCloud",
@@ -38,8 +36,6 @@ var legacyFeatureGates = sets.New(
 	"Example2",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"GCPClusterHostedDNS",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"GCPLabelsTags",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"GatewayAPI",
 	// never add to this list, if you think you have an exception ask @deads2k
@@ -92,8 +88,6 @@ var legacyFeatureGates = sets.New(
 	"NewOLM",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"OVNObservability",
-	// never add to this list, if you think you have an exception ask @deads2k
-	"OnClusterBuild",
 	// never add to this list, if you think you have an exception ask @deads2k
 	"PersistentIPsForVirtualization",
 	// never add to this list, if you think you have an exception ask @deads2k

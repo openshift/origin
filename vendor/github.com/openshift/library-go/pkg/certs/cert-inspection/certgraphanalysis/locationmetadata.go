@@ -7,7 +7,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/moby/sys/user"
 	"github.com/opencontainers/selinux/go-selinux"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"

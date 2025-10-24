@@ -179,6 +179,11 @@ func getSingleImpl(node any, decodedToken string, nameProvider *swag.NameProvide
 func setSingleImpl(node, data any, decodedToken string, nameProvider *swag.NameProvider) error {
 	rValue := reflect.Indirect(reflect.ValueOf(node))
 
+	// Check for nil to prevent panic when calling rValue.Type()
+	if isNil(node) {
+		return fmt.Errorf("cannot set field %q on nil value: %w", decodedToken, ErrPointer)
+	}
+
 	if ns, ok := node.(JSONSetable); ok { // pointer impl
 		return ns.JSONSet(decodedToken, data)
 	}
@@ -283,6 +288,11 @@ func (p *Pointer) set(node, data any, nameProvider *swag.NameProvider) error {
 		if isLastToken {
 
 			return setSingleImpl(node, data, decodedToken, nameProvider)
+		}
+
+		// Check for nil during traversal
+		if isNil(node) {
+			return fmt.Errorf("cannot traverse through nil value at %q: %w", decodedToken, ErrPointer)
 		}
 
 		rValue := reflect.Indirect(reflect.ValueOf(node))
