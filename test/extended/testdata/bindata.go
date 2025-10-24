@@ -2848,18 +2848,18 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run .NET applications. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/6.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET available on OpenShift, including major versions updates.",
+              "description": "Build and run .NET applications. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/8.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET available on OpenShift, including major versions updates.",
               "iconClass": "icon-dotnet",
               "openshift.io/display-name": ".NET (Latest)",
               "sampleContextDir": "app",
-              "sampleRef": "dotnet-6.0",
+              "sampleRef": "dotnet-8.0",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
               "supports": "dotnet",
               "tags": "builder,.net,dotnet,dotnetcore,hidden"
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "6.0-ubi8"
+              "name": "8.0-ubi8"
             },
             "generation": null,
             "importPolicy": {},
@@ -2906,6 +2906,52 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/ubi8/dotnet-60:6.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "8.0-ubi8",
+            "annotations": {
+              "description": "Build and run .NET 8 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/8.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET 8 (UBI 8)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnet-8.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
+              "supports": "dotnet:8.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,dotnet80",
+              "version": "8.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/dotnet-80:8.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "8.0",
+            "annotations": {
+              "description": "Build and run .NET 8 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/8.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET 8 (UBI 8)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-8.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
+              "supports": "dotnet:8.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,dotnet80,hidden",
+              "version": "8.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/dotnet-80:8.0"
             },
             "generation": null,
             "importPolicy": {},
