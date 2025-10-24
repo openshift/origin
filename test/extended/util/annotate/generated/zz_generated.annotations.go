@@ -319,6 +319,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": " [Serial]",
 
+	"[sig-auth][Feature:ControlPlaneSecurity] should have privileged securityContext for control plane init and main containers": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:HTPasswdAuth] HTPasswd IDP should successfully configure htpasswd and be responsive [apigroup:user.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:LDAP] LDAP IDP should authenticate against an ldap server [apigroup:user.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
