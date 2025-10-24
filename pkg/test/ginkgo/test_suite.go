@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2/types"
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -17,9 +18,10 @@ func extensionTestSpecsToOriginTestCases(specs extensions.ExtensionTestSpecs) ([
 	var tests []*testCase
 	for _, spec := range specs {
 		tc := &testCase{
-			name:    spec.Name,
-			rawName: spec.Name,
-			binary:  spec.Binary,
+			name:      spec.Name,
+			rawName:   spec.Name,
+			binary:    spec.Binary,
+			isolation: spec.Resources.Isolation, // Copy entire isolation struct
 		}
 
 		// Override timeout from suite with `[Timeout:X]` duration
@@ -60,6 +62,9 @@ type testCase struct {
 	// suite timeout
 	testTimeout time.Duration
 
+	// isolation defines conflict groups and mode for test isolation
+	isolation extensiontests.Isolation
+
 	start           time.Time
 	end             time.Time
 	duration        time.Duration
@@ -85,6 +90,7 @@ func (t *testCase) Retry() *testCase {
 		locations:     t.locations,
 		testExclusion: t.testExclusion,
 		testTimeout:   t.testTimeout,
+		isolation:     t.isolation, // Copy isolation struct
 
 		previous: t,
 	}

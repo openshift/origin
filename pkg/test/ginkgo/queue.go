@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 )
 
 // parallelByFileTestQueue runs tests in parallel unless they have
@@ -17,6 +18,64 @@ type parallelByFileTestQueue struct {
 }
 
 type TestFunc func(ctx context.Context, test *testCase)
+
+// conflictTracker manages test conflicts to ensure only one test per conflict group runs at a time
+type conflictTracker struct {
+	mu               sync.Mutex
+	runningConflicts map[string]bool // tracks which conflict groups are currently running
+}
+
+func newConflictTracker() *conflictTracker {
+	return &conflictTracker{
+		runningConflicts: make(map[string]bool),
+	}
+}
+
+// tryRunTest atomically checks if a test can run and executes it if possible
+// Returns true if the test was executed, false if there are conflicts
+func (ct *conflictTracker) tryRunTest(ctx context.Context, test *testCase, testSuiteRunner testSuiteRunner) bool {
+	// For tests with no isolation conflicts, run directly
+	if len(test.isolation.Conflict) == 0 {
+		testSuiteRunner.RunOneTest(ctx, test)
+		return true
+	}
+
+	// For isolated tests, check conflicts atomically
+	ct.mu.Lock()
+
+	// Check if any of the test's conflict groups are currently running
+	for _, conflict := range test.isolation.Conflict {
+		if ct.runningConflicts[conflict] {
+			ct.mu.Unlock()
+			return false // Cannot run due to conflicts
+		}
+	}
+
+	// No conflicts found, mark all conflict groups as running
+	for _, conflict := range test.isolation.Conflict {
+		ct.runningConflicts[conflict] = true
+	}
+
+	ct.mu.Unlock()
+
+	// Run the test in a goroutine with conflict cleanup
+	go func(t *testCase) {
+		defer ct.markTestCompleted(t)
+		testSuiteRunner.RunOneTest(ctx, t)
+	}(test)
+
+	return true
+}
+
+// markTestCompleted marks all conflict groups of a test as no longer running
+func (ct *conflictTracker) markTestCompleted(test *testCase) {
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+
+	for _, conflict := range test.isolation.Conflict {
+		delete(ct.runningConflicts, conflict)
+	}
+}
 
 func newParallelTestQueue(commandContext *commandContext) *parallelByFileTestQueue {
 	return &parallelByFileTestQueue{
@@ -66,22 +125,43 @@ func queueAllTests(remainingParallelTests chan *testCase, tests []*testCase) {
 }
 
 // runTestsUntilChannelEmpty reads from the channel to consume tests, run them, and return when the channel is closed.
-func runTestsUntilChannelEmpty(ctx context.Context, remainingParallelTests chan *testCase, testSuiteRunner testSuiteRunner) {
+// This version is conflict-aware and can handle both parallel and isolated tests.
+// If a test can't run due to conflicts, it's put back at the end of the queue.
+func runTestsUntilChannelEmpty(ctx context.Context, remainingTests chan *testCase, testSuiteRunner testSuiteRunner, conflictTracker *conflictTracker) {
 	for {
 		select {
 		// if the context is finished, simply return
 		case <-ctx.Done():
 			return
 
-		case test, ok := <-remainingParallelTests:
-			if !ok { // channel closed, then we're done
+		case test, ok := <-remainingTests:
+			if !ok { // channel closed, we're done
 				return
 			}
 			// if the context is finished, simply return
 			if ctx.Err() != nil {
 				return
 			}
-			testSuiteRunner.RunOneTest(ctx, test)
+
+			// Try to run the test atomically (handles both parallel and isolated tests)
+			if !conflictTracker.tryRunTest(ctx, test, testSuiteRunner) {
+				// Can't run now due to conflicts, put back at end of queue after a short delay
+				go func(t *testCase) {
+					// Small delay to avoid busy spinning when many tests are conflicting
+					select {
+					case <-time.After(10 * time.Millisecond):
+					case <-ctx.Done():
+						return
+					}
+
+					select {
+					case remainingTests <- t:
+						// Successfully put back in queue
+					case <-ctx.Done():
+						// Context cancelled, give up
+					}
+				}(test)
+			}
 		}
 	}
 }
@@ -105,21 +185,30 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 		return
 	}
 
+	// Split tests into two categories: serial and parallel (including isolated)
 	serial, parallel := splitTests(tests, isSerialTest)
 
-	remainingParallelTests := make(chan *testCase, 100)
-	go queueAllTests(remainingParallelTests, parallel)
+	// Create conflict tracker for isolated tests
+	conflictTracker := newConflictTracker()
+
+	// Start all non-serial tests in a unified channel
+	remainingTests := make(chan *testCase, 100)
+	go queueAllTests(remainingTests, parallel)
 
 	var wg sync.WaitGroup
+
+	// Run all non-serial tests with conflict-aware workers
 	for i := 0; i < parallelism; i++ {
 		wg.Add(1)
 		go func(ctx context.Context) {
 			defer wg.Done()
-			runTestsUntilChannelEmpty(ctx, remainingParallelTests, testSuiteRunner)
+			runTestsUntilChannelEmpty(ctx, remainingTests, testSuiteRunner, conflictTracker)
 		}(ctx)
 	}
+
 	wg.Wait()
 
+	// Run serial tests sequentially at the end
 	for _, test := range serial {
 		if ctx.Err() != nil {
 			return
