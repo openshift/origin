@@ -29,7 +29,9 @@ type sampleRepoConfig struct {
 	dbDeploymentConfigName string
 	dbDeploymentName       string
 	dbServiceName          string
-	newAppParams           string
+	newAppParams           string   // used as a format specifier with the namespace passed as the arg
+	namespacedNewAppParams []string // used as a format specifier with the namespace passed as the arg
+	clusterNewAppParams    []string // used verbatim
 }
 
 // NewSampleRepoTest creates a function for a new ginkgo test case that will instantiate a template
@@ -62,6 +64,15 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 						newAppArgs = append(newAppArgs, "-p")
 						c.newAppParams = fmt.Sprintf(c.newAppParams, oc.Namespace())
 						newAppArgs = append(newAppArgs, c.newAppParams)
+					}
+					for _, param := range c.namespacedNewAppParams {
+						newAppArgs = append(newAppArgs, "-p")
+						namespacedParam := fmt.Sprintf(param, oc.Namespace())
+						newAppArgs = append(newAppArgs, namespacedParam)
+					}
+					for _, param := range c.clusterNewAppParams {
+						newAppArgs = append(newAppArgs, "-p")
+						newAppArgs = append(newAppArgs, param)
 					}
 					err = oc.Run("new-app").Args(newAppArgs...).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -165,6 +176,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 			dbDeploymentConfigName: "postgresql",
 			dbServiceName:          "postgresql",
 			newAppParams:           "APPLICATION_DOMAIN=django-%s.ocp.io",
+			clusterNewAppParams:    []string{"SOURCE_REPOSITORY_REF=2.2.x"},
 		},
 	))
 
