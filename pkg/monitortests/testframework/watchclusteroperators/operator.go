@@ -176,7 +176,19 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 			for i := range cv.Status.Conditions {
 				s := &cv.Status.Conditions[i]
 				previous := findOperatorStatusCondition(oldCV.Status.Conditions, s.Type)
-				if previous == nil || s.Status != previous.Status {
+				if previous == nil {
+					continue
+				}
+				if s.Status != previous.Status {
+					var msg string
+					switch {
+					case len(s.Reason) > 0 && len(s.Message) > 0:
+						msg = fmt.Sprintf("changed %s to %s: %s: %s", s.Type, s.Status, s.Reason, s.Message)
+					case len(s.Message) > 0:
+						msg = fmt.Sprintf("changed %s to %s: %s", s.Type, s.Status, s.Message)
+					default:
+						msg = fmt.Sprintf("changed %s to %s", s.Type, s.Status)
+					}
 					level := monitorapi.Warning
 					if s.Type == configv1.OperatorDegraded && s.Status == configv1.ConditionTrue {
 						level = monitorapi.Error
@@ -186,13 +198,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 					}
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, level).
 						Locator(monitorapi.NewLocator().ClusterVersion(cv)).
-						Message(monitorapi.NewMessage().
-							WithAnnotations(map[monitorapi.AnnotationKey]string{
-								monitorapi.AnnotationCondition: string(s.Type),
-								monitorapi.AnnotationStatus:    string(s.Status),
-								monitorapi.AnnotationReason:    s.Reason,
-							}).
-							HumanMessage(monitorapi.GetOperatorConditionHumanMessage(s, "changed to "))).BuildNow())
+						Message(monitorapi.NewMessage().HumanMessage(msg)).BuildNow())
 				}
 			}
 			return intervals
