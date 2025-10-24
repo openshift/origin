@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 
@@ -36,6 +37,7 @@ type cloudAvailability struct {
 	disruptionChecker  *disruptionlibrary.Availability
 	notSupportedReason error
 	suppressJunit      bool
+	tcpdumpHook        *backenddisruption.TcpdumpSamplerHook
 }
 
 func NewCloudAvailabilityInvariant() monitortestframework.MonitorTest {
@@ -86,17 +88,26 @@ func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig
 		return w.notSupportedReason
 	}
 
+	tcpdumpHook := utility.CreateTcpdumpHookIfEnabled()
+	// Store reference to tcpdump hook for cleanup in CollectData
+	w.tcpdumpHook = tcpdumpHook
+
+	var samplerHooks []backenddisruption.SamplerHook
+	if tcpdumpHook != nil {
+		samplerHooks = append(samplerHooks, tcpdumpHook)
+	}
+
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"gcp-network-liveness-new-connections",
 		"",
-		monitorapi.NewConnectionType)
+		monitorapi.NewConnectionType).WithSamplerHooks(samplerHooks)
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"gcp-network-liveness-reused-connections",
 		"",
-		monitorapi.ReusedConnectionType)
+		monitorapi.ReusedConnectionType).WithSamplerHooks(samplerHooks)
 
 	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
 		newCloudConnectionTestName, reusedCloudConnectionTestName,
@@ -113,6 +124,10 @@ func (w *cloudAvailability) CollectData(ctx context.Context, storageDir string, 
 	if w.notSupportedReason != nil {
 		return nil, nil, w.notSupportedReason
 	}
+
+	// Stop tcpdump collection as the monitoring test is terminating
+	utility.StopTcpdumpCollection(w.tcpdumpHook)
+
 	return w.disruptionChecker.CollectData(ctx)
 }
 
@@ -129,7 +144,14 @@ func (w *cloudAvailability) EvaluateTestsFromConstructedIntervals(ctx context.Co
 }
 
 func (w *cloudAvailability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return w.notSupportedReason
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
+	}
+
+	// Move tcpdump pcap file to storage directory
+	utility.MoveTcpdumpToStorage(w.tcpdumpHook, storageDir)
+
+	return nil
 }
 
 func (w *cloudAvailability) Cleanup(ctx context.Context) error {

@@ -6,7 +6,9 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/sirupsen/logrus"
 )
 
 // SystemdJournalLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
@@ -73,4 +75,33 @@ func IntervalsOverlap(interval1, interval2 monitorapi.Interval) bool {
 
 	// Check for overlap
 	return (interval1.From.Before(end2)) && (interval2.From.Before(end1))
+}
+
+// CreateTcpdumpHookIfEnabled creates a tcpdump hook if DEBUG_ENABLE_TCPDUMP is enabled.
+func CreateTcpdumpHookIfEnabled() *backenddisruption.TcpdumpSamplerHook {
+	// Check if tcpdump collection is enabled via environment variable
+	if os.Getenv("DEBUG_ENABLE_TCPDUMP") == "true" {
+		return backenddisruption.NewTcpdumpSamplerHook()
+	}
+	return nil
+}
+
+// StopTcpdumpCollection stops tcpdump collection if the hook is not nil.
+// This should be called in the CollectData method of monitor tests.
+func StopTcpdumpCollection(tcpdumpHook *backenddisruption.TcpdumpSamplerHook) {
+	if tcpdumpHook != nil {
+		tcpdumpHook.StopCollection()
+	}
+}
+
+// MoveTcpdumpToStorage moves tcpdump pcap files to the storage directory if the hook is not nil.
+// This should be called in the WriteContentToStorage method of monitor tests.
+// It logs any errors but doesn't fail the entire storage operation.
+func MoveTcpdumpToStorage(tcpdumpHook *backenddisruption.TcpdumpSamplerHook, storageDir string) {
+	if tcpdumpHook != nil {
+		if err := tcpdumpHook.MoveToStorage(storageDir); err != nil {
+			// Log error but don't fail the entire WriteContentToStorage operation
+			logrus.WithError(err).Warn("Failed to move tcpdump pcap file to storage")
+		}
+	}
 }

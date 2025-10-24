@@ -86,7 +86,6 @@ func ListAllMonitorTests() []string {
 }
 
 func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo) (monitortestframework.MonitorTestRegistry, error) {
-
 	// get tests and apply any filtering defined in info
 	var startingRegistry monitortestframework.MonitorTestRegistry
 
