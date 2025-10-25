@@ -32,8 +32,9 @@ const (
 	memberPromotedVotingTimeout     = 15 * time.Minute
 	networkDisruptionDuration       = 15 * time.Second
 	vmRestartTimeout                = 5 * time.Minute
-	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful VM shutdown is typically fast
-	membersHealthyAfterDoubleReboot = 15 * time.Minute // It takes into account full VM recovering up to Etcd member healthy
+	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful shutdown is typically fast
+	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful shutdown is typically slow
+	membersHealthyAfterDoubleReboot = 15 * time.Minute // It takes into account full VM reboot and Etcd member healthy
 	pollInterval                    = 5 * time.Second
 )
 
@@ -189,20 +190,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		c, vmA, vmB, err := setupMinimalTestEnvironment(oc, &nodeA, &nodeB)
 		o.Expect(err).To(o.BeNil(), "Expected to setup test environment without error")
 
-		dataPair := []struct {
-			vm, node string
-		}{
+		dataPair := []vmNodePair{
 			{vmA, nodeA.Name},
 			{vmB, nodeB.Name},
 		}
 
-		defer func() {
-			for _, d := range dataPair {
-				if err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath); err != nil {
-					fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restart VM %s during cleanup: %v\n", d.vm, err)
-				}
-			}
-		}()
+		defer restartVms(dataPair, c)
 
 		g.By("Simulating double node failure: stopping both nodes' VMs")
 		// First, stop all VMs
@@ -217,22 +210,142 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 
 		g.By("Restarting both nodes")
-		// Start all VMs
-		for _, d := range dataPair {
-			err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected to start VM %s (node: %s)", d.vm, d.node))
-		}
-		// Wait for all to be running
-		for _, d := range dataPair {
-			err := services.WaitForVMState(d.vm, services.VMStateRunning, vmUngracefulShutdownTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
-			o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
-		}
+		restartVms(dataPair, c)
 
 		g.By(fmt.Sprintf("Waiting both etcd members to become healthy (timeout: %v)", membersHealthyAfterDoubleReboot))
 		validateEtcdRecoveryState(oc, etcdClientFactory,
 			&nodeA,              // member on node A considered leader, hence started == true, learner == false
 			&nodeB, true, false, // member on node B expected started == true, learner == false
 			membersHealthyAfterDoubleReboot, pollInterval)
+	})
+
+	g.It("should recover from double graceful node shutdown", func() {
+		// Note: Both nodes are gracefully shut down, then both restart
+		nodeA := peerNode
+		nodeB := targetNode
+		g.GinkgoT().Printf("Testing double node graceful shutdown for %s and %s\n", nodeA.Name, nodeB.Name)
+
+		c, vmA, vmB, err := setupMinimalTestEnvironment(oc, &nodeA, &nodeB)
+		o.Expect(err).To(o.BeNil(), "Expected to setup test environment without error")
+
+		dataPair := []vmNodePair{
+			{vmA, nodeA.Name},
+			{vmB, nodeB.Name},
+		}
+
+		defer restartVms(dataPair, c)
+
+		g.By(fmt.Sprintf("Gracefully shutting down both nodes at the same time (timeout: %v)", vmGracefulShutdownTimeout))
+		for _, d := range dataPair {
+			innerErr := services.VirshShutdownVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			o.Expect(innerErr).To(o.BeNil(), fmt.Sprintf("Expected to gracefully shutdown VM %s (node: %s)", d.vm, d.node))
+		}
+
+		for _, d := range dataPair {
+			innerErr := services.WaitForVMState(d.vm, services.VMStateShutOff, vmGracefulShutdownTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+			o.Expect(innerErr).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to reach shut off state", d.vm, d.node))
+		}
+
+		g.By("Restarting both nodes")
+		restartVms(dataPair, c)
+
+		g.By("Waiting both etcd members to become healthy and voting")
+		validateEtcdRecoveryState(etcdClientFactory,
+			&nodeA, true, false, // nodeA expected started == true, learner == false
+			&nodeB, true, false, // nodeB expected started == true, learner == false
+			membersHealthyAfterDoubleReboot, pollInterval)
+
+		g.By("Verifying etcd operator health after recovery")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after recovery")
+	})
+
+	g.It("should recover from sequential graceful node shutdowns", func() {
+		// Note: First node is gracefully shut down, then the second, then both restart
+		firstToShutdown := peerNode
+		secondToShutdown := targetNode
+		g.GinkgoT().Printf("Testing sequential graceful shutdowns: first %s, then %s\n",
+			firstToShutdown.Name, secondToShutdown.Name)
+
+		c, vmFirstToShutdown, vmSecondToShutdown, err := setupMinimalTestEnvironment(oc, &firstToShutdown, &secondToShutdown)
+		o.Expect(err).To(o.BeNil(), "Expected to setup test environment without error")
+
+		dataPair := []vmNodePair{
+			{vmFirstToShutdown, firstToShutdown.Name},
+			{vmSecondToShutdown, secondToShutdown.Name},
+		}
+
+		defer restartVms(dataPair, c)
+
+		g.By(fmt.Sprintf("Gracefully shutting down first node: %s", firstToShutdown.Name))
+
+		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmFirstToShutdown))
+
+		g.By(fmt.Sprintf("Gracefully shutting down second node: %s", secondToShutdown.Name))
+		err = vmShutdownAndWait(VMShutdownModeGraceful, vmSecondToShutdown, c)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmSecondToShutdown))
+
+		g.By("Restarting both nodes")
+		restartVms(dataPair, c)
+
+		g.By("Waiting both etcd members to become healthy and voting")
+		validateEtcdRecoveryState(etcdClientFactory,
+			&firstToShutdown, true, false, // nodeA expected started == true, learner == false
+			&secondToShutdown, true, false, // nodeB expected started == true, learner == false
+			membersHealthyAfterDoubleReboot, pollInterval)
+
+		g.By("Verifying etcd operator health after recovery")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after recovery")
+	})
+
+	g.It("should recover from graceful shutdown followed by ungraceful node failure", func() {
+		// Note: First node is gracefully shut down, then the survived node fails ungracefully
+		firstToShutdown := targetNode
+		secondToShutdown := peerNode
+		g.GinkgoT().Printf("Randomly selected %s to shutdown gracefully and %s to survive, then fail ungracefully\n",
+			firstToShutdown.Name, secondToShutdown.Name)
+
+		c, vmFirstToShutdown, vmSecondToShutdown, err := setupMinimalTestEnvironment(oc, &firstToShutdown, &secondToShutdown)
+		o.Expect(err).To(o.BeNil(), "Expected to setup test environment without error")
+
+		dataPair := []vmNodePair{
+			{vmFirstToShutdown, firstToShutdown.Name},
+			{vmSecondToShutdown, secondToShutdown.Name},
+		}
+
+		defer restartVms(dataPair, c)
+
+		g.By(fmt.Sprintf("Gracefully shutting down VM %s (node: %s)", vmFirstToShutdown, firstToShutdown.Name))
+		err = vmShutdownAndWait(VMShutdownModeGraceful, vmFirstToShutdown, c)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmFirstToShutdown))
+
+		g.By(fmt.Sprintf("Waiting for %s to recover cluster and work standalone", secondToShutdown.Name))
+		validateEtcdRecoveryState(etcdClientFactory,
+			&secondToShutdown, true, false, // survivedNode expected started == true, learner == false
+			&firstToShutdown, false, true, // gracefulNode expected started == false, learner == true
+			memberIsLeaderTimeout, pollInterval)
+
+		g.By(fmt.Sprintf("Ungracefully shutting down VM %s (node: %s)", vmSecondToShutdown, secondToShutdown.Name))
+		err = vmShutdownAndWait(VMShutdownModeUngraceful, vmSecondToShutdown, c)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s to reach shut off state", vmSecondToShutdown))
+
+		g.By("Restarting both nodes")
+		restartVms(dataPair, c)
+
+		g.By("Waiting both etcd members to become healthy and voting")
+		validateEtcdRecoveryState(etcdClientFactory,
+			&secondToShutdown, true, false, // survivedNode expected started == true, learner == false
+			&firstToShutdown, true, false, // gracefulNode expected started == true, learner == false
+			membersHealthyAfterDoubleReboot, pollInterval)
+
+		g.By("Verifying etcd operator health after recovery")
+		o.Eventually(func() error {
+			return ensureEtcdOperatorHealthy(oc)
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after recovery")
 	})
 })
 
@@ -540,4 +653,63 @@ func setupMinimalTestEnvironment(oc *util.CLI, nodeA, nodeB *corev1.Node) (c hyp
 	}
 
 	return
+}
+
+type vmNodePair struct {
+	vm, node string
+}
+
+type VMShutdownMode int
+
+const (
+	VMShutdownModeGraceful VMShutdownMode = iota + 1
+	VMShutdownModeUngraceful
+)
+
+func (sm VMShutdownMode) String() string {
+	switch sm {
+	case VMShutdownModeGraceful:
+		return "graceful VM shutdown"
+	case VMShutdownModeUngraceful:
+		return "ungraceful VM shutdown"
+	}
+	return "unknown vm shutdown mode"
+}
+
+func vmShutdownAndWait(mode VMShutdownMode, vm string, c hypervisorExtendedConfig) error {
+	var timeout time.Duration
+	var shutdownFunc func(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error
+	switch mode {
+	case VMShutdownModeGraceful:
+		timeout = vmGracefulShutdownTimeout
+		shutdownFunc = services.VirshShutdownVM
+	case VMShutdownModeUngraceful:
+		timeout = vmUngracefulShutdownTimeout
+		shutdownFunc = services.VirshDestroyVM
+	default:
+		return fmt.Errorf("unexpected VMShutdownMode: %s", mode)
+	}
+
+	g.GinkgoT().Printf("%s: vm %s (timeout: %v)\n", mode, vm, timeout)
+	err := shutdownFunc(vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+	if err != nil {
+		return err
+	}
+
+	return services.WaitForVMState(vm, services.VMStateShutOff, timeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+}
+
+func restartVms(dataPair []vmNodePair, c hypervisorExtendedConfig) {
+	// Start all VMs asynchronously
+	for _, d := range dataPair {
+		if err := services.VirshStartVM(d.vm, &c.HypervisorConfig, c.HypervisorKnownHostsPath); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Warning: failed to restart VM %s during cleanup: %v\n", d.vm, err)
+		}
+	}
+
+	// Wait for all VMs to be running
+	for _, d := range dataPair {
+		err := services.WaitForVMState(d.vm, services.VMStateRunning, vmRestartTimeout, pollInterval, &c.HypervisorConfig, c.HypervisorKnownHostsPath)
+		o.Expect(err).To(o.BeNil(), fmt.Sprintf("Expected VM %s (node: %s) to start in %s timeout", d.vm, d.node, vmRestartTimeout))
+	}
 }
