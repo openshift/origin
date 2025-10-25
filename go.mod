@@ -53,6 +53,7 @@ require (
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
 	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-sqlite3 v1.14.30
+	github.com/metal3-io/baremetal-operator/apis v0.11.1
 	github.com/metallb/frr-k8s v0.0.15
 	github.com/microsoftgraph/msgraph-sdk-go v1.81.0
 	github.com/onsi/ginkgo/v2 v2.23.3
@@ -79,7 +80,7 @@ require (
 	github.com/spf13/pflag v1.0.7
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/objx v0.5.2
-	github.com/stretchr/testify v1.11.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tecbiz-ch/nutanix-go-sdk v0.1.15
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/pretty v1.2.0

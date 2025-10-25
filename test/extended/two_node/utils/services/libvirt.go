@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/two_node/utils/core"
 	"k8s.io/klog/v2"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 // Domain represents a libvirt domain (virtual machine) configuration.
@@ -75,12 +76,12 @@ func VerifyVirsh(sshConfig *core.SSHConfig, knownHostsPath string) (string, erro
 //	output, err := VirshCommand("list --all", sshConfig, knownHostsPath)
 func VirshCommand(command string, sshConfig *core.SSHConfig, knownHostsPath string) (string, error) {
 	fullCommand := fmt.Sprintf("%s %s %s", virshCommand, virshConnectionOption, command)
-	klog.V(4).Infof("VirshCommand: Executing '%s' on %s", fullCommand, sshConfig.IP)
+	e2e.Logf("VirshCommand: Executing '%s' on %s", fullCommand, sshConfig.IP)
 	output, _, err := core.ExecuteSSHCommand(fullCommand, sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshCommand failed", "command", fullCommand, "host", sshConfig.IP)
+		e2e.Logf("ERROR: VirshCommand failed: %v, command: %s, host: %s", err, fullCommand, sshConfig.IP)
 	} else {
-		klog.V(4).Infof("VirshCommand: Success - output length: %d bytes", len(output))
+		e2e.Logf("VirshCommand: Success - output length: %d bytes", len(output))
 	}
 	return output, err
 }
@@ -147,12 +148,12 @@ func VirshGetVMUUID(vmName string, sshConfig *core.SSHConfig, knownHostsPath str
 //
 //	err := VirshUndefineVM("master-0", sshConfig, knownHostsPath)
 func VirshUndefineVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("VirshUndefineVM: Undefining VM '%s' (including NVRAM)", vmName)
+	e2e.Logf("VirshUndefineVM: Undefining VM '%s' (including NVRAM)", vmName)
 	_, err := VirshCommand(fmt.Sprintf("undefine %s --nvram", vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshUndefineVM failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshUndefineVM failed for VM '%s': %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshUndefineVM: Successfully undefined VM '%s'", vmName)
+		e2e.Logf("VirshUndefineVM: Successfully undefined VM '%s'", vmName)
 	}
 	return err
 }
@@ -161,12 +162,12 @@ func VirshUndefineVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath st
 //
 //	err := VirshDestroyVM("master-0", sshConfig, knownHostsPath)
 func VirshDestroyVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("VirshDestroyVM: Forcefully stopping VM '%s'", vmName)
+	e2e.Logf("VirshDestroyVM: Forcefully stopping VM '%s'", vmName)
 	_, err := VirshCommand(fmt.Sprintf("destroy %s", vmName), sshConfig, knownHostsPath)
 	if err != nil {
-		klog.ErrorS(err, "VirshDestroyVM failed", "vm", vmName)
+		e2e.Logf("ERROR: VirshDestroyVM failed for VM '%s': %v", vmName, err)
 	} else {
-		klog.V(2).Infof("VirshDestroyVM: Successfully destroyed VM '%s'", vmName)
+		e2e.Logf("VirshDestroyVM: Successfully destroyed VM '%s'", vmName)
 	}
 	return err
 }
@@ -330,33 +331,33 @@ func GetVMNetworkInfo(vmName string, networkBridge string, sshConfig *core.SSHCo
 
 // WaitForVMState waits for a VM to reach a given state by polling domstate.
 func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollInterval time.Duration, sshConfig *core.SSHConfig, knownHostsPath string) error {
-	klog.V(2).Infof("WaitForVMState: Starting wait for VM '%s' to reach state %s", vmName, vmState)
+	e2e.Logf("WaitForVMState: Starting wait for VM '%s' to reach state %s (timeout: %v)", vmName, vmState, timeout)
 
 	err := core.RetryWithOptions(func() error {
-		klog.V(4).Infof("WaitForVMState: Checking VM '%s' state (retry iteration)", vmName)
+		e2e.Logf("WaitForVMState: Checking VM '%s' state (polling)", vmName)
 
 		// Check if VM exists using VirshVMExists helper
 		_, err := VirshVMExists(vmName, sshConfig, knownHostsPath)
 		if err != nil {
-			klog.V(4).Infof("WaitForVMState: VM '%s' not found in VM list - %v", vmName, err)
+			e2e.Logf("WaitForVMState: VM '%s' not found in VM list - %v", vmName, err)
 			return fmt.Errorf("VM %s state is not '%s' yet: %v", vmName, vmState, err)
 		}
 
 		// Check VM state (not just defined)
 		statusOutput, err := VirshCommand(fmt.Sprintf("domstate %s", vmName), sshConfig, knownHostsPath)
 		if err != nil {
-			klog.ErrorS(err, "WaitForVMState failed to check VM state", "vm", vmName)
+			e2e.Logf("ERROR: WaitForVMState failed to check VM '%s' state: %v", vmName, err)
 			return fmt.Errorf("failed to check VM %s state: %v", vmName, err)
 		}
 
 		statusOutput = strings.TrimSpace(statusOutput)
-		klog.V(4).Infof("WaitForVMState: VM '%s' current state: %s", vmName, statusOutput)
+		e2e.Logf("WaitForVMState: VM '%s' current state: %s, expected: %s", vmName, statusOutput, vmState)
 
 		if !strings.Contains(statusOutput, string(vmState)) {
 			return fmt.Errorf("VM %s is not '%s', current state: %s", vmName, vmState, statusOutput)
 		}
 
-		klog.V(2).Infof("WaitForVMState: VM '%s' has reached state '%s'", vmName, vmState)
+		e2e.Logf("WaitForVMState: VM '%s' has reached state '%s'", vmName, vmState)
 		return nil
 	}, core.RetryOptions{
 		Timeout:      timeout,
@@ -364,9 +365,9 @@ func WaitForVMState(vmName string, vmState VMState, timeout time.Duration, pollI
 	}, fmt.Sprintf("VM %s state check", vmName))
 
 	if err != nil {
-		klog.ErrorS(err, "WaitForVMState timeout or error", "vm", vmName)
+		e2e.Logf("ERROR: WaitForVMState timeout or error for VM '%s': %v", vmName, err)
 	} else {
-		klog.V(2).Infof("WaitForVMState: Successfully confirmed VM '%s' is '%s'", vmName, vmState)
+		e2e.Logf("WaitForVMState: Successfully confirmed VM '%s' is '%s'", vmName, vmState)
 	}
 
 	return err
