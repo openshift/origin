@@ -67,6 +67,20 @@ var (
 	rbacMonitorCRBName         string
 )
 
+// HostedClusterType represents the type of cluster hosting model
+type HostedClusterType string
+
+const (
+	// HostedClusterTypeStandalone represents a standard OpenShift cluster with self-hosted control plane
+	HostedClusterTypeStandalone HostedClusterType = "Standalone"
+	// HostedClusterTypeAROHCP represents an ARO HCP (Azure Red Hat OpenShift Hosted Control Plane) cluster
+	HostedClusterTypeAROHCP HostedClusterType = "AROHCP"
+	// HostedClusterTypeBareMetal represents a bare metal HyperShift hosted cluster
+	HostedClusterTypeBareMetal HostedClusterType = "BareMetal"
+	// HostedClusterTypeOther represents other HyperShift hosted cluster types
+	HostedClusterTypeOther HostedClusterType = "Other"
+)
+
 type InvariantInClusterDisruption struct {
 	namespaceName               string
 	openshiftTestsImagePullSpec string
@@ -74,9 +88,7 @@ type InvariantInClusterDisruption struct {
 	notSupportedReason          string
 	replicas                    int32
 	controlPlaneNodes           int32
-	isHypershift                bool
-	isAROHCPCluster             bool
-	isBareMetalHypershift       bool
+	hostedClusterType           HostedClusterType
 	adminRESTConfig             *rest.Config
 	kubeClient                  kubernetes.Interface
 }
@@ -108,12 +120,12 @@ func (i *InvariantInClusterDisruption) parseAdminRESTConfigHost() (hostname, por
 }
 
 // setKubernetesServiceEnvVars sets the KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT environment variables
-// based on the cluster type (ARO HCP, bare metal HyperShift, or standard)
+// based on the hosted cluster type
 func (i *InvariantInClusterDisruption) setKubernetesServiceEnvVars(envVars []corev1.EnvVar, apiIntHost, apiIntPort string) []corev1.EnvVar {
 	// Parse adminRESTConfig.Host once for bare metal HyperShift
 	var bareMetalHost, bareMetalPort string
 	var bareMetalErr error
-	if i.isHypershift && i.isBareMetalHypershift {
+	if i.hostedClusterType == HostedClusterTypeBareMetal {
 		bareMetalHost, bareMetalPort, bareMetalErr = i.parseAdminRESTConfigHost()
 		if bareMetalErr != nil {
 			logrus.WithError(bareMetalErr).Errorf("Failed to parse adminRESTConfig.Host for bare metal HyperShift")
@@ -123,7 +135,7 @@ func (i *InvariantInClusterDisruption) setKubernetesServiceEnvVars(envVars []cor
 	for j, env := range envVars {
 		switch env.Name {
 		case "KUBERNETES_SERVICE_HOST":
-			if i.isHypershift && i.isBareMetalHypershift {
+			if i.hostedClusterType == HostedClusterTypeBareMetal {
 				if bareMetalErr != nil {
 					envVars[j].Value = apiIntHost
 				} else {
@@ -133,9 +145,10 @@ func (i *InvariantInClusterDisruption) setKubernetesServiceEnvVars(envVars []cor
 				envVars[j].Value = apiIntHost
 			}
 		case "KUBERNETES_SERVICE_PORT":
-			if i.isHypershift && i.isAROHCPCluster {
+			if i.hostedClusterType == HostedClusterTypeAROHCP {
+				// ARO HCP uses port 7443 for the internal API server load balancer
 				envVars[j].Value = "7443"
-			} else if i.isHypershift && i.isBareMetalHypershift {
+			} else if i.hostedClusterType == HostedClusterTypeBareMetal {
 				if bareMetalErr != nil {
 					envVars[j].Value = apiIntPort
 				} else {
@@ -371,11 +384,11 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
 
-	// Check for ARO HCP and skip if detected
+	// Determine hosted cluster type
 	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
-	var isAROHCPcluster bool
+	i.hostedClusterType = HostedClusterTypeStandalone // Default to standalone
+
 	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
-	i.isHypershift = isHypershift
 	if isHypershift {
 		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 		if err != nil {
@@ -386,19 +399,28 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		// For Hypershift, only skip if it's specifically ARO HCP
 		// Use management cluster client to check the control-plane-operator deployment
 		managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
+		var isAROHCPcluster bool
 		if isAROHCPcluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
 			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
 		} else if isAROHCPcluster {
 			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
 			return nil
 		}
-		i.isAROHCPCluster = isAROHCPcluster
 
-		// Check if this is a bare metal HyperShift cluster
-		i.isBareMetalHypershift, err = exutil.IsBareMetalHyperShiftCluster(ctx, managementOC)
-		if err != nil {
-			logrus.WithError(err).Warning("Failed to check if bare metal HyperShift, assuming it's not")
-			i.isBareMetalHypershift = false // Assume not bare metal HyperShift on error
+		// Determine the specific HyperShift variant
+		if isAROHCPcluster {
+			i.hostedClusterType = HostedClusterTypeAROHCP
+		} else {
+			// Check if this is a bare metal HyperShift cluster
+			isBareMetalHypershift, err := exutil.IsBareMetalHyperShiftCluster(ctx, managementOC)
+			if err != nil {
+				logrus.WithError(err).Warning("Failed to check if bare metal HyperShift, assuming other HyperShift type")
+				i.hostedClusterType = HostedClusterTypeOther
+			} else if isBareMetalHypershift {
+				i.hostedClusterType = HostedClusterTypeBareMetal
+			} else {
+				i.hostedClusterType = HostedClusterTypeOther
+			}
 		}
 	}
 
@@ -456,7 +478,12 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 
 	var apiIntHost string
 	var apiIntPort string
-	if i.isHypershift {
+	// Hosted clusters use adminRESTConfig.Host, standalone clusters use APIServerInternalURL
+	isHostedCluster := i.hostedClusterType == HostedClusterTypeAROHCP ||
+		i.hostedClusterType == HostedClusterTypeBareMetal ||
+		i.hostedClusterType == HostedClusterTypeOther
+
+	if isHostedCluster {
 		apiIntHost, apiIntPort, err = i.parseAdminRESTConfigHost()
 		if err != nil {
 			return fmt.Errorf("failed to parse adminRESTConfig.Host: %v", err)
