@@ -66,6 +66,11 @@ type JUnitTestCase struct {
 	// Duration is the time taken in seconds to run the test
 	Duration float64 `xml:"time,attr"`
 
+	// OTE metadata attributes
+	StartTime string `xml:"start-time,attr,omitempty"`
+	EndTime   string `xml:"end-time,attr,omitempty"`
+	Lifecycle string `xml:"lifecycle,attr,omitempty"`
+
 	// SkipMessage holds the reason why the test was skipped
 	SkipMessage *SkipMessage `xml:"skipped"`
 
