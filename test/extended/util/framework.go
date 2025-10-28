@@ -313,7 +313,7 @@ func WaitForImageStreamImport(oc *CLI) error {
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	ctx := context.Background()
-	images := []string{"nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins", "dotnet"}
+	images := []string{"nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins"}
 
 	hasSamplesOperator, err := IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityOpenShiftSamples)
 	if err != nil {
