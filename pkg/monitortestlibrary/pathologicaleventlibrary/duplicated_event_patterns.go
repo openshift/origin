@@ -1176,17 +1176,17 @@ func newCrioReloadedTooOftenEventMatcher(finalInternals monitorapi.Intervals) Ev
 }
 
 func newPrometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	statefulSetName := "prometheus-k8s"
-	statefulSetNamespace := "openshift-monitoring"
-	messageHumanizedSubstring := "Readiness probe errored: rpc error"
-	messageReason := "Unhealthy"
+	podNamePrefix := "prometheus-k8s"
+	podNamespace := "openshift-monitoring"
+	messageHumanizedSubstring := "Readiness probe errored"
+	messageReason := monitorapi.UnhealthyReason
 	matcher := &SimplePathologicalEventMatcher{
 		name: "PrometheusReadinessProbeErrorsDuringUpgrades",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey:   regexp.MustCompile(`^` + statefulSetNamespace + `$`),
-			monitorapi.LocatorStatefulSetKey: regexp.MustCompile(`^` + statefulSetName + `$`),
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^` + podNamespace + `$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^` + podNamePrefix + `-[0,1]$`),
 		},
-		messageReasonRegex: regexp.MustCompile(`^` + messageReason + `$`),
+		messageReasonRegex: regexp.MustCompile(`^` + string(messageReason) + `$`),
 		messageHumanRegex:  regexp.MustCompile(messageHumanizedSubstring),
 		jira:               "https://issues.redhat.com/browse/OCPBUGS-62703",
 	}
@@ -1205,12 +1205,16 @@ func newPrometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher(fin
 		05:53:52 (x25)	openshift-monitoring	kubelet	prometheus-k8s-0
 		Unhealthy
 		Readiness probe errored: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1
+
+		11:44:16 (x56)	openshift-monitoring	kubelet	prometheus-k8s-0
+		Unhealthy
+		Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1
 	*/
 	testIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Locator.Type == monitorapi.LocatorTypeStatefulSet &&
-			eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey] == statefulSetNamespace &&
-			eventInterval.Locator.Keys[monitorapi.LocatorStatefulSetKey] == statefulSetName &&
-			eventInterval.Message.Reason == monitorapi.IntervalReason(messageReason) &&
+		return eventInterval.Locator.Type == monitorapi.LocatorTypePod &&
+			eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey] == podNamespace &&
+			strings.HasPrefix(eventInterval.Locator.Keys[monitorapi.LocatorPodKey], podNamePrefix) &&
+			eventInterval.Message.Reason == messageReason &&
 			strings.Contains(eventInterval.Message.HumanMessage, messageHumanizedSubstring)
 	})
 
