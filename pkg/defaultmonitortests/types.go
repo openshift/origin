@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/authentication/requiredsccmonitortests"
 	admupgradestatus "github.com/openshift/origin/pkg/monitortests/cli/adm_upgrade/status"
 	azuremetrics "github.com/openshift/origin/pkg/monitortests/cloud/azure/metrics"
-	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/clusterversionchecker"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/terminationmessagepolicy"
@@ -86,7 +85,6 @@ func ListAllMonitorTests() []string {
 }
 
 func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo) (monitortestframework.MonitorTestRegistry, error) {
-
 	// get tests and apply any filtering defined in info
 	var startingRegistry monitortestframework.MonitorTestRegistry
 
@@ -174,7 +172,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("cluster-version-checker", "Cluster Version Operator", clusterversionchecker.NewClusterVersionChecker())
 
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())

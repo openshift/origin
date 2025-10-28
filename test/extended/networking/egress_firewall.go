@@ -135,8 +135,8 @@ func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI
 		// Test ICMP / Ping to Cloudfare DNS IP (1.1.1.1) should fail
 		// because there is no allow cidr match for 1.1.1.1
 		g.By("sending traffic that does not match allow cidr rule")
-		_, err = oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
-		expectError(err)
+		out, err := oc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
+		expectError(err, "ping to 1.1.1.1 should fail: %s", out)
 	}
 	// Test curl to redhat.com should pass
 	// because we have allow dns rule for redhat.com
