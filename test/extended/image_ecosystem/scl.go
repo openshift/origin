@@ -40,43 +40,6 @@ func skipArch(oc *exutil.CLI, arches []string) bool {
 	return true
 }
 
-// waitForImageStreamTag waits for a specific imagestream tag to be available in the registry
-// with a timeout of 5 minutes
-func waitForImageStreamTag(oc *exutil.CLI, imageName, tagName string) error {
-	e2e.Logf("waiting for imagestream %s:%s to be available in openshift namespace", imageName, tagName)
-
-	timeout := 5 * time.Minute
-	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
-		is, err := oc.AsAdmin().ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), imageName, metav1.GetOptions{})
-		if err != nil {
-			e2e.Logf("failed to get imagestream %s: %v", imageName, err)
-			return false, nil
-		}
-
-		// Check if the specific tag exists and has been imported
-		for _, tag := range is.Status.Tags {
-			if tag.Tag == tagName && len(tag.Items) > 0 {
-				e2e.Logf("imagestream %s:%s is available with %d items", imageName, tagName, len(tag.Items))
-				return true, nil
-			}
-		}
-
-		e2e.Logf("imagestream %s exists but tag %s is not ready yet", imageName, tagName)
-		return false, nil
-	})
-
-	if err != nil {
-		// Dump imagestream for debugging
-		out, dumpErr := oc.AsAdmin().Run("get").Args("is", imageName, "-n", "openshift", "-o", "yaml").Output()
-		if dumpErr == nil {
-			e2e.Logf("imagestream %s details:\n%s", imageName, out)
-		}
-		return fmt.Errorf("timed out waiting for imagestream %s:%s after %v: %v", imageName, tagName, timeout, err)
-	}
-
-	return nil
-}
-
 // defineTest will create the gingko test.  This ensures the test
 // is created with a local copy of all variables the test will need,
 // since the test may not run immediately and may run in parallel with other
@@ -91,14 +54,6 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 				return
 			}
 			e2e.Logf("%s:%s passed architecture compatibility", name, t.Tag)
-
-			// Wait for dotnet imagestream to be available in the registry
-			if name == "dotnet" {
-				g.By(fmt.Sprintf("waiting for imagestream %s:%s to be available", name, t.Tag))
-				err := waitForImageStreamTag(oc, name, t.Tag)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-
 			g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Name:  "test",
@@ -151,14 +106,6 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 				return
 			}
 			e2e.Logf("%s:%s passed architecture compatibility", name, t.Tag)
-
-			// Wait for dotnet imagestream to be available in the registry
-			if name == "dotnet" {
-				g.By(fmt.Sprintf("waiting for imagestream %s:%s to be available", name, t.Tag))
-				err := waitForImageStreamTag(oc, name, t.Tag)
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-
 			g.By(fmt.Sprintf("creating a sample pod for %q with /bin/bash -c command", t.DockerImageReference))
 			pod := exutil.GetPodForContainer(kapiv1.Container{
 				Image:   t.DockerImageReference,
