@@ -25,7 +25,6 @@ import (
 	listeningsockets "github.com/openshift-kni/commatrix/pkg/listening-sockets"
 	matrixdiff "github.com/openshift-kni/commatrix/pkg/matrix-diff"
 	"github.com/openshift-kni/commatrix/pkg/utils"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 )
 
 const (
@@ -139,23 +138,7 @@ var _ = Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io]
 		}
 
 		missingEPSMat := diff.GetUniqueSecondary()
-
-		// flake if only any of the temporary approver ports are missing.
-		// once the approver ports are officially added, this can be removed.
 		if len(missingEPSMat.Matrix) > 0 {
-			isOnlyApproverPorts := true
-			for _, cd := range missingEPSMat.Matrix {
-				if cd.Port != 9193 && cd.Port != 9194 {
-					isOnlyApproverPorts = false
-					break
-				}
-			}
-
-			if isOnlyApproverPorts {
-				result.Flakef("temporary approver ports missing endpointslice: %s", missingEPSMat)
-				return
-			}
-
 			err := fmt.Errorf("the following ports are used but don't have an endpointslice: \n %s", missingEPSMat)
 			Expect(err).ToNot(HaveOccurred())
 		}
