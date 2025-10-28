@@ -1,0 +1,7 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: ServiceCIDR
+metadata:
+  name: newcidr1
+spec:
+  cidrs:
+  - 10.96.0.0/24
