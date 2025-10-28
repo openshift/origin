@@ -252,17 +252,17 @@ var s2iImages = map[string][]tc{
 	},
 	"dotnet": {
 		{
-			Version:  "80",
+			Version:  "90",
 			Cmd:      "dotnet --version",
-			Expected: "8.0",
-			Tag:      "8.0-ubi8",
+			Expected: "9.0",
+			Tag:      "9.0-ubi8",
 			Arches:   []string{"amd64", "arm64", "s390x"},
 		},
 		// {
-		// 	Version:  "90",
+		// 	Version:  "100",
 		// 	Cmd:      "dotnet --version",
-		// 	Expected: "9.0",
-		// 	Tag:      "9.0-ubi8",
+		// 	Expected: "10.0",
+		// 	Tag:      "10.0-ubi8",
 		// 	Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		// },
 	},
