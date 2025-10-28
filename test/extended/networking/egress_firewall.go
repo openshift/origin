@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
+	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/test/extended/kubevirt"
@@ -12,6 +14,7 @@ import (
 
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -113,6 +116,21 @@ func doEgressFwTest(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI, man
 	g.By(fmt.Sprintf("calling oc create -f %s", egFwYaml))
 	err := oc.AsAdmin().Run("create").Args("-f", egFwYaml).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "created egress-firewall object")
+
+	g.By("waiting for egressfirewall rules to be applied successfully")
+	// Fetch the name of the egressfirewall object. As there can be only
+	// one egressfirewall object per namespace, we can use the first one.
+	egfwName, err := oc.AsAdmin().Run("get").Args("egressfirewall", "-o", "jsonpath={.items[0].metadata.name}").Output()
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get egressfirewall object")
+
+	err = wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		out, err := oc.AsAdmin().Run("get").Args("egressfirewall", egfwName, "-o", "jsonpath={.status.status}").Output()
+		if err != nil {
+			return false, nil
+		}
+		return strings.Contains(out, "EgressFirewall Rules applied"), nil
+	})
+	o.Expect(err).NotTo(o.HaveOccurred(), "failed to wait for egressfirewall rules to be applied successfully")
 
 	o.Expect(sendEgressFwTraffic(f, mgmtFw, oc, egressFWTestPod, nodeSelectorSupport, checkWildcard)).To(o.Succeed())
 
