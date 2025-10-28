@@ -161,12 +161,11 @@ func (w *monitor) noFailingUnknownCondition(intervals monitorapi.Intervals) []*j
 		if bzComponent == "Unknown" {
 			bzComponent = coName
 		}
-
+		name := fmt.Sprintf("[bz-%v] clusteroperator/%v must complete version change within limited time", bzComponent, coName)
 		m := 30
 		if coName == "machine-config" {
 			m = 3 * m
 		}
-		name := fmt.Sprintf("[bz-%v] clusteroperator/%v must complete version change under %d minutes", bzComponent, coName, m)
 		if !violations.Has(coName) {
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name: name,
