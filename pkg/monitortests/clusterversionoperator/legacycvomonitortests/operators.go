@@ -697,11 +697,13 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 					return "https://issues.redhat.com/browse/OCPBUGS-62630"
 				}
 			case "node-tuning":
-				if reason == "Reconciling" {
+				if reason == "Reconciling" || reason == "ProfileProgressing" {
 					return "https://issues.redhat.com/browse/OCPBUGS-62632"
 				}
 			case "openshift-controller-manager":
-				if reason == "_DesiredStateNotYetAchieved" {
+				// _DesiredStateNotYetAchieved
+				// RouteControllerManager_DesiredStateNotYetAchieved
+				if strings.HasSuffix(reason, "_DesiredStateNotYetAchieved") {
 					return "https://issues.redhat.com/browse/OCPBUGS-63116"
 				}
 			case "service-ca":
@@ -713,8 +715,9 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 				// GCPPDCSIDriverOperatorCR_GCPPDDriverNodeServiceController_Deploying
 				// AWSEBSCSIDriverOperatorCR_AWSEBSDriverNodeServiceController_Deploying
 				// VolumeDataSourceValidatorDeploymentController_Deploying
-				if strings.HasSuffix(reason, "Controller_Deploying") ||
-					reason == "GCPPD_Deploying" {
+				// GCPPD_Deploying
+				// AWSEBS_Deploying
+				if strings.HasSuffix(reason, "_Deploying") {
 					return "https://issues.redhat.com/browse/OCPBUGS-62634"
 				}
 			case "olm":
@@ -722,6 +725,10 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 				// OperatorcontrollerDeploymentOperatorControllerControllerManager_Deploying
 				if strings.HasSuffix(reason, "ControllerManager_Deploying") {
 					return "https://issues.redhat.com/browse/OCPBUGS-62635"
+				}
+			case "operator-lifecycle-manager-packageserver":
+				if reason == "" {
+					return "https://issues.redhat.com/browse/OCPBUGS-63672"
 				}
 			}
 			return ""
