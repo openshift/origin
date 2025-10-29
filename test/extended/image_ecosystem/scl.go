@@ -55,10 +55,25 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			}
 			e2e.Logf("%s:%s passed architecture compatibility", name, t.Tag)
 			g.By(fmt.Sprintf("creating a sample pod for %q", t.DockerImageReference))
-			pod := exutil.GetPodForContainer(kapiv1.Container{
+			container := kapiv1.Container{
 				Name:  "test",
 				Image: t.DockerImageReference,
-			})
+			}
+
+			// For .NET 9.0, explicitly run the usage script to work around Terminal Logger issues
+			// See: https://developers.redhat.com/articles/2024/11/15/net-9-now-available-rhel-and-openshift
+			if name == "dotnet" && strings.Contains(t.Tag, "9.0") {
+				e2e.Logf("Setting explicit command for .NET 9.0 to run usage script")
+				container.Command = []string{"/usr/libexec/s2i/usage"}
+			}
+
+			pod := exutil.GetPodForContainer(container)
+
+			// Set restart policy to Never for .NET 9.0 to match the expected behavior
+			if name == "dotnet" && strings.Contains(t.Tag, "9.0") {
+				pod.Spec.RestartPolicy = kapiv1.RestartPolicyNever
+			}
+
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
