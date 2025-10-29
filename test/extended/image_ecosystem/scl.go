@@ -69,11 +69,6 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 
 			pod := exutil.GetPodForContainer(container)
 
-			// Set restart policy to Never for .NET 9.0 to match the expected behavior
-			if name == "dotnet" && strings.Contains(t.Tag, "9.0") {
-				pod.Spec.RestartPolicy = kapiv1.RestartPolicyNever
-			}
-
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
