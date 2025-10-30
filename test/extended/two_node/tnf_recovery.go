@@ -24,8 +24,6 @@ import (
 )
 
 const (
-	nodeIsHealthyTimeout            = time.Minute
-	etcdOperatorIsHealthyTimeout    = time.Minute
 	memberHasLeftTimeout            = 5 * time.Minute
 	memberIsLeaderTimeout           = 10 * time.Minute
 	memberRejoinedLearnerTimeout    = 10 * time.Minute
@@ -55,32 +53,19 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.BeforeEach(func() {
 		skipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 
-		g.By("Verifying etcd cluster operator is healthy before starting test")
-		o.Eventually(func() error {
-			return ensureEtcdOperatorHealthy(oc)
-		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy before starting test")
-
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically("==", 2), "Expected to find 2 Nodes only")
+
+		etcdClientFactory = helpers.NewEtcdClientFactory(oc.KubeClient())
+
+		skipIfClusterIsNotHealthy(oc, etcdClientFactory, nodes)
 
 		// Select the first index randomly
 		randomIndex := rand.Intn(len(nodes.Items))
 		peerNode = nodes.Items[randomIndex]
 		// Select the remaining index
 		targetNode = nodes.Items[(randomIndex+1)%len(nodes.Items)]
-
-		kubeClient := oc.KubeClient()
-		etcdClientFactory = helpers.NewEtcdClientFactory(kubeClient)
-
-		g.GinkgoT().Printf("Ensure both nodes are healthy before starting the test\n")
-		o.Eventually(func() error {
-			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, peerNode.Name)
-		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("expect to ensure Node '%s' healthiness without errors", peerNode.Name))
-
-		o.Eventually(func() error {
-			return helpers.EnsureHealthyMember(g.GinkgoT(), etcdClientFactory, targetNode.Name)
-		}, nodeIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), fmt.Sprintf("expect to ensure Node '%s' healthiness without errors", targetNode.Name))
 	})
 
 	g.It("should recover from graceful node shutdown with etcd member re-addition", func() {
@@ -377,65 +362,6 @@ func getMemberState(node *corev1.Node, members []*etcdserverpb.Member) (started,
 		return false, false, fmt.Errorf("could not find node %v via peer URL %s", node.Name, peerURL)
 	}
 	return started, learner, nil
-}
-
-// ensureEtcdOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
-func ensureEtcdOperatorHealthy(oc *util.CLI) error {
-	g.By("Checking etcd ClusterOperator status")
-	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to retrieve etcd ClusterOperator: %v", err)
-	}
-
-	// Check if etcd operator is Available
-	available := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorAvailable)
-	if available == nil || available.Status != v1.ConditionTrue {
-		return fmt.Errorf("etcd ClusterOperator is not Available: %v", available)
-	}
-
-	// Check if etcd operator is not Degraded
-	degraded := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorDegraded)
-	if degraded != nil && degraded.Status == v1.ConditionTrue {
-		return fmt.Errorf("etcd ClusterOperator is Degraded: %s", degraded.Message)
-	}
-
-	// Check if etcd operator is not Progressing (optional - might be ok during normal operations)
-	progressing := findClusterOperatorCondition(etcdOperator.Status.Conditions, v1.OperatorProgressing)
-	if progressing != nil && progressing.Status == v1.ConditionTrue {
-		g.GinkgoT().Logf("Warning: etcd ClusterOperator is Progressing: %s", progressing.Message)
-	}
-
-	g.By("Checking etcd pods are running")
-	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
-		LabelSelector: "app=etcd",
-	})
-	if err != nil {
-		return fmt.Errorf("failed to retrieve etcd pods: %v", err)
-	}
-
-	runningPods := 0
-	for _, pod := range etcdPods.Items {
-		if pod.Status.Phase == corev1.PodRunning {
-			runningPods++
-		}
-	}
-
-	if runningPods < 2 {
-		return fmt.Errorf("expected at least 2 etcd pods running, found %d", runningPods)
-	}
-
-	g.GinkgoT().Logf("etcd cluster operator is healthy: Available=True, Degraded=False, %d pods running", runningPods)
-	return nil
-}
-
-// findClusterOperatorCondition finds a condition in ClusterOperator status
-func findClusterOperatorCondition(conditions []v1.ClusterOperatorStatusCondition, conditionType v1.ClusterStatusConditionType) *v1.ClusterOperatorStatusCondition {
-	for i := range conditions {
-		if conditions[i].Type == conditionType {
-			return &conditions[i]
-		}
-	}
-	return nil
 }
 
 // validateEtcdRecoveryState polls the etcd cluster until the members match the expected state or a timeout is reached.
