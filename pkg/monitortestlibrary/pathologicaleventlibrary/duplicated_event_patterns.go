@@ -1219,13 +1219,17 @@ func newPrometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher(fin
 	})
 
 	if len(testIntervals) > 0 {
-		// Readiness probe errors are expected during upgrades, allow a higher threshold.
-		// Set the threshold to 100 to allow for a high number of readiness probe errors
-		// during the upgrade, but not so high that we would miss a real problem, i.e.,
-		// the job below (and usually) hit ~60 readiness errors during the upgrade,
-		// https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.20-upgrade-from-stable-4.19-e2e-aws-ovn-upgrade/1977094149035266048,
-		// However, the job below hit readiness errors 774 times during the upgrade,
-		// https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.19-upgrade-from-stable-4.18-e2e-metal-ovn-single-node-rt-upgrade-test/1975691393640697856.
+		/*
+			Readiness probes run during the lifecycle of the container, including termination.
+			Prometheus pods may take some time to stop, and thus result in more kubelet pings than permitted by default (20).
+			With a termination grace period of 600s, these pods may lead to probe errors (e.g. the web service is stopped but the process is still running), which is expected during upgrades.
+
+			To address this, set the threshold to 100 (approximately 600 (termination period) / 5 (probe interval)), to allow for a high number of readiness probe errors during the upgrade, but not so high that we would miss a real problem.
+			The job below hit ~60 readiness errors during the upgrade:
+			https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.20-upgrade-from-stable-4.19-e2e-aws-ovn-upgrade/1977094149035266048, which makes sense to ignore,
+			However, the job below hit readiness errors 774 times during the upgrade:
+			https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.19-upgrade-from-stable-4.18-e2e-metal-ovn-single-node-rt-upgrade-test/1975691393640697856, which should be caught.
+		*/
 		matcher.repeatThresholdOverride = 100
 	} else {
 		matcher.neverAllow = true

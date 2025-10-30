@@ -2,6 +2,7 @@ package pathologicaleventlibrary
 
 import (
 	_ "embed"
+	"fmt"
 	"testing"
 	"time"
 
@@ -663,6 +664,120 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestPathologicalEventsPrometheusReadinessProbeErrorsDuringUpgrades(t *testing.T) {
+	const namespace = "openshift-monitoring"
+
+	unhealthyReasonPathologicalMessageWithHumanMessage := func(humanMessage string, repetitionCount int) monitorapi.Message {
+		return monitorapi.Message{
+			Reason:       monitorapi.UnhealthyReason,
+			HumanMessage: humanMessage,
+			Annotations: map[monitorapi.AnnotationKey]string{
+				monitorapi.AnnotationCount:        fmt.Sprintf("%d", repetitionCount),
+				monitorapi.AnnotationPathological: "true",
+			},
+		}
+	}
+
+	openshiftMonitoringNsLocatorWithPodKey := func(pod string) monitorapi.Locator {
+		return monitorapi.Locator{
+			Type: monitorapi.LocatorTypePod,
+			Keys: map[monitorapi.LocatorKey]string{
+				monitorapi.LocatorNamespaceKey: "openshift-monitoring",
+				monitorapi.LocatorPodKey:       pod,
+			},
+		}
+	}
+
+	tests := []struct {
+		name            string
+		intervals       []monitorapi.Interval
+		expectedMessage string
+	}{
+		{
+			name: "Readiness probe error (stopping container) on first Prometheus pod",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Locator: openshiftMonitoringNsLocatorWithPodKey("prometheus-k8s-0"),
+						Message: unhealthyReasonPathologicalMessageWithHumanMessage("Readiness probe errored: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1", 100),
+					},
+				},
+			},
+		},
+		{
+			name: "Readiness probe error (terminated container) on second Prometheus pod",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Locator: openshiftMonitoringNsLocatorWithPodKey("prometheus-k8s-1"),
+						Message: unhealthyReasonPathologicalMessageWithHumanMessage("Readiness probe errored: rpc error: code = NotFound desc = container is not created or running: checking if PID of 58577e7deb7b8ae87b8029b9988fa268613748d0743ce989748f27e52b199ef5 is running failed: container process not found", 100),
+					},
+				},
+			},
+		},
+		{
+			name: "Readiness probe error (stopping container, different human message) on second Prometheus pod",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Locator: openshiftMonitoringNsLocatorWithPodKey("prometheus-k8s-1"),
+						Message: unhealthyReasonPathologicalMessageWithHumanMessage("Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1", 100),
+					},
+				},
+			},
+		},
+		{
+			name: "Readiness probe error (stopping container, different human message) on non-existent Prometheus pod should not be ignored",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Locator: openshiftMonitoringNsLocatorWithPodKey("prometheus-k8s-2"),
+						Message: unhealthyReasonPathologicalMessageWithHumanMessage("Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1", 100),
+					},
+				},
+			},
+			expectedMessage: "1 events happened too frequently\n\nevent happened 100 times, something is wrong: namespace/openshift-monitoring pod/prometheus-k8s-2 - reason/Unhealthy Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1 (00:00:00Z) result=reject ",
+		},
+		{
+			name: "Readiness probe error (stopping container, different human message) on a Prometheus pod should not be ignored above the acceptable limit",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Locator: openshiftMonitoringNsLocatorWithPodKey("prometheus-k8s-1"),
+						Message: unhealthyReasonPathologicalMessageWithHumanMessage("Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1", 101),
+					},
+				},
+			},
+			expectedMessage: "1 events happened too frequently\n\nevent happened 101 times, something is wrong: namespace/openshift-monitoring pod/prometheus-k8s-1 - reason/Unhealthy Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1 (00:00:00Z) result=reject ",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			events := monitorapi.Intervals(test.intervals)
+			evaluator := duplicateEventsEvaluator{
+				registry: NewUpgradePathologicalEventMatchers(nil, events),
+			}
+
+			testName := "events should not repeat"
+			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)
+			jUnitName := getJUnitName(testName, namespace)
+			for _, junit := range junits {
+				if junit.Name == jUnitName {
+					if test.expectedMessage != "" {
+						require.NotNil(t, junit.FailureOutput, "expected junit to have failure output")
+						require.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
+					} else {
+						require.Nil(t, junit.FailureOutput, "expected success but got failure output for junit: %s", junit.Name)
+					}
+
+					break
+				}
+			}
 		})
 	}
 }
