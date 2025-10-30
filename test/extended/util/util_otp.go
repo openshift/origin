@@ -23,15 +23,13 @@ import (
 
 // NotShowInfo disables showing info in CLI output
 func (c *CLI) NotShowInfo() *CLI {
-	// OTP tracks this with a showInfo field, but origin doesn't have this field
-	// For now, this is a no-op in origin
+	c.showInfo = false
 	return c
 }
 
 // SetShowInfo enables showing info in CLI output
 func (c *CLI) SetShowInfo() *CLI {
-	// OTP tracks this with a showInfo field, but origin doesn't have this field
-	// For now, this is a no-op in origin
+	c.showInfo = true
 	return c
 }
 

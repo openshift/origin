@@ -110,6 +110,7 @@ type CLI struct {
 	addEnvVars map[string]string
 
 	verbose              bool
+	showInfo             bool // control framework.Logf output
 	withoutNamespace     bool
 	withManagedNamespace bool
 	kubeFramework        *framework.Framework
@@ -134,6 +135,7 @@ func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 		execPath:                "oc",
 		adminConfigPath:         KubeConfigPath(),
 		staticConfigManifestDir: StaticConfigManifestDir(),
+		showInfo:                true,
 	}
 	// Called only once (assumed the objects will never get modified)
 	// TODO: run in every BeforeEach
@@ -178,6 +180,7 @@ func NewCLIWithoutNamespace(project string) *CLI {
 		execPath:                "oc",
 		adminConfigPath:         KubeConfigPath(),
 		staticConfigManifestDir: StaticConfigManifestDir(),
+		showInfo:                true,
 		withoutNamespace:        true,
 	}
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
@@ -211,6 +214,7 @@ func NewCLIForMonitorTest(project string) *CLI {
 		execPath:                "oc",
 		adminConfigPath:         KubeConfigPath(),
 		staticConfigManifestDir: StaticConfigManifestDir(),
+		showInfo:                true,
 		withoutNamespace:        true,
 	}
 
@@ -241,6 +245,7 @@ func NewHypershiftManagementCLI(project string) *CLI {
 		username:         "admin",
 		execPath:         "oc",
 		adminConfigPath:  kubeconfig,
+		showInfo:         true,
 		withoutNamespace: true,
 	}
 }
@@ -1020,7 +1025,10 @@ func (c *CLI) start(stdOutBuff, stdErrBuff *bytes.Buffer) (*exec.Cmd, error) {
 	cmd := exec.Command(c.execPath, c.finalArgs...)
 	cmd.Stdin = c.stdin
 	// Redact any bearer token information from the log.
-	framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
+	// Only log if showInfo is enabled (controlled by util_otp)
+	if c.showInfo {
+		framework.Logf("Running '%s %s'", c.execPath, RedactBearerToken(strings.Join(c.finalArgs, " ")))
+	}
 
 	cmd.Env = c.env
 	if len(c.addEnvVars) > 0 {
