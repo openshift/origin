@@ -1,0 +1,27 @@
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  finalizers:
+  - baremetalhost.metal3.io
+  labels:
+    installer.openshift.io/role: control-plane
+  name: {BMH_NAME}
+  namespace: openshift-machine-api
+spec:
+  architecture: x86_64
+  automatedCleaningMode: metadata
+  bmc:
+    address: redfish+https://{REDFISH_IP}:8000/redfish/v1/Systems/{UUID}
+    credentialsName: {CREDENTIALS_NAME}
+    disableCertificateVerification: true
+  bootMACAddress: {BOOT_MAC_ADDRESS}
+  bootMode: UEFI
+  customDeploy:
+    method: install_coreos
+  hardwareProfile: unknown
+  online: true
+  rootDeviceHints:
+    deviceName: /dev/sda
+  userData:
+    name: master-user-data-managed
+    namespace: openshift-machine-api
