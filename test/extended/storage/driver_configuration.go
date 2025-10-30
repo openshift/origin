@@ -34,12 +34,12 @@ const (
 var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration", func() {
 	defer g.GinkgoRecover()
 	var (
-		ctx                      = context.Background()
 		oc                       = exutil.NewCLI(projectName)
 		originalDriverConfigSpec *opv1.CSIDriverConfigSpec
+		operatorShouldProgress   bool
 	)
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx g.SpecContext) {
 		if !framework.ProviderIs("vsphere") {
 			g.Skip("this test is only expected to work with vSphere clusters")
 		}
@@ -51,7 +51,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 		e2e.Logf("Storing original driverConfig of ClusterCSIDriver")
 	})
 
-	g.AfterEach(func() {
+	g.AfterEach(func(ctx g.SpecContext) {
 		if originalDriverConfigSpec == nil {
 			return
 		}
@@ -73,6 +73,20 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to update ClusterCSIDriver")
 
+		// Wait for operator to stop progressing after config restore to ensure all pod creation events complete before
+		// test ends. This allows the pathological event matcher (newVsphereConfigurationTestsRollOutTooOftenEventMatcher
+		// in pkg/monitortestlibrary/pathologicaleventlibrary/duplicated_event_patterns.go) to accurately attribute
+		// pod events to this test's time window (interval); any events emitted later would not be matched.
+		if operatorShouldProgress {
+			ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+			err := exutil.WaitForOperatorProgressingTrue(ctxWithTimeout, oc.AdminConfigClient(), "storage")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = exutil.WaitForOperatorProgressingFalse(ctx, oc.AdminConfigClient(), "storage")
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
 		e2e.Logf("Successfully restored original driverConfig of ClusterCSIDriver")
 	})
 
@@ -81,13 +95,15 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 			name                       string
 			clusterCSIDriverOptions    *opv1.VSphereCSIDriverConfigSpec
 			cloudConfigOptions         map[string]string
-			successfulSnapshotsCreated int // Number of snapshots that should be created successfully, 0 to skip.
+			successfulSnapshotsCreated int  // Number of snapshots that should be created successfully, 0 to skip.
+			operatorShouldProgress     bool // Indicates if we expect to see storage operator change condition to Progressing=True
 		}{
 			{
 				name:                       "use default when unset",
 				clusterCSIDriverOptions:    nil,
 				cloudConfigOptions:         map[string]string{},
 				successfulSnapshotsCreated: 3,
+				operatorShouldProgress:     false,
 			},
 			{
 				name: "allow setting global snapshot limit",
@@ -98,6 +114,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 					"global-max-snapshots-per-block-volume": "4",
 				},
 				successfulSnapshotsCreated: 4,
+				operatorShouldProgress:     true,
 			},
 			{
 				name: "allow setting VSAN limit",
@@ -108,6 +125,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 					"granular-max-snapshots-per-block-volume-vsan": "4",
 				},
 				successfulSnapshotsCreated: 0,
+				operatorShouldProgress:     true,
 			},
 			{
 				name: "allow setting VVOL limit",
@@ -118,6 +136,7 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 					"granular-max-snapshots-per-block-volume-vvol": "4",
 				},
 				successfulSnapshotsCreated: 0,
+				operatorShouldProgress:     true,
 			},
 			{
 				name: "allow all limits to be set at once",
@@ -132,14 +151,36 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 					"granular-max-snapshots-per-block-volume-vvol": "15",
 				},
 				successfulSnapshotsCreated: 0,
+				operatorShouldProgress:     true,
 			},
 		}
 
 		for _, t := range tests {
 			t := t
-			g.It(fmt.Sprintf("%s", t.name), func() {
+			g.It(t.name, func(ctx g.SpecContext) {
+				defer g.GinkgoRecover()
+				operatorShouldProgress = t.operatorShouldProgress
 
 				setClusterCSIDriverSnapshotOptions(ctx, oc, t.clusterCSIDriverOptions)
+
+				if operatorShouldProgress {
+					// Wait for Progressing=True within 10 seconds
+					{
+						ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+						defer cancel()
+						err := exutil.WaitForOperatorProgressingTrue(ctxWithTimeout, oc.AdminConfigClient(), "storage")
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
+
+					// Then wait for Progressing=False within next 10 seconds
+					{
+						ctxWithTimeout, cancel := context.WithTimeout(ctx, 10*time.Second)
+						defer cancel()
+						err := exutil.WaitForOperatorProgressingFalse(ctxWithTimeout, oc.AdminConfigClient(), "storage")
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
+				}
+
 				o.Eventually(func() error {
 					return loadAndCheckCloudConf(ctx, oc, "Snapshot", t.cloudConfigOptions, t.clusterCSIDriverOptions)
 				}, pollTimeout, pollInterval).Should(o.Succeed())
