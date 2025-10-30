@@ -65,7 +65,7 @@ func (o *RunUpgradeSuiteOptions) TestCommandEnvironment() []string {
 // UpgradeTestPreSuite validates the test options and gathers data useful prior to launching the upgrade and it's
 // related tests.
 func (o *RunUpgradeSuiteOptions) UpgradeTestPreSuite() error {
-	config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), o.GinkgoRunSuiteOptions.DryRun, false, nil)
+	config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), false, nil)
 	if err != nil {
 		return err
 	}
