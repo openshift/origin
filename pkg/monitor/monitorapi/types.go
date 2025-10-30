@@ -251,6 +251,8 @@ const (
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
 
+	UnhealthyReason IntervalReason = "Unhealthy"
+
 	UpgradeStartedReason  IntervalReason = "UpgradeStarted"
 	UpgradeVersionReason  IntervalReason = "UpgradeVersion"
 	UpgradeRollbackReason IntervalReason = "UpgradeRollback"
