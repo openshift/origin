@@ -67,6 +67,20 @@ var (
 	rbacMonitorCRBName         string
 )
 
+// HostedClusterType represents the type of cluster hosting model
+type HostedClusterType string
+
+const (
+	// HostedClusterTypeStandalone represents a standard OpenShift cluster with self-hosted control plane
+	HostedClusterTypeStandalone HostedClusterType = "Standalone"
+	// HostedClusterTypeAROHCP represents an ARO HCP (Azure Red Hat OpenShift Hosted Control Plane) cluster
+	HostedClusterTypeAROHCP HostedClusterType = "AROHCP"
+	// HostedClusterTypeBareMetal represents a bare metal HyperShift hosted cluster
+	HostedClusterTypeBareMetal HostedClusterType = "BareMetal"
+	// HostedClusterTypeOther represents other HyperShift hosted cluster types
+	HostedClusterTypeOther HostedClusterType = "Other"
+)
+
 type InvariantInClusterDisruption struct {
 	namespaceName               string
 	openshiftTestsImagePullSpec string
@@ -74,15 +88,78 @@ type InvariantInClusterDisruption struct {
 	notSupportedReason          string
 	replicas                    int32
 	controlPlaneNodes           int32
-
-	adminRESTConfig *rest.Config
-	kubeClient      kubernetes.Interface
+	hostedClusterType           HostedClusterType
+	adminRESTConfig             *rest.Config
+	kubeClient                  kubernetes.Interface
 }
 
 func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &InvariantInClusterDisruption{
 		payloadImagePullSpec: info.UpgradeTargetPayloadImagePullSpec,
 	}
+}
+
+// parseAdminRESTConfigHost parses the adminRESTConfig.Host URL and returns hostname and port
+func (i *InvariantInClusterDisruption) parseAdminRESTConfigHost() (hostname, port string, err error) {
+	parsedURL, err := url.Parse(i.adminRESTConfig.Host)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse adminRESTConfig.Host %q: %v", i.adminRESTConfig.Host, err)
+	}
+
+	hostname = parsedURL.Hostname()
+	if hostname == "" {
+		return "", "", fmt.Errorf("no hostname found in adminRESTConfig.Host %q", i.adminRESTConfig.Host)
+	}
+
+	port = parsedURL.Port()
+	if port == "" {
+		port = "6443" // default port
+	}
+
+	return hostname, port, nil
+}
+
+// setKubernetesServiceEnvVars sets the KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT environment variables
+// based on the hosted cluster type
+func (i *InvariantInClusterDisruption) setKubernetesServiceEnvVars(envVars []corev1.EnvVar, apiIntHost, apiIntPort string) []corev1.EnvVar {
+	// Parse adminRESTConfig.Host once for bare metal HyperShift
+	var bareMetalHost, bareMetalPort string
+	var bareMetalErr error
+	if i.hostedClusterType == HostedClusterTypeBareMetal {
+		bareMetalHost, bareMetalPort, bareMetalErr = i.parseAdminRESTConfigHost()
+		if bareMetalErr != nil {
+			logrus.WithError(bareMetalErr).Errorf("Failed to parse adminRESTConfig.Host for bare metal HyperShift")
+		}
+	}
+
+	for j, env := range envVars {
+		switch env.Name {
+		case "KUBERNETES_SERVICE_HOST":
+			if i.hostedClusterType == HostedClusterTypeBareMetal {
+				if bareMetalErr != nil {
+					envVars[j].Value = apiIntHost
+				} else {
+					envVars[j].Value = bareMetalHost
+				}
+			} else {
+				envVars[j].Value = apiIntHost
+			}
+		case "KUBERNETES_SERVICE_PORT":
+			if i.hostedClusterType == HostedClusterTypeAROHCP {
+				// ARO HCP uses port 7443 for the internal API server load balancer
+				envVars[j].Value = "7443"
+			} else if i.hostedClusterType == HostedClusterTypeBareMetal {
+				if bareMetalErr != nil {
+					envVars[j].Value = apiIntPort
+				} else {
+					envVars[j].Value = bareMetalPort
+				}
+			} else {
+				envVars[j].Value = apiIntPort
+			}
+		}
+	}
+	return envVars
 }
 
 func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx context.Context, deploymentObj *appsv1.Deployment) error {
@@ -113,14 +190,17 @@ func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx cont
 	return nil
 }
 
-func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost string) error {
+func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost, apiIntPort string) error {
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
-	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
 	// set amount of deployment replicas to make sure it runs on all nodes
 	deploymentObj.Spec.Replicas = &i.replicas
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
+
+	// Set the correct host and port for internal API server based on cluster type
+	deploymentObj.Spec.Template.Spec.Containers[0].Env = i.setKubernetesServiceEnvVars(
+		deploymentObj.Spec.Template.Spec.Containers[0].Env, apiIntHost, apiIntPort)
 
 	err := i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
 	if err != nil {
@@ -304,9 +384,10 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	var err error
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
 
-	// Check for ARO HCP and skip if detected
+	// Determine hosted cluster type
 	oc := exutil.NewCLI("apiserver-incluster-availability").AsAdmin()
-	var isAROHCPcluster bool
+	i.hostedClusterType = HostedClusterTypeStandalone // Default to standalone
+
 	isHypershift, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 	if isHypershift {
 		_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
@@ -318,11 +399,28 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		// For Hypershift, only skip if it's specifically ARO HCP
 		// Use management cluster client to check the control-plane-operator deployment
 		managementOC := exutil.NewHypershiftManagementCLI(hcpNamespace)
+		var isAROHCPcluster bool
 		if isAROHCPcluster, err = exutil.IsAroHCP(ctx, hcpNamespace, managementOC.AdminKubeClient()); err != nil {
 			logrus.WithError(err).Warning("Failed to check if ARO HCP, assuming it's not")
 		} else if isAROHCPcluster {
 			i.notSupportedReason = "platform Hypershift - ARO HCP not supported"
 			return nil
+		}
+
+		// Determine the specific HyperShift variant
+		if isAROHCPcluster {
+			i.hostedClusterType = HostedClusterTypeAROHCP
+		} else {
+			// Check if this is a bare metal HyperShift cluster
+			isBareMetalHypershift, err := exutil.IsBareMetalHyperShiftCluster(ctx, managementOC)
+			if err != nil {
+				logrus.WithError(err).Warning("Failed to check if bare metal HyperShift, assuming other HyperShift type")
+				i.hostedClusterType = HostedClusterTypeOther
+			} else if isBareMetalHypershift {
+				i.hostedClusterType = HostedClusterTypeBareMetal
+			} else {
+				i.hostedClusterType = HostedClusterTypeOther
+			}
 		}
 	}
 
@@ -378,11 +476,30 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return fmt.Errorf("error getting openshift infrastructure: %v", err)
 	}
 
-	internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
-	if err != nil {
-		return fmt.Errorf("error parsing api int url: %v", err)
+	var apiIntHost string
+	var apiIntPort string
+	// Hosted clusters use adminRESTConfig.Host, standalone clusters use APIServerInternalURL
+	isHostedCluster := i.hostedClusterType == HostedClusterTypeAROHCP ||
+		i.hostedClusterType == HostedClusterTypeBareMetal ||
+		i.hostedClusterType == HostedClusterTypeOther
+
+	if isHostedCluster {
+		apiIntHost, apiIntPort, err = i.parseAdminRESTConfigHost()
+		if err != nil {
+			return fmt.Errorf("failed to parse adminRESTConfig.Host: %v", err)
+		}
+	} else {
+		internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
+		if err != nil {
+			return fmt.Errorf("error parsing api int url: %v", err)
+		}
+		apiIntHost = internalAPI.Hostname()
+		if internalAPI.Port() != "" {
+			apiIntPort = internalAPI.Port()
+		} else {
+			apiIntPort = "6443" // default port
+		}
 	}
-	apiIntHost := internalAPI.Hostname()
 
 	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -438,7 +555,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating localhost: %v", err)
 	}
-	err = i.createInternalLBDeployment(ctx, apiIntHost)
+	err = i.createInternalLBDeployment(ctx, apiIntHost, apiIntPort)
 	if err != nil {
 		return fmt.Errorf("error creating internal LB: %v", err)
 	}
