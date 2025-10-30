@@ -2848,18 +2848,18 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "description": "Build and run .NET applications. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/6.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET available on OpenShift, including major versions updates.",
+              "description": "Build and run .NET applications. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/9.0/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET available on OpenShift, including major versions updates.",
               "iconClass": "icon-dotnet",
               "openshift.io/display-name": ".NET (Latest)",
               "sampleContextDir": "app",
-              "sampleRef": "dotnet-6.0",
+              "sampleRef": "dotnet-9.0",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
               "supports": "dotnet",
               "tags": "builder,.net,dotnet,dotnetcore,hidden"
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "6.0-ubi8"
+              "name": "9.0-ubi8"
             },
             "generation": null,
             "importPolicy": {},
@@ -2906,6 +2906,52 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/ubi8/dotnet-60:6.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "9.0-ubi8",
+            "annotations": {
+              "description": "Build and run .NET 9 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/9.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET 9 (UBI 8)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnet-9.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
+              "supports": "dotnet:9.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,dotnet90",
+              "version": "9.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/dotnet-90:9.0"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "9.0",
+            "annotations": {
+              "description": "Build and run .NET 9 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/9.0/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET 9 (UBI 8)",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-9.0",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
+              "supports": "dotnet:9.0,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,dotnet90,hidden",
+              "version": "9.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/dotnet-90:9.0"
             },
             "generation": null,
             "importPolicy": {},
@@ -9284,7 +9330,8 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
 		{
 			"name": "SOURCE_REPOSITORY_REF",
 			"displayName": "Git Reference",
-			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+			"value": "4.2.x"
 		},
 		{
 			"name": "CONTEXT_DIR",
@@ -9833,7 +9880,8 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
 		{
 			"name": "SOURCE_REPOSITORY_REF",
 			"displayName": "Git Reference",
-			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+			"value": "4.2.x"
 		},
 		{
 			"name": "CONTEXT_DIR",
@@ -28908,7 +28956,8 @@ var _testExtendedTestdataClusterQuickstartsDjangoPostgresqlJson = []byte(`{
 		{
 			"name": "SOURCE_REPOSITORY_REF",
 			"displayName": "Git Reference",
-			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch."
+			"description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
+			"value": "4.2.x"
 		},
 		{
 			"name": "CONTEXT_DIR",
