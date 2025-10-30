@@ -171,6 +171,20 @@ func VirshDestroyVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath str
 	return err
 }
 
+// VirshShutdownVM gracefully shuts down a running VM (allows guest OS to shutdown cleanly).
+//
+//	err := VirshShutdownVM("master-0", sshConfig, knownHostsPath)
+func VirshShutdownVM(vmName string, sshConfig *core.SSHConfig, knownHostsPath string) error {
+	klog.V(2).Infof("VirshShutdownVM: Gracefully shutting down VM '%s'", vmName)
+	_, err := VirshCommand(fmt.Sprintf("shutdown %s", vmName), sshConfig, knownHostsPath)
+	if err != nil {
+		klog.ErrorS(err, "VirshShutdownVM failed", "vm", vmName)
+	} else {
+		klog.V(2).Infof("VirshShutdownVM: Successfully initiated shutdown for VM '%s'", vmName)
+	}
+	return err
+}
+
 // VirshDefineVM defines a new VM from an XML configuration file.
 //
 //	err := VirshDefineVM("/tmp/master-0.xml", sshConfig, knownHostsPath)
