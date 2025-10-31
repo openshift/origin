@@ -234,6 +234,33 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			&nodeB, true, false, // member on node B expected started == true, learner == false
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
+
+	g.It("should recover from etcd process crash [Skipped:KnownIssue]", func() {
+		// Note: This test kills the etcd process/container on one node to simulate
+		// a process crash, testing Pacemaker's ability to detect and restart etcd
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
+		g.GinkgoT().Printf("Randomly selected %s (%s) for etcd process crash and %s (%s) to survive\n",
+			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
+
+		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
+		// Try multiple methods to kill etcd - container kill, process kill, or service stop
+		_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
+			"bash", "-c", "podman kill etcd 2>/dev/null || pkill -9 etcd 2>/dev/null || systemctl stop etcd 2>/dev/null || true")
+		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
+
+		g.By("Waiting for cluster to recover - both nodes become started voting members")
+		// Retry validation with 2-minute intervals, up to 3 attempts (6 minutes total)
+		o.Eventually(func() error {
+			defer g.GinkgoRecover()
+
+			validateEtcdRecoveryState(oc, etcdClientFactory,
+				&peerNode,
+				&targetNode, true, false, // targetNode expected started == true, learner == false
+				30*time.Second, pollInterval)
+
+			return ensureEtcdOperatorHealthy(oc)
+		}, 6*time.Minute, 2*time.Minute).ShouldNot(o.HaveOccurred(), "Expected cluster to recover after etcd process kill")
+	})
 })
 
 func getMembers(etcdClientFactory helpers.EtcdClientCreator) ([]*etcdserverpb.Member, error) {
