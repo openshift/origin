@@ -502,6 +502,16 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		}
 	}
 
+	// Sort tests within each group by duration (longest first)
+	for group, tests := range longTestsByGroup {
+		sort.Slice(tests, func(i, j int) bool {
+			durationI := GetTestDuration(tests[i].name)
+			durationJ := GetTestDuration(tests[j].name)
+			return durationI > durationJ // Descending order (longest first)
+		})
+		longTestsByGroup[group] = tests
+	}
+
 	var longTestCount int
 	for group, tests := range longTestsByGroup {
 		longTestCount += len(tests)

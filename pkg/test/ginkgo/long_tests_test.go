@@ -101,3 +101,26 @@ func TestLongTestsGroupCoverage(t *testing.T) {
 		t.Logf("Group %s has %d tests", expectedGroup, count)
 	}
 }
+
+func TestLongTestsSortedByDuration(t *testing.T) {
+	// Verify that tests within each group are sorted by duration (descending)
+	for _, group := range longTestsData {
+		if len(group.Tests) < 2 {
+			continue // Skip groups with only one test
+		}
+
+		prevDuration := group.Tests[0].DurationSeconds
+		for i := 1; i < len(group.Tests); i++ {
+			currentDuration := group.Tests[i].DurationSeconds
+			if currentDuration > prevDuration {
+				t.Errorf("Group %s: Test at index %d has duration %d which is greater than previous test duration %d. Tests should be sorted longest first.",
+					group.GroupID, i, currentDuration, prevDuration)
+			}
+			prevDuration = currentDuration
+		}
+
+		// Log the first and last test durations
+		t.Logf("Group %s: First test duration=%ds, Last test duration=%ds",
+			group.GroupID, group.Tests[0].DurationSeconds, group.Tests[len(group.Tests)-1].DurationSeconds)
+	}
+}
