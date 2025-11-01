@@ -492,38 +492,30 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	// Extract long-running tests first and organize them by group
-	// These will be prepended to their respective groups to run first
-	longTestsByGroup := make(map[string][]*testCase)
+	// Extract long-running tests into a single group
+	// All long tests will run first, sorted by duration (longest first)
+	var longTests []*testCase
 	var remainingTests []*testCase
 
 	for _, test := range primaryTests {
 		group := GetTestGroup(test.name)
 		if group != "" {
 			// This is a known long-running test
-			longTestsByGroup[group] = append(longTestsByGroup[group], test)
+			longTests = append(longTests, test)
 		} else {
 			// Not in long_tests.json, add to remaining
 			remainingTests = append(remainingTests, test)
 		}
 	}
 
-	// Sort tests within each group by duration (longest first)
-	for group, tests := range longTestsByGroup {
-		sort.Slice(tests, func(i, j int) bool {
-			durationI := GetTestDuration(tests[i].name)
-			durationJ := GetTestDuration(tests[j].name)
-			return durationI > durationJ // Descending order (longest first)
-		})
-		longTestsByGroup[group] = tests
-	}
+	// Sort all long tests by duration (longest first)
+	sort.Slice(longTests, func(i, j int) bool {
+		durationI := GetTestDuration(longTests[i].name)
+		durationJ := GetTestDuration(longTests[j].name)
+		return durationI > durationJ // Descending order (longest first)
+	})
 
-	var longTestCount int
-	for group, tests := range longTestsByGroup {
-		longTestCount += len(tests)
-		logrus.Infof("Found %d long-running tests in group %s", len(tests), group)
-	}
-	logrus.Infof("Found %d total long-running tests, %d remaining tests", longTestCount, len(remainingTests))
+	logrus.Infof("Found %d long-running tests (will run first), %d remaining tests", len(longTests), len(remainingTests))
 
 	// Now split the remaining tests (non-long tests) into groups
 	primaryTests = remainingTests
@@ -556,64 +548,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
-	// Prepend long-running tests to each group
-	// For groups that match our split categories, prepend their long tests
-	if longStorage := longTestsByGroup["sig-storage"]; len(longStorage) > 0 {
-		storageTests = append(longStorage, storageTests...)
-	}
-	if longNetworkK8s := longTestsByGroup["sig-network"]; len(longNetworkK8s) > 0 {
-		// Split sig-network long tests between k8s and openshift based on Suite marker
-		var longNetworkForK8s, longNetworkForOpenshift []*testCase
-		for _, test := range longNetworkK8s {
-			if strings.Contains(test.name, "[Suite:k8s]") {
-				longNetworkForK8s = append(longNetworkForK8s, test)
-			} else {
-				longNetworkForOpenshift = append(longNetworkForOpenshift, test)
-			}
-		}
-		networkK8sTests = append(longNetworkForK8s, networkK8sTests...)
-		networkTests = append(longNetworkForOpenshift, networkTests...)
-	}
-	if longHpa := longTestsByGroup["sig-apps"]; len(longHpa) > 0 {
-		// Split sig-apps long tests between HPA and openshift
-		var longForHpa, longForOpenshift []*testCase
-		for _, test := range longHpa {
-			if strings.Contains(test.name, "[Feature:HPA]") {
-				longForHpa = append(longForHpa, test)
-			} else {
-				longForOpenshift = append(longForOpenshift, test)
-			}
-		}
-		hpaTests = append(longForHpa, hpaTests...)
-		// Add non-HPA sig-apps tests to openshift
-		openshiftTests = append(longForOpenshift, openshiftTests...)
-	}
-	if longBuilds := longTestsByGroup["sig-builds"]; len(longBuilds) > 0 {
-		buildsTests = append(longBuilds, buildsTests...)
-	}
-
-	// For any other long test groups not explicitly split above, add them to openshiftTests
-	// These groups include: sig-node, sig-cli, sig-olmv1, sig-api-machinery, sig-network-edge, sig-auth, etc.
-	handledGroups := map[string]bool{
-		"sig-storage": true,
-		"sig-network": true,
-		"sig-apps":    true,
-		"sig-builds":  true,
-	}
-	var otherLongTests []*testCase
-	for group, tests := range longTestsByGroup {
-		if !handledGroups[group] {
-			otherLongTests = append(otherLongTests, tests...)
-		}
-	}
-	if len(otherLongTests) > 0 {
-		logrus.Infof("Adding %d long-running tests from other groups to openshift tests", len(otherLongTests))
-		openshiftTests = append(otherLongTests, openshiftTests...)
-	}
-
-	// Add long kube tests (any tests in kubeTests that are long but not in a specific group)
-	// Since we already extracted all long tests above, kubeTests should only contain short tests now
-
+	logrus.Infof("Found %d long tests", len(longTests))
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kube tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
@@ -623,9 +558,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
-	// If user specifies a count, duplicate the kube and openshift tests that many times.
+	// If user specifies a count, duplicate the tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
+		originalLong := longTests
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
@@ -636,6 +572,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
+			longTests = append(longTests, copyTests(originalLong)...)
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
@@ -646,7 +583,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(hpaTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(longTests) + len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(hpaTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -664,9 +601,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// Run long tests, kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+		// Run long tests first with full parallelism
+		longTestsCopy := copyTests(longTests)
+		q.Execute(testCtx, longTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, longTestsCopy...)
+
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, kubeTestsCopy...)
