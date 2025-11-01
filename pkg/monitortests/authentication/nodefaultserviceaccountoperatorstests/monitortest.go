@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/openshift/api/config/v1"
 	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -31,43 +30,6 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-// fetchRelatedObjects returns a list of RelatedObjects found within a specified
-// namespace for a given list of cluster operators .
-func fetchPodObjects(clusterOperators *v1.ClusterOperatorList, ns corev1.Namespace) []v1.ObjectReference {
-	clusterOperatorPodObjects := []v1.ObjectReference{}
-	// filter any objects that are pods using the Group ref. use later to perform lookup on pods service accounts.
-	for _, item := range clusterOperators.Items {
-		if item.Namespace != ns.Name {
-			continue
-		}
-		// check the kind of the object (i.e. is it Pod ?)
-		for _, item1 := range item.Status.RelatedObjects {
-			if item1.Group == "pods" {
-				clusterOperatorPodObjects = append(clusterOperatorPodObjects, item1)
-			}
-		}
-	}
-	return clusterOperatorPodObjects
-}
-
-// fetchPodList returns a list of pods from a list of pod related objects based on a list of pods
-// retrieved elsewhere - in our case, from a namespace.
-func fetchPodList(clusterOperatorPodObjects []v1.ObjectReference, pods corev1.PodList) []corev1.Pod {
-	podMap := make(map[string]corev1.Pod, len(pods.Items))
-	for _, pod := range pods.Items {
-		podMap[pod.Name] = pod
-	}
-
-	var podList []corev1.Pod
-	for _, obj := range clusterOperatorPodObjects {
-		if pod, ok := podMap[obj.Name]; ok && pod.Namespace == obj.Namespace {
-			podList = append(podList, pod)
-		}
-	}
-
-	return podList
-}
-
 // generateDefaultSAFailures generates a list of failures where the pod in a list of pods
 // violated the default service account check.
 func generateDefaultSAFailures(podList []corev1.Pod) []string {
@@ -87,14 +49,8 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 
 // CollectData implements monitortestframework.MonitorTest.
 func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storageDir string, beginning time.Time, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-
 	if n.cfgClient == nil || n.kubeClient == nil {
 		return nil, nil, nil
-	}
-
-	clusterOperators, err := n.cfgClient.ClusterOperators().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, nil, err
 	}
 
 	namespaces, err := n.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
@@ -107,9 +63,6 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 			continue
 		}
 
-		// use helper method to fetch pod related objects for cluster operators in the current ns iteration.
-		clusterOperatorPodObjects := fetchPodObjects(clusterOperators, ns)
-
 		// get list of all pods in the namespace
 		pods, err := n.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 
@@ -117,11 +70,8 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 			return nil, nil, err
 		}
 
-		// use helper method to fetch pod list for pod related objects
-		podList := fetchPodList(clusterOperatorPodObjects, *pods)
-
 		// use helper method to generate default service account failures
-		failures := generateDefaultSAFailures(podList)
+		failures := generateDefaultSAFailures(pods.Items)
 
 		// generate tests for given namespace
 		testName := fmt.Sprintf("[sig-auth] all operators in ns/%s must not use the 'default' service account", ns.Name)
