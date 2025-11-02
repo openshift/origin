@@ -61,11 +61,16 @@ const (
 //go:embed long_tests.json
 var longTestsJSON []byte
 
+// Embed long_never_fail_tests.json at compile time
+//
+//go:embed long_never_fail_tests.json
+var longNeverFailTestsJSON []byte
+
 // LongTestInfo represents duration information for a single test
 type LongTestInfo struct {
-	Name            string `json:"name"`
-	DurationSeconds int    `json:"duration_seconds"`
-	GroupID         string `json:"group_id"`
+	Name            string  `json:"name"`
+	DurationSeconds float64 `json:"duration_seconds"`
+	GroupID         string  `json:"group_id"`
 }
 
 // LongTestGroup represents a group of tests with the same group_id
@@ -77,7 +82,11 @@ type LongTestGroup struct {
 // LongTestsData holds all long test groups loaded from long_tests.json
 var longTestsData []LongTestGroup
 
+// neverFailTestNames is a set of test names that never fail and should be skipped
+var neverFailTestNames map[string]bool
+
 func init() {
+	// Load long_tests.json
 	if err := json.Unmarshal(longTestsJSON, &longTestsData); err != nil {
 		logrus.WithError(err).Warn("Failed to load long_tests.json, test duration data will not be available")
 	} else {
@@ -87,6 +96,22 @@ func init() {
 		}
 		logrus.Infof("Loaded %d long test groups with %d total tests from long_tests.json", len(longTestsData), totalTests)
 	}
+
+	// Load long_never_fail_tests.json
+	var neverFailTestsData []LongTestGroup
+	if err := json.Unmarshal(longNeverFailTestsJSON, &neverFailTestsData); err != nil {
+		logrus.WithError(err).Warn("Failed to load long_never_fail_tests.json, never-fail test data will not be available")
+	} else {
+		neverFailTestNames = make(map[string]bool)
+		totalNeverFail := 0
+		for _, group := range neverFailTestsData {
+			for _, test := range group.Tests {
+				neverFailTestNames[test.Name] = true
+				totalNeverFail++
+			}
+		}
+		logrus.Infof("Loaded %d tests from long_never_fail_tests.json that will be skipped", totalNeverFail)
+	}
 }
 
 // GetTestDuration returns the expected duration in seconds for a test by name, or 0 if not found
@@ -94,7 +119,7 @@ func GetTestDuration(testName string) int {
 	for _, group := range longTestsData {
 		for _, test := range group.Tests {
 			if test.Name == testName {
-				return test.DurationSeconds
+				return int(test.DurationSeconds)
 			}
 		}
 	}
@@ -111,6 +136,14 @@ func GetTestGroup(testName string) string {
 		}
 	}
 	return ""
+}
+
+// IsNeverFailTest returns true if the test is in the never-fail list and should be skipped
+func IsNeverFailTest(testName string) bool {
+	if neverFailTestNames == nil {
+		return false
+	}
+	return neverFailTestNames[testName]
 }
 
 // GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
@@ -492,12 +525,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	// Extract long-running tests into a single group
+	// Extract long-running tests into a single group and skip never-fail tests
 	// All long tests will run first, sorted by duration (longest first)
 	var longTests []*testCase
 	var remainingTests []*testCase
+	var skippedNeverFailTests []*testCase
 
 	for _, test := range primaryTests {
+		// Skip tests that never fail
+		if IsNeverFailTest(test.name) {
+			skippedNeverFailTests = append(skippedNeverFailTests, test)
+			continue
+		}
+
 		group := GetTestGroup(test.name)
 		if group != "" {
 			// This is a known long-running test
@@ -506,6 +546,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			// Not in long_tests.json, add to remaining
 			remainingTests = append(remainingTests, test)
 		}
+	}
+
+	if len(skippedNeverFailTests) > 0 {
+		logrus.Infof("Skipping %d tests that never fail", len(skippedNeverFailTests))
 	}
 
 	// Sort all long tests by duration (longest first)

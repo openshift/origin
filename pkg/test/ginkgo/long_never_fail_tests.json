@@ -1,0 +1,667 @@
+[
+  {
+    "group_id": "bz-other",
+    "tests": [
+      {
+        "name": "[bz-Cluster Version Operator] Verify presence of admin ack gate blocks upgrade until acknowledged",
+        "duration_seconds": 3386.72,
+        "group_id": "bz-other"
+      },
+      {
+        "name": "[bz-Cluster Version Operator] Verify object deletions after upgrade success",
+        "duration_seconds": 3386.66,
+        "group_id": "bz-other"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-api-machinery",
+    "tests": [
+      {
+        "name": "[sig-api-machinery] Namespaces [Serial] should always delete fast (ALL of 100 namespaces in 150 seconds) [Feature:ComprehensiveNamespaceDraining] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 77.33,
+        "group_id": "sig-api-machinery"
+      },
+      {
+        "name": "[sig-api-machinery] Namespaces [Serial] should delete fast enough (90 percent of 100 namespaces in 150 seconds) [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 74.56,
+        "group_id": "sig-api-machinery"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-apps",
+    "tests": [
+      {
+        "name": "[sig-apps] replicaset-upgrade",
+        "duration_seconds": 3391.01,
+        "group_id": "sig-apps"
+      },
+      {
+        "name": "[sig-apps] deployment-upgrade",
+        "duration_seconds": 3389.54,
+        "group_id": "sig-apps"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-cluster-lifecycle",
+    "tests": [
+      {
+        "name": "upgrade",
+        "duration_seconds": 3373.45,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[It] ControlPlaneMachineSet Operator With an active ControlPlaneMachineSet and ControlPlaneMachineSet is updated to set MachineNamePrefix [OCPFeatureGate:CPMSMachineNamePrefix] and the provider spec of index 1 is not as expected and again MachineNamePrefix is reset should rolling update replace the outdated machine [Periodic]",
+        "duration_seconds": 1810.38,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[It] ControlPlaneMachineSet Operator With an active ControlPlaneMachineSet with the OnDelete update strategy and ControlPlaneMachineSet is updated to set MachineNamePrefix [OCPFeatureGate:CPMSMachineNamePrefix] and the provider spec of index 2 is not as expected and again MachineNamePrefix is reset should replace the outdated machine when deleted [Periodic]",
+        "duration_seconds": 1803.31,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[It] ControlPlaneMachineSet Operator With an active ControlPlaneMachineSet and ControlPlaneMachineSet is updated to set MachineNamePrefix [OCPFeatureGate:CPMSMachineNamePrefix] and the provider spec of index 1 is not as expected should rolling update replace the outdated machine [Periodic]",
+        "duration_seconds": 1793.01,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[It] ControlPlaneMachineSet Operator With an active ControlPlaneMachineSet with the OnDelete update strategy and ControlPlaneMachineSet is updated to set MachineNamePrefix [OCPFeatureGate:CPMSMachineNamePrefix] and the provider spec of index 2 is not as expected should replace the outdated machine when deleted [Periodic]",
+        "duration_seconds": 1789.09,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[sig-cluster-lifecycle][OCPFeatureGate:VSphereMultiDisk][platform:vsphere][Disruptive] Managed cluster should create machinesets with a data disk using each provisioning mode [apigroup:machine.openshift.io][Serial][Suite:openshift/conformance/serial]",
+        "duration_seconds": 140.07,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[sig-cluster-lifecycle][OCPFeatureGate:VSphereMultiDisk][platform:vsphere][Disruptive] Managed cluster should create machinesets with eagerly zeroed data disk [apigroup:machine.openshift.io][Serial][Suite:openshift/conformance/serial]",
+        "duration_seconds": 138.2,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[sig-cluster-lifecycle][OCPFeatureGate:VSphereMultiDisk][platform:vsphere][Disruptive] Managed cluster should create machinesets with thick data disk [apigroup:machine.openshift.io][Serial][Suite:openshift/conformance/serial]",
+        "duration_seconds": 135.95,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[sig-cluster-lifecycle][OCPFeatureGate:VSphereMultiDisk][platform:vsphere][Disruptive] Managed cluster should create machinesets with thin data disk [apigroup:machine.openshift.io][Serial][Suite:openshift/conformance/serial]",
+        "duration_seconds": 134.9,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[sig-cluster-lifecycle][OCPFeatureGate:VSphereMultiDisk][platform:vsphere][Disruptive] Managed cluster should create machines with data disks [apigroup:machine.openshift.io][Serial][Suite:openshift/conformance/serial]",
+        "duration_seconds": 109.52,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[It] ControlPlaneMachineSet Operator With an active ControlPlaneMachineSet with the OnDelete update strategy and ControlPlaneMachineSet is updated to set MachineNamePrefix [OCPFeatureGate:CPMSMachineNamePrefix] and the provider spec of index 2 is not as expected should not replace the outdated machine [Periodic]",
+        "duration_seconds": 63.06,
+        "group_id": "sig-cluster-lifecycle"
+      },
+      {
+        "name": "[It] ControlPlaneMachineSet Operator With an active ControlPlaneMachineSet with the OnDelete update strategy and ControlPlaneMachineSet is updated to set MachineNamePrefix [OCPFeatureGate:CPMSMachineNamePrefix] and the provider spec of index 2 is not as expected and again MachineNamePrefix is reset should not replace the outdated machine [Periodic]",
+        "duration_seconds": 62.21,
+        "group_id": "sig-cluster-lifecycle"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-etcd",
+    "tests": [
+      {
+        "name": "[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io] [Suite:openshift/conformance/serial]",
+        "duration_seconds": 856.13,
+        "group_id": "sig-etcd"
+      },
+      {
+        "name": "[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io] [Suite:openshift/conformance/serial]",
+        "duration_seconds": 313.55,
+        "group_id": "sig-etcd"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-imagepolicy",
+    "tests": [
+      {
+        "name": "[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][Serial] Should fail clusterimagepolicy signature validation root of trust does not match the identity in the signature [Suite:openshift/conformance/serial]",
+        "duration_seconds": 82.38,
+        "group_id": "sig-imagepolicy"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-instrumentation",
+    "tests": [
+      {
+        "name": "[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial] The collection profiles feature-set in a homogeneous minimal environment, should hide default metrics [Suite:openshift/conformance/serial]",
+        "duration_seconds": 65.28,
+        "group_id": "sig-instrumentation"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-mco",
+    "tests": [
+      {
+        "name": "[sig-mco][OCPFeatureGate:MachineConfigNodes] [Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io] [Suite:openshift/conformance/serial]",
+        "duration_seconds": 95.09,
+        "group_id": "sig-mco"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-network",
+    "tests": [
+      {
+        "name": "[sig-network] services when running openshift ipv4 cluster ensures external ip policy is configured correctly on the cluster [apigroup:config.openshift.io] [Serial] [Suite:openshift/conformance/serial]",
+        "duration_seconds": 958.17,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] [Feature:IPv6DualStack] should be able to reach pod on ipv4 and ipv6 ip [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 139.85,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial] [Suite:openshift/conformance/serial]",
+        "duration_seconds": 128.71,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should update endpoints: http [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 125.06,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should update endpoints: udp [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 123.79,
+        "group_id": "sig-network"
+      },
+      {
+        "name": "[sig-network] [Feature:IPv6DualStack] Granular Checks: Services Secondary IP Family [LinuxOnly] should function for service endpoints using hostNetwork [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 90.28,
+        "group_id": "sig-network"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-node",
+    "tests": [
+      {
+        "name": "[sig-node][Late] Image pulls are fast",
+        "duration_seconds": 3386.73,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] NoExecuteTaintManager Single Pod [Serial] eventually evict pod with finite tolerations from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 132.06,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] NoExecuteTaintManager Multiple Pods [Serial] only evicts pods without tolerations from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 126.36,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 126.2,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] [DRA] ResourceSlice Controller creates slices [ConformanceCandidate] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 81.73,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] Pods Extended Pod Container lifecycle evicted pods should be terminal [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 78.61,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] NoExecuteTaintManager Single Pod [Serial] evicts pods from tainted nodes [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 63.96,
+        "group_id": "sig-node"
+      },
+      {
+        "name": "[sig-node] NoExecuteTaintManager Single Pod [Serial] pods evicted from tainted nodes have pod disruption condition [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 63.35,
+        "group_id": "sig-node"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-olmv1",
+    "tests": [
+      {
+        "name": "[sig-olmv1][OCPFeatureGate:NewOLMOwnSingleNamespace] OLMv1 operator installation support for ownNamespace watch mode with operator should install a cluster extension successfully",
+        "duration_seconds": 68.62,
+        "group_id": "sig-olmv1"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-scheduling",
+    "tests": [
+      {
+        "name": "[sig-scheduling] SchedulerPreemption [Serial] PreemptionExecutionPath runs ReplicaSets to verify preemption running path [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+        "duration_seconds": 80.95,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPreemption [Serial] PodTopologySpread Preemption validates proper pods are preempted [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 77.92,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPriorities [Serial] Pod should be preferably scheduled to nodes pod can tolerate [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 77.08,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPriorities [Serial] PodTopologySpread Scoring validates pod should be preferably scheduled to node which makes the matching pods more evenly distributed [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 76.52,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPriorities [Serial] Pod should be scheduled to node that don't match the PodAntiAffinity terms [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 71.58,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPreemption [Serial] validates lower priority pod preemption by critical pod [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+        "duration_seconds": 68.4,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPreemption [Serial] validates basic preemption works [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+        "duration_seconds": 68.33,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPreemption [Serial] validates pod disruption condition is added to the preempted pod [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+        "duration_seconds": 65.42,
+        "group_id": "sig-scheduling"
+      },
+      {
+        "name": "[sig-scheduling] SchedulerPreemption [Serial] PriorityClass endpoints verify PriorityClass endpoints can be operated with different HTTP methods [Conformance] [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
+        "duration_seconds": 62.13,
+        "group_id": "sig-scheduling"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-storage",
+    "tests": [
+      {
+        "name": "[sig-storage] [sig-api-machinery] secret-upgrade",
+        "duration_seconds": 3394.95,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] [sig-api-machinery] configmap-upgrade",
+        "duration_seconds": 3394.53,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] MutableCSINodeAllocatableCount [FeatureGate:MutableCSINodeAllocatableCount] [Beta] [Feature:OffByDefault] Attach Limit Exceeded should transition pod to failed state when attachment limit exceeded [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 198.37,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] [Serial] Volume metrics PVC should create metrics for total time taken in volume operations in P/V Controller [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 134.38,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 103.18,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 103.17,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 101.95,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 101.93,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] volume-modify [FeatureGate:VolumeAttributesClass] [Feature:VolumeAttributesClass] should be protected by vac-protection finalizer [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 99.12,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] volume-modify [FeatureGate:VolumeAttributesClass] [Feature:VolumeAttributesClass] should be protected by vac-protection finalizer [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 99.01,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should unstage RWO volume when starting a second pod with different policy (MountOption -> Recursive) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 92.13,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should unstage RWO volume when starting a second pod with different policy (Recursive -> MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 92.02,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should unstage RWO volume when starting a second pod with different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 92.0,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)(allowExpansion)] volume-expand should resize volume when PVC is edited while pod is using it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 83.36,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Generic Ephemeral-volume (block volmode) (late-binding)] ephemeral should support expansion of pvcs created for ephemeral pvcs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 83.28,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)(allowExpansion)] volume-expand should resize volume when PVC is edited while pod is using it [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 81.54,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Generic Ephemeral-volume (default fs) (late-binding)] ephemeral should support expansion of pvcs created for ephemeral pvcs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 80.9,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Generic Ephemeral-volume (default fs) (immediate-binding)] ephemeral should support expansion of pvcs created for ephemeral pvcs [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 80.36,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 77.21,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not unstage RWO volume when starting a second pod with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 76.96,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped on two Pods with a different context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 76.38,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 76.32,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable [Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral) [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 76.19,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with Recursive policy and a different context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 75.49,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different context on RWOP volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 73.46,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should not pass SELinux mount option for RWO volume with SELinuxMount disabled and Recursive policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 72.74,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount enabled and MountOption policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 72.67,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly] [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount enabled and nil policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 72.6,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with Recursive policy and a different context on RWX volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 72.59,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two privileged Pods with recursive policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 72.5,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with the same policy RWX volume (MountOption + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 72.17,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different policy on RWO volume and SELinuxMount enabled (Recursive + nil) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 72.01,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with the same policy RWX volume (nil + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 71.85,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two privileged Pods with mount policy RWO volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 71.75,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different policy on RWO volume and SELinuxMount enabled (nil + Recursive) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 71.55,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with MountOption policy and a different context on RWOP volume [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 71.21,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 71.0,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on a privileged and unprivileged Pod with given SELinux context and recursive policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 70.94,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different context on RWX volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 70.93,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on an unprivileged and privileged Pod with given SELinux with MountOption policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 70.93,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on a privileged and unprivileged Pod with given SELinux with MountOption policy [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 70.9,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 70.88,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Mock selinux on mount metrics and SELinuxWarningController SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different policy on RWO volume and SELinuxMount enabled (Recursive + MountOption) [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxChangePolicy] [Beta] [FeatureGate:SELinuxMount] [Beta] [Feature:OffByDefault] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 70.6,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] PersistentVolumes-local Stress with local volumes [Serial] should be able to process many pods and reuse local volumes [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 69.13,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] MutableCSINodeAllocatableCount [FeatureGate:MutableCSINodeAllocatableCount] [Beta] [Feature:OffByDefault] Dynamic Allocatable Count should observe dynamic changes in CSINode allocatable count [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 67.97,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 66.07,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 65.9,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 65.11,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+        "duration_seconds": 64.91,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with any volume data source [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 64.73,
+        "group_id": "sig-storage"
+      },
+      {
+        "name": "[sig-storage] OCP CSI Volumes [Driver: csi-hostpath-groupsnapshot] [OCPFeatureGate:VolumeGroupSnapshot] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with any volume data source [Serial] [Suite:openshift/conformance/serial] [Suite:k8s]",
+        "duration_seconds": 63.87,
+        "group_id": "sig-storage"
+      }
+    ]
+  },
+  {
+    "group_id": "sig-testing",
+    "tests": [
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestRollingUpgrade",
+        "duration_seconds": 1579.72,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestNodePoolInPlaceUpgrade",
+        "duration_seconds": 1073.87,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestMirrorConfigs",
+        "duration_seconds": 737.11,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNoneCreateCluster/Teardown",
+        "duration_seconds": 715.14,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestAzureScheduler/Teardown",
+        "duration_seconds": 572.14,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestAzureScheduler/Main",
+        "duration_seconds": 415.2,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestNodePoolAutoRepair",
+        "duration_seconds": 307.44,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestKMSRootVolumeEncryption",
+        "duration_seconds": 202.53,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestNodePoolPrevReleaseN2",
+        "duration_seconds": 198.38,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestNodePoolDay2Tags",
+        "duration_seconds": 195.4,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestNodePool/HostedCluster0/Main/TestNodePoolPrevReleaseN1",
+        "duration_seconds": 189.8,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestExternalOIDC",
+        "duration_seconds": 161.03,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateClusterDefaultSecurityContextUID",
+        "duration_seconds": 160.13,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/break-glass-credentials/customer-break-glass",
+        "duration_seconds": 159.09,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/break-glass-credentials/customer-break-glass/CSR_flow",
+        "duration_seconds": 159.03,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/break-glass-credentials/sre-break-glass",
+        "duration_seconds": 157.85,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/break-glass-credentials/sre-break-glass/CSR_flow",
+        "duration_seconds": 157.78,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/break-glass-credentials/customer-break-glass/CSR_flow/revocation",
+        "duration_seconds": 153.01,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/break-glass-credentials/sre-break-glass/CSR_flow/revocation",
+        "duration_seconds": 151.77,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/EnsureGlobalPullSecret/Create_a_pod_which_uses_the_restricted_image,_should_succeed",
+        "duration_seconds": 70.27,
+        "group_id": "sig-testing"
+      },
+      {
+        "name": "TestCreateCluster/Main/EnsureKubeAPIServerAllowedCIDRs",
+        "duration_seconds": 65.96,
+        "group_id": "sig-testing"
+      }
+    ]
+  }
+]
