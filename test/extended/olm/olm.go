@@ -317,7 +317,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 		}, 5*time.Minute, time.Second).Should(o.Equal([]string{""}))
 
 		for _, v := range files {
-			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=kiali-ossm", "CHANNEL=stable").OutputToFile("config.json")
+			configFile, err := oc.AsAdmin().Run("process").Args("--ignore-unknown-parameters=true", "-f", v, "-p", "NAME=test-operator", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()), "SOURCENAME=redhat-operators", "SOURCENAMESPACE=openshift-marketplace", "PACKAGE=servicemeshoperator", "CHANNEL=stable").OutputToFile("config.json")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			err = oc.AsAdmin().WithoutNamespace().Run("create").Args("-f", configFile).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
