@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/origin/test/extended/etcd/helpers"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -22,9 +21,7 @@ const (
 	labelNodeRoleWorker       = "node-role.kubernetes.io/worker"
 	labelNodeRoleArbiter      = "node-role.kubernetes.io/arbiter"
 
-	clusterOperatorIsHealthyTimeout = time.Minute
-	nodeIsHealthyTimeout            = time.Minute
-	resourceIsHealthyTimeout        = time.Minute
+	clusterIsHealthyTimeout = 5 * time.Minute
 )
 
 func skipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
@@ -38,19 +35,16 @@ func skipIfNotTopology(oc *exutil.CLI, wanted v1.TopologyMode) {
 }
 
 func skipIfClusterIsNotHealthy(oc *util.CLI, ecf *helpers.EtcdClientFactoryImpl, nodes *corev1.NodeList) {
-	framework.Logf("Ensure Etcd pods are running")
 	err := ensureEtcdPodsAreRunning(oc)
 	if err != nil {
 		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd pods are running: %v", err))
 	}
 
-	framework.Logf("Ensure Etcd member list has two voting members")
 	err = ensureEtcdHasTwoVotingMembers(nodes, ecf)
 	if err != nil {
 		e2eskipper.Skip(fmt.Sprintf("could not ensure etcd has two voting members: %v", err))
 	}
 
-	framework.Logf("Ensure cluster operator is healthy")
 	err = ensureClusterOperatorHealthy(oc)
 	if err != nil {
 		e2eskipper.Skip(fmt.Sprintf("could not ensure cluster-operator is healthy: %v", err))
@@ -85,13 +79,13 @@ func hasNodeRebooted(oc *util.CLI, node *corev1.Node) (bool, error) {
 
 // ensureClusterOperatorHealthy checks if the cluster-etcd-operator is healthy before running etcd tests
 func ensureClusterOperatorHealthy(oc *util.CLI) error {
-	ctx, cancel := context.WithTimeout(context.Background(), clusterOperatorIsHealthyTimeout)
+	framework.Logf("Ensure cluster operator is healthy (timeout: %v)", clusterIsHealthyTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)
 	defer cancel()
 
-	var err error
-	var co *v1.ClusterOperator
 	for {
-		if co, err = oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "etcd", metav1.GetOptions{}); err != nil {
+		co, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(ctx, "etcd", metav1.GetOptions{})
+		if err != nil {
 			err = fmt.Errorf("failed to retrieve ClusterOperator: %v", err)
 		} else {
 			// Check if etcd operator is Available
@@ -106,6 +100,7 @@ func ensureClusterOperatorHealthy(oc *util.CLI) error {
 				if degraded != nil && degraded.Status == v1.ConditionTrue {
 					err = fmt.Errorf("ClusterOperator is Degraded: %s", degraded.Message)
 				} else {
+					framework.Logf("SUCCESS: Cluster operator is healthy")
 					return nil
 				}
 			}
@@ -121,25 +116,37 @@ func ensureClusterOperatorHealthy(oc *util.CLI) error {
 }
 
 func ensureEtcdPodsAreRunning(oc *util.CLI) error {
-	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
-		LabelSelector: "app=etcd",
-	})
-	if err != nil {
-		return fmt.Errorf("failed to retrieve etcd pods: %v", err)
-	}
+	framework.Logf("Ensure Etcd pods are running (timeout: %v)", clusterIsHealthyTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)
+	defer cancel()
+	for {
+		etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
+			LabelSelector: "app=etcd",
+		})
+		if err != nil {
+			err = fmt.Errorf("failed to retrieve etcd pods: %v", err)
+		} else {
+			runningPods := 0
+			for _, pod := range etcdPods.Items {
+				if pod.Status.Phase == corev1.PodRunning {
+					runningPods++
+				}
+			}
+			if runningPods < 2 {
+				return fmt.Errorf("expected at least 2 etcd pods running, found %d", runningPods)
+			}
 
-	runningPods := 0
-	for _, pod := range etcdPods.Items {
-		if pod.Status.Phase == corev1.PodRunning {
-			runningPods++
+			framework.Logf("SUCCESS: found the 2 expected Etcd pods")
+			return nil
 		}
-	}
 
-	if runningPods < 2 {
-		return fmt.Errorf("expected at least 2 etcd pods running, found %d", runningPods)
+		select {
+		case <-ctx.Done():
+			return err
+		default:
+		}
+		time.Sleep(pollInterval)
 	}
-
-	return nil
 }
 
 // findClusterOperatorCondition finds a condition in ClusterOperator status
@@ -153,15 +160,13 @@ func findClusterOperatorCondition(conditions []v1.ClusterOperatorStatusCondition
 }
 
 func ensureEtcdHasTwoVotingMembers(nodes *corev1.NodeList, ecf *helpers.EtcdClientFactoryImpl) error {
-	ctx, cancel := context.WithTimeout(context.Background(), resourceIsHealthyTimeout)
+	framework.Logf("Ensure Etcd member list has two voting members (timeout: %v)", clusterIsHealthyTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), clusterIsHealthyTimeout)
 	defer cancel()
 
 	for {
-		var err error
-		var members []*etcdserverpb.Member
-
 		// Check all conditions sequentially
-		members, err = getMembers(ecf)
+		members, err := getMembers(ecf)
 		if err == nil && len(members) != 2 {
 			err = fmt.Errorf("expected 2 members, found %d", len(members))
 		}
