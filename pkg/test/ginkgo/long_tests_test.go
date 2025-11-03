@@ -113,14 +113,46 @@ func TestLongTestsSortedByDuration(t *testing.T) {
 		for i := 1; i < len(group.Tests); i++ {
 			currentDuration := group.Tests[i].DurationSeconds
 			if currentDuration > prevDuration {
-				t.Errorf("Group %s: Test at index %d has duration %d which is greater than previous test duration %d. Tests should be sorted longest first.",
+				t.Errorf("Group %s: Test at index %d has duration %.0f which is greater than previous test duration %.0f. Tests should be sorted longest first.",
 					group.GroupID, i, currentDuration, prevDuration)
 			}
 			prevDuration = currentDuration
 		}
 
 		// Log the first and last test durations
-		t.Logf("Group %s: First test duration=%ds, Last test duration=%ds",
+		t.Logf("Group %s: First test duration=%.0fs, Last test duration=%.0fs",
 			group.GroupID, group.Tests[0].DurationSeconds, group.Tests[len(group.Tests)-1].DurationSeconds)
+	}
+}
+
+func TestNeverFailTestsLoaded(t *testing.T) {
+	if neverFailTestNames == nil {
+		t.Fatal("neverFailTestNames should not be nil after init()")
+	}
+
+	if len(neverFailTestNames) == 0 {
+		t.Error("Expected some never-fail tests to be loaded")
+	}
+
+	t.Logf("Loaded %d never-fail tests", len(neverFailTestNames))
+}
+
+func TestIsNeverFailTest(t *testing.T) {
+	// Test with a known never-fail test (from the file we checked earlier)
+	neverFailTest := "[bz-Cluster Version Operator] Verify presence of admin ack gate blocks upgrade until acknowledged"
+	if !IsNeverFailTest(neverFailTest) {
+		t.Errorf("Expected test to be marked as never-fail: %s", neverFailTest)
+	}
+
+	// Test with a test that's not in the never-fail list
+	regularTest := "[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy [Suite:openshift/conformance/parallel]"
+	if IsNeverFailTest(regularTest) {
+		t.Errorf("Expected test NOT to be marked as never-fail: %s", regularTest)
+	}
+
+	// Test with unknown test
+	unknownTest := "This test does not exist"
+	if IsNeverFailTest(unknownTest) {
+		t.Errorf("Expected unknown test NOT to be marked as never-fail: %s", unknownTest)
 	}
 }
