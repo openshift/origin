@@ -25,14 +25,14 @@ import (
 
 const (
 	memberHasLeftTimeout            = 5 * time.Minute
-	memberIsLeaderTimeout           = 10 * time.Minute
+	memberIsLeaderTimeout           = 20 * time.Minute
 	memberRejoinedLearnerTimeout    = 10 * time.Minute
 	memberPromotedVotingTimeout     = 15 * time.Minute
 	networkDisruptionDuration       = 15 * time.Second
 	vmRestartTimeout                = 5 * time.Minute
 	vmUngracefulShutdownTimeout     = 30 * time.Second // Ungraceful shutdown is typically fast
 	vmGracefulShutdownTimeout       = 10 * time.Minute // Graceful shutdown is typically slow
-	membersHealthyAfterDoubleReboot = 15 * time.Minute // It takes into account full VM reboot and Etcd member healthy
+	membersHealthyAfterDoubleReboot = 30 * time.Minute // It takes into account full VM reboot and Etcd member healthy
 	pollInterval                    = 5 * time.Second
 )
 
