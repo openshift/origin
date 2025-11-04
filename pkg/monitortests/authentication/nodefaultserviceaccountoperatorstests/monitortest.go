@@ -35,6 +35,16 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 func generateDefaultSAFailures(podList []corev1.Pod) []string {
 	failures := make([]string, 0)
 	for _, pod := range podList {
+		// remove suffix from pod name e.g pod-e3ewdg becomes pod
+		podSansSuffix := pod.Name[:strings.LastIndex(pod.Name, "-")]
+		// skip known pods with default SA's.
+		switch podSansSuffix {
+		case "cluster-version-operator", "downloads", "etcd-guard", "ingress-canary", "kube-apiserver-guard",
+			"kube-controller-manager-guard", "openshift-kube-scheduler-guard",
+			"monitoring-plugin", "multus", "networking-console-plugin", "network-check-target",
+			"verify-all-openshiftcertifiedoperators":
+			continue
+		}
 		podSA := pod.Spec.ServiceAccountName
 		// if the service account name is not default, we can exit for that iteration
 		fmt.Printf("Service account for pod %s in namespace %s is %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
