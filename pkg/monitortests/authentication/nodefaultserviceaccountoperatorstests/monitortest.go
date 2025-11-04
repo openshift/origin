@@ -35,10 +35,11 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 func generateDefaultSAFailures(podList []corev1.Pod) []string {
 	failures := make([]string, 0)
 	for _, pod := range podList {
-		// remove suffix from pod name e.g pod-e3ewdg becomes pod
+		// remove suffix from pod name e.g pod-e3ewdg-sdf2s becomes pod
 		podSansSuffix := pod.Name[:strings.LastIndex(pod.Name, "-")]
+		podSansSuffix1 := podSansSuffix[:strings.LastIndex(podSansSuffix, "-")]
 		// skip known pods with default SA's.
-		switch podSansSuffix {
+		switch podSansSuffix1 {
 		case "cluster-version-operator", "downloads", "etcd-guard", "ingress-canary", "kube-apiserver-guard",
 			"kube-controller-manager-guard", "openshift-kube-scheduler-guard",
 			"monitoring-plugin", "multus", "networking-console-plugin", "network-check-target",
