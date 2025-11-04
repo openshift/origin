@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	configv1 "github.com/openshift/api/config/v1"
@@ -271,11 +270,21 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return errors.WithMessage(err, "could not convert test specs to origin test cases")
 	}
 
+	// We want to intentionally reduce variability
+	// in the ordering to highlight interactions between
+	// tests that lead to higher failures
+	// we may want to create a set of known seeds
+	// and randomly select from that group eventually
+	// to compare results
+	seed := int64(42)
+
+	// Previous seeding
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	randSeed := suiteConfig.RandomSeed
-	r := rand.New(rand.NewSource(randSeed))
+	// suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	// seed := suiteConfig.RandomSeed
+
+	r := rand.New(rand.NewSource(seed))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	count := o.Count
@@ -700,7 +709,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 
-		writeRunSuiteOptions(randSeed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
+		writeRunSuiteOptions(seed, totalNodes, workerNodes, parallelism, monitorTestInfo, o.JUnitDir, timeSuffix)
 	}
 
 	switch {
