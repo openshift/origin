@@ -761,7 +761,7 @@ func TestPathologicalEventsPrometheusReadinessProbeErrors(t *testing.T) {
 				},
 			})
 			evaluator := duplicateEventsEvaluator{
-				registry: NewUniversalPathologicalEventMatchers(nil, events),
+				registry: NewUpgradePathologicalEventMatchers(nil, events),
 			}
 
 			testName := "events should not repeat"
