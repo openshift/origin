@@ -502,8 +502,42 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	twoNodeEtcdEndpointsMatcher := newTwoNodeEtcdEndpointsConfigMissingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(twoNodeEtcdEndpointsMatcher)
 
-	prometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher := newPrometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie(prometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher)
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "PrometheusReadinessProbeErrors",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-monitoring$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^prometheus-k8s-[0,1]$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^` + string(monitorapi.UnhealthyReason) + `$`),
+		messageHumanRegex:  regexp.MustCompile("Readiness probe errored"),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-62703",
+		/*
+			05:50:32	openshift-monitoring	kubelet	prometheus-k8s-1
+			Unhealthy
+			Readiness probe errored: rpc error: code = NotFound desc = container is not created or running: checking if PID of 58577e7deb7b8ae87b8029b9988fa268613748d0743ce989748f27e52b199ef5 is running failed: container process not found
+
+			05:53:52 (x25)	openshift-monitoring	kubelet	prometheus-k8s-0
+			Unhealthy
+			Readiness probe errored: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1
+
+			11:44:16 (x56)	openshift-monitoring	kubelet	prometheus-k8s-0
+			Unhealthy
+			Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1
+
+			Readiness probes run during the lifecycle of the container, including termination.
+			Prometheus pods may take some time to stop, and thus result in more kubelet pings than permitted by default (20).
+			With a termination grace period of 600s, these pods may lead to probe errors (e.g. the web service is stopped but the process is still running), which is expected during upgrades.
+
+			To address this, set the threshold to 100 (approximately 600 (termination period) / 5 (probe interval)), to allow for a high number of readiness probe errors during the upgrade, but not so high that we would miss a real problem.
+			The job below hit ~60 readiness errors during the upgrade:
+			https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.20-upgrade-from-stable-4.19-e2e-aws-ovn-upgrade/1977094149035266048, which makes sense to ignore,
+			However, the job below hit readiness errors 774 times during the upgrade:
+			https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.19-upgrade-from-stable-4.18-e2e-metal-ovn-single-node-rt-upgrade-test/1975691393640697856, which should be caught.
+
+			Also, do note that these events were exhibited outside of upgrades as well, so we need to allow them in general.
+		*/
+		repeatThresholdOverride: 100,
+	})
 
 	return registry
 }
@@ -1173,67 +1207,4 @@ func newCrioReloadedTooOftenEventMatcher(finalInternals monitorapi.Intervals) Ev
 		},
 		allowIfWithinIntervals: crioReloadedIntervals,
 	}
-}
-
-func newPrometheusReadinessProbeErrorsDuringUpgradesPathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
-	podNamePrefix := "prometheus-k8s"
-	podNamespace := "openshift-monitoring"
-	messageHumanizedSubstring := "Readiness probe errored"
-	messageReason := monitorapi.UnhealthyReason
-	matcher := &SimplePathologicalEventMatcher{
-		name: "PrometheusReadinessProbeErrorsDuringUpgrades",
-		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^` + podNamespace + `$`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`^` + podNamePrefix + `-[0,1]$`),
-		},
-		messageReasonRegex: regexp.MustCompile(`^` + string(messageReason) + `$`),
-		messageHumanRegex:  regexp.MustCompile(messageHumanizedSubstring),
-		jira:               "https://issues.redhat.com/browse/OCPBUGS-62703",
-	}
-
-	// Sanity check in case no `finalIntervals` are provided.
-	if finalIntervals == nil || len(finalIntervals) == 0 {
-		matcher.neverAllow = true
-		return matcher
-	}
-
-	/*
-		05:50:32	openshift-monitoring	kubelet	prometheus-k8s-1
-		Unhealthy
-		Readiness probe errored: rpc error: code = NotFound desc = container is not created or running: checking if PID of 58577e7deb7b8ae87b8029b9988fa268613748d0743ce989748f27e52b199ef5 is running failed: container process not found
-
-		05:53:52 (x25)	openshift-monitoring	kubelet	prometheus-k8s-0
-		Unhealthy
-		Readiness probe errored: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1
-
-		11:44:16 (x56)	openshift-monitoring	kubelet	prometheus-k8s-0
-		Unhealthy
-		Readiness probe errored and resulted in unknown state: rpc error: code = Unknown desc = command error: cannot register an exec PID: container is stopping, stdout: , stderr: , exit code -1
-	*/
-	testIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Locator.Type == monitorapi.LocatorTypePod &&
-			eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey] == podNamespace &&
-			strings.HasPrefix(eventInterval.Locator.Keys[monitorapi.LocatorPodKey], podNamePrefix) &&
-			eventInterval.Message.Reason == messageReason &&
-			strings.Contains(eventInterval.Message.HumanMessage, messageHumanizedSubstring)
-	})
-
-	if len(testIntervals) > 0 {
-		/*
-			Readiness probes run during the lifecycle of the container, including termination.
-			Prometheus pods may take some time to stop, and thus result in more kubelet pings than permitted by default (20).
-			With a termination grace period of 600s, these pods may lead to probe errors (e.g. the web service is stopped but the process is still running), which is expected during upgrades.
-
-			To address this, set the threshold to 100 (approximately 600 (termination period) / 5 (probe interval)), to allow for a high number of readiness probe errors during the upgrade, but not so high that we would miss a real problem.
-			The job below hit ~60 readiness errors during the upgrade:
-			https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.20-upgrade-from-stable-4.19-e2e-aws-ovn-upgrade/1977094149035266048, which makes sense to ignore,
-			However, the job below hit readiness errors 774 times during the upgrade:
-			https://prow.ci.openshift.org/view/gs/test-platform-results/logs/periodic-ci-openshift-release-master-ci-4.19-upgrade-from-stable-4.18-e2e-metal-ovn-single-node-rt-upgrade-test/1975691393640697856, which should be caught.
-		*/
-		matcher.repeatThresholdOverride = 100
-	} else {
-		matcher.neverAllow = true
-	}
-
-	return matcher
 }
