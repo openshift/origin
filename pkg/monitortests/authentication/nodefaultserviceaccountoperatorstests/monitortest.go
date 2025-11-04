@@ -49,8 +49,8 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 			}
 		}
 		podSA := pod.Spec.ServiceAccountName
-		// if the service account name is not default, we can exit for that iteration
 		fmt.Printf("Service account for pod %s in namespace %s is %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
+		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
 			continue
 		}
@@ -72,10 +72,18 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 	}
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
+		// custom error for openshift-marketplace namespace as blank pod name
+		if ns.Name == "openshift-marketplace" {
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:          fmt.Sprintf("[sig-auth] all operators in ns/%s must not use the 'default' service account", ns.Name),
+				SystemOut:     fmt.Sprintf("service account name %s is being used in namespace %s", "default", ns.Name),
+				FailureOutput: &junitapi.FailureOutput{Output: fmt.Sprintf("service account name %s is being used in namespace %s", "default", ns.Name)},
+			})
+			continue
+		}
 		if !strings.HasPrefix(ns.Name, "openshift") && !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" {
 			continue
 		}
-
 		// get list of all pods in the namespace
 		pods, err := n.kubeClient.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 
