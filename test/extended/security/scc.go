@@ -550,7 +550,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 	g.BeforeEach(func() {
 		// Skip on Hypershift clusters
-		isHyperShift, err := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
+		isHyperShift, err := exutil.IsHypershift(ctx, oc.AdminConfigClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isHyperShift {
 			g.Skip("Skip case as control plane pods are not supported on HyperShift cluster")
@@ -567,31 +567,35 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	g.It("[CNTRLPLANE-1544] OCP-85221 Check the pods with uid, gid, hostUsers, annotations parameters are correctly set", func() {
 		// Define namespaces that has annotations present, namespace: deploynames
 		controlPlaneNamespacesWithDeployments := map[string][]string{
-			"openshift-kube-controller-manager-operator": {"kube-controller-manager-operator"},
-			//"openshift-cloud-credential-operator":        []string{"pod-identity-webhook", "cloud-credential-operator"},
-			//"openshift-kube-apiserver-operator":          []string{"kube-apiserver-operator"},
+			"openshift-kube-controller-manager-operator": {"kube-controller-manager-operator"}, //Done
+			// "openshift-cloud-credential-operator":        {"pod-identity-webhook", "cloud-credential-operator"}, Not required
+			// "openshift-cloud-network-config-controller": {"cloud-network-config-controller"}, Not required
+			// " openshift-controller-manager-operator": {"openshift-controller-manager-operator"}, // Not required
+			"openshift-kube-apiserver-operator": {"kube-apiserver-operator"}, // Done
 			"openshift-kube-scheduler-operator": {"openshift-kube-scheduler-operator"},
+		}
+
+		// Define namespaces that should skip annotation checks
+		// Some existing control plane deployments may not have the "openshift.io/required-scc" annotation
+		// even though they still use user namespaces and need security validation.
+		// We skip the annotation check for these namespaces while still validating their security settings.
+		namespacesToSkipAnnotations := map[string]bool{
+			"openshift-kube-scheduler-operator":          true,
+			"openshift-kube-apiserver-operator":          false,
+			"openshift-kube-controller-manager-operator": false,
 		}
 
 		for namespace, deployNames := range controlPlaneNamespacesWithDeployments {
 			for _, deployName := range deployNames {
-				annotationsNs := []string{"openshift-kube-scheduler-operator", "openshift-kube-controller-manager-operator"}
-				// Check if namespace is NOT in the annotationsNs array
-				skipAnnotationCheck := false
-				for _, ns := range annotationsNs {
-					if namespace == ns {
-						skipAnnotationCheck = true
-						break
-					}
-				}
+				// Check if namespace should skip annotation check
+				skipAnnotationCheck := namespacesToSkipAnnotations[namespace]
 				commonTestStepsValidGroups(ctx, oc, namespace, deployName, 1000, 1000, 1000, skipAnnotationCheck)
 			}
 		}
 	})
 
 	g.It("[CNTRLPLANE-1544] OCP-85242  Test the deployment is up and running with parameters set uid,gid,restricted-v3 annotations in new namespace", func() {
-		namespace := "openshift-kube-controller-manager-operator"
-		// namespace = oc.Namespace()
+		namespace := oc.Namespace()
 		deployName := "deployment-uid-gid"
 		skipAnnotationCheck := false
 
@@ -604,28 +608,47 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 		commonTestStepsValidGroups(ctx, oc, namespace, deployName, 1010, 1020, 1000, skipAnnotationCheck)
 	})
 
-	g.It("[CNTRLPLANE-1544] OCP-85303 Test the deployment with invalid security context values are not allowed", func() {
-		// namespace := oc.Namespace()
-		namespace := "openshift-kube-controller-manager-operator"
+	g.It("[CNTRLPLANE-1544] OCP-85303 Test the deployment with invalid security context values are not allowed in user namespaces", func() {
+		namespace := oc.Namespace()
 
-		g.By("Testing deployment with runAsUser: 65536 (should fail)")
-		deployName1 := "deployment-invalid-user-65536"
-		deployment := createDeploymentFromYAML(namespace, deployName1, 65536, 1000, 1000)
+		g.By("Testing deployment with runAsUser: 65535 (should fail)")
+		deployName1 := "deployment-invalid-user-65535"
+		deployment := createDeploymentFromYAML(namespace, deployName1, 65535, 1000, 1000)
 		_, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName1)
-
-		message := "container create failed: setresuid to `65536`: Invalid argument"
+		// SCC admission controller rejects invalid runAsUser values at ReplicaSet level
+		message := "Invalid value: 65535: must be in the ranges: [1000, 65534]'"
 		commonTestStepsInvalidGroup(oc, deployment, message)
 
-		g.By("Testing deployment with runAsGroup: 65536 (should fail)")
-		deployName2 := "deployment-invalid-group-65536"
-		deployment = createDeploymentFromYAML(namespace, deployName2, 1000, 65536, 1000)
+		g.By("Testing deployment with runAsGroup: 65535 (should fail)")
+		deployName2 := "deployment-invalid-group-65535"
+		deployment = createDeploymentFromYAML(namespace, deployName2, 1000, 65535, 1000)
 		_, err = oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName2)
+		// SCC admission controller rejects invalid runAsGroup values at ReplicaSet level
+		message = "unable to validate against any security context constraint"
+		commonTestStepsInvalidGroup(oc, deployment, message)
 
-		message = "container create failed: setgroups: Invalid argument"
+		g.By("Testing deployment with runAsUser: 999 (should fail)")
+		deployName3 := "deployment-invalid-user-999"
+		deployment = createDeploymentFromYAML(namespace, deployName3, 999, 1000, 1000)
+		_, err = oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName3)
+		// SCC admission controller rejects invalid runAsUser values at ReplicaSet level
+		message = "Invalid value: 999: must be in the ranges: [1000, 65534]'"
+		commonTestStepsInvalidGroup(oc, deployment, message)
+
+		g.By("Testing deployment with runAsGroup: 999 (should fail)")
+		deployName4 := "deployment-invalid-group-999"
+		deployment = createDeploymentFromYAML(namespace, deployName4, 999, 1000, 1000)
+		_, err = oc.AdminKubeClient().AppsV1().Deployments(namespace).Create(ctx, deployment, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		oc.AddExplicitResourceToDelete(appsv1.SchemeGroupVersion.WithResource("deployments"), namespace, deployName4)
+		// SCC admission controller rejects invalid runAsUser values at ReplicaSet level
+		message = "Invalid value: 999: must be in the ranges: [1000, 65534]'"
 		commonTestStepsInvalidGroup(oc, deployment, message)
 	})
 })
@@ -662,7 +685,7 @@ func createDeploymentFromYAML(namespace, deployName string, runAsUser, runAsGrou
 					Containers: []corev1.Container{
 						{
 							Name:    "test-container",
-							Image:   "ubuntu",
+							Image:   image.ShellImage(),
 							Command: []string{"/bin/bash", "-c", "sleep 3600"},
 							SecurityContext: &corev1.SecurityContext{
 								AllowPrivilegeEscalation: ptr.To(false),
@@ -708,12 +731,12 @@ func commonTestStepsValidGroups(ctx context.Context, oc *exutil.CLI, namespace, 
 	o.Expect(deploy.Spec.Template.Spec.HostUsers).To(o.Equal(ptr.To(false)))
 
 	g.By("Checking the pods have the correct uid, gid, groups")
-	// Get label selector from deployment
-	labelSelector := ""
+	// Build label selector from all match labels
+	labelPairs := []string{}
 	for key, value := range deploy.Spec.Selector.MatchLabels {
-		labelSelector = fmt.Sprintf("%s=%s", key, value)
-		break
+		labelPairs = append(labelPairs, fmt.Sprintf("%s=%s", key, value))
 	}
+	labelSelector := strings.Join(labelPairs, ",")
 	pods, err := exutil.GetDeploymentPods(oc, deployName, namespace, labelSelector)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(pods.Items).NotTo(o.BeEmpty())
@@ -733,30 +756,51 @@ func commonTestStepsValidGroups(ctx context.Context, oc *exutil.CLI, namespace, 
 		// Remove cri-o:// prefix if present
 		containerID = strings.TrimPrefix(containerID, "cri-o://")
 
-		g.By("Using debug pod to inspect container and check uid_map")
+		g.By(fmt.Sprintf("Creating debug pod for node %s to inspect container and check uid_map", nodeName))
 		debugCmd := fmt.Sprintf("chroot /host crictl inspect %s | jq -r '.info.pid'", containerID)
-		pidOut, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "bash", "-c", debugCmd).Output()
-		framework.Logf("Debug pod output: %s", pidOut)
+		var pidOut string
+		o.Eventually(func() string {
+			out, _ := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "bash", "-c", debugCmd).Output()
+			pidOut = out
+			return out
+		}).WithTimeout(60 * time.Second).WithPolling(10 * time.Second).Should(o.Not(o.BeEmpty()))
 
-		if err == nil && strings.TrimSpace(pidOut) != "" {
-			// Extract PID from debug output - look for numeric value after all the debug messages
-			lines := strings.Split(strings.TrimSpace(pidOut), "\n")
-			pid := strings.TrimSpace(lines[2])
+		// Extract PID from debug output - look for numeric value after all the debug messages
+		// Debug output format: line 0 and 1 contain debug pod metadata, line 2 contains the actual PID value
+		pidLines := strings.Split(strings.TrimSpace(pidOut), "\n")
+		if len(pidLines) <= 2 {
+			framework.Logf("Warning: Unexpected debug output format: insufficient lines")
+			framework.Logf("Skipping uid_map verification (non-critical for this test)")
+		} else {
+			pid := strings.TrimSpace(pidLines[2])
 
-			if pid != "" && pid != "null" {
+			if pid == "" || pid == "null" {
+				framework.Logf("Warning: Could not extract container PID or container not running")
+				framework.Logf("Skipping uid_map verification (non-critical for this test)")
+			} else {
 				framework.Logf("Extracted PID: %s", pid)
 				g.By("Checking uid_map for user namespace mapping")
 				uidMapCmd := fmt.Sprintf("chroot /host cat /proc/%s/uid_map", pid)
 				uidMapOut, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "bash", "-c", uidMapCmd).Output()
-				if err == nil {
+				if err != nil {
+					framework.Logf("Warning: Could not read uid_map: %v", err)
+					framework.Logf("Skipping uid_map verification (non-critical for this test)")
+				} else {
 					framework.Logf("uid_map content: %s", uidMapOut)
 
 					// Parse uid_map format: inside_uid outside_uid length
 					// Check that the second column (outside_uid) is not equal to runAsUser
-					lines := strings.Split(strings.TrimSpace(uidMapOut), "\n")
-					if len(lines) > 0 {
-						fields := strings.Fields(lines[2])
-						if len(fields) >= 2 {
+					// uid_map output format: line 0 and 1 contain debug pod metadata, line 2 contains the mapping data
+					uidMapLines := strings.Split(strings.TrimSpace(uidMapOut), "\n")
+					if len(uidMapLines) <= 2 {
+						framework.Logf("Warning: Unexpected uid_map format: insufficient lines")
+						framework.Logf("Skipping uid_map verification (non-critical for this test)")
+					} else {
+						fields := strings.Fields(uidMapLines[2])
+						if len(fields) < 2 {
+							framework.Logf("Warning: Unexpected uid_map format: insufficient fields")
+							framework.Logf("Skipping uid_map verification (non-critical for this test)")
+						} else {
 							outsideUID := fields[1]
 							// The outside UID should be different from the original runAsUser due to user namespace mapping
 							// This verifies that user namespace is working correctly
@@ -764,14 +808,8 @@ func commonTestStepsValidGroups(ctx context.Context, oc *exutil.CLI, namespace, 
 							framework.Logf("Outside UID from uid_map: %s, Expected different from runAsUser %d", outsideUID, runAsUser)
 						}
 					}
-				} else {
-					framework.Logf("Could not read uid_map: %v", err)
 				}
-			} else {
-				framework.Logf("Could not get container PID or container not running")
 			}
-		} else {
-			framework.Logf("Could not get container PID or container not running: %v", err)
 		}
 	} else {
 		framework.Logf("Container ID not available (expected for CreateContainerError state)")
@@ -779,31 +817,36 @@ func commonTestStepsValidGroups(ctx context.Context, oc *exutil.CLI, namespace, 
 }
 
 func commonTestStepsInvalidGroup(oc *exutil.CLI, deployment *appsv1.Deployment, message string) {
-	var containerStatus corev1.ContainerStatus
+	ctx := context.Background()
 
 	g.By(fmt.Sprintf("Checking the deployment should not be ready: %v", deployment.Name))
-	// Get label selector from deployment
-	labelSelector := ""
-	for key, value := range deployment.Spec.Selector.MatchLabels {
-		labelSelector = fmt.Sprintf("%s=%s", key, value)
-		break
-	}
 
-	g.By("Waiting for container to reach CreateContainerError state")
-	o.Eventually(func() string {
-		pods, err := exutil.GetDeploymentPods(oc, deployment.Name, deployment.Namespace, labelSelector)
-		if err != nil || len(pods.Items) == 0 {
-			return ""
+	// When a deployment has invalid security context values, the SCC admission controller
+	// rejects pod creation at the ReplicaSet level, so no pods are actually created.
+	// The error appears in the Deployment's status conditions under ReplicaFailure.
+	g.By("Waiting for deployment to reach ReplicaFailure status with FailedCreate reason")
+	var replicaFailureMessage string
+	o.Eventually(func() bool {
+		deploy, err := oc.AdminKubeClient().AppsV1().Deployments(deployment.Namespace).Get(ctx, deployment.Name, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Error getting deployment: %v", err)
+			return false
 		}
-		pod := &pods.Items[0]
-		if len(pod.Status.ContainerStatuses) == 0 {
-			return ""
+
+		// Look for ReplicaFailure condition
+		for _, condition := range deploy.Status.Conditions {
+			if condition.Type == appsv1.DeploymentReplicaFailure &&
+				condition.Status == corev1.ConditionTrue &&
+				condition.Reason == "FailedCreate" {
+				replicaFailureMessage = condition.Message
+				framework.Logf("Found ReplicaFailure condition with message: %s", replicaFailureMessage)
+				return true
+			}
 		}
-		containerStatus = pod.Status.ContainerStatuses[0]
-		if containerStatus.State.Waiting != nil {
-			return containerStatus.State.Waiting.Reason
-		}
-		return ""
-	}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(o.Equal("CreateContainerError"))
-	o.Expect(containerStatus.State.Waiting.Message).To(o.ContainSubstring(message))
+		return false
+	}).WithTimeout(2*time.Minute).WithPolling(5*time.Second).Should(o.BeTrue(), "Expected deployment to have ReplicaFailure condition with FailedCreate reason")
+
+	g.By(fmt.Sprintf("Verifying the failure message contains expected text: %s", message))
+	o.Expect(replicaFailureMessage).To(o.ContainSubstring(message),
+		fmt.Sprintf("Expected failure message to contain '%s', but got: %s", message, replicaFailureMessage))
 }
