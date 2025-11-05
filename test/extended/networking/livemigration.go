@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
+	utilnet "k8s.io/utils/net"
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
@@ -132,9 +133,21 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 							vmCreationParams.NetworkName = nadName
 						}
 
-						if len(workloadConfig.preconfiguredIPs) > 0 {
+						hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+						Expect(err).NotTo(HaveOccurred())
+						var filteredPreconfiguredIPs []string
+						for _, ip := range workloadConfig.preconfiguredIPs {
+							if utilnet.IsIPv4String(ip) && hasIPv4 {
+								filteredPreconfiguredIPs = append(filteredPreconfiguredIPs, ip)
+							}
+							if utilnet.IsIPv6String(ip) && hasIPv6 {
+								filteredPreconfiguredIPs = append(filteredPreconfiguredIPs, ip)
+							}
+						}
+
+						if len(filteredPreconfiguredIPs) > 0 {
 							var err error
-							vmCreationParams.PreconfiguredIP, err = formatAddressesAnnotation(workloadConfig.preconfiguredIPs)
+							vmCreationParams.PreconfiguredIP, err = formatAddressesAnnotation(filteredPreconfiguredIPs)
 							Expect(err).NotTo(HaveOccurred())
 						}
 						if workloadConfig.preconfiguredMAC != "" {
@@ -163,9 +176,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						}
 						Expect(initialAddresses).To(HaveLen(expectedNumberOfAddresses))
 
-						if len(workloadConfig.preconfiguredIPs) > 0 {
+						if len(filteredPreconfiguredIPs) > 0 {
 							By("Verifying VM received the preconfigured IP address(es)")
-							for _, expectedIP := range workloadConfig.preconfiguredIPs {
+							for _, expectedIP := range filteredPreconfiguredIPs {
 								expectedIP = strings.TrimSpace(expectedIP)
 								Expect(initialAddresses).To(ContainElement(expectedIP), fmt.Sprintf("Expected IP %s not found in VM addresses %v", expectedIP, initialAddresses))
 							}
