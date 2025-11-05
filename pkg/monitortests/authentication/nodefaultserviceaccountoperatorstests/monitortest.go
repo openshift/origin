@@ -38,7 +38,10 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 		if strings.Contains(pod.Name, "-") {
 			// remove suffix from pod name e.g pod-e3ewdg-sdf2s becomes pod
 			podSansSuffix := pod.Name[:strings.LastIndex(pod.Name, "-")]
-			podSansSuffix1 := podSansSuffix[:strings.LastIndex(podSansSuffix, "-")]
+			podSansSuffix1 := podSansSuffix
+			if !strings.Contains(podSansSuffix, "-") {
+				podSansSuffix1 = podSansSuffix[:strings.LastIndex(podSansSuffix, "-")]
+			}
 			// skip known pods with default SA's.
 			switch podSansSuffix1 {
 			case "cluster-version-operator", "downloads", "etcd-guard", "ingress-canary", "kube-apiserver-guard",
