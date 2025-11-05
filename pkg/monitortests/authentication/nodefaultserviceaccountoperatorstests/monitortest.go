@@ -42,7 +42,8 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 			strings.HasPrefix(podName, "kube-apiserver-guard-"), strings.HasPrefix(podName, "kube-controller-manager-guard-"),
 			strings.HasPrefix(podName, "openshift-kube-scheduler-guard-"), strings.HasPrefix(podName, "monitoring-plugin-"),
 			strings.HasPrefix(podName, "multus-"), strings.HasPrefix(podName, "networking-console-plugin-"),
-			strings.HasPrefix(podName, "network-check-target-"), strings.HasPrefix(podName, "verify-all-openshiftcertifiedoperators-"):
+			strings.HasPrefix(podName, "network-check-target-"), strings.HasPrefix(podName, "verify-all-openshiftcertifiedoperators-"),
+			strings.HasPrefix(podName, "verify-all-openshiftcommunityoperators-"), strings.HasPrefix(podName, "verify-all-openshiftredhatmarketplace-"):
 			continue
 		}
 		podSA := pod.Spec.ServiceAccountName
