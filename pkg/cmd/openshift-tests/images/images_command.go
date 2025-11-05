@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"golang.org/x/exp/slices"
-	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/cmd"
@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	"k8s.io/kubectl/pkg/util/templates"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 func NewImagesCommand() *cobra.Command {
@@ -112,14 +113,13 @@ type imagesOptions struct {
 // TAG is the hash described above.
 func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
 	source := ref.Exact()
-
+	externalImageSets := []extension.Image{}
 	initialImageSets := []extensions.ImageSet{
 		k8simage.GetOriginalImageConfigs(),
 	}
 
 	// If ENV is not set, the list of images should come from external binaries
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		// Extract all test binaries
 		extractionContext, extractionContextCancel := context.WithTimeout(context.Background(), 30*time.Minute)
 		defer extractionContextCancel()
 		cleanUpFn, externalBinaries, err := extensions.ExtractAllTestBinaries(extractionContext, 10)
@@ -138,11 +138,31 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		if len(imageSetsFromBinaries) == 0 {
 			return nil, fmt.Errorf("no test images were reported by external binaries")
 		}
-		initialImageSets = imageSetsFromBinaries
+		externalImageSets = imageSetsFromBinaries
+	}
+
+	// Convert external images to initial and updated image sets
+	// Add mapped images to updated image set if they exist
+	exceptions := image.Exceptions.List()
+	updatedImageSets := []extensions.ImageSet{}
+	initial := extensions.ImageSet{}
+	updated := extensions.ImageSet{}
+	for _, image := range externalImageSets {
+		imageConfig := covertMappedImageToImageConfig(image)
+		if !slices.ContainsFunc(exceptions, func(e string) bool {
+			return strings.Contains(imageConfig.GetE2EImage(), e)
+		}) {
+			initial[k8simage.ImageID(image.Index)] = imageConfig
+			if image.Mapped != nil {
+				updated[k8simage.ImageID(image.Index)] = covertMappedImageToImageConfig(*image.Mapped)
+			}
+		}
+	}
+	if len(initial) > 0 {
+		initialImageSets = []extensions.ImageSet{initial}
 	}
 
 	// Take the initial images coming from external binaries and remove any exceptions that might exist.
-	exceptions := image.Exceptions.List()
 	defaultImageSets := []extensions.ImageSet{}
 	for i := range initialImageSets {
 		filtered := extensions.ImageSet{}
@@ -158,11 +178,39 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		}
 	}
 
-	// Created a new slice with the updatedImageSets addresses for the images
-	updatedImageSets := []extensions.ImageSet{}
-	for i := range defaultImageSets {
-		updatedImageSets = append(updatedImageSets, k8simage.GetMappedImageConfigs(defaultImageSets[i], ref.Exact()))
+	// Map initial images to the target repository
+	for _, img := range defaultImageSets {
+		for imageID, imageConfig := range img {
+			// If the imageID is in the updated image set, skip it
+			if _, ok := updated[imageID]; ok {
+				continue
+			}
+			m := map[string]k8simage.ImageID{
+				imageConfig.GetE2EImage(): k8simage.ImageID(imageID),
+			}
+			mappedImage := map[string]string{}
+			switch imageID {
+			// These images are special and can't be run out of the cloud - some because they
+			// are authenticated, and others because they are not real images. Tests that depend
+			// on these images can't be run without access to the public internet.
+			case k8simage.InvalidRegistryImage, k8simage.AgnhostPrivate, k8simage.AuthenticatedAlpine:
+				mappedImage[imageConfig.GetE2EImage()] = imageConfig.GetE2EImage()
+			default:
+				mappedImage = image.GetMappedImages(m, source)
+			}
+			ref, err := reference.Parse(mappedImage[imageConfig.GetE2EImage()])
+			if err != nil {
+				continue
+			}
+			config := k8simage.Config{}
+			config.SetRegistry(ref.Registry)
+			config.SetName(ref.RepositoryName())
+			config.SetVersion(ref.Tag)
+			updated[k8simage.ImageID(imageID)] = config
+		}
 	}
+
+	updatedImageSets = []extensions.ImageSet{updated}
 
 	openshiftDefaults := image.OriginalImages()
 	openshiftUpdated := image.GetMappedImages(openshiftDefaults, imagesetup.DefaultTestImageMirrorLocation)
@@ -178,9 +226,9 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 		covered := sets.NewString()
 		for i := range updatedImageSets {
 			for imageID, imageConfig := range updatedImageSets[i] {
-				defaultConfig := defaultImageSets[i][imageID]
+				originalConfig := defaultImageSets[i][imageID]
 				pullSpec := imageConfig.GetE2EImage()
-				if pullSpec == defaultConfig.GetE2EImage() {
+				if pullSpec == originalConfig.GetE2EImage() {
 					continue
 				}
 				if covered.Has(pullSpec) {
@@ -249,4 +297,13 @@ func createImageMirrorForInternalImages(prefix string, ref reference.DockerImage
 
 	sort.Strings(lines)
 	return lines, nil
+}
+
+func covertMappedImageToImageConfig(image extension.Image) k8simage.Config {
+	imageConfig := k8simage.Config{}
+	imageConfig.SetName(image.Name)
+	imageConfig.SetVersion(image.Version)
+	imageConfig.SetRegistry(image.Registry)
+
+	return imageConfig
 }

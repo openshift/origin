@@ -88,4 +88,7 @@ type Image struct {
 	Registry string `json:"registry"`
 	Name     string `json:"name"`
 	Version  string `json:"version"`
+	// Mapped is the image reference that this image is mirrored to by the image mirror tool.
+	// This field should be populated if the mirrored image reference is predetermined by the test extensions.
+	Mapped *Image `json:"mapped,omitempty"`
 }
