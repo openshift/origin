@@ -672,6 +672,10 @@ func clusterOperatorIsNotProgressingWhenMachineConfigIs(events monitorapi.Interv
 
 		except := func(co string, reason string) string {
 			switch co {
+			case "console":
+				if reason == "SyncLoopRefresh_InProgress" {
+					return "https://issues.redhat.com/browse/OCPBUGS-64688"
+				}
 			case "csi-snapshot-controller":
 				if reason == "CSISnapshotController_Deploying" {
 					return "https://issues.redhat.com/browse/OCPBUGS-62624"
