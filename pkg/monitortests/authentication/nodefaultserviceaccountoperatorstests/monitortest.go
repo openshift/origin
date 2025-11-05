@@ -35,21 +35,15 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 func generateDefaultSAFailures(podList []corev1.Pod) []string {
 	failures := make([]string, 0)
 	for _, pod := range podList {
-		if strings.Contains(pod.Name, "-") {
-			// remove suffix from pod name e.g pod-e3ewdg-sdf2s becomes pod
-			podSansSuffix := pod.Name[:strings.LastIndex(pod.Name, "-")]
-			podSansSuffix1 := podSansSuffix
-			if !strings.Contains(podSansSuffix, "-") {
-				podSansSuffix1 = podSansSuffix[:strings.LastIndex(podSansSuffix, "-")]
-			}
-			// skip known pods with default SA's.
-			switch podSansSuffix1 {
-			case "cluster-version-operator", "downloads", "etcd-guard", "ingress-canary", "kube-apiserver-guard",
-				"kube-controller-manager-guard", "openshift-kube-scheduler-guard",
-				"monitoring-plugin", "multus", "networking-console-plugin", "network-check-target",
-				"verify-all-openshiftcertifiedoperators":
-				continue
-			}
+		podName := pod.Name
+		switch {
+		case strings.HasPrefix(podName, "cluster-version-operator-"), strings.HasPrefix(podName, "downloads-"),
+			strings.HasPrefix(podName, "etcd-guard-"), strings.HasPrefix(podName, "ingress-canary-"),
+			strings.HasPrefix(podName, "kube-apiserver-guard-"), strings.HasPrefix(podName, "kube-controller-manager-guard-"),
+			strings.HasPrefix(podName, "openshift-kube-scheduler-guard-"), strings.HasPrefix(podName, "monitoring-plugin-"),
+			strings.HasPrefix(podName, "multus-"), strings.HasPrefix(podName, "networking-console-plugin-"),
+			strings.HasPrefix(podName, "network-check-target-"), strings.HasPrefix(podName, "verify-all-openshiftcertifiedoperators-"):
+			continue
 		}
 		podSA := pod.Spec.ServiceAccountName
 		fmt.Printf("Service account for pod %s in namespace %s is %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
