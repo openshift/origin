@@ -618,10 +618,12 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 	var eventsInUpgradeWindows monitorapi.Intervals
 
 	var start, stop time.Time
+	COWaiting := map[string]monitorapi.Intervals{}
 	for _, event := range events {
 		if !isInUpgradeWindow(upgradeWindows, event) {
 			continue
 		}
+		updateCOWaiting(event, COWaiting)
 		eventsInUpgradeWindows = append(eventsInUpgradeWindows, event)
 		if start.IsZero() || event.From.Before(start) {
 			start = event.From
@@ -651,6 +653,16 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 	}
 
 	except := func(co string, _ string) string {
+		intervals, ok := COWaiting[co]
+		if !ok {
+			// CO have not shown up in CVO Progressing message
+			return fmt.Sprintf("%s completing its update so fast that CVO did not recogize any waiting", co)
+		}
+		from, to := fromAndTo(intervals)
+		if d := to.Sub(from); d < 2*time.Minute {
+			// CO showed up in CVO Progressing message but the total duration is less than two minutes
+			return fmt.Sprintf("%s completing its update within less than two minutes: %s", co, d.String())
+		}
 		return ""
 	}
 
@@ -668,6 +680,9 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			exception = except(operatorName, "")
 			if exception != "" {
 				output = fmt.Sprintf("%s which is expected up to %s", output, exception)
+			} else {
+				from, to := fromAndTo(COWaiting[operatorName])
+				output = fmt.Sprintf("%s and CVO waited for it over 2 minutes from %s to %s", output, from.Format(time.RFC3339), to.Format(time.RFC3339))
 			}
 			mcTestCase.FailureOutput = &junitapi.FailureOutput{
 				Output: output,
@@ -832,6 +847,67 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 		}
 	}
 
+	return ret
+}
+
+func fromAndTo(intervals monitorapi.Intervals) (time.Time, time.Time) {
+	var from, to time.Time
+	for _, interval := range intervals {
+		if from.IsZero() || interval.From.Before(from) {
+			from = interval.From
+		}
+		if to.IsZero() || interval.To.After(to) {
+			to = interval.To
+		}
+	}
+	return from, to
+}
+
+func updateCOWaiting(interval monitorapi.Interval, waiting map[string]monitorapi.Intervals) {
+	if waiting == nil {
+		return
+	}
+	if interval.Source != monitorapi.SourceOperatorState ||
+		interval.Locator.Type != monitorapi.LocatorTypeClusterVersion ||
+		interval.Locator.Keys[monitorapi.LocatorClusterVersionKey] != "version" {
+		return
+	}
+
+	c, ok := interval.Message.Annotations[monitorapi.AnnotationCondition]
+	if !ok {
+		return
+	}
+	if t := configv1.ClusterStatusConditionType(c); t != configv1.OperatorProgressing {
+		return
+	}
+
+	status, ok := interval.Message.Annotations[monitorapi.AnnotationStatus]
+	if !ok {
+		return
+	}
+	s := configv1.ConditionStatus(status)
+	if s != configv1.ConditionTrue {
+		return
+	}
+	operators := getOperatorsFromProgressingMessage(interval.Message.HumanMessage)
+	for o := range operators {
+		waiting[o] = append(waiting[o], interval)
+	}
+	return
+}
+
+const ProgressingWaitingCOsKey = "waiting on "
+
+func getOperatorsFromProgressingMessage(message string) sets.Set[string] {
+	ret := sets.New[string]()
+	// If CVO changes the message, we have to change here accordingly
+	// https://github.com/openshift/cluster-version-operator/blob/a26c85e0fc1651645b009ee8c84b50e629fcc299/pkg/cvo/status.go#L593
+	if i := strings.LastIndex(message, ProgressingWaitingCOsKey); i == -1 {
+		return nil
+	} else {
+		ret.Insert(strings.Split(message[i+len(ProgressingWaitingCOsKey):], ", ")...)
+
+	}
 	return ret
 }
 
