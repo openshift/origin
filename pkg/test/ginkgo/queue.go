@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -31,12 +32,22 @@ func newConflictTracker() *conflictTracker {
 	}
 }
 
-// tryRunTest atomically checks if a test can run and executes it if possible
+// decrementAndCloseIfDone decrements the pending test counter and closes the channel if all tests are done
+func decrementAndCloseIfDone(pendingTestCount *int64, remainingTests chan *testCase) {
+	if atomic.AddInt64(pendingTestCount, -1) == 0 {
+		close(remainingTests)
+	}
+}
+
+// tryRunTest atomically checks if a test can run and executes it synchronously if possible
 // Returns true if the test was executed, false if there are conflicts
-func (ct *conflictTracker) tryRunTest(ctx context.Context, test *testCase, testSuiteRunner testSuiteRunner) bool {
+// The function blocks until the test completes before returning
+func (ct *conflictTracker) tryRunTest(ctx context.Context, test *testCase, testSuiteRunner testSuiteRunner, pendingTestCount *int64, remainingTests chan *testCase) bool {
 	// For tests with no isolation conflicts, run directly
 	if len(test.isolation.Conflict) == 0 {
 		testSuiteRunner.RunOneTest(ctx, test)
+		// Decrement pending counter when test completes
+		decrementAndCloseIfDone(pendingTestCount, remainingTests)
 		return true
 	}
 
@@ -58,11 +69,12 @@ func (ct *conflictTracker) tryRunTest(ctx context.Context, test *testCase, testS
 
 	ct.mu.Unlock()
 
-	// Run the test in a goroutine with conflict cleanup
-	go func(t *testCase) {
-		defer ct.markTestCompleted(t)
-		testSuiteRunner.RunOneTest(ctx, t)
-	}(test)
+	// Run the test synchronously with conflict cleanup
+	testSuiteRunner.RunOneTest(ctx, test)
+
+	// Clean up conflicts and decrement counter
+	ct.markTestCompleted(test)
+	decrementAndCloseIfDone(pendingTestCount, remainingTests)
 
 	return true
 }
@@ -120,14 +132,14 @@ func queueAllTests(remainingParallelTests chan *testCase, tests []*testCase) {
 		curr := tests[i]
 		remainingParallelTests <- curr
 	}
-
-	close(remainingParallelTests)
+	// Don't close the channel here - workers may need to put tests back
 }
 
-// runTestsUntilChannelEmpty reads from the channel to consume tests, run them, and return when the channel is closed.
+// runTestsUntilChannelEmpty reads from the channel to consume tests, run them, and return when no more tests are pending.
 // This version is conflict-aware and can handle both parallel and isolated tests.
 // If a test can't run due to conflicts, it's put back at the end of the queue.
-func runTestsUntilChannelEmpty(ctx context.Context, remainingTests chan *testCase, testSuiteRunner testSuiteRunner, conflictTracker *conflictTracker) {
+// Uses atomic counter to coordinate when all work is truly done.
+func runTestsUntilChannelEmpty(ctx context.Context, remainingTests chan *testCase, testSuiteRunner testSuiteRunner, conflictTracker *conflictTracker, pendingTestCount *int64) {
 	for {
 		select {
 		// if the context is finished, simply return
@@ -144,13 +156,15 @@ func runTestsUntilChannelEmpty(ctx context.Context, remainingTests chan *testCas
 			}
 
 			// Try to run the test atomically (handles both parallel and isolated tests)
-			if !conflictTracker.tryRunTest(ctx, test, testSuiteRunner) {
+			if !conflictTracker.tryRunTest(ctx, test, testSuiteRunner, pendingTestCount, remainingTests) {
 				// Can't run now due to conflicts, put back at end of queue after a short delay
 				go func(t *testCase) {
 					// Small delay to avoid busy spinning when many tests are conflicting
 					select {
 					case <-time.After(10 * time.Millisecond):
 					case <-ctx.Done():
+						// Context cancelled, decrement pending count since test won't complete
+						decrementAndCloseIfDone(pendingTestCount, remainingTests)
 						return
 					}
 
@@ -158,7 +172,8 @@ func runTestsUntilChannelEmpty(ctx context.Context, remainingTests chan *testCas
 					case remainingTests <- t:
 						// Successfully put back in queue
 					case <-ctx.Done():
-						// Context cancelled, give up
+						// Context cancelled, decrement pending count since test won't complete
+						decrementAndCloseIfDone(pendingTestCount, remainingTests)
 					}
 				}(test)
 			}
@@ -188,25 +203,31 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 	// Split tests into two categories: serial and parallel (including isolated)
 	serial, parallel := splitTests(tests, isSerialTest)
 
-	// Create conflict tracker for isolated tests
-	conflictTracker := newConflictTracker()
+	if len(parallel) > 0 {
+		// Create conflict tracker for isolated tests
+		conflictTracker := newConflictTracker()
 
-	// Start all non-serial tests in a unified channel
-	remainingTests := make(chan *testCase, 100)
-	go queueAllTests(remainingTests, parallel)
+		// Start all non-serial tests in a unified channel
+		remainingTests := make(chan *testCase, 100)
 
-	var wg sync.WaitGroup
+		// Use atomic counter to track pending tests for proper channel closure coordination
+		var pendingTestCount int64 = int64(len(parallel))
 
-	// Run all non-serial tests with conflict-aware workers
-	for i := 0; i < parallelism; i++ {
-		wg.Add(1)
-		go func(ctx context.Context) {
-			defer wg.Done()
-			runTestsUntilChannelEmpty(ctx, remainingTests, testSuiteRunner, conflictTracker)
-		}(ctx)
+		go queueAllTests(remainingTests, parallel)
+
+		var wg sync.WaitGroup
+
+		// Run all non-serial tests with conflict-aware workers
+		for i := 0; i < parallelism; i++ {
+			wg.Add(1)
+			go func(ctx context.Context) {
+				defer wg.Done()
+				runTestsUntilChannelEmpty(ctx, remainingTests, testSuiteRunner, conflictTracker, &pendingTestCount)
+			}(ctx)
+		}
+
+		wg.Wait()
 	}
-
-	wg.Wait()
 
 	// Run serial tests sequentially at the end
 	for _, test := range serial {
