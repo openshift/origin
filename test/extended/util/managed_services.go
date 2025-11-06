@@ -2,6 +2,8 @@ package util
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,4 +96,40 @@ func IsAroHCP(ctx context.Context, namespace string, kubeClient kubernetes.Inter
 
 	logrus.Infof("No deployment found with control-plane-operator container in namespace %s", namespace)
 	return false, nil
+}
+
+// IsBareMetalHyperShiftCluster checks if the HyperShift cluster is running on bare metal
+// by checking the platform type of the hosted cluster. It uses kubectl commands to query
+// the hosted cluster's platform type and returns true if it's "None" or "Agent".
+func IsBareMetalHyperShiftCluster(ctx context.Context, managementOC *CLI) (bool, error) {
+	// Get the hosted cluster namespace
+	_, hcpNamespace, err := GetHypershiftManagementClusterConfigAndNamespace()
+	if err != nil {
+		return false, fmt.Errorf("failed to get hypershift management cluster config and namespace: %v", err)
+	}
+
+	// Get the first hosted cluster name
+	clusterNames, err := managementOC.AsAdmin().WithoutNamespace().Run("get").Args(
+		"-n", hcpNamespace, "hostedclusters", "-o=jsonpath={.items[*].metadata.name}").Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to get hosted cluster names: %v", err)
+	}
+
+	if len(clusterNames) == 0 {
+		return false, fmt.Errorf("no hosted clusters found")
+	}
+
+	// Get the first hosted cluster name
+	clusterName := strings.Split(strings.TrimSpace(clusterNames), " ")[0]
+
+	// Get the platform type of the hosted cluster
+	platformType, err := managementOC.AsAdmin().WithoutNamespace().Run("get").Args(
+		"hostedcluster", clusterName, "-n", hcpNamespace, `-ojsonpath={.spec.platform.type}`).Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to get hosted cluster platform type: %v", err)
+	}
+
+	// Check if it's bare metal (None or Agent platform)
+	platformTypeStr := strings.TrimSpace(platformType)
+	return platformTypeStr == "None" || platformTypeStr == "Agent", nil
 }
