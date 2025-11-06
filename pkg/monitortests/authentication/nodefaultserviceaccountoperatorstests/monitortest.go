@@ -89,11 +89,11 @@ var exceptions = []func(pod corev1.Pod) bool{
 
 // generateDefaultSAFailures generates a list of failures where the pod in a list of pods
 // violated the default service account check.
-func generateDefaultSAFailures(podList []corev1.Pod) []string {
+func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
+	junits := []*junitapi.JUnitTestCase{}
 	failures := make([]string, 0)
 	for _, pod := range podList {
 		podSA := pod.Spec.ServiceAccountName
-		fmt.Printf("Service account for pod %s in namespace %s is %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
 			continue
@@ -106,12 +106,32 @@ func generateDefaultSAFailures(podList []corev1.Pod) []string {
 			}
 		}
 		if hasException {
+			// flag exception as flaky failure
+			failures = append(failures, fmt.Sprintf("[flake] service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace))
 			continue
 		}
 		// otherwise, we need to flag the failure
 		failures = append(failures, fmt.Sprintf("service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace))
+		// generate tests for given namespace/pod
+		testName := fmt.Sprintf("[sig-auth] pod '%s/%s' must not use the default service account", pod.Namespace, pod.Name)
+		if len(failures) == 0 {
+			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
+			continue
+		}
+		failureMsg := strings.Join(failures, "\n")
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:          testName,
+			SystemOut:     failureMsg,
+			FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
+		})
+		if strings.Contains(failureMsg, "[flake]") {
+			// introduce flake
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
 	}
-	return failures
+	return junits
 }
 
 // CollectData implements monitortestframework.MonitorTest.
@@ -137,20 +157,12 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 		}
 
 		// use helper method to generate default service account failures
-		failures := generateDefaultSAFailures(pods.Items)
-
-		// generate tests for given namespace
-		testName := fmt.Sprintf("[sig-auth] all operators in ns/%s must not use the 'default' service account", ns.Name)
-		if len(failures) == 0 {
+		junits = generateDefaultSAFailures(pods.Items)
+		if len(junits) == 0 {
+			testName := fmt.Sprintf("[sig-auth] all operators in ns/%s must not use the 'default' service account", ns.Name)
 			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
 			continue
 		}
-		failureMsg := strings.Join(failures, "\n")
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name:          testName,
-			SystemOut:     failureMsg,
-			FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
-		})
 	}
 	return nil, junits, nil
 }
