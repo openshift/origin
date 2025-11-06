@@ -117,7 +117,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	monitorTestRegistry.AddRegistryOrDie(newUniversalMonitorTests(info))
 
-	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "None", nodefaultserviceaccountoperatortests.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("no-default-service-account-operator-checker", "oauth-apiserver", nodefaultserviceaccountoperatortests.NewAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 
