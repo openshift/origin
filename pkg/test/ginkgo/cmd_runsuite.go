@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -53,6 +54,63 @@ const (
 	upgradeEvent     = "Upgrade"
 	postUpgradeEvent = "PostUpgrade"
 )
+
+// Embed long_tests.json at compile time
+//
+//go:embed long_tests.json
+var longTestsJSON []byte
+
+// LongTestInfo represents duration information for a single test
+type LongTestInfo struct {
+	Name            string `json:"name"`
+	DurationSeconds int    `json:"duration_seconds"`
+	GroupID         string `json:"group_id"`
+}
+
+// LongTestGroup represents a group of tests with the same group_id
+type LongTestGroup struct {
+	GroupID string         `json:"group_id"`
+	Tests   []LongTestInfo `json:"tests"`
+}
+
+// LongTestsData holds all long test groups loaded from long_tests.json
+var longTestsData []LongTestGroup
+
+func init() {
+	if err := json.Unmarshal(longTestsJSON, &longTestsData); err != nil {
+		logrus.WithError(err).Warn("Failed to load long_tests.json, test duration data will not be available")
+	} else {
+		totalTests := 0
+		for _, group := range longTestsData {
+			totalTests += len(group.Tests)
+		}
+		logrus.Infof("Loaded %d long test groups with %d total tests from long_tests.json", len(longTestsData), totalTests)
+	}
+}
+
+// GetTestDuration returns the expected duration in seconds for a test by name, or 0 if not found
+func GetTestDuration(testName string) int {
+	for _, group := range longTestsData {
+		for _, test := range group.Tests {
+			if test.Name == testName {
+				return test.DurationSeconds
+			}
+		}
+	}
+	return 0
+}
+
+// GetTestGroup returns the group ID for a test by name, or empty string if not found
+func GetTestGroup(testName string) string {
+	for _, group := range longTestsData {
+		for _, test := range group.Tests {
+			if test.Name == testName {
+				return test.GroupID
+			}
+		}
+	}
+	return ""
+}
 
 // GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
@@ -443,6 +501,34 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	// Extract long-running tests into a single group
+	// All long tests will run first, sorted by duration (longest first)
+	var longTests []*testCase
+	var remainingTests []*testCase
+
+	for _, test := range primaryTests {
+		group := GetTestGroup(test.name)
+		if group != "" {
+			// This is a known long-running test
+			longTests = append(longTests, test)
+		} else {
+			// Not in long_tests.json, add to remaining
+			remainingTests = append(remainingTests, test)
+		}
+	}
+
+	// Sort all long tests by duration (longest first)
+	sort.Slice(longTests, func(i, j int) bool {
+		durationI := GetTestDuration(longTests[i].name)
+		durationJ := GetTestDuration(longTests[j].name)
+		return durationI > durationJ // Descending order (longest first)
+	})
+
+	logrus.Infof("Found %d long-running tests (will run first), %d remaining tests", len(longTests), len(remainingTests))
+
+	// Now split the remaining tests (non-long tests) into groups
+	primaryTests = remainingTests
+
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Suite:k8s]")
 	})
@@ -471,6 +557,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
+	logrus.Infof("Found %d long tests", len(longTests))
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d kube tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
@@ -480,9 +567,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
 
-	// If user specifies a count, duplicate the kube and openshift tests that many times.
+	// If user specifies a count, duplicate the tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
+		originalLong := longTests
 		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
@@ -493,6 +581,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
+			longTests = append(longTests, copyTests(originalLong)...)
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
@@ -503,7 +592,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(hpaTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(longTests) + len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(hpaTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -521,9 +610,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// TODO: will move to the monitor
 	pc.SetEvents([]string{upgradeEvent})
 
-	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
+	// Run long tests, kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
+		// Run long tests first with full parallelism
+		longTestsCopy := copyTests(longTests)
+		q.Execute(testCtx, longTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, longTestsCopy...)
+
 		kubeTestsCopy := copyTests(kubeTests)
 		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
 		tests = append(tests, kubeTestsCopy...)
