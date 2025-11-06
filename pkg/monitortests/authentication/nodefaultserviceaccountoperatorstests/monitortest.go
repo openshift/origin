@@ -30,26 +30,82 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 	return nil
 }
 
+var exceptions = []func(pod corev1.Pod) bool{
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "cluster-version-operator-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "downloads-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "etcd-guard-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "ingress-canary-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "kube-apiserver-guard-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "kube-controller-manager-guard-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "openshift-kube-scheduler-guard-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "monitoring-plugin-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "multus-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "networking-console-plugin-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "network-check-target-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "verify-all-openshiftcommunityoperators-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatmarketplace-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "verify-all-openshiftcertifiedoperators-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatoperators-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "version-")
+	},
+	func(pod corev1.Pod) bool {
+		return strings.HasPrefix(pod.Name, "must-gather-")
+	},
+	func(pod corev1.Pod) bool {
+		return pod.Namespace == "openshift-marketplace"
+	},
+}
+
 // generateDefaultSAFailures generates a list of failures where the pod in a list of pods
 // violated the default service account check.
 func generateDefaultSAFailures(podList []corev1.Pod) []string {
 	failures := make([]string, 0)
 	for _, pod := range podList {
-		podName := pod.Name
-		switch {
-		case strings.HasPrefix(podName, "cluster-version-operator-"), strings.HasPrefix(podName, "downloads-"),
-			strings.HasPrefix(podName, "etcd-guard-"), strings.HasPrefix(podName, "ingress-canary-"),
-			strings.HasPrefix(podName, "kube-apiserver-guard-"), strings.HasPrefix(podName, "kube-controller-manager-guard-"),
-			strings.HasPrefix(podName, "openshift-kube-scheduler-guard-"), strings.HasPrefix(podName, "monitoring-plugin-"),
-			strings.HasPrefix(podName, "multus-"), strings.HasPrefix(podName, "networking-console-plugin-"),
-			strings.HasPrefix(podName, "network-check-target-"), strings.HasPrefix(podName, "verify-all-openshiftcertifiedoperators-"),
-			strings.HasPrefix(podName, "verify-all-openshiftcommunityoperators-"), strings.HasPrefix(podName, "verify-all-openshiftredhatmarketplace-"):
-			continue
-		}
 		podSA := pod.Spec.ServiceAccountName
 		fmt.Printf("Service account for pod %s in namespace %s is %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
+			continue
+		}
+		hasException := false
+		for _, exception := range exceptions {
+			if exception(pod) {
+				hasException = true
+				break
+			}
+		}
+		if hasException {
 			continue
 		}
 		// otherwise, we need to flag the failure
@@ -70,10 +126,6 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 	}
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
-		// skip openshift-marketplace namespace for now - no actual pod name to report on
-		if ns.Name == "openshift-marketplace" {
-			continue
-		}
 		if !strings.HasPrefix(ns.Name, "openshift") && !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" {
 			continue
 		}
