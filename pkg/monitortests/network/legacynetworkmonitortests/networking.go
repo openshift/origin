@@ -182,15 +182,9 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		}
 
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
+		progressingOperatorName := getProgressingOperatorName(event, operatorsProgressing)
 		if deletionTime := getPodDeletionTime(eventsForPods[partialLocator], event.Locator); deletionTime == nil {
-			var progressingOperatorName string
-			for _, operatorProgressingInterval := range operatorsProgressing {
-				if event.From.After(operatorProgressingInterval.From) &&
-					event.To.Before(operatorProgressingInterval.To) {
-					progressingOperatorName = operatorProgressingInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey]
-					break
-				}
-			}
+			// Pod was never deleted
 			if len(progressingOperatorName) > 0 {
 				flakes = append(flakes, fmt.Sprintf(
 					"%v - never deleted - operator:%s was progressing which may cause pod sandbox creation errors - %v",
@@ -201,19 +195,28 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 					event.Locator.OldLocator(), event.Message.OldMessage()))
 			}
 		} else {
+			// Pod was deleted - check timing and operator status
 			timeBetweenDeleteAndFailure := event.From.Sub(*deletionTime)
-			switch {
-			case timeBetweenDeleteAndFailure < 1*time.Second:
-				// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
-			case timeBetweenDeleteAndFailure < 5*time.Second:
-				// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
-				flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
-			case deletionTime.Before(event.From):
-				// something went wrong.  More than five seconds after the pod was deleted, the CNI is trying to set up pod sandboxes and can't
-				failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
-			default:
-				// something went wrong.  deletion happened after we had a failure to create the pod sandbox
-				failures = append(failures, fmt.Sprintf("%v - deletion came AFTER sandbox failure - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+			if len(progressingOperatorName) > 0 {
+				// If an operator was progressing, treat as flake regardless of timing
+				flakes = append(flakes, fmt.Sprintf(
+					"%v - %0.2f seconds after deletion - operator:%s was progressing which may cause pod sandbox creation errors - %v",
+					event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), progressingOperatorName, event.Message.OldMessage()))
+			} else {
+				// No operator progressing, apply timing-based logic
+				switch {
+				case timeBetweenDeleteAndFailure < 1*time.Second:
+					// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
+				case timeBetweenDeleteAndFailure < 5*time.Second:
+					// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
+					flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
+				case deletionTime.Before(event.From):
+					// something went wrong.  More than five seconds after the pod was deleted, the CNI is trying to set up pod sandboxes and can't
+					failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
+				default:
+					// something went wrong.  deletion happened after we had a failure to create the pod sandbox
+					failures = append(failures, fmt.Sprintf("%v - deletion came AFTER sandbox failure - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+				}
 			}
 		}
 	}
@@ -316,6 +319,18 @@ func getPodDeletionTime(events monitorapi.Intervals, podLocator monitorapi.Locat
 		}
 	}
 	return nil
+}
+
+// getProgressingOperatorName checks if an event occurred during any operator's Progressing interval
+// and returns the name of the progressing operator, or empty string if none found.
+func getProgressingOperatorName(event monitorapi.Interval, operatorsProgressing monitorapi.Intervals) string {
+	for _, operatorProgressingInterval := range operatorsProgressing {
+		if event.From.After(operatorProgressingInterval.From) &&
+			event.To.Before(operatorProgressingInterval.To) {
+			return operatorProgressingInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey]
+		}
+	}
+	return ""
 }
 
 // bug is tracked here: https://bugzilla.redhat.com/show_bug.cgi?id=2057181
