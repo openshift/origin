@@ -106,6 +106,7 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 	junits := []*junitapi.JUnitTestCase{}
 	failure := ""
 	for _, pod := range podList {
+		failure = "" // reset failure valuex
 		podSA := pod.Spec.ServiceAccountName
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
