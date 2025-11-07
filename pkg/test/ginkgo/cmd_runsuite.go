@@ -443,19 +443,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[Suite:k8s]")
-	})
-
-	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+	storageTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
-	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-network]")
-	})
-
-	hpaTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+	hpaTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Feature:HPA]")
 	})
 
@@ -472,9 +464,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
-	logrus.Infof("Found %d kube tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
-	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
 	logrus.Infof("Found %d HPA tests", len(hpaTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
@@ -483,27 +473,23 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
-		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
-		originalNetworkK8s := networkK8sTests
 		originalHpa := hpaTests
 		originalNetwork := networkTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
-			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
-			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			hpaTests = append(hpaTests, copyTests(originalHpa)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(hpaTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(storageTests) + len(hpaTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -524,18 +510,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// Run kube, storage, openshift, and must-gather tests. If user specified a count of -1,
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
-		kubeTestsCopy := copyTests(kubeTests)
-		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
-		tests = append(tests, kubeTestsCopy...)
 
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
 		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
-
-		networkK8sTestsCopy := copyTests(networkK8sTests)
-		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
-		tests = append(tests, networkK8sTestsCopy...)
 
 		hpaTestsCopy := copyTests(hpaTests)
 		q.Execute(testCtx, hpaTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run HPA tests separately.
