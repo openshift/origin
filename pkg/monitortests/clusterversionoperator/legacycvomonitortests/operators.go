@@ -867,7 +867,7 @@ func updateCOWaiting(interval monitorapi.Interval, waiting map[string]monitorapi
 	if waiting == nil {
 		return
 	}
-	if interval.Source != monitorapi.SourceOperatorState ||
+	if interval.Source != monitorapi.SourceVersionState ||
 		interval.Locator.Type != monitorapi.LocatorTypeClusterVersion ||
 		interval.Locator.Keys[monitorapi.LocatorClusterVersionKey] != "version" {
 		return

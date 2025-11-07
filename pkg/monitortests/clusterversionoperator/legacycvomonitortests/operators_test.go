@@ -230,14 +230,13 @@ func Test_updateCOWaiting(t *testing.T) {
 	now := time.Now()
 	next := 3 * time.Hour
 	interval := func(m string, start time.Time, d time.Duration) monitorapi.Interval {
-		return monitorapi.NewInterval(monitorapi.SourceOperatorState, monitorapi.Warning).
+		return monitorapi.NewInterval("foo", monitorapi.Warning).
 			Locator(monitorapi.NewLocator().ClusterVersion(&configv1.ClusterVersion{
-				ObjectMeta: metav1.ObjectMeta{Name: "version"}})).
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"}})).
 			Message(monitorapi.NewMessage().Reason("reason").
 				HumanMessage(m).
 				WithAnnotation(monitorapi.AnnotationCondition, string(configv1.OperatorProgressing)).
 				WithAnnotation(monitorapi.AnnotationStatus, string(configv1.ConditionTrue))).
-			Display().
 			Build(start, start.Add(d))
 	}
 
@@ -277,14 +276,13 @@ func Test_updateCOWaiting(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		i := monitorapi.NewInterval(monitorapi.SourceOperatorState, monitorapi.Warning).
+		i := monitorapi.NewInterval(monitorapi.SourceVersionState, monitorapi.Warning).
 			Locator(monitorapi.NewLocator().ClusterVersion(&configv1.ClusterVersion{
 				ObjectMeta: metav1.ObjectMeta{Name: "version"}})).
 			Message(monitorapi.NewMessage().Reason("reason").
 				HumanMessage(tt.message).
 				WithAnnotation(monitorapi.AnnotationCondition, string(configv1.OperatorProgressing)).
 				WithAnnotation(monitorapi.AnnotationStatus, string(configv1.ConditionTrue))).
-			Display().
 			Build(now.Add(next), now.Add(next+tt.d))
 		t.Run(tt.name, func(t *testing.T) {
 			updateCOWaiting(i, tt.waiting)

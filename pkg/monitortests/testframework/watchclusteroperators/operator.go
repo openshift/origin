@@ -176,7 +176,11 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 			for i := range cv.Status.Conditions {
 				s := &cv.Status.Conditions[i]
 				previous := findOperatorStatusCondition(oldCV.Status.Conditions, s.Type)
-				if previous == nil || s.Status != previous.Status {
+				if previous == nil || s.Status != previous.Status ||
+					// Expose all messages for Progressing=True and Failing=Unknown
+					// There are tests replying on them
+					(s.Type == configv1.OperatorProgressing && s.Status == configv1.ConditionTrue && s.Message != previous.Message) ||
+					(s.Type == "Failing" && s.Status == configv1.ConditionUnknown && s.Message != previous.Message) {
 					level := monitorapi.Warning
 					if s.Type == configv1.OperatorDegraded && s.Status == configv1.ConditionTrue {
 						level = monitorapi.Error
