@@ -25,6 +25,13 @@ var _ = g.Describe("[sig-node] Node sizing", func() {
 	oc := exutil.NewCLI("node-sizing")
 
 	g.It("should have NODE_SIZING_ENABLED=true in /etc/node-sizing-enabled.env", func(ctx context.Context) {
+		// Skip on MicroShift since it doesn't have the Machine Config Operator
+		isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroshift {
+			g.Skip("Not supported on MicroShift")
+		}
+
 		g.By("Getting a worker node to test")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/worker",
