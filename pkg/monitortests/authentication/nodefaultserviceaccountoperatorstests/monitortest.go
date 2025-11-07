@@ -108,8 +108,12 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 	for _, pod := range podList {
 		failure = "" // reset failure valuex
 		podSA := pod.Spec.ServiceAccountName
+		// generate tests for given namespace/pod
+		testName := fmt.Sprintf("[sig-auth] pod '%s/%s' must not use the default service account", pod.Namespace, pod.Name)
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
+			// test passes.
+			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
 			continue
 		}
 		hasException := false
@@ -119,8 +123,6 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 				break
 			}
 		}
-		// generate tests for given namespace/pod
-		testName := fmt.Sprintf("[sig-auth] pod '%s/%s' must not use the default service account", pod.Namespace, pod.Name)
 		if hasException {
 			// flag exception as flaky failure
 			failure = fmt.Sprintf("[flake] service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace)
@@ -141,11 +143,6 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 				SystemOut:     failure,
 				FailureOutput: &junitapi.FailureOutput{Output: failure},
 			})
-		}
-		if failure == "" {
-			// test passes.
-			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
-			continue
 		}
 	}
 	return junits
@@ -172,14 +169,8 @@ func (n *noDefaultServiceAccountChecker) CollectData(ctx context.Context, storag
 		if err != nil {
 			return nil, nil, err
 		}
-
 		// use helper method to generate default service account failures
-		junits = generateDefaultSAFailures(pods.Items)
-		if len(junits) == 0 {
-			testName := fmt.Sprintf("[sig-auth] all operators in ns/%s must not use the 'default' service account", ns.Name)
-			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
-			continue
-		}
+		junits = append(junits, generateDefaultSAFailures(pods.Items)...)
 	}
 	return nil, junits, nil
 }
