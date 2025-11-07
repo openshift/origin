@@ -32,55 +32,68 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 
 var exceptions = []func(pod corev1.Pod) bool{
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "cluster-version-operator-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-version/cluster-version-operator-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "downloads-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-console/downloads-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "etcd-guard-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-etcd/etcd-guard-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "ingress-canary-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-ingress-canary/ingress-canary-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "kube-apiserver-guard-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-kube-apiserver/kube-apiserver-guard-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "kube-controller-manager-guard-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-kube-controller-manager/kube-controller-manager-guard-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "openshift-kube-scheduler-guard-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-kube-scheduler/openshift-kube-scheduler-guard-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "monitoring-plugin-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-monitoring/monitoring-plugin-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "multus-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-multus/multus-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "networking-console-plugin-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-network-console/networking-console-plugin-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "network-check-target-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-network-diagnostics/network-check-target-")
+	},
+	// func(pod corev1.Pod) bool {
+	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftcommunityoperators-")
+	// },
+	// func(pod corev1.Pod) bool {
+	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatmarketplace-")
+	// },
+	// func(pod corev1.Pod) bool {
+	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftcertifiedoperators-")
+	// },
+	// func(pod corev1.Pod) bool {
+	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatoperators-")
+	// },
+	func(pod corev1.Pod) bool {
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-version/version-")
 	},
 	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "verify-all-openshiftcommunityoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatmarketplace-")
-	},
-	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "verify-all-openshiftcertifiedoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "version-")
-	},
-	func(pod corev1.Pod) bool {
-		return strings.HasPrefix(pod.Name, "must-gather-")
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "openshift-must-gather/must-gather-")
 	},
 	func(pod corev1.Pod) bool {
 		return pod.Namespace == "openshift-marketplace"
@@ -91,7 +104,7 @@ var exceptions = []func(pod corev1.Pod) bool{
 // violated the default service account check.
 func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 	junits := []*junitapi.JUnitTestCase{}
-	failures := make([]string, 0)
+	failure := ""
 	for _, pod := range podList {
 		podSA := pod.Spec.ServiceAccountName
 		// if the service account name is not default, we can exit for that iteration
@@ -105,30 +118,33 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 				break
 			}
 		}
-		if hasException {
-			// flag exception as flaky failure
-			failures = append(failures, fmt.Sprintf("[flake] service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace))
-			continue
-		}
-		// otherwise, we need to flag the failure
-		failures = append(failures, fmt.Sprintf("service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace))
 		// generate tests for given namespace/pod
 		testName := fmt.Sprintf("[sig-auth] pod '%s/%s' must not use the default service account", pod.Namespace, pod.Name)
-		if len(failures) == 0 {
-			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
-			continue
-		}
-		failureMsg := strings.Join(failures, "\n")
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name:          testName,
-			SystemOut:     failureMsg,
-			FailureOutput: &junitapi.FailureOutput{Output: failureMsg},
-		})
-		if strings.Contains(failureMsg, "[flake]") {
+		if hasException {
+			// flag exception as flaky failure
+			failure = fmt.Sprintf("[flake] service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace)
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:          testName,
+				SystemOut:     failure,
+				FailureOutput: &junitapi.FailureOutput{Output: failure},
+			})
 			// introduce flake
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name: testName,
 			})
+		} else {
+			// otherwise, we need to flag the failure
+			failure = fmt.Sprintf("service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace)
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:          testName,
+				SystemOut:     failure,
+				FailureOutput: &junitapi.FailureOutput{Output: failure},
+			})
+		}
+		if failure == "" {
+			// test passes.
+			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
+			continue
 		}
 	}
 	return junits
