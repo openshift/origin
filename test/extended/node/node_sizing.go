@@ -8,9 +8,9 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -321,3 +321,52 @@ var _ = g.Describe("[sig-node] Node sizing", func() {
 		framework.Logf("Successfully verified NODE_SIZING_ENABLED=true on node %s after applying KubeletConfig with autoSizingReserved=true", nodeName)
 	})
 })
+
+// waitForMCPToBeReady waits for a MachineConfigPool to be ready
+func waitForMCPToBeReady(ctx context.Context, mcClient *machineconfigclient.Clientset, poolName string, timeout time.Duration) error {
+	return wait.PollImmediate(10*time.Second, timeout, func() (bool, error) {
+		mcp, err := mcClient.MachineconfigurationV1().MachineConfigPools().Get(ctx, poolName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		// Check if all conditions are met for a ready state
+		updating := false
+		degraded := false
+		ready := false
+
+		for _, condition := range mcp.Status.Conditions {
+			switch condition.Type {
+			case "Updating":
+				if condition.Status == corev1.ConditionTrue {
+					updating = true
+				}
+			case "Degraded":
+				if condition.Status == corev1.ConditionTrue {
+					degraded = true
+				}
+			case "Updated":
+				if condition.Status == corev1.ConditionTrue {
+					ready = true
+				}
+			}
+		}
+
+		if degraded {
+			return false, fmt.Errorf("MachineConfigPool %s is degraded", poolName)
+		}
+
+		// Ready when not updating and updated condition is true
+		isReady := !updating && ready && mcp.Status.ReadyMachineCount == mcp.Status.MachineCount
+
+		if isReady {
+			framework.Logf("MachineConfigPool %s is ready: %d/%d machines ready",
+				poolName, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+		} else {
+			framework.Logf("MachineConfigPool %s not ready yet: updating=%v, ready=%v, machines=%d/%d",
+				poolName, updating, ready, mcp.Status.ReadyMachineCount, mcp.Status.MachineCount)
+		}
+
+		return isReady, nil
+	})
+}
