@@ -27,7 +27,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 	oc := exutil.NewCLI("node-sizing")
 
-	g.It("should have NODE_SIZING_ENABLED=false in /etc/node-sizing-enabled.env", func(ctx context.Context) {
+	g.It("should have NODE_SIZING_ENABLED=false by default and NODE_SIZING_ENABLED=true when KubeletConfig with autoSizingReserved=true is applied", func(ctx context.Context) {
 		// Skip on MicroShift since it doesn't have the Machine Config Operator
 		isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -35,6 +35,12 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			g.Skip("Not supported on MicroShift")
 		}
 
+		// Skip test on hypershift platforms
+		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+			g.Skip("KubeletConfig is not supported on hypershift. Skipping test.")
+		}
+
+		// First, verify the default state (NODE_SIZING_ENABLED=false)
 		g.By("Getting a worker node to test")
 		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/worker",
@@ -51,7 +57,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		err = oc.AsAdmin().Run("label").Args("namespace", namespace, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label namespace with privileged pod security")
 
-		g.By("Creating a privileged pod with /etc mounted")
+		g.By("Creating a privileged pod with /etc mounted to verify default state")
 		podName := "node-sizing-test"
 
 		pod := &corev1.Pod{
@@ -96,15 +102,6 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			},
 		}
 
-		// Clean up pod on test completion
-		defer func() {
-			g.By("Cleaning up test pod")
-			deleteErr := oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
-			if deleteErr != nil {
-				framework.Logf("Failed to delete pod %s: %v", podName, deleteErr)
-			}
-		}()
-
 		_, err = oc.AdminKubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create privileged pod")
 
@@ -127,25 +124,17 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		framework.Logf("Contents of /etc/node-sizing-enabled.env:\n%s", output)
 
-		g.By("Verifying NODE_SIZING_ENABLED=false is set in the file")
+		g.By("Verifying NODE_SIZING_ENABLED=false is set in the file by default")
 		o.Expect(strings.TrimSpace(output)).To(o.ContainSubstring("NODE_SIZING_ENABLED=false"),
-			"File should contain NODE_SIZING_ENABLED=false")
+			"File should contain NODE_SIZING_ENABLED=false by default")
 
 		framework.Logf("Successfully verified NODE_SIZING_ENABLED=false on node %s", nodeName)
-	})
 
-	g.It("should have NODE_SIZING_ENABLED=true when KubeletConfig with autoSizingReserved=true is applied", func(ctx context.Context) {
-		// Skip on MicroShift since it doesn't have the Machine Config Operator
-		isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroshift {
-			g.Skip("Not supported on MicroShift")
-		}
+		g.By("Deleting the test pod before applying KubeletConfig")
+		err = oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete test pod")
 
-		// Skip test on hypershift platforms
-		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
-			g.Skip("KubeletConfig is not supported on hypershift. Skipping test.")
-		}
+		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=true
 
 		// Create machine config client
 		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
@@ -222,26 +211,20 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		err = waitForMCPToBeReady(ctx, mcClient, "worker", 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), "Worker MCP should become ready with new configuration")
 
-		g.By("Getting a worker node to test")
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		g.By("Getting a worker node to test after KubeletConfig is applied")
+		nodes, err = oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{
 			LabelSelector: "node-role.kubernetes.io/worker",
 		})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to list worker nodes")
 		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0), "Should have at least one worker node")
 
-		nodeName := nodes.Items[0].Name
+		nodeName = nodes.Items[0].Name
 		framework.Logf("Testing on node: %s", nodeName)
 
-		namespace := oc.Namespace()
+		g.By("Creating a second privileged pod with /etc mounted to verify KubeletConfig was applied")
+		podName = "node-sizing-autosizing-test"
 
-		g.By("Setting privileged pod security labels on namespace")
-		err = oc.AsAdmin().Run("label").Args("namespace", namespace, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
-		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label namespace with privileged pod security")
-
-		g.By("Creating a privileged pod with /etc mounted")
-		podName := "node-sizing-autosizing-test"
-
-		pod := &corev1.Pod{
+		pod = &corev1.Pod{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
 				Kind:       "Pod",
@@ -304,15 +287,15 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			return p.Status.Phase == corev1.PodRunning
 		}, "2m", "5s").Should(o.BeTrue(), "Pod should be running")
 
-		g.By("Verifying /etc/node-sizing-enabled.env file exists")
-		output, err := oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "test", "-f", "/host/etc/node-sizing-enabled.env").Output()
+		g.By("Verifying /etc/node-sizing-enabled.env file exists after KubeletConfig is applied")
+		output, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "test", "-f", "/host/etc/node-sizing-enabled.env").Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("File /etc/node-sizing-enabled.env should exist on node %s. Output: %s", nodeName, output))
 
-		g.By("Reading /etc/node-sizing-enabled.env file contents")
+		g.By("Reading /etc/node-sizing-enabled.env file contents after KubeletConfig is applied")
 		output, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "cat", "/host/etc/node-sizing-enabled.env").Output()
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /etc/node-sizing-enabled.env")
 
-		framework.Logf("Contents of /etc/node-sizing-enabled.env:\n%s", output)
+		framework.Logf("Contents of /etc/node-sizing-enabled.env after applying KubeletConfig:\n%s", output)
 
 		g.By("Verifying NODE_SIZING_ENABLED=true is set in the file")
 		o.Expect(strings.TrimSpace(output)).To(o.ContainSubstring("NODE_SIZING_ENABLED=true"),
