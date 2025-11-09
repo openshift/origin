@@ -1069,12 +1069,8 @@ func getLearnedBgpRoutesByNode(oc *exutil.CLI, nodeName, network string) (map[st
 	cmdv4 := "ip route show proto bgp"
 	cmdv6 := "ip -6 route show proto bgp"
 	if !isDefault {
-		table, err := adminExecInPod(oc, frrNamespace, podName, "frr", "ip -d link show dev "+network+" | grep -oP 'table \\d+' | grep -oP '\\d+'")
-		if err != nil {
-			return nil, nil, err
-		}
-		cmdv4 += " table " + table
-		cmdv6 += " table " + table
+		cmdv4 += " vrf " + network
+		cmdv6 += " vrf " + network
 	}
 
 	out, err = adminExecInPod(oc, frrNamespace, podName, "frr", cmdv4)
