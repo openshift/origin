@@ -24,34 +24,56 @@ type TestFunc func(ctx context.Context, test *testCase)
 type conflictTracker struct {
 	mu               sync.Mutex
 	runningConflicts map[string]bool // tracks which conflict groups are currently running
+	activeTaints     map[string]int  // tracks how many tests are currently applying each taint
 }
 
 func newConflictTracker() *conflictTracker {
 	return &conflictTracker{
 		runningConflicts: make(map[string]bool),
+		activeTaints:     make(map[string]int),
 	}
 }
 
 // decrementAndCloseIfDone decrements the pending test counter and closes the channel if all tests are done
 func decrementAndCloseIfDone(pendingTestCount *int64, remainingTests chan *testCase) {
 	if atomic.AddInt64(pendingTestCount, -1) == 0 {
+		// Use defer and recover to handle potential double-close
+		defer func() {
+			if r := recover(); r != nil {
+				// Channel already closed, ignore
+			}
+		}()
 		close(remainingTests)
 	}
 }
 
+// canTolerateTaints checks if a test can tolerate all currently active taints
+func (ct *conflictTracker) canTolerateTaints(test *testCase) bool {
+	// Check if test tolerates all active taints
+	for taint, count := range ct.activeTaints {
+		// Skip taints with zero count (should be cleaned up but being defensive)
+		if count <= 0 {
+			continue
+		}
+
+		tolerated := false
+		for _, toleration := range test.toleration {
+			if toleration == taint {
+				tolerated = true
+				break
+			}
+		}
+		if !tolerated {
+			return false // Test cannot tolerate this active taint
+		}
+	}
+	return true
+}
+
 // tryRunTest atomically checks if a test can run and executes it synchronously if possible
-// Returns true if the test was executed, false if there are conflicts
+// Returns true if the test was executed, false if there are conflicts or taint/toleration issues
 // The function blocks until the test completes before returning
 func (ct *conflictTracker) tryRunTest(ctx context.Context, test *testCase, testSuiteRunner testSuiteRunner, pendingTestCount *int64, remainingTests chan *testCase) bool {
-	// For tests with no isolation conflicts, run directly
-	if len(test.isolation.Conflict) == 0 {
-		testSuiteRunner.RunOneTest(ctx, test)
-		// Decrement pending counter when test completes
-		decrementAndCloseIfDone(pendingTestCount, remainingTests)
-		return true
-	}
-
-	// For isolated tests, check conflicts atomically
 	ct.mu.Lock()
 
 	// Check if any of the test's conflict groups are currently running
@@ -62,30 +84,50 @@ func (ct *conflictTracker) tryRunTest(ctx context.Context, test *testCase, testS
 		}
 	}
 
-	// No conflicts found, mark all conflict groups as running
+	// Check if test can tolerate all currently active taints
+	if !ct.canTolerateTaints(test) {
+		ct.mu.Unlock()
+		return false // Cannot run due to taint/toleration mismatch
+	}
+
+	// All checks passed - mark conflicts as running and activate taints
 	for _, conflict := range test.isolation.Conflict {
 		ct.runningConflicts[conflict] = true
 	}
 
+	for _, taint := range test.taint {
+		ct.activeTaints[taint]++
+	}
+
+	// Release lock before running test (since test execution can take a while)
 	ct.mu.Unlock()
 
-	// Run the test synchronously with conflict cleanup
+	// Run the test synchronously
 	testSuiteRunner.RunOneTest(ctx, test)
 
-	// Clean up conflicts and decrement counter
+	// Clean up conflicts, taints, and decrement counter
 	ct.markTestCompleted(test)
 	decrementAndCloseIfDone(pendingTestCount, remainingTests)
 
 	return true
 }
 
-// markTestCompleted marks all conflict groups of a test as no longer running
+// markTestCompleted marks all conflict groups and taints of a test as no longer running/active
 func (ct *conflictTracker) markTestCompleted(test *testCase) {
 	ct.mu.Lock()
 	defer ct.mu.Unlock()
 
+	// Clean up conflicts
 	for _, conflict := range test.isolation.Conflict {
 		delete(ct.runningConflicts, conflict)
+	}
+
+	// Clean up taints with reference counting
+	for _, taint := range test.taint {
+		ct.activeTaints[taint]--
+		if ct.activeTaints[taint] <= 0 {
+			delete(ct.activeTaints, taint)
+		}
 	}
 }
 

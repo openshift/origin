@@ -452,3 +452,455 @@ func TestConflictTracker_ContextCancellation(t *testing.T) {
 		t.Error("Test should have been attempted even with cancelled context")
 	}
 }
+
+// Test basic taint and toleration - tests without toleration cannot run with active taints
+func TestConflictTracker_TaintTolerationBasic(t *testing.T) {
+	conflictTracker := newConflictTracker()
+	runner := newTrackingTestRunner()
+
+	// Test with taint (no conflicts)
+	testWithTaint := &testCase{
+		name:       "test-with-taint",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{"gpu"},
+		toleration: []string{},
+	}
+
+	// Test without toleration (should be blocked)
+	testWithoutToleration := &testCase{
+		name:       "test-without-toleration",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{},
+	}
+
+	// Test with toleration (should be allowed)
+	testWithToleration := &testCase{
+		name:       "test-with-toleration",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{"gpu"},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 3
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	var success1, success2, success3 bool
+
+	// Start test with taint
+	go func() {
+		defer wg.Done()
+		success1 = conflictTracker.tryRunTest(ctx, testWithTaint, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Test without toleration should be blocked
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = conflictTracker.tryRunTest(ctx, testWithoutToleration, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Test with toleration should succeed
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success3 = conflictTracker.tryRunTest(ctx, testWithToleration, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	if !success1 {
+		t.Error("Test with taint should have been able to run")
+	}
+
+	if success2 {
+		t.Error("Test without toleration should have been blocked by taint")
+	}
+
+	if !success3 {
+		t.Error("Test with toleration should have been able to run")
+	}
+}
+
+// Test multiple taints and tolerations
+func TestConflictTracker_MultipleTaintsTolerations(t *testing.T) {
+	conflictTracker := newConflictTracker()
+	runner := newTrackingTestRunner()
+
+	// Test with multiple taints
+	testWithMultipleTaints := &testCase{
+		name:       "test-multiple-taints",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{"gpu", "exclusive"},
+		toleration: []string{},
+	}
+
+	// Test with partial toleration (should be blocked)
+	testPartialToleration := &testCase{
+		name:       "test-partial-toleration",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{"gpu"}, // Missing "exclusive" toleration
+	}
+
+	// Test with full toleration (should succeed)
+	testFullToleration := &testCase{
+		name:       "test-full-toleration",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{"gpu", "exclusive"},
+	}
+
+	// Test with extra toleration (should succeed)
+	testExtraToleration := &testCase{
+		name:       "test-extra-toleration",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{"gpu", "exclusive", "extra"},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 4
+
+	var wg sync.WaitGroup
+	wg.Add(4)
+
+	var success1, success2, success3, success4 bool
+
+	// Start test with multiple taints
+	go func() {
+		defer wg.Done()
+		success1 = conflictTracker.tryRunTest(ctx, testWithMultipleTaints, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Test with partial toleration should be blocked
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = conflictTracker.tryRunTest(ctx, testPartialToleration, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Test with full toleration should succeed
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success3 = conflictTracker.tryRunTest(ctx, testFullToleration, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Test with extra toleration should succeed
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success4 = conflictTracker.tryRunTest(ctx, testExtraToleration, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	if !success1 {
+		t.Error("Test with multiple taints should have been able to run")
+	}
+
+	if success2 {
+		t.Error("Test with partial toleration should have been blocked")
+	}
+
+	if !success3 {
+		t.Error("Test with full toleration should have been able to run")
+	}
+
+	if !success4 {
+		t.Error("Test with extra toleration should have been able to run")
+	}
+}
+
+// Test taint cleanup after test completion
+func TestConflictTracker_TaintCleanup(t *testing.T) {
+	conflictTracker := newConflictTracker()
+	runner := newTrackingTestRunner()
+
+	testWithTaint := &testCase{
+		name:       "test-with-taint",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{"gpu"},
+		toleration: []string{},
+	}
+
+	testWithoutToleration := &testCase{
+		name:       "test-without-toleration",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 2
+
+	// First test with taint should run and complete
+	success1 := conflictTracker.tryRunTest(ctx, testWithTaint, runner, &pendingTestCount, remainingTests)
+	if !success1 {
+		t.Error("Test with taint should have been able to run")
+	}
+
+	// After first test completes, taint should be cleaned up and second test should run
+	success2 := conflictTracker.tryRunTest(ctx, testWithoutToleration, runner, &pendingTestCount, remainingTests)
+	if !success2 {
+		t.Error("Test without toleration should be able to run after taint cleanup")
+	}
+
+	// Verify both tests completed
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 2 {
+		t.Errorf("Expected 2 tests to complete, got %d", len(testsRun))
+	}
+}
+
+// Test combined conflicts and taint/toleration
+func TestConflictTracker_ConflictsAndTaints(t *testing.T) {
+	conflictTracker := newConflictTracker()
+	runner := newTrackingTestRunner()
+
+	testWithBoth := &testCase{
+		name: "test-with-both",
+		isolation: extensiontests.Isolation{
+			Conflict: []string{"database"},
+		},
+		taint:      []string{"gpu"},
+		toleration: []string{},
+	}
+
+	// This test conflicts with database but has GPU toleration
+	testConflictingTolerated := &testCase{
+		name: "test-conflicting-tolerated",
+		isolation: extensiontests.Isolation{
+			Conflict: []string{"database"}, // Conflicts with first test
+		},
+		taint:      []string{},
+		toleration: []string{"gpu"}, // Can tolerate first test's taint
+	}
+
+	// This test doesn't conflict but lacks toleration
+	testNonConflictingIntolerated := &testCase{
+		name: "test-non-conflicting-intolerated",
+		isolation: extensiontests.Isolation{
+			Conflict: []string{"network"}, // Different conflict
+		},
+		taint:      []string{},
+		toleration: []string{}, // Cannot tolerate first test's taint
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 3
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	var success1, success2, success3 bool
+
+	// Start first test
+	go func() {
+		defer wg.Done()
+		success1 = conflictTracker.tryRunTest(ctx, testWithBoth, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Second test should be blocked by conflict (even though it has toleration)
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = conflictTracker.tryRunTest(ctx, testConflictingTolerated, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Third test should be blocked by taint (even though it doesn't conflict)
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success3 = conflictTracker.tryRunTest(ctx, testNonConflictingIntolerated, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	if !success1 {
+		t.Error("First test should have been able to run")
+	}
+
+	if success2 {
+		t.Error("Second test should have been blocked by conflict (despite having toleration)")
+	}
+
+	if success3 {
+		t.Error("Third test should have been blocked by taint (despite no conflict)")
+	}
+}
+
+// Test no taints - all tests should run freely
+func TestConflictTracker_NoTaints(t *testing.T) {
+	conflictTracker := newConflictTracker()
+	runner := newTrackingTestRunner()
+
+	// Tests with no taints or tolerations
+	test1 := &testCase{name: "test1", isolation: extensiontests.Isolation{}, taint: []string{}, toleration: []string{}}
+	test2 := &testCase{name: "test2", isolation: extensiontests.Isolation{}, taint: []string{}, toleration: []string{}}
+	test3 := &testCase{name: "test3", isolation: extensiontests.Isolation{}, taint: []string{}, toleration: []string{}}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 3
+
+	// All tests should be able to run
+	success1 := conflictTracker.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
+	success2 := conflictTracker.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
+	success3 := conflictTracker.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
+
+	if !success1 || !success2 || !success3 {
+		t.Error("All tests without taints should be able to run")
+	}
+
+	// Check all tests completed
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 3 {
+		t.Errorf("Expected 3 tests to complete, got %d", len(testsRun))
+	}
+}
+
+// blockingTestRunner is a test runner that can block tests mid-execution for testing
+type blockingTestRunner struct {
+	mu        sync.Mutex
+	testsRun  []string
+	blockChan chan struct{} // Used to control when tests complete
+}
+
+// Implement testSuiteRunner interface
+func (r *blockingTestRunner) RunOneTest(ctx context.Context, test *testCase) {
+	// Add to completed list
+	r.mu.Lock()
+	r.testsRun = append(r.testsRun, test.name)
+	r.mu.Unlock()
+
+	// Block until we signal completion (except for the intolerant test)
+	if test.name != "test-intolerant" {
+		<-r.blockChan
+	}
+}
+
+// Test taint reference counting - multiple tests with same taint
+func TestConflictTracker_TaintReferenceCounting(t *testing.T) {
+	conflictTracker := newConflictTracker()
+
+	runner := newTrackingTestRunner()
+
+	// Two tests both applying the same taint "gpu"
+	testWithTaint1 := &testCase{
+		name:       "test-with-taint-1",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{"gpu"},
+		toleration: []string{"gpu"}, // Can tolerate its own taint
+	}
+
+	testWithTaint2 := &testCase{
+		name:       "test-with-taint-2",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{"gpu"},
+		toleration: []string{"gpu"}, // Can tolerate its own taint
+	}
+
+	// Test that cannot tolerate gpu
+	testIntolerant := &testCase{
+		name:       "test-intolerant",
+		isolation:  extensiontests.Isolation{},
+		taint:      []string{},
+		toleration: []string{}, // Cannot tolerate gpu taint
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 3
+
+	// Manually test the taint reference counting behavior
+
+	// 1. Start first test with taint - should succeed
+	conflictTracker.mu.Lock()
+	// Manually mark taint as active
+	conflictTracker.activeTaints["gpu"]++
+	conflictTracker.mu.Unlock()
+
+	// 2. Start second test with same taint - should succeed (reference count = 2)
+	conflictTracker.mu.Lock()
+	conflictTracker.activeTaints["gpu"]++
+	conflictTracker.mu.Unlock()
+
+	// 3. Verify reference count is 2
+	conflictTracker.mu.Lock()
+	gpuCount := conflictTracker.activeTaints["gpu"]
+	conflictTracker.mu.Unlock()
+
+	if gpuCount != 2 {
+		t.Errorf("Expected GPU taint reference count to be 2, got %d", gpuCount)
+	}
+
+	// 4. Try to run intolerant test - should be blocked
+	canRun := conflictTracker.canTolerateTaints(testIntolerant)
+	if canRun {
+		t.Error("Intolerant test should be blocked by active GPU taint")
+	}
+
+	// 5. Complete first test (decrement count to 1)
+	conflictTracker.mu.Lock()
+	conflictTracker.activeTaints["gpu"]--
+	if conflictTracker.activeTaints["gpu"] <= 0 {
+		delete(conflictTracker.activeTaints, "gpu")
+	}
+	conflictTracker.mu.Unlock()
+
+	// 6. Verify taint is still active (reference count = 1)
+	conflictTracker.mu.Lock()
+	gpuCount = conflictTracker.activeTaints["gpu"]
+	conflictTracker.mu.Unlock()
+
+	if gpuCount != 1 {
+		t.Errorf("Expected GPU taint reference count to be 1 after first test completion, got %d", gpuCount)
+	}
+
+	// 7. Intolerant test should still be blocked
+	canRun = conflictTracker.canTolerateTaints(testIntolerant)
+	if canRun {
+		t.Error("Intolerant test should still be blocked (second test still running)")
+	}
+
+	// 8. Complete second test (decrement count to 0, remove taint)
+	conflictTracker.mu.Lock()
+	conflictTracker.activeTaints["gpu"]--
+	if conflictTracker.activeTaints["gpu"] <= 0 {
+		delete(conflictTracker.activeTaints, "gpu")
+	}
+	conflictTracker.mu.Unlock()
+
+	// 9. Verify taint is completely removed
+	conflictTracker.mu.Lock()
+	_, exists := conflictTracker.activeTaints["gpu"]
+	conflictTracker.mu.Unlock()
+
+	if exists {
+		t.Error("GPU taint should be completely removed after all tests complete")
+	}
+
+	// 10. Now intolerant test should be able to run
+	canRun = conflictTracker.canTolerateTaints(testIntolerant)
+	if !canRun {
+		t.Error("Intolerant test should be able to run after all taints are cleaned up")
+	}
+
+	// Test the full tryRunTest with actual execution
+	success1 := conflictTracker.tryRunTest(ctx, testWithTaint1, runner, &pendingTestCount, remainingTests)
+	success2 := conflictTracker.tryRunTest(ctx, testWithTaint2, runner, &pendingTestCount, remainingTests)
+	success3 := conflictTracker.tryRunTest(ctx, testIntolerant, runner, &pendingTestCount, remainingTests)
+
+	if !success1 || !success2 || !success3 {
+		t.Error("All tests should succeed when run sequentially (each completes before next starts)")
+	}
+}

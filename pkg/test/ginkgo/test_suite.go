@@ -65,6 +65,11 @@ type testCase struct {
 	// isolation defines conflict groups and mode for test isolation
 	isolation extensiontests.Isolation
 
+	// taint defines taints this test applies to the environment when running
+	taint []string
+	// toleration defines which taints this test can tolerate
+	toleration []string
+
 	start           time.Time
 	end             time.Time
 	duration        time.Duration
@@ -90,7 +95,9 @@ func (t *testCase) Retry() *testCase {
 		locations:     t.locations,
 		testExclusion: t.testExclusion,
 		testTimeout:   t.testTimeout,
-		isolation:     t.isolation, // Copy isolation struct
+		isolation:     t.isolation,  // Copy isolation struct
+		taint:         t.taint,      // Copy taint slice
+		toleration:    t.toleration, // Copy toleration slice
 
 		previous: t,
 	}
