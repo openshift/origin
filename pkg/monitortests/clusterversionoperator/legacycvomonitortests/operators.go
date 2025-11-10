@@ -663,6 +663,10 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			// CO showed up in CVO Progressing message but the total duration is less than two minutes
 			return fmt.Sprintf("%s completing its update within less than two minutes: %s", co, d.String())
 		}
+		switch co {
+		case "cloud-controller-manager":
+			return "https://issues.redhat.com/browse/OCPBUGS-64852"
+		}
 		return ""
 	}
 
