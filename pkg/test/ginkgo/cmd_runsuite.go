@@ -451,6 +451,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-cli]")
 	})
 
+	appsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-apps]")
+	})
+
 	nodeTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-node]")
 	})
@@ -463,13 +467,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-builds]")
 	})
 
-	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+	// separate from cliTests
+	mustGatherTests, cliTests := splitTests(cliTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d cli tests", len(cliTests))
+	logrus.Infof("Found %d apps tests", len(appsTests))
 	logrus.Infof("Found %d node tests", len(nodeTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
@@ -481,6 +487,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
 		originalCLI := cliTests
+		originalApps := appsTests
 		originalNode := nodeTests
 		originalNetwork := networkTests
 		originalBuilds := buildsTests
@@ -490,13 +497,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			cliTests = append(cliTests, copyTests(originalCLI)...)
+			appsTests = append(appsTests, copyTests(originalApps)...)
 			nodeTests = append(nodeTests, copyTests(originalNode)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(storageTests) + len(cliTests) + len(nodeTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(storageTests) + len(cliTests) + len(appsTests) + len(nodeTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -526,6 +534,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		cliTestsCopy := copyTests(cliTests)
 		q.Execute(testCtx, cliTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // cli tests only run at half the parallelism, so we can avoid high cpu problems.
 		tests = append(tests, cliTestsCopy...)
+
+		appsTestsCopy := copyTests(appsTests)
+		q.Execute(testCtx, appsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // apps tests only run at half the parallelism, so we can avoid high cpu problems.
+		tests = append(tests, appsTestsCopy...)
 
 		nodeTestsCopy := copyTests(nodeTests)
 		q.Execute(testCtx, nodeTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run node tests separately at half the parallelism, so we can avoid high cpu problems.
