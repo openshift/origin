@@ -75,18 +75,22 @@ var exceptions = []func(pod corev1.Pod) bool{
 		podNameNSCombo := pod.Namespace + "/" + pod.Name
 		return strings.HasPrefix(podNameNSCombo, "openshift-network-diagnostics/network-check-target-")
 	},
-	// func(pod corev1.Pod) bool {
-	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftcommunityoperators-")
-	// },
-	// func(pod corev1.Pod) bool {
-	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatmarketplace-")
-	// },
-	// func(pod corev1.Pod) bool {
-	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftcertifiedoperators-")
-	// },
-	// func(pod corev1.Pod) bool {
-	// 	return strings.HasPrefix(pod.Name, "verify-all-openshiftredhatoperators-")
-	// },
+	func(pod corev1.Pod) bool {
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftcommunityoperators-")
+	},
+	func(pod corev1.Pod) bool {
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftredhatmarketplace-")
+	},
+	func(pod corev1.Pod) bool {
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftcertifiedoperators-")
+	},
+	func(pod corev1.Pod) bool {
+		podNameNSCombo := pod.Namespace + "/" + pod.Name
+		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftredhatoperators-")
+	},
 	func(pod corev1.Pod) bool {
 		podNameNSCombo := pod.Namespace + "/" + pod.Name
 		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-version/version-")
