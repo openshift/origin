@@ -99,9 +99,9 @@ var exceptions = []func(pod corev1.Pod) bool{
 		podNameNSCombo := pod.Namespace + "/" + pod.Name
 		return strings.HasPrefix(podNameNSCombo, "openshift-must-gather/must-gather-")
 	},
-	func(pod corev1.Pod) bool {
-		return pod.Namespace == "openshift-marketplace"
-	},
+	// func(pod corev1.Pod) bool {
+	// 	return pod.Namespace == "openshift-marketplace"
+	// },
 }
 
 // generateDefaultSAFailures generates a list of failures where the pod in a list of pods
