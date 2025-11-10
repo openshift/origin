@@ -95,6 +95,9 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testMCPName,
+			Labels: map[string]string{
+				"machineconfiguration.openshift.io/pool": testMCPName,
+			},
 			},
 			Spec: mcfgv1.MachineConfigPoolSpec{
 				MachineConfigSelector: &metav1.LabelSelector{
