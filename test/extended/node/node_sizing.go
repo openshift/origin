@@ -70,18 +70,22 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		_, err = oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label node")
 
-		// Clean up node label on test completion
+		// Clean up node label on test completion (only if test fails before explicit cleanup)
 		defer func() {
-			g.By("Cleaning up node label")
+			g.By("Cleaning up node label (defer)")
 			node, getErr := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 			if getErr != nil {
 				framework.Logf("Failed to get node for cleanup: %v", getErr)
 				return
 			}
-			delete(node.Labels, testMCPLabel)
-			_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-			if updateErr != nil {
-				framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
+			// Only remove the label if it still exists (i.e., test failed before explicit cleanup)
+			if _, exists := node.Labels[testMCPLabel]; exists {
+				framework.Logf("Node label still exists, removing it")
+				delete(node.Labels, testMCPLabel)
+				_, updateErr := oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+				if updateErr != nil {
+					framework.Logf("Failed to remove label from node %s: %v", nodeName, updateErr)
+				}
 			}
 		}()
 
@@ -248,6 +252,36 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		waitForPodRunning(ctx, oc, podName, namespace)
 
 		verifyNodeSizingEnabledFile(ctx, oc, podName, namespace, nodeName, "true")
+
+		// Explicitly transition the node back to the worker pool before cleanup
+		// This must happen before the MCP is deleted to avoid leaving the node in a degraded state
+		g.By(fmt.Sprintf("Removing node label %s from node %s to transition back to worker pool", testMCPLabel, nodeName))
+		node, err = oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get node for cleanup")
+		delete(node.Labels, testMCPLabel)
+		_, err = oc.AdminKubeClient().CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to remove label from node")
+
+		// Wait for the node to transition back to the worker pool configuration
+		g.By(fmt.Sprintf("Waiting for node %s to transition back to worker pool", nodeName))
+		o.Eventually(func() bool {
+			currentNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("Error getting node: %v", err)
+				return false
+			}
+			currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
+
+			// Check if the node is using a worker config (not node-sizing-test config)
+			isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, "node-sizing-test") && currentConfig == desiredConfig
+			if isWorkerConfig {
+				framework.Logf("Node %s successfully transitioned to worker config: %s", nodeName, currentConfig)
+			} else {
+				framework.Logf("Node %s still transitioning: current=%s, desired=%s", nodeName, currentConfig, desiredConfig)
+			}
+			return isWorkerConfig
+		}, 10*time.Minute, 10*time.Second).Should(o.BeTrue(), fmt.Sprintf("Node %s should transition back to worker pool", nodeName))
 	})
 })
 
