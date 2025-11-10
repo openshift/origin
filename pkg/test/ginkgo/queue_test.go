@@ -144,8 +144,8 @@ func (r *trackingTestRunner) wereTestsRunningSimultaneously(test1, test2 string)
 }
 
 // Test basic conflict detection - tests with same conflict should not run simultaneously
-func TestConflictTracker_ConflictPrevention(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_ConflictPrevention(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	// Create tests with same conflict
@@ -182,21 +182,21 @@ func TestConflictTracker_ConflictPrevention(t *testing.T) {
 	// Start test1 in goroutine
 	go func() {
 		defer wg.Done()
-		success1 = conflictTracker.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
+		success1 = scheduler.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Small delay then start test2 (should be blocked by test1)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success2 = conflictTracker.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
+		success2 = scheduler.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Start test3 (different conflict, should succeed)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success3 = conflictTracker.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
+		success3 = scheduler.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
 	}()
 
 	wg.Wait()
@@ -225,8 +225,8 @@ func TestConflictTracker_ConflictPrevention(t *testing.T) {
 }
 
 // Test multiple conflicts per test
-func TestConflictTracker_MultipleConflicts(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_MultipleConflicts(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	test1 := &testCase{
@@ -266,28 +266,28 @@ func TestConflictTracker_MultipleConflicts(t *testing.T) {
 	// Start test1
 	go func() {
 		defer wg.Done()
-		success1 = conflictTracker.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
+		success1 = scheduler.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// test2 should be blocked (database conflict)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success2 = conflictTracker.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
+		success2 = scheduler.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// test3 should be blocked (network conflict)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success3 = conflictTracker.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
+		success3 = scheduler.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// test4 should succeed (no conflicts)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success4 = conflictTracker.tryRunTest(ctx, test4, runner, &pendingTestCount, remainingTests)
+		success4 = scheduler.tryRunTest(ctx, test4, runner, &pendingTestCount, remainingTests)
 	}()
 
 	wg.Wait()
@@ -310,8 +310,8 @@ func TestConflictTracker_MultipleConflicts(t *testing.T) {
 }
 
 // Test no conflicts - tests should run in parallel
-func TestConflictTracker_NoConflicts(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_NoConflicts(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	// Tests with no isolation conflicts
@@ -324,9 +324,9 @@ func TestConflictTracker_NoConflicts(t *testing.T) {
 	var pendingTestCount int64 = 3
 
 	// All tests should be able to start
-	success1 := conflictTracker.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
-	success2 := conflictTracker.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
-	success3 := conflictTracker.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
+	success1 := scheduler.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
+	success2 := scheduler.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
+	success3 := scheduler.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
 
 	if !success1 || !success2 || !success3 {
 		t.Error("All tests without conflicts should be able to run")
@@ -350,8 +350,8 @@ func TestConflictTracker_NoConflicts(t *testing.T) {
 }
 
 // Test conflict cleanup after test completion
-func TestConflictTracker_ConflictCleanup(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_ConflictCleanup(t *testing.T) {
+	scheduler := newTestScheduler()
 
 	test1 := &testCase{
 		name: "test1",
@@ -372,13 +372,13 @@ func TestConflictTracker_ConflictCleanup(t *testing.T) {
 	var pendingTestCount int64 = 2
 
 	// Start test1
-	success1 := conflictTracker.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
+	success1 := scheduler.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
 	if !success1 {
 		t.Error("test1 should have been able to run")
 	}
 
 	// Now test2 should be able to run (test1 completed and cleaned up conflicts)
-	success2 := conflictTracker.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
+	success2 := scheduler.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
 	if !success2 {
 		t.Error("test2 should be able to run after test1 completed")
 	}
@@ -425,8 +425,8 @@ func TestDecrementAndCloseIfDone(t *testing.T) {
 }
 
 // Test context cancellation
-func TestConflictTracker_ContextCancellation(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_ContextCancellation(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	// Create a cancellable context
@@ -447,15 +447,15 @@ func TestConflictTracker_ContextCancellation(t *testing.T) {
 
 	// Test should still run even with cancelled context (depends on implementation)
 	// But this tests that cancellation doesn't break the conflict tracker
-	success := conflictTracker.tryRunTest(ctx, test, runner, &pendingTestCount, remainingTests)
+	success := scheduler.tryRunTest(ctx, test, runner, &pendingTestCount, remainingTests)
 	if !success {
 		t.Error("Test should have been attempted even with cancelled context")
 	}
 }
 
 // Test basic taint and toleration - tests without toleration cannot run with active taints
-func TestConflictTracker_TaintTolerationBasic(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_TaintTolerationBasic(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	// Test with taint (no conflicts)
@@ -494,21 +494,21 @@ func TestConflictTracker_TaintTolerationBasic(t *testing.T) {
 	// Start test with taint
 	go func() {
 		defer wg.Done()
-		success1 = conflictTracker.tryRunTest(ctx, testWithTaint, runner, &pendingTestCount, remainingTests)
+		success1 = scheduler.tryRunTest(ctx, testWithTaint, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Test without toleration should be blocked
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success2 = conflictTracker.tryRunTest(ctx, testWithoutToleration, runner, &pendingTestCount, remainingTests)
+		success2 = scheduler.tryRunTest(ctx, testWithoutToleration, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Test with toleration should succeed
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success3 = conflictTracker.tryRunTest(ctx, testWithToleration, runner, &pendingTestCount, remainingTests)
+		success3 = scheduler.tryRunTest(ctx, testWithToleration, runner, &pendingTestCount, remainingTests)
 	}()
 
 	wg.Wait()
@@ -527,8 +527,8 @@ func TestConflictTracker_TaintTolerationBasic(t *testing.T) {
 }
 
 // Test multiple taints and tolerations
-func TestConflictTracker_MultipleTaintsTolerations(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	// Test with multiple taints
@@ -575,28 +575,28 @@ func TestConflictTracker_MultipleTaintsTolerations(t *testing.T) {
 	// Start test with multiple taints
 	go func() {
 		defer wg.Done()
-		success1 = conflictTracker.tryRunTest(ctx, testWithMultipleTaints, runner, &pendingTestCount, remainingTests)
+		success1 = scheduler.tryRunTest(ctx, testWithMultipleTaints, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Test with partial toleration should be blocked
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success2 = conflictTracker.tryRunTest(ctx, testPartialToleration, runner, &pendingTestCount, remainingTests)
+		success2 = scheduler.tryRunTest(ctx, testPartialToleration, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Test with full toleration should succeed
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success3 = conflictTracker.tryRunTest(ctx, testFullToleration, runner, &pendingTestCount, remainingTests)
+		success3 = scheduler.tryRunTest(ctx, testFullToleration, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Test with extra toleration should succeed
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success4 = conflictTracker.tryRunTest(ctx, testExtraToleration, runner, &pendingTestCount, remainingTests)
+		success4 = scheduler.tryRunTest(ctx, testExtraToleration, runner, &pendingTestCount, remainingTests)
 	}()
 
 	wg.Wait()
@@ -619,8 +619,8 @@ func TestConflictTracker_MultipleTaintsTolerations(t *testing.T) {
 }
 
 // Test taint cleanup after test completion
-func TestConflictTracker_TaintCleanup(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_TaintCleanup(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	testWithTaint := &testCase{
@@ -642,13 +642,13 @@ func TestConflictTracker_TaintCleanup(t *testing.T) {
 	var pendingTestCount int64 = 2
 
 	// First test with taint should run and complete
-	success1 := conflictTracker.tryRunTest(ctx, testWithTaint, runner, &pendingTestCount, remainingTests)
+	success1 := scheduler.tryRunTest(ctx, testWithTaint, runner, &pendingTestCount, remainingTests)
 	if !success1 {
 		t.Error("Test with taint should have been able to run")
 	}
 
 	// After first test completes, taint should be cleaned up and second test should run
-	success2 := conflictTracker.tryRunTest(ctx, testWithoutToleration, runner, &pendingTestCount, remainingTests)
+	success2 := scheduler.tryRunTest(ctx, testWithoutToleration, runner, &pendingTestCount, remainingTests)
 	if !success2 {
 		t.Error("Test without toleration should be able to run after taint cleanup")
 	}
@@ -661,8 +661,8 @@ func TestConflictTracker_TaintCleanup(t *testing.T) {
 }
 
 // Test combined conflicts and taint/toleration
-func TestConflictTracker_ConflictsAndTaints(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_ConflictsAndTaints(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	testWithBoth := &testCase{
@@ -706,21 +706,21 @@ func TestConflictTracker_ConflictsAndTaints(t *testing.T) {
 	// Start first test
 	go func() {
 		defer wg.Done()
-		success1 = conflictTracker.tryRunTest(ctx, testWithBoth, runner, &pendingTestCount, remainingTests)
+		success1 = scheduler.tryRunTest(ctx, testWithBoth, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Second test should be blocked by conflict (even though it has toleration)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success2 = conflictTracker.tryRunTest(ctx, testConflictingTolerated, runner, &pendingTestCount, remainingTests)
+		success2 = scheduler.tryRunTest(ctx, testConflictingTolerated, runner, &pendingTestCount, remainingTests)
 	}()
 
 	// Third test should be blocked by taint (even though it doesn't conflict)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		success3 = conflictTracker.tryRunTest(ctx, testNonConflictingIntolerated, runner, &pendingTestCount, remainingTests)
+		success3 = scheduler.tryRunTest(ctx, testNonConflictingIntolerated, runner, &pendingTestCount, remainingTests)
 	}()
 
 	wg.Wait()
@@ -739,8 +739,8 @@ func TestConflictTracker_ConflictsAndTaints(t *testing.T) {
 }
 
 // Test no taints - all tests should run freely
-func TestConflictTracker_NoTaints(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_NoTaints(t *testing.T) {
+	scheduler := newTestScheduler()
 	runner := newTrackingTestRunner()
 
 	// Tests with no taints or tolerations
@@ -753,9 +753,9 @@ func TestConflictTracker_NoTaints(t *testing.T) {
 	var pendingTestCount int64 = 3
 
 	// All tests should be able to run
-	success1 := conflictTracker.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
-	success2 := conflictTracker.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
-	success3 := conflictTracker.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
+	success1 := scheduler.tryRunTest(ctx, test1, runner, &pendingTestCount, remainingTests)
+	success2 := scheduler.tryRunTest(ctx, test2, runner, &pendingTestCount, remainingTests)
+	success3 := scheduler.tryRunTest(ctx, test3, runner, &pendingTestCount, remainingTests)
 
 	if !success1 || !success2 || !success3 {
 		t.Error("All tests without taints should be able to run")
@@ -789,8 +789,8 @@ func (r *blockingTestRunner) RunOneTest(ctx context.Context, test *testCase) {
 }
 
 // Test taint reference counting - multiple tests with same taint
-func TestConflictTracker_TaintReferenceCounting(t *testing.T) {
-	conflictTracker := newConflictTracker()
+func TestScheduler_TaintReferenceCounting(t *testing.T) {
+	scheduler := newTestScheduler()
 
 	runner := newTrackingTestRunner()
 
@@ -824,81 +824,81 @@ func TestConflictTracker_TaintReferenceCounting(t *testing.T) {
 	// Manually test the taint reference counting behavior
 
 	// 1. Start first test with taint - should succeed
-	conflictTracker.mu.Lock()
+	scheduler.mu.Lock()
 	// Manually mark taint as active
-	conflictTracker.activeTaints["gpu"]++
-	conflictTracker.mu.Unlock()
+	scheduler.activeTaints["gpu"]++
+	scheduler.mu.Unlock()
 
 	// 2. Start second test with same taint - should succeed (reference count = 2)
-	conflictTracker.mu.Lock()
-	conflictTracker.activeTaints["gpu"]++
-	conflictTracker.mu.Unlock()
+	scheduler.mu.Lock()
+	scheduler.activeTaints["gpu"]++
+	scheduler.mu.Unlock()
 
 	// 3. Verify reference count is 2
-	conflictTracker.mu.Lock()
-	gpuCount := conflictTracker.activeTaints["gpu"]
-	conflictTracker.mu.Unlock()
+	scheduler.mu.Lock()
+	gpuCount := scheduler.activeTaints["gpu"]
+	scheduler.mu.Unlock()
 
 	if gpuCount != 2 {
 		t.Errorf("Expected GPU taint reference count to be 2, got %d", gpuCount)
 	}
 
 	// 4. Try to run intolerant test - should be blocked
-	canRun := conflictTracker.canTolerateTaints(testIntolerant)
+	canRun := scheduler.canTolerateTaints(testIntolerant)
 	if canRun {
 		t.Error("Intolerant test should be blocked by active GPU taint")
 	}
 
 	// 5. Complete first test (decrement count to 1)
-	conflictTracker.mu.Lock()
-	conflictTracker.activeTaints["gpu"]--
-	if conflictTracker.activeTaints["gpu"] <= 0 {
-		delete(conflictTracker.activeTaints, "gpu")
+	scheduler.mu.Lock()
+	scheduler.activeTaints["gpu"]--
+	if scheduler.activeTaints["gpu"] <= 0 {
+		delete(scheduler.activeTaints, "gpu")
 	}
-	conflictTracker.mu.Unlock()
+	scheduler.mu.Unlock()
 
 	// 6. Verify taint is still active (reference count = 1)
-	conflictTracker.mu.Lock()
-	gpuCount = conflictTracker.activeTaints["gpu"]
-	conflictTracker.mu.Unlock()
+	scheduler.mu.Lock()
+	gpuCount = scheduler.activeTaints["gpu"]
+	scheduler.mu.Unlock()
 
 	if gpuCount != 1 {
 		t.Errorf("Expected GPU taint reference count to be 1 after first test completion, got %d", gpuCount)
 	}
 
 	// 7. Intolerant test should still be blocked
-	canRun = conflictTracker.canTolerateTaints(testIntolerant)
+	canRun = scheduler.canTolerateTaints(testIntolerant)
 	if canRun {
 		t.Error("Intolerant test should still be blocked (second test still running)")
 	}
 
 	// 8. Complete second test (decrement count to 0, remove taint)
-	conflictTracker.mu.Lock()
-	conflictTracker.activeTaints["gpu"]--
-	if conflictTracker.activeTaints["gpu"] <= 0 {
-		delete(conflictTracker.activeTaints, "gpu")
+	scheduler.mu.Lock()
+	scheduler.activeTaints["gpu"]--
+	if scheduler.activeTaints["gpu"] <= 0 {
+		delete(scheduler.activeTaints, "gpu")
 	}
-	conflictTracker.mu.Unlock()
+	scheduler.mu.Unlock()
 
 	// 9. Verify taint is completely removed
-	conflictTracker.mu.Lock()
-	_, exists := conflictTracker.activeTaints["gpu"]
-	conflictTracker.mu.Unlock()
+	scheduler.mu.Lock()
+	_, exists := scheduler.activeTaints["gpu"]
+	scheduler.mu.Unlock()
 
 	if exists {
 		t.Error("GPU taint should be completely removed after all tests complete")
 	}
 
 	// 10. Now intolerant test should be able to run
-	canRun = conflictTracker.canTolerateTaints(testIntolerant)
+	canRun = scheduler.canTolerateTaints(testIntolerant)
 	if !canRun {
 		t.Error("Intolerant test should be able to run after all taints are cleaned up")
 	}
 
 	// Test the full tryRunTest with actual execution
-	success1 := conflictTracker.tryRunTest(ctx, testWithTaint1, runner, &pendingTestCount, remainingTests)
-	success2 := conflictTracker.tryRunTest(ctx, testWithTaint2, runner, &pendingTestCount, remainingTests)
-	success3 := conflictTracker.tryRunTest(ctx, testIntolerant, runner, &pendingTestCount, remainingTests)
+	success1 := scheduler.tryRunTest(ctx, testWithTaint1, runner, &pendingTestCount, remainingTests)
+	success2 := scheduler.tryRunTest(ctx, testWithTaint2, runner, &pendingTestCount, remainingTests)
+	success3 := scheduler.tryRunTest(ctx, testIntolerant, runner, &pendingTestCount, remainingTests)
 
 	if !success1 || !success2 || !success3 {
 		t.Error("All tests should succeed when run sequentially (each completes before next starts)")
