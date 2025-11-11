@@ -20,16 +20,50 @@ type parallelByFileTestQueue struct {
 
 type TestFunc func(ctx context.Context, test *testCase)
 
+// getTestRunningInstance returns the exec instance identifier for a test.
+func getTestRunningInstance(test *testCase) string {
+	// TODO: Implement actual instance assignment
+	return "instance-1"
+}
+
+// getTestBucket returns the bucket identifier for a test.
+func getTestBucket(test *testCase) string {
+	// TODO: Implement actual bucket assignment
+	return "bucket-a"
+}
+
+// getTestConflictGroup returns the conflict group for a test.
+// Conflicts are only checked within the same conflict group.
+// The group is determined by the test's isolation mode:
+//   - "instance": conflicts scoped to the running instance
+//   - "bucket": conflicts scoped to a test bucket
+//   - "exec" or empty: conflicts scoped to "default" group
+func getTestConflictGroup(test *testCase) string {
+	mode := test.isolation.Mode
+
+	switch mode {
+	case "instance":
+		return getTestRunningInstance(test)
+	case "bucket":
+		return getTestBucket(test)
+	case "exec", "":
+		return "default"
+	default:
+		// Unknown mode, fall back to default
+		return "default"
+	}
+}
+
 // testScheduler manages test scheduling based on conflicts, taints, and tolerations
 type testScheduler struct {
 	mu               sync.Mutex
-	runningConflicts map[string]bool // tracks which conflict groups are currently running
-	activeTaints     map[string]int  // tracks how many tests are currently applying each taint
+	runningConflicts map[string]map[string]bool // tracks which conflicts are running per group: group -> conflict -> bool
+	activeTaints     map[string]int             // tracks how many tests are currently applying each taint
 }
 
 func newTestScheduler() *testScheduler {
 	return &testScheduler{
-		runningConflicts: make(map[string]bool),
+		runningConflicts: make(map[string]map[string]bool),
 		activeTaints:     make(map[string]int),
 	}
 }
@@ -76,11 +110,19 @@ func (ts *testScheduler) canTolerateTaints(test *testCase) bool {
 func (ts *testScheduler) tryRunTest(ctx context.Context, test *testCase, testSuiteRunner testSuiteRunner, pendingTestCount *int64, remainingTests chan *testCase) bool {
 	ts.mu.Lock()
 
-	// Check if any of the test's conflict groups are currently running
+	// Get the conflict group for this test
+	conflictGroup := getTestConflictGroup(test)
+
+	// Ensure the conflict group map exists
+	if ts.runningConflicts[conflictGroup] == nil {
+		ts.runningConflicts[conflictGroup] = make(map[string]bool)
+	}
+
+	// Check if any of the test's conflicts are currently running within its group
 	for _, conflict := range test.isolation.Conflict {
-		if ts.runningConflicts[conflict] {
+		if ts.runningConflicts[conflictGroup][conflict] {
 			ts.mu.Unlock()
-			return false // Cannot run due to conflicts
+			return false // Cannot run due to conflicts within the same group
 		}
 	}
 
@@ -90,9 +132,9 @@ func (ts *testScheduler) tryRunTest(ctx context.Context, test *testCase, testSui
 		return false // Cannot run due to taint/toleration mismatch
 	}
 
-	// All checks passed - mark conflicts as running and activate taints
+	// All checks passed - mark conflicts as running within this group and activate taints
 	for _, conflict := range test.isolation.Conflict {
-		ts.runningConflicts[conflict] = true
+		ts.runningConflicts[conflictGroup][conflict] = true
 	}
 
 	for _, taint := range test.taint {
@@ -112,14 +154,19 @@ func (ts *testScheduler) tryRunTest(ctx context.Context, test *testCase, testSui
 	return true
 }
 
-// markTestCompleted marks all conflict groups and taints of a test as no longer running/active
+// markTestCompleted marks all conflicts and taints of a test as no longer running/active
 func (ts *testScheduler) markTestCompleted(test *testCase) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
-	// Clean up conflicts
-	for _, conflict := range test.isolation.Conflict {
-		delete(ts.runningConflicts, conflict)
+	// Get the conflict group for this test
+	conflictGroup := getTestConflictGroup(test)
+
+	// Clean up conflicts within this group
+	if groupConflicts, exists := ts.runningConflicts[conflictGroup]; exists {
+		for _, conflict := range test.isolation.Conflict {
+			delete(groupConflicts, conflict)
+		}
 	}
 
 	// Clean up taints with reference counting

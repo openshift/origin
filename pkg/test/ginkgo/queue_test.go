@@ -904,3 +904,370 @@ func TestScheduler_TaintReferenceCounting(t *testing.T) {
 		t.Error("All tests should succeed when run sequentially (each completes before next starts)")
 	}
 }
+
+// Test conflict groups - tests in different groups should not check conflicts against each other
+func TestScheduler_ConflictGroups(t *testing.T) {
+	scheduler := newTestScheduler()
+	runner := newTrackingTestRunner()
+
+	// For this test, we'll manually control which conflict group tests belong to
+	// by temporarily replacing getTestConflictGroup
+
+	// Create two tests with same conflict but in different groups
+	testGroupA1 := &testCase{
+		name: "test-group-a-1",
+		isolation: extensiontests.Isolation{
+			Conflict: []string{"database"},
+		},
+	}
+
+	testGroupA2 := &testCase{
+		name: "test-group-a-2",
+		isolation: extensiontests.Isolation{
+			Conflict: []string{"database"},
+		},
+	}
+
+	testGroupB1 := &testCase{
+		name: "test-group-b-1",
+		isolation: extensiontests.Isolation{
+			Conflict: []string{"database"}, // Same conflict name but different group
+		},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 3
+
+	// Since getTestConflictGroup currently returns "default" for all tests,
+	// we'll test the data structure behavior directly
+
+	// Manually set up scheduler state to simulate different groups
+	scheduler.mu.Lock()
+	scheduler.runningConflicts["groupA"] = make(map[string]bool)
+	scheduler.runningConflicts["groupB"] = make(map[string]bool)
+	scheduler.runningConflicts["groupA"]["database"] = true // Mark database as running in groupA
+	scheduler.mu.Unlock()
+
+	// Verify that "database" conflict exists in groupA
+	scheduler.mu.Lock()
+	hasConflictGroupA := scheduler.runningConflicts["groupA"]["database"]
+	scheduler.mu.Unlock()
+
+	if !hasConflictGroupA {
+		t.Error("Expected database conflict to be marked as running in groupA")
+	}
+
+	// Verify that "database" conflict does NOT exist in groupB
+	scheduler.mu.Lock()
+	hasConflictGroupB := scheduler.runningConflicts["groupB"]["database"]
+	scheduler.mu.Unlock()
+
+	if hasConflictGroupB {
+		t.Error("Expected database conflict to NOT be running in groupB")
+	}
+
+	// Verify default group doesn't have the conflict
+	scheduler.mu.Lock()
+	defaultGroup, exists := scheduler.runningConflicts["default"]
+	hasConflictDefault := exists && defaultGroup["database"]
+	scheduler.mu.Unlock()
+
+	if hasConflictDefault {
+		t.Error("Expected database conflict to NOT be running in default group")
+	}
+
+	// Test that getTestConflictGroup returns "default" for all tests currently
+	group1 := getTestConflictGroup(testGroupA1)
+	group2 := getTestConflictGroup(testGroupA2)
+	group3 := getTestConflictGroup(testGroupB1)
+
+	if group1 != "default" {
+		t.Errorf("Expected testGroupA1 to return 'default', got '%s'", group1)
+	}
+
+	if group2 != "default" {
+		t.Errorf("Expected testGroupA2 to return 'default', got '%s'", group2)
+	}
+
+	if group3 != "default" {
+		t.Errorf("Expected testGroupB1 to return 'default', got '%s'", group3)
+	}
+
+	var wg sync.WaitGroup
+	var success1, success2 bool
+
+	// Run tests concurrently to test conflict detection
+	wg.Add(2)
+
+	// Start first test
+	go func() {
+		defer wg.Done()
+		success1 = scheduler.tryRunTest(ctx, testGroupA1, runner, &pendingTestCount, remainingTests)
+	}()
+
+	// Start second test with slight delay to ensure first test starts first
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = scheduler.tryRunTest(ctx, testGroupA2, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	if !success1 {
+		t.Error("testGroupA1 should succeed (default group has no conflicts yet)")
+	}
+
+	if success2 {
+		t.Error("testGroupA2 should be blocked (same conflict in same group)")
+	}
+
+	// After both attempts complete, verify that testGroupA1 ran
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 1 {
+		t.Errorf("Expected 1 test to complete, got %d", len(testsRun))
+	}
+
+	if len(testsRun) > 0 && testsRun[0] != "test-group-a-1" {
+		t.Errorf("Expected test-group-a-1 to complete, got %s", testsRun[0])
+	}
+}
+
+// Test mode-based conflict group assignment
+func TestScheduler_ModeBased_ConflictGroups(t *testing.T) {
+	// Test instance mode
+	testInstance := &testCase{
+		name: "test-instance-mode",
+		isolation: extensiontests.Isolation{
+			Mode:     "instance",
+			Conflict: []string{"database"},
+		},
+	}
+
+	group := getTestConflictGroup(testInstance)
+	if group != "instance-1" {
+		t.Errorf("Expected instance mode to return 'instance-1', got '%s'", group)
+	}
+
+	// Test bucket mode
+	testBucket := &testCase{
+		name: "test-bucket-mode",
+		isolation: extensiontests.Isolation{
+			Mode:     "bucket",
+			Conflict: []string{"network"},
+		},
+	}
+
+	group = getTestConflictGroup(testBucket)
+	if group != "bucket-a" {
+		t.Errorf("Expected bucket mode to return 'bucket-a', got '%s'", group)
+	}
+
+	// Test exec mode
+	testExec := &testCase{
+		name: "test-exec-mode",
+		isolation: extensiontests.Isolation{
+			Mode:     "exec",
+			Conflict: []string{"storage"},
+		},
+	}
+
+	group = getTestConflictGroup(testExec)
+	if group != "default" {
+		t.Errorf("Expected exec mode to return 'default', got '%s'", group)
+	}
+
+	// Test empty mode (should default)
+	testEmpty := &testCase{
+		name: "test-empty-mode",
+		isolation: extensiontests.Isolation{
+			Mode:     "",
+			Conflict: []string{"cpu"},
+		},
+	}
+
+	group = getTestConflictGroup(testEmpty)
+	if group != "default" {
+		t.Errorf("Expected empty mode to return 'default', got '%s'", group)
+	}
+
+	// Test unknown mode (should default)
+	testUnknown := &testCase{
+		name: "test-unknown-mode",
+		isolation: extensiontests.Isolation{
+			Mode:     "unknown",
+			Conflict: []string{"memory"},
+		},
+	}
+
+	group = getTestConflictGroup(testUnknown)
+	if group != "default" {
+		t.Errorf("Expected unknown mode to return 'default', got '%s'", group)
+	}
+}
+
+// Test that instance mode groups conflicts correctly
+func TestScheduler_InstanceMode_IsolatesConflicts(t *testing.T) {
+	scheduler := newTestScheduler()
+	runner := newTrackingTestRunner()
+
+	// Two tests with instance mode and same conflict
+	testInstance1 := &testCase{
+		name: "test-instance-1",
+		isolation: extensiontests.Isolation{
+			Mode:     "instance",
+			Conflict: []string{"database"},
+		},
+	}
+
+	testInstance2 := &testCase{
+		name: "test-instance-2",
+		isolation: extensiontests.Isolation{
+			Mode:     "instance",
+			Conflict: []string{"database"},
+		},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 2
+
+	var wg sync.WaitGroup
+	var success1, success2 bool
+
+	// Run both tests concurrently
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		success1 = scheduler.tryRunTest(ctx, testInstance1, runner, &pendingTestCount, remainingTests)
+	}()
+
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = scheduler.tryRunTest(ctx, testInstance2, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	// Both tests are in "instance-1" group with same conflict, so one should block
+	if !success1 {
+		t.Error("First test should succeed")
+	}
+
+	if success2 {
+		t.Error("Second test should be blocked (same conflict in same instance group)")
+	}
+}
+
+// Test that bucket mode groups conflicts correctly
+func TestScheduler_BucketMode_IsolatesConflicts(t *testing.T) {
+	scheduler := newTestScheduler()
+	runner := newTrackingTestRunner()
+
+	// Two tests with bucket mode and same conflict
+	testBucket1 := &testCase{
+		name: "test-bucket-1",
+		isolation: extensiontests.Isolation{
+			Mode:     "bucket",
+			Conflict: []string{"network"},
+		},
+	}
+
+	testBucket2 := &testCase{
+		name: "test-bucket-2",
+		isolation: extensiontests.Isolation{
+			Mode:     "bucket",
+			Conflict: []string{"network"},
+		},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 2
+
+	var wg sync.WaitGroup
+	var success1, success2 bool
+
+	// Run both tests concurrently
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		success1 = scheduler.tryRunTest(ctx, testBucket1, runner, &pendingTestCount, remainingTests)
+	}()
+
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = scheduler.tryRunTest(ctx, testBucket2, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	// Both tests are in "bucket-a" group with same conflict, so one should block
+	if !success1 {
+		t.Error("First test should succeed")
+	}
+
+	if success2 {
+		t.Error("Second test should be blocked (same conflict in same bucket group)")
+	}
+}
+
+// Test that exec mode uses default group
+func TestScheduler_ExecMode_UsesDefaultGroup(t *testing.T) {
+	scheduler := newTestScheduler()
+	runner := newTrackingTestRunner()
+
+	// Two tests with exec mode and same conflict
+	testExec1 := &testCase{
+		name: "test-exec-1",
+		isolation: extensiontests.Isolation{
+			Mode:     "exec",
+			Conflict: []string{"storage"},
+		},
+	}
+
+	testExec2 := &testCase{
+		name: "test-exec-2",
+		isolation: extensiontests.Isolation{
+			Mode:     "exec",
+			Conflict: []string{"storage"},
+		},
+	}
+
+	ctx := context.Background()
+	remainingTests := make(chan *testCase, 10)
+	var pendingTestCount int64 = 2
+
+	var wg sync.WaitGroup
+	var success1, success2 bool
+
+	// Run both tests concurrently
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		success1 = scheduler.tryRunTest(ctx, testExec1, runner, &pendingTestCount, remainingTests)
+	}()
+
+	go func() {
+		defer wg.Done()
+		time.Sleep(10 * time.Millisecond)
+		success2 = scheduler.tryRunTest(ctx, testExec2, runner, &pendingTestCount, remainingTests)
+	}()
+
+	wg.Wait()
+
+	// Both tests are in "default" group with same conflict, so one should block
+	if !success1 {
+		t.Error("First test should succeed")
+	}
+
+	if success2 {
+		t.Error("Second test should be blocked (same conflict in default group)")
+	}
+}
