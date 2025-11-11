@@ -679,7 +679,7 @@ func (binaries TestBinaries) ListImages(ctx context.Context, parallelism int) ([
 
 					imageConfig, err := binary.ListImages(ctx)
 					if err != nil {
-						errCh <- err
+						errCh <- fmt.Errorf("failed to list images for binary %s (%s): %w", binary.imageTag, binary.binaryPath, err)
 					}
 					mu.Lock()
 					allImages = append(allImages, imageConfig)
