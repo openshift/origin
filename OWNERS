@@ -5,8 +5,6 @@ filters:
     reviewers:
     - deads2k
     - sjenning
-    - soltysh
-    - stlaz
     - p0lyn0mial
     approvers:
     - bertinatto
@@ -14,11 +12,11 @@ filters:
     - deads2k
     - dgoodwin
     - neisw
-    - soltysh
     - stbenjam
     - xueqzhan
     - sosiouxme
     - smg247
+    - petr-muller
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
