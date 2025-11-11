@@ -2,6 +2,7 @@ package legacycvomonitortests
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -9,6 +10,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
+	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -34,7 +37,50 @@ func (w *legacyMonitorTests) CollectData(ctx context.Context, storageDir string,
 }
 
 func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+	ret := monitorapi.Intervals{}
+	ret = append(ret, intervalsFromEventsClusterVersionProgressing(startingIntervals)...)
+	return ret, nil
+}
+
+var lastClusterVersionProgressingInterval *monitorapi.Interval
+
+func intervalsFromEventsClusterVersionProgressing(intervals monitorapi.Intervals) monitorapi.Intervals {
+	var ret monitorapi.Intervals
+
+	for _, event := range intervals {
+		if event.Source != monitorapi.SourceClusterOperatorMonitor {
+			continue
+		}
+		if cvName := event.Locator.Keys[monitorapi.LocatorClusterVersionKey]; cvName != "version" {
+			continue
+		}
+		currentCondition := monitorapi.GetOperatorConditionStatus(event)
+		if currentCondition == nil {
+			continue
+		}
+
+		if currentCondition.Type != configv1.OperatorProgressing {
+			continue
+		}
+
+		if lastClusterVersionProgressingInterval != nil {
+			ret = append(ret, monitorapi.NewInterval(monitorapi.SourceVersionState, monitorapi.Warning).
+				Locator(event.Locator).
+				Message(monitorapi.NewMessage().Reason(lastClusterVersionProgressingInterval.Message.Reason).
+					HumanMessage(strings.Replace(lastClusterVersionProgressingInterval.Message.HumanMessage, "changed to ", "stayed in ", 1)).
+					WithAnnotation(monitorapi.AnnotationCondition, string(configv1.OperatorProgressing)).
+					WithAnnotation(monitorapi.AnnotationStatus, string(configv1.ConditionTrue))).
+				Build(lastClusterVersionProgressingInterval.From, event.From),
+			)
+			lastClusterVersionProgressingInterval = nil
+		}
+
+		if currentCondition.Status == configv1.ConditionTrue &&
+			strings.Contains(event.Message.HumanMessage, ProgressingWaitingCOsKey) {
+			lastClusterVersionProgressingInterval = event.DeepCopy()
+		}
+	}
+	return ret
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
@@ -45,7 +91,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
 		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
-		junits = append(junits, clusterOperatorIsNotProgressingWhenMachineConfigIs(finalIntervals)...)
+		junits = append(junits, testUpgradeOperatorProgressingStateTransitions(finalIntervals)...)
 	} else {
 		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
 	}

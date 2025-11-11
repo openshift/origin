@@ -4,8 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 // buildUpgradeInterval creates a standard upgrade interval using the given reason and eventTime.
@@ -189,6 +193,105 @@ func Test_isInUpgradeWindow(t *testing.T) {
 			upgradeWindows := getUpgradeWindows(tt.args.eventList)
 			got := isInUpgradeWindow(upgradeWindows, tt.args.eventInterval)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_getOperatorsFromProgressingMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		expect  sets.Set[string]
+	}{
+		{
+			name:    "unknown message	",
+			message: "bar foo",
+		},
+		{
+			name:    "single CO",
+			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on single",
+			expect:  sets.New[string]("single"),
+		},
+		{
+			name:    "multiple COs",
+			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on etcd, kube-apiserver",
+			expect:  sets.New[string]("kube-apiserver", "etcd"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := getOperatorsFromProgressingMessage(tt.message)
+			assert.Equal(t, tt.expect, actual)
+		})
+	}
+}
+
+func Test_updateCOWaiting(t *testing.T) {
+	now := time.Now()
+	next := 3 * time.Hour
+	interval := func(m string, start time.Time, d time.Duration) monitorapi.Interval {
+		return monitorapi.NewInterval("foo", monitorapi.Warning).
+			Locator(monitorapi.NewLocator().ClusterVersion(&configv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{Name: "bar"}})).
+			Message(monitorapi.NewMessage().Reason("reason").
+				HumanMessage(m).
+				WithAnnotation(monitorapi.AnnotationCondition, string(configv1.OperatorProgressing)).
+				WithAnnotation(monitorapi.AnnotationStatus, string(configv1.ConditionTrue))).
+			Build(start, start.Add(d))
+	}
+
+	tests := []struct {
+		name    string
+		message string
+		d       time.Duration
+		waiting map[string]monitorapi.Intervals
+		expect  map[string]time.Duration
+	}{
+		{
+			name:    "happy case",
+			d:       time.Hour,
+			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on etcd, kube-apiserver",
+			waiting: map[string]monitorapi.Intervals{},
+			expect:  map[string]time.Duration{"etcd": time.Hour, "kube-apiserver": time.Hour},
+		},
+		{
+			name:    "incremental one",
+			d:       2 * time.Minute,
+			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on etcd, kube-apiserver",
+			waiting: map[string]monitorapi.Intervals{"etcd": {interval("some", now, 3*time.Minute)}},
+			expect:  map[string]time.Duration{"etcd": next + 2*time.Minute, "kube-apiserver": 2 * time.Minute},
+		},
+		{
+			name:    "incremental all",
+			d:       2 * time.Minute,
+			message: "working towards ${VERSION}: 106 of 841 done (12% complete), waiting on etcd, kube-apiserver",
+			waiting: map[string]monitorapi.Intervals{"etcd": {interval("some", now, 3*time.Minute)}, "kube-apiserver": {interval("some", now, 6*time.Minute)}},
+			expect:  map[string]time.Duration{"etcd": next + 2*time.Minute, "kube-apiserver": next + 2*time.Minute},
+		},
+		{
+			name:    "unknown message",
+			message: "unknown message",
+			waiting: map[string]monitorapi.Intervals{},
+			expect:  map[string]time.Duration{},
+		},
+	}
+	for _, tt := range tests {
+		i := monitorapi.NewInterval(monitorapi.SourceVersionState, monitorapi.Warning).
+			Locator(monitorapi.NewLocator().ClusterVersion(&configv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{Name: "version"}})).
+			Message(monitorapi.NewMessage().Reason("reason").
+				HumanMessage(tt.message).
+				WithAnnotation(monitorapi.AnnotationCondition, string(configv1.OperatorProgressing)).
+				WithAnnotation(monitorapi.AnnotationStatus, string(configv1.ConditionTrue))).
+			Build(now.Add(next), now.Add(next+tt.d))
+		t.Run(tt.name, func(t *testing.T) {
+			updateCOWaiting(i, tt.waiting)
+			actual := map[string]time.Duration{}
+			for co, intervals := range tt.waiting {
+				from, to := fromAndTo(intervals)
+				actual[co] = to.Sub(from)
+			}
+			assert.Equal(t, tt.expect, actual)
 		})
 	}
 }

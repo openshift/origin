@@ -376,6 +376,7 @@ const (
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 	SourceClusterOperatorMonitor  IntervalSource = "ClusterOperatorMonitor"
 	SourceOperatorState           IntervalSource = "OperatorState"
+	SourceVersionState            IntervalSource = "VersionState"
 	SourceNodeState                              = "NodeState"
 	SourcePodState                               = "PodState"
 	SourceCloudMetrics                           = "CloudMetrics"
