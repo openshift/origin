@@ -633,11 +633,60 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 				}
 
 				allNodesReady := true
+				var notReadyNodes []string
 				for _, node := range nodes.Items {
 					if !mc.IsNodeReady(node) {
 						allNodesReady = false
-						break
+						// Collect detailed information about why this node is not ready
+						var reasons []string
+						if node.Spec.Unschedulable {
+							reasons = append(reasons, "cordoned/unschedulable")
+						}
+						// Check kubelet ready status (matches IsNodeReady logic)
+						kubeletReady := false
+						for _, condition := range node.Status.Conditions {
+							if condition.Type == v1.NodeReady {
+								if condition.Status == v1.ConditionTrue && condition.Reason == "KubeletReady" {
+									kubeletReady = true
+									break
+								}
+							}
+						}
+						if !kubeletReady {
+							// Find the Ready condition to get details
+							var readyCondition *v1.NodeCondition
+							for i := range node.Status.Conditions {
+								if node.Status.Conditions[i].Type == v1.NodeReady {
+									readyCondition = &node.Status.Conditions[i]
+									break
+								}
+							}
+							if readyCondition != nil {
+								reasons = append(reasons, fmt.Sprintf("kubelet not ready (status=%v, reason=%s, message=%s)", readyCondition.Status, readyCondition.Reason, readyCondition.Message))
+							} else {
+								reasons = append(reasons, "kubelet ready condition not found")
+							}
+						}
+						// Check MCD state
+						mcdState := node.Annotations["machineconfiguration.openshift.io/state"]
+						if mcdState != "Done" {
+							reasons = append(reasons, fmt.Sprintf("MCD state=%q (expected 'Done')", mcdState))
+						}
+						notReadyInfo := fmt.Sprintf("node/%s: %s", node.Name, strings.Join(reasons, ", "))
+						if len(reasons) == 0 {
+							notReadyInfo = fmt.Sprintf("node/%s: IsNodeReady returned false but no specific reason found", node.Name)
+						}
+						notReadyNodes = append(notReadyNodes, notReadyInfo)
 					}
+				}
+
+				if !allNodesReady {
+					framework.Logf("Not all nodes are ready. Total nodes: %d, Not ready nodes: %d", len(nodes.Items), len(notReadyNodes))
+					for _, info := range notReadyNodes {
+						framework.Logf("  - %s", info)
+					}
+				} else {
+					framework.Logf("All %d nodes are ready", len(nodes.Items))
 				}
 
 				mcps := dc.Resource(schema.GroupVersionResource{
@@ -659,6 +708,20 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					if p.GetName() == "master" && requiresUpdate && !allNodesReady && errMasterUpdating == nil {
 						errMasterUpdating = fmt.Errorf("the %q pool should be updated before the CVO reports available at the new version", p.GetName())
 						framework.Logf("Invariant violation detected: %s", errMasterUpdating)
+						framework.Logf("  - allNodesReady: %v", allNodesReady)
+						framework.Logf("  - master pool requiresUpdate: %v", requiresUpdate)
+						framework.Logf("  - Not ready nodes details:")
+						for _, info := range notReadyNodes {
+							framework.Logf("    * %s", info)
+						}
+						// Log master pool status details
+						masterPool, err := mcps.Get(context.Background(), "master", metav1.GetOptions{})
+						if err == nil {
+							conditions, found, _ := unstructured.NestedFieldNoCopy(masterPool.Object, "status", "conditions")
+							if found {
+								framework.Logf("  - Master pool conditions: %v", conditions)
+							}
+						}
 					}
 				}
 				return allUpdated, nil
