@@ -619,6 +619,9 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	}
 
 	var errMasterUpdating error
+	var violationStartTime *time.Time
+	const gracePeriod = 2 * time.Minute
+
 	if err := disruption.RecordJUnit(
 		f,
 		"[sig-mco] Machine config pools complete upgrade",
@@ -657,6 +660,15 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 					// Invariant: when CVO reaches level, MCO is required to have rolled out control plane updates
 					if p.GetName() == "master" && requiresUpdate && !allNodesReady && errMasterUpdating == nil {
+						if violationStartTime == nil {
+							now := time.Now()
+							violationStartTime = &now
+							framework.Logf("Invariant violation detected: master pool requires update but nodes not ready. Waiting up to %v for non-draining updates to complete", gracePeriod)
+							return false, nil
+						}
+						if time.Since(*violationStartTime) <= gracePeriod {
+							return false, nil
+						}
 						errMasterUpdating = fmt.Errorf("the %q pool should be updated before the CVO reports available at the new version", p.GetName())
 						framework.Logf("Invariant violation detected: %s", errMasterUpdating)
 					}
