@@ -37,13 +37,6 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			g.Skip("Not supported on MicroShift")
 		}
 
-		// TODO: Add this if KubeletConfig is not supported on hypershift.
-		// Skip test on hypershift platforms
-		//if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
-		//	g.Skip("KubeletConfig is not supported on hypershift. Skipping test.")
-		//}
-
-		// Create machine config client
 		mcClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).NotTo(o.HaveOccurred(), "Error creating machine config client")
 
@@ -59,6 +52,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		framework.Logf("Testing on node: %s", nodeName)
 
 		// Label the first worker node for our custom MCP
+		// This approach is taken so that all the nodes do not restart at the same time for the test
 		testMCPLabel := "node-sizing-test"
 		g.By(fmt.Sprintf("Labeling node %s with %s=true", nodeName, testMCPLabel))
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
@@ -161,7 +155,6 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete test pod")
 
 		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=true
-
 		kubeletConfigName := "auto-sizing-enabled"
 
 		// Clean up KubeletConfig on test completion
@@ -254,7 +247,6 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		verifyNodeSizingEnabledFile(ctx, oc, podName, namespace, nodeName, "true")
 
-		// Explicitly transition the node back to the worker pool before cleanup
 		// This must happen before the MCP is deleted to avoid leaving the node in a degraded state
 		g.By(fmt.Sprintf("Removing node label %s from node %s to transition back to worker pool", testMCPLabel, nodeName))
 		node, err = oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
@@ -264,6 +256,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to remove label from node")
 
 		// Wait for the node to transition back to the worker pool configuration
+		// Without this the other tests fail
 		g.By(fmt.Sprintf("Waiting for node %s to transition back to worker pool", nodeName))
 		o.Eventually(func() bool {
 			currentNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
