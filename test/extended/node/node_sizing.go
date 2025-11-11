@@ -18,6 +18,7 @@ import (
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node sizing", func() {
@@ -302,7 +303,7 @@ func createPrivilegedPodWithHostEtc(podName, namespace, nodeName string) *corev1
 			Containers: []corev1.Container{
 				{
 					Name:    "test-container",
-					Image:   "registry.k8s.io/e2e-test-images/agnhost:2.53",
+					Image:   image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.53"),
 					Command: []string{"/bin/sh", "-c", "sleep 300"},
 					SecurityContext: &corev1.SecurityContext{
 						Privileged: ptr.To(true),
