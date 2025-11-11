@@ -41,7 +41,6 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	mc "github.com/openshift/origin/test/extended/machine_config"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/operator"
@@ -634,7 +633,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 				allNodesReady := true
 				for _, node := range nodes.Items {
-					if !mc.IsNodeReady(node) {
+					if !isNodeNotDrained(node) {
 						allNodesReady = false
 						break
 					}
@@ -723,6 +722,26 @@ func recordClusterEvent(client kubernetes.Interface, uid, action string, reason 
 	if err != nil {
 		framework.Logf("Unable to record cluster event: %v", err)
 	}
+}
+
+// isNodeNotDrained checks if a node is not drained (schedulable and kubelet ready).
+// Returns true if the node is not cordoned and kubelet is ready, indicating drain is not needed.
+func isNodeNotDrained(node v1.Node) bool {
+	// If node is cordoned, drain is happening or about to happen
+	if node.Spec.Unschedulable {
+		framework.Logf("Node %s is unschedulable", node.Name)
+		return false
+	}
+	// Check kubelet ready status
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == v1.NodeReady && condition.Status == v1.ConditionTrue && condition.Reason == "KubeletReady" {
+			return true
+		}
+	}
+
+	framework.Logf("Node %s kubelet not ready", node.Name)
+
+	return false
 }
 
 // TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
