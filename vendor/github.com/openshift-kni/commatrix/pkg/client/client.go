@@ -1,6 +1,8 @@
 package client
 
 import (
+	"fmt"
+
 	ocpconfigv1 "github.com/openshift/api/config"
 	machineconfigurationv1 "github.com/openshift/api/machineconfiguration/v1"
 	ocpoperatorv1 "github.com/openshift/api/operator/v1"
@@ -26,12 +28,29 @@ type ClientSet struct {
 func New() (*ClientSet, error) {
 	var err error
 
-	restConfig := ctrl.GetConfigOrDie()
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Kubernetes config: %w", err)
+	}
 	clientSet := &ClientSet{}
 
-	clientSet.CoreV1Interface = corev1client.NewForConfigOrDie(restConfig)
-	clientSet.MCInterface = mcopclientset.NewForConfigOrDie(restConfig)
-	clientSet.ImageClient = imagev1client.NewForConfigOrDie(restConfig)
+	coreV1, err := corev1client.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create corev1 client: %w", err)
+	}
+	clientSet.CoreV1Interface = coreV1
+
+	mcop, err := mcopclientset.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create machine config operator client: %w", err)
+	}
+	clientSet.MCInterface = mcop
+
+	imgClient, err := imagev1client.NewForConfig(restConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create image client: %w", err)
+	}
+	clientSet.ImageClient = imgClient
 
 	clientSet.Config = restConfig
 

@@ -1432,7 +1432,7 @@ github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo
 github.com/openshift-eng/openshift-tests-extension/pkg/junit
 github.com/openshift-eng/openshift-tests-extension/pkg/util/sets
 github.com/openshift-eng/openshift-tests-extension/pkg/version
-# github.com/openshift-kni/commatrix v0.0.4-0.20250917111054-6e3ad6c3a0e4
+# github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f
 ## explicit; go 1.22.0
 github.com/openshift-kni/commatrix/pkg/client
 github.com/openshift-kni/commatrix/pkg/commatrix-creator
@@ -1440,6 +1440,7 @@ github.com/openshift-kni/commatrix/pkg/consts
 github.com/openshift-kni/commatrix/pkg/endpointslices
 github.com/openshift-kni/commatrix/pkg/listening-sockets
 github.com/openshift-kni/commatrix/pkg/matrix-diff
+github.com/openshift-kni/commatrix/pkg/mcp
 github.com/openshift-kni/commatrix/pkg/types
 github.com/openshift-kni/commatrix/pkg/utils
 # github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7

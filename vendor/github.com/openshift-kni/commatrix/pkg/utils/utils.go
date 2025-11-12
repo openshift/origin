@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -302,7 +301,6 @@ func (u *utils) GetPlatformType() (configv1.PlatformType, error) {
 }
 
 func (u *utils) GetPodLogs(namespace string, pod *corev1.Pod) (string, error) {
-	log.Print("getting log of pod")
 	podLogOptions := &corev1.PodLogOptions{}
 
 	logsRequest := u.ClientSet.Pods(namespace).GetLogs(pod.Name, podLogOptions)

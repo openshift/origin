@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"cmp"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 
+	rtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	"github.com/openshift-kni/commatrix/pkg/consts"
@@ -54,7 +56,7 @@ type ComDetails struct {
 	Service   string `json:"service" yaml:"service" csv:"Service"`
 	Pod       string `json:"pod" yaml:"pod" csv:"Pod"`
 	Container string `json:"container" yaml:"container" csv:"Container"`
-	NodeRole  string `json:"nodeRole" yaml:"nodeRole" csv:"Node Role"`
+	NodeGroup string `json:"nodeGroup" yaml:"nodeGroup" csv:"NodeGroup"`
 	Optional  bool   `json:"optional" yaml:"optional" csv:"Optional"`
 }
 
@@ -112,14 +114,12 @@ func (m *ComMatrix) String() string {
 
 func (m *ComMatrix) WriteMatrixToFileByType(utilsHelpers utils.UtilsInterface, fileNamePrefix, format string, deployment Deployment, destDir string) error {
 	if format == FormatNFT {
-		masterMatrix, workerMatrix := m.SeparateMatrixByRole()
-		err := masterMatrix.writeMatrixToFile(utilsHelpers, fileNamePrefix+"-master", format, destDir)
-		if err != nil {
-			return err
-		}
-		if deployment == Standard {
-			err := workerMatrix.writeMatrixToFile(utilsHelpers, fileNamePrefix+"-worker", format, destDir)
-			if err != nil {
+		pools := m.SeparateMatrixByGroup()
+		for poolName, mat := range pools {
+			if len(mat.Matrix) == 0 {
+				continue
+			}
+			if err := mat.writeMatrixToFile(utilsHelpers, fileNamePrefix+"-"+poolName, format, destDir); err != nil {
 				return err
 			}
 		}
@@ -148,17 +148,19 @@ func (m *ComMatrix) print(format string) ([]byte, error) {
 	}
 }
 
-func (m *ComMatrix) SeparateMatrixByRole() (ComMatrix, ComMatrix) {
-	var masterMatrix, workerMatrix ComMatrix
+// SeparateMatrixByGroup groups matrix entries by their group name (stored in NodeGroup).
+func (m *ComMatrix) SeparateMatrixByGroup() map[string]ComMatrix {
+	res := make(map[string]ComMatrix)
 	for _, entry := range m.Matrix {
-		if entry.NodeRole == "master" {
-			masterMatrix.Matrix = append(masterMatrix.Matrix, entry)
-		} else if entry.NodeRole == "worker" {
-			workerMatrix.Matrix = append(workerMatrix.Matrix, entry)
+		pool := entry.NodeGroup
+		if pool == "" {
+			continue
 		}
+		cm := res[pool]
+		cm.Matrix = append(cm.Matrix, entry)
+		res[pool] = cm
 	}
-
-	return masterMatrix, workerMatrix
+	return res
 }
 
 func (m *ComMatrix) writeMatrixToFile(utilsHelpers utils.UtilsInterface, fileName, format string, destDir string) error {
@@ -228,7 +230,7 @@ func (m *ComMatrix) SortAndRemoveDuplicates() {
 	allKeys := make(map[string]bool)
 	res := []ComDetails{}
 	for _, item := range m.Matrix {
-		str := fmt.Sprintf("%s-%d-%s", item.NodeRole, item.Port, item.Protocol)
+		str := fmt.Sprintf("%s-%d-%s", item.NodeGroup, item.Port, item.Protocol)
 		if _, value := allKeys[str]; !value {
 			allKeys[str] = true
 			res = append(res, item)
@@ -237,7 +239,7 @@ func (m *ComMatrix) SortAndRemoveDuplicates() {
 	m.Matrix = res
 
 	slices.SortFunc(m.Matrix, func(a, b ComDetails) int {
-		res := cmp.Compare(a.NodeRole, b.NodeRole)
+		res := cmp.Compare(a.NodeGroup, b.NodeGroup)
 		if res != 0 {
 			return res
 		}
@@ -252,12 +254,12 @@ func (m *ComMatrix) SortAndRemoveDuplicates() {
 }
 
 func (cd ComDetails) String() string {
-	return fmt.Sprintf("%s,%s,%d,%s,%s,%s,%s,%s,%v", cd.Direction, cd.Protocol, cd.Port, cd.Namespace, cd.Service, cd.Pod, cd.Container, cd.NodeRole, cd.Optional)
+	return fmt.Sprintf("%s,%s,%d,%s,%s,%s,%s,%s,%v", cd.Direction, cd.Protocol, cd.Port, cd.Namespace, cd.Service, cd.Pod, cd.Container, cd.NodeGroup, cd.Optional)
 }
 
 func (cd ComDetails) Equals(other ComDetails) bool {
-	strComDetail1 := fmt.Sprintf("%s-%d-%s", cd.NodeRole, cd.Port, cd.Protocol)
-	strComDetail2 := fmt.Sprintf("%s-%d-%s", other.NodeRole, other.Port, other.Protocol)
+	strComDetail1 := fmt.Sprintf("%s-%d-%s", cd.NodeGroup, cd.Port, cd.Protocol)
+	strComDetail2 := fmt.Sprintf("%s-%d-%s", other.NodeGroup, other.Port, other.Protocol)
 
 	return strComDetail1 == strComDetail2
 }
@@ -298,6 +300,29 @@ func GetNodeRole(node *corev1.Node) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to determine role for node %s", node.Name)
+}
+
+// BuildNodeToGroupMap builds a node->group map for clusters without MCP:
+// - Prefer HyperShift NodePool label when present.
+// - Otherwise fall back to Kubernetes node role derived from labels.
+func BuildNodeToGroupMap(c rtclient.Client) (map[string]string, error) {
+	nodeList := &corev1.NodeList{}
+	if err := c.List(context.TODO(), nodeList); err != nil {
+		return nil, err
+	}
+	nodeToGroup := make(map[string]string, len(nodeList.Items))
+	for _, node := range nodeList.Items {
+		if np, ok := node.Labels["hypershift.openshift.io/nodePool"]; ok && np != "" {
+			nodeToGroup[node.Name] = np
+			continue
+		}
+		role, err := GetNodeRole(&node)
+		if err != nil {
+			return nil, err
+		}
+		nodeToGroup[node.Name] = role
+	}
+	return nodeToGroup, nil
 }
 
 func ParseToComDetailsList(content []byte, format string) ([]ComDetails, error) {

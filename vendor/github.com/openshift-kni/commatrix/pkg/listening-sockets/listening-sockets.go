@@ -1,9 +1,9 @@
 package listeningsockets
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"path"
 	"regexp"
 	"strconv"
@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift-kni/commatrix/pkg/client"
 	"github.com/openshift-kni/commatrix/pkg/consts"
+	"github.com/openshift-kni/commatrix/pkg/mcp"
 	"github.com/openshift-kni/commatrix/pkg/types"
 	"github.com/openshift-kni/commatrix/pkg/utils"
 )
@@ -29,31 +30,32 @@ const (
 
 type ConnectionCheck struct {
 	*client.ClientSet
-	podUtils   utils.UtilsInterface
-	destDir    string
-	nodeToRole map[string]string
+	podUtils    utils.UtilsInterface
+	destDir     string
+	nodeToGroup map[string]string
 }
 
 func NewCheck(c *client.ClientSet, podUtils utils.UtilsInterface, destDir string) (*ConnectionCheck, error) {
-	nodeList := &corev1.NodeList{}
-	err := c.List(context.TODO(), nodeList)
+	// Try MCP-based resolution first
+	if nodeToPool, err := mcp.ResolveNodeToPool(c); err == nil {
+		return &ConnectionCheck{
+			ClientSet:   c,
+			podUtils:    podUtils,
+			destDir:     destDir,
+			nodeToGroup: nodeToPool,
+		}, nil
+	}
+
+	// Fallback: build node->group map (HyperShift or clusters without MCP): prefer NodePool label, else role
+	nodeToGroup, err := types.BuildNodeToGroupMap(c)
 	if err != nil {
 		return nil, err
 	}
-
-	nodeToRole := map[string]string{}
-	for _, node := range nodeList.Items {
-		nodeToRole[node.Name], err = types.GetNodeRole(&node)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return &ConnectionCheck{
-		c,
-		podUtils,
-		destDir,
-		nodeToRole,
+		ClientSet:   c,
+		podUtils:    podUtils,
+		destDir:     destDir,
+		nodeToGroup: nodeToGroup,
 	}, nil
 }
 
@@ -63,7 +65,7 @@ func (cc *ConnectionCheck) GenerateSS(namespace string) (*types.ComMatrix, []byt
 
 	nLock := &sync.Mutex{}
 	g := new(errgroup.Group)
-	for nodeName := range cc.nodeToRole {
+	for nodeName := range cc.nodeToGroup {
 		name := nodeName
 		g.Go(func() error {
 			debugPod, err := cc.podUtils.CreatePodOnNode(name, namespace, consts.DefaultDebugPodImage, []string{})
@@ -79,11 +81,12 @@ func (cc *ConnectionCheck) GenerateSS(namespace string) (*types.ComMatrix, []byt
 			defer func() {
 				err := cc.podUtils.DeletePod(debugPod)
 				if err != nil {
-					fmt.Printf("failed cleaning debug pod %s: %v", debugPod, err)
+					log.Warningf("failed cleaning debug pod %s: %v", debugPod.Name, err)
 				}
 			}()
 
-			cds, ssTCP, ssUDP, err := cc.createSSOutputFromNode(debugPod, name)
+			group := cc.nodeToGroup[name]
+			cds, ssTCP, ssUDP, err := cc.createSSOutputFromNode(debugPod, group)
 			if err != nil {
 				return err
 			}
@@ -124,7 +127,7 @@ func (cc *ConnectionCheck) WriteSSRawFiles(ssOutTCP, ssOutUDP []byte) error {
 	return nil
 }
 
-func (cc *ConnectionCheck) createSSOutputFromNode(debugPod *corev1.Pod, nodeName string) ([]types.ComDetails, []byte, []byte, error) {
+func (cc *ConnectionCheck) createSSOutputFromNode(debugPod *corev1.Pod, group string) ([]types.ComDetails, []byte, []byte, error) {
 	ssOutTCP, err := cc.podUtils.RunCommandOnPod(debugPod, []string{"/bin/sh", "-c", "ss -anpltH"})
 	if err != nil {
 		return nil, nil, nil, err
@@ -134,11 +137,12 @@ func (cc *ConnectionCheck) createSSOutputFromNode(debugPod *corev1.Pod, nodeName
 		return nil, nil, nil, err
 	}
 
-	ssOutFilteredTCP := filterEntries(splitByLines(ssOutTCP))
-	ssOutFilteredUDP := filterEntries(splitByLines(ssOutUDP))
+	loopbackIPs := cc.getLoopbackIPs(debugPod)
+	ssOutFilteredTCP := filterEntries(splitByLines(ssOutTCP), loopbackIPs)
+	ssOutFilteredUDP := filterEntries(splitByLines(ssOutUDP), loopbackIPs)
 
-	tcpComDetails := cc.toComDetails(debugPod, ssOutFilteredTCP, "TCP", cc.nodeToRole[nodeName])
-	udpComDetails := cc.toComDetails(debugPod, ssOutFilteredUDP, "UDP", cc.nodeToRole[nodeName])
+	tcpComDetails := cc.toComDetails(debugPod, ssOutFilteredTCP, "TCP", group)
+	udpComDetails := cc.toComDetails(debugPod, ssOutFilteredUDP, "UDP", group)
 
 	res := []types.ComDetails{}
 	res = append(res, udpComDetails...)
@@ -152,7 +156,7 @@ func splitByLines(bytes []byte) []string {
 	return strings.Split(str, "\n")
 }
 
-func (cc *ConnectionCheck) toComDetails(debugPod *corev1.Pod, ssOutput []string, protocol string, nodeRole string) []types.ComDetails {
+func (cc *ConnectionCheck) toComDetails(debugPod *corev1.Pod, ssOutput []string, protocol string, pool string) []types.ComDetails {
 	res := make([]types.ComDetails, 0)
 
 	for _, ssEntry := range ssOutput {
@@ -172,7 +176,7 @@ func (cc *ConnectionCheck) toComDetails(debugPod *corev1.Pod, ssOutput []string,
 		cd.Namespace = nameSpace
 		cd.Pod = podName
 		cd.Protocol = protocol
-		cd.NodeRole = nodeRole
+		cd.NodeGroup = pool
 		cd.Optional = false
 		res = append(res, *cd)
 	}
@@ -252,10 +256,13 @@ func extractPID(ssEntry string) (string, error) {
 	return pid, nil
 }
 
-func filterEntries(ssEntries []string) []string {
+func filterEntries(ssEntries []string, loopbackIPs map[string]bool) []string {
 	res := make([]string, 0)
 	for _, s := range ssEntries {
-		if strings.Contains(s, "127.0.0") || strings.Contains(s, "::1") || s == "" {
+		if s == "" {
+			continue
+		}
+		if isLoopbackEntry(s, loopbackIPs) {
 			continue
 		}
 
@@ -263,6 +270,82 @@ func filterEntries(ssEntries []string) []string {
 	}
 
 	return res
+}
+
+// isLoopbackEntry checks if an ss entry is listening on a loopback interface or its aliases.
+func isLoopbackEntry(ssEntry string, loopbackIPs map[string]bool) bool {
+	// Fast path for obvious loopback addresses
+	if strings.Contains(ssEntry, "127.0.0") {
+		return true
+	}
+
+	fields := strings.Fields(ssEntry)
+	if len(fields) <= localAddrPortFieldIdx {
+		return false
+	}
+
+	// Extract the local address from the ss entry (format typically "IP:PORT" or "[IPv6]:PORT")
+	localAddrPort := fields[localAddrPortFieldIdx]
+	localAddrPort = strings.Trim(localAddrPort, "[]")
+	lastColonIdx := strings.LastIndex(localAddrPort, ":")
+	if lastColonIdx == -1 {
+		return false
+	}
+	ipStr := localAddrPort[:lastColonIdx]
+
+	// Parse the IP address
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		// Fallback: simple checks
+		return strings.Contains(ssEntry, "127.") || strings.Contains(ssEntry, "::1")
+	}
+
+	// Standard loopback range
+	if ip.IsLoopback() {
+		return true
+	}
+
+	// Check discovered loopback aliases
+	if loopbackIPs[ip.String()] {
+		return true
+	}
+
+	// IPv6 canonical without zone
+	if ip.To4() == nil {
+		if idx := strings.Index(ip.String(), "%"); idx != -1 {
+			if loopbackIPs[ip.String()[:idx]] {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (cc *ConnectionCheck) getLoopbackIPs(debugPod *corev1.Pod) map[string]bool {
+	type addr struct {
+		Local string `json:"local"`
+	}
+	type iface struct {
+		AddrInfo []addr `json:"addr_info"`
+	}
+	out, err := cc.podUtils.RunCommandOnPod(debugPod, []string{"chroot", "/host", "/bin/sh", "-c", "ip -j addr show lo"})
+	if err != nil {
+		return map[string]bool{}
+	}
+	var parsed []iface
+	if json.Unmarshal(out, &parsed) != nil {
+		return map[string]bool{}
+	}
+	ips := make(map[string]bool)
+	for _, it := range parsed {
+		for _, ai := range it.AddrInfo {
+			if ai.Local != "" {
+				ips[ai.Local] = true
+			}
+		}
+	}
+	return ips
 }
 
 func parseComDetail(ssEntry string) *types.ComDetails {

@@ -5,10 +5,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/openshift-kni/commatrix/pkg/endpointslices"
+	"github.com/openshift-kni/commatrix/pkg/mcp"
 	"github.com/openshift-kni/commatrix/pkg/types"
 	configv1 "github.com/openshift/api/config/v1"
 )
@@ -60,6 +62,16 @@ func (cm *CommunicationMatrixCreator) CreateEndpointMatrix() (*types.ComMatrix, 
 		log.Errorf("Failed adding static entries: %s", err)
 		return nil, fmt.Errorf("failed adding static entries: %s", err)
 	}
+
+	// List of [master, worker] roles per pool for static entries expansion
+	PoolRolesForStaticEntriesExpansion, err := mcp.GetPoolRolesForStaticEntriesExpansion(cm.exporter.ClientSet, cm.exporter.NodeToGroup())
+	if err != nil {
+		log.Errorf("Failed to extract pool to roles: %v", err)
+		return nil, err
+	}
+
+	// Expand static entries for all MCPs based on their roles
+	staticEntries = expandStaticEntriesByPool(staticEntries, PoolRolesForStaticEntriesExpansion)
 	epSliceComDetails = append(epSliceComDetails, staticEntries...)
 
 	if cm.customEntriesPath != "" {
@@ -142,4 +154,23 @@ func (cm *CommunicationMatrixCreator) GetStaticEntries() ([]types.ComDetails, er
 	}
 	log.Debug("Successfully determined static entries")
 	return comDetails, nil
+}
+
+// expandStaticEntriesByPool uses MCP-derived role per pool.
+func expandStaticEntriesByPool(staticEntries []types.ComDetails, poolToRoles map[string][]string) []types.ComDetails {
+	if len(poolToRoles) == 0 {
+		return staticEntries
+	}
+	out := make([]types.ComDetails, 0, len(staticEntries))
+	for _, se := range staticEntries {
+		for poolName, roles := range poolToRoles {
+			// check membership in slice
+			if slices.Contains(roles, se.NodeGroup) {
+				dup := se
+				dup.NodeGroup = poolName
+				out = append(out, dup)
+			}
+		}
+	}
+	return out
 }
