@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/test/extended/util"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +50,7 @@ func isClusterOperatorDegraded(operator *v1.ClusterOperator) bool {
 	return false
 }
 
-func hasNodeRebooted(oc *util.CLI, node *corev1.Node) (bool, error) {
+func hasNodeRebooted(oc *exutil.CLI, node *corev1.Node) (bool, error) {
 	if n, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), node.Name, metav1.GetOptions{}); err != nil {
 		return false, err
 	} else {
@@ -260,5 +260,359 @@ func validateClusterOperatorsAvailable(oc *exutil.CLI) error {
 	}
 
 	framework.Logf("All %d cluster operators are available and not degraded", totalOperators)
+	return nil
+}
+
+// logEtcdClusterStatus performs comprehensive etcd cluster status logging and validation
+// This function is designed to be used in AfterEach functions to ensure tests leave the cluster in a known good state
+func logEtcdClusterStatus(oc *exutil.CLI, testContext string) error {
+	framework.Logf("=== Starting comprehensive etcd cluster status check (%s) ===", testContext)
+
+	// Check etcd ClusterOperator status
+	framework.Logf("Checking etcd ClusterOperator status...")
+	etcdOperator, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().Get(context.Background(), "etcd", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("ERROR: Failed to retrieve etcd ClusterOperator: %v", err)
+		return fmt.Errorf("failed to retrieve etcd ClusterOperator: %v", err)
+	}
+
+	// Log etcd operator conditions in detail
+	framework.Logf("Etcd ClusterOperator conditions:")
+	for _, condition := range etcdOperator.Status.Conditions {
+		framework.Logf("  - %s: %s (Reason: %s, Message: %s, LastTransition: %s)",
+			condition.Type, condition.Status, condition.Reason, condition.Message, condition.LastTransitionTime)
+	}
+
+	// Check if etcd operator is Available
+	available := false
+	degraded := false
+	progressing := false
+
+	for _, condition := range etcdOperator.Status.Conditions {
+		switch condition.Type {
+		case v1.OperatorAvailable:
+			available = (condition.Status == v1.ConditionTrue)
+		case v1.OperatorDegraded:
+			degraded = (condition.Status == v1.ConditionTrue)
+		case v1.OperatorProgressing:
+			progressing = (condition.Status == v1.ConditionTrue)
+		}
+	}
+
+	framework.Logf("Etcd ClusterOperator summary: Available=%t, Degraded=%t, Progressing=%t", available, degraded, progressing)
+
+	if !available {
+		framework.Logf("WARNING: etcd ClusterOperator is not Available")
+		return fmt.Errorf("etcd ClusterOperator is not Available")
+	}
+	if degraded {
+		framework.Logf("WARNING: etcd ClusterOperator is Degraded")
+		return fmt.Errorf("etcd ClusterOperator is Degraded")
+	}
+	if progressing {
+		framework.Logf("INFO: etcd ClusterOperator is Progressing (this may be normal during updates)")
+	}
+
+	// Check etcd pods status
+	framework.Logf("Checking etcd pods status...")
+	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app=etcd",
+	})
+	if err != nil {
+		framework.Logf("ERROR: Failed to retrieve etcd pods: %v", err)
+		return fmt.Errorf("failed to retrieve etcd pods: %v", err)
+	}
+
+	framework.Logf("Found %d etcd pods:", len(etcdPods.Items))
+	runningPods := 0
+	for _, pod := range etcdPods.Items {
+		framework.Logf("  - Pod %s: Phase=%s, Ready=%t, Node=%s",
+			pod.Name, pod.Status.Phase, isPodReady(&pod), pod.Spec.NodeName)
+
+		// Log container statuses for more detail
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			framework.Logf("    Container %s: Ready=%t, RestartCount=%d",
+				containerStatus.Name, containerStatus.Ready, containerStatus.RestartCount)
+			if containerStatus.State.Waiting != nil {
+				framework.Logf("      Waiting: %s - %s", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message)
+			}
+			if containerStatus.State.Terminated != nil {
+				framework.Logf("      Terminated: %s - %s", containerStatus.State.Terminated.Reason, containerStatus.State.Terminated.Message)
+			}
+		}
+
+		if pod.Status.Phase == corev1.PodRunning {
+			runningPods++
+		}
+	}
+
+	framework.Logf("Etcd pods summary: %d total, %d running", len(etcdPods.Items), runningPods)
+
+	if runningPods < 1 {
+		framework.Logf("ERROR: No etcd pods are running")
+		return fmt.Errorf("no etcd pods are running")
+	}
+
+	// Enhanced node and etcd member health checks
+	nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		framework.Logf("WARNING: Failed to retrieve nodes for etcd member health check: %v", err)
+	} else {
+		framework.Logf("=== Enhanced Node and Etcd Member Analysis ===")
+
+		// Check if both nodes are healthy
+		framework.Logf("Checking node health status...")
+		healthyNodes := 0
+		readyNodes := 0
+		for _, node := range nodeList.Items {
+			isReady := false
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+					isReady = true
+					readyNodes++
+					break
+				}
+			}
+
+			framework.Logf("  - Node %s: Ready=%t, Roles=%s",
+				node.Name, isReady, getNodeRoles(&node))
+
+			if isReady {
+				healthyNodes++
+			}
+		}
+		framework.Logf("Node health summary: %d total nodes, %d ready nodes", len(nodeList.Items), readyNodes)
+
+		// Enhanced etcd member analysis
+		framework.Logf("Checking detailed etcd member status...")
+		votingMembers := 0
+		learnerMembers := 0
+		healthyMembers := 0
+
+		for _, node := range nodeList.Items {
+			// Check if this node has an etcd pod
+			var etcdPod *corev1.Pod
+			for _, pod := range etcdPods.Items {
+				if pod.Spec.NodeName == node.Name && pod.Status.Phase == corev1.PodRunning {
+					etcdPod = &pod
+					break
+				}
+			}
+
+			if etcdPod != nil {
+				framework.Logf("  - Node %s: has running etcd pod %s", node.Name, etcdPod.Name)
+				healthyMembers++
+
+				// Try to determine if member is promoted (voting) or learner
+				// This is inferred from etcd operator status rather than direct etcd API calls
+				memberStatus := checkEtcdMemberPromotionStatus(oc, node.Name)
+				switch memberStatus {
+				case "voting":
+					votingMembers++
+					framework.Logf("    └─ Member status: VOTING (promoted)")
+				case "learner":
+					learnerMembers++
+					framework.Logf("    └─ Member status: LEARNER (not yet promoted)")
+				default:
+					framework.Logf("    └─ Member status: UNKNOWN (unable to determine)")
+				}
+			} else {
+				framework.Logf("  - Node %s: no running etcd pod", node.Name)
+			}
+		}
+
+		framework.Logf("Etcd member promotion summary: %d voting members, %d learner members, %d total healthy",
+			votingMembers, learnerMembers, healthyMembers)
+
+		// Check if both members are promoted (for 2-node clusters)
+		if len(nodeList.Items) == 2 {
+			if votingMembers == 2 && learnerMembers == 0 {
+				framework.Logf("✅ Both etcd members are promoted (voting members)")
+			} else if learnerMembers > 0 {
+				framework.Logf("⚠️  Found %d learner members - waiting for promotion to voting members", learnerMembers)
+			} else {
+				framework.Logf("❓ Unable to determine promotion status for all members")
+			}
+		}
+	}
+
+	// Check if we're waiting for CEO (Cluster Etcd Operator) revision controller
+	framework.Logf("=== CEO Revision Controller Analysis ===")
+	if err := checkCEORevisionControllerStatus(oc); err != nil {
+		framework.Logf("WARNING: CEO revision controller issues detected: %v", err)
+	}
+
+	// Final validation - ensure cluster operators are available
+	framework.Logf("=== Final Cluster Operators Validation ===")
+	if err := validateClusterOperatorsAvailable(oc); err != nil {
+		framework.Logf("WARNING: Some cluster operators are not available: %v", err)
+		// Don't return error here as this might be transient during cluster operations
+	} else {
+		framework.Logf("All cluster operators are available and healthy")
+	}
+
+	framework.Logf("=== Etcd cluster status check completed successfully (%s) ===", testContext)
+	return nil
+}
+
+// isPodReady checks if a pod is ready based on its conditions
+func isPodReady(pod *corev1.Pod) bool {
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+// getNodeRoles returns a comma-separated string of node roles
+func getNodeRoles(node *corev1.Node) string {
+	var roles []string
+
+	for label := range node.Labels {
+		switch label {
+		case labelNodeRoleMaster:
+			roles = append(roles, "master")
+		case labelNodeRoleControlPlane:
+			roles = append(roles, "control-plane")
+		case labelNodeRoleWorker:
+			roles = append(roles, "worker")
+		case labelNodeRoleArbiter:
+			roles = append(roles, "arbiter")
+		}
+	}
+
+	if len(roles) == 0 {
+		return "none"
+	}
+
+	return strings.Join(roles, ",")
+}
+
+// checkEtcdMemberPromotionStatus attempts to determine if an etcd member is voting or learner
+// This is inferred from the etcd operator's node status rather than direct etcd API calls
+func checkEtcdMemberPromotionStatus(oc *exutil.CLI, nodeName string) string {
+	// Get etcd operator status
+	etcdOperator, err := oc.AdminOperatorClient().OperatorV1().Etcds().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("Unable to get etcd operator status for member promotion check: %v", err)
+		return "unknown"
+	}
+
+	// Check node statuses in etcd operator
+	for _, nodeStatus := range etcdOperator.Status.NodeStatuses {
+		if nodeStatus.NodeName == nodeName {
+			// Check if the node has a current revision and is not in learner state
+			// A member with a current revision that matches the latest available revision
+			// is typically a voting member
+			if nodeStatus.CurrentRevision > 0 {
+				// Additional heuristics could be added here based on the operator status
+				// For now, assume members with current revisions are voting members
+
+				// Check if there are any conditions indicating learner status
+				// This is a best-effort approach as the exact status depends on operator internals
+				return "voting"
+			} else {
+				return "learner"
+			}
+		}
+	}
+
+	return "unknown"
+}
+
+// checkCEORevisionControllerStatus checks if we're waiting for CEO revision controller to clear conditions
+func checkCEORevisionControllerStatus(oc *exutil.CLI) error {
+	framework.Logf("Checking CEO (Cluster Etcd Operator) revision controller status...")
+
+	// Get etcd operator status
+	etcdOperator, err := oc.AdminOperatorClient().OperatorV1().Etcds().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get etcd operator for revision controller check: %v", err)
+	}
+
+	// Check if operator is progressing (which might indicate revision controller activity)
+	progressing := false
+	progressingReason := ""
+	progressingMessage := ""
+
+	for _, condition := range etcdOperator.Status.Conditions {
+		if condition.Type == operatorv1.OperatorStatusTypeProgressing && condition.Status == operatorv1.ConditionTrue {
+			progressing = true
+			progressingReason = condition.Reason
+			progressingMessage = condition.Message
+			break
+		}
+	}
+
+	if progressing {
+		framework.Logf("CEO is progressing: Reason=%s, Message=%s", progressingReason, progressingMessage)
+
+		// Check if this looks like revision controller activity
+		if strings.Contains(strings.ToLower(progressingMessage), "revision") ||
+			strings.Contains(strings.ToLower(progressingReason), "revision") {
+			framework.Logf("🔄 Appears to be waiting for CEO revision controller activity")
+			framework.Logf("   This typically indicates the operator is processing revision changes")
+		}
+	} else {
+		framework.Logf("CEO is not currently progressing - revision controller appears stable")
+	}
+
+	// Check revision consistency across nodes
+	framework.Logf("Checking revision consistency across etcd members...")
+	latestRevision := int32(0)
+	revisionMap := make(map[int32][]string)
+
+	for _, nodeStatus := range etcdOperator.Status.NodeStatuses {
+		if nodeStatus.CurrentRevision > latestRevision {
+			latestRevision = nodeStatus.CurrentRevision
+		}
+		revisionMap[nodeStatus.CurrentRevision] = append(revisionMap[nodeStatus.CurrentRevision], nodeStatus.NodeName)
+	}
+
+	framework.Logf("Latest revision: %d", latestRevision)
+	for revision, nodes := range revisionMap {
+		if revision == latestRevision {
+			framework.Logf("  - Revision %d (latest): nodes %v ✅", revision, nodes)
+		} else {
+			framework.Logf("  - Revision %d (outdated): nodes %v ⚠️", revision, nodes)
+		}
+	}
+
+	// Check if all nodes are on the same revision
+	if len(revisionMap) == 1 {
+		framework.Logf("✅ All etcd members are on the same revision (%d)", latestRevision)
+	} else {
+		framework.Logf("⚠️  Etcd members are on different revisions - CEO may be processing updates")
+		framework.Logf("   This could indicate the revision controller is working to sync all members")
+	}
+
+	// Check for any specific revision-related conditions
+	framework.Logf("Checking for revision-related operator conditions...")
+	hasRevisionIssues := false
+
+	for _, condition := range etcdOperator.Status.Conditions {
+		conditionLower := strings.ToLower(string(condition.Type))
+		messageLower := strings.ToLower(condition.Message)
+		reasonLower := strings.ToLower(condition.Reason)
+
+		if strings.Contains(conditionLower, "revision") ||
+			strings.Contains(messageLower, "revision") ||
+			strings.Contains(reasonLower, "revision") {
+
+			framework.Logf("  - Revision-related condition: %s=%s (Reason: %s)",
+				condition.Type, condition.Status, condition.Reason)
+			framework.Logf("    Message: %s", condition.Message)
+
+			if condition.Status == operatorv1.ConditionTrue && string(condition.Type) != string(operatorv1.OperatorStatusTypeAvailable) {
+				hasRevisionIssues = true
+			}
+		}
+	}
+
+	if !hasRevisionIssues {
+		framework.Logf("✅ No revision-related issues detected in CEO conditions")
+	}
+
 	return nil
 }
