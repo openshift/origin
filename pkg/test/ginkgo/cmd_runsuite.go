@@ -436,18 +436,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
-	cliTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-cli]")
-	})
-
-	appsTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-apps]")
-	})
-
-	nodeTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
-		return strings.Contains(t.name, "[sig-node]")
-	})
-
 	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-network]")
 	})
@@ -461,7 +449,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	})
 
 	// separate from cliTests
-	mustGatherTests, cliTests := splitTests(cliTests, func(t *testCase) bool {
+	mustGatherTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli] oc adm must-gather")
 	})
 
@@ -469,9 +457,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
 	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
-	logrus.Infof("Found %d cli tests", len(cliTests))
-	logrus.Infof("Found %d apps tests", len(appsTests))
-	logrus.Infof("Found %d node tests", len(nodeTests))
 	logrus.Infof("Found %d network tests", len(networkTests))
 	logrus.Infof("Found %d builds tests", len(buildsTests))
 	logrus.Infof("Found %d must-gather tests", len(mustGatherTests))
@@ -483,9 +468,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
 		originalNetworkK8s := networkK8sTests
-		originalCLI := cliTests
-		originalApps := appsTests
-		originalNode := nodeTests
 		originalNetwork := networkTests
 		originalBuilds := buildsTests
 		originalMustGather := mustGatherTests
@@ -494,16 +476,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
-			cliTests = append(cliTests, copyTests(originalCLI)...)
-			appsTests = append(appsTests, copyTests(originalApps)...)
-			nodeTests = append(nodeTests, copyTests(originalNode)...)
 			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(cliTests) + len(appsTests) + len(nodeTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -537,18 +516,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		networkK8sTestsCopy := copyTests(networkK8sTests)
 		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
 		tests = append(tests, networkK8sTestsCopy...)
-
-		cliTestsCopy := copyTests(cliTests)
-		q.Execute(testCtx, cliTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // cli tests only run at half the parallelism, so we can avoid high cpu problems.
-		tests = append(tests, cliTestsCopy...)
-
-		appsTestsCopy := copyTests(appsTests)
-		q.Execute(testCtx, appsTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // apps tests only run at half the parallelism, so we can avoid high cpu problems.
-		tests = append(tests, appsTestsCopy...)
-
-		nodeTestsCopy := copyTests(nodeTests)
-		q.Execute(testCtx, nodeTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run node tests separately at half the parallelism, so we can avoid high cpu problems.
-		tests = append(tests, nodeTestsCopy...)
 
 		networkTestsCopy := copyTests(networkTests)
 		q.Execute(testCtx, networkTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
