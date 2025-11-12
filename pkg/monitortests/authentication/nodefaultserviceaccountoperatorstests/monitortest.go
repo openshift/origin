@@ -105,11 +105,11 @@ var exceptions = []func(pod corev1.Pod) bool{
 	},
 	func(pod corev1.Pod) bool {
 		podNameNSCombo := pod.Namespace + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-multus/multus-additional-")
+		return strings.HasPrefix(podNameNSCombo, "openshift-multus/multus-additional-cni-plugins-")
 	},
 	func(pod corev1.Pod) bool {
 		podNameNSCombo := pod.Namespace + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-multus/cni-sysctl-allowlist-")
+		return strings.HasPrefix(podNameNSCombo, "openshift-multus/cni-sysctl-allowlist-ds-")
 	},
 	func(pod corev1.Pod) bool {
 		podNameNSCombo := pod.Namespace + pod.Name
@@ -131,9 +131,9 @@ var exceptions = []func(pod corev1.Pod) bool{
 		podNameNSCombo := pod.Namespace + pod.Name
 		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-api/capv-controller-manager-")
 	},
-	// func(pod corev1.Pod) bool {
-	// 	return pod.Namespace == "openshift-marketplace"
-	// },
+	func(pod corev1.Pod) bool {
+		return pod.Namespace == "openshift-marketplace"
+	},
 }
 
 // generateDefaultSAFailures generates a list of failures where the pod in a list of pods
