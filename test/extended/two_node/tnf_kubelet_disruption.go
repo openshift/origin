@@ -35,10 +35,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.BeforeEach(func() {
 		skipIfNotTopology(oc, v1.DualReplicaTopologyMode)
 
-		g.By("Verifying etcd cluster operator is healthy before starting kubelet disruption test")
+		g.By("Verifying comprehensive etcd cluster status before starting kubelet disruption test")
 		o.Eventually(func() error {
-			return ensureEtcdOperatorHealthy(oc)
-		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy before starting test")
+			return logEtcdClusterStatus(oc, "BeforeEach validation")
+		}, etcdOperatorIsHealthyTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy before starting test")
 
 		nodeList, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).ShouldNot(o.HaveOccurred(), "Expected to retrieve nodes without error")
@@ -104,6 +104,11 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					return nodeutil.IsNodeReady(nodeObj)
 				}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after cleanup", node.Name))
 			}
+
+			g.By("Cleanup: Validating etcd cluster status after test cleanup")
+			o.Eventually(func() error {
+				return logEtcdClusterStatus(oc, "AfterEach cleanup")
+			}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy after test cleanup")
 		}
 	})
 
@@ -172,10 +177,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after kubelet constraint removal", node.Name))
 		}
 
-		g.By("Validating etcd cluster recovery after kubelet constraint removal")
+		g.By("Validating comprehensive etcd cluster recovery after kubelet constraint removal")
 		o.Eventually(func() error {
-			return ensureEtcdOperatorHealthy(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet constraint removal")
+			return logEtcdClusterStatus(oc, "constraint removal recovery")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet constraint removal")
 
 		g.By("Ensuring both etcd members are healthy after kubelet constraint removal")
 		for _, node := range nodes {
@@ -251,12 +256,12 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 		}
 		framework.Logf("All etcd members are healthy after kubelet service restart")
 
-		g.By("Validating etcd cluster recovery after kubelet service automatic restart")
-		framework.Logf("Starting etcd cluster operator health validation after kubelet restart")
+		g.By("Validating comprehensive etcd cluster recovery after kubelet service automatic restart")
+		framework.Logf("Starting comprehensive etcd cluster validation after kubelet restart")
 		o.Eventually(func() error {
-			return ensureEtcdOperatorHealthy(oc)
-		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster operator should be healthy after kubelet automatic restart")
-		framework.Logf("Etcd cluster operator is healthy after kubelet restart")
+			return logEtcdClusterStatus(oc, "kubelet service restart recovery")
+		}, kubeletRestoreTimeout, pollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be fully healthy after kubelet automatic restart")
+		framework.Logf("Comprehensive etcd cluster validation completed successfully after kubelet restart")
 
 		g.By("Validating cluster operators recovery after kubelet service automatic restart")
 		framework.Logf("Starting cluster operators availability validation after kubelet restart")
