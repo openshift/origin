@@ -174,7 +174,7 @@ func debugNode(oc *exutil.CLI, nodeName string, cmdOptions []string, needChroot 
 		cargs = append(cargs, "--")
 	}
 	cargs = append(cargs, cmd...)
-	return oc.AsAdmin().WithoutNamespace().Run("debug").Args(cargs...).Outputs()
+	return determineExecCLI(oc).WithoutNamespace().Run("debug").Args(cargs...).Outputs()
 }
 
 // DeleteLabelFromNode delete the custom label from the node
@@ -390,7 +390,7 @@ func GetNodeArchByName(oc *exutil.CLI, nodeName string) string {
 
 // GetNodeListByLabel gets the node list by label
 func GetNodeListByLabel(oc *exutil.CLI, labelKey string) []string {
-	output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", "-l", labelKey, "-o=jsonpath={.items[*].metadata.name}").Output()
+	output, err := determineExecCLI(oc).WithoutNamespace().Run("get").Args("node", "-l", labelKey, "-o=jsonpath={.items[*].metadata.name}").Output()
 	o.Expect(err).NotTo(o.HaveOccurred(), "Fail to get node with label %v, got error: %v\n", labelKey, err)
 	nodeNameList := strings.Fields(output)
 	return nodeNameList
@@ -398,7 +398,7 @@ func GetNodeListByLabel(oc *exutil.CLI, labelKey string) []string {
 
 // IsDefaultNodeSelectorEnabled judges whether the test cluster enabled the defaultNodeSelector
 func IsDefaultNodeSelectorEnabled(oc *exutil.CLI) bool {
-	defaultNodeSelector, getNodeSelectorErr := oc.AsAdmin().WithoutNamespace().Run("get").Args("scheduler", "cluster", "-o=jsonpath={.spec.defaultNodeSelector}").Output()
+	defaultNodeSelector, getNodeSelectorErr := determineExecCLI(oc).WithoutNamespace().Run("get").Args("scheduler", "cluster", "-o=jsonpath={.spec.defaultNodeSelector}").Output()
 	if getNodeSelectorErr != nil && strings.Contains(defaultNodeSelector, `the server doesn't have a resource type`) {
 		e2e.Logf("WARNING: The scheduler API is not supported on the test cluster")
 		return false

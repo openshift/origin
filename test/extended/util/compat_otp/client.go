@@ -38,12 +38,22 @@ func NewCLIForKubeOpenShift(basename string) *exutil.CLI {
 	return exutil.NewCLI(basename)
 }
 
+// determineExecCLI returns the appropriate CLI object based on guest kubeconfig availability.
+// If guest kubeconfig is set, returns CLI with guest config; otherwise returns CLI with admin config.
+// This ensures operations target the correct cluster (management vs. guest) automatically.
+func determineExecCLI(oc *exutil.CLI) *exutil.CLI {
+	if oc.GetGuestKubeconf() != "" {
+		return oc.AsGuestKubeconf()
+	}
+	return oc.AsAdmin()
+}
+
 // IsNamespacePrivileged checks if a namespace has privileged SCC
 func IsNamespacePrivileged(oc *exutil.CLI, namespace string) (bool, error) {
 	// Check for the Kubernetes Pod Security Admission 'enforce: privileged' label.
 	// This is the direct confirmation that the namespace's admission controller
 	// will allow an unrestricted pod (like the one created by 'oc debug node').
-	stdout, err := oc.AsAdmin().Run("get").Args("ns", namespace, "-o", `jsonpath={.metadata.labels.pod-security\.kubernetes\.io/enforce}`).Output()
+	stdout, err := determineExecCLI(oc).Run("get").Args("ns", namespace, "-o", `jsonpath={.metadata.labels.pod-security\.kubernetes\.io/enforce}`).Output()
 
 	if err != nil {
 		return false, err
@@ -59,7 +69,7 @@ func IsNamespacePrivileged(oc *exutil.CLI, namespace string) (bool, error) {
 
 // SetNamespacePrivileged sets a namespace to use privileged SCC
 func SetNamespacePrivileged(oc *exutil.CLI, namespace string) error {
-	err := oc.AsAdmin().Run("label").Args("ns", namespace, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "security.openshift.io/scc.podSecurityLabelSync=false", "--overwrite").Execute()
+	err := determineExecCLI(oc).Run("label").Args("ns", namespace, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "pod-security.kubernetes.io/warn=privileged", "security.openshift.io/scc.podSecurityLabelSync=false", "--overwrite").Execute()
 	if err != nil {
 		return fmt.Errorf("failed to set namespace %s privileged: %v", namespace, err)
 	}
@@ -68,7 +78,7 @@ func SetNamespacePrivileged(oc *exutil.CLI, namespace string) error {
 
 // RecoverNamespaceRestricted recovers a namespace to restricted mode
 func RecoverNamespaceRestricted(oc *exutil.CLI, namespace string) error {
-	err := oc.AsAdmin().Run("label").Args("ns", namespace, "pod-security.kubernetes.io/enforce-", "pod-security.kubernetes.io/audit-", "pod-security.kubernetes.io/warn-", "security.openshift.io/scc.podSecurityLabelSync-").Execute()
+	err := determineExecCLI(oc).Run("label").Args("ns", namespace, "pod-security.kubernetes.io/enforce-", "pod-security.kubernetes.io/audit-", "pod-security.kubernetes.io/warn-", "security.openshift.io/scc.podSecurityLabelSync-").Execute()
 	if err != nil {
 		return fmt.Errorf("failed to recover namespace %s to restricted: %v", namespace, err)
 	}
