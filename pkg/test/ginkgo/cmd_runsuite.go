@@ -218,28 +218,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 
 	logrus.Infof("Discovered %d total tests", len(specs))
 
-	// Temporarily check for the presence of the [Skipped:xyz] annotation in the test names, once this synthetic test
-	// begins to pass we can remove the annotation logic
-	var annotatedSkipped []string
-	for _, t := range specs {
-		if strings.Contains(t.Name, "[Skipped") {
-			annotatedSkipped = append(annotatedSkipped, t.Name)
-		}
-	}
-	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
-	var skippedAnnotationSyntheticTestResults []*junitapi.JUnitTestCase
-	skippedAnnotationSyntheticTestResult := junitapi.JUnitTestCase{
-		Name: "[sig-trt] Skipped annotations present",
-	}
-	if len(annotatedSkipped) > 0 {
-		skippedAnnotationSyntheticTestResult.FailureOutput = &junitapi.FailureOutput{
-			Message: fmt.Sprintf("Skipped Annotations present in tests: %s", strings.Join(annotatedSkipped, ", ")),
-		}
-	}
-	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &skippedAnnotationSyntheticTestResult)
-	// If this fails, this additional run will make it flake
-	skippedAnnotationSyntheticTestResults = append(skippedAnnotationSyntheticTestResults, &junitapi.JUnitTestCase{Name: skippedAnnotationSyntheticTestResult.Name})
-
 	// skip tests due to newer k8s
 	restConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
@@ -609,7 +587,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 	syntheticTestResults = append(syntheticTestResults, stableClusterTestResults...)
-	syntheticTestResults = append(syntheticTestResults, skippedAnnotationSyntheticTestResults...)
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
@@ -626,12 +603,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	wasMasterNodeUpdated := ""
 	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
 		buf := &bytes.Buffer{}
-		if !upgrade {
-			// the current mechanism for external binaries does not support upgrade
-			// tests, so don't report information there at all
-			syntheticTestResults = append(syntheticTestResults, fallbackSyntheticTestResult...)
-		}
-
 		if len(syntheticTestResults) > 0 {
 			// mark any failures by name
 			failingSyntheticTestNames, flakySyntheticTestNames := sets.NewString(), sets.NewString()
