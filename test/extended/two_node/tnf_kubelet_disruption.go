@@ -103,10 +103,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 					}
 					return nodeutil.IsNodeReady(nodeObj)
 				}, kubeletRestoreTimeout, kubeletPollInterval).Should(o.BeTrue(), fmt.Sprintf("Node %s should be Ready after cleanup", node.Name))
-			}
-<<<<<<< HEAD
+		}
 
-			g.By("Cleanup: Validating etcd cluster status after test cleanup")
+		g.By("Cleanup: Validating etcd cluster status after test cleanup")
 		o.Eventually(func() error {
 			return logEtcdClusterStatus(oc, "AfterEach cleanup")
 		}, kubeletRestoreTimeout, kubeletPollInterval).ShouldNot(o.HaveOccurred(), "etcd cluster should be healthy after test cleanup")
