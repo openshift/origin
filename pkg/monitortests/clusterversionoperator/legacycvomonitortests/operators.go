@@ -731,7 +731,7 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 				return "https://issues.redhat.com/browse/OCPBUGS-62629"
 			}
 		case "network":
-			if reason == "Deploying" {
+			if reason == "Deploying" || reason == "MachineConfig" {
 				return "https://issues.redhat.com/browse/OCPBUGS-62630"
 			}
 		case "node-tuning":
