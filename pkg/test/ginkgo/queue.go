@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -55,30 +54,88 @@ func getTestConflictGroup(test *testCase) string {
 }
 
 // testScheduler manages test scheduling based on conflicts, taints, and tolerations
+// It maintains an ordered queue of tests and provides thread-safe scheduling operations
 type testScheduler struct {
 	mu               sync.Mutex
+	tests            []*testCase                // ordered queue of tests to execute
 	runningConflicts map[string]map[string]bool // tracks which conflicts are running per group: group -> conflict -> bool
 	activeTaints     map[string]int             // tracks how many tests are currently applying each taint
 }
 
-func newTestScheduler() *testScheduler {
+// newTestScheduler creates a test scheduler. Potentially this can order the
+// tests in any order and schedule tests based on resulted order.
+func newTestScheduler(tests []*testCase) *testScheduler {
 	return &testScheduler{
+		tests:            tests,
 		runningConflicts: make(map[string]map[string]bool),
 		activeTaints:     make(map[string]int),
 	}
 }
 
-// decrementAndCloseIfDone decrements the pending test counter and closes the channel if all tests are done
-func decrementAndCloseIfDone(pendingTestCount *int64, remainingTests chan *testCase) {
-	if atomic.AddInt64(pendingTestCount, -1) == 0 {
-		// Use defer and recover to handle potential double-close
-		defer func() {
-			if r := recover(); r != nil {
-				// Channel already closed, ignore
+// GetNextTestToRun scans the queue from the beginning and returns the first test that can run
+// Returns nil if no runnable test is found or if the queue is empty
+// When a test is returned, it is removed from the queue AND marked as running atomically
+func (ts *testScheduler) GetNextTestToRun() *testCase {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+
+	// Scan from beginning to find first runnable test
+	for i, test := range ts.tests {
+		conflictGroup := getTestConflictGroup(test)
+
+		// Ensure the conflict group map exists
+		if ts.runningConflicts[conflictGroup] == nil {
+			ts.runningConflicts[conflictGroup] = make(map[string]bool)
+		}
+
+		// Check if any of the test's conflicts are currently running within its group
+		hasConflict := false
+		for _, conflict := range test.isolation.Conflict {
+			if ts.runningConflicts[conflictGroup][conflict] {
+				hasConflict = true
+				break
 			}
-		}()
-		close(remainingTests)
+		}
+
+		// Check if test can tolerate all currently active taints
+		canTolerate := ts.canTolerateTaints(test)
+
+		if !hasConflict && canTolerate {
+			// Found a runnable test - ATOMICALLY:
+			// 1. Mark conflicts as running
+			for _, conflict := range test.isolation.Conflict {
+				ts.runningConflicts[conflictGroup][conflict] = true
+			}
+
+			// 2. Activate taints
+			for _, taint := range test.taint {
+				ts.activeTaints[taint]++
+			}
+
+			// 3. Remove test from queue
+			ts.tests = append(ts.tests[:i], ts.tests[i+1:]...)
+
+			// 4. Return the test (now safe to run)
+			return test
+		}
 	}
+
+	// No runnable test found
+	return nil
+}
+
+// isEmpty checks if the queue is empty
+func (ts *testScheduler) isEmpty() bool {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	return len(ts.tests) == 0
+}
+
+// size returns the current size of the queue
+func (ts *testScheduler) size() int {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	return len(ts.tests)
 }
 
 // canTolerateTaints checks if a test can tolerate all currently active taints
@@ -104,58 +161,9 @@ func (ts *testScheduler) canTolerateTaints(test *testCase) bool {
 	return true
 }
 
-// tryRunTest atomically checks if a test can run and executes it synchronously if possible
-// Returns true if the test was executed, false if there are conflicts or taint/toleration issues
-// The function blocks until the test completes before returning
-func (ts *testScheduler) tryRunTest(ctx context.Context, test *testCase, testSuiteRunner testSuiteRunner, pendingTestCount *int64, remainingTests chan *testCase) bool {
-	ts.mu.Lock()
-
-	// Get the conflict group for this test
-	conflictGroup := getTestConflictGroup(test)
-
-	// Ensure the conflict group map exists
-	if ts.runningConflicts[conflictGroup] == nil {
-		ts.runningConflicts[conflictGroup] = make(map[string]bool)
-	}
-
-	// Check if any of the test's conflicts are currently running within its group
-	for _, conflict := range test.isolation.Conflict {
-		if ts.runningConflicts[conflictGroup][conflict] {
-			ts.mu.Unlock()
-			return false // Cannot run due to conflicts within the same group
-		}
-	}
-
-	// Check if test can tolerate all currently active taints
-	if !ts.canTolerateTaints(test) {
-		ts.mu.Unlock()
-		return false // Cannot run due to taint/toleration mismatch
-	}
-
-	// All checks passed - mark conflicts as running within this group and activate taints
-	for _, conflict := range test.isolation.Conflict {
-		ts.runningConflicts[conflictGroup][conflict] = true
-	}
-
-	for _, taint := range test.taint {
-		ts.activeTaints[taint]++
-	}
-
-	// Release lock before running test (since test execution can take a while)
-	ts.mu.Unlock()
-
-	// Run the test synchronously
-	testSuiteRunner.RunOneTest(ctx, test)
-
-	// Clean up conflicts, taints, and decrement counter
-	ts.markTestCompleted(test)
-	decrementAndCloseIfDone(pendingTestCount, remainingTests)
-
-	return true
-}
-
-// markTestCompleted marks all conflicts and taints of a test as no longer running/active
-func (ts *testScheduler) markTestCompleted(test *testCase) {
+// MarkTestComplete marks all conflicts and taints of a test as no longer running/active
+// This should be called after a test completes execution
+func (ts *testScheduler) MarkTestComplete(test *testCase) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
@@ -214,58 +222,38 @@ func abortOnFailure(parentContext context.Context) (testAbortFunc, context.Conte
 	}, testCtx
 }
 
-// queueAllTests writes all the tests to the channel and closes it when all are finished
-// even with buffering, this can take a while since we don't infinitely buffer.
-func queueAllTests(remainingParallelTests chan *testCase, tests []*testCase) {
-	for i := range tests {
-		curr := tests[i]
-		remainingParallelTests <- curr
-	}
-	// Don't close the channel here - workers may need to put tests back
-}
-
-// runTestsUntilChannelEmpty reads from the channel to consume tests, run them, and return when no more tests are pending.
-// This version is conflict-aware and can handle both parallel and isolated tests.
-// If a test can't run due to conflicts, it's put back at the end of the queue.
-// Uses atomic counter to coordinate when all work is truly done.
-func runTestsUntilChannelEmpty(ctx context.Context, remainingTests chan *testCase, testSuiteRunner testSuiteRunner, scheduler *testScheduler, pendingTestCount *int64) {
+// runTestsUntilDone continuously polls the scheduler for runnable tests
+// Workers try to get the next runnable test in order, run it, mark complete, and repeat
+// Returns when all tests are complete or context is cancelled
+func runTestsUntilDone(ctx context.Context, scheduler *testScheduler, testSuiteRunner testSuiteRunner) {
 	for {
-		select {
-		// if the context is finished, simply return
-		case <-ctx.Done():
+		// Check context first
+		if ctx.Err() != nil {
 			return
+		}
 
-		case test, ok := <-remainingTests:
-			if !ok { // channel closed, we're done
+		// Try to get next runnable test (maintains order)
+		test := scheduler.GetNextTestToRun()
+
+		if test == nil {
+			// No runnable test found
+			if scheduler.isEmpty() {
+				// Queue is empty, we're done
 				return
 			}
-			// if the context is finished, simply return
-			if ctx.Err() != nil {
+			// Queue has tests but none can run right now - wait a bit before retrying
+			select {
+			case <-time.After(10 * time.Millisecond):
+				continue
+			case <-ctx.Done():
 				return
 			}
+		} else {
+			// Found a runnable test - execute it
+			testSuiteRunner.RunOneTest(ctx, test)
 
-			// Try to run the test atomically (handles both parallel and isolated tests)
-			if !scheduler.tryRunTest(ctx, test, testSuiteRunner, pendingTestCount, remainingTests) {
-				// Can't run now due to conflicts, put back at end of queue after a short delay
-				go func(t *testCase) {
-					// Small delay to avoid busy spinning when many tests are conflicting
-					select {
-					case <-time.After(10 * time.Millisecond):
-					case <-ctx.Done():
-						// Context cancelled, decrement pending count since test won't complete
-						decrementAndCloseIfDone(pendingTestCount, remainingTests)
-						return
-					}
-
-					select {
-					case remainingTests <- t:
-						// Successfully put back in queue
-					case <-ctx.Done():
-						// Context cancelled, decrement pending count since test won't complete
-						decrementAndCloseIfDone(pendingTestCount, remainingTests)
-					}
-				}(test)
-			}
+			// Mark test as complete (clean up conflicts and taints)
+			scheduler.MarkTestComplete(test)
 		}
 	}
 }
@@ -293,25 +281,19 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 	serial, parallel := splitTests(tests, isSerialTest)
 
 	if len(parallel) > 0 {
-		// Create test scheduler for managing test execution with conflicts and taints
-		scheduler := newTestScheduler()
-
-		// Start all non-serial tests in a unified channel
-		remainingTests := make(chan *testCase, 100)
-
-		// Use atomic counter to track pending tests for proper channel closure coordination
-		var pendingTestCount int64 = int64(len(parallel))
-
-		go queueAllTests(remainingTests, parallel)
+		// Create test scheduler with all parallel tests
+		// Scheduler encapsulates the queue and scheduling logic
+		scheduler := newTestScheduler(parallel)
 
 		var wg sync.WaitGroup
 
 		// Run all non-serial tests with conflict-aware workers
+		// Each worker polls the scheduler for the next runnable test in order
 		for i := 0; i < parallelism; i++ {
 			wg.Add(1)
 			go func(ctx context.Context) {
 				defer wg.Done()
-				runTestsUntilChannelEmpty(ctx, remainingTests, testSuiteRunner, scheduler, &pendingTestCount)
+				runTestsUntilDone(ctx, scheduler, testSuiteRunner)
 			}(ctx)
 		}
 
