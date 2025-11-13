@@ -243,6 +243,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return fmt.Errorf("no tests to run")
 	}
 
+	k8sTestNames := map[string]bool{}
+	for _, t := range specs {
+		if strings.Contains(t.ExtensionTestSpec.Source, "hyperkube") {
+			k8sTestNames[t.Name] = true
+		}
+	}
+
 	tests, err := extensionTestSpecsToOriginTestCases(specs)
 	if err != nil {
 		return errors.WithMessage(err, "could not convert test specs to origin test cases")
@@ -421,20 +428,28 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
-	storageTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
+	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
+		return k8sTestNames[t.name]
+	})
+
+	storageTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-storage]")
 	})
 
-	cliTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+	cliTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-cli]")
 	})
 
-	appsTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+	appsTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-apps]")
 	})
 
-	nodeTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
+	nodeTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[sig-node]")
+	})
+
+	networkK8sTests, kubeTests := splitTests(kubeTests, func(t *testCase) bool {
+		return strings.Contains(t.name, "[sig-network]")
 	})
 
 	networkTests, openshiftTests := splitTests(openshiftTests, func(t *testCase) bool {
@@ -451,7 +466,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	})
 
 	logrus.Infof("Found %d openshift tests", len(openshiftTests))
+	logrus.Infof("Found %d kubernetes tests", len(kubeTests))
 	logrus.Infof("Found %d storage tests", len(storageTests))
+	logrus.Infof("Found %d network k8s tests", len(networkK8sTests))
 	logrus.Infof("Found %d cli tests", len(cliTests))
 	logrus.Infof("Found %d apps tests", len(appsTests))
 	logrus.Infof("Found %d node tests", len(nodeTests))
@@ -462,8 +479,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// If user specifies a count, duplicate the kube and openshift tests that many times.
 	expectedTestCount := len(early) + len(late)
 	if count != -1 {
+		originalKube := kubeTests
 		originalOpenshift := openshiftTests
 		originalStorage := storageTests
+		originalNetworkK8s := networkK8sTests
 		originalCLI := cliTests
 		originalApps := appsTests
 		originalNode := nodeTests
@@ -472,17 +491,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		originalMustGather := mustGatherTests
 
 		for i := 1; i < count; i++ {
+			kubeTests = append(kubeTests, copyTests(originalKube)...)
 			openshiftTests = append(openshiftTests, copyTests(originalOpenshift)...)
 			storageTests = append(storageTests, copyTests(originalStorage)...)
 			cliTests = append(cliTests, copyTests(originalCLI)...)
 			appsTests = append(appsTests, copyTests(originalApps)...)
 			nodeTests = append(nodeTests, copyTests(originalNode)...)
+			networkK8sTests = append(networkK8sTests, copyTests(originalNetworkK8s)...)
 			networkTests = append(networkTests, copyTests(originalNetwork)...)
 			buildsTests = append(buildsTests, copyTests(originalBuilds)...)
 			mustGatherTests = append(mustGatherTests, copyTests(originalMustGather)...)
 		}
 	}
-	expectedTestCount += len(openshiftTests) + len(storageTests) + len(cliTests) + len(appsTests) + len(nodeTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
+	expectedTestCount += len(openshiftTests) + len(kubeTests) + len(storageTests) + len(cliTests) + len(appsTests) + len(nodeTests) + len(networkK8sTests) + len(networkTests) + len(buildsTests) + len(mustGatherTests)
 
 	abortFn := neverAbort
 	testCtx := ctx
@@ -504,10 +525,18 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 	// we loop indefinitely.
 	for i := 0; (i < 1 || count == -1) && testCtx.Err() == nil; i++ {
 
+		kubeTestsCopy := copyTests(kubeTests)
+		q.Execute(testCtx, kubeTestsCopy, parallelism, testOutputConfig, abortFn)
+		tests = append(tests, kubeTestsCopy...)
+
 		// I thought about randomizing the order of the kube, storage, and openshift tests, but storage dominates our e2e runs, so it doesn't help much.
 		storageTestsCopy := copyTests(storageTests)
 		q.Execute(testCtx, storageTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // storage tests only run at half the parallelism, so we can avoid cloud provider quota problems.
 		tests = append(tests, storageTestsCopy...)
+
+		networkK8sTestsCopy := copyTests(networkK8sTests)
+		q.Execute(testCtx, networkK8sTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // run network tests separately.
+		tests = append(tests, networkK8sTestsCopy...)
 
 		cliTestsCopy := copyTests(cliTests)
 		q.Execute(testCtx, cliTestsCopy, max(1, parallelism/2), testOutputConfig, abortFn) // cli tests only run at half the parallelism, so we can avoid high cpu problems.
