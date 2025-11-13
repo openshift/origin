@@ -41,7 +41,7 @@ var Annotations = map[string]string{
 
 	"[Serial][sig-cli] oc adm upgrade recommend runs successfully, even without upstream OpenShift Update Service customization": " [Suite:openshift/conformance/serial]",
 
-	"[Suite:openshift/conformance/serial][Serial][sig-node] Node sizing should have NODE_SIZING_ENABLED=false by default and NODE_SIZING_ENABLED=true when KubeletConfig with autoSizingReserved=true is applied": "",
+	"[Suite:openshift/conformance/serial][Serial][sig-node] System reserved should enable system-reserved-compressible and NODE_SIZING_ENABLED when KubeletConfig with system-reserved-compressible is applied": "",
 
 	"[Suite:openshift/machine-config-operator/disruptive][Suite:openshift/conformance/serial][sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": "",
 
