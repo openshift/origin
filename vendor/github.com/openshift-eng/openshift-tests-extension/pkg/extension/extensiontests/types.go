@@ -12,6 +12,12 @@ type Lifecycle string
 var LifecycleInforming Lifecycle = "informing"
 var LifecycleBlocking Lifecycle = "blocking"
 
+// IsTerminal returns true if failures in tests with this lifecycle should cause
+// the test run to exit with a non-zero exit code.
+func (l Lifecycle) IsTerminal() bool {
+	return l != LifecycleInforming
+}
+
 type ExtensionTestSpecs []*ExtensionTestSpec
 
 type ExtensionTestSpec struct {
@@ -68,8 +74,10 @@ type Resources struct {
 }
 
 type Isolation struct {
-	Mode     string   `json:"mode,omitempty"`
-	Conflict []string `json:"conflict,omitempty"`
+	Mode       string   `json:"mode,omitempty"`
+	Conflict   []string `json:"conflict,omitempty"`
+	Taint      []string `json:"taint,omitempty"`
+	Toleration []string `json:"toleration,omitempty"`
 }
 
 type EnvironmentSelector struct {
