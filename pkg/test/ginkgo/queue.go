@@ -17,40 +17,10 @@ type parallelByFileTestQueue struct {
 	commandContext *commandContext
 }
 
-type TestFunc func(ctx context.Context, test *testCase)
-
-// getTestRunningInstance returns the exec instance identifier for a test.
-func getTestRunningInstance(test *testCase) string {
-	// TODO: Implement actual instance assignment
-	return "instance-1"
-}
-
-// getTestBucket returns the bucket identifier for a test.
-func getTestBucket(test *testCase) string {
-	// TODO: Implement actual bucket assignment
-	return "bucket-a"
-}
-
 // getTestConflictGroup returns the conflict group for a test.
 // Conflicts are only checked within the same conflict group.
-// The group is determined by the test's isolation mode:
-//   - "instance": conflicts scoped to the running instance
-//   - "bucket": conflicts scoped to a test bucket
-//   - "exec" or empty: conflicts scoped to "default" group
 func getTestConflictGroup(test *testCase) string {
-	mode := test.isolation.Mode
-
-	switch mode {
-	case "instance":
-		return getTestRunningInstance(test)
-	case "bucket":
-		return getTestBucket(test)
-	case "exec", "":
-		return "default"
-	default:
-		// Unknown mode, fall back to default
-		return "default"
-	}
+	return "default"
 }
 
 // testScheduler manages test scheduling based on conflicts, taints, and tolerations
