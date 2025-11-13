@@ -73,6 +73,10 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:MachineConfigNodes]", func() {
 	})
 
 	g.It("[Serial]Should properly transition through MCN conditions on rebootless node update [apigroup:machineconfiguration.openshift.io]", func() {
+		// Skip this test when the `ImageModeStatusReporting` FeatureGate is enabled, since its
+		// regression tests handle the different conditions list.
+		SkipWhenFeatureGateEnabled(oc.AdminConfigClient(), "ImageModeStatusReporting")
+
 		if IsSingleNode(oc) {
 			ValidateMCNConditionTransitionsOnRebootlessUpdateSNO(oc, nodeDisruptionFixture, nodeDisruptionEmptyFixture, masterMCFixture)
 		} else {

@@ -19,6 +19,7 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	opv1 "github.com/openshift/api/operator/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	mcopclient "github.com/openshift/client-go/operator/clientset/versioned"
@@ -146,6 +147,34 @@ func IsMetal(oc *exutil.CLI) bool {
 func skipOnMetal(oc *exutil.CLI) {
 	if IsMetal(oc) {
 		e2eskipper.Skipf("This test does not apply to metal")
+	}
+}
+
+// `isFeatureGateEnabled` checks if the desired feature gate provided as a parameter is enabled in
+// the test cluster. It returns true if the feature gate is enabled and false otherwise.
+func isFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) bool {
+	// Get the FeatureGates resource
+	fgs, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "Error getting clsuter FeatureGates.")
+
+	// Loop through the feature gates to see if the desired one is enabled
+	fgEnabled := false
+	for _, fg := range fgs.Status.FeatureGates {
+		for _, enabledFG := range fg.Enabled {
+			if enabledFG.Name == featureGate {
+				fgEnabled = true
+				break
+			}
+		}
+	}
+	return fgEnabled
+}
+
+// `SkipWhenFeatureGateEnabled` skips a test if the desired feature gate provided as a parameter is
+// enabled in the test cluster.
+func SkipWhenFeatureGateEnabled(configClient configv1client.Interface, featureGate osconfigv1.FeatureGateName) {
+	if isFeatureGateEnabled(configClient, featureGate) {
+		e2eskipper.Skipf("Skipping this test since the `%v` FeatureGate is enabled.", featureGate)
 	}
 }
 
