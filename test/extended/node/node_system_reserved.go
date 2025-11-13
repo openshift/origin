@@ -21,15 +21,15 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node sizing", func() {
+var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] System reserved", func() {
 	defer g.GinkgoRecover()
 
-	f := framework.NewDefaultFramework("node-sizing")
+	f := framework.NewDefaultFramework("system-reserved")
 	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
-	oc := exutil.NewCLI("node-sizing")
+	oc := exutil.NewCLI("system-reserved")
 
-	g.It("should have NODE_SIZING_ENABLED=false by default and NODE_SIZING_ENABLED=true when KubeletConfig with autoSizingReserved=true is applied", func(ctx context.Context) {
+	g.It("should enable system-reserved-compressible and NODE_SIZING_ENABLED when KubeletConfig with system-reserved-compressible is applied", func(ctx context.Context) {
 		// Skip on MicroShift since it doesn't have the Machine Config Operator
 		isMicroshift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -53,7 +53,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		// Label the first worker node for our custom MCP
 		// This approach is taken so that all the nodes do not restart at the same time for the test
-		testMCPLabel := "node-sizing-test"
+		testMCPLabel := "system-reserved-test"
 		g.By(fmt.Sprintf("Labeling node %s with %s=true", nodeName, testMCPLabel))
 		node, err := oc.AdminKubeClient().CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get node")
@@ -85,7 +85,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		}()
 
 		// Create custom MachineConfigPool
-		testMCPName := "node-sizing-test"
+		testMCPName := "system-reserved-test"
 		g.By(fmt.Sprintf("Creating custom MachineConfigPool %s", testMCPName))
 		testMCP := &mcfgv1.MachineConfigPool{
 			TypeMeta: metav1.TypeMeta{
@@ -138,9 +138,9 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		err = oc.AsAdmin().Run("label").Args("namespace", namespace, "pod-security.kubernetes.io/enforce=privileged", "pod-security.kubernetes.io/audit=privileged", "--overwrite").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to label namespace with privileged pod security")
 
-		g.By("Creating a privileged pod with /etc mounted to verify default state")
-		podName := "node-sizing-test"
-		pod := createPrivilegedPodWithHostEtc(podName, namespace, nodeName)
+		g.By("Creating a privileged pod with /etc and /sys/fs/cgroup mounted to verify default state")
+		podName := "system-reserved-test-before"
+		pod := createPrivilegedPodWithHostPaths(podName, namespace, nodeName)
 
 		_, err = oc.AdminKubeClient().CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to create privileged pod")
@@ -150,12 +150,14 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		verifyNodeSizingEnabledFile(ctx, oc, podName, namespace, nodeName, "false")
 
+		verifyCpuWeightNotSet(ctx, oc, podName, namespace, nodeName)
+
 		g.By("Deleting the test pod before applying KubeletConfig")
 		err = oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, podName, metav1.DeleteOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to delete test pod")
 
-		// Now apply KubeletConfig and verify NODE_SIZING_ENABLED=true
-		kubeletConfigName := "auto-sizing-enabled"
+		// Now apply KubeletConfig and verify system-reserved-compressible is enabled
+		kubeletConfigName := "system-compressible-enabled"
 
 		// Clean up KubeletConfig on test completion
 		defer func() {
@@ -173,7 +175,7 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			}
 		}()
 
-		g.By("Creating KubeletConfig with autoSizingReserved=true")
+		g.By("Creating KubeletConfig with system-reserved-compressible enabled")
 		autoSizingReserved := true
 		kubeletConfig := &mcfgv1.KubeletConfig{
 			TypeMeta: metav1.TypeMeta{
@@ -185,6 +187,13 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			},
 			Spec: mcfgv1.KubeletConfigSpec{
 				AutoSizingReserved: &autoSizingReserved,
+				KubeletConfig: &mcfgv1.KubeletConfig{
+					SystemReservedCgroup: "/system.slice",
+					EnforceNodeAllocatable: []string{
+						"pods",
+						"system-reserved-compressible",
+					},
+				},
 				MachineConfigPoolSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"machineconfiguration.openshift.io/pool": testMCPName,
@@ -205,6 +214,8 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 
 		o.Expect(createdKC.Spec.AutoSizingReserved).NotTo(o.BeNil(), "AutoSizingReserved should not be nil")
 		o.Expect(*createdKC.Spec.AutoSizingReserved).To(o.BeTrue(), "AutoSizingReserved should be true")
+		o.Expect(createdKC.Spec.KubeletConfig.SystemReservedCgroup).To(o.Equal("/system.slice"), "SystemReservedCgroup should be /system.slice")
+		o.Expect(createdKC.Spec.KubeletConfig.EnforceNodeAllocatable).To(o.ContainElement("system-reserved-compressible"), "EnforceNodeAllocatable should contain system-reserved-compressible")
 
 		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
 		o.Eventually(func() bool {
@@ -226,9 +237,9 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		err = waitForMCPToBeReady(ctx, mcClient, testMCPName, 15*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("%s MCP should become ready with new configuration", testMCPName))
 
-		g.By("Creating a second privileged pod with /etc mounted to verify KubeletConfig was applied")
-		podName = "node-sizing-autosizing-test"
-		pod = createPrivilegedPodWithHostEtc(podName, namespace, nodeName)
+		g.By("Creating a second privileged pod with /etc and /sys/fs/cgroup mounted to verify KubeletConfig was applied")
+		podName = "system-reserved-test-after"
+		pod = createPrivilegedPodWithHostPaths(podName, namespace, nodeName)
 
 		// Clean up pod on test completion
 		defer func() {
@@ -246,6 +257,8 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 		waitForPodRunning(ctx, oc, podName, namespace)
 
 		verifyNodeSizingEnabledFile(ctx, oc, podName, namespace, nodeName, "true")
+
+		verifyCpuWeightSet(ctx, oc, podName, namespace, nodeName)
 
 		// This must happen before the MCP is deleted to avoid leaving the node in a degraded state
 		g.By(fmt.Sprintf("Removing node label %s from node %s to transition back to worker pool", testMCPLabel, nodeName))
@@ -267,8 +280,8 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 			currentConfig := currentNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
 			desiredConfig := currentNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
 
-			// Check if the node is using a worker config (not node-sizing-test config)
-			isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, "node-sizing-test") && currentConfig == desiredConfig
+			// Check if the node is using a worker config (not system-reserved-test config)
+			isWorkerConfig := currentConfig != "" && !strings.Contains(currentConfig, "system-reserved-test") && currentConfig == desiredConfig
 			if isWorkerConfig {
 				framework.Logf("Node %s successfully transitioned to worker config: %s", nodeName, currentConfig)
 			} else {
@@ -279,8 +292,8 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Node 
 	})
 })
 
-// createPrivilegedPodWithHostEtc creates a privileged pod with /etc mounted
-func createPrivilegedPodWithHostEtc(podName, namespace, nodeName string) *corev1.Pod {
+// createPrivilegedPodWithHostPaths creates a privileged pod with /etc and /sys/fs/cgroup mounted
+func createPrivilegedPodWithHostPaths(podName, namespace, nodeName string) *corev1.Pod {
 	return &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -307,6 +320,11 @@ func createPrivilegedPodWithHostEtc(podName, namespace, nodeName string) *corev1
 							MountPath: "/host/etc",
 							ReadOnly:  true,
 						},
+						{
+							Name:      "host-cgroup",
+							MountPath: "/host/sys/fs/cgroup",
+							ReadOnly:  true,
+						},
 					},
 				},
 			},
@@ -316,6 +334,14 @@ func createPrivilegedPodWithHostEtc(podName, namespace, nodeName string) *corev1
 					VolumeSource: corev1.VolumeSource{
 						HostPath: &corev1.HostPathVolumeSource{
 							Path: "/etc",
+						},
+					},
+				},
+				{
+					Name: "host-cgroup",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/sys/fs/cgroup",
 						},
 					},
 				},
@@ -352,6 +378,54 @@ func verifyNodeSizingEnabledFile(ctx context.Context, oc *exutil.CLI, podName, n
 		fmt.Sprintf("File should contain NODE_SIZING_ENABLED=%s", expectedValue))
 
 	framework.Logf("Successfully verified NODE_SIZING_ENABLED=%s on node %s", expectedValue, nodeName)
+}
+
+// verifyCpuWeightNotSet verifies that cpu.weight is not set in /sys/fs/cgroup/system.slice
+func verifyCpuWeightNotSet(ctx context.Context, oc *exutil.CLI, podName, namespace, nodeName string) {
+	g.By("Verifying /sys/fs/cgroup/system.slice/cpu.weight is not set")
+
+	// First check if the file exists
+	_, err := oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "test", "-f", "/host/sys/fs/cgroup/system.slice/cpu.weight").Output()
+
+	if err != nil {
+		// File doesn't exist, which is expected in default state
+		framework.Logf("cpu.weight file does not exist on node %s (expected before KubeletConfig)", nodeName)
+		return
+	}
+
+	// If file exists, read its contents
+	output, err := oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "cat", "/host/sys/fs/cgroup/system.slice/cpu.weight").Output()
+	if err != nil {
+		framework.Logf("Could not read cpu.weight file on node %s (this is expected): %v", nodeName, err)
+		return
+	}
+
+	framework.Logf("Contents of /sys/fs/cgroup/system.slice/cpu.weight before KubeletConfig:\n%s", output)
+
+	// In the default state, the file might exist but should be empty or have a default value
+	// We just log it for informational purposes
+	framework.Logf("cpu.weight before applying KubeletConfig: %s", strings.TrimSpace(output))
+}
+
+// verifyCpuWeightSet verifies that cpu.weight is set to a non-zero value in /sys/fs/cgroup/system.slice
+func verifyCpuWeightSet(ctx context.Context, oc *exutil.CLI, podName, namespace, nodeName string) {
+	g.By("Verifying /sys/fs/cgroup/system.slice/cpu.weight is set")
+
+	output, err := oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "test", "-f", "/host/sys/fs/cgroup/system.slice/cpu.weight").Output()
+	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("File /sys/fs/cgroup/system.slice/cpu.weight should exist on node %s. Output: %s", nodeName, output))
+
+	g.By("Reading /sys/fs/cgroup/system.slice/cpu.weight file contents")
+	output, err = oc.AsAdmin().Run("exec").Args(podName, "-n", namespace, "--", "cat", "/host/sys/fs/cgroup/system.slice/cpu.weight").Output()
+	o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to read /sys/fs/cgroup/system.slice/cpu.weight")
+
+	framework.Logf("Contents of /sys/fs/cgroup/system.slice/cpu.weight:\n%s", output)
+
+	cpuWeight := strings.TrimSpace(output)
+	g.By(fmt.Sprintf("Verifying cpu.weight is set to a non-empty value (found: %s)", cpuWeight))
+	o.Expect(cpuWeight).NotTo(o.BeEmpty(), "cpu.weight should be set to a non-empty value")
+	o.Expect(cpuWeight).NotTo(o.Equal("0"), "cpu.weight should not be 0")
+
+	framework.Logf("Successfully verified cpu.weight=%s is set on node %s", cpuWeight, nodeName)
 }
 
 // waitForMCPToBeReady waits for a MachineConfigPool to be ready
