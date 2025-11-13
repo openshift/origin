@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -177,6 +179,20 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Syste
 
 		g.By("Creating KubeletConfig with system-reserved-compressible enabled")
 		autoSizingReserved := true
+
+		// Create the kubelet configuration as a map
+		kubeletConfigData := map[string]interface{}{
+			"systemReservedCgroup": "/system.slice",
+			"enforceNodeAllocatable": []string{
+				"pods",
+				"system-reserved-compressible",
+			},
+		}
+
+		// Marshal to JSON
+		kubeletConfigJSON, err := json.Marshal(kubeletConfigData)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to marshal kubelet config to JSON")
+
 		kubeletConfig := &mcfgv1.KubeletConfig{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "machineconfiguration.openshift.io/v1",
@@ -187,12 +203,8 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Syste
 			},
 			Spec: mcfgv1.KubeletConfigSpec{
 				AutoSizingReserved: &autoSizingReserved,
-				KubeletConfig: &mcfgv1.KubeletConfig{
-					SystemReservedCgroup: "/system.slice",
-					EnforceNodeAllocatable: []string{
-						"pods",
-						"system-reserved-compressible",
-					},
+				KubeletConfig: &runtime.RawExtension{
+					Raw: kubeletConfigJSON,
 				},
 				MachineConfigPoolSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
@@ -214,8 +226,15 @@ var _ = g.Describe("[Suite:openshift/conformance/serial][Serial][sig-node] Syste
 
 		o.Expect(createdKC.Spec.AutoSizingReserved).NotTo(o.BeNil(), "AutoSizingReserved should not be nil")
 		o.Expect(*createdKC.Spec.AutoSizingReserved).To(o.BeTrue(), "AutoSizingReserved should be true")
-		o.Expect(createdKC.Spec.KubeletConfig.SystemReservedCgroup).To(o.Equal("/system.slice"), "SystemReservedCgroup should be /system.slice")
-		o.Expect(createdKC.Spec.KubeletConfig.EnforceNodeAllocatable).To(o.ContainElement("system-reserved-compressible"), "EnforceNodeAllocatable should contain system-reserved-compressible")
+
+		// Verify the kubelet config contains the expected fields
+		var verifyKubeletConfig map[string]interface{}
+		err = json.Unmarshal(createdKC.Spec.KubeletConfig.Raw, &verifyKubeletConfig)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to unmarshal kubelet config")
+		o.Expect(verifyKubeletConfig["systemReservedCgroup"]).To(o.Equal("/system.slice"), "SystemReservedCgroup should be /system.slice")
+		enforceNodeAllocatable, ok := verifyKubeletConfig["enforceNodeAllocatable"].([]interface{})
+		o.Expect(ok).To(o.BeTrue(), "enforceNodeAllocatable should be an array")
+		o.Expect(enforceNodeAllocatable).To(o.ContainElement("system-reserved-compressible"), "EnforceNodeAllocatable should contain system-reserved-compressible")
 
 		g.By(fmt.Sprintf("Waiting for %s MCP to start updating", testMCPName))
 		o.Eventually(func() bool {
