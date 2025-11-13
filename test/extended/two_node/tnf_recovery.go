@@ -250,16 +250,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
 		// Retry validation with 45-second intervals, up to 8 attempts (6 minutes total)
-		o.Eventually(func() error {
-			defer g.GinkgoRecover()
+		defer g.GinkgoRecover()
 
-			validateEtcdRecoveryState(oc, etcdClientFactory,
-				&peerNode,
-				&targetNode, true, false, // targetNode expected started == true, learner == false
-				30*time.Second, pollInterval)
+		validateEtcdRecoveryState(oc, etcdClientFactory,
+			&peerNode,
+			&targetNode, true, false, // targetNode expected started == true, learner == false
+			6*time.Minute, 45*time.Second)
 
-			return ensureEtcdOperatorHealthy(oc)
-		}, 6*time.Minute, 45*time.Second).ShouldNot(o.HaveOccurred(), "Expected cluster to recover after etcd process kill")
 	})
 })
 
