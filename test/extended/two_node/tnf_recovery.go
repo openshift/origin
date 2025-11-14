@@ -376,13 +376,13 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 	g.It("should recover from etcd process crash", func() {
 		// Note: This test kills the etcd process/container on one node to simulate
 		// a process crash, testing Pacemaker's ability to detect and restart etcd
+		survivedNode := peerNode
 		g.GinkgoT().Printf("Randomly selected %s (%s) for etcd process crash and %s (%s) to survive\n",
-			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
+			targetNode.Name, targetNode.Status.Addresses[0].Address, survivedNode.Name, survivedNode.Status.Addresses[0].Address)
 
 		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
-		// Kill the etcd container managed by Pacemaker
 		_, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman kill etcd 2>/dev/null || true")
+			"bash", "-c", "podman kill etcd 2>/dev/null")
 		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
 
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
