@@ -243,9 +243,8 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			targetNode.Name, targetNode.Status.Addresses[0].Address, peerNode.Name, peerNode.Status.Addresses[0].Address)
 
 		g.By(fmt.Sprintf("Killing etcd process/container on %s", targetNode.Name))
-		// Try multiple methods to kill etcd - container kill, process kill, or service stop
 		_, err := util.DebugNodeRetryWithOptionsAndChroot(oc, targetNode.Name, "openshift-etcd",
-			"bash", "-c", "podman kill etcd 2>/dev/null || true")
+			"bash", "-c", "podman kill etcd 2>/dev/null")
 		o.Expect(err).To(o.BeNil(), "Expected to kill etcd process without command errors")
 
 		g.By("Waiting for cluster to recover - both nodes become started voting members")
