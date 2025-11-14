@@ -167,9 +167,10 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			memberPromotedVotingTimeout, pollInterval)
 	})
 
-	g.It("should recover from a double node failure (cold-boot)", func() {
+	g.It("should recover from a double node failure (cold-boot) [Skipped:KnownIssue]", func() {
 		// Note: In a double node failure both nodes have the same role, hence we
 		// will call them just NodeA and NodeB
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
 		nodeA := peerNode
 		nodeB := targetNode
 		c, vmA, vmB, err := setupMinimalTestEnvironment(oc, &nodeA, &nodeB)
@@ -205,8 +206,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
 
-	g.It("should recover from double graceful node shutdown (cold-boot)", func() {
+	g.It("should recover from double graceful node shutdown (cold-boot) [Skipped:KnownIssue]", func() {
 		// Note: Both nodes are gracefully shut down, then both restart
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
 		nodeA := peerNode
 		nodeB := targetNode
 		g.GinkgoT().Printf("Testing double node graceful shutdown for %s and %s\n", nodeA.Name, nodeB.Name)
@@ -243,8 +245,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
 
-	g.It("should recover from sequential graceful node shutdowns (cold-boot)", func() {
+	g.It("should recover from sequential graceful node shutdowns (cold-boot) [Skipped:KnownIssue]", func() {
 		// Note: First node is gracefully shut down, then the second, then both restart
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
 		firstToShutdown := peerNode
 		secondToShutdown := targetNode
 		g.GinkgoT().Printf("Testing sequential graceful shutdowns: first %s, then %s\n",
@@ -280,8 +283,9 @@ var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:Dual
 			membersHealthyAfterDoubleReboot, pollInterval)
 	})
 
-	g.It("should recover from graceful shutdown followed by ungraceful node failure (cold-boot)", func() {
+	g.It("should recover from graceful shutdown followed by ungraceful node failure (cold-boot) [Skipped:KnownIssue]", func() {
 		// Note: First node is gracefully shut down, then the survived node fails ungracefully
+		// Currently skipped due to OCPBUGS-59238: rapid podman-etcd restart fails on unpatched clusters
 		firstToShutdown := targetNode
 		secondToShutdown := peerNode
 		g.GinkgoT().Printf("Randomly selected %s to shutdown gracefully and %s to survive, then fail ungracefully\n",
