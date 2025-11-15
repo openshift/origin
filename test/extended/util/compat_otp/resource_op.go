@@ -56,7 +56,7 @@ func AddAnnotationsToSpecificResource(oc *exutil.CLI, resourceKindAndName, resou
 	cargs = append(cargs, resourceKindAndName)
 	cargs = append(cargs, annotations...)
 	cargs = append(cargs, "--overwrite")
-	return oc.AsAdmin().WithoutNamespace().Run("annotate").Args(cargs...).Output()
+	return determineExecCLI(oc).WithoutNamespace().Run("annotate").Args(cargs...).Output()
 }
 
 // RemoveAnnotationFromSpecificResource removes the specified annotation from the resource
@@ -67,7 +67,7 @@ func RemoveAnnotationFromSpecificResource(oc *exutil.CLI, resourceKindAndName, r
 	}
 	cargs = append(cargs, resourceKindAndName)
 	cargs = append(cargs, annotationName+"-")
-	return oc.AsAdmin().WithoutNamespace().Run("annotate").Args(cargs...).Output()
+	return determineExecCLI(oc).WithoutNamespace().Run("annotate").Args(cargs...).Output()
 }
 
 // GetAnnotationsFromSpecificResource gets the annotations from the specific resource
@@ -77,7 +77,7 @@ func GetAnnotationsFromSpecificResource(oc *exutil.CLI, resourceKindAndName, res
 		cargs = append(cargs, "-n", resourceNamespace)
 	}
 	cargs = append(cargs, resourceKindAndName, "--list")
-	annotationsStr, getAnnotationsErr := oc.AsAdmin().WithoutNamespace().Run("annotate").Args(cargs...).Output()
+	annotationsStr, getAnnotationsErr := determineExecCLI(oc).WithoutNamespace().Run("annotate").Args(cargs...).Output()
 	if getAnnotationsErr != nil {
 		e2e.Logf(`Failed to get annotations from /%s in namespace %s: "%v"`, resourceKindAndName, resourceNamespace, getAnnotationsErr)
 	}
