@@ -820,8 +820,8 @@ github.com/opencontainers/runtime-spec v1.2.0 h1:z97+pHb3uELt/yiAWD691HNHQIF07bE
 github.com/opencontainers/runtime-spec v1.2.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/selinux v1.11.1 h1:nHFvthhM0qY8/m+vfhJylliSshm8G1jJ2jDMcgULaH8=
 github.com/opencontainers/selinux v1.11.1/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835 h1:rkqIIfdYYkasXbF2XKVgh/3f1mhjSQK9By8WtVMgYo8=
-github.com/openshift-eng/openshift-tests-extension v0.0.0-20250916161632-d81c09058835/go.mod h1:6gkP5f2HL0meusT0Aim8icAspcD1cG055xxBZ9yC68M=
+github.com/openshift-eng/openshift-tests-extension v0.0.0-20251113163031-356b66aa5c24 h1:bwmjtFaipakIwAyZxnDLgtkLY1Nf1nK9lRCmADvHirE=
+github.com/openshift-eng/openshift-tests-extension v0.0.0-20251113163031-356b66aa5c24/go.mod h1:6gkP5f2HL0meusT0Aim8icAspcD1cG055xxBZ9yC68M=
 github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f h1:E72Zoc+JImPehBrXkgaCbIDbSFuItvyX6RCaZ0FQE5k=
 github.com/openshift-kni/commatrix v0.0.5-0.20251111204857-e5a931eff73f/go.mod h1:cDVdp0eda7EHE6tLuSeo4IqPWdAX/KJK+ogBirIGtsI=
 github.com/openshift/api v0.0.0-20251015095338-264e80a2b6e7 h1:Ot2fbEEPmF3WlPQkyEW/bUCV38GMugH/UmZvxpWceNc=
