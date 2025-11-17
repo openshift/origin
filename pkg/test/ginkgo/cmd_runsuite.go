@@ -428,6 +428,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		return err
 	}
 
+	// Sort tests by duration (longest to shortest) to improve parallel execution efficiency
+	SortTestsByDuration(primaryTests)
+
 	kubeTests, openshiftTests := splitTests(primaryTests, func(t *testCase) bool {
 		return k8sTestNames[t.name]
 	})
