@@ -133,7 +133,7 @@ func (opt *Options) Run() error {
 	tm := NewTestManager()
 	defer tm.GenerateReport(opt)
 
-	tcName := "verify the cluster can be connected"
+	tcName := "verify the cluster readiness and stability"
 	tc := NewTestCase(tcName)
 	cfg, err := e2e.LoadConfig()
 	if err != nil {
@@ -481,18 +481,18 @@ func checkClusterVersionStable(dc dynamic.Interface) (int, error) {
 	cv := objx.Map(obj.UnstructuredContent())
 
 	if cond := condition(cv, "Available"); cond.Get("status").String() != "True" {
-		err := fmt.Errorf("clusterversion not available")
-		logrus.WithError(err).Errorf("ClusterVersion Available=%s", getInfoFromCondition(cond))
+		err := fmt.Errorf("clusterversion not available: %s", getInfoFromCondition(cond))
+		logrus.WithError(err)
 		return 1, err
 	}
 	if cond := condition(cv, "Failing"); cond.Get("status").String() != "False" {
-		err := fmt.Errorf("clusterversion is failing")
-		logrus.WithError(err).Errorf("ClusterVersion Failing=%s", getInfoFromCondition(cond))
+		err := fmt.Errorf("clusterversion is failing: %s", getInfoFromCondition(cond))
+		logrus.WithError(err)
 		return 1, err
 	}
 	if cond := condition(cv, "Progressing"); cond.Get("status").String() != "False" {
-		err := fmt.Errorf("clusterversion is progressing")
-		logrus.WithError(err).Errorf("ClusterVersion Progressing=%s", getInfoFromCondition(cond))
+		err := fmt.Errorf("clusterversion is progressing: %s", getInfoFromCondition(cond))
+		logrus.WithError(err)
 		return 1, err
 	}
 
