@@ -11,6 +11,7 @@ import (
 	_ "embed"
 
 	extensiontests "github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 //go:embed testNames.txt
@@ -145,7 +146,7 @@ func (r *trackingTestRunner) wereTestsRunningSimultaneously(test1, test2 string)
 // tryScheduleAndRunNext is a test helper that attempts to get and run the next test from a scheduler
 // Returns the test that was executed, or nil if no test could run
 // This matches the production code pattern where workers poll from the scheduler
-func tryScheduleAndRunNext(ctx context.Context, scheduler *testScheduler, runner testSuiteRunner) *testCase {
+func tryScheduleAndRunNext(ctx context.Context, scheduler TestScheduler, runner testSuiteRunner) *testCase {
 	// Try to get next runnable test from scheduler (matches production logic)
 	test := scheduler.GetNextTestToRun()
 
@@ -799,7 +800,7 @@ func (r *blockingTestRunner) RunOneTest(ctx context.Context, test *testCase) {
 
 // Test taint reference counting - multiple tests with same taint
 func TestScheduler_TaintReferenceCounting(t *testing.T) {
-	scheduler := newTestScheduler([]*testCase{})
+	scheduler := newTestScheduler([]*testCase{}).(*testScheduler)
 
 	runner := newTrackingTestRunner()
 
@@ -917,7 +918,7 @@ func TestScheduler_TaintReferenceCounting(t *testing.T) {
 
 // Test conflict groups - tests in different groups should not check conflicts against each other
 func TestScheduler_ConflictGroups(t *testing.T) {
-	scheduler := newTestScheduler([]*testCase{})
+	scheduler := newTestScheduler([]*testCase{}).(*testScheduler)
 	runner := newTrackingTestRunner()
 
 	// For this test, we'll manually control which conflict group tests belong to
@@ -952,14 +953,14 @@ func TestScheduler_ConflictGroups(t *testing.T) {
 
 	// Manually set up scheduler state to simulate different groups
 	scheduler.mu.Lock()
-	scheduler.runningConflicts["groupA"] = make(map[string]bool)
-	scheduler.runningConflicts["groupB"] = make(map[string]bool)
-	scheduler.runningConflicts["groupA"]["database"] = true // Mark database as running in groupA
+	scheduler.runningConflicts["groupA"] = sets.New[string]()
+	scheduler.runningConflicts["groupB"] = sets.New[string]()
+	scheduler.runningConflicts["groupA"].Insert("database") // Mark database as running in groupA
 	scheduler.mu.Unlock()
 
 	// Verify that "database" conflict exists in groupA
 	scheduler.mu.Lock()
-	hasConflictGroupA := scheduler.runningConflicts["groupA"]["database"]
+	hasConflictGroupA := scheduler.runningConflicts["groupA"].Has("database")
 	scheduler.mu.Unlock()
 
 	if !hasConflictGroupA {
@@ -968,7 +969,7 @@ func TestScheduler_ConflictGroups(t *testing.T) {
 
 	// Verify that "database" conflict does NOT exist in groupB
 	scheduler.mu.Lock()
-	hasConflictGroupB := scheduler.runningConflicts["groupB"]["database"]
+	hasConflictGroupB := scheduler.runningConflicts["groupB"].Has("database")
 	scheduler.mu.Unlock()
 
 	if hasConflictGroupB {
@@ -978,7 +979,7 @@ func TestScheduler_ConflictGroups(t *testing.T) {
 	// Verify default group doesn't have the conflict
 	scheduler.mu.Lock()
 	defaultGroup, exists := scheduler.runningConflicts["default"]
-	hasConflictDefault := exists && defaultGroup["database"]
+	hasConflictDefault := exists && defaultGroup.Has("database")
 	scheduler.mu.Unlock()
 
 	if hasConflictDefault {
@@ -1045,76 +1046,35 @@ func TestScheduler_ConflictGroups(t *testing.T) {
 	}
 }
 
-// Test mode-based conflict group assignment
+// Test conflict group assignment - now simplified to always return "default"
 func TestScheduler_ModeBased_ConflictGroups(t *testing.T) {
-	// Test instance mode
-	testInstance := &testCase{
-		name: "test-instance-mode",
-		isolation: extensiontests.Isolation{
-			Mode:     "instance",
-			Conflict: []string{"database"},
-		},
+	// Test that all modes now return "default" (simplified behavior)
+	testCases := []struct {
+		name string
+		mode string
+	}{
+		{"instance mode", "instance"},
+		{"bucket mode", "bucket"},
+		{"exec mode", "exec"},
+		{"empty mode", ""},
+		{"unknown mode", "unknown"},
 	}
 
-	group := getTestConflictGroup(testInstance)
-	if group != "instance-1" {
-		t.Errorf("Expected instance mode to return 'instance-1', got '%s'", group)
-	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			test := &testCase{
+				name: "test-" + tc.name,
+				isolation: extensiontests.Isolation{
+					Mode:     tc.mode,
+					Conflict: []string{"test-conflict"},
+				},
+			}
 
-	// Test bucket mode
-	testBucket := &testCase{
-		name: "test-bucket-mode",
-		isolation: extensiontests.Isolation{
-			Mode:     "bucket",
-			Conflict: []string{"network"},
-		},
-	}
-
-	group = getTestConflictGroup(testBucket)
-	if group != "bucket-a" {
-		t.Errorf("Expected bucket mode to return 'bucket-a', got '%s'", group)
-	}
-
-	// Test exec mode
-	testExec := &testCase{
-		name: "test-exec-mode",
-		isolation: extensiontests.Isolation{
-			Mode:     "exec",
-			Conflict: []string{"storage"},
-		},
-	}
-
-	group = getTestConflictGroup(testExec)
-	if group != "default" {
-		t.Errorf("Expected exec mode to return 'default', got '%s'", group)
-	}
-
-	// Test empty mode (should default)
-	testEmpty := &testCase{
-		name: "test-empty-mode",
-		isolation: extensiontests.Isolation{
-			Mode:     "",
-			Conflict: []string{"cpu"},
-		},
-	}
-
-	group = getTestConflictGroup(testEmpty)
-	if group != "default" {
-		t.Errorf("Expected empty mode to return 'default', got '%s'", group)
-	}
-
-	// Test unknown mode (should default)
-	testUnknown := &testCase{
-		name: "test-unknown-mode",
-		isolation: extensiontests.Isolation{
-			Mode:     "unknown",
-			Conflict: []string{"memory"},
-		},
-	}
-
-	group = getTestConflictGroup(testUnknown)
-	if group != "default" {
-		t.Errorf("Expected unknown mode to return 'default', got '%s'", group)
+			group := getTestConflictGroup(test)
+			if group != "default" {
+				t.Errorf("Expected %s to return 'default', got '%s'", tc.name, group)
+			}
+		})
 	}
 }
 
@@ -1162,13 +1122,13 @@ func TestScheduler_InstanceMode_IsolatesConflicts(t *testing.T) {
 
 	wg.Wait()
 
-	// Both tests are in "instance-1" group with same conflict, so one should block
+	// Both tests are in "default" group with same conflict, so one should block
 	if ranTest1 == nil {
 		t.Error("First test should succeed")
 	}
 
 	if ranTest2 != nil {
-		t.Error("Second test should be blocked (same conflict in same instance group)")
+		t.Error("Second test should be blocked (same conflict in default group)")
 	}
 }
 
@@ -1216,13 +1176,13 @@ func TestScheduler_BucketMode_IsolatesConflicts(t *testing.T) {
 
 	wg.Wait()
 
-	// Both tests are in "bucket-a" group with same conflict, so one should block
+	// Both tests are in "default" group with same conflict, so one should block
 	if ranTest1 == nil {
 		t.Error("First test should succeed")
 	}
 
 	if ranTest2 != nil {
-		t.Error("Second test should be blocked (same conflict in same bucket group)")
+		t.Error("Second test should be blocked (same conflict in default group)")
 	}
 }
 
@@ -1315,7 +1275,7 @@ func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 	}
 
 	// Verify test2 is still in scheduler (was skipped, maintaining its position)
-	remainingSize := scheduler.size()
+	remainingSize := scheduler.(*testScheduler).size()
 	if remainingSize != 1 {
 		t.Errorf("Expected 1 test remaining in scheduler (test2), got %d", remainingSize)
 	}
@@ -1330,7 +1290,7 @@ func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 	}
 
 	// Scheduler should now be empty
-	if !scheduler.isEmpty() {
+	if !scheduler.IsEmpty() {
 		t.Error("Scheduler should be empty after all tests retrieved")
 	}
 }

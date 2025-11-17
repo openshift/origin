@@ -6,7 +6,8 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"time"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // parallelByFileTestQueue runs tests in parallel unless they have
@@ -23,23 +24,45 @@ func getTestConflictGroup(test *testCase) string {
 	return "default"
 }
 
+// TestScheduler defines the interface for test scheduling
+// Different implementations can provide various scheduling strategies
+type TestScheduler interface {
+	// GetNextTestToRun returns the next test that can run, or nil if none available
+	// When a test is returned, it is marked as running atomically
+	GetNextTestToRun() *testCase
+
+	// MarkTestComplete marks a test as complete, cleaning up its conflicts and taints
+	// This may unblock other tests that were waiting
+	MarkTestComplete(test *testCase)
+
+	// IsEmpty returns true if all tests have been scheduled
+	IsEmpty() bool
+
+	// WaitForStateChange blocks until scheduler state changes (a test completes)
+	// Callers should hold no locks when calling this method
+	WaitForStateChange()
+}
+
 // testScheduler manages test scheduling based on conflicts, taints, and tolerations
 // It maintains an ordered queue of tests and provides thread-safe scheduling operations
 type testScheduler struct {
 	mu               sync.Mutex
-	tests            []*testCase                // ordered queue of tests to execute
-	runningConflicts map[string]map[string]bool // tracks which conflicts are running per group: group -> conflict -> bool
-	activeTaints     map[string]int             // tracks how many tests are currently applying each taint
+	cond             *sync.Cond                  // condition variable to signal when tests complete
+	tests            []*testCase                 // ordered queue of tests to execute
+	runningConflicts map[string]sets.Set[string] // tracks which conflicts are running per group: group -> set of conflicts
+	activeTaints     map[string]int              // tracks how many tests are currently applying each taint
 }
 
 // newTestScheduler creates a test scheduler. Potentially this can order the
 // tests in any order and schedule tests based on resulted order.
-func newTestScheduler(tests []*testCase) *testScheduler {
-	return &testScheduler{
+func newTestScheduler(tests []*testCase) TestScheduler {
+	ts := &testScheduler{
 		tests:            tests,
-		runningConflicts: make(map[string]map[string]bool),
+		runningConflicts: make(map[string]sets.Set[string]),
 		activeTaints:     make(map[string]int),
 	}
+	ts.cond = sync.NewCond(&ts.mu)
+	return ts
 }
 
 // GetNextTestToRun scans the queue from the beginning and returns the first test that can run
@@ -53,15 +76,15 @@ func (ts *testScheduler) GetNextTestToRun() *testCase {
 	for i, test := range ts.tests {
 		conflictGroup := getTestConflictGroup(test)
 
-		// Ensure the conflict group map exists
+		// Ensure the conflict group set exists
 		if ts.runningConflicts[conflictGroup] == nil {
-			ts.runningConflicts[conflictGroup] = make(map[string]bool)
+			ts.runningConflicts[conflictGroup] = sets.New[string]()
 		}
 
 		// Check if any of the test's conflicts are currently running within its group
 		hasConflict := false
 		for _, conflict := range test.isolation.Conflict {
-			if ts.runningConflicts[conflictGroup][conflict] {
+			if ts.runningConflicts[conflictGroup].Has(conflict) {
 				hasConflict = true
 				break
 			}
@@ -74,7 +97,7 @@ func (ts *testScheduler) GetNextTestToRun() *testCase {
 			// Found a runnable test - ATOMICALLY:
 			// 1. Mark conflicts as running
 			for _, conflict := range test.isolation.Conflict {
-				ts.runningConflicts[conflictGroup][conflict] = true
+				ts.runningConflicts[conflictGroup].Insert(conflict)
 			}
 
 			// 2. Activate taints
@@ -94,8 +117,8 @@ func (ts *testScheduler) GetNextTestToRun() *testCase {
 	return nil
 }
 
-// isEmpty checks if the queue is empty
-func (ts *testScheduler) isEmpty() bool {
+// IsEmpty checks if the queue is empty
+func (ts *testScheduler) IsEmpty() bool {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 	return len(ts.tests) == 0
@@ -143,7 +166,7 @@ func (ts *testScheduler) MarkTestComplete(test *testCase) {
 	// Clean up conflicts within this group
 	if groupConflicts, exists := ts.runningConflicts[conflictGroup]; exists {
 		for _, conflict := range test.isolation.Conflict {
-			delete(groupConflicts, conflict)
+			groupConflicts.Delete(conflict)
 		}
 	}
 
@@ -154,6 +177,18 @@ func (ts *testScheduler) MarkTestComplete(test *testCase) {
 			delete(ts.activeTaints, taint)
 		}
 	}
+
+	// Signal waiting workers that the state has changed
+	// Some blocked tests might now be runnable
+	ts.cond.Broadcast()
+}
+
+// WaitForStateChange blocks until the scheduler state changes (a test completes)
+// This implements the TestScheduler interface
+func (ts *testScheduler) WaitForStateChange() {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	ts.cond.Wait()
 }
 
 func newParallelTestQueue(commandContext *commandContext) *parallelByFileTestQueue {
@@ -195,7 +230,7 @@ func abortOnFailure(parentContext context.Context) (testAbortFunc, context.Conte
 // runTestsUntilDone continuously polls the scheduler for runnable tests
 // Workers try to get the next runnable test in order, run it, mark complete, and repeat
 // Returns when all tests are complete or context is cancelled
-func runTestsUntilDone(ctx context.Context, scheduler *testScheduler, testSuiteRunner testSuiteRunner) {
+func runTestsUntilDone(ctx context.Context, scheduler TestScheduler, testSuiteRunner testSuiteRunner) {
 	for {
 		// Check context first
 		if ctx.Err() != nil {
@@ -207,24 +242,23 @@ func runTestsUntilDone(ctx context.Context, scheduler *testScheduler, testSuiteR
 
 		if test == nil {
 			// No runnable test found
-			if scheduler.isEmpty() {
-				// Queue is empty, we're done
+			if scheduler.IsEmpty() {
+				// All tests have been scheduled, we're done
 				return
 			}
-			// Queue has tests but none can run right now - wait a bit before retrying
-			select {
-			case <-time.After(10 * time.Millisecond):
-				continue
-			case <-ctx.Done():
-				return
-			}
-		} else {
-			// Found a runnable test - execute it
-			testSuiteRunner.RunOneTest(ctx, test)
 
-			// Mark test as complete (clean up conflicts and taints)
-			scheduler.MarkTestComplete(test)
+			// Queue has tests but none can run right now
+			// Wait for scheduler state to change (a test completes)
+			scheduler.WaitForStateChange()
+			continue
 		}
+
+		// Found a runnable test - execute it
+		testSuiteRunner.RunOneTest(ctx, test)
+
+		// Mark test as complete (clean up conflicts and taints)
+		// This will also signal waiting workers
+		scheduler.MarkTestComplete(test)
 	}
 }
 
@@ -252,8 +286,8 @@ func execute(ctx context.Context, testSuiteRunner testSuiteRunner, tests []*test
 
 	if len(parallel) > 0 {
 		// Create test scheduler with all parallel tests
-		// Scheduler encapsulates the queue and scheduling logic
-		scheduler := newTestScheduler(parallel)
+		// TestScheduler encapsulates the queue and scheduling logic
+		var scheduler TestScheduler = newTestScheduler(parallel)
 
 		var wg sync.WaitGroup
 
