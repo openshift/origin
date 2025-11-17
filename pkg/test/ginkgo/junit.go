@@ -10,10 +10,39 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/test"
+	"github.com/openshift/origin/pkg/test/extensions"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/version"
 )
+
+// populateOTEMetadata adds OTE metadata attributes to a JUnit test case if available
+func populateOTEMetadata(testCase *junitapi.JUnitTestCase, extensionResult *extensions.ExtensionTestResult) {
+	if extensionResult == nil {
+		return
+	}
+
+	// Test source information
+	testCase.SourceImage = extensionResult.Source.SourceImage
+	testCase.SourceBinary = extensionResult.Source.SourceBinary
+	if extensionResult.Source.Source != nil {
+		testCase.SourceURL = extensionResult.Source.SourceURL
+		testCase.SourceCommit = extensionResult.Source.Commit
+	}
+
+	// Set lifecycle attribute
+	testCase.Lifecycle = string(extensionResult.Lifecycle)
+
+	// Set start time attribute if available
+	if extensionResult.StartTime != nil {
+		testCase.StartTime = time.Time(*extensionResult.StartTime).UTC().Format(time.RFC3339)
+	}
+
+	// Set end time attribute if available
+	if extensionResult.EndTime != nil {
+		testCase.EndTime = time.Time(*extensionResult.EndTime).UTC().Format(time.RFC3339)
+	}
+}
 
 func generateJUnitTestSuiteResults(
 	name string,
@@ -36,49 +65,59 @@ func generateJUnitTestSuiteResults(
 		case test.skipped:
 			s.NumTests++
 			s.NumSkipped++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
+			testCase := &junitapi.JUnitTestCase{
 				Name:      test.name,
 				SystemOut: string(test.testOutputBytes),
 				Duration:  test.duration.Seconds(),
 				SkipMessage: &junitapi.SkipMessage{
 					Message: lastLinesUntil(string(test.testOutputBytes), 100, "skip ["),
 				},
-			})
+			}
+			populateOTEMetadata(testCase, test.extensionTestResult)
+			s.TestCases = append(s.TestCases, testCase)
 		case test.failed:
 			s.NumTests++
 			s.NumFailed++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
+			testCase := &junitapi.JUnitTestCase{
 				Name:      test.name,
 				SystemOut: string(test.testOutputBytes),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
 					Output: lastLinesUntil(string(test.testOutputBytes), 100, "fail ["),
 				},
-			})
+			}
+			populateOTEMetadata(testCase, test.extensionTestResult)
+			s.TestCases = append(s.TestCases, testCase)
 		case test.flake:
 			s.NumTests++
 			s.NumFailed++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
+			failedTestCase := &junitapi.JUnitTestCase{
 				Name:      test.name,
 				SystemOut: string(test.testOutputBytes),
 				Duration:  test.duration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
 					Output: lastLinesUntil(string(test.testOutputBytes), 100, "flake:"),
 				},
-			})
+			}
+			populateOTEMetadata(failedTestCase, test.extensionTestResult)
+			s.TestCases = append(s.TestCases, failedTestCase)
 
 			// also add the successful junit result:
 			s.NumTests++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
+			successTestCase := &junitapi.JUnitTestCase{
 				Name:     test.name,
 				Duration: test.duration.Seconds(),
-			})
+			}
+			populateOTEMetadata(successTestCase, test.extensionTestResult)
+			s.TestCases = append(s.TestCases, successTestCase)
 		case test.success:
 			s.NumTests++
-			s.TestCases = append(s.TestCases, &junitapi.JUnitTestCase{
+			testCase := &junitapi.JUnitTestCase{
 				Name:     test.name,
 				Duration: test.duration.Seconds(),
-			})
+			}
+			populateOTEMetadata(testCase, test.extensionTestResult)
+			s.TestCases = append(s.TestCases, testCase)
 		}
 	}
 	for _, result := range syntheticTestResults {
