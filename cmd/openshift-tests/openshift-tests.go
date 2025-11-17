@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
 	e2e_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/e2e-analysis"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/generate"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/list"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
@@ -105,6 +106,7 @@ func main() {
 		timeline.NewTimelineCommand(ioStreams),
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
 		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
+		generate.NewGenerateCommand(ioStreams),
 		versioncmd.NewVersionCommand(ioStreams),
 	)
 
