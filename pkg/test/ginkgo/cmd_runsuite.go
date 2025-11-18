@@ -565,20 +565,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, clusterConfig *clusterdisc
 		networkK8sTests = append(longNetworkForK8s, networkK8sTests...)
 		networkTests = append(longNetworkForOpenshift, networkTests...)
 	}
-	if longHpa := longTestsByGroup["sig-apps"]; len(longHpa) > 0 {
-		// Split sig-apps long tests between HPA and openshift
-		var longForHpa, longForOpenshift []*testCase
-		for _, test := range longHpa {
-			if strings.Contains(test.name, "[Feature:HPA]") {
-				longForHpa = append(longForHpa, test)
-			} else {
-				longForOpenshift = append(longForOpenshift, test)
-			}
-		}
-		hpaTests = append(longForHpa, hpaTests...)
-		// Add non-HPA sig-apps tests to openshift
-		openshiftTests = append(longForOpenshift, openshiftTests...)
-	}
+
 	if longBuilds := longTestsByGroup["sig-builds"]; len(longBuilds) > 0 {
 		buildsTests = append(longBuilds, buildsTests...)
 	}
