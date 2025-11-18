@@ -664,8 +664,22 @@ func testUpgradeOperatorProgressingStateTransitions(events monitorapi.Intervals)
 			return fmt.Sprintf("%s completing its update within less than two minutes: %s", co, d.String())
 		}
 		switch co {
+		case "cluster-autoscaler":
+			return "https://issues.redhat.com/browse/OCPBUGS-65578"
 		case "cloud-controller-manager":
 			return "https://issues.redhat.com/browse/OCPBUGS-64852"
+		case "cloud-credential":
+			return "https://issues.redhat.com/browse/OCPBUGS-65580"
+		case "insights":
+			return "https://issues.redhat.com/browse/OCPBUGS-65582"
+		case "marketplace":
+			return "https://issues.redhat.com/browse/OCPBUGS-65581"
+		case "olm":
+			return "https://issues.redhat.com/browse/OCPBUGS-65623"
+		case "operator-lifecycle-manager":
+			return "https://issues.redhat.com/browse/OCPBUGS-65583"
+		case "openshift-samples":
+			return "https://issues.redhat.com/browse/OCPBUGS-65647"
 		}
 		return ""
 	}
