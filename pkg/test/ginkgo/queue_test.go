@@ -148,10 +148,10 @@ func (r *trackingTestRunner) wereTestsRunningSimultaneously(test1, test2 string)
 // This matches the production code pattern where workers poll from the scheduler
 func tryScheduleAndRunNext(ctx context.Context, scheduler TestScheduler, runner testSuiteRunner) *testCase {
 	// Try to get next runnable test from scheduler (matches production logic)
-	test := scheduler.GetNextTestToRun()
+	test := scheduler.GetNextTestToRun(ctx)
 
 	if test == nil {
-		return nil // No runnable test available
+		return nil // No runnable test available or context cancelled
 	}
 
 	// Run the test (matches production logic)
@@ -375,14 +375,19 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 	// Create scheduler with test (matches production)
 	scheduler := newTestScheduler([]*testCase{test})
 
-	// Cancel context before running test
+	// Cancel context before trying to get test
 	cancel()
 
-	// Test should still run even with cancelled context (depends on implementation)
-	// But this tests that cancellation doesn't break the scheduler
+	// GetNextTestToRun should respect context cancellation and return nil
 	ranTest := tryScheduleAndRunNext(ctx, scheduler, runner)
-	if ranTest == nil {
-		t.Error("Test should have been attempted even with cancelled context")
+	if ranTest != nil {
+		t.Error("No test should run when context is cancelled")
+	}
+
+	// Verify no tests ran
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 0 {
+		t.Errorf("Expected 0 tests to run with cancelled context, got %d", len(testsRun))
 	}
 }
 
@@ -1105,9 +1110,10 @@ func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
+	ctx := context.Background()
 
 	// Step 1: Get test1 and mark it as running (but don't run it yet to keep conflict active)
-	firstTest := scheduler.GetNextTestToRun()
+	firstTest := scheduler.GetNextTestToRun(ctx)
 	if firstTest == nil || firstTest.name != "test1-conflict-db" {
 		t.Errorf("Expected first call to return test1-conflict-db, got %v", firstTest)
 	}
@@ -1115,7 +1121,7 @@ func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 
 	// Step 2: Try to get next test while test1 is "running"
 	// Should skip test2 (conflicts with running test1) and return test3
-	secondTest := scheduler.GetNextTestToRun()
+	secondTest := scheduler.GetNextTestToRun(ctx)
 	if secondTest == nil || secondTest.name != "test3-no-conflict" {
 		t.Errorf("Expected second call to return test3-no-conflict (skipping blocked test2), got %v", secondTest)
 	}
@@ -1124,7 +1130,7 @@ func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 	scheduler.MarkTestComplete(test1)
 
 	// Step 4: Now test2 should be runnable and returned (it maintained its position in queue)
-	thirdTest := scheduler.GetNextTestToRun()
+	thirdTest := scheduler.GetNextTestToRun(ctx)
 	if thirdTest == nil || thirdTest.name != "test2-conflict-db" {
 		t.Errorf("Expected third call to return test2-conflict-db (now unblocked), got %v", thirdTest)
 	}

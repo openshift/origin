@@ -28,10 +28,10 @@ func getTestConflictGroup(test *testCase) string {
 // Different implementations can provide various scheduling strategies
 type TestScheduler interface {
 	// GetNextTestToRun blocks until a test is available, then returns it.
-	// Returns nil when all tests have been distributed (queue is empty).
+	// Returns nil when all tests have been distributed (queue is empty) or context is cancelled.
 	// When a test is returned, it is atomically removed from queue and marked as running.
 	// This method can be safely called from multiple goroutines concurrently.
-	GetNextTestToRun() *testCase
+	GetNextTestToRun(ctx context.Context) *testCase
 
 	// MarkTestComplete marks a test as complete, cleaning up its conflicts and taints.
 	// This may unblock other tests that were waiting.
@@ -61,14 +61,19 @@ func newTestScheduler(tests []*testCase) TestScheduler {
 	return ts
 }
 
-// GetNextTestToRun blocks until a test is available to run, or returns nil if all tests have been distributed.
-// It continuously scans the queue and waits for state changes when no tests are runnable.
+// GetNextTestToRun blocks until a test is available to run, or returns nil if all tests have been distributed
+// or the context is cancelled. It continuously scans the queue and waits for state changes when no tests are runnable.
 // When a test is returned, it is atomically removed from queue and marked as running.
-func (ts *testScheduler) GetNextTestToRun() *testCase {
+func (ts *testScheduler) GetNextTestToRun(ctx context.Context) *testCase {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
 	for {
+		// Check if context is cancelled
+		if ctx.Err() != nil {
+			return nil
+		}
+
 		// Check if all tests have been distributed
 		if len(ts.tests) == 0 {
 			return nil
@@ -210,15 +215,15 @@ func abortOnFailure(parentContext context.Context) (testAbortFunc, context.Conte
 }
 
 // runTestsUntilDone continuously gets tests from the scheduler, runs them, and marks them complete.
-// GetNextTestToRun() blocks internally when no tests are runnable and returns nil when all tests are distributed.
-// Returns when there are no more tests to take from the queue.
+// GetNextTestToRun() blocks internally when no tests are runnable and returns nil when all tests are distributed
+// or context is cancelled. Returns when there are no more tests to take from the queue or context is cancelled.
 func runTestsUntilDone(ctx context.Context, scheduler TestScheduler, testSuiteRunner testSuiteRunner) {
 	for {
-		// Get next test - this blocks until a test is available or queue is empty
-		test := scheduler.GetNextTestToRun()
+		// Get next test - this blocks until a test is available, queue is empty, or context is cancelled
+		test := scheduler.GetNextTestToRun(ctx)
 
 		if test == nil {
-			// No more tests to take from queue
+			// No more tests to take from queue or context cancelled
 			return
 		}
 
