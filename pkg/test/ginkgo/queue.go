@@ -28,7 +28,7 @@ func getTestConflictGroup(test *testCase) string {
 // Different implementations can provide various scheduling strategies
 type TestScheduler interface {
 	// GetNextTestToRun blocks until a test is available, then returns it.
-	// Returns nil only when all tests have been scheduled and completed.
+	// Returns nil when all tests have been distributed (queue is empty).
 	// When a test is returned, it is atomically removed from queue and marked as running.
 	// This method can be safely called from multiple goroutines concurrently.
 	GetNextTestToRun() *testCase
@@ -45,7 +45,6 @@ type testScheduler struct {
 	mu               sync.Mutex
 	cond             *sync.Cond                  // condition variable to signal when tests complete
 	tests            []*testCase                 // ordered queue of tests to execute
-	runningTests     int                         // number of tests currently running
 	runningConflicts map[string]sets.Set[string] // tracks which conflicts are running per group: group -> set of conflicts
 	activeTaints     map[string]int              // tracks how many tests are currently applying each taint
 }
@@ -62,16 +61,16 @@ func newTestScheduler(tests []*testCase) TestScheduler {
 	return ts
 }
 
-// GetNextTestToRun blocks until a test is available to run, or returns nil if all tests are complete.
+// GetNextTestToRun blocks until a test is available to run, or returns nil if all tests have been distributed.
 // It continuously scans the queue and waits for state changes when no tests are runnable.
-// When a test is returned, it is atomically removed from queue, marked as running, and runningTests is incremented.
+// When a test is returned, it is atomically removed from queue and marked as running.
 func (ts *testScheduler) GetNextTestToRun() *testCase {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
 
 	for {
-		// Check if all tests are complete (queue empty and no tests running)
-		if len(ts.tests) == 0 && ts.runningTests == 0 {
+		// Check if all tests have been distributed
+		if len(ts.tests) == 0 {
 			return nil
 		}
 
@@ -111,24 +110,14 @@ func (ts *testScheduler) GetNextTestToRun() *testCase {
 				// 3. Remove test from queue
 				ts.tests = append(ts.tests[:i], ts.tests[i+1:]...)
 
-				// 4. Increment running test count
-				ts.runningTests++
-
-				// 5. Return the test (now safe to run)
+				// 4. Return the test (now safe to run)
 				return test
 			}
 		}
 
-		// No runnable test found, but tests still exist or are running - wait for state change
+		// No runnable test found, but tests still exist in queue - wait for state change
 		ts.cond.Wait()
 	}
-}
-
-// size returns the current size of the queue (used for testing only)
-func (ts *testScheduler) size() int {
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
-	return len(ts.tests)
 }
 
 // canTolerateTaints checks if a test can tolerate all currently active taints
@@ -155,14 +144,11 @@ func (ts *testScheduler) canTolerateTaints(test *testCase) bool {
 }
 
 // MarkTestComplete marks all conflicts and taints of a test as no longer running/active
-// Decrements the running test counter and signals waiting workers
+// and signals waiting workers that blocked tests may now be runnable
 // This should be called after a test completes execution
 func (ts *testScheduler) MarkTestComplete(test *testCase) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
-
-	// Decrement running test count
-	ts.runningTests--
 
 	// Get the conflict group for this test
 	conflictGroup := getTestConflictGroup(test)
@@ -183,7 +169,7 @@ func (ts *testScheduler) MarkTestComplete(test *testCase) {
 	}
 
 	// Signal waiting workers that the state has changed
-	// Some blocked tests might now be runnable or all tests might be complete
+	// Some blocked tests might now be runnable
 	ts.cond.Broadcast()
 }
 
@@ -224,15 +210,15 @@ func abortOnFailure(parentContext context.Context) (testAbortFunc, context.Conte
 }
 
 // runTestsUntilDone continuously gets tests from the scheduler, runs them, and marks them complete.
-// GetNextTestToRun() blocks internally when no tests are runnable and returns nil only when all tests are complete.
-// Returns when all tests are complete.
+// GetNextTestToRun() blocks internally when no tests are runnable and returns nil when all tests are distributed.
+// Returns when there are no more tests to take from the queue.
 func runTestsUntilDone(ctx context.Context, scheduler TestScheduler, testSuiteRunner testSuiteRunner) {
 	for {
-		// Get next test - this blocks until a test is available or all tests are complete
+		// Get next test - this blocks until a test is available or queue is empty
 		test := scheduler.GetNextTestToRun()
 
 		if test == nil {
-			// All tests complete
+			// No more tests to take from queue
 			return
 		}
 
