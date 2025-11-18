@@ -139,6 +139,9 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			if operator == "cluster-autoscaler" {
 				return "https://issues.redhat.com/browse/OCPBUGS-42875", nil
 			}
+			if operator == "control-plane-machine-set" && condition.Reason == "UnmanagedNodes" {
+				return "https://issues.redhat.com/browse/OCPBUGS-64782", nil
+			}
 			return "", nil
 		}
 		return "We are not worried about other operator condition blips for stable-system tests yet.", nil
