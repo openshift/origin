@@ -101,7 +101,7 @@ func (ts *testScheduler) GetNextTestToRun() *testCase {
 			}
 
 			// 2. Activate taints
-			for _, taint := range test.taint {
+			for _, taint := range test.isolation.Taint {
 				ts.activeTaints[taint]++
 			}
 
@@ -141,7 +141,7 @@ func (ts *testScheduler) canTolerateTaints(test *testCase) bool {
 		}
 
 		tolerated := false
-		for _, toleration := range test.toleration {
+		for _, toleration := range test.isolation.Toleration {
 			if toleration == taint {
 				tolerated = true
 				break
@@ -171,7 +171,7 @@ func (ts *testScheduler) MarkTestComplete(test *testCase) {
 	}
 
 	// Clean up taints with reference counting
-	for _, taint := range test.taint {
+	for _, taint := range test.isolation.Taint {
 		ts.activeTaints[taint]--
 		if ts.activeTaints[taint] <= 0 {
 			delete(ts.activeTaints, taint)
@@ -340,3 +340,4 @@ func splitTests(tests []*testCase, fn func(*testCase) bool) (a, b []*testCase) {
 	}
 	return a, b
 }
+

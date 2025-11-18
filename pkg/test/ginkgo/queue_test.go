@@ -455,26 +455,24 @@ func TestScheduler_TaintTolerationBasic(t *testing.T) {
 
 	// Test with taint (no conflicts)
 	testWithTaint := &testCase{
-		name:       "test-with-taint",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{"gpu"},
-		toleration: []string{},
+		name: "test-with-taint",
+		isolation: extensiontests.Isolation{
+			Taint: []string{"gpu"},
+		},
 	}
 
 	// Test without toleration (should be blocked)
 	testWithoutToleration := &testCase{
-		name:       "test-without-toleration",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{},
+		name:      "test-without-toleration",
+		isolation: extensiontests.Isolation{},
 	}
 
 	// Test with toleration (should be allowed)
 	testWithToleration := &testCase{
-		name:       "test-with-toleration",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{"gpu"},
+		name: "test-with-toleration",
+		isolation: extensiontests.Isolation{
+			Toleration: []string{"gpu"},
+		},
 	}
 
 	// Create scheduler with all tests (matches production)
@@ -537,34 +535,34 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 
 	// Test with multiple taints
 	testWithMultipleTaints := &testCase{
-		name:       "test-multiple-taints",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{"gpu", "exclusive"},
-		toleration: []string{},
+		name: "test-multiple-taints",
+		isolation: extensiontests.Isolation{
+			Taint: []string{"gpu", "exclusive"},
+		},
 	}
 
 	// Test with partial toleration (should be blocked)
 	testPartialToleration := &testCase{
-		name:       "test-partial-toleration",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{"gpu"}, // Missing "exclusive" toleration
+		name: "test-partial-toleration",
+		isolation: extensiontests.Isolation{
+			Toleration: []string{"gpu"}, // Missing "exclusive" toleration
+		},
 	}
 
 	// Test with full toleration (should succeed)
 	testFullToleration := &testCase{
-		name:       "test-full-toleration",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{"gpu", "exclusive"},
+		name: "test-full-toleration",
+		isolation: extensiontests.Isolation{
+			Toleration: []string{"gpu", "exclusive"},
+		},
 	}
 
 	// Test with extra toleration (should succeed)
 	testExtraToleration := &testCase{
-		name:       "test-extra-toleration",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{"gpu", "exclusive", "extra"},
+		name: "test-extra-toleration",
+		isolation: extensiontests.Isolation{
+			Toleration: []string{"gpu", "exclusive", "extra"},
+		},
 	}
 
 	// Create scheduler with all tests (matches production)
@@ -635,17 +633,15 @@ func TestScheduler_TaintCleanup(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	testWithTaint := &testCase{
-		name:       "test-with-taint",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{"gpu"},
-		toleration: []string{},
+		name: "test-with-taint",
+		isolation: extensiontests.Isolation{
+			Taint: []string{"gpu"},
+		},
 	}
 
 	testWithoutToleration := &testCase{
-		name:       "test-without-toleration",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{},
+		name:      "test-without-toleration",
+		isolation: extensiontests.Isolation{},
 	}
 
 	// Create scheduler with all tests (matches production)
@@ -679,19 +675,17 @@ func TestScheduler_ConflictsAndTaints(t *testing.T) {
 		name: "test-with-both",
 		isolation: extensiontests.Isolation{
 			Conflict: []string{"database"},
+			Taint:    []string{"gpu"},
 		},
-		taint:      []string{"gpu"},
-		toleration: []string{},
 	}
 
 	// This test conflicts with database but has GPU toleration
 	testConflictingTolerated := &testCase{
 		name: "test-conflicting-tolerated",
 		isolation: extensiontests.Isolation{
-			Conflict: []string{"database"}, // Conflicts with first test
+			Conflict:   []string{"database"}, // Conflicts with first test
+			Toleration: []string{"gpu"},      // Can tolerate first test's taint
 		},
-		taint:      []string{},
-		toleration: []string{"gpu"}, // Can tolerate first test's taint
 	}
 
 	// This test doesn't conflict but lacks toleration
@@ -699,9 +693,8 @@ func TestScheduler_ConflictsAndTaints(t *testing.T) {
 		name: "test-non-conflicting-intolerated",
 		isolation: extensiontests.Isolation{
 			Conflict: []string{"network"}, // Different conflict
+			// Cannot tolerate first test's taint
 		},
-		taint:      []string{},
-		toleration: []string{}, // Cannot tolerate first test's taint
 	}
 
 	// Create scheduler with all tests (matches production)
@@ -753,9 +746,9 @@ func TestScheduler_NoTaints(t *testing.T) {
 	runner := newTrackingTestRunner()
 
 	// Tests with no taints or tolerations
-	test1 := &testCase{name: "test1", isolation: extensiontests.Isolation{}, taint: []string{}, toleration: []string{}}
-	test2 := &testCase{name: "test2", isolation: extensiontests.Isolation{}, taint: []string{}, toleration: []string{}}
-	test3 := &testCase{name: "test3", isolation: extensiontests.Isolation{}, taint: []string{}, toleration: []string{}}
+	test1 := &testCase{name: "test1", isolation: extensiontests.Isolation{}}
+	test2 := &testCase{name: "test2", isolation: extensiontests.Isolation{}}
+	test3 := &testCase{name: "test3", isolation: extensiontests.Isolation{}}
 
 	// Create scheduler with all tests (matches production)
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
@@ -793,7 +786,7 @@ func (r *blockingTestRunner) RunOneTest(ctx context.Context, test *testCase) {
 
 	// Block tests that have taints or tolerations (those are the ones we want to keep running)
 	// Don't block tests that have neither (they should be blocked by scheduler)
-	if len(test.taint) > 0 || len(test.toleration) > 0 {
+	if len(test.isolation.Taint) > 0 || len(test.isolation.Toleration) > 0 {
 		<-r.blockChan
 	}
 }
@@ -806,25 +799,27 @@ func TestScheduler_TaintReferenceCounting(t *testing.T) {
 
 	// Two tests both applying the same taint "gpu"
 	testWithTaint1 := &testCase{
-		name:       "test-with-taint-1",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{"gpu"},
-		toleration: []string{"gpu"}, // Can tolerate its own taint
+		name: "test-with-taint-1",
+		isolation: extensiontests.Isolation{
+			Taint:      []string{"gpu"},
+			Toleration: []string{"gpu"}, // Can tolerate its own taint
+		},
 	}
 
 	testWithTaint2 := &testCase{
-		name:       "test-with-taint-2",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{"gpu"},
-		toleration: []string{"gpu"}, // Can tolerate its own taint
+		name: "test-with-taint-2",
+		isolation: extensiontests.Isolation{
+			Taint:      []string{"gpu"},
+			Toleration: []string{"gpu"}, // Can tolerate its own taint
+		},
 	}
 
 	// Test that cannot tolerate gpu
 	testIntolerant := &testCase{
-		name:       "test-intolerant",
-		isolation:  extensiontests.Isolation{},
-		taint:      []string{},
-		toleration: []string{}, // Cannot tolerate gpu taint
+		name:      "test-intolerant",
+		isolation: extensiontests.Isolation{
+			// Cannot tolerate gpu taint
+		},
 	}
 
 	ctx := context.Background()
