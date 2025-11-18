@@ -143,19 +143,16 @@ type TNFTestConfig struct {
 	Execution     TestExecution
 }
 
-// Global test configuration instance
-var (
-	oc = exutil.NewCLIWithoutNamespace("").AsAdmin()
-)
-
 // ========================================
 // Core Test Logic
 // ========================================
 
 var _ = g.Describe("[sig-etcd][apigroup:config.openshift.io][OCPFeatureGate:DualReplica][Suite:openshift/two-node][Slow][Serial][Disruptive][Requires:HypervisorSSHConfig] TNF", func() {
-	var testConfig TNFTestConfig
+	var (
+		testConfig TNFTestConfig
+		oc         = exutil.NewCLIWithoutNamespace("").AsAdmin()
+	)
 	defer g.GinkgoRecover()
-
 	g.BeforeEach(func() {
 		// Set klog verbosity to 2 for detailed logging if not already set by user
 		if vFlag := flag.Lookup("v"); vFlag != nil {
