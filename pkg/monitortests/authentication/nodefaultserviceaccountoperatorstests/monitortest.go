@@ -30,109 +30,50 @@ func (n *noDefaultServiceAccountChecker) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-var exceptions = []func(pod corev1.Pod) bool{
-	func(pod corev1.Pod) bool {
+func exceptionWithJira(prefix, jiraURL string) func(corev1.Pod) (string, bool) {
+	return func(pod corev1.Pod) (string, bool) {
 		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-version/cluster-version-operator-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-console/downloads-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-etcd/etcd-guard-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-ingress-canary/ingress-canary-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-kube-apiserver/kube-apiserver-guard-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-kube-controller-manager/kube-controller-manager-guard-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-kube-scheduler/openshift-kube-scheduler-guard-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-monitoring/monitoring-plugin-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-multus/multus-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-network-console/networking-console-plugin-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-network-diagnostics/network-check-target-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftcommunityoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftredhatmarketplace-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftcertifiedoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-all-openshiftredhatoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-version/version-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-must-gather/must-gather-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "kube-system/konnectivity-agent-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-multus/multus-additional-cni-plugins-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-multus/cni-sysctl-allowlist-ds-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-metas-openshiftcertifiedoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-metas-openshiftcommunityoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-metas-openshiftredhatmarketplace-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "default/verify-metas-openshiftredhatoperators-")
-	},
-	func(pod corev1.Pod) bool {
-		podNameNSCombo := pod.Namespace + "/" + pod.Name
-		return strings.HasPrefix(podNameNSCombo, "openshift-cluster-api/capv-controller-manager-")
-	},
-	func(pod corev1.Pod) bool {
-		return pod.Namespace == "openshift-marketplace"
+		if strings.HasPrefix(podNameNSCombo, prefix) {
+			return jiraURL, true
+		}
+		return "", false
+	}
+}
+
+var exceptions = []func(pod corev1.Pod) (string, bool){
+	exceptionWithJira("openshift-cluster-version/cluster-version-operator-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
+	exceptionWithJira("openshift-console/downloads-", "https://issues.redhat.com/browse/OCPBUGS-65622"),
+	exceptionWithJira("openshift-etcd/etcd-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
+	exceptionWithJira("openshift-ingress-canary/ingress-canary-", "https://issues.redhat.com/browse/OCPBUGS-65629"),
+	exceptionWithJira("openshift-kube-apiserver/kube-apiserver-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
+	exceptionWithJira("openshift-kube-controller-manager/kube-controller-manager-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
+	exceptionWithJira("openshift-kube-scheduler/openshift-kube-scheduler-guard-", "https://issues.redhat.com/browse/OCPBUGS-65626"),
+	exceptionWithJira("openshift-monitoring/monitoring-plugin-", "https://issues.redhat.com/browse/OCPBUGS-65630"),
+	exceptionWithJira("openshift-multus/multus-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
+	exceptionWithJira("openshift-network-console/networking-console-plugin-", "https://issues.redhat.com/browse/OCPBUGS-65633"),
+	exceptionWithJira("openshift-network-diagnostics/network-check-target-", "https://issues.redhat.com/browse/OCPBUGS-65633"),
+	exceptionWithJira("default/verify-all-openshiftcommunityoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("default/verify-all-openshiftredhatmarketplace-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("default/verify-all-openshiftcertifiedoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("default/verify-all-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("openshift-cluster-version/version-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
+	// keep as default service account required for this component.
+	exceptionWithJira("openshift-must-gather/must-gather-", "https://issues.redhat.com/browse/OCPBUGS-65635"),
+	exceptionWithJira("kube-system/konnectivity-agent-", "https://issues.redhat.com/browse/OCPBUGS-65636"),
+	exceptionWithJira("openshift-multus/multus-additional-cni-plugins-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
+	exceptionWithJira("openshift-multus/cni-sysctl-allowlist-ds-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
+	exceptionWithJira("default/verify-metas-openshiftcertifiedoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("default/verify-metas-openshiftcommunityoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("default/verify-metas-openshiftredhatmarketplace-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("default/verify-metas-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
+	exceptionWithJira("openshift-cluster-api/capv-controller-manager-", "https://issues.redhat.com/browse/OCPBUGS-65637"),
+
+	// Handle the one outlier (Namespace only check) manually
+	func(pod corev1.Pod) (string, bool) {
+		if pod.Namespace == "openshift-marketplace" {
+			return "NO-JIRA", true
+		}
+		return "", false
 	},
 }
 
@@ -140,44 +81,42 @@ var exceptions = []func(pod corev1.Pod) bool{
 // violated the default service account check.
 func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 	junits := []*junitapi.JUnitTestCase{}
-	failure := ""
 	for _, pod := range podList {
-		failure = "" // reset failure valuex
 		podSA := pod.Spec.ServiceAccountName
+		namespacedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+
 		// generate tests for given namespace/pod
-		testName := fmt.Sprintf("[sig-auth] pod '%s/%s' must not use the default service account", pod.Namespace, pod.Name)
+		testName := fmt.Sprintf("[sig-auth] pod %q must not use the default service account", namespacedName)
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
 			// test passes.
 			junits = append(junits, &junitapi.JUnitTestCase{Name: testName})
 			continue
 		}
-		hasException := false
+
+		exceptionMsg := ""
 		for _, exception := range exceptions {
-			if exception(pod) {
-				hasException = true
+			if msg, ok := exception(pod); ok {
+				exceptionMsg = msg
 				break
 			}
 		}
-		if hasException {
-			// flag exception as flaky failure
-			failure = fmt.Sprintf("[flake] service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace)
-			junits = append(junits, &junitapi.JUnitTestCase{
-				Name:          testName,
-				SystemOut:     failure,
-				FailureOutput: &junitapi.FailureOutput{Output: failure},
-			})
+
+		failure := fmt.Sprintf("pod %q is using the default service account", namespacedName)
+		if exceptionMsg != "" {
+			failure += fmt.Sprintf(" (exception: %s)", exceptionMsg)
+		}
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:          testName,
+			SystemOut:     failure,
+			FailureOutput: &junitapi.FailureOutput{Output: failure},
+		})
+
+		if exceptionMsg != "" {
 			// introduce flake
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name: testName,
-			})
-		} else {
-			// otherwise, we need to flag the failure
-			failure = fmt.Sprintf("service account name %s is being used in pod %s in namespace %s", podSA, pod.Name, pod.Namespace)
-			junits = append(junits, &junitapi.JUnitTestCase{
-				Name:          testName,
-				SystemOut:     failure,
-				FailureOutput: &junitapi.FailureOutput{Output: failure},
 			})
 		}
 	}
