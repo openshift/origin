@@ -191,66 +191,33 @@ func TestScheduler_ConflictPrevention(t *testing.T) {
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3})
 	ctx := context.Background()
 
+	// Use 2 workers to process 3 tests (matches production pattern with limited parallelism)
+	// This ensures test2 waits in queue while test1 and test3 run
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(2)
 
-	var ranTest1, ranTest2, ranTest3 *testCase
-
-	// Simulate 3 workers polling from the shared scheduler (matches production)
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest3 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
+	// Start 2 workers that will process all tests
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	// Collect which tests ran
-	ranTests := make(map[string]bool)
-	if ranTest1 != nil {
-		ranTests[ranTest1.name] = true
-	}
-	if ranTest2 != nil {
-		ranTests[ranTest2.name] = true
-	}
-	if ranTest3 != nil {
-		ranTests[ranTest3.name] = true
-	}
-
-	// test1 and test3 should have run, test2 should be blocked
-	if !ranTests["test1"] {
-		t.Error("test1 should have run")
-	}
-	if ranTests["test2"] {
-		t.Error("test2 should have been blocked by conflict with test1")
-	}
-	if !ranTests["test3"] {
-		t.Error("test3 should have run (different conflict)")
-	}
-
-	// Verify only 2 tests ran total
+	// All tests should have completed (test2 runs after test1 finishes)
 	testsRun := runner.getTestsRun()
-	if len(testsRun) != 2 {
-		t.Errorf("Expected 2 tests to run, got %d: %v", len(testsRun), testsRun)
+	if len(testsRun) != 3 {
+		t.Errorf("Expected all 3 tests to complete, got %d: %v", len(testsRun), testsRun)
 	}
 
-	// Verify test1 and test2 didn't run simultaneously
+	// Verify test1 and test2 didn't run simultaneously (conflict prevents this)
 	if runner.wereTestsRunningSimultaneously("test1", "test2") {
 		t.Error("test1 and test2 should not have run simultaneously due to conflict")
 	}
 
-	// Verify test1 and test3 could run simultaneously
+	// Verify test1 and test3 could run simultaneously (different conflicts)
 	if !runner.wereTestsRunningSimultaneously("test1", "test3") {
 		t.Error("test1 and test3 should have been able to run simultaneously (different conflicts)")
 	}
@@ -289,63 +256,36 @@ func TestScheduler_MultipleConflicts(t *testing.T) {
 	scheduler := newTestScheduler([]*testCase{test1, test2, test3, test4})
 	ctx := context.Background()
 
+	// Use 2 workers to process 4 tests (matches production pattern)
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(2)
 
-	var ran1, ran2, ran3, ran4 *testCase
-
-	// Simulate 4 workers polling from shared scheduler
-	go func() {
-		defer wg.Done()
-		ran1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ran2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ran3 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ran4 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	// Collect which tests ran
-	ranTests := make(map[string]bool)
-	for _, test := range []*testCase{ran1, ran2, ran3, ran4} {
-		if test != nil {
-			ranTests[test.name] = true
-		}
-	}
-
-	// test1 and test4 should have run, test2 and test3 should be blocked
-	if !ranTests["test1"] {
-		t.Error("test1 should have run")
-	}
-	if ranTests["test2"] {
-		t.Error("test2 should be blocked by database conflict")
-	}
-	if ranTests["test3"] {
-		t.Error("test3 should be blocked by network conflict")
-	}
-	if !ranTests["test4"] {
-		t.Error("test4 should have run (no conflicts)")
-	}
-
-	// Verify only 2 tests ran
+	// All 4 tests should have completed
 	testsRun := runner.getTestsRun()
-	if len(testsRun) != 2 {
-		t.Errorf("Expected 2 tests to run, got %d: %v", len(testsRun), testsRun)
+	if len(testsRun) != 4 {
+		t.Errorf("Expected all 4 tests to complete, got %d: %v", len(testsRun), testsRun)
+	}
+
+	// Verify test1 doesn't run simultaneously with test2 or test3 (due to conflicts)
+	if runner.wereTestsRunningSimultaneously("test1", "test2") {
+		t.Error("test1 and test2 should not run simultaneously (database conflict)")
+	}
+	if runner.wereTestsRunningSimultaneously("test1", "test3") {
+		t.Error("test1 and test3 should not run simultaneously (network conflict)")
+	}
+
+	// Verify test1 and test4 can run simultaneously (no conflicts)
+	if !runner.wereTestsRunningSimultaneously("test1", "test4") {
+		t.Error("test1 and test4 should be able to run simultaneously (different conflicts)")
 	}
 }
 
@@ -448,10 +388,7 @@ func TestScheduler_ContextCancellation(t *testing.T) {
 
 // Test basic taint and toleration - tests without toleration cannot run with active taints
 func TestScheduler_TaintTolerationBasic(t *testing.T) {
-	// Use a blocking runner to keep the tainted test running long enough
-	runner := &blockingTestRunner{
-		blockChan: make(chan struct{}),
-	}
+	runner := newTrackingTestRunner()
 
 	// Test with taint (no conflicts)
 	testWithTaint := &testCase{
@@ -461,13 +398,13 @@ func TestScheduler_TaintTolerationBasic(t *testing.T) {
 		},
 	}
 
-	// Test without toleration (should be blocked)
+	// Test without toleration (blocked until testWithTaint completes)
 	testWithoutToleration := &testCase{
 		name:      "test-without-toleration",
 		isolation: extensiontests.Isolation{},
 	}
 
-	// Test with toleration (should be allowed)
+	// Test with toleration (can run with testWithTaint)
 	testWithToleration := &testCase{
 		name: "test-with-toleration",
 		isolation: extensiontests.Isolation{
@@ -479,59 +416,39 @@ func TestScheduler_TaintTolerationBasic(t *testing.T) {
 	scheduler := newTestScheduler([]*testCase{testWithTaint, testWithoutToleration, testWithToleration})
 	ctx := context.Background()
 
+	// Use 2 workers so they can run tests in parallel when possible
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(2)
 
-	var ranTest1, ranTest2, ranTest3 *testCase
-
-	// Start test with taint (will block on blockChan)
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Give first test time to start and apply taint
-	time.Sleep(20 * time.Millisecond)
-
-	// Test without toleration should be blocked
-	go func() {
-		defer wg.Done()
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Test with toleration should succeed (will block on blockChan)
-	go func() {
-		defer wg.Done()
-		ranTest3 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Give time for test2 and test3 to attempt scheduling
-	time.Sleep(50 * time.Millisecond)
-
-	// Unblock the tests
-	close(runner.blockChan)
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	if ranTest1 == nil {
-		t.Error("Test with taint should have been able to run")
+	// All tests should complete
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 3 {
+		t.Errorf("Expected all 3 tests to complete, got %d", len(testsRun))
 	}
 
-	if ranTest2 != nil {
-		t.Error("Test without toleration should have been blocked by taint")
+	// testWithTaint and testWithToleration can run simultaneously (toleration allows it)
+	if !runner.wereTestsRunningSimultaneously("test-with-taint", "test-with-toleration") {
+		t.Error("testWithTaint and testWithToleration should run simultaneously (toleration permits)")
 	}
 
-	if ranTest3 == nil {
-		t.Error("Test with toleration should have been able to run")
+	// testWithTaint and testWithoutToleration should NOT run simultaneously (no toleration)
+	if runner.wereTestsRunningSimultaneously("test-with-taint", "test-without-toleration") {
+		t.Error("testWithTaint and testWithoutToleration should not run simultaneously (missing toleration)")
 	}
 }
 
 // Test multiple taints and tolerations
 func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
-	// Use a blocking runner to keep the tainted test running long enough
-	runner := &blockingTestRunner{
-		blockChan: make(chan struct{}),
-	}
+	runner := newTrackingTestRunner()
 
 	// Test with multiple taints
 	testWithMultipleTaints := &testCase{
@@ -541,7 +458,7 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 		},
 	}
 
-	// Test with partial toleration (should be blocked)
+	// Test with partial toleration (blocked until testWithMultipleTaints completes)
 	testPartialToleration := &testCase{
 		name: "test-partial-toleration",
 		isolation: extensiontests.Isolation{
@@ -549,7 +466,7 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 		},
 	}
 
-	// Test with full toleration (should succeed)
+	// Test with full toleration (can run with testWithMultipleTaints)
 	testFullToleration := &testCase{
 		name: "test-full-toleration",
 		isolation: extensiontests.Isolation{
@@ -557,7 +474,7 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 		},
 	}
 
-	// Test with extra toleration (should succeed)
+	// Test with extra toleration (can run with testWithMultipleTaints)
 	testExtraToleration := &testCase{
 		name: "test-extra-toleration",
 		isolation: extensiontests.Isolation{
@@ -569,62 +486,36 @@ func TestScheduler_MultipleTaintsTolerations(t *testing.T) {
 	scheduler := newTestScheduler([]*testCase{testWithMultipleTaints, testPartialToleration, testFullToleration, testExtraToleration})
 	ctx := context.Background()
 
+	// Use 3 workers to process 4 tests
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(3)
 
-	var ranTest1, ranTest2, ranTest3, ranTest4 *testCase
-
-	// Start test with multiple taints (will block on blockChan)
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Give first test time to start and apply taints
-	time.Sleep(30 * time.Millisecond)
-
-	// Test with partial toleration should be blocked
-	go func() {
-		defer wg.Done()
-		time.Sleep(5 * time.Millisecond) // Slight delay to ensure test3 goes first
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Test with full toleration should succeed (will block on blockChan)
-	go func() {
-		defer wg.Done()
-		ranTest3 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Test with extra toleration should succeed (will block on blockChan)
-	go func() {
-		defer wg.Done()
-		time.Sleep(2 * time.Millisecond) // Slight delay after test3
-		ranTest4 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Give time for all tests to attempt scheduling
-	time.Sleep(80 * time.Millisecond)
-
-	// Unblock the tests
-	close(runner.blockChan)
+	for i := 0; i < 3; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	if ranTest1 == nil {
-		t.Error("Test with multiple taints should have been able to run")
+	// All tests should complete
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 4 {
+		t.Errorf("Expected all 4 tests to complete, got %d", len(testsRun))
 	}
 
-	if ranTest2 != nil {
-		t.Error("Test with partial toleration should have been blocked")
+	// Tests with full/extra toleration can run simultaneously with testWithMultipleTaints
+	if !runner.wereTestsRunningSimultaneously("test-multiple-taints", "test-full-toleration") {
+		t.Error("testWithMultipleTaints and testFullToleration should run simultaneously")
+	}
+	if !runner.wereTestsRunningSimultaneously("test-multiple-taints", "test-extra-toleration") {
+		t.Error("testWithMultipleTaints and testExtraToleration should run simultaneously")
 	}
 
-	if ranTest3 == nil {
-		t.Error("Test with full toleration should have been able to run")
-	}
-
-	if ranTest4 == nil {
-		t.Error("Test with extra toleration should have been able to run")
+	// Test with partial toleration should NOT run simultaneously (missing "exclusive")
+	if runner.wereTestsRunningSimultaneously("test-multiple-taints", "test-partial-toleration") {
+		t.Error("testWithMultipleTaints and testPartialToleration should not run simultaneously (partial toleration)")
 	}
 }
 
@@ -701,43 +592,33 @@ func TestScheduler_ConflictsAndTaints(t *testing.T) {
 	scheduler := newTestScheduler([]*testCase{testWithBoth, testConflictingTolerated, testNonConflictingIntolerated})
 	ctx := context.Background()
 
+	// Use 2 workers
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(2)
 
-	var ranTest1, ranTest2, ranTest3 *testCase
-
-	// Start first test
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Second test should be blocked by conflict (even though it has toleration)
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	// Third test should be blocked by taint (even though it doesn't conflict)
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest3 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	if ranTest1 == nil {
-		t.Error("First test should have been able to run")
+	// All tests should complete
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 3 {
+		t.Errorf("Expected all 3 tests to complete, got %d", len(testsRun))
 	}
 
-	if ranTest2 != nil {
-		t.Error("Second test should have been blocked by conflict (despite having toleration)")
+	// testWithBoth and testConflictingTolerated should NOT run simultaneously (conflict prevents it)
+	if runner.wereTestsRunningSimultaneously("test-with-both", "test-conflicting-tolerated") {
+		t.Error("testWithBoth and testConflictingTolerated should not run simultaneously (conflict)")
 	}
 
-	if ranTest3 != nil {
-		t.Error("Third test should have been blocked by taint (despite no conflict)")
+	// testWithBoth and testNonConflictingIntolerated should NOT run simultaneously (taint prevents it)
+	if runner.wereTestsRunningSimultaneously("test-with-both", "test-non-conflicting-intolerated") {
+		t.Error("testWithBoth and testNonConflictingIntolerated should not run simultaneously (taint)")
 	}
 }
 
@@ -1002,42 +883,27 @@ func TestScheduler_ConflictGroups(t *testing.T) {
 	execScheduler := newTestScheduler([]*testCase{testGroupA1, testGroupA2})
 
 	var wg sync.WaitGroup
-	var ranTest1, ranTest2 *testCase
-
-	// Run tests concurrently to test conflict detection
 	wg.Add(2)
 
-	// Start first test
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, execScheduler, runner)
-	}()
-
-	// Start second test with slight delay to ensure first test starts first
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest2 = tryScheduleAndRunNext(ctx, execScheduler, runner)
-	}()
+	// Use 2 workers to process tests
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, execScheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	if ranTest1 == nil {
-		t.Error("testGroupA1 should succeed (default group has no conflicts yet)")
-	}
-
-	if ranTest2 != nil {
-		t.Error("testGroupA2 should be blocked (same conflict in same group)")
-	}
-
-	// After both attempts complete, verify that testGroupA1 ran
+	// Both tests should complete (testGroupA2 runs after testGroupA1)
 	testsRun := runner.getTestsRun()
-	if len(testsRun) != 1 {
-		t.Errorf("Expected 1 test to complete, got %d", len(testsRun))
+	if len(testsRun) != 2 {
+		t.Errorf("Expected 2 tests to complete, got %d", len(testsRun))
 	}
 
-	if len(testsRun) > 0 && testsRun[0] != "test-group-a-1" {
-		t.Errorf("Expected test-group-a-1 to complete, got %s", testsRun[0])
+	// They should not run simultaneously (same conflict)
+	if runner.wereTestsRunningSimultaneously("test-group-a-1", "test-group-a-2") {
+		t.Error("testGroupA1 and testGroupA2 should not run simultaneously (same conflict in default group)")
 	}
 }
 
@@ -1099,31 +965,26 @@ func TestScheduler_InstanceMode_IsolatesConflicts(t *testing.T) {
 	ctx := context.Background()
 
 	var wg sync.WaitGroup
-	var ranTest1, ranTest2 *testCase
-
-	// Run both tests concurrently
 	wg.Add(2)
 
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	// Both tests are in "default" group with same conflict, so one should block
-	if ranTest1 == nil {
-		t.Error("First test should succeed")
+	// Both tests should complete (testInstance2 runs after testInstance1)
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 2 {
+		t.Errorf("Expected 2 tests to complete, got %d", len(testsRun))
 	}
 
-	if ranTest2 != nil {
-		t.Error("Second test should be blocked (same conflict in default group)")
+	// Both tests are in "default" group with same conflict, so they should not run simultaneously
+	if runner.wereTestsRunningSimultaneously("test-instance-1", "test-instance-2") {
+		t.Error("testInstance1 and testInstance2 should not run simultaneously (same conflict in default group)")
 	}
 }
 
@@ -1153,31 +1014,26 @@ func TestScheduler_BucketMode_IsolatesConflicts(t *testing.T) {
 	ctx := context.Background()
 
 	var wg sync.WaitGroup
-	var ranTest1, ranTest2 *testCase
-
-	// Run both tests concurrently
 	wg.Add(2)
 
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	// Both tests are in "default" group with same conflict, so one should block
-	if ranTest1 == nil {
-		t.Error("First test should succeed")
+	// Both tests should complete (testBucket2 runs after testBucket1)
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 2 {
+		t.Errorf("Expected 2 tests to complete, got %d", len(testsRun))
 	}
 
-	if ranTest2 != nil {
-		t.Error("Second test should be blocked (same conflict in default group)")
+	// Both tests are in "default" group with same conflict, so they should not run simultaneously
+	if runner.wereTestsRunningSimultaneously("test-bucket-1", "test-bucket-2") {
+		t.Error("testBucket1 and testBucket2 should not run simultaneously (same conflict in default group)")
 	}
 }
 
@@ -1207,31 +1063,26 @@ func TestScheduler_ExecMode_UsesDefaultGroup(t *testing.T) {
 	ctx := context.Background()
 
 	var wg sync.WaitGroup
-	var ranTest1, ranTest2 *testCase
-
-	// Run both tests concurrently
 	wg.Add(2)
 
-	go func() {
-		defer wg.Done()
-		ranTest1 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(10 * time.Millisecond)
-		ranTest2 = tryScheduleAndRunNext(ctx, scheduler, runner)
-	}()
+	for i := 0; i < 2; i++ {
+		go func() {
+			defer wg.Done()
+			runTestsUntilDone(ctx, scheduler, runner)
+		}()
+	}
 
 	wg.Wait()
 
-	// Both tests are in "default" group with same conflict, so one should block
-	if ranTest1 == nil {
-		t.Error("First test should succeed")
+	// Both tests should complete (testExec2 runs after testExec1)
+	testsRun := runner.getTestsRun()
+	if len(testsRun) != 2 {
+		t.Errorf("Expected 2 tests to complete, got %d", len(testsRun))
 	}
 
-	if ranTest2 != nil {
-		t.Error("Second test should be blocked (same conflict in default group)")
+	// Both tests are in "default" group with same conflict, so they should not run simultaneously
+	if runner.wereTestsRunningSimultaneously("test-exec-1", "test-exec-2") {
+		t.Error("testExec1 and testExec2 should not run simultaneously (same conflict in default group)")
 	}
 }
 
@@ -1284,8 +1135,11 @@ func TestQueue_MaintainsOrderWithConflicts(t *testing.T) {
 		t.Errorf("Expected third call to return test2-conflict-db (now unblocked), got %v", thirdTest)
 	}
 
+	// Clean up test2
+	scheduler.MarkTestComplete(test2)
+
 	// Scheduler should now be empty
-	if !scheduler.IsEmpty() {
+	if scheduler.(*testScheduler).size() != 0 {
 		t.Error("Scheduler should be empty after all tests retrieved")
 	}
 }
