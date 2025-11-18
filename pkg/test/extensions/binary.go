@@ -19,13 +19,14 @@ import (
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension"
 	"github.com/openshift-eng/openshift-tests-extension/pkg/extension/extensiontests"
 	g "github.com/openshift-eng/openshift-tests-extension/pkg/ginkgo"
-	originVersion "github.com/openshift/origin/pkg/version"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	originVersion "github.com/openshift/origin/pkg/version"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
@@ -69,29 +70,35 @@ func InitializeOpenShiftTestsExtensionFramework() (*extension.Registry, *extensi
 	}
 
 	// Build our specs from ginkgo
-	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
-	}
-
-	klog.Infof("Found %d test specs", len(specs))
-	// Filter out kube tests (while retaining CSI tests), vendor filtering isn't working within origin
-	csiPrefix := "External Storage"
-	specs = specs.Select(func(spec *extensiontests.ExtensionTestSpec) bool {
+	specs, err := g.BuildExtensionTestSpecsFromOpenShiftGinkgoSuite(func(spec *extensiontests.ExtensionTestSpec) bool {
+		csiPrefix := "External Storage"
 		// The CSI tests all have the same prefix, and we need to retain them all
 		if strings.HasPrefix(spec.Name, csiPrefix) {
 			return true
 		}
+
+		hasLocalCode := false
 		for _, cl := range spec.CodeLocations {
-			// If there is a CodeLocation for origin, that isn't simply "framework" it is not a vendored test
-			if strings.Contains(cl, "github.com/openshift/origin/") &&
-				!strings.Contains(cl, "github.com/openshift/origin/test/extended/util/framework.go") {
-				return true
+			// Short-form code locations (e.g., "set up framework | framework.go:200") are ignored in this determination.
+			if !strings.Contains(cl, "/") {
+				continue
+			}
+
+			// If this code location is not external (vendored or k8s test), it's local code
+			if !(strings.Contains(cl, "/vendor/") ||
+				strings.Contains(cl, "test/extended/util/framework.go") || // origin's test framework's ginkgo nodes get injected even for k8s tests
+				strings.HasPrefix(cl, "k8s.io/kubernetes")) {
+				hasLocalCode = true
+				break
 			}
 		}
-		return false
+
+		// Include the test only if it has at least one local code location
+		return hasLocalCode
 	})
-	klog.Infof("%d test specs remain, after filtering out k8s", len(specs))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build extension test specs: %w", err)
+	}
 
 	// Filter out tests that are always disabled based on name matching
 	specs = filterOutDisabledSpecs(specs)
