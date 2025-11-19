@@ -87,6 +87,7 @@ func (c *CLI) CreateNamespaceUDN() {
 	if err != nil {
 		FatalErr(err)
 	}
+	c.kubeFramework.AddNamespacesToDelete(namespace)
 }
 
 // CreateSpecificNamespaceUDN creates a specific namespace with required user defined network label during creation time only
