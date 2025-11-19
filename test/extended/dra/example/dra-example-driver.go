@@ -9,7 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -56,12 +56,12 @@ func (d *ExampleDRADriver) EventuallyPublishResources(ctx context.Context, node 
 	class := d.name
 	o.Eventually(ctx, func(ctx context.Context) error {
 		// has the driver published the device class?
-		obj, err := d.clientset.ResourceV1beta1().DeviceClasses().Get(ctx, class, metav1.GetOptions{})
+		obj, err := d.clientset.ResourceV1().DeviceClasses().Get(ctx, class, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("still waiting for the driver to advertise its DeviceClass")
 		}
 
-		result, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
+		result, err := d.clientset.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
 			FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + class + "," +
 				resourceapi.ResourceSliceSelectorNodeName + "=" + node.Name,
 		})
@@ -77,7 +77,7 @@ func (d *ExampleDRADriver) EventuallyPublishResources(ctx context.Context, node 
 }
 
 func (d *ExampleDRADriver) ListPublishedDevices(ctx context.Context, node *corev1.Node) ([]string, error) {
-	result, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
+	result, err := d.clientset.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
 		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + d.name + "," +
 			resourceapi.ResourceSliceSelectorNodeName + "=" + node.Name,
 	})

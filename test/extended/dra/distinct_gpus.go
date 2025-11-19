@@ -9,7 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -40,12 +40,14 @@ func (spec distinctGPUsSpec) Test(ctx context.Context, t testing.TB) {
 		}
 		claim.Spec.Devices.Requests = []resourceapi.DeviceRequest{
 			{
-				Name:            request,
-				DeviceClassName: spec.class,
-				Selectors: []resourceapi.DeviceSelector{
-					{
-						CEL: &resourceapi.CELDeviceSelector{
-							Expression: fmt.Sprintf("device.attributes['%s'].uuid == \"%s\"", spec.class, gpu),
+				Name: request,
+				Exactly: &resourceapi.ExactDeviceRequest{
+					DeviceClassName: spec.class,
+					Selectors: []resourceapi.DeviceSelector{
+						{
+							CEL: &resourceapi.CELDeviceSelector{
+								Expression: fmt.Sprintf("device.attributes['%s'].uuid == \"%s\"", spec.class, gpu),
+							},
 						},
 					},
 				},
@@ -95,7 +97,7 @@ func (spec distinctGPUsSpec) Test(ctx context.Context, t testing.TB) {
 		newResourceClaim("pod-b", "nvidia-gpu-1", spec.gpu1),
 	} {
 		t.Logf("creating resourceclaim: \n%s\n", framework.PrettyPrintJSON(claim))
-		_, err := spec.f.ClientSet.ResourceV1beta1().ResourceClaims(namespace).Create(ctx, claim, metav1.CreateOptions{})
+		_, err := spec.f.ClientSet.ResourceV1().ResourceClaims(namespace).Create(ctx, claim, metav1.CreateOptions{})
 		o.Expect(err).To(o.BeNil())
 	}
 
@@ -115,7 +117,7 @@ func (spec distinctGPUsSpec) Test(ctx context.Context, t testing.TB) {
 		pods, err := spec.f.ClientSet.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		t.Logf("pod in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(pods))
 
-		claims, err := spec.f.ClientSet.ResourceV1beta1().ResourceClaims(namespace).List(ctx, metav1.ListOptions{})
+		claims, err := spec.f.ClientSet.ResourceV1().ResourceClaims(namespace).List(ctx, metav1.ListOptions{})
 		o.Expect(err).Should(o.BeNil())
 		t.Logf("resource claim in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(claims))
 	})
@@ -136,7 +138,7 @@ func (spec distinctGPUsSpec) Test(ctx context.Context, t testing.TB) {
 		// the pods should run on the expected node
 		o.Expect(pod.Spec.NodeName).To(o.Equal(spec.node.Name))
 
-		claim, err := spec.f.ClientSet.ResourceV1beta1().ResourceClaims(namespace).Get(ctx, pod.Name, metav1.GetOptions{})
+		claim, err := spec.f.ClientSet.ResourceV1().ResourceClaims(namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
 		o.Expect(claim).ToNot(o.BeNil())
 		o.Expect(claim.Status.Allocation).NotTo(o.BeNil())

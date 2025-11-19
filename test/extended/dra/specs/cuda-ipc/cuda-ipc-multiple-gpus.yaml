@@ -5,7 +5,7 @@ metadata:
   labels:
     pod-security.kubernetes.io/enforce: privileged
 ---
-apiVersion: resource.k8s.io/v1beta1
+apiVersion: resource.k8s.io/v1
 kind: ResourceClaim
 metadata:
   namespace: cuda-ipc
@@ -14,13 +14,15 @@ spec:
   devices:
     requests:
     - name: producer
-      deviceClassName: gpu.nvidia.com
+      exactly:
+        deviceClassName: gpu.nvidia.com
       selectors:
       - cel:
           expression: |
             device.attributes['gpu.nvidia.com'].uuid == "GPU-d1a2be06-94f6-cd5f-0c15-b5558bcf3025"
     - name: consumer
-      deviceClassName: gpu.nvidia.com
+      exactly:
+        deviceClassName: gpu.nvidia.com
       selectors:
       - cel:
           expression: |
