@@ -51,7 +51,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/etcddiskmetricsintervals"
-	"github.com/openshift/origin/pkg/monitortests/testframework/highcpumetriccollector"
+	"github.com/openshift/origin/pkg/monitortests/testframework/cpumetriccollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/highcputestanalyzer"
 
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
@@ -189,7 +189,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("high-cpu-metric-collector", "Node / Kubelet", highcpumetriccollector.NewHighCPUMetricCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("cpu-metric-collector", "Node / Kubelet", cpumetriccollector.NewCPUMetricCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("machine-lifecycle", "Cluster-Lifecycle / machine-api", watchmachines.NewMachineWatcher())

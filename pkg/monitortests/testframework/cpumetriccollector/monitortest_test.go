@@ -1,4 +1,4 @@
-package highcpumetriccollector
+package cpumetriccollector
 
 import (
 	"fmt"
@@ -81,8 +81,8 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			collector := &highCPUMetricCollector{
-				cpuThreshold: tc.threshold,
+			collector := &cpuMetricCollector{
+				highCPUThreshold: tc.threshold,
 			}
 
 			// Create mock Prometheus matrix data
@@ -140,8 +140,8 @@ func TestCreateIntervalsFromCPUMetrics(t *testing.T) {
 
 func TestCreateIntervalsFromCPUMetrics_EmptyData(t *testing.T) {
 	logger := logrus.WithField("test", "highcpu")
-	collector := &highCPUMetricCollector{
-		cpuThreshold: 95.0,
+	collector := &cpuMetricCollector{
+		highCPUThreshold: 95.0,
 	}
 
 	// Test with empty matrix
@@ -153,8 +153,8 @@ func TestCreateIntervalsFromCPUMetrics_EmptyData(t *testing.T) {
 
 func TestCreateIntervalsFromCPUMetrics_InvalidPrometheusType(t *testing.T) {
 	logger := logrus.WithField("test", "highcpu")
-	collector := &highCPUMetricCollector{
-		cpuThreshold: 95.0,
+	collector := &cpuMetricCollector{
+		highCPUThreshold: 95.0,
 	}
 
 	// Test with non-matrix type (scalar)
@@ -169,8 +169,8 @@ func TestCreateIntervalsFromCPUMetrics_InvalidPrometheusType(t *testing.T) {
 }
 
 func TestCreateCPUInterval(t *testing.T) {
-	collector := &highCPUMetricCollector{
-		cpuThreshold: 95.0,
+	collector := &cpuMetricCollector{
+		highCPUThreshold: 95.0,
 	}
 
 	start := time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC)
@@ -194,9 +194,9 @@ func TestCreateCPUInterval(t *testing.T) {
 	assert.Equal(t, "95.0", interval.Message.Annotations["cpu_threshold"])
 }
 
-func TestHighCPUMetricCollector_DefaultThreshold(t *testing.T) {
-	collector := NewHighCPUMetricCollector().(*highCPUMetricCollector)
-	assert.Equal(t, 95.0, collector.cpuThreshold, "Default threshold should be 95.0")
+func TestCPUMetricCollector_DefaultThreshold(t *testing.T) {
+	collector := NewCPUMetricCollector().(*cpuMetricCollector)
+	assert.Equal(t, 95.0, collector.highCPUThreshold, "Default threshold should be 95.0")
 }
 
 // Helper function to create timestamps for testing
