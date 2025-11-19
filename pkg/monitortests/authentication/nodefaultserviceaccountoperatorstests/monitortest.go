@@ -77,7 +77,7 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 }
 
 // generateDefaultSAFailures generates a list of failures where the pod in a list of pods
-// violated the default service account check.
+// violated the default service account check..
 func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 	junits := []*junitapi.JUnitTestCase{}
 	for _, pod := range podList {
