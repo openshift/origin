@@ -57,8 +57,7 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	exceptionWithJira("default/verify-all-openshiftcertifiedoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
 	exceptionWithJira("default/verify-all-openshiftredhatoperators-", "https://issues.redhat.com/browse/OCPBUGS-65634"),
 	exceptionWithJira("openshift-cluster-version/version-", "https://issues.redhat.com/browse/OCPBUGS-65621"),
-	// keep as default service account required for this component.
-	exceptionWithJira("openshift-must-gather/must-gather-", "https://issues.redhat.com/browse/OCPBUGS-65635"),
+	exceptionWithJira("openshift-must-gather/must-gather-", "https://issues.redhat.com/browse/OCPBUGS-65635"), // keep as default service account required for this component.
 	exceptionWithJira("kube-system/konnectivity-agent-", "https://issues.redhat.com/browse/OCPBUGS-65636"),
 	exceptionWithJira("openshift-multus/multus-additional-cni-plugins-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
 	exceptionWithJira("openshift-multus/cni-sysctl-allowlist-ds-", "https://issues.redhat.com/browse/OCPBUGS-65631"),
@@ -83,10 +82,8 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 	junits := []*junitapi.JUnitTestCase{}
 	for _, pod := range podList {
 		podSA := pod.Spec.ServiceAccountName
-		namespacedName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+		testName := fmt.Sprintf("[sig-auth] all pods in %s namespace must not use the default service account.", pod.Namespace)
 
-		// generate tests for given namespace/pod
-		testName := fmt.Sprintf("[sig-auth] pod %q must not use the default service account", namespacedName)
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
 			// test passes.
@@ -102,8 +99,9 @@ func generateDefaultSAFailures(podList []corev1.Pod) []*junitapi.JUnitTestCase {
 			}
 		}
 
-		failure := fmt.Sprintf("pod %q is using the default service account", namespacedName)
+		failure := fmt.Sprintf("pod %q is using the default service account", pod.Name)
 		if exceptionMsg != "" {
+			testName = "[EXCEPTIONS] " + testName // ensure exceptions are respected when needed, but separate list for when it is not.
 			failure += fmt.Sprintf(" (exception: %s)", exceptionMsg)
 		}
 
