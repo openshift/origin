@@ -177,6 +177,20 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		upgCtx, err := getUpgradeContext(client, upgradeToImage)
 		framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", "", upgradeToImage)
 
+		// Ensure ClusterOperators test always runs, even if earlier tests fail
+		defer func() {
+			_ = disruption.RecordJUnit(
+				f,
+				"[sig-cluster-lifecycle] ClusterOperators are available and not degraded after upgrade",
+				func() (error, bool) {
+					if err := operator.WaitForOperatorsToSettle(context.TODO(), client, 5); err != nil {
+						return err, false
+					}
+					return nil, false
+				},
+			)
+		}()
+
 		disruption.Run(f, "Cluster upgrade", "upgrade",
 			disruption.TestData{
 				UpgradeType:    upgrades.ClusterUpgrade,
@@ -688,20 +702,6 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	if errMasterUpdating != nil {
 		recordClusterEvent(kubeClient, uid, "Upgrade", monitorapi.UpgradeFailedReason, fmt.Sprintf("master was updating after cluster version reached level: %v", errMasterUpdating), true)
 		return errMasterUpdating
-	}
-
-	if err := disruption.RecordJUnit(
-		f,
-		"[sig-cluster-lifecycle] ClusterOperators are available and not degraded after upgrade",
-		func() (error, bool) {
-			if err := operator.WaitForOperatorsToSettle(context.TODO(), c, 5); err != nil {
-				return err, false
-			}
-			return nil, false
-		},
-	); err != nil {
-		recordClusterEvent(kubeClient, uid, "Upgrade", monitorapi.UpgradeFailedReason, fmt.Sprintf("failed to settle operators: %v", err), true)
-		return err
 	}
 
 	recordClusterEvent(kubeClient, uid, "Upgrade", monitorapi.UpgradeCompleteReason, fmt.Sprintf("version/%s image/%s", updated.Status.Desired.Version, updated.Status.Desired.Image), false)
