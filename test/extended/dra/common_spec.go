@@ -11,7 +11,7 @@ import (
 	helper "github.com/openshift/origin/test/extended/dra/helper"
 
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -42,8 +42,8 @@ func (spec commonSpec) Test(ctx context.Context, t testing.TB) {
 	}
 	template.Spec.Spec.Devices.Requests = []resourceapi.DeviceRequest{
 		{
-			Name:            "gpu",
-			DeviceClassName: spec.class,
+			Name:    "gpu",
+			Exactly: &resourceapi.ExactDeviceRequest{DeviceClassName: spec.class},
 		},
 	}
 
@@ -71,7 +71,7 @@ func (spec commonSpec) Test(ctx context.Context, t testing.TB) {
 	}
 
 	g.By("creating external claim and pod")
-	resource := spec.f.ClientSet.ResourceV1beta1()
+	resource := spec.f.ClientSet.ResourceV1()
 	_, err := resource.ResourceClaimTemplates(namespace).Create(ctx, template, metav1.CreateOptions{})
 	o.Expect(err).To(o.BeNil())
 
@@ -83,7 +83,7 @@ func (spec commonSpec) Test(ctx context.Context, t testing.TB) {
 		g.By(fmt.Sprintf("listing resources in namespace: %s", namespace))
 		t.Logf("pod in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(pod))
 
-		client := spec.f.ClientSet.ResourceV1beta1().ResourceClaims(namespace)
+		client := spec.f.ClientSet.ResourceV1().ResourceClaims(namespace)
 		result, err := client.List(ctx, metav1.ListOptions{})
 		o.Expect(err).Should(o.BeNil())
 		t.Logf("resource claim in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(result))

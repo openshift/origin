@@ -8,7 +8,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -57,8 +57,8 @@ func (spec gpuTimeSlicingWithCUDASpec) Test(ctx context.Context, t testing.TB) {
 	}
 	template.Spec.Spec.Devices.Requests = []resourceapi.DeviceRequest{
 		{
-			Name:            "ts-gpu",
-			DeviceClassName: spec.class,
+			Name:    "ts-gpu",
+			Exactly: &resourceapi.ExactDeviceRequest{DeviceClassName: spec.class},
 		},
 	}
 	template.Spec.Spec.Devices.Config = []resourceapi.DeviceClaimConfiguration{
@@ -105,7 +105,7 @@ func (spec gpuTimeSlicingWithCUDASpec) Test(ctx context.Context, t testing.TB) {
 
 	g.By("creating external claim and pod")
 	t.Logf("creating resource template: \n%s\n", framework.PrettyPrintJSON(template))
-	_, err := clientset.ResourceV1beta1().ResourceClaimTemplates(namespace).Create(ctx, template, metav1.CreateOptions{})
+	_, err := clientset.ResourceV1().ResourceClaimTemplates(namespace).Create(ctx, template, metav1.CreateOptions{})
 	o.Expect(err).To(o.BeNil())
 
 	t.Logf("creating pod: \n%s\n", framework.PrettyPrintJSON(pod))
@@ -116,7 +116,7 @@ func (spec gpuTimeSlicingWithCUDASpec) Test(ctx context.Context, t testing.TB) {
 		g.By(fmt.Sprintf("listing resources in namespace: %s", namespace))
 		t.Logf("pod in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(pod))
 
-		client := clientset.ResourceV1beta1().ResourceClaims(namespace)
+		client := clientset.ResourceV1().ResourceClaims(namespace)
 		result, err := client.List(ctx, metav1.ListOptions{})
 		o.Expect(err).Should(o.BeNil())
 		t.Logf("resource claim in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(result))
