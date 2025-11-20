@@ -150,7 +150,7 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerification][
 	})
 })
 
-var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPKI][Serial]", g.Ordered, func() {
+var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPKI][Serial][Skipped:Disconnected]", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                       = exutil.NewCLIWithoutNamespace("cluster-image-policy")
@@ -166,10 +166,6 @@ var _ = g.Describe("[sig-imagepolicy][OCPFeatureGate:SigstoreImageVerificationPK
 	g.BeforeAll(func() {
 		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
 			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
-		// skip test on disconnected clusters.
-		if isDisconnectedCluster(oc) {
-			g.Skip("skipping test on disconnected platform")
 		}
 	})
 
