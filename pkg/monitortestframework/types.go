@@ -52,7 +52,16 @@ type MonitorTest interface {
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	// storageDir is for gathering data only, not for writing in this stage.  To store data, use WriteContentToStorage
+	// storageDir is for gathering data only, not for writing in this stage.  To store data, use WriteContentToStorage.
+	// The returned JUnitTestCases should be stable in different runs as the test pass/fail rate
+	// is calculated in an aggregated to improve CI signal. I.e., if a JUnitTestCase shows up in
+	// some run, then it should stay in other runs as well.
+	// See https://docs.ci.openshift.org/docs/release-oversight/improving-ci-signal/#passfail-rates-for-running-jobs-10-times
+	// for details.
+	// In addition, we should avoid renaming a JUnitTestCase, e.g., by not using
+	// any specific numbers that could be changed over time.
+	// See https://github.com/openshift-eng/ci-test-mapping?tab=readme-ov-file#renaming-tests
+	// for details.
 	CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
 
 	// ConstructComputedIntervals is called after all InvariantTests have produced raw Intervals.
@@ -64,6 +73,15 @@ type MonitorTest interface {
 	// EvaluateTestsFromConstructedIntervals is called after all Intervals are known and can produce
 	// junit tests for reporting purposes.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
+	// The returned JUnitTestCases should be stable in different runs as the test pass/fail rate
+	// is calculated in an aggregated to improve CI signal. I.e., if a JUnitTestCase shows up in
+	// some run, then it should stay in other runs as well.
+	// See https://docs.ci.openshift.org/docs/release-oversight/improving-ci-signal/#passfail-rates-for-running-jobs-10-times
+	// for details.
+	// In addition, we should avoid renaming a JUnitTestCase, e.g., by not using
+	// any specific numbers that could be changed over time.
+	// See https://github.com/openshift-eng/ci-test-mapping?tab=readme-ov-file#renaming-tests
+	// for details.
 	EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
 
 	// WriteContentToStorage writes content to the storage directory that is collected by openshift CI.
