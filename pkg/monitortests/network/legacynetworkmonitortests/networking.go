@@ -57,6 +57,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	// 2. dial tcp 10.0.76.225:6443: i/o timeout
 	// 3. Path:"" ERRORED: error configuring pod [openshift-kube-apiserver/revision-pruner-10-master-1] networking: Multus: [openshift-kube-apiserver/revision-pruner-10-master-1/72c4e0fa-fcf2-47f7-a9ff-4efdb1dc55c5]: error waiting for pod: pod "revision-pruner-10-master-1" not found
 	// 4. write child: broken pipe
+	// 5. Multus UID mismatch during rapid pod recreation (OCPBUGS-57523)
 	bySubStrings := []testCategorizer{
 		{by: " by reading container", substring: "error reading container (probably exited) json message: EOF"},
 		{by: " by pinging container registry", substring: "pinging container registry"}, // likely combined with i/o timeout but separate test for visibility
@@ -159,6 +160,17 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			flakes = append(flakes, fmt.Sprintf("%v - multus is unable to get pods as ovnkube-node pod has not yet written readinessindicatorfile (possibly not running due to image pull delays) https://bugzilla.redhat.com/show_bug.cgi?id=20671320 - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
 			continue
 		}
+		// Handle Multus UID mismatch errors - these occur when a pod is rapidly recreated
+		// and the API server cache returns stale data (old pod UID) while CNI is setting up the new pod.
+		// This is a transient race condition during eventual consistency, not a CNI bug.
+		// See: https://issues.redhat.com/browse/OCPBUGS-57523
+		if strings.Contains(event.Message.HumanMessage, "Multus") &&
+			strings.Contains(event.Message.HumanMessage, "expected pod UID") &&
+			strings.Contains(event.Message.HumanMessage, "but got") &&
+			strings.Contains(event.Message.HumanMessage, "from Kube API") {
+			flakes = append(flakes, fmt.Sprintf("%v - multus UID mismatch due to API cache consistency during rapid pod recreation https://issues.redhat.com/browse/OCPBUGS-57523 - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+			continue
+		}
 		if strings.Contains(event.Locator.Keys[monitorapi.LocatorPodKey], "whereabouts-pod") &&
 			strings.Contains(event.Message.HumanMessage, "error adding container to network") &&
 			strings.Contains(event.Message.HumanMessage, "Error at storage engine: Could not allocate IP in range: ip: 192.168.2.225 / - 192.168.2.230 ") {
@@ -205,16 +217,27 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			} else {
 				// No operator progressing, apply timing-based logic
 				switch {
+				case timeBetweenDeleteAndFailure <= 0*time.Second:
+					// Failure occurred at same time or before the creation of the new pod.
+					// This is a clear race condition where the old pod was being deleted and
+					// the new pod was created so quickly that CNI/API had no time to sync.
+					// This is expected behavior during rapid pod recreation (e.g., StatefulSets).
+					flakes = append(flakes, fmt.Sprintf("%v - race condition: sandbox failure at pod creation time (new pod created %0.2f seconds after deletion started) - %v",
+						event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
 				case timeBetweenDeleteAndFailure < 1*time.Second:
-					// nothing here, one second is close enough to be ok, the kubelet and CNI just didn't know
+					// Within 1 second: acceptable timing window for CNI to not yet know about the deletion.
+					// The kubelet and CNI layers may have stale cache data. This is not an error.
 				case timeBetweenDeleteAndFailure < 5*time.Second:
-					// withing five seconds, it ought to be long enough to know, but it's close enough to flake and not fail
+					// 1-5 seconds: long enough that CNI should know about deletion, but still within
+					// reasonable bounds for distributed system propagation delays. Mark as flake.
 					flakes = append(flakes, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
 				case deletionTime.Before(event.From):
-					// something went wrong.  More than five seconds after the pod was deleted, the CNI is trying to set up pod sandboxes and can't
+					// More than 5 seconds after deletion: this is unexpected and indicates a real problem.
+					// The CNI should have known about the deletion by now.
 					failures = append(failures, fmt.Sprintf("%v - %0.2f seconds after deletion - %v", event.Locator.OldLocator(), timeBetweenDeleteAndFailure.Seconds(), event.Message.OldMessage()))
 				default:
-					// something went wrong.  deletion happened after we had a failure to create the pod sandbox
+					// Deletion happened after the sandbox failure - this is definitely wrong.
+					// The pod shouldn't be deleted if it hasn't been created yet.
 					failures = append(failures, fmt.Sprintf("%v - deletion came AFTER sandbox failure - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
 				}
 			}
