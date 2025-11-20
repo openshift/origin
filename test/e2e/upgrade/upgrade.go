@@ -620,7 +620,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 	var errMasterUpdating error
 	var violationStartTime *time.Time
-	const gracePeriod = 2 * time.Minute
+	const gracePeriod = 10 * time.Minute
 
 	if err := disruption.RecordJUnit(
 		f,
@@ -666,10 +666,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 							framework.Logf("Invariant violation detected: master pool requires update but nodes not ready. Waiting up to %v for non-draining updates to complete", gracePeriod)
 							return false, nil
 						}
-						if time.Since(*violationStartTime) <= gracePeriod {
+						waitTime := time.Since(*violationStartTime)
+						if waitTime <= gracePeriod {
 							return false, nil
 						}
-						errMasterUpdating = fmt.Errorf("the %q pool should be updated before the CVO reports available at the new version", p.GetName())
+						errMasterUpdating = fmt.Errorf("the %q pool should be updated before the CVO reports available at the new version (nodes still not ready after %v wait time, grace period: %v)", p.GetName(), waitTime.Round(time.Second), gracePeriod)
 						framework.Logf("Invariant violation detected: %s", errMasterUpdating)
 					}
 				}
