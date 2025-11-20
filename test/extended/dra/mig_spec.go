@@ -10,7 +10,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -50,12 +50,14 @@ func (spec gpuMIGSpec) Test(ctx context.Context, t testing.TB) {
 	for i, device := range spec.devices {
 		name := fmt.Sprintf("%s-%d", strings.ReplaceAll(device, ".", "-"), i)
 		template.Spec.Spec.Devices.Requests = append(template.Spec.Spec.Devices.Requests, resourceapi.DeviceRequest{
-			Name:            name,
-			DeviceClassName: "mig.nvidia.com",
-			Selectors: []resourceapi.DeviceSelector{
-				{
-					CEL: &resourceapi.CELDeviceSelector{
-						Expression: "device.attributes['" + spec.class + "'].profile == '" + device + "'",
+			Name: name,
+			Exactly: &resourceapi.ExactDeviceRequest{
+				DeviceClassName: "mig.nvidia.com",
+				Selectors: []resourceapi.DeviceSelector{
+					{
+						CEL: &resourceapi.CELDeviceSelector{
+							Expression: "device.attributes['" + spec.class + "'].profile == '" + device + "'",
+						},
 					},
 				},
 			},
@@ -94,7 +96,7 @@ func (spec gpuMIGSpec) Test(ctx context.Context, t testing.TB) {
 	}
 
 	g.By("creating external claim and pod")
-	_, err := clientset.ResourceV1beta1().ResourceClaimTemplates(namespace).Create(ctx, template, metav1.CreateOptions{})
+	_, err := clientset.ResourceV1().ResourceClaimTemplates(namespace).Create(ctx, template, metav1.CreateOptions{})
 	o.Expect(err).To(o.BeNil())
 
 	pod, err = clientset.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
@@ -104,7 +106,7 @@ func (spec gpuMIGSpec) Test(ctx context.Context, t testing.TB) {
 		g.By(fmt.Sprintf("listing resources in namespace: %s", namespace))
 		t.Logf("pod in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(pod))
 
-		result, err := clientset.ResourceV1beta1().ResourceClaims(namespace).List(ctx, metav1.ListOptions{})
+		result, err := clientset.ResourceV1().ResourceClaims(namespace).List(ctx, metav1.ListOptions{})
 		o.Expect(err).Should(o.BeNil())
 		t.Logf("resource claim in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(result))
 	})

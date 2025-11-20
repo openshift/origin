@@ -9,7 +9,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epodutil "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -40,12 +40,14 @@ func (spec shareDataWithCUDAIPC) Test(ctx context.Context, t testing.TB) {
 
 	newRequest := func(name, gpuUUID string) resourceapi.DeviceRequest {
 		return resourceapi.DeviceRequest{
-			Name:            name,
-			DeviceClassName: spec.class,
-			Selectors: []resourceapi.DeviceSelector{
-				{
-					CEL: &resourceapi.CELDeviceSelector{
-						Expression: fmt.Sprintf("device.attributes['%s'].uuid == \"%s\"", spec.class, gpuUUID),
+			Name: name,
+			Exactly: &resourceapi.ExactDeviceRequest{
+				DeviceClassName: spec.class,
+				Selectors: []resourceapi.DeviceSelector{
+					{
+						CEL: &resourceapi.CELDeviceSelector{
+							Expression: fmt.Sprintf("device.attributes['%s'].uuid == \"%s\"", spec.class, gpuUUID),
+						},
 					},
 				},
 			},
@@ -108,7 +110,7 @@ func (spec shareDataWithCUDAIPC) Test(ctx context.Context, t testing.TB) {
 
 	g.By("creating external claim and pod(s)")
 	t.Logf("creating resource claim: \n%s\n", framework.PrettyPrintJSON(claim))
-	_, err := clientset.ResourceV1beta1().ResourceClaims(namespace).Create(ctx, claim, metav1.CreateOptions{})
+	_, err := clientset.ResourceV1().ResourceClaims(namespace).Create(ctx, claim, metav1.CreateOptions{})
 	o.Expect(err).To(o.BeNil())
 
 	t.Logf("creating producer pod: \n%s\n", framework.PrettyPrintJSON(producer))
@@ -125,7 +127,7 @@ func (spec shareDataWithCUDAIPC) Test(ctx context.Context, t testing.TB) {
 		o.Expect(err).Should(o.BeNil())
 		t.Logf("pods in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(pods))
 
-		claims, err := clientset.ResourceV1beta1().ResourceClaims(namespace).List(ctx, metav1.ListOptions{})
+		claims, err := clientset.ResourceV1().ResourceClaims(namespace).List(ctx, metav1.ListOptions{})
 		o.Expect(err).Should(o.BeNil())
 		t.Logf("resource claim in test namespace: %s\n%s", namespace, framework.PrettyPrintJSON(claims))
 	})

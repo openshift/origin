@@ -9,7 +9,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -74,12 +74,12 @@ func (d *NvidiaDRADriverGPU) Ready(ctx context.Context, node *corev1.Node) error
 func (d *NvidiaDRADriverGPU) EventuallyPublishResources(ctx context.Context, node *corev1.Node) (dc *resourceapi.DeviceClass, slices []resourceapi.ResourceSlice) {
 	o.Eventually(ctx, func(ctx context.Context) error {
 		// has the driver published the device class?
-		obj, err := d.clientset.ResourceV1beta1().DeviceClasses().Get(ctx, d.class, metav1.GetOptions{})
+		obj, err := d.clientset.ResourceV1().DeviceClasses().Get(ctx, d.class, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("still waiting for the driver to advertise its DeviceClass")
 		}
 
-		result, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
+		result, err := d.clientset.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
 			FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + d.class + "," +
 				resourceapi.ResourceSliceSelectorNodeName + "=" + node.Name,
 		})
@@ -108,14 +108,14 @@ func (d *NvidiaDRADriverGPU) RemovePluginFromNode(ctx context.Context, node *cor
 		return err
 	}
 
-	slices, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
+	slices, err := d.clientset.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
 		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + d.class + "," +
 			resourceapi.ResourceSliceSelectorNodeName + "=" + node.Name,
 	})
 	if err != nil || len(slices.Items) == 0 {
 		return err
 	}
-	return d.clientset.ResourceV1beta1().ResourceSlices().Delete(ctx, slices.Items[0].Name, metav1.DeleteOptions{})
+	return d.clientset.ResourceV1().ResourceSlices().Delete(ctx, slices.Items[0].Name, metav1.DeleteOptions{})
 }
 
 func (d *NvidiaDRADriverGPU) GetGPUFromResourceSlice(ctx context.Context, node *corev1.Node, device string) (NvidiaGPU, error) {
@@ -153,7 +153,7 @@ func (d *NvidiaDRADriverGPU) GetMPSControlDaemonForClaim(ctx context.Context, no
 }
 
 func (d *NvidiaDRADriverGPU) ListPublishedDevicesFromResourceSlice(ctx context.Context, node *corev1.Node) (NvidiaGPUs, error) {
-	result, err := d.clientset.ResourceV1beta1().ResourceSlices().List(ctx, metav1.ListOptions{
+	result, err := d.clientset.ResourceV1().ResourceSlices().List(ctx, metav1.ListOptions{
 		FieldSelector: resourceapi.ResourceSliceSelectorDriver + "=" + d.class + "," +
 			resourceapi.ResourceSliceSelectorNodeName + "=" + node.Name,
 	})
@@ -165,16 +165,14 @@ func (d *NvidiaDRADriverGPU) ListPublishedDevicesFromResourceSlice(ctx context.C
 	for _, rs := range result.Items {
 		for _, got := range rs.Spec.Devices {
 			gpu := NvidiaGPU{Name: got.Name}
-			if got.Basic != nil {
-				if attribute, ok := got.Basic.Attributes["type"]; ok {
-					gpu.Type = ptr.Deref[string](attribute.StringValue, "")
-				}
-				if attribute, ok := got.Basic.Attributes["uuid"]; ok {
-					gpu.UUID = ptr.Deref[string](attribute.StringValue, "")
-				}
-				if attribute, ok := got.Basic.Attributes["index"]; ok && attribute.IntValue != nil {
-					gpu.Index = strconv.Itoa(int(*attribute.IntValue))
-				}
+			if attribute, ok := got.Attributes["type"]; ok {
+				gpu.Type = ptr.Deref[string](attribute.StringValue, "")
+			}
+			if attribute, ok := got.Attributes["uuid"]; ok {
+				gpu.UUID = ptr.Deref[string](attribute.StringValue, "")
+			}
+			if attribute, ok := got.Attributes["index"]; ok && attribute.IntValue != nil {
+				gpu.Index = strconv.Itoa(int(*attribute.IntValue))
 			}
 			devices = append(devices, gpu)
 		}

@@ -10,7 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	resourceapi "k8s.io/api/resource/v1beta1"
+	resourceapi "k8s.io/api/resource/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -113,7 +113,7 @@ func GetLogs(ctx context.Context, clientset kubernetes.Interface, namespace, nam
 }
 
 func GetResourceClaimFor(ctx context.Context, clientset kubernetes.Interface, pod *corev1.Pod) (*resourceapi.ResourceClaim, error) {
-	result, err := clientset.ResourceV1beta1().ResourceClaims(pod.Namespace).List(ctx, metav1.ListOptions{})
+	result, err := clientset.ResourceV1().ResourceClaims(pod.Namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
