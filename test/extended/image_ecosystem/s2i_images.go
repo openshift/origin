@@ -192,19 +192,12 @@ var s2iImages = map[string][]tc{
 		// 	Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		// },
 		{
-			Version:  "80",
+			Version:  "82",
 			Cmd:      "php --version",
-			Expected: "8.0",
-			Tag:      "8.0-ubi8",
+			Expected: "8.2",
+			Tag:      "8.2-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
-		// {
-		// 	Version:  "82",
-		// 	Cmd:      "php --version",
-		// 	Expected: "8.2",
-		// 	Tag:      "8.2-ubi8",
-		// 	Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		// },
 		{
 			Version:  "74",
 			Cmd:      "php --version",
