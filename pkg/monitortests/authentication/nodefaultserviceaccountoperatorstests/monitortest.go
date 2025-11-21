@@ -78,8 +78,8 @@ var exceptions = []func(pod corev1.Pod) (string, bool){
 	},
 }
 
-// generateTestCases generates a list of failures where the pod in a list of pods
-// violated the default service account check..
+// generateTestCases evaluates that no pods in the provided namespace are using the default service account.
+// It returns the evaluated test cases or an error if any errors are encountered during the evaluation of the namespace.
 func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, namespace string) ([]*junitapi.JUnitTestCase, error) {
 	podList, err := n.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -94,7 +94,6 @@ func (n *noDefaultServiceAccountChecker) generateTestCases(ctx context.Context, 
 
 		// if the service account name is not default, we can exit for that iteration
 		if podSA != "default" {
-			// test passes.
 			continue
 		}
 		isException := false
