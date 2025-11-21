@@ -243,10 +243,6 @@ var extensionBinaries = []TestBinary{
 		imageTag:   "cluster-etcd-operator",
 		binaryPath: "/usr/bin/cluster-etcd-operator-tests-ext.gz",
 	},
-	{
-		imageTag:   "aws-cloud-controller-manager",
-		binaryPath: "/usr/bin/aws-cloud-controller-manager-tests-ext.gz",
-	},
 }
 
 // Info returns information about this particular extension.
