@@ -68,16 +68,28 @@ func WithLocalTempFile(pattern, content string, mode os.FileMode, fn func(path s
 func CreateFromTemplate(templatePath string, replacements map[string]string) (string, func(), error) {
 	klog.V(4).Infof("Processing template: %s", templatePath)
 
+	// Normalize path: if it starts with "testdata/", prepend "test/extended/" for validation
+	normalizedPath := templatePath
+	if strings.HasPrefix(templatePath, "testdata/") {
+		normalizedPath = filepath.Join("test/extended", templatePath)
+	}
+
 	// Validate template path to prevent directory traversal attacks
 	const allowedTemplateDir = "test/extended/testdata/two_node/"
-	if err := ValidateSafePath(templatePath, allowedTemplateDir); err != nil {
+	if err := ValidateSafePath(normalizedPath, allowedTemplateDir); err != nil {
 		return "", nil, WrapError("validate template path", templatePath, err)
 	}
 
+	// Use FixturePath to get the absolute path to the template file
+	// FixturePath expects path components as separate arguments, not a single string with slashes
+	pathComponents := strings.Split(templatePath, "/")
+	absolutePath := exutil.FixturePath(pathComponents...)
+	klog.V(4).Infof("Resolved template path to: %s", absolutePath)
+
 	// Read the template file
-	templateContent, err := os.ReadFile(templatePath)
+	templateContent, err := os.ReadFile(absolutePath)
 	if err != nil {
-		return "", nil, WrapError("read template", templatePath, err)
+		return "", nil, WrapError("read template", fmt.Sprintf("%s (resolved from %s)", absolutePath, templatePath), err)
 	}
 
 	// Apply all placeholder replacements
@@ -122,16 +134,28 @@ func CreateFromTemplate(templatePath string, replacements map[string]string) (st
 func CreateResourceFromTemplate(oc *exutil.CLI, templatePath string, replacements map[string]string) error {
 	klog.V(4).Infof("Processing template: %s", templatePath)
 
+	// Normalize path: if it starts with "testdata/", prepend "test/extended/" for validation
+	normalizedPath := templatePath
+	if strings.HasPrefix(templatePath, "testdata/") {
+		normalizedPath = filepath.Join("test/extended", templatePath)
+	}
+
 	// Validate template path to prevent directory traversal attacks
 	const allowedTemplateDir = "test/extended/testdata/two_node/"
-	if err := ValidateSafePath(templatePath, allowedTemplateDir); err != nil {
+	if err := ValidateSafePath(normalizedPath, allowedTemplateDir); err != nil {
 		return WrapError("validate template path", templatePath, err)
 	}
 
+	// Use FixturePath to get the absolute path to the template file
+	// FixturePath expects path components as separate arguments, not a single string with slashes
+	pathComponents := strings.Split(templatePath, "/")
+	absolutePath := exutil.FixturePath(pathComponents...)
+	klog.V(4).Infof("Resolved template path to: %s", absolutePath)
+
 	// Read the template file
-	templateContent, err := os.ReadFile(templatePath)
+	templateContent, err := os.ReadFile(absolutePath)
 	if err != nil {
-		return WrapError("read template", templatePath, err)
+		return WrapError("read template", fmt.Sprintf("%s (resolved from %s)", absolutePath, templatePath), err)
 	}
 
 	// Apply all placeholder replacements

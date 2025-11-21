@@ -27,20 +27,20 @@ CONFIGURATION METHODS:
 1. Command-Line Flag (recommended for interactive testing):
 
    openshift-tests run openshift/two-node --with-hypervisor-json='{
-     "IP": "192.168.111.1",
-     "User": "root",
+     "hypervisorIP": "192.168.111.1",
+     "sshUser": "root",
      "privateKeyPath": "/path/to/private/key"
    }'
 
 2. Environment Variable (recommended for CI/CD):
 
-   export HYPERVISOR_CONFIG='{"IP":"192.168.111.1","User":"root","privateKeyPath":"/path/to/key"}'
+   export HYPERVISOR_CONFIG='{"hypervisorIP":"192.168.111.1","sshUser":"root","privateKeyPath":"/path/to/key"}'
    openshift-tests run openshift/two-node
 
 CONFIGURATION FIELDS:
 
-- IP: IP address or hostname of the hypervisor
-- User: SSH username (typically "root")
+- hypervisorIP: IP address or hostname of the hypervisor
+- sshUser: SSH username (typically "root")
 - privateKeyPath: Absolute path to SSH private key file
 
 TROUBLESHOOTING:
